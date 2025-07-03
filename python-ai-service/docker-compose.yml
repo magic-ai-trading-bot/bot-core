@@ -1,0 +1,70 @@
+version: "3.8"
+
+services:
+  ai-trading-service:
+    build: .
+    container_name: crypto-ai-trading
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - MODEL_TYPE=lstm
+      - LOG_LEVEL=INFO
+      - MODEL_SAVE_PATH=/app/models/saved/
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./config.yaml:/app/config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis for caching (uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: crypto-ai-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+
+  # Optional: PostgreSQL for model storage (uncomment if needed)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: crypto-ai-postgres
+  #   environment:
+  #     POSTGRES_DB: trading_ai
+  #     POSTGRES_USER: trading_user
+  #     POSTGRES_PASSWORD: trading_password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+  # Optional: Prometheus for monitoring (uncomment if needed)
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: crypto-ai-prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
+  #     - '--web.console.templates=/etc/prometheus/consoles'
+  #   restart: unless-stopped
+# Uncomment if using optional services
+# volumes:
+#   redis_data:
+#   postgres_data:
+#   prometheus_data:

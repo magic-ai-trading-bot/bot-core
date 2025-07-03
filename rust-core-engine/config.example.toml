@@ -1,0 +1,89 @@
+# Binance Trading Bot Configuration
+# Copy this file to config.toml and customize for your needs
+
+[binance]
+# Your Binance API credentials
+# Get these from https://www.binance.com/en/support/faq/360002502072
+api_key = "your_binance_api_key_here"
+secret_key = "your_binance_secret_key_here"
+
+# Use testnet for safe testing (highly recommended)
+testnet = true
+
+# API endpoints (testnet URLs by default)
+base_url = "https://testnet.binance.vision"
+ws_url = "wss://testnet.binance.vision/ws"
+futures_base_url = "https://testnet.binancefuture.com"
+futures_ws_url = "wss://stream.binancefuture.com/ws"
+
+# For live trading, use these URLs instead:
+# base_url = "https://api.binance.com"
+# ws_url = "wss://stream.binance.com:9443/ws"
+# futures_base_url = "https://fapi.binance.com"
+# futures_ws_url = "wss://fstream.binance.com/ws"
+
+[market_data]
+# Cryptocurrency symbols to monitor
+symbols = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "DOTUSDT", "LINKUSDT"]
+
+# Timeframes to track simultaneously
+timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"]
+
+# Number of historical candles to fetch per timeframe
+kline_limit = 500
+
+# How often to update data (milliseconds)
+update_interval_ms = 1000
+
+# WebSocket reconnection settings
+reconnect_interval_ms = 5000
+max_reconnect_attempts = 10
+
+# Cache settings
+cache_size = 1000
+
+# Python AI service URL for market analysis
+# You need to run a separate Python service that accepts analysis requests
+python_ai_service_url = "http://localhost:8000"
+
+[trading]
+# IMPORTANT: Set to true only when you're ready for live trading
+enabled = false
+
+# Maximum number of concurrent positions
+max_positions = 5
+
+# Default position size (in base currency)
+default_quantity = 0.01
+
+# Risk management settings
+risk_percentage = 2.0          # Maximum risk per trade (% of account)
+stop_loss_percentage = 2.0     # Default stop loss distance (%)
+take_profit_percentage = 4.0   # Default take profit target (%)
+
+# Order timeout (seconds)
+order_timeout_seconds = 30
+
+# How often to check position status (seconds)
+position_check_interval_seconds = 5
+
+# Futures trading settings
+leverage = 1                   # Trading leverage (1-125)
+margin_type = "CROSSED"        # CROSSED or ISOLATED
+
+[database]
+# SQLite database for storing trade history and analysis results
+url = "sqlite:./trading_data.db"
+max_connections = 10
+enable_logging = false
+
+[api]
+# HTTP API server settings for dashboard access
+host = "0.0.0.0"
+port = 8080
+
+# CORS settings for web dashboard
+cors_origins = ["*"]
+
+# Enable metrics collection
+enable_metrics = true 

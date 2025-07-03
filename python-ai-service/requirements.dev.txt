@@ -1,0 +1,44 @@
+# Development dependencies for Python AI Service
+-r requirements.txt
+
+# Development and testing tools
+pytest==7.4.0
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.11.1
+
+# Code quality and linting
+flake8==6.0.0
+black==23.7.0
+isort==5.12.0
+mypy==1.5.1
+
+# Development server and hot reload
+watchdog==3.0.0
+uvicorn[standard]==0.23.2
+
+# Debugging and profiling
+pdb-attach==3.2.0
+line-profiler==4.1.1
+memory-profiler==0.61.0
+
+# Documentation
+sphinx==7.1.2
+sphinx-rtd-theme==1.3.0
+
+# Jupyter for data analysis and experimentation
+jupyter==1.0.0
+jupyterlab==4.0.5
+ipykernel==6.25.1
+
+# Additional ML development tools
+matplotlib==3.7.2
+seaborn==0.12.2
+plotly==5.15.0
+
+# Database tools for development
+alembic==1.11.3
+sqlalchemy==2.0.19
+
+# Environment management
+python-dotenv==1.0.0 
