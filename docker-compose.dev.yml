@@ -1,0 +1,89 @@
+version: "3.8"
+
+services:
+  # Python AI Service - Development with hot reload
+  python-ai-service:
+    build:
+      context: ./python-ai-service
+      dockerfile: Dockerfile.dev
+      target: development
+    volumes:
+      # Mount source code for hot reload
+      - ./python-ai-service:/app
+      - /app/models # Exclude models directory from mount
+      - /app/__pycache__ # Exclude pycache
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - LOG_LEVEL=DEBUG
+      - FLASK_ENV=development
+      - ENABLE_HOT_RELOAD=true
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-dir",
+        "/app",
+      ]
+
+  # Rust Core Engine - Development with hot reload
+  rust-core-engine:
+    build:
+      context: ./rust-core-engine
+      dockerfile: Dockerfile.dev
+      target: development
+    volumes:
+      # Mount source code for hot reload
+      - ./rust-core-engine:/app
+      - /app/target # Exclude target directory
+    environment:
+      - RUST_LOG=debug
+      - DATABASE_URL=sqlite:./data/trading_data.db
+      - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
+      - CARGO_WATCH=1
+    command: ["cargo", "watch", "-x", "run -- --config config.toml"]
+
+  # Next.js UI Dashboard - Development with hot reload
+  nextjs-ui-dashboard:
+    build:
+      context: ./nextjs-ui-dashboard
+      dockerfile: Dockerfile.dev
+      target: development
+    volumes:
+      # Mount source code for hot reload
+      - ./nextjs-ui-dashboard:/app
+      - /app/node_modules # Exclude node_modules
+      - /app/.next # Exclude build directory
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8080
+      - VITE_AI_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    stdin_open: true
+    tty: true
+
+  # Optional: File watcher service for additional file monitoring
+  file-watcher:
+    image: alpine:latest
+    volumes:
+      - ./:/workspace
+    command: |
+      sh -c "
+        apk add --no-cache inotify-tools &&
+        echo 'File watcher started...' &&
+        while inotifywait -r -e modify,create,delete /workspace; do
+          echo 'Files changed at $(date)'
+        done
+      "
+    profiles:
+      - watcher

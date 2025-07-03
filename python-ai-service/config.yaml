@@ -1,0 +1,50 @@
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: false
+
+model:
+  type: "lstm" # lstm, gru, or transformer
+  sequence_length: 60
+  features_count: 15
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 100
+  validation_split: 0.2
+
+trading:
+  long_threshold: 0.6
+  short_threshold: 0.4
+  neutral_zone: 0.1
+  confidence_threshold: 0.55
+
+technical_indicators:
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  ema_periods: [9, 21, 50]
+  bollinger_period: 20
+  bollinger_std: 2
+  volume_sma_period: 20
+
+data:
+  supported_timeframes: ["1m", "5m", "15m", "1h", "4h", "1d"]
+  min_candles_required: 100
+  max_candles_per_request: 1000
+
+model_management:
+  model_save_path: "./models/saved/"
+  retrain_interval_hours: 24
+  backup_count: 5
+  auto_retrain: true
+
+logging:
+  level: "INFO"
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message}"
+  file: "./logs/trading_ai.log"
+  rotation: "10 MB"
+  retention: "7 days"
