@@ -5,6 +5,7 @@ use tracing_subscriber::FmtSubscriber;
 use tokio::sync::broadcast;
 
 mod config;
+mod auth;
 mod binance;
 mod market_data;
 mod trading;
@@ -80,7 +81,8 @@ async fn main() -> Result<()> {
         market_data_processor.clone(),
         trading_engine.clone(),
         ws_sender.clone(),
-    );
+        storage.clone(),
+    ).await?;
     
     // Start all components
     let market_data_handle = tokio::spawn(async move {

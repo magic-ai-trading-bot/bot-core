@@ -8,12 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 
-const Login = () => {
+const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login, isAuthenticated, loading, error } = useAuth();
+  const { register, isAuthenticated, loading, error } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -22,37 +24,55 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword) {
       toast({
-        title: "Lỗi đăng nhập",
-        description: "Vui lòng nhập email và mật khẩu",
+        title: "Lỗi đăng ký",
+        description: "Vui lòng điền đầy đủ thông tin",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Lỗi đăng ký",
+        description: "Mật khẩu xác nhận không khớp",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Lỗi đăng ký",
+        description: "Mật khẩu phải có ít nhất 6 ký tự",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      const success = await login(email, password);
+      const success = await register(email, password, fullName || undefined);
       if (success) {
         toast({
-          title: "Đăng nhập thành công",
-          description: "Chào mừng trở lại với Trading Bot Dashboard!",
+          title: "Đăng ký thành công",
+          description: "Chào mừng bạn đến với Trading Bot Dashboard!",
         });
         navigate("/dashboard", { replace: true });
       } else if (error) {
         toast({
-          title: "Lỗi đăng nhập",
+          title: "Lỗi đăng ký",
           description: error,
           variant: "destructive",
         });
       }
     } catch (err) {
       toast({
-        title: "Lỗi đăng nhập",
-        description: "Có lỗi xảy ra khi đăng nhập",
+        title: "Lỗi đăng ký",
+        description: "Có lỗi xảy ra khi đăng ký",
         variant: "destructive",
       });
     }
@@ -73,25 +93,38 @@ const Login = () => {
           </div>
           <h1 className="text-2xl md:text-3xl font-bold">Crypto Trading Bot</h1>
           <p className="text-muted-foreground mt-2 text-sm md:text-base">
-            Đăng nhập để quản lý bot trading của bạn
+            Tạo tài khoản để bắt đầu giao dịch
           </p>
         </div>
 
         <Card className="shadow-2xl border-border/50 bg-card/80 backdrop-blur">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Đăng nhập</CardTitle>
+            <CardTitle className="text-2xl text-center">Đăng ký</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Họ và tên (tùy chọn)</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Nguyễn Văn A"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="bg-background/50"
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@tradingbot.com"
+                  placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-background/50"
+                  required
                 />
               </div>
 
@@ -104,6 +137,20 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-background/50"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="bg-background/50"
+                  required
                 />
               </div>
 
@@ -112,36 +159,21 @@ const Login = () => {
                 className="w-full bg-profit hover:bg-profit/90 text-profit-foreground"
                 disabled={loading}
               >
-                {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                {loading ? "Đang đăng ký..." : "Đăng ký"}
               </Button>
             </form>
 
-            {/* Register Link */}
+            {/* Login Link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                Chưa có tài khoản?{" "}
+                Đã có tài khoản?{" "}
                 <Link
-                  to="/register"
+                  to="/login"
                   className="text-primary hover:underline font-medium"
                 >
-                  Đăng ký ngay
+                  Đăng nhập ngay
                 </Link>
               </p>
-            </div>
-
-            {/* Demo Credentials */}
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border/50">
-              <p className="text-sm text-muted-foreground mb-2">
-                Demo credentials:
-              </p>
-              <div className="text-xs space-y-1">
-                <p>
-                  <strong>Email:</strong> admin@tradingbot.com
-                </p>
-                <p>
-                  <strong>Password:</strong> demo123
-                </p>
-              </div>
             </div>
 
             {/* Features Preview */}
@@ -170,4 +202,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

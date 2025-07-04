@@ -13,6 +13,8 @@ use crate::config::ApiConfig;
 use crate::market_data::MarketDataProcessor;
 use crate::trading::TradingEngine;
 use crate::monitoring::MonitoringService;
+use crate::auth::{AuthService, UserRepository};
+use crate::storage::Storage;
 
 #[derive(Clone)]
 pub struct ApiServer {
@@ -21,6 +23,7 @@ pub struct ApiServer {
     trading_engine: TradingEngine,
     monitoring: Arc<RwLock<MonitoringService>>,
     ws_broadcaster: broadcast::Sender<String>,
+    auth_service: AuthService,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -61,19 +64,31 @@ impl<T> ApiResponse<T> {
 }
 
 impl ApiServer {
-    pub fn new(
+    pub async fn new(
         config: ApiConfig,
         market_data: MarketDataProcessor,
         trading_engine: TradingEngine,
         ws_broadcaster: broadcast::Sender<String>,
-    ) -> Self {
-        Self {
+        storage: Storage,
+    ) -> Result<Self> {
+        // Initialize auth service - use dummy implementation if database is not available
+        let auth_service = if let Some(db) = storage.get_database() {
+            let user_repo = UserRepository::new(db).await?;
+            let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "default_jwt_secret_change_in_production".to_string());
+            AuthService::new(user_repo, jwt_secret)
+        } else {
+            // Create a dummy auth service that returns errors for all operations
+            AuthService::new_dummy()
+        };
+
+        Ok(Self {
             config,
             market_data,
             trading_engine,
             monitoring: Arc::new(RwLock::new(MonitoringService::new())),
             ws_broadcaster,
-        }
+            auth_service,
+        })
     }
 
     pub async fn start(&self) -> Result<()> {
@@ -119,13 +134,14 @@ impl ApiServer {
         // Monitoring routes
         let monitoring = self.monitoring_routes();
 
-        let api = warp::path("api")
-            .and(
-                health
-                    .or(market_data)
-                    .or(trading)
-                    .or(monitoring)
-            );
+        // Combine all routes
+        let api_routes = health
+            .or(market_data)
+            .or(trading)
+            .or(monitoring)
+            .or(self.auth_service.routes());
+
+        let api = warp::path("api").and(api_routes);
 
         // Root level routes (not under /api prefix)
         let root_routes = websocket;

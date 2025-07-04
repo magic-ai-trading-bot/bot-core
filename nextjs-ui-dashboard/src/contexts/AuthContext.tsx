@@ -1,50 +1,131 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import {
+  BotCoreApiClient,
+  LoginRequest,
+  RegisterRequest,
+  UserProfile,
+} from "@/services/api";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  user: UserProfile | null;
   login: (email: string, password: string) => Promise<boolean>;
+  register: (
+    email: string,
+    password: string,
+    fullName?: string
+  ) => Promise<boolean>;
   logout: () => void;
-  userEmail: string | null;
+  loading: boolean;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const apiClient = new BotCoreApiClient();
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in
-    const authStatus = localStorage.getItem('isAuthenticated');
-    const email = localStorage.getItem('userEmail');
-    
-    if (authStatus === 'true' && email) {
-      setIsAuthenticated(true);
-      setUserEmail(email);
-    }
+    const initializeAuth = async () => {
+      const token = apiClient.auth.getAuthToken();
+
+      if (token && !apiClient.auth.isTokenExpired()) {
+        try {
+          const userProfile = await apiClient.auth.getProfile();
+          setUser(userProfile);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error("Failed to verify token:", error);
+          apiClient.auth.removeAuthToken();
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simple demo authentication
-    if (email && password) {
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userEmail', email);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const loginRequest: LoginRequest = { email, password };
+      const response = await apiClient.auth.login(loginRequest);
+
+      // Store token and user data
+      apiClient.auth.setAuthToken(response.token);
+      setUser(response.user);
       setIsAuthenticated(true);
-      setUserEmail(email);
+
       return true;
+    } catch (error: unknown) {
+      console.error("Login failed:", error);
+      setError(error instanceof Error ? error.message : "Login failed");
+      return false;
+    } finally {
+      setLoading(false);
     }
-    return false;
+  };
+
+  const register = async (
+    email: string,
+    password: string,
+    fullName?: string
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const registerRequest: RegisterRequest = {
+        email,
+        password,
+        full_name: fullName,
+      };
+      const response = await apiClient.auth.register(registerRequest);
+
+      // Store token and user data
+      apiClient.auth.setAuthToken(response.token);
+      setUser(response.user);
+      setIsAuthenticated(true);
+
+      return true;
+    } catch (error: unknown) {
+      console.error("Registration failed:", error);
+      setError(error instanceof Error ? error.message : "Registration failed");
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
+    apiClient.auth.removeAuthToken();
     setIsAuthenticated(false);
-    setUserEmail(null);
+    setUser(null);
+    setError(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, userEmail }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        login,
+        register,
+        logout,
+        loading,
+        error,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -53,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
