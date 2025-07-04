@@ -1,8 +1,8 @@
 use anyhow::Result;
-use crossbeam_channel::{Receiver, Sender};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
 use std::time::Duration;
+use tokio::sync::mpsc;
 use tokio::time::{interval, sleep};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{debug, error, info, warn};
@@ -13,22 +13,19 @@ use super::types::*;
 
 pub struct BinanceWebSocket {
     config: BinanceConfig,
-    sender: Sender<StreamEvent>,
-    receiver: Receiver<StreamEvent>,
+    sender: mpsc::UnboundedSender<StreamEvent>,
 }
 
 impl BinanceWebSocket {
-    pub fn new(config: BinanceConfig) -> (Self, Receiver<StreamEvent>) {
-        let (sender, receiver) = crossbeam_channel::unbounded();
-        let ws_receiver = receiver.clone();
+    pub fn new(config: BinanceConfig) -> (Self, mpsc::UnboundedReceiver<StreamEvent>) {
+        let (sender, receiver) = mpsc::unbounded_channel();
         
         let ws = Self {
             config,
             sender,
-            receiver,
         };
         
-        (ws, ws_receiver)
+        (ws, receiver)
     }
 
     pub async fn start(&self, symbols: Vec<String>, timeframes: Vec<String>) -> Result<()> {
@@ -205,11 +202,11 @@ impl BinanceWebSocket {
 pub struct BinanceUserDataStream {
     config: BinanceConfig,
     listen_key: String,
-    sender: Sender<serde_json::Value>,
+    sender: mpsc::UnboundedSender<serde_json::Value>,
 }
 
 impl BinanceUserDataStream {
-    pub async fn new(config: BinanceConfig, sender: Sender<serde_json::Value>) -> Result<Self> {
+    pub async fn new(config: BinanceConfig, sender: mpsc::UnboundedSender<serde_json::Value>) -> Result<Self> {
         // In a real implementation, you would need to:
         // 1. Call the /fapi/v1/listenKey endpoint to get a listen key
         // 2. Set up a periodic task to keep the listen key alive

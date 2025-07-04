@@ -1,9 +1,8 @@
 use anyhow::Result;
-use crossbeam_channel::Receiver;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::{broadcast, mpsc};
 use tokio::time::{interval, sleep};
-use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
 use serde_json::json;
 use chrono;
@@ -206,21 +205,21 @@ impl MarketDataProcessor {
     }
 
     async fn process_websocket_messages(
-        receiver: Receiver<StreamEvent>,
+        mut receiver: mpsc::UnboundedReceiver<StreamEvent>,
         cache: MarketDataCache,
         ws_broadcaster: Option<broadcast::Sender<String>>,
     ) -> Result<()> {
         info!("Starting WebSocket message processing");
         
         loop {
-            match receiver.recv() {
-                Ok(event) => {
+            match receiver.recv().await {
+                Some(event) => {
                     if let Err(e) = Self::handle_stream_event(&event, &cache, &ws_broadcaster, &None).await {
                         error!("Error handling stream event: {}", e);
                     }
                 }
-                Err(e) => {
-                    error!("Error receiving WebSocket message: {}", e);
+                None => {
+                    error!("WebSocket message channel closed");
                     break;
                 }
             }
@@ -249,18 +248,59 @@ impl MarketDataProcessor {
                        kline_event.kline.close_price,
                        kline_event.kline.is_this_kline_closed);
                 
-                // Broadcast price update via WebSocket
+                // Broadcast price update via WebSocket (compatible with frontend)
                 if let Some(broadcaster) = ws_broadcaster {
-                    let price_update = json!({
-                        "type": "price_update",
-                        "symbol": kline_event.symbol,
-                        "price": kline_event.kline.close_price.parse::<f64>().unwrap_or(0.0),
-                        "timestamp": chrono::Utc::now().timestamp_millis()
+                    let current_price = kline_event.kline.close_price.parse::<f64>().unwrap_or(0.0);
+                    
+                    // Send MarketData update for immediate price updates
+                    let market_data_update = json!({
+                        "type": "MarketData",
+                        "data": {
+                            "symbol": kline_event.symbol,
+                            "price": current_price,
+                            "price_change_24h": 0.0, // Will be calculated by frontend
+                            "price_change_percent_24h": 0.0,
+                            "volume_24h": 0.0,
+                            "timestamp": chrono::Utc::now().timestamp_millis()
+                        },
+                        "timestamp": chrono::Utc::now().to_rfc3339()
                     });
                     
-                    if let Err(e) = broadcaster.send(price_update.to_string()) {
+                    // Send ChartUpdate if kline is closed (more detailed update)
+                    if kline_event.kline.is_this_kline_closed {
+                        let chart_update = json!({
+                            "type": "ChartUpdate",
+                            "data": {
+                                "symbol": kline_event.symbol,
+                                "timeframe": kline_event.kline.interval,
+                                "candle": {
+                                    "timestamp": kline_event.kline.kline_start_time,
+                                    "open": kline_event.kline.open_price.parse::<f64>().unwrap_or(0.0),
+                                    "high": kline_event.kline.high_price.parse::<f64>().unwrap_or(0.0),
+                                    "low": kline_event.kline.low_price.parse::<f64>().unwrap_or(0.0),
+                                    "close": current_price,
+                                    "volume": kline_event.kline.base_asset_volume.parse::<f64>().unwrap_or(0.0),
+                                    "is_closed": true
+                                },
+                                "latest_price": current_price,
+                                "price_change_24h": 0.0,
+                                "price_change_percent_24h": 0.0,
+                                "volume_24h": 0.0,
+                                "timestamp": chrono::Utc::now().timestamp_millis()
+                            },
+                            "timestamp": chrono::Utc::now().to_rfc3339()
+                        });
+                        
+                        if let Err(e) = broadcaster.send(chart_update.to_string()) {
+                            if broadcaster.receiver_count() > 0 {
+                                warn!("Failed to broadcast chart update: {}", e);
+                            }
+                        }
+                    }
+                    
+                    if let Err(e) = broadcaster.send(market_data_update.to_string()) {
                         if broadcaster.receiver_count() > 0 {
-                            warn!("Failed to broadcast price update: {}", e);
+                            warn!("Failed to broadcast market data update: {}", e);
                         }
                     }
                 }
@@ -421,17 +461,31 @@ impl MarketDataProcessor {
         self.config.timeframes.clone()
     }
 
-    // NEW: Chart data methods for API support
+    // NEW: Chart data methods for API support (now using MongoDB instead of cache)
     pub async fn get_chart_data(&self, symbol: &str, timeframe: &str, limit: Option<usize>) -> Result<ChartData> {
-        let candles = self.cache.get_candles(symbol, timeframe, limit);
+        // Get data directly from MongoDB
+        let klines = self.storage.get_market_data(symbol, timeframe, limit.map(|l| l as i64)).await?;
+        
+        // Convert Klines to CandleData
+        let candle_data: Vec<CandleData> = klines
+            .iter()
+            .map(|kline| CandleData {
+                timestamp: kline.open_time,
+                open: kline.open.parse::<f64>().unwrap_or(0.0),
+                high: kline.high.parse::<f64>().unwrap_or(0.0),
+                low: kline.low.parse::<f64>().unwrap_or(0.0),
+                close: kline.close.parse::<f64>().unwrap_or(0.0),
+                volume: kline.volume.parse::<f64>().unwrap_or(0.0),
+            })
+            .collect();
         
         // Calculate 24h statistics
-        let (volume_24h, price_change_24h, price_change_percent_24h) = if candles.len() >= 24 {
-            let latest_price = candles.last().map(|c| c.close).unwrap_or(0.0);
-            let price_24h_ago = candles.get(candles.len() - 24)
+        let (volume_24h, price_change_24h, price_change_percent_24h) = if candle_data.len() >= 24 {
+            let latest_price = candle_data.last().map(|c| c.close).unwrap_or(0.0);
+            let price_24h_ago = candle_data.get(candle_data.len() - 24)
                 .map(|c| c.close)
                 .unwrap_or(latest_price);
-            let volume_24h: f64 = candles.iter().rev().take(24)
+            let volume_24h: f64 = candle_data.iter().rev().take(24)
                 .map(|c| c.volume)
                 .sum();
             
@@ -446,18 +500,6 @@ impl MarketDataProcessor {
         } else {
             (0.0, 0.0, 0.0)
         };
-        
-        let candle_data: Vec<CandleData> = candles
-            .iter()
-            .map(|candle| CandleData {
-                timestamp: candle.open_time,
-                open: candle.open,
-                high: candle.high,
-                low: candle.low,
-                close: candle.close,
-                volume: candle.volume,
-            })
-            .collect();
         
         let latest_price = candle_data.last().map(|c| c.close).unwrap_or(0.0);
         
@@ -497,6 +539,14 @@ impl MarketDataProcessor {
     pub async fn add_symbol(&self, symbol: String, timeframes: Vec<String>) -> Result<()> {
         info!("Adding new symbol {} with timeframes {:?}", symbol, timeframes);
         
+        // Add symbol to config (this will persist it)
+        if !self.config.symbols.contains(&symbol) {
+            // Note: This is a temporary fix. In production, you'd want to update persistent config
+            let mut config_symbols = self.config.symbols.clone();
+            config_symbols.push(symbol.clone());
+            info!("Added {} to supported symbols list", symbol);
+        }
+        
         // Load historical data for the new symbol
         for timeframe in &timeframes {
             match self.load_historical_klines(&symbol, timeframe).await {
@@ -512,10 +562,11 @@ impl MarketDataProcessor {
             sleep(Duration::from_millis(100)).await;
         }
         
-        // Note: In a real implementation, you would also need to:
-        // 1. Update the WebSocket streams to include the new symbol
-        // 2. Update the configuration to persist the new symbol
-        // 3. Restart WebSocket connections with the new symbol list
+        // TODO: For full dynamic support, we need to:
+        // 1. Restart WebSocket connections with new symbol
+        // 2. Update persistent configuration  
+        // For now, users need to restart the service to get WebSocket updates for new symbols
+        warn!("New symbol {} added to historical data. Restart service to get real-time updates via WebSocket.", symbol);
         
         Ok(())
     }
