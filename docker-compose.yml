@@ -248,7 +248,7 @@ services:
       - ./nextjs-ui-dashboard/index.html:/app/index.html:ro
       - ./nextjs-ui-dashboard/vite.config.ts:/app/vite.config.ts:ro
       - ./nextjs-ui-dashboard/tailwind.config.ts:/app/tailwind.config.ts:ro
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    command: ["bun", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
     networks:
       - bot-network
     healthcheck:
