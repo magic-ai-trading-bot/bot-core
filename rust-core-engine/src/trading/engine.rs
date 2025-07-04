@@ -1,6 +1,4 @@
 use anyhow::Result;
-use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
@@ -415,7 +413,7 @@ impl TradingEngine {
         let exit_price: f64 = order_response.price.parse().unwrap_or(0.0);
 
         // Update trade record
-        let mut trade_record = TradeRecord {
+        let trade_record = TradeRecord {
             id: None,
             symbol: position.symbol.clone(),
             side: position.side.clone(),

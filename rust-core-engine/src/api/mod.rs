@@ -10,9 +10,9 @@ use tokio::sync::broadcast;
 use tracing::{error, info, debug};
 
 use crate::config::ApiConfig;
-use crate::market_data::{MarketDataProcessor, ChartData, CandleData};
+use crate::market_data::MarketDataProcessor;
 use crate::trading::TradingEngine;
-use crate::monitoring::{MonitoringService, SystemMetrics, TradingMetrics, ConnectionStatus};
+use crate::monitoring::MonitoringService;
 
 #[derive(Clone)]
 pub struct ApiServer {
@@ -370,7 +370,7 @@ impl ApiServer {
 
     // WebSocket handler for real-time updates
     async fn handle_websocket(ws: WebSocket, broadcaster: broadcast::Sender<String>) {
-        let (mut ws_sender, mut ws_receiver) = ws.split();
+        let (ws_sender, mut ws_receiver) = ws.split();
         let mut rx = broadcaster.subscribe();
         
         debug!("New WebSocket connection established");

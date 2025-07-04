@@ -4,7 +4,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
 use std::time::Duration;
 use tokio::time::{interval, sleep};
-use tokio_tungstenite::{connect_async, tungstenite::Message, WebSocketStream};
+use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{debug, error, info, warn};
 use url::Url;
 

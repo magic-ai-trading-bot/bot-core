@@ -3,7 +3,6 @@ use structopt::StructOpt;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use tokio::sync::broadcast;
-use serde_json::json;
 
 mod config;
 mod binance;

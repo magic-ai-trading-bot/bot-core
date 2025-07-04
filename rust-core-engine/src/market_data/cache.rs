@@ -1,10 +1,9 @@
-use anyhow::Result;
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use parking_lot::RwLock;
 use std::collections::{BTreeMap, VecDeque};
 use std::sync::Arc;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::binance::types::{Kline, KlineData};
 
