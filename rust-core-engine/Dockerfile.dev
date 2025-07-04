@@ -1,42 +1,18 @@
-# Development Dockerfile for Rust Core Engine with hot reload
-FROM rust:1.74-slim as base
+# Development Dockerfile for Rust Core Engine with hot reload (Apple Silicon compatible)
+FROM ubuntu:22.04
 
-# Install development dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
     pkg-config \
     libssl-dev \
-    ca-certificates \
-    curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install cargo-watch for hot reload
-RUN cargo install cargo-watch
-
-# Set working directory
-WORKDIR /app
-
-# Copy Cargo files first for better layer caching
-COPY Cargo.toml Cargo.lock ./
-
-# Create a dummy main.rs to build dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Build dependencies (this will be cached)
-RUN cargo build --release
-RUN rm src/main.rs
-
-# Development stage
-FROM rust:1.74-slim as development
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    ca-certificates \
-    curl \
-    sqlite3 \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/*
+# Install Rust via rustup for proper ARM64 support
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install cargo-watch for hot reload
 RUN cargo install cargo-watch
@@ -47,27 +23,40 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Set working directory
 WORKDIR /app
 
-# Copy pre-built dependencies from base stage
-COPY --from=base /app/target ./target
-COPY --from=base /usr/local/cargo /usr/local/cargo
+# Copy Cargo files first (for better caching)
+COPY Cargo.toml Cargo.lock ./
 
-# Copy configuration template
-COPY config.example.toml ./config.toml
+# Create a dummy src/main.rs to build dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
 
-# Create necessary directories
-RUN mkdir -p data logs && chown -R appuser:appuser /app
+# Build dependencies (cached layer)
+RUN cargo build --release
+
+# Remove dummy main.rs
+RUN rm src/main.rs
+
+# Copy source code
+COPY src ./src
+COPY config.toml ./config.toml
 
 # Set environment variables for development
 ENV RUST_LOG=debug
 ENV RUST_BACKTRACE=1
-ENV CARGO_INCREMENTAL=1
+
+# Create directories that will be mounted and set ownership
+RUN mkdir -p /app/src /app/data /app/logs && \
+    chown -R appuser:appuser /app
+
+# Switch to app user
+USER appuser
 
 # Expose port
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
-# Development command with hot reload
-CMD ["cargo", "watch", "--why", "--watch", "src", "--exec", "run -- --config config.toml"] 
+# Development command with hot reload using cargo-watch
+# Use cargo watch to monitor file changes and rebuild
+CMD ["sh", "-c", "cargo watch -x 'run -- --host 0.0.0.0 --port 8080'"] 

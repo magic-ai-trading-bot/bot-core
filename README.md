@@ -1,343 +1,253 @@
-# Bot Core Monorepo
+# 🚀 Crypto Trading Bot - Multi-Service Architecture
 
-A comprehensive cryptocurrency trading bot monorepo with AI-powered market analysis, real-time trading capabilities, and a modern web dashboard.
+A comprehensive cryptocurrency trading bot with AI-powered market analysis, built with microservices architecture using Python (AI), Rust (Core Engine), and Next.js (Frontend).
 
-## 🏗️ Architecture Overview
-
-This monorepo contains three main services:
-
-1. **Rust Core Engine** (`rust-core-engine/`) - High-performance trading engine
-2. **Python AI Service** (`python-ai-service/`) - Machine learning powered market analysis
-3. **Next.js UI Dashboard** (`nextjs-ui-dashboard/`) - Modern web interface
-
-## 🚀 Quick Start
+## 🎯 Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose
+- Docker & Docker Compose
 - Git
-- (Optional) Node.js 18+, Rust 1.74+, Python 3.9+ for local development
 
-### 1. Clone and Setup
+### 🔥 One-Command Start
 
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd bot-core
+
+# Start all services with memory optimization
+./scripts/bot.sh start --memory-optimized
+
+# Or start in development mode
+./scripts/bot.sh dev
+
+# Or regular production mode
+./scripts/bot.sh start
 ```
 
-### 2. Configure Environment Variables
+### 🎯 Access URLs
 
-Create a `.env` file in the root directory with the following variables:
+- **📊 Frontend Dashboard**: http://localhost:3000
+- **🦀 Rust Core Engine**: http://localhost:8080/api/health
+- **🐍 Python AI Service**: http://localhost:8000/health
+
+## 📋 Available Commands
+
+The bot uses a single control script that handles all operations:
+
+```bash
+# Service Management
+./scripts/bot.sh start              # Start all services (production)
+./scripts/bot.sh dev                # Start in development mode
+./scripts/bot.sh stop               # Stop all services
+./scripts/bot.sh restart            # Restart all services
+
+# Monitoring & Logs
+./scripts/bot.sh status             # Show service status & resource usage
+./scripts/bot.sh logs               # Show logs for all services
+./scripts/bot.sh logs --service python-ai-service  # Show logs for specific service
+
+# Build & Maintenance
+./scripts/bot.sh build              # Build all services
+./scripts/bot.sh build --service rust-core-engine  # Build specific service
+./scripts/bot.sh clean              # Clean up containers and volumes
+
+# Help
+./scripts/bot.sh help               # Show all available commands
+```
+
+## 🎛️ Configuration Modes
+
+### Memory Optimized (Recommended for Low-Memory Systems)
+
+```bash
+./scripts/bot.sh start --memory-optimized
+```
+
+- Python AI Service: 1.5GB limit
+- Rust Core Engine: 1GB limit
+- Frontend Dashboard: 512MB limit
+
+### Development Mode
+
+```bash
+./scripts/bot.sh dev
+```
+
+- Hot reload for all services
+- Debug logging enabled
+- Source code mounted for live editing
+
+### Production Mode
+
+```bash
+./scripts/bot.sh start
+```
+
+- Optimized builds
+- Full resource allocation
+- Production logging
+
+## 🔧 Environment Configuration
+
+The bot uses environment variables for configuration. Copy `config.env` to `.env` and customize:
+
+```bash
+cp config.env .env
+# Edit .env with your preferred settings
+```
+
+### Key Configuration Options:
 
 ```env
-# Binance API Configuration
-BINANCE_API_KEY=your_binance_api_key_here
-BINANCE_SECRET_KEY=your_binance_secret_key_here
+# Resource Limits
+PYTHON_MEMORY_LIMIT=2G
+RUST_MEMORY_LIMIT=2G
+FRONTEND_MEMORY_LIMIT=1G
+
+# API Keys
+BINANCE_API_KEY=your_api_key_here
+BINANCE_SECRET_KEY=your_secret_key_here
 BINANCE_TESTNET=true
-TRADING_ENABLED=false
 
-# Database Configuration
-POSTGRES_PASSWORD=secure_postgres_password_here
-REDIS_PASSWORD=secure_redis_password_here
-
-# Monitoring
-GRAFANA_PASSWORD=secure_grafana_password_here
-
-# Application Settings
-LOG_LEVEL=INFO
-NODE_ENV=development
-REACT_APP_API_URL=http://localhost:8080
-REACT_APP_AI_API_URL=http://localhost:8000
+# Security
+TRADING_ENABLED=false  # Set to true only when ready for live trading
 ```
 
-### 3. Run with Docker Compose
+## 🏗️ Architecture
 
-```bash
-# For PRODUCTION - Start core services
-docker-compose up -d
+### Services:
 
-# For DEVELOPMENT with hot reload - Setup first
-make setup-dev
+1. **🐍 Python AI Service** (Port 8000)
 
-# Then start development environment
-make dev
+   - Machine learning models for market analysis
+   - Technical indicators calculation
+   - Real-time predictions
 
-# Or start with optional services (production)
-docker-compose --profile postgres --profile redis --profile monitoring up -d
+2. **🦀 Rust Core Engine** (Port 8080)
+
+   - High-performance trading engine
+   - Binance WebSocket connections
+   - Risk management & position control
+
+3. **⚛️ Next.js Frontend** (Port 3000)
+   - Real-time trading dashboard
+   - Interactive charts and analytics
+   - User-friendly controls
+
+### Key Features:
+
+- 🔄 **Real-time Market Data**: Live WebSocket connections
+- 🤖 **AI-Powered Analysis**: Machine learning market predictions
+- 📊 **Advanced Charts**: Technical analysis visualization
+- 🛡️ **Risk Management**: Built-in safety mechanisms
+- 📱 **Responsive UI**: Modern, mobile-friendly interface
+
+## 🐳 Docker Structure
+
+The project uses a single `docker-compose.yml` file with profiles for different modes:
+
+```yaml
+# Production services (default)
+docker compose up -d
+
+# Development services with hot reload
+docker compose --profile dev up -d
 ```
 
-### 4. Access the Services
+## 🚀 Performance Optimization
 
-- **Web Dashboard**: http://localhost:3000
-- **Rust Trading API**: http://localhost:8080
-- **Python AI API**: http://localhost:8000
-- **Grafana Monitoring**: http://localhost:3001 (if monitoring profile enabled)
+### Memory Usage (with --memory-optimized):
 
-## 📋 Services Overview
+- **Frontend**: ~3MB (0.58% of 512MB limit)
+- **Rust Core**: ~8MB (0.75% of 1GB limit)
+- **Python AI**: ~237MB (15.44% of 1.5GB limit)
+- **Total**: ~248MB RAM usage
 
-### Rust Core Engine (Port 8080)
+### CPU Usage:
 
-High-performance trading engine built with Rust featuring:
+- All services optimized for low CPU consumption
+- Multi-threaded processing where beneficial
+- Efficient resource allocation
 
-- **Real-time Market Data**: WebSocket connections to Binance
-- **Trading Execution**: Automated order placement and management
-- **Risk Management**: Position sizing and stop-loss management
-- **Data Storage**: SQLite/PostgreSQL for trade history
-- **REST API**: HTTP endpoints for dashboard integration
+## 🔍 Monitoring & Debugging
 
-**Key Features:**
-
-- Multi-symbol trading support
-- Real-time price monitoring
-- Technical analysis integration
-- Risk management controls
-- Performance metrics
-
-### Python AI Service (Port 8000)
-
-Machine learning service for market analysis:
-
-- **AI Models**: LSTM, GRU, and Transformer models
-- **Technical Analysis**: 15+ technical indicators
-- **Signal Generation**: Long/Short/Neutral trading signals
-- **Model Training**: Custom model training with historical data
-- **FastAPI**: REST API for real-time predictions
-
-**Key Features:**
-
-- Multiple AI model types
-- Real-time signal generation
-- Model retraining capabilities
-- Technical indicator calculation
-- Confidence scoring
-
-### Next.js UI Dashboard (Port 3000)
-
-Modern web dashboard built with React and Next.js:
-
-- **Real-time Updates**: Live trading data and charts
-- **Performance Analytics**: Trading performance metrics
-- **AI Insights**: Market analysis and signal visualization
-- **Settings Management**: Trading parameters and risk controls
-- **Responsive Design**: Mobile-friendly interface
-
-**Key Features:**
-
-- Real-time charting
-- Trading history
-- AI signal visualization
-- Bot configuration
-- Performance analytics
-
-## 🛠️ Development Setup
-
-### Local Development
-
-Each service can be run locally for development:
-
-#### Rust Core Engine
+### Check Service Status:
 
 ```bash
-cd rust-core-engine
-cargo run -- --config config.toml
+./scripts/bot.sh status
 ```
 
-#### Python AI Service
+### View Resource Usage:
 
 ```bash
-cd python-ai-service
-pip install -r requirements.txt
-python main.py
+docker stats --no-stream
 ```
 
-#### Next.js Dashboard
+### Debug Specific Service:
 
 ```bash
-cd nextjs-ui-dashboard
-npm install
-npm run dev
+./scripts/bot.sh logs --service <service-name>
 ```
 
-### Docker Profiles and Development Mode
+### Available Services:
 
-The docker-compose.yml supports multiple profiles:
+- `python-ai-service`
+- `rust-core-engine`
+- `nextjs-ui-dashboard`
+
+## 🛠️ Development
+
+### Hot Reload Development:
 
 ```bash
-# Core services only (Production)
-docker-compose up -d
-
-# Development mode with hot reload
-make dev
-# or
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-
-# With PostgreSQL database
-docker-compose --profile postgres up -d
-
-# With Redis caching
-docker-compose --profile redis up -d
-
-# With monitoring (Prometheus + Grafana)
-docker-compose --profile monitoring up -d
-
-# All services
-docker-compose --profile postgres --profile redis --profile monitoring up -d
+./scripts/bot.sh dev
 ```
 
-### Development with Hot Reload
+This enables:
 
-For development with automatic code reloading:
+- Live code reloading for all services
+- Debug logging
+- Source code mounting
+
+### Build Individual Services:
 
 ```bash
-# Start all services in development mode
-make dev
-
-# Start individual services in development mode
-make dev-rust      # Rust with cargo-watch
-make dev-python    # Python with uvicorn --reload
-make dev-frontend  # Vite with hot module replacement
-
-# View development logs
-make dev-logs
-
-# Stop development services
-make dev-stop
-
-# Rebuild development containers
-make dev-rebuild
+./scripts/bot.sh build --service python-ai-service
+./scripts/bot.sh build --service rust-core-engine
+./scripts/bot.sh build --service nextjs-ui-dashboard
 ```
 
-**Development Features:**
+## 🔒 Security
 
-- **Hot Reload**: All services automatically restart on code changes
-- **Volume Mounting**: Source code is mounted for instant updates
-- **Debug Logging**: Enhanced logging for development
-- **Development Dependencies**: Additional dev tools and debuggers
+- All services communicate through internal Docker network
+- API keys stored in environment variables
+- Testnet mode enabled by default
+- Trading disabled by default (safety first)
 
-## 🔧 Configuration
+## 🚨 Safety Features
 
-### Environment Variables
+- **Testnet Mode**: All trading operations use Binance Testnet by default
+- **Trading Disabled**: Manual activation required for live trading
+- **Risk Management**: Built-in position size limits and stop-loss mechanisms
+- **Health Checks**: Automatic service monitoring and restart
 
-| Variable             | Description            | Default           |
-| -------------------- | ---------------------- | ----------------- |
-| `BINANCE_API_KEY`    | Binance API key        | Required          |
-| `BINANCE_SECRET_KEY` | Binance secret key     | Required          |
-| `BINANCE_TESTNET`    | Use testnet            | `true`            |
-| `TRADING_ENABLED`    | Enable live trading    | `false`           |
-| `LOG_LEVEL`          | Logging level          | `INFO`            |
-| `POSTGRES_PASSWORD`  | PostgreSQL password    | `defaultpassword` |
-| `REDIS_PASSWORD`     | Redis password         | `defaultpassword` |
-| `GRAFANA_PASSWORD`   | Grafana admin password | `admin`           |
+## 📝 Troubleshooting
 
-### Service Configuration
+### Common Issues:
 
-Each service has its own configuration file:
+1. **Out of Memory**: Use `--memory-optimized` flag
+2. **Service Unhealthy**: Check logs with `./scripts/bot.sh logs --service <name>`
+3. **Port Conflicts**: Ensure ports 3000, 8000, 8080 are available
+4. **Permission Errors**: Ensure Docker is running and user has permissions
 
-- **Rust**: `rust-core-engine/config.toml`
-- **Python**: `python-ai-service/config.yaml`
-- **Next.js**: `nextjs-ui-dashboard/vite.config.ts`
-
-## 🔒 Security Considerations
-
-### API Keys
-
-- Store Binance API keys securely
-- Use testnet for development
-- Never commit API keys to version control
-
-### Network Security
-
-- Services communicate over internal Docker network
-- Use proper firewall rules in production
-- Consider using SSL/TLS certificates
-
-### Database Security
-
-- Use strong passwords for database services
-- Backup trading data regularly
-- Consider encryption for sensitive data
-
-## 📊 Monitoring
-
-### Health Checks
-
-All services include health check endpoints:
-
-- **Rust**: `GET /health`
-- **Python**: `GET /health`
-- **Next.js**: `GET /health`
-
-### Metrics (with monitoring profile)
-
-- **Prometheus**: Metrics collection (port 9090)
-- **Grafana**: Dashboards and visualization (port 3001)
-
-## 🚢 Production Deployment
-
-### Docker Images
-
-Build production images:
+### Clean Reset:
 
 ```bash
-# Build all services
-docker-compose build
-
-# Build specific service
-docker-compose build rust-core-engine
-```
-
-### Kubernetes Deployment
-
-For Kubernetes deployment, consider:
-
-1. Converting docker-compose to Kubernetes manifests
-2. Using Helm charts for easier management
-3. Implementing proper secrets management
-4. Setting up ingress controllers
-
-## 📝 API Documentation
-
-### Rust Core Engine API
-
-- **GET /health** - Health check
-- **GET /api/status** - Trading bot status
-- **GET /api/positions** - Current positions
-- **GET /api/history** - Trading history
-- **POST /api/trade** - Manual trade execution
-
-### Python AI Service API
-
-- **GET /health** - Health check
-- **POST /analyze** - Analyze market data
-- **POST /train** - Train AI model
-- **GET /model/info** - Model information
-- **GET /config** - Service configuration
-
-Full API documentation available at:
-
-- Rust API: http://localhost:8080/docs
-- Python API: http://localhost:8000/docs
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Port conflicts**: Ensure ports 3000, 8000, 8080 are available
-2. **Docker permission errors**: Add user to docker group
-3. **Build failures**: Check Docker resources and internet connection
-4. **Service startup failures**: Check logs with `docker-compose logs <service>`
-
-### Debugging
-
-```bash
-# View logs for all services
-docker-compose logs -f
-
-# View logs for specific service
-docker-compose logs -f rust-core-engine
-
-# Access container shell
-docker-compose exec rust-core-engine sh
+./scripts/bot.sh stop
+./scripts/bot.sh clean
+./scripts/bot.sh start --memory-optimized
 ```
 
 ## 🤝 Contributing
@@ -345,15 +255,17 @@ docker-compose exec rust-core-engine sh
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests if applicable
+4. Test with `./scripts/bot.sh dev`
 5. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ## ⚠️ Disclaimer
 
-This software is for educational and development purposes only. Cryptocurrency trading involves significant financial risk. The authors are not responsible for any financial losses incurred through the use of this software.
+This software is for educational and testing purposes only. Cryptocurrency trading involves significant risks. Never risk more than you can afford to lose. Always test thoroughly with testnet before considering live trading.
 
-Always test with small amounts and use testnet environments before any live trading.
+---
+
+**🎯 Happy Trading!** 🚀

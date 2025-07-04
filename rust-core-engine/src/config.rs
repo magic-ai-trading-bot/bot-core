@@ -52,6 +52,7 @@ pub struct TradingConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     pub url: String,
+    pub database_name: Option<String>,
     pub max_connections: u32,
     pub enable_logging: bool,
 }
@@ -99,7 +100,8 @@ impl Default for Config {
                 margin_type: "CROSSED".to_string(),
             },
             database: DatabaseConfig {
-                url: "sqlite:./trading_data.db".to_string(),
+                url: "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin".to_string(),
+                database_name: Some("trading_bot".to_string()),
                 max_connections: 10,
                 enable_logging: false,
             },

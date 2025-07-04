@@ -7,40 +7,41 @@
 api_key = "your_binance_api_key_here"
 secret_key = "your_binance_secret_key_here"
 
-# Use testnet for safe testing (highly recommended)
-testnet = true
+# Use mainnet for real market data (live data)
+testnet = false
 
-# API endpoints (testnet URLs by default)
-base_url = "https://testnet.binance.vision"
-ws_url = "wss://testnet.binance.vision/ws"
-futures_base_url = "https://testnet.binancefuture.com"
-futures_ws_url = "wss://stream.binancefuture.com/ws"
+# API endpoints (mainnet URLs for real market data)
+base_url = "https://api.binance.com"
+ws_url = "wss://stream.binance.com:9443"
+futures_base_url = "https://fapi.binance.com"
+futures_ws_url = "wss://fstream.binance.com"
 
-# For live trading, use these URLs instead:
-# base_url = "https://api.binance.com"
-# ws_url = "wss://stream.binance.com:9443/ws"
-# futures_base_url = "https://fapi.binance.com"
-# futures_ws_url = "wss://fstream.binance.com/ws"
+# For safe testing, use these URLs instead:
+# testnet = true
+# base_url = "https://testnet.binance.vision"
+# ws_url = "wss://stream.testnet.binance.vision"
+# futures_base_url = "https://testnet.binancefuture.com"
+# futures_ws_url = "wss://stream.binancefuture.com/ws"
 
 [market_data]
-# Cryptocurrency symbols to monitor
-symbols = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "DOTUSDT", "LINKUSDT"]
+# Cryptocurrency symbols to monitor (reduced for testing)
+symbols = ["BTCUSDT", "ETHUSDT"]
 
-# Timeframes to track simultaneously
-timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"]
+# Timeframes to track simultaneously (optimized for trading bot)
+timeframes = ["1m", "3m", "5m", "15m", "30m", "1h", "4h"]
 
-# Number of historical candles to fetch per timeframe
-kline_limit = 500
+# Number of historical candles to fetch per timeframe (reduced)
+kline_limit = 100
 
-# How often to update data (milliseconds)
-update_interval_ms = 1000
+# How often to update data (milliseconds) - Ultra fast for trading
+update_interval_ms = 100
 
-# WebSocket reconnection settings
-reconnect_interval_ms = 5000
-max_reconnect_attempts = 10
+# WebSocket reconnection settings (faster reconnect)
+reconnect_interval_ms = 500
+max_reconnect_attempts = 5
 
 # Cache settings
-cache_size = 1000
+cache_size = 500
 
 # Python AI service URL for market analysis
 # You need to run a separate Python service that accepts analysis requests
@@ -51,7 +52,7 @@ python_ai_service_url = "http://localhost:8000"
 enabled = false
 
 # Maximum number of concurrent positions
-max_positions = 5
+max_positions = 3
 
 # Default position size (in base currency)
 default_quantity = 0.01
@@ -62,18 +63,19 @@ stop_loss_percentage = 2.0     # Default stop loss distance (%)
 take_profit_percentage = 4.0   # Default take profit target (%)
 
 # Order timeout (seconds)
-order_timeout_seconds = 30
+order_timeout_seconds = 15
 
 # How often to check position status (seconds)
-position_check_interval_seconds = 5
+position_check_interval_seconds = 10
 
 # Futures trading settings
 leverage = 1                   # Trading leverage (1-125)
 margin_type = "CROSSED"        # CROSSED or ISOLATED
 
 [database]
-# SQLite database for storing trade history and analysis results
-url = "sqlite:./trading_data.db"
+# MongoDB database for storing trade history and analysis results
+url = "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin"
+database_name = "trading_bot"
 max_connections = 10
 enable_logging = false
 

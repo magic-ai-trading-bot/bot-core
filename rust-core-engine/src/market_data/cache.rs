@@ -168,9 +168,15 @@ impl MarketDataCache {
         let key = Self::get_key(symbol, timeframe);
         let candle = CandleData::from(kline_data);
         
-        // Update price cache with latest close price
-        if kline_data.is_this_kline_closed {
-            self.price_cache.insert(symbol.to_uppercase(), candle.close);
+        // ALWAYS update price cache with latest close price for real-time updates
+        self.price_cache.insert(symbol.to_uppercase(), candle.close);
+        
+        // For shorter timeframes (1m, 5m), update more frequently for real-time feel
+        let should_log_update = matches!(timeframe, "1m" | "5m") || kline_data.is_this_kline_closed;
+        
+        if should_log_update {
+            debug!("Price update for {}: {} (closed: {})", 
+                   symbol, candle.close, kline_data.is_this_kline_closed);
         }
 
         let timeframe_data = self.data
@@ -276,23 +282,60 @@ impl MarketDataCache {
     }
 
     pub fn get_cache_stats(&self) -> CacheStats {
-        let mut total_candles = 0;
         let mut timeframe_counts = BTreeMap::new();
+        let mut total_candles = 0;
+        let mut symbols = std::collections::HashSet::new();
         
         for entry in self.data.iter() {
-            let data = entry.value().read();
-            total_candles += data.len();
-            
-            let timeframe = &data.timeframe;
-            *timeframe_counts.entry(timeframe.clone()).or_insert(0) += data.len();
+            let key = entry.key();
+            let parts: Vec<&str> = key.split(':').collect();
+            if parts.len() == 2 {
+                let symbol = parts[0];
+                let timeframe = parts[1];
+                
+                symbols.insert(symbol.to_string());
+                
+                let data = entry.value().read();
+                let candle_count = data.len();
+                total_candles += candle_count;
+                
+                *timeframe_counts.entry(timeframe.to_string()).or_insert(0) += candle_count;
+            }
         }
         
         CacheStats {
             total_timeframes: self.data.len(),
             total_candles,
             timeframe_counts,
-            cached_symbols: self.get_supported_symbols().len(),
+            cached_symbols: symbols.len(),
         }
+    }
+
+    // NEW: Remove symbol from cache
+    pub fn remove_symbol(&self, symbol: &str) {
+        let symbol_upper = symbol.to_uppercase();
+        
+        // Remove from price cache
+        self.price_cache.remove(&symbol_upper);
+        
+        // Remove all timeframe data for this symbol
+        let keys_to_remove: Vec<String> = self.data
+            .iter()
+            .filter_map(|entry| {
+                let key = entry.key();
+                if key.starts_with(&format!("{}:", symbol_upper)) {
+                    Some(key.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        
+        for key in keys_to_remove {
+            self.data.remove(&key);
+        }
+        
+        info!("Removed symbol {} from cache", symbol);
     }
 }
 

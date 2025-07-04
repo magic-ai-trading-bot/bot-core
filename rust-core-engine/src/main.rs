@@ -2,6 +2,8 @@ use anyhow::Result;
 use structopt::StructOpt;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
+use tokio::sync::broadcast;
+use serde_json::json;
 
 mod config;
 mod binance;
@@ -53,7 +55,7 @@ async fn main() -> Result<()> {
     let storage = storage::Storage::new(&config.database).await?;
     
     // Initialize market data processor
-    let market_data_processor = MarketDataProcessor::new(
+    let mut market_data_processor = MarketDataProcessor::new(
         config.binance.clone(),
         config.market_data.clone(),
         storage.clone(),
@@ -67,11 +69,18 @@ async fn main() -> Result<()> {
         storage.clone(),
     ).await?;
     
-    // Initialize API server
+    // Create shared broadcast channel for WebSocket updates
+    let (ws_sender, _) = broadcast::channel::<String>(1000);
+    
+    // Set WebSocket broadcaster for market data processor
+    market_data_processor.set_ws_broadcaster(ws_sender.clone());
+    
+    // Initialize API server with WebSocket broadcaster
     let api_server = ApiServer::new(
         config.api.clone(),
         market_data_processor.clone(),
         trading_engine.clone(),
+        ws_sender.clone(),
     );
     
     // Start all components

@@ -261,6 +261,58 @@ pub enum StreamEvent {
     OrderBook(OrderBookEvent),
 }
 
+// NEW: WebSocket events for chart data updates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChartUpdateEvent {
+    pub symbol: String,
+    pub timeframe: String,
+    pub candle: ChartCandle,
+    pub latest_price: f64,
+    pub price_change_24h: f64,
+    pub price_change_percent_24h: f64,
+    pub volume_24h: f64,
+    pub timestamp: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChartCandle {
+    pub timestamp: i64,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+    pub is_closed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketDataUpdate {
+    pub symbol: String,
+    pub price: f64,
+    pub price_change_24h: f64,
+    pub price_change_percent_24h: f64,
+    pub volume_24h: f64,
+    pub timestamp: i64,
+}
+
+// Extended StreamEvent for chart data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum WebSocketEvent {
+    #[serde(rename = "kline")]
+    Kline(KlineEvent),
+    #[serde(rename = "ticker")]
+    Ticker(TickerEvent),
+    #[serde(rename = "orderbook")]
+    OrderBook(OrderBookEvent),
+    #[serde(rename = "chart_update")]
+    ChartUpdate(ChartUpdateEvent),
+    #[serde(rename = "market_data")]
+    MarketData(MarketDataUpdate),
+    #[serde(rename = "error")]
+    Error { message: String },
+}
+
 // Utility functions for type conversions
 impl Kline {
     pub fn to_decimal_values(&self) -> Result<(Decimal, Decimal, Decimal, Decimal, Decimal), rust_decimal::Error> {
