@@ -10,9 +10,10 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb* ./
+COPY package.json ./
+COPY bun.lockb* ./
 
-# Install dependencies
+# Install dependencies with bun
 RUN bun install --frozen-lockfile
 
 # Development stage
