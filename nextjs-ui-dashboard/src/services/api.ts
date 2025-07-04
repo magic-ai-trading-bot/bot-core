@@ -105,6 +105,122 @@ export interface AddSymbolRequest {
   timeframes: string[];
 }
 
+// Authentication types
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name?: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: UserProfile;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  is_active: boolean;
+  is_admin: boolean;
+  created_at: string;
+  last_login?: string;
+  settings: UserSettings;
+}
+
+export interface UserSettings {
+  trading_enabled: boolean;
+  risk_level: "Low" | "Medium" | "High";
+  max_positions: number;
+  default_quantity: number;
+  notifications: NotificationSettings;
+}
+
+export interface NotificationSettings {
+  email_alerts: boolean;
+  trade_notifications: boolean;
+  system_alerts: boolean;
+}
+
+// Account Information types
+export interface AccountInfo {
+  account_id: string;
+  balance: number;
+  available_balance: number;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+  account_type: string;
+  status: string;
+}
+
+export interface TradingConfig {
+  enabled: boolean;
+  max_positions: number;
+  risk_percentage: number;
+  stop_loss_percentage: number;
+  take_profit_percentage: number;
+  max_daily_trades: number;
+  trading_hours: {
+    start: string;
+    end: string;
+  };
+}
+
+export interface MarketOverview {
+  total_symbols: number;
+  active_symbols: number;
+  market_status: string;
+  last_update: string;
+  top_performers: Array<{
+    symbol: string;
+    price: number;
+    change_percent: number;
+    volume: number;
+  }>;
+  market_stats: {
+    total_volume: number;
+    total_trades: number;
+    avg_price_change: number;
+  };
+}
+
+export interface ModelConfig {
+  model_type: string;
+  sequence_length: number;
+  batch_size: number;
+  learning_rate: number;
+  epochs: number;
+  validation_split: number;
+  features: string[];
+}
+
+export interface AITradingConfig {
+  enabled: boolean;
+  model_confidence_threshold: number;
+  max_signal_age_minutes: number;
+  supported_timeframes: string[];
+  risk_management: {
+    max_position_size: number;
+    stop_loss_percentage: number;
+    take_profit_percentage: number;
+  };
+}
+
+export interface DataConfig {
+  data_source: string;
+  update_interval_seconds: number;
+  historical_data_days: number;
+  required_indicators: string[];
+  cache_enabled: boolean;
+  cache_ttl_minutes: number;
+}
+
 // Base API Client class with retry logic
 class BaseApiClient {
   protected client: AxiosInstance;
@@ -117,6 +233,15 @@ class BaseApiClient {
         "Content-Type": "application/json",
         "X-Client": "BotCoreDashboard/1.0",
       },
+    });
+
+    // Add auth token to requests if available
+    this.client.interceptors.request.use((config) => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
     });
 
     // Request interceptor
@@ -249,7 +374,7 @@ class RustTradingApiClient extends BaseApiClient {
   }
 
   // Account Information
-  async getAccountInfo(): Promise<any> {
+  async getAccountInfo(): Promise<AccountInfo> {
     return this.requestWithRetry(async () => {
       const response = await this.client.get("/api/account");
       return response.data;
@@ -270,7 +395,7 @@ class RustTradingApiClient extends BaseApiClient {
     });
   }
 
-  async getTradingConfig(): Promise<any> {
+  async getTradingConfig(): Promise<TradingConfig> {
     return this.requestWithRetry(async () => {
       const response = await this.client.get("/api/config/trading");
       return response.data;
@@ -358,7 +483,7 @@ class RustTradingApiClient extends BaseApiClient {
     });
   }
 
-  async getMarketOverview(): Promise<any> {
+  async getMarketOverview(): Promise<MarketOverview> {
     return this.requestWithRetry(async () => {
       const response = await this.client.get("/api/market/overview");
       return response.data;
@@ -369,6 +494,92 @@ class RustTradingApiClient extends BaseApiClient {
   async healthCheck(): Promise<{ status: string }> {
     const response = await this.client.get("/health");
     return response.data;
+  }
+}
+
+// Authentication API Client
+class AuthApiClient extends BaseApiClient {
+  constructor() {
+    super(RUST_API_URL, "AuthAPI");
+  }
+
+  async login(request: LoginRequest): Promise<LoginResponse> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/auth/login", request);
+      // Extract data from {success, data, error} wrapper
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || "Login failed");
+      }
+    });
+  }
+
+  async register(request: RegisterRequest): Promise<LoginResponse> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/auth/register", request);
+      // Extract data from {success, data, error} wrapper
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || "Registration failed");
+      }
+    });
+  }
+
+  async verifyToken(): Promise<{
+    user_id: string;
+    email: string;
+    is_admin: boolean;
+    exp: number;
+  }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.get("/api/auth/verify");
+      // Extract data from {success, data, error} wrapper
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || "Token verification failed");
+      }
+    });
+  }
+
+  async getProfile(): Promise<UserProfile> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.get("/api/auth/profile");
+      // Extract data from {success, data, error} wrapper
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || "Failed to get profile");
+      }
+    });
+  }
+
+  // Utility methods
+  setAuthToken(token: string): void {
+    localStorage.setItem("authToken", token);
+  }
+
+  removeAuthToken(): void {
+    localStorage.removeItem("authToken");
+  }
+
+  getAuthToken(): string | null {
+    return localStorage.getItem("authToken");
+  }
+
+  isTokenExpired(token?: string): boolean {
+    const authToken = token || this.getAuthToken();
+    if (!authToken) return true;
+
+    try {
+      const payload = JSON.parse(atob(authToken.split(".")[1]));
+      const exp = payload.exp * 1000; // Convert to milliseconds
+      return Date.now() >= exp;
+    } catch {
+      return true;
+    }
   }
 }
 
@@ -440,9 +651,9 @@ class PythonAIApiClient extends BaseApiClient {
   // Configuration
   async getConfig(): Promise<{
     supported_timeframes: string[];
-    model_config: any;
-    trading_config: any;
-    data_config: any;
+    model_config: ModelConfig;
+    trading_config: AITradingConfig;
+    data_config: DataConfig;
   }> {
     return this.requestWithRetry(async () => {
       const response = await this.client.get("/config");
@@ -478,10 +689,12 @@ class PythonAIApiClient extends BaseApiClient {
 export class BotCoreApiClient {
   public rust: RustTradingApiClient;
   public python: PythonAIApiClient;
+  public auth: AuthApiClient;
 
   constructor() {
     this.rust = new RustTradingApiClient();
     this.python = new PythonAIApiClient();
+    this.auth = new AuthApiClient();
   }
 
   // Combined health check for both services

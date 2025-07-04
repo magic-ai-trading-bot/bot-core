@@ -11,8 +11,21 @@ export interface WebSocketMessage {
     | "ChartUpdate"
     | "MarketData"
     | "Error";
-  data: any;
+  data:
+    | PositionUpdateData
+    | TradeExecutedData
+    | AISignalReceivedData
+    | BotStatusUpdateData
+    | ChartUpdateData
+    | MarketDataUpdateData
+    | ErrorData;
   timestamp: string;
+}
+
+export interface ErrorData {
+  message: string;
+  code?: string;
+  details?: unknown;
 }
 
 export interface PositionUpdateData {
@@ -89,11 +102,17 @@ export interface WebSocketState {
   recentTrades: TradeHistory[];
 }
 
+export interface OutgoingWebSocketMessage {
+  type: string;
+  data?: unknown;
+  timestamp?: string;
+}
+
 export interface WebSocketHook {
   state: WebSocketState;
   connect: () => void;
   disconnect: () => void;
-  sendMessage: (message: any) => void;
+  sendMessage: (message: OutgoingWebSocketMessage) => void;
 }
 
 const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
@@ -198,16 +217,16 @@ export const useWebSocket = (): WebSocketHook => {
 
         switch (message.type) {
           case "PositionUpdate":
-            updatePosition(message.data);
+            updatePosition(message.data as PositionUpdateData);
             break;
           case "TradeExecuted":
-            addTradeToHistory(message.data);
+            addTradeToHistory(message.data as TradeExecutedData);
             break;
           case "AISignalReceived":
-            addAISignal(message.data);
+            addAISignal(message.data as AISignalReceivedData);
             break;
           case "BotStatusUpdate":
-            updateBotStatus(message.data);
+            updateBotStatus(message.data as BotStatusUpdateData);
             break;
           case "ChartUpdate":
             // Handle chart update
@@ -217,7 +236,10 @@ export const useWebSocket = (): WebSocketHook => {
             break;
           case "Error":
             console.error("WebSocket error from server:", message.data);
-            setState((prev) => ({ ...prev, error: message.data.message }));
+            setState((prev) => ({
+              ...prev,
+              error: (message.data as ErrorData).message,
+            }));
             break;
           default:
             console.warn("Unknown message type:", message.type);
@@ -339,7 +361,7 @@ export const useWebSocket = (): WebSocketHook => {
     }));
   }, []);
 
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: OutgoingWebSocketMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {

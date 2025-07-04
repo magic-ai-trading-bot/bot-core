@@ -369,6 +369,17 @@ impl Storage {
         
         Ok(())
     }
+
+    // Get MongoDB database handle for auth service
+    #[cfg(feature = "database")]
+    pub fn get_database(&self) -> Option<&Database> {
+        self.db.as_ref()
+    }
+
+    #[cfg(not(feature = "database"))]
+    pub fn get_database(&self) -> Option<&()> {
+        None
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

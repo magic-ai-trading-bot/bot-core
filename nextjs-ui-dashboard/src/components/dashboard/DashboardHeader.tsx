@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function DashboardHeader() {
-  const { logout, userEmail } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -15,13 +15,22 @@ export function DashboardHeader() {
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-border gap-4">
       <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">BT</span>
+            <span className="text-primary-foreground font-bold text-sm">
+              BT
+            </span>
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold">Crypto Trading Bot</h1>
-            <p className="text-muted-foreground text-xs lg:text-sm">AI-Powered Futures Trading</p>
+            <h1 className="text-xl lg:text-2xl font-bold">
+              Crypto Trading Bot
+            </h1>
+            <p className="text-muted-foreground text-xs lg:text-sm">
+              AI-Powered Futures Trading
+            </p>
           </div>
         </Link>
       </div>
@@ -29,23 +38,34 @@ export function DashboardHeader() {
       {/* Navigation Menu - Mobile friendly */}
       <div className="flex items-center gap-2 order-last lg:order-none">
         <Link to="/dashboard">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs lg:text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-xs lg:text-sm"
+          >
             Dashboard
           </Button>
         </Link>
         <Link to="/settings">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground text-xs lg:text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-xs lg:text-sm"
+          >
             Settings
           </Button>
         </Link>
       </div>
-      
+
       <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
-        <Badge variant="outline" className="bg-profit/10 text-profit border-profit/20 text-xs lg:text-sm w-fit">
+        <Badge
+          variant="outline"
+          className="bg-profit/10 text-profit border-profit/20 text-xs lg:text-sm w-fit"
+        >
           <div className="w-2 h-2 bg-profit rounded-full mr-2 animate-pulse"></div>
           Bot Active
         </Badge>
-        
+
         <div className="text-left lg:text-right">
           <p className="text-xs text-muted-foreground">Connected to</p>
           <p className="font-semibold text-xs lg:text-sm">Binance Futures</p>
@@ -53,10 +73,17 @@ export function DashboardHeader() {
 
         <div className="text-left lg:text-right">
           <p className="text-xs text-muted-foreground">Logged in as</p>
-          <p className="font-semibold text-xs truncate max-w-32 lg:max-w-none">{userEmail}</p>
+          <p className="font-semibold text-xs truncate max-w-32 lg:max-w-none">
+            {user?.full_name || user?.email}
+          </p>
         </div>
-        
-        <Button variant="outline" size="sm" onClick={handleLogout} className="text-xs lg:text-sm w-fit">
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLogout}
+          className="text-xs lg:text-sm w-fit"
+        >
           Đăng xuất
         </Button>
       </div>
