@@ -15,10 +15,9 @@ mypy==1.5.1
 
 # Development server and hot reload
 watchdog==3.0.0
-uvicorn[standard]==0.23.2
 
 # Debugging and profiling
-pdb-attach==3.2.0
+pdb-attach==3.0.1
 line-profiler==4.1.1
 memory-profiler==0.61.0
 
@@ -36,9 +35,9 @@ matplotlib==3.7.2
 seaborn==0.12.2
 plotly==5.15.0
 
-# Database tools for development
-alembic==1.11.3
-sqlalchemy==2.0.19
+# Database tools for development (MongoDB)
+pymongo==4.5.0
+motor==3.3.0
 
 # Environment management
 python-dotenv==1.0.0 

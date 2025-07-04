@@ -1,9 +1,9 @@
 services:
-  # Python AI Service - Machine Learning backend
+  # Python AI Service
   python-ai-service:
     build:
       context: ./python-ai-service
-      dockerfile: Dockerfile
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: python-ai-service
     restart: unless-stopped
     ports:
@@ -12,7 +12,7 @@ services:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_token}
       - PYTHON_API_KEY=${PYTHON_API_KEY:-python_api_key}
     volumes:
@@ -28,19 +28,78 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: ${PYTHON_MEMORY_LIMIT:-2G}
+          cpus: "${PYTHON_CPU_LIMIT:-2}"
+        reservations:
+          memory: ${PYTHON_MEMORY_RESERVE:-1G}
+          cpus: "${PYTHON_CPU_RESERVE:-1}"
+    profiles:
+      - prod
 
-  # Rust Core Engine - Trading backend
+  # Python AI Service - Development mode
+  python-ai-service-dev:
+    build:
+      context: ./python-ai-service
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: python-ai-service-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - LOG_LEVEL=DEBUG
+      - FLASK_ENV=development
+      - ENABLE_HOT_RELOAD=true
+    volumes:
+      - ./python-ai-service:/app
+      - /app/__pycache__
+      - /app/models/saved
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: "1.5"
+    profiles:
+      - dev
+
+  # Rust Core Engine
   rust-core-engine:
     build:
       context: ./rust-core-engine
-      dockerfile: Dockerfile
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: rust-core-engine
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      - RUST_LOG=info
-      - DATABASE_URL=sqlite:./data/trading_data.db
+      - RUST_LOG=${RUST_LOG:-info}
+      - DATABASE_URL=mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-your_api_key_here}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-your_secret_key_here}
@@ -63,18 +122,79 @@ services:
     depends_on:
       python-ai-service:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: ${RUST_MEMORY_LIMIT:-2G}
+          cpus: "${RUST_CPU_LIMIT:-2}"
+        reservations:
+          memory: ${RUST_MEMORY_RESERVE:-1G}
+          cpus: "${RUST_CPU_RESERVE:-1}"
+    profiles:
+      - prod
 
-  # Next.js UI Dashboard - Frontend
+  # Rust Core Engine - Development mode
+  rust-core-engine-dev:
+    build:
+      context: ./rust-core-engine
+      dockerfile: Dockerfile.dev
+    container_name: rust-core-engine-dev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=1
+      - DATABASE_URL=mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin
+      - PYTHON_AI_SERVICE_URL=http://python-ai-service-dev:8000
+      - BINANCE_API_KEY=${BINANCE_API_KEY:-your_api_key_here}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-your_secret_key_here}
+      - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
+      - TRADING_ENABLED=${TRADING_ENABLED:-false}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_token}
+      - RUST_API_KEY=${RUST_API_KEY:-rust_api_key}
+    volumes:
+      - ./rust-core-engine/src:/app/src
+      - ./rust-core-engine/Cargo.toml:/app/Cargo.toml
+      - ./rust-core-engine/Cargo.lock:/app/Cargo.lock
+      - ./rust-core-engine/config.toml:/app/config.toml
+      - ./rust-core-engine/data:/app/data
+      - ./rust-core-engine/logs:/app/logs
+      - rust_target_cache:/app/target
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      python-ai-service-dev:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: "1.5"
+    profiles:
+      - dev
+
+  # Next.js UI Dashboard
   nextjs-ui-dashboard:
     build:
       context: ./nextjs-ui-dashboard
-      dockerfile: Dockerfile
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: nextjs-ui-dashboard
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV:-production}
       - VITE_RUST_API_URL=http://rust-core-engine:8080
       - VITE_PYTHON_AI_URL=http://python-ai-service:8000
       - VITE_WS_URL=ws://rust-core-engine:8080/ws
@@ -82,8 +202,8 @@ services:
       - VITE_REFRESH_INTERVAL=5000
       - VITE_ENABLE_REALTIME=true
       - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:-dashboard_secret}
-    volumes:
-      - ./nextjs-ui-dashboard/nginx.conf:/etc/nginx/nginx.conf:ro
+      - NODE_OPTIONS="--max-old-space-size=${NODE_MEMORY:-1024}"
+    # No volumes needed for production static serving
     networks:
       - bot-network
     healthcheck:
@@ -95,6 +215,58 @@ services:
     depends_on:
       - rust-core-engine
       - python-ai-service
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEMORY_LIMIT:-1G}
+          cpus: "${FRONTEND_CPU_LIMIT:-1}"
+        reservations:
+          memory: ${FRONTEND_MEMORY_RESERVE:-256M}
+          cpus: "${FRONTEND_CPU_RESERVE:-0.5}"
+    profiles:
+      - prod
+
+  # Frontend Development mode
+  nextjs-ui-dashboard-dev:
+    build:
+      context: ./nextjs-ui-dashboard
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: nextjs-ui-dashboard-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8080
+      - VITE_AI_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_OPTIONS="--max-old-space-size=768"
+    volumes:
+      - ./nextjs-ui-dashboard/src:/app/src:delegated
+      - ./nextjs-ui-dashboard/public:/app/public:delegated
+      - ./nextjs-ui-dashboard/index.html:/app/index.html:ro
+      - ./nextjs-ui-dashboard/vite.config.ts:/app/vite.config.ts:ro
+      - ./nextjs-ui-dashboard/tailwind.config.ts:/app/tailwind.config.ts:ro
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - python-ai-service-dev
+      - rust-core-engine-dev
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "1"
+    profiles:
+      - dev
 
   # Database service (PostgreSQL) - Optional enhancement
   postgres:
@@ -108,7 +280,6 @@ services:
       - POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./rust-core-engine/migrations:/docker-entrypoint-initdb.d
     networks:
       - bot-network
     healthcheck:
@@ -173,6 +344,31 @@ services:
     profiles:
       - monitoring
 
+  # MongoDB database
+  mongodb:
+    image: mongo:7-jammy
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-botuser}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-defaultpassword}
+      - MONGO_INITDB_DATABASE=trading_bot
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - dev
+      - prod
+
 networks:
   bot-network:
     driver: bridge
@@ -188,4 +384,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  rust_target_cache:
+    driver: local
+  mongodb_data:
     driver: local

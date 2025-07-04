@@ -32,7 +32,7 @@ graph TB
     end
 
     subgraph "Data Storage"
-        DB[(SQLite/PostgreSQL)]
+        DB[(MongoDB)]
         CACHE[(Redis Cache)]
     end
 

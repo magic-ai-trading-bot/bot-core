@@ -48,7 +48,7 @@ A comprehensive, high-performance Rust-based trading bot for Binance Futures wit
 
 ### 💾 Data Persistence
 
-- **SQLite Database**: Optional local database for storing trade history and analysis
+- **MongoDB Database**: Cloud-ready database for storing trade history and analysis
 - **Trade Records**: Complete audit trail of all trading activities
 - **Analysis History**: Historical market analysis results
 - **Performance Tracking**: Long-term performance statistics
@@ -58,7 +58,7 @@ A comprehensive, high-performance Rust-based trading bot for Binance Futures wit
 ### Prerequisites
 
 - Rust 1.70+
-- SQLite (optional, for database features)
+- MongoDB (for database features)
 - Python AI service (for market analysis)
 
 ### Build from Source
@@ -184,7 +184,7 @@ margin_type = "CROSSED"            # Margin type
 
 ```toml
 [database]
-url = "sqlite:./trading_data.db"   # Database URL
+url = "mongodb://botuser:defaultpassword@localhost:27017/trading_bot?authSource=admin"   # Database URL
 max_connections = 10               # Connection pool size
 enable_logging = false             # Enable SQL logging
 ```
@@ -275,7 +275,7 @@ The bot expects a Python service running on the configured URL that accepts POST
 
 3. **Database Errors**
 
-   - Ensure SQLite is installed
+   - Ensure MongoDB is running and accessible
    - Check database file permissions
    - Verify disk space availability
 

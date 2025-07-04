@@ -129,11 +129,7 @@ impl BinanceWebSocket {
             return Err(anyhow::anyhow!("No streams specified"));
         }
         
-        let base_url = if self.config.testnet {
-            &self.config.ws_url
-        } else {
-            &self.config.futures_ws_url
-        };
+        let base_url = &self.config.ws_url;
         
         if streams.len() == 1 {
             // Single stream

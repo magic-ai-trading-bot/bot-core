@@ -7,20 +7,21 @@
 api_key = "your_binance_api_key_here"
 secret_key = "your_binance_secret_key_here"
 
-# Use testnet for safe testing (highly recommended)
+# Use testnet for safe testing (recommended)
 testnet = true
 
-# API endpoints (testnet URLs by default)
+# For testnet, use these URLs:
 base_url = "https://testnet.binance.vision"
-ws_url = "wss://testnet.binance.vision/ws"
+ws_url = "wss://stream.testnet.binance.vision"
 futures_base_url = "https://testnet.binancefuture.com"
 futures_ws_url = "wss://stream.binancefuture.com/ws"
 
-# For live trading, use these URLs instead:
+# For mainnet (live trading), use these URLs:
+# testnet = false
 # base_url = "https://api.binance.com"
-# ws_url = "wss://stream.binance.com:9443/ws"
+# ws_url = "wss://stream.binance.com:9443"
 # futures_base_url = "https://fapi.binance.com"
-# futures_ws_url = "wss://fstream.binance.com/ws"
+# futures_ws_url = "wss://fstream.binance.com"
 
 [market_data]
 # Cryptocurrency symbols to monitor
@@ -30,20 +31,19 @@ symbols = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "DOTUSDT", "LINKUSDT"]
 timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"]
 
 # Number of historical candles to fetch per timeframe
-kline_limit = 500
+kline_limit = 200
 
 # How often to update data (milliseconds)
 update_interval_ms = 1000
 
 # WebSocket reconnection settings
-reconnect_interval_ms = 5000
+reconnect_interval_ms = 1000
 max_reconnect_attempts = 10
 
 # Cache settings
 cache_size = 1000
 
 # Python AI service URL for market analysis
-# You need to run a separate Python service that accepts analysis requests
 python_ai_service_url = "http://localhost:8000"
 
 [trading]
@@ -72,8 +72,9 @@ leverage = 1                   # Trading leverage (1-125)
 margin_type = "CROSSED"        # CROSSED or ISOLATED
 
 [database]
-# SQLite database for storing trade history and analysis results
-url = "sqlite:./trading_data.db"
+# MongoDB database for storing trade history and analysis results
+url = "mongodb://botuser:defaultpassword@localhost:27017/trading_bot?authSource=admin"
+database_name = "trading_bot"
 max_connections = 10
 enable_logging = false
 

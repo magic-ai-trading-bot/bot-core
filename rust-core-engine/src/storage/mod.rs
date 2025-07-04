@@ -1,17 +1,21 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 #[cfg(feature = "database")]
-use sqlx::{Row, SqlitePool};
+use mongodb::{Client, Collection, Database};
+#[cfg(feature = "database")]
+use bson::{doc, Document, Bson};
+#[cfg(feature = "database")]
+use futures::stream::StreamExt;
 
 use crate::market_data::analyzer::MultiTimeframeAnalysis;
+use crate::binance::types::Kline;
 
 #[derive(Clone)]
 pub struct Storage {
     #[cfg(feature = "database")]
-    pool: Option<SqlitePool>,
+    db: Option<Database>,
     
     // In-memory fallback storage
     #[cfg(not(feature = "database"))]
@@ -22,19 +26,20 @@ impl Storage {
     pub async fn new(config: &crate::config::DatabaseConfig) -> Result<Self> {
         #[cfg(feature = "database")]
         {
-            if config.url.starts_with("sqlite:") {
-                let pool = SqlitePool::connect(&config.url).await?;
+            if config.url.starts_with("mongodb://") {
+                let client = Client::with_uri_str(&config.url).await?;
+                let db = client.database(&config.database_name.as_ref().unwrap_or(&"trading_bot".to_string()));
                 
-                // Run migrations
-                sqlx::migrate!("./migrations").run(&pool).await?;
+                // Test connection by listing collections
+                let _ = db.list_collection_names(None).await?;
                 
-                info!("Database connected and migrated successfully");
+                info!("MongoDB connected successfully");
                 
                 Ok(Self {
-                    pool: Some(pool),
+                    db: Some(db),
                 })
             } else {
-                Ok(Self { pool: None })
+                Ok(Self { db: None })
             }
         }
         
@@ -50,30 +55,32 @@ impl Storage {
     pub async fn store_analysis(&self, analysis: &MultiTimeframeAnalysis) -> Result<()> {
         #[cfg(feature = "database")]
         {
-            if let Some(pool) = &self.pool {
-                let analysis_json = serde_json::to_string(analysis)?;
+            if let Some(db) = &self.db {
+                let collection: Collection<Document> = db.collection("analysis_results");
                 
-                sqlx::query!(
-                    r#"
-                    INSERT OR REPLACE INTO analysis_results 
-                    (symbol, timestamp, overall_signal, overall_confidence, analysis_data)
-                    VALUES (?, ?, ?, ?, ?)
-                    "#,
-                    analysis.symbol,
-                    analysis.timestamp,
-                    format!("{:?}", analysis.overall_signal),
-                    analysis.overall_confidence,
-                    analysis_json
-                )
-                .execute(pool)
-                .await?;
+                let doc = doc! {
+                    "symbol": &analysis.symbol,
+                    "timestamp": analysis.timestamp,
+                    "overall_signal": format!("{:?}", analysis.overall_signal),
+                    "overall_confidence": analysis.overall_confidence,
+                    "analysis_data": bson::to_bson(analysis)?
+                };
+                
+                // Use upsert pattern
+                let filter = doc! { "symbol": &analysis.symbol };
+                let update = doc! { "$set": doc };
+                let options = mongodb::options::UpdateOptions::builder()
+                    .upsert(true)
+                    .build();
+                
+                collection.update_one(filter, update, options).await?;
                 
                 debug!("Stored analysis result for {} at {}", analysis.symbol, analysis.timestamp);
                 return Ok(());
             }
         }
         
-        // Fallback: just log the analysis (in-memory storage could be implemented here)
+        // Fallback: just log the analysis
         debug!("Analysis for {}: {:?} (confidence: {:.2})", 
                analysis.symbol, analysis.overall_signal, analysis.overall_confidence);
         Ok(())
@@ -82,23 +89,17 @@ impl Storage {
     pub async fn get_latest_analysis(&self, symbol: &str) -> Result<Option<MultiTimeframeAnalysis>> {
         #[cfg(feature = "database")]
         {
-            if let Some(pool) = &self.pool {
-                let row = sqlx::query!(
-                    r#"
-                    SELECT analysis_data 
-                    FROM analysis_results 
-                    WHERE symbol = ? 
-                    ORDER BY timestamp DESC 
-                    LIMIT 1
-                    "#,
-                    symbol
-                )
-                .fetch_optional(pool)
-                .await?;
-
-                if let Some(row) = row {
-                    let analysis: MultiTimeframeAnalysis = serde_json::from_str(&row.analysis_data)?;
-                    return Ok(Some(analysis));
+            if let Some(db) = &self.db {
+                let collection: Collection<Document> = db.collection("analysis_results");
+                
+                let filter = doc! { "symbol": symbol };
+                let doc = collection.find_one(filter, None).await?;
+                
+                if let Some(doc) = doc {
+                    if let Some(analysis_data) = doc.get("analysis_data") {
+                        let analysis: MultiTimeframeAnalysis = bson::from_bson(analysis_data.clone())?;
+                        return Ok(Some(analysis));
+                    }
                 }
             }
         }
@@ -113,27 +114,26 @@ impl Storage {
     ) -> Result<Vec<MultiTimeframeAnalysis>> {
         #[cfg(feature = "database")]
         {
-            if let Some(pool) = &self.pool {
+            if let Some(db) = &self.db {
+                let collection: Collection<Document> = db.collection("analysis_results");
                 let limit = limit.unwrap_or(100);
                 
-                let rows = sqlx::query!(
-                    r#"
-                    SELECT analysis_data 
-                    FROM analysis_results 
-                    WHERE symbol = ? 
-                    ORDER BY timestamp DESC 
-                    LIMIT ?
-                    "#,
-                    symbol,
-                    limit
-                )
-                .fetch_all(pool)
-                .await?;
-
+                let filter = doc! { "symbol": symbol };
+                let options = mongodb::options::FindOptions::builder()
+                    .limit(limit)
+                    .sort(doc! { "timestamp": -1 })
+                    .build();
+                
+                let mut cursor = collection.find(filter, options).await?;
+                
                 let mut analyses = Vec::new();
-                for row in rows {
-                    if let Ok(analysis) = serde_json::from_str::<MultiTimeframeAnalysis>(&row.analysis_data) {
-                        analyses.push(analysis);
+                while let Some(doc_result) = cursor.next().await {
+                    if let Ok(document) = doc_result {
+                        if let Some(analysis_data) = document.get("analysis_data") {
+                            if let Ok(analysis) = bson::from_bson::<MultiTimeframeAnalysis>(analysis_data.clone()) {
+                                analyses.push(analysis);
+                            }
+                        }
                     }
                 }
                 
@@ -147,29 +147,10 @@ impl Storage {
     pub async fn store_trade_record(&self, trade: &TradeRecord) -> Result<()> {
         #[cfg(feature = "database")]
         {
-            if let Some(pool) = &self.pool {
-                sqlx::query!(
-                    r#"
-                    INSERT INTO trade_records 
-                    (symbol, side, quantity, entry_price, exit_price, stop_loss, take_profit, 
-                     entry_time, exit_time, pnl, status, strategy_used)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    "#,
-                    trade.symbol,
-                    trade.side,
-                    trade.quantity,
-                    trade.entry_price,
-                    trade.exit_price,
-                    trade.stop_loss,
-                    trade.take_profit,
-                    trade.entry_time,
-                    trade.exit_time,
-                    trade.pnl,
-                    trade.status,
-                    trade.strategy_used
-                )
-                .execute(pool)
-                .await?;
+            if let Some(db) = &self.db {
+                let collection: Collection<TradeRecord> = db.collection("trade_records");
+                
+                collection.insert_one(trade, None).await?;
                 
                 info!("Stored trade record for {} {} at {}", trade.symbol, trade.side, trade.entry_price);
                 return Ok(());
@@ -184,52 +165,28 @@ impl Storage {
     pub async fn get_trade_history(&self, symbol: Option<&str>, limit: Option<i64>) -> Result<Vec<TradeRecord>> {
         #[cfg(feature = "database")]
         {
-            if let Some(pool) = &self.pool {
+            if let Some(db) = &self.db {
+                let collection: Collection<TradeRecord> = db.collection("trade_records");
                 let limit = limit.unwrap_or(100);
                 
-                let rows = if let Some(symbol) = symbol {
-                    sqlx::query!(
-                        r#"
-                        SELECT * FROM trade_records 
-                        WHERE symbol = ? 
-                        ORDER BY entry_time DESC 
-                        LIMIT ?
-                        "#,
-                        symbol,
-                        limit
-                    )
-                    .fetch_all(pool)
-                    .await?
+                let filter = if let Some(symbol) = symbol {
+                    doc! { "symbol": symbol }
                 } else {
-                    sqlx::query!(
-                        r#"
-                        SELECT * FROM trade_records 
-                        ORDER BY entry_time DESC 
-                        LIMIT ?
-                        "#,
-                        limit
-                    )
-                    .fetch_all(pool)
-                    .await?
+                    doc! {}
                 };
-
+                
+                let options = mongodb::options::FindOptions::builder()
+                    .limit(limit)
+                    .sort(doc! { "entry_time": -1 })
+                    .build();
+                
+                let mut cursor = collection.find(filter, options).await?;
+                
                 let mut trades = Vec::new();
-                for row in rows {
-                    trades.push(TradeRecord {
-                        id: Some(row.id),
-                        symbol: row.symbol,
-                        side: row.side,
-                        quantity: row.quantity,
-                        entry_price: row.entry_price,
-                        exit_price: row.exit_price,
-                        stop_loss: row.stop_loss,
-                        take_profit: row.take_profit,
-                        entry_time: row.entry_time,
-                        exit_time: row.exit_time,
-                        pnl: row.pnl,
-                        status: row.status,
-                        strategy_used: row.strategy_used,
-                    });
+                while let Some(result) = cursor.next().await {
+                    if let Ok(trade) = result {
+                        trades.push(trade);
+                    }
                 }
                 
                 return Ok(trades);
@@ -242,55 +199,182 @@ impl Storage {
     pub async fn get_performance_stats(&self) -> Result<PerformanceStats> {
         #[cfg(feature = "database")]
         {
-            if let Some(pool) = &self.pool {
-                let stats_row = sqlx::query!(
-                    r#"
-                    SELECT 
-                        COUNT(*) as total_trades,
-                        COUNT(CASE WHEN pnl > 0 THEN 1 END) as winning_trades,
-                        COUNT(CASE WHEN pnl < 0 THEN 1 END) as losing_trades,
-                        SUM(pnl) as total_pnl,
-                        AVG(pnl) as avg_pnl,
-                        MAX(pnl) as max_win,
-                        MIN(pnl) as max_loss
-                    FROM trade_records 
-                    WHERE status = 'closed'
-                    "#
-                )
-                .fetch_one(pool)
-                .await?;
-
-                let total_trades = stats_row.total_trades as u64;
-                let winning_trades = stats_row.winning_trades.unwrap_or(0) as u64;
-                let losing_trades = stats_row.losing_trades.unwrap_or(0) as u64;
+            if let Some(db) = &self.db {
+                let collection: Collection<Document> = db.collection("trade_records");
                 
-                let win_rate = if total_trades > 0 {
-                    (winning_trades as f64 / total_trades as f64) * 100.0
-                } else {
-                    0.0
-                };
-
-                return Ok(PerformanceStats {
-                    total_trades,
-                    winning_trades,
-                    losing_trades,
-                    win_rate,
-                    total_pnl: stats_row.total_pnl.unwrap_or(0.0),
-                    avg_pnl: stats_row.avg_pnl.unwrap_or(0.0),
-                    max_win: stats_row.max_win.unwrap_or(0.0),
-                    max_loss: stats_row.max_loss.unwrap_or(0.0),
-                });
+                let pipeline = vec![
+                    doc! {
+                        "$match": { "status": "closed" }
+                    },
+                    doc! {
+                        "$group": {
+                            "_id": Bson::Null,
+                            "total_trades": { "$sum": 1 },
+                            "winning_trades": { "$sum": { "$cond": [{ "$gt": ["$pnl", 0] }, 1, 0] } },
+                            "losing_trades": { "$sum": { "$cond": [{ "$lt": ["$pnl", 0] }, 1, 0] } },
+                            "total_pnl": { "$sum": "$pnl" },
+                            "avg_pnl": { "$avg": "$pnl" },
+                            "max_win": { "$max": "$pnl" },
+                            "max_loss": { "$min": "$pnl" }
+                        }
+                    }
+                ];
+                
+                let mut cursor = collection.aggregate(pipeline, None).await?;
+                
+                if let Some(result) = cursor.next().await {
+                    if let Ok(doc) = result {
+                        let total_trades = doc.get_i32("total_trades").unwrap_or(0) as u64;
+                        let winning_trades = doc.get_i32("winning_trades").unwrap_or(0) as u64;
+                        let losing_trades = doc.get_i32("losing_trades").unwrap_or(0) as u64;
+                        
+                        let win_rate = if total_trades > 0 {
+                            (winning_trades as f64 / total_trades as f64) * 100.0
+                        } else {
+                            0.0
+                        };
+                        
+                        return Ok(PerformanceStats {
+                            total_trades,
+                            winning_trades,
+                            losing_trades,
+                            win_rate,
+                            total_pnl: doc.get_f64("total_pnl").unwrap_or(0.0),
+                            avg_pnl: doc.get_f64("avg_pnl").unwrap_or(0.0),
+                            max_win: doc.get_f64("max_win").unwrap_or(0.0),
+                            max_loss: doc.get_f64("max_loss").unwrap_or(0.0),
+                        });
+                    }
+                }
             }
         }
         
         // Return default stats if database is not available
         Ok(PerformanceStats::default())
     }
+
+    pub async fn store_market_data(&self, symbol: &str, timeframe: &str, klines: &[Kline]) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(db) = &self.db {
+                let collection: Collection<Document> = db.collection("market_data");
+                
+                let mut docs = Vec::new();
+                for kline in klines {
+                    let doc = doc! {
+                        "symbol": symbol,
+                        "timeframe": timeframe,
+                        "open_time": kline.open_time,
+                        "close_time": kline.close_time,
+                        "open_price": kline.open.parse::<f64>().unwrap_or(0.0),
+                        "high_price": kline.high.parse::<f64>().unwrap_or(0.0),
+                        "low_price": kline.low.parse::<f64>().unwrap_or(0.0),
+                        "close_price": kline.close.parse::<f64>().unwrap_or(0.0),
+                        "volume": kline.volume.parse::<f64>().unwrap_or(0.0),
+                        "quote_volume": kline.quote_asset_volume.parse::<f64>().unwrap_or(0.0),
+                        "trades_count": kline.number_of_trades
+                    };
+                    docs.push(doc);
+                }
+                
+                if !docs.is_empty() {
+                    collection.insert_many(docs, None).await?;
+                    debug!("Stored {} market data entries for {} {}", klines.len(), symbol, timeframe);
+                }
+                
+                return Ok(());
+            }
+        }
+        
+        Ok(())
+    }
+
+    pub async fn get_market_data(&self, symbol: &str, timeframe: &str, limit: Option<i64>) -> Result<Vec<Kline>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(db) = &self.db {
+                let collection: Collection<Document> = db.collection("market_data");
+                let limit = limit.unwrap_or(500);
+                
+                let filter = doc! {
+                    "symbol": symbol,
+                    "timeframe": timeframe
+                };
+                let options = mongodb::options::FindOptions::builder()
+                    .limit(limit)
+                    .sort(doc! { "open_time": -1 })
+                    .build();
+                
+                let mut cursor = collection.find(filter, options).await?;
+                
+                let mut klines = Vec::new();
+                while let Some(result) = cursor.next().await {
+                    if let Ok(doc) = result {
+                        let kline = Kline {
+                            open_time: doc.get_i64("open_time").unwrap_or(0),
+                            close_time: doc.get_i64("close_time").unwrap_or(0),
+                            open: doc.get_f64("open_price").unwrap_or(0.0).to_string(),
+                            high: doc.get_f64("high_price").unwrap_or(0.0).to_string(),
+                            low: doc.get_f64("low_price").unwrap_or(0.0).to_string(),
+                            close: doc.get_f64("close_price").unwrap_or(0.0).to_string(),
+                            volume: doc.get_f64("volume").unwrap_or(0.0).to_string(),
+                            quote_asset_volume: doc.get_f64("quote_volume").unwrap_or(0.0).to_string(),
+                            number_of_trades: doc.get_i64("trades_count").unwrap_or(0),
+                            taker_buy_base_asset_volume: "0".to_string(),
+                            taker_buy_quote_asset_volume: "0".to_string(),
+                            ignore: "0".to_string(),
+                        };
+                        klines.push(kline);
+                    }
+                }
+                
+                // Reverse to get chronological order
+                klines.reverse();
+                return Ok(klines);
+            }
+        }
+        
+        Ok(Vec::new())
+    }
+
+    pub async fn store_price_history(&self, symbol: &str, price: f64, volume_24h: f64, price_change_24h: f64, price_change_percent_24h: f64) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(db) = &self.db {
+                let collection: Collection<Document> = db.collection("price_history");
+                let timestamp = chrono::Utc::now().timestamp_millis();
+                
+                let doc = doc! {
+                    "symbol": symbol,
+                    "price": price,
+                    "volume_24h": volume_24h,
+                    "price_change_24h": price_change_24h,
+                    "price_change_percent_24h": price_change_percent_24h,
+                    "timestamp": timestamp
+                };
+                
+                // Use upsert pattern
+                let filter = doc! { "symbol": symbol };
+                let update = doc! { "$set": doc };
+                let options = mongodb::options::UpdateOptions::builder()
+                    .upsert(true)
+                    .build();
+                
+                collection.update_one(filter, update, options).await?;
+                
+                debug!("Stored price history for {} at {}", symbol, price);
+                return Ok(());
+            }
+        }
+        
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeRecord {
-    pub id: Option<i64>,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<bson::oid::ObjectId>,
     pub symbol: String,
     pub side: String, // "BUY" or "SELL"
     pub quantity: f64,

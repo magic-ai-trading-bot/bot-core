@@ -23,11 +23,9 @@ RUN rm src/main.rs
 
 # Copy source code
 COPY src ./src
-COPY migrations ./migrations
 
 # Build the application
 RUN mkdir -p ./data
-ENV DATABASE_URL="sqlite:./data/trading_data.db"
 RUN touch src/main.rs && cargo build --release --no-default-features
 
 # Runtime stage
@@ -36,7 +34,6 @@ FROM debian:bookworm-slim
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
-    sqlite3 \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -67,7 +64,7 @@ EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Run the application
 CMD ["./binance-trading-bot", "--config", "config.toml"] 
