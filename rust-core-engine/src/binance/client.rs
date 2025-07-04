@@ -1,11 +1,11 @@
 use anyhow::Result;
 use chrono::Utc;
 use hmac::{Hmac, Mac};
-use reqwest::{Client, Method, Response};
+use reqwest::{Client, Method};
 use serde::de::DeserializeOwned;
 use sha2::Sha256;
 use std::collections::HashMap;
-use tracing::{debug, error, trace};
+use tracing::{error, trace};
 use url::Url;
 
 use crate::config::BinanceConfig;

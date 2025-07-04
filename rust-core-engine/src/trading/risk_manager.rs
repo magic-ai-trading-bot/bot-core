@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::config::TradingConfig;
 use crate::market_data::analyzer::MultiTimeframeAnalysis;
