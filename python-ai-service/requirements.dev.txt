@@ -35,9 +35,8 @@ matplotlib==3.7.2
 seaborn==0.12.2
 plotly==5.15.0
 
-# Database tools for development (MongoDB)
-pymongo==4.5.0
-motor==3.3.0
+# Database tools for development (MongoDB) - versions match requirements.txt
+# pymongo and motor are included from requirements.txt
 
 # Environment management
 python-dotenv==1.0.0 

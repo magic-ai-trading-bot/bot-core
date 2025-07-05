@@ -96,6 +96,11 @@ class Config:
                 "min_candles_required": 100,
                 "max_candles_per_request": 1000
             },
+            "ai_cache": {
+                "enabled": True,
+                "duration_minutes": 5,
+                "max_entries": 100
+            },
             "model_management": {
                 "model_save_path": "./models/saved/",
                 "retrain_interval_hours": 24,

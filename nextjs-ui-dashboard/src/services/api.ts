@@ -53,6 +53,91 @@ export interface AISignal {
   timeframe: string;
 }
 
+// NEW AI TYPES - Compatible with Python AI Service
+export interface CandleDataAI {
+  open_time: number;
+  close_time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  quote_volume: number;
+  trades: number;
+  is_closed: boolean;
+}
+
+export interface AIStrategyContext {
+  selected_strategies: string[];
+  market_condition: string;
+  risk_level: string;
+  user_preferences: Record<string, unknown>;
+  technical_indicators: Record<string, unknown>;
+}
+
+export interface AIAnalysisRequest {
+  symbol: string;
+  timeframe_data: Record<string, CandleDataAI[]>;
+  current_price: number;
+  volume_24h: number;
+  timestamp: number;
+  strategy_context: AIStrategyContext;
+}
+
+export interface AIMarketAnalysis {
+  trend_direction: string;
+  trend_strength: number;
+  support_levels: number[];
+  resistance_levels: number[];
+  volatility_level: string;
+  volume_analysis: string;
+}
+
+export interface AIRiskAssessment {
+  overall_risk: string;
+  technical_risk: number;
+  market_risk: number;
+  recommended_position_size: number;
+  stop_loss_suggestion?: number;
+  take_profit_suggestion?: number;
+}
+
+export interface AISignalResponse {
+  signal: string;
+  confidence: number;
+  reasoning: string;
+  strategy_scores: Record<string, number>;
+  market_analysis: AIMarketAnalysis;
+  risk_assessment: AIRiskAssessment;
+  timestamp: number;
+  symbol?: string; // Add symbol field for display
+}
+
+export interface StrategyRecommendation {
+  strategy_name: string;
+  suitability_score: number;
+  reasoning: string;
+  recommended_config: Record<string, unknown>;
+}
+
+export interface MarketConditionAnalysis {
+  condition_type: string;
+  confidence: number;
+  characteristics: string[];
+  recommended_strategies: string[];
+  market_phase: string;
+}
+
+export interface AIServiceInfo {
+  service_name: string;
+  version: string;
+  model_version: string;
+  supported_timeframes: string[];
+  supported_symbols: string[];
+  capabilities: string[];
+  last_trained?: string;
+}
+
 export interface AIModelInfo {
   model_type: string;
   model_loaded: boolean;
@@ -487,6 +572,73 @@ class RustTradingApiClient extends BaseApiClient {
     return this.requestWithRetry(async () => {
       const response = await this.client.get("/api/market/overview");
       return response.data;
+    });
+  }
+
+  // NEW: AI Integration - Routes through Rust to Python AI Service
+  async analyzeAI(request: AIAnalysisRequest): Promise<AISignalResponse> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/ai/analyze", request);
+      return response.data.data || response.data;
+    });
+  }
+
+  async getStrategyRecommendations(data: {
+    symbol: string;
+    timeframe_data: Record<string, CandleDataAI[]>;
+    current_price: number;
+    available_strategies: string[];
+    timestamp: number;
+  }): Promise<StrategyRecommendation[]> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post(
+        "/api/ai/strategy-recommendations",
+        data
+      );
+      return response.data.data || response.data;
+    });
+  }
+
+  async analyzeMarketCondition(data: {
+    symbol: string;
+    timeframe_data: Record<string, CandleDataAI[]>;
+    current_price: number;
+    volume_24h: number;
+    timestamp: number;
+  }): Promise<MarketConditionAnalysis> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/ai/market-condition", data);
+      return response.data.data || response.data;
+    });
+  }
+
+  async sendAIFeedback(feedback: {
+    signal_id: string;
+    symbol: string;
+    predicted_signal: string;
+    actual_outcome: string;
+    profit_loss: number;
+    confidence_was_accurate: boolean;
+    feedback_notes?: string;
+    timestamp: number;
+  }): Promise<{ message: string }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/ai/feedback", feedback);
+      return response.data.data || response.data;
+    });
+  }
+
+  async getAIServiceInfo(): Promise<AIServiceInfo> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.get("/api/ai/info");
+      return response.data.data || response.data;
+    });
+  }
+
+  async getSupportedStrategies(): Promise<{ strategies: string[] }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.get("/api/ai/strategies");
+      return response.data.data || response.data;
     });
   }
 

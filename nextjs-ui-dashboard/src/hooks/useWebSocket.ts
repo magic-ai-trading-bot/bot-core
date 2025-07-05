@@ -10,8 +10,10 @@ export interface WebSocketMessage {
     | "BotStatusUpdate"
     | "ChartUpdate"
     | "MarketData"
+    | "Connected"
+    | "Pong"
     | "Error";
-  data:
+  data?:
     | PositionUpdateData
     | TradeExecutedData
     | AISignalReceivedData
@@ -19,6 +21,7 @@ export interface WebSocketMessage {
     | ChartUpdateData
     | MarketDataUpdateData
     | ErrorData;
+  message?: string;
   timestamp: string;
 }
 
@@ -53,6 +56,8 @@ export interface AISignalReceivedData {
   timestamp: number;
   model_type: string;
   timeframe: string;
+  reasoning?: string;
+  strategy_scores?: Record<string, number>;
 }
 
 export interface BotStatusUpdateData {
@@ -176,11 +181,16 @@ export const useWebSocket = (): WebSocketHook => {
   }, []);
 
   const addAISignal = useCallback((signalData: AISignalReceivedData) => {
+    console.log("🤖 Received AI Signal via WebSocket:", signalData);
+
     const newSignal: AISignal = {
       signal: signalData.signal as "long" | "short" | "neutral",
       confidence: signalData.confidence,
-      probability: signalData.confidence / 100,
-      timestamp: new Date(signalData.timestamp).toISOString(),
+      probability: signalData.confidence,
+      timestamp:
+        typeof signalData.timestamp === "number"
+          ? new Date(signalData.timestamp).toISOString()
+          : new Date(signalData.timestamp).toISOString(),
       model_type: signalData.model_type,
       symbol: signalData.symbol,
       timeframe: signalData.timeframe,
@@ -188,7 +198,7 @@ export const useWebSocket = (): WebSocketHook => {
 
     setState((prev) => ({
       ...prev,
-      aiSignals: [newSignal, ...prev.aiSignals.slice(0, 9)], // Keep last 10 signals
+      aiSignals: [newSignal, ...prev.aiSignals.slice(0, 19)], // Keep last 20 signals
     }));
   }, []);
 
@@ -216,17 +226,26 @@ export const useWebSocket = (): WebSocketHook => {
         setState((prev) => ({ ...prev, lastMessage: message }));
 
         switch (message.type) {
+          case "Connected":
+            console.log("🔗 WebSocket connected:", message.message);
+            break;
+          case "Pong":
+            // Keep-alive response
+            break;
           case "PositionUpdate":
-            updatePosition(message.data as PositionUpdateData);
+            if (message.data)
+              updatePosition(message.data as PositionUpdateData);
             break;
           case "TradeExecuted":
-            addTradeToHistory(message.data as TradeExecutedData);
+            if (message.data)
+              addTradeToHistory(message.data as TradeExecutedData);
             break;
           case "AISignalReceived":
-            addAISignal(message.data as AISignalReceivedData);
+            if (message.data) addAISignal(message.data as AISignalReceivedData);
             break;
           case "BotStatusUpdate":
-            updateBotStatus(message.data as BotStatusUpdateData);
+            if (message.data)
+              updateBotStatus(message.data as BotStatusUpdateData);
             break;
           case "ChartUpdate":
             // Handle chart update
@@ -235,25 +254,30 @@ export const useWebSocket = (): WebSocketHook => {
             // Handle market data update
             break;
           case "Error":
-            console.error("WebSocket error from server:", message.data);
-            setState((prev) => ({
-              ...prev,
-              error: (message.data as ErrorData).message,
-            }));
+            console.error("WebSocket error:", message.data);
+            if (message.data) {
+              setState((prev) => ({
+                ...prev,
+                error: (message.data as ErrorData).message,
+              }));
+            }
             break;
           default:
             console.warn("Unknown message type:", message.type);
         }
       } catch (error) {
         console.error("Failed to parse WebSocket message:", error);
-        setState((prev) => ({ ...prev, error: "Failed to parse message" }));
+        setState((prev) => ({
+          ...prev,
+          error: "Failed to parse WebSocket message",
+        }));
       }
     },
     [updatePosition, addTradeToHistory, addAISignal, updateBotStatus]
   );
 
   const handleOpen = useCallback(() => {
-    console.log("🔗 WebSocket connected");
+    console.log("🔗 WebSocket connected to Rust backend");
     reconnectAttemptsRef.current = 0;
     setState((prev) => ({
       ...prev,
@@ -268,7 +292,6 @@ export const useWebSocket = (): WebSocketHook => {
     setState((prev) => ({
       ...prev,
       isConnected: false,
-      isConnecting: false,
     }));
 
     // Attempt reconnection if not explicitly closed
@@ -281,20 +304,15 @@ export const useWebSocket = (): WebSocketHook => {
         30000
       );
       console.log(
-        `🔄 Attempting reconnection in ${delay}ms (attempt ${
+        `🔄 Attempting WebSocket reconnection in ${delay}ms (attempt ${
           reconnectAttemptsRef.current + 1
         }/${MAX_RECONNECT_ATTEMPTS})`
       );
 
       reconnectTimeoutRef.current = setTimeout(() => {
         reconnectAttemptsRef.current++;
-        connect();
+        connectWebSocket();
       }, delay);
-    } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      setState((prev) => ({
-        ...prev,
-        error: "Max reconnection attempts reached",
-      }));
     }
   }, []);
 
@@ -307,7 +325,7 @@ export const useWebSocket = (): WebSocketHook => {
     }));
   }, []);
 
-  const connect = useCallback(() => {
+  const connectWebSocket = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return; // Already connected
     }
@@ -315,12 +333,6 @@ export const useWebSocket = (): WebSocketHook => {
     if (wsRef.current?.readyState === WebSocket.CONNECTING) {
       return; // Already connecting
     }
-
-    setState((prev) => ({
-      ...prev,
-      isConnecting: true,
-      error: null,
-    }));
 
     try {
       const ws = new WebSocket(WS_URL);
@@ -336,10 +348,19 @@ export const useWebSocket = (): WebSocketHook => {
       setState((prev) => ({
         ...prev,
         error: "Failed to create WebSocket connection",
-        isConnecting: false,
       }));
     }
   }, [handleOpen, handleClose, handleError, handleMessage]);
+
+  const connect = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      isConnecting: true,
+      error: null,
+    }));
+
+    connectWebSocket();
+  }, [connectWebSocket]);
 
   const disconnect = useCallback(() => {
     shouldReconnectRef.current = false;
@@ -362,8 +383,10 @@ export const useWebSocket = (): WebSocketHook => {
   }, []);
 
   const sendMessage = useCallback((message: OutgoingWebSocketMessage) => {
+    const messageStr = JSON.stringify(message);
+
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
+      wsRef.current.send(messageStr);
     } else {
       console.warn("WebSocket is not connected. Cannot send message.");
     }

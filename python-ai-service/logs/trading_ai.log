@@ -199,3 +199,4 @@
 2025-07-04 19:22:34 | INFO | main:lifespan:29 | Starting AI Trading Service
 2025-07-04 19:22:34 | ERROR | models.model_manager:load_model:218 | Model file not found: None
 2025-07-04 19:22:34 | INFO | main:lifespan:36 | No existing model found - will need training data
+2025-07-05 02:20:59 | INFO | main:lifespan:41 | Shutting down AI Trading Service

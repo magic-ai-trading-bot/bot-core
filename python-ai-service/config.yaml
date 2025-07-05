@@ -36,6 +36,11 @@ data:
   min_candles_required: 100
   max_candles_per_request: 1000
 
+ai_cache:
+  enabled: true
+  duration_minutes: 5 # Cache AI analysis for 5 minutes to save tokens
+  max_entries: 100 # Maximum number of cache entries
+
 model_management:
   model_save_path: "./models/saved/"
   retrain_interval_hours: 24
