@@ -718,53 +718,59 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       <div className={className}>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Real-time Trading Charts
-              <Badge
-                variant="outline"
-                className="text-green-600 border-green-600"
-              >
-                🔥 HOT RELOAD ACTIVE
-              </Badge>
-              <Badge
-                variant="outline"
-                className={
-                  wsState.isConnected
-                    ? "text-green-600 border-green-600"
-                    : "text-red-600 border-red-600"
-                }
-              >
-                {wsState.isConnected ? "🟢 LIVE" : "🔴 DISCONNECTED"}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-blue-600 border-blue-600"
-              >
-                ⚡ MAINNET
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-purple-600 border-purple-600"
-              >
-                🚀 {selectedTimeframe.toUpperCase()}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-orange-600 border-orange-600"
-              >
-                🚀 WEBSOCKET
-              </Badge>
-            </CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Real-time Trading Charts
+                  <Badge
+                    variant="outline"
+                    className={
+                      wsState.isConnected
+                        ? "text-green-600 border-green-600"
+                        : "text-red-600 border-red-600"
+                    }
+                  >
+                    {wsState.isConnected ? "🟢 LIVE" : "🔴 DISCONNECTED"}
+                  </Badge>
+                </CardTitle>
+                <div className="flex flex-wrap items-center gap-1 mt-2">
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-green-600 border-green-600"
+                  >
+                    🔥 HOT RELOAD
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-blue-600 border-blue-600"
+                  >
+                    ⚡ MAINNET
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-purple-600 border-purple-600"
+                  >
+                    🚀 {selectedTimeframe.toUpperCase()}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-orange-600 border-orange-600"
+                  >
+                    📡 WEBSOCKET
+                  </Badge>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex flex-wrap items-center gap-2">
                 <Select
                   value={selectedTimeframe}
                   onValueChange={setSelectedTimeframe}
                 >
-                  <SelectTrigger className="w-20">
+                  <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -776,6 +782,8 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
                   </SelectContent>
                 </Select>
                 <AddSymbolDialog onAddSymbol={handleAddSymbol} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -792,7 +800,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
               </div>
             </div>
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
@@ -801,7 +809,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
                 ))}
               </div>
             ) : charts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {charts.map((chart) => (
                   <ChartCard
                     key={`${chart.symbol}-${chart.timeframe}`}
@@ -811,9 +819,14 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">
-                  No charts available
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Activity className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No Charts Available
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Add trading symbols to start monitoring real-time market data
+                  and price movements.
                 </p>
                 <AddSymbolDialog onAddSymbol={handleAddSymbol} />
               </div>

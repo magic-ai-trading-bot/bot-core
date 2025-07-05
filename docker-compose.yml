@@ -15,6 +15,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_token}
       - PYTHON_API_KEY=${PYTHON_API_KEY:-python_api_key}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
     volumes:
       - ./python-ai-service/models:/app/models
       - ./python-ai-service/logs:/app/logs
@@ -56,6 +57,7 @@ services:
       - LOG_LEVEL=DEBUG
       - FLASK_ENV=development
       - ENABLE_HOT_RELOAD=true
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
     volumes:
       - ./python-ai-service:/app
       - /app/__pycache__
@@ -236,12 +238,24 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+      - "24678:24678" # HMR WebSocket port
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8080
-      - VITE_AI_API_URL=http://localhost:8000
+      - VITE_RUST_API_URL=http://localhost:8080
+      - VITE_PYTHON_AI_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8080/ws
+      - VITE_API_TIMEOUT=10000
+      - VITE_REFRESH_INTERVAL=5000
+      - VITE_ENABLE_REALTIME=true
       - CHOKIDAR_USEPOLLING=true
       - NODE_OPTIONS="--max-old-space-size=768"
+      # Vite HMR configuration
+      - HMR_PORT=24678
+      # Bun compatibility flags
+      - BUN_RUNTIME_TRANSPILER_CACHE_PATH=/tmp/bun-cache
+      # Enable Bun optimizations but keep WebSocket working
+      - BUN_ENABLE_JEMALLOC=true
+      - BUN_ENABLE_SMOL=false
     volumes:
       - ./nextjs-ui-dashboard/src:/app/src:delegated
       - ./nextjs-ui-dashboard/public:/app/public:delegated

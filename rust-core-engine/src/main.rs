@@ -12,6 +12,8 @@ mod trading;
 mod storage;
 mod monitoring;
 mod api;
+mod strategies;
+mod ai;
 
 use config::Config;
 use market_data::MarketDataProcessor;

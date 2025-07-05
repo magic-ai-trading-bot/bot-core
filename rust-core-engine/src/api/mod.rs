@@ -8,6 +8,7 @@ use warp::ws::{Message, WebSocket, Ws};
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::broadcast;
 use tracing::{error, info, debug};
+use serde_json;
 
 use crate::config::ApiConfig;
 use crate::market_data::MarketDataProcessor;
@@ -15,6 +16,7 @@ use crate::trading::TradingEngine;
 use crate::monitoring::MonitoringService;
 use crate::auth::{AuthService, UserRepository};
 use crate::storage::Storage;
+use crate::ai::AIService;
 
 #[derive(Clone)]
 pub struct ApiServer {
@@ -24,6 +26,7 @@ pub struct ApiServer {
     monitoring: Arc<RwLock<MonitoringService>>,
     ws_broadcaster: broadcast::Sender<String>,
     auth_service: AuthService,
+    ai_service: AIService,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -81,6 +84,18 @@ impl ApiServer {
             AuthService::new_dummy()
         };
 
+        // Initialize AI service
+        let python_ai_url = std::env::var("PYTHON_AI_SERVICE_URL")
+            .unwrap_or_else(|_| "http://localhost:8000".to_string());
+        let ai_config = crate::ai::AIServiceConfig {
+            python_service_url: python_ai_url,
+            request_timeout_seconds: 30,
+            max_retries: 3,
+            enable_caching: true,
+            cache_ttl_seconds: 300,
+        };
+        let ai_service = AIService::new(ai_config);
+
         Ok(Self {
             config,
             market_data,
@@ -88,6 +103,7 @@ impl ApiServer {
             monitoring: Arc::new(RwLock::new(MonitoringService::new())),
             ws_broadcaster,
             auth_service,
+            ai_service,
         })
     }
 
@@ -134,11 +150,15 @@ impl ApiServer {
         // Monitoring routes
         let monitoring = self.monitoring_routes();
 
+        // AI routes
+        let ai_routes = self.ai_routes();
+
         // Combine all routes
         let api_routes = health
             .or(market_data)
             .or(trading)
             .or(monitoring)
+            .or(ai_routes)
             .or(self.auth_service.routes());
 
         let api = warp::path("api").and(api_routes);
@@ -444,6 +464,122 @@ impl ApiServer {
             }
         }
     }
+
+    fn ai_routes(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+        let ai_service = self.ai_service.clone();
+        let ws_broadcaster = self.ws_broadcaster.clone();
+        
+        // AI analysis endpoint with WebSocket broadcasting
+        let ai_analyze = warp::path("analyze")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || ai_service.clone()))
+            .and(warp::any().map(move || ws_broadcaster.clone()))
+            .and_then(|request: crate::ai::AIAnalysisRequest, ai_service: crate::ai::AIService, broadcaster: broadcast::Sender<String>| async move {
+                let strategy_context = request.strategy_context.clone();
+                let symbol = request.symbol.clone();
+                
+                match ai_service.analyze_for_trading_signal(&request.into(), strategy_context).await {
+                    Ok(response) => {
+                        // Broadcast AI signal via WebSocket
+                        let signal_message = serde_json::json!({
+                            "type": "AISignalReceived",
+                            "data": {
+                                "symbol": symbol,
+                                "signal": response.signal.to_string().to_lowercase(),
+                                "confidence": response.confidence,
+                                "timestamp": response.timestamp,
+                                "model_type": "GPT-4",
+                                "timeframe": "1h",
+                                "reasoning": response.reasoning,
+                                "strategy_scores": response.strategy_scores
+                            },
+                                                         "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64
+                        });
+                        
+                        if let Ok(message_str) = serde_json::to_string(&signal_message) {
+                            if let Err(_) = broadcaster.send(message_str) {
+                                // Log error if needed, but don't fail the request
+                                debug!("No WebSocket subscribers for AI signal broadcast");
+                            } else {
+                                info!("📡 Broadcasted AI signal for {} via WebSocket", symbol);
+                            }
+                        }
+                        
+                        Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(response)))
+                    },
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                }
+            });
+
+        // Strategy recommendations endpoint
+        let ai_service_clone = self.ai_service.clone();
+        let strategy_recommendations = warp::path("strategy-recommendations")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || ai_service_clone.clone()))
+            .and_then(|request: crate::ai::StrategyRecommendationRequest, ai_service: crate::ai::AIService| async move {
+                let market_data = request.clone().into();
+                match ai_service.get_strategy_recommendations(&market_data, request.available_strategies).await {
+                    Ok(response) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(response))),
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                }
+            });
+
+        // Market condition analysis endpoint
+        let ai_service_clone2 = self.ai_service.clone();
+        let market_condition = warp::path("market-condition")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || ai_service_clone2.clone()))
+            .and_then(|request: crate::ai::MarketConditionRequest, ai_service: crate::ai::AIService| async move {
+                let market_data = request.into();
+                match ai_service.analyze_market_condition(&market_data).await {
+                    Ok(response) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(response))),
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                }
+            });
+
+        // Performance feedback endpoint
+        let ai_service_clone3 = self.ai_service.clone();
+        let performance_feedback = warp::path("feedback")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || ai_service_clone3.clone()))
+            .and_then(|feedback: crate::ai::PerformanceFeedback, ai_service: crate::ai::AIService| async move {
+                match ai_service.send_performance_feedback(feedback).await {
+                    Ok(_) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success("Feedback sent successfully"))),
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                }
+            });
+
+        // AI service info endpoint
+        let ai_service_clone4 = self.ai_service.clone();
+        let ai_info = warp::path("info")
+            .and(warp::get())
+            .and(warp::any().map(move || ai_service_clone4.clone()))
+            .and_then(|ai_service: crate::ai::AIService| async move {
+                match ai_service.get_service_info().await {
+                    Ok(info) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(info))),
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                }
+            });
+
+        // Supported strategies endpoint
+        let ai_service_clone5 = self.ai_service.clone();
+        let ai_strategies = warp::path("strategies")
+            .and(warp::get())
+            .and(warp::any().map(move || ai_service_clone5.clone()))
+            .and_then(|ai_service: crate::ai::AIService| async move {
+                match ai_service.get_supported_strategies().await {
+                    Ok(strategies) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(strategies))),
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                }
+            });
+
+        warp::path("ai")
+            .and(ai_analyze.or(strategy_recommendations).or(market_condition).or(performance_feedback).or(ai_info).or(ai_strategies))
+    }
 }
 
 #[derive(Deserialize)]
@@ -461,4 +597,41 @@ struct MultiChartQuery {
     symbols: String,      // comma-separated symbols: "BTCUSDT,ETHUSDT,BNBUSDT"
     timeframes: String,   // comma-separated timeframes: "1m,5m,15m,1h"
     limit: Option<usize>,
+}
+
+// Conversion implementations for AI types
+impl From<crate::ai::AIAnalysisRequest> for crate::strategies::StrategyInput {
+    fn from(request: crate::ai::AIAnalysisRequest) -> Self {
+        Self {
+            symbol: request.symbol,
+            timeframe_data: request.timeframe_data,
+            current_price: request.current_price,
+            volume_24h: request.volume_24h,
+            timestamp: request.timestamp,
+        }
+    }
+}
+
+impl From<crate::ai::StrategyRecommendationRequest> for crate::strategies::StrategyInput {
+    fn from(request: crate::ai::StrategyRecommendationRequest) -> Self {
+        Self {
+            symbol: request.symbol,
+            timeframe_data: request.timeframe_data,
+            current_price: request.current_price,
+            volume_24h: 0.0, // Not available in strategy recommendation request
+            timestamp: request.timestamp,
+        }
+    }
+}
+
+impl From<crate::ai::MarketConditionRequest> for crate::strategies::StrategyInput {
+    fn from(request: crate::ai::MarketConditionRequest) -> Self {
+        Self {
+            symbol: request.symbol,
+            timeframe_data: request.timeframe_data,
+            current_price: request.current_price,
+            volume_24h: request.volume_24h,
+            timestamp: request.timestamp,
+        }
+    }
 } 

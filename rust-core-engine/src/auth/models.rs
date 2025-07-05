@@ -3,6 +3,82 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+// Custom serde module for handling MongoDB DateTime
+mod date_time_serde {
+    use chrono::{DateTime, Utc};
+    use serde::{self, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Serialize as BSON DateTime for MongoDB
+        serializer.serialize_str(&date.to_rfc3339())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use bson::DateTime as BsonDateTime;
+        use serde::de::Error;
+
+        // Try to deserialize from different formats
+        let value = bson::Bson::deserialize(deserializer)?;
+        
+        match value {
+            // BSON DateTime (from MongoDB)
+            bson::Bson::DateTime(dt) => {
+                Ok(DateTime::from_timestamp_millis(dt.timestamp_millis())
+                    .unwrap_or_else(|| Utc::now()))
+            },
+            // String format (RFC 3339)
+            bson::Bson::String(s) => {
+                s.parse().map_err(D::Error::custom)
+            },
+            _ => Err(D::Error::custom("Expected DateTime or String")),
+        }
+    }
+}
+
+// Optional DateTime serde
+mod optional_date_time_serde {
+    use chrono::{DateTime, Utc};
+    use serde::{self, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(date: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match date {
+            Some(dt) => serializer.serialize_some(&dt.to_rfc3339()),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use bson::DateTime as BsonDateTime;
+        use serde::de::Error;
+
+        let value: Option<bson::Bson> = Option::deserialize(deserializer)?;
+        
+        match value {
+            Some(bson::Bson::DateTime(dt)) => {
+                Ok(Some(DateTime::from_timestamp_millis(dt.timestamp_millis())
+                    .unwrap_or_else(|| Utc::now())))
+            },
+            Some(bson::Bson::String(s)) => {
+                Ok(Some(s.parse().map_err(D::Error::custom)?))
+            },
+            Some(_) => Err(D::Error::custom("Expected DateTime or String")),
+            None => Ok(None),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -12,8 +88,11 @@ pub struct User {
     pub full_name: Option<String>,
     pub is_active: bool,
     pub is_admin: bool,
+    #[serde(with = "date_time_serde")]
     pub created_at: DateTime<Utc>,
+    #[serde(with = "date_time_serde")]
     pub updated_at: DateTime<Utc>,
+    #[serde(with = "optional_date_time_serde")]
     pub last_login: Option<DateTime<Utc>>,
     pub settings: UserSettings,
 }
@@ -71,7 +150,9 @@ pub struct UserProfile {
     pub full_name: Option<String>,
     pub is_active: bool,
     pub is_admin: bool,
+    #[serde(with = "date_time_serde")]
     pub created_at: DateTime<Utc>,
+    #[serde(with = "optional_date_time_serde")]
     pub last_login: Option<DateTime<Utc>>,
     pub settings: UserSettings,
 }

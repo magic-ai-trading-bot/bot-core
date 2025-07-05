@@ -1,6 +1,15 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -9,21 +18,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAIAnalysis } from "@/hooks/useAIAnalysis";
-import { useWebSocket } from "@/hooks/useWebSocket";
-import { AIMarketAnalysis, AIRiskAssessment } from "@/services/api";
 import {
-  AlertCircle,
-  RefreshCw,
-  Zap,
+  Settings,
   TrendingUp,
-  Wifi,
-  WifiOff,
   BarChart3,
-  Target,
   Activity,
-  Shield,
-  ArrowUp,
-  ArrowDown,
+  Target,
   Info,
 } from "lucide-react";
 
@@ -233,10 +233,10 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
           </CardContent>
         </Card>
 
-        {/* Chart Illustration */}
+        {/* Real Chart Illustrations */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">📈 Hình minh họa</CardTitle>
+            <CardTitle className="text-lg">📈 Biểu đồ minh họa</CardTitle>
           </CardHeader>
           <CardContent>
             {/* RSI Strategy Chart */}
@@ -244,6 +244,7 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
               <div className="space-y-4">
                 <div className="w-full h-64 bg-muted/10 rounded-lg p-4">
                   <svg viewBox="0 0 400 200" className="w-full h-full">
+                    {/* Grid lines */}
                     <defs>
                       <pattern
                         id="grid"
@@ -808,637 +809,249 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
   );
 }
 
-// Types for signals
-interface CombinedSignal {
-  signal: string;
-  confidence: number;
-  timestamp: string | number;
-  symbol?: string;
-  reasoning?: string;
-  strategy_scores?: Record<string, number>;
-  market_analysis?: AIMarketAnalysis;
-  risk_assessment?: AIRiskAssessment;
-  source: string;
-  model_type?: string;
-}
+const STRATEGY_CONFIGS = {
+  "RSI Strategy": {
+    icon: TrendingUp,
+    description:
+      "Relative Strength Index - identifies overbought/oversold conditions",
+    color: "bg-blue-500",
+    defaultParams: { period: 14, oversold: 30, overbought: 70 },
+  },
+  "MACD Strategy": {
+    icon: BarChart3,
+    description:
+      "Moving Average Convergence Divergence - trend following momentum",
+    color: "bg-green-500",
+    defaultParams: { fast: 12, slow: 26, signal: 9 },
+  },
+  "Volume Strategy": {
+    icon: Activity,
+    description: "Volume analysis - detects accumulation/distribution patterns",
+    color: "bg-purple-500",
+    defaultParams: { multiplier: 2, period: 20 },
+  },
+  "Bollinger Bands Strategy": {
+    icon: Target,
+    description: "Volatility bands - mean reversion and breakout detection",
+    color: "bg-orange-500",
+    defaultParams: { period: 20, stdDev: 2 },
+  },
+};
 
-interface FormattedSignal {
-  id: string;
-  signal: "LONG" | "SHORT" | "NEUTRAL";
-  confidence: number;
-  timestamp: string;
-  pair: string;
-  reason: string;
-  active: boolean;
-  marketAnalysis?: CombinedSignal["market_analysis"];
-  riskAssessment?: CombinedSignal["risk_assessment"];
-  strategyScores?: Record<string, number>;
-  source: string;
-  isWebSocket: boolean;
-}
+const RISK_LEVELS = [
+  {
+    value: "Conservative",
+    label: "Conservative",
+    description: "Lower risk, more stable signals",
+  },
+  {
+    value: "Moderate",
+    label: "Moderate",
+    description: "Balanced risk-reward approach",
+  },
+  {
+    value: "Aggressive",
+    label: "Aggressive",
+    description: "Higher risk, more frequent signals",
+  },
+];
 
-// Component for detailed signal analysis popup
-function DetailedSignalDialog({ signal }: { signal: FormattedSignal }) {
-  return (
-    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          Detailed AI Analysis: {signal.pair}
-          <Badge
-            className={
-              signal.signal === "LONG"
-                ? "bg-profit"
-                : signal.signal === "SHORT"
-                ? "bg-loss"
-                : "bg-warning"
-            }
-          >
-            {signal.signal}
-          </Badge>
-        </DialogTitle>
-      </DialogHeader>
+export function AIStrategySelector() {
+  const { state, analyzeSymbol } = useAIAnalysis();
+  const [selectedStrategies, setSelectedStrategies] = useState<string[]>([
+    "RSI Strategy",
+    "MACD Strategy",
+  ]);
+  const [riskLevel, setRiskLevel] = useState("Moderate");
+  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
+  const [openDialog, setOpenDialog] = useState<string | null>(null);
 
-      <div className="space-y-6">
-        {/* Signal Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="h-4 w-4 text-blue-500" />
-                <span className="font-medium">Signal Strength</span>
-              </div>
-              <div className="text-2xl font-bold text-blue-500">
-                {(signal.confidence * 100).toFixed(1)}%
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Confidence Level
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                {signal.signal === "LONG" ? (
-                  <ArrowUp className="h-4 w-4 text-profit" />
-                ) : signal.signal === "SHORT" ? (
-                  <ArrowDown className="h-4 w-4 text-loss" />
-                ) : (
-                  <Activity className="h-4 w-4 text-warning" />
-                )}
-                <span className="font-medium">Recommendation</span>
-              </div>
-              <div
-                className={`text-2xl font-bold ${
-                  signal.signal === "LONG"
-                    ? "text-profit"
-                    : signal.signal === "SHORT"
-                    ? "text-loss"
-                    : "text-warning"
-                }`}
-              >
-                {signal.signal === "LONG"
-                  ? "BUY (LONG)"
-                  : signal.signal === "SHORT"
-                  ? "SELL (SHORT)"
-                  : "HOLD"}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {signal.signal === "LONG"
-                  ? "🟢 Go Long - Buy Position"
-                  : signal.signal === "SHORT"
-                  ? "🔴 Go Short - Sell Position"
-                  : "🟡 Wait - No Action"}
-              </div>
-              <div className="mt-2 p-2 rounded-md bg-muted/50">
-                <div className="text-xs font-medium text-muted-foreground mb-1">
-                  Action:
-                </div>
-                <div className="text-sm">
-                  {signal.signal === "LONG"
-                    ? "📈 Mua vào - Giá có thể tăng"
-                    : signal.signal === "SHORT"
-                    ? "📉 Bán ra - Giá có thể giảm"
-                    : "⏸️ Chờ đợi - Thị trường chưa rõ"}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-4 w-4 text-orange-500" />
-                <span className="font-medium">Risk Level</span>
-              </div>
-              <div className="text-2xl font-bold text-orange-500">
-                {signal.riskAssessment?.overall_risk || "Medium"}
-              </div>
-              <div className="text-sm text-muted-foreground">Overall Risk</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Market Analysis */}
-        {signal.marketAnalysis && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Market Analysis
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Trend Direction:
-                  </span>
-                  <p className="text-lg font-semibold">
-                    {signal.marketAnalysis.trend_direction || "Sideways"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Trend Strength:
-                  </span>
-                  <p className="text-lg font-semibold">
-                    {(
-                      (signal.marketAnalysis.trend_strength || 0.5) * 100
-                    ).toFixed(1)}
-                    %
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Volatility:
-                  </span>
-                  <p className="text-lg font-semibold">
-                    {signal.marketAnalysis.volatility_level || "Medium"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Volume Analysis:
-                  </span>
-                  <p className="text-lg font-semibold">
-                    {signal.marketAnalysis.volume_analysis || "Normal"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Strategy Scores - Now Clickable */}
-        {signal.strategyScores &&
-          Object.keys(signal.strategyScores).length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Strategy Analysis
-                  <Badge variant="outline" className="text-xs">
-                    Click để xem chi tiết
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(signal.strategyScores).map(
-                    ([strategy, score]) => (
-                      <Dialog key={strategy}>
-                        <DialogTrigger asChild>
-                          <div className="space-y-2 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors border border-transparent hover:border-muted-foreground/20">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">
-                                  {strategy}
-                                </span>
-                                <Info className="h-3 w-3 text-muted-foreground" />
-                              </div>
-                              <span className="text-sm font-bold">
-                                {((score as number) * 100).toFixed(1)}%
-                              </span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-500 ${
-                                  (score as number) >= 0.7
-                                    ? "bg-profit"
-                                    : (score as number) >= 0.5
-                                    ? "bg-warning"
-                                    : "bg-loss"
-                                }`}
-                                style={{ width: `${(score as number) * 100}%` }}
-                              />
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Click để xem giải thích chi tiết về {strategy}
-                            </div>
-                          </div>
-                        </DialogTrigger>
-                        <StrategyExplanationDialog strategyName={strategy} />
-                      </Dialog>
-                    )
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-        {/* Risk Assessment Details */}
-        {signal.riskAssessment && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Risk Assessment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Technical Risk:
-                    </span>
-                    <p className="text-lg font-semibold">
-                      {(
-                        (signal.riskAssessment.technical_risk || 0.5) * 100
-                      ).toFixed(1)}
-                      %
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Position Size:
-                    </span>
-                    <p className="text-lg font-semibold">
-                      {(
-                        (signal.riskAssessment.recommended_position_size ||
-                          0.02) * 100
-                      ).toFixed(1)}
-                      %
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Market Risk:
-                    </span>
-                    <p className="text-lg font-semibold">
-                      {(
-                        (signal.riskAssessment.market_risk || 0.5) * 100
-                      ).toFixed(1)}
-                      %
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Source:
-                    </span>
-                    <p className="text-lg font-semibold capitalize">
-                      {signal.source}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {(signal.riskAssessment.stop_loss_suggestion ||
-                signal.riskAssessment.take_profit_suggestion) && (
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-2">Trading Levels:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {signal.riskAssessment.stop_loss_suggestion && (
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Stop Loss:
-                        </span>
-                        <p className="text-lg font-semibold text-loss">
-                          $
-                          {signal.riskAssessment.stop_loss_suggestion.toFixed(
-                            2
-                          )}
-                        </p>
-                      </div>
-                    )}
-                    {signal.riskAssessment.take_profit_suggestion && (
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Take Profit:
-                        </span>
-                        <p className="text-lg font-semibold text-profit">
-                          $
-                          {signal.riskAssessment.take_profit_suggestion.toFixed(
-                            2
-                          )}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Analysis Reasoning */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Info className="h-5 w-5" />
-              Analysis Reasoning
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-relaxed">{signal.reason}</p>
-            <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
-              <p>Generated: {signal.timestamp}</p>
-              <p>Status: {signal.active ? "Active" : "Expired"}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </DialogContent>
-  );
-}
-
-export function AISignals() {
-  const { state: aiState, analyzeSymbol, clearError } = useAIAnalysis();
-  const { state: wsState } = useWebSocket();
-
-  // Combine signals from both AI analysis and WebSocket
-  const allSignalsRaw = [
-    ...aiState.signals.map((s) => ({ ...s, source: "api" })),
-    ...wsState.aiSignals.map((s) => ({
-      ...s,
-      source: "websocket",
-      reasoning: `WebSocket signal from ${s.model_type}`,
-      strategy_scores: {},
-      market_analysis: {
-        trend_direction:
-          s.signal === "long"
-            ? "Bullish"
-            : s.signal === "short"
-            ? "Bearish"
-            : "Sideways",
-        trend_strength: s.confidence,
-        support_levels: [],
-        resistance_levels: [],
-        volatility_level: "Medium",
-        volume_analysis: "Real-time analysis",
-      },
-      risk_assessment: {
-        overall_risk: "Medium",
-        technical_risk: 0.5,
-        market_risk: 0.5,
-        recommended_position_size: 0.02,
-        stop_loss_suggestion: null,
-        take_profit_suggestion: null,
-      },
-    })),
-  ].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
-
-  // Filter to show only the most recent signal per token pair
-  const uniqueSignalsMap = new Map<string, CombinedSignal>();
-  allSignalsRaw.forEach((signal) => {
-    const symbol = signal.symbol || "unknown";
-    if (!uniqueSignalsMap.has(symbol)) {
-      uniqueSignalsMap.set(symbol, signal as CombinedSignal);
-    }
-  });
-
-  const allSignals = Array.from(uniqueSignalsMap.values());
-
-  interface CombinedSignal {
-    signal: string;
-    confidence: number;
-    timestamp: string | number;
-    symbol?: string;
-    reasoning?: string;
-    strategy_scores?: Record<string, number>;
-    market_analysis?: {
-      trend_direction: string;
-      trend_strength: number;
-      support_levels: number[];
-      resistance_levels: number[];
-      volatility_level: string;
-      volume_analysis: string;
-    };
-    risk_assessment?: {
-      overall_risk: string;
-      technical_risk: number;
-      market_risk: number;
-      recommended_position_size: number;
-      stop_loss_suggestion: number | null;
-      take_profit_suggestion: number | null;
-    };
-    source: string;
-    model_type?: string;
-  }
-
-  const formatSignalForDisplay = (signal: CombinedSignal) => ({
-    id: `${signal.symbol}-${signal.timestamp}-${signal.source}`,
-    signal: signal.signal.toUpperCase() as "LONG" | "SHORT" | "NEUTRAL",
-    confidence: signal.confidence,
-    timestamp: new Date(signal.timestamp).toLocaleString(),
-    pair: signal.symbol ? signal.symbol.replace("USDT", "/USDT") : "N/A",
-    reason: signal.reasoning || `${signal.source} signal`,
-    active: Date.now() - new Date(signal.timestamp).getTime() < 30 * 60 * 1000, // Active if less than 30 minutes old
-    marketAnalysis: signal.market_analysis,
-    riskAssessment: signal.risk_assessment,
-    strategyScores: signal.strategy_scores,
-    source: signal.source,
-    isWebSocket: signal.source === "websocket",
-  });
-
-  const getSignalColor = (signal: string) => {
-    switch (signal) {
-      case "LONG":
-        return "bg-profit text-profit-foreground";
-      case "SHORT":
-        return "bg-loss text-loss-foreground";
-      default:
-        return "bg-warning text-warning-foreground";
-    }
+  const handleStrategyToggle = (strategy: string) => {
+    setSelectedStrategies((prev) =>
+      prev.includes(strategy)
+        ? prev.filter((s) => s !== strategy)
+        : [...prev, strategy]
+    );
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return "text-profit";
-    if (confidence >= 0.6) return "text-warning";
-    return "text-loss";
+  const handleAnalyze = () => {
+    if (selectedStrategies.length > 0) {
+      analyzeSymbol(selectedSymbol, selectedStrategies);
+    }
   };
 
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
-          AI Trading Signals
-          <Badge
-            variant="outline"
-            className="bg-info/10 text-info border-info/20"
-          >
-            <div className="w-2 h-2 bg-info rounded-full mr-2 animate-pulse"></div>
-            Live Analysis
-          </Badge>
+          <Settings className="h-5 w-5" />
+          AI Strategy Configuration
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 flex-1 overflow-auto">
-        {/* WebSocket Connection Status */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            {wsState.isConnected ? (
-              <Wifi className="h-4 w-4 text-success" />
-            ) : (
-              <WifiOff className="h-4 w-4 text-destructive" />
-            )}
-            <span className="text-xs text-muted-foreground">
-              WebSocket: {wsState.isConnected ? "Connected" : "Disconnected"}
-            </span>
-          </div>
+      <CardContent className="space-y-6 flex-1">
+        {/* Symbol Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Trading Symbol</label>
+          <Select value={selectedSymbol} onValueChange={setSelectedSymbol}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select trading pair" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BTCUSDT">BTC/USDT</SelectItem>
+              <SelectItem value="ETHUSDT">ETH/USDT</SelectItem>
+              <SelectItem value="BNBUSDT">BNB/USDT</SelectItem>
+              <SelectItem value="SOLUSDT">SOL/USDT</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Error Display */}
-        {(aiState.error || wsState.error) && (
-          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <span className="text-sm text-destructive">
-              {aiState.error || wsState.error}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearError}
-              className="ml-auto"
-            >
-              Dismiss
-            </Button>
-          </div>
-        )}
+        {/* Risk Level Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Risk Level</label>
+          <Select value={riskLevel} onValueChange={setRiskLevel}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select risk level" />
+            </SelectTrigger>
+            <SelectContent>
+              {RISK_LEVELS.map((level) => (
+                <SelectItem key={level.value} value={level.value}>
+                  <div className="flex flex-col">
+                    <span>{level.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {level.description}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Loading State */}
-        {aiState.isLoading && (
-          <div className="p-4 rounded-lg bg-muted/20 border border-muted/40 flex items-center gap-2">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-muted-foreground">
-              Analyzing market signals...
-            </span>
+        {/* Strategy Selection */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Active Strategies</label>
+            <Badge variant="outline" className="text-xs">
+              Click tên strategy để xem chi tiết
+            </Badge>
           </div>
-        )}
+          <div className="grid grid-cols-1 gap-3">
+            {Object.entries(STRATEGY_CONFIGS).map(([strategy, config]) => {
+              const Icon = config.icon;
+              const isSelected = selectedStrategies.includes(strategy);
 
-        {/* AI Service Info */}
-        {aiState.serviceInfo && (
-          <div className="p-3 rounded-lg bg-info/10 border border-info/20 flex items-center gap-2">
-            <Zap className="h-4 w-4 text-info" />
-            <span className="text-sm text-info">
-              {aiState.serviceInfo.service_name} v{aiState.serviceInfo.version}{" "}
-              • Model: {aiState.serviceInfo.model_version}
-            </span>
-            {aiState.lastUpdate && (
-              <span className="text-xs text-muted-foreground ml-auto">
-                Last updated:{" "}
-                {new Date(aiState.lastUpdate).toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* No Signals Message */}
-        {!aiState.isLoading && allSignals.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground">
-            <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No AI signals available yet</p>
-            <p className="text-sm">Analysis will start automatically</p>
-          </div>
-        )}
-
-        {/* Signals List */}
-        {allSignals.map((signalData) => {
-          const signal = formatSignalForDisplay(signalData);
-          return (
-            <Dialog key={signal.id}>
-              <DialogTrigger asChild>
+              return (
                 <div
-                  className={`p-4 rounded-lg border transition-all duration-200 hover:shadow-lg cursor-pointer ${
-                    signal.active
-                      ? "bg-secondary/50 border-primary/20 shadow-primary/5 hover:bg-secondary/70"
-                      : "bg-muted/20 border-muted/40 hover:bg-muted/30"
+                  key={strategy}
+                  className={`p-3 rounded-lg border transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-muted-foreground/50"
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-3">
-                      <Badge className={getSignalColor(signal.signal)}>
-                        {signal.signal}
-                      </Badge>
-                      <span className="font-semibold">{signal.pair}</span>
-                      {signal.active && (
-                        <Badge
-                          variant="outline"
-                          className="bg-profit/10 text-profit border-profit/20 text-xs"
-                        >
-                          ACTIVE
-                        </Badge>
-                      )}
+                  <div className="flex items-start gap-3">
+                    {/* Checkbox - separate click area */}
+                    <div
+                      className="flex items-center cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStrategyToggle(strategy);
+                      }}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={() => handleStrategyToggle(strategy)}
+                      />
                     </div>
-                    <div className="text-right">
-                      <div
-                        className={`font-bold text-lg ${getConfidenceColor(
-                          signal.confidence
-                        )}`}
+
+                    {/* Strategy Info - clickable for dialog */}
+                    <div className="flex-1 min-w-0">
+                      <Dialog
+                        open={openDialog === strategy}
+                        onOpenChange={(open) =>
+                          setOpenDialog(open ? strategy : null)
+                        }
                       >
-                        {(signal.confidence * 100).toFixed(0)}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Confidence
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-foreground">{signal.reason}</p>
-                    <div className="flex justify-between items-center text-xs text-muted-foreground">
-                      <span>{signal.timestamp}</span>
-                      <div className="flex items-center gap-1">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            signal.confidence >= 0.8
-                              ? "bg-profit"
-                              : signal.confidence >= 0.6
-                              ? "bg-warning"
-                              : "bg-loss"
-                          }`}
-                        ></div>
-                        <span>AI Confidence</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Confidence Bar */}
-                  <div className="mt-3">
-                    <div className="w-full bg-muted rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full transition-all duration-500 ${
-                          signal.confidence >= 0.8
-                            ? "bg-profit"
-                            : signal.confidence >= 0.6
-                            ? "bg-warning"
-                            : "bg-loss"
-                        }`}
-                        style={{ width: `${signal.confidence * 100}%` }}
-                      ></div>
+                        <DialogTrigger asChild>
+                          <div className="cursor-pointer hover:bg-muted/30 p-2 -m-2 rounded transition-colors">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div
+                                className={`w-3 h-3 rounded-full ${config.color}`}
+                              />
+                              <Icon className="h-4 w-4" />
+                              <span className="font-medium text-sm">
+                                {strategy}
+                              </span>
+                              <Info className="h-3 w-3 text-muted-foreground ml-auto" />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {config.description}
+                            </p>
+                            <p className="text-xs text-blue-500 mt-1">
+                              Click để xem giải thích chi tiết
+                            </p>
+                          </div>
+                        </DialogTrigger>
+                        <StrategyExplanationDialog strategyName={strategy} />
+                      </Dialog>
                     </div>
                   </div>
                 </div>
-              </DialogTrigger>
-              <DetailedSignalDialog signal={signal} />
-            </Dialog>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Strategy Recommendations */}
+        {state.strategies.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">AI Recommendations</label>
+            <div className="space-y-2">
+              {state.strategies.slice(0, 3).map((rec, index) => (
+                <div
+                  key={index}
+                  className="p-2 rounded-lg bg-muted/20 border border-muted/40"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      {rec.strategy_name}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {(rec.suitability_score * 100).toFixed(0)}% match
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {rec.reasoning}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Analysis Button */}
+        <Button
+          onClick={handleAnalyze}
+          disabled={selectedStrategies.length === 0 || state.isLoading}
+          className="w-full"
+        >
+          {state.isLoading
+            ? "Analyzing..."
+            : "Analyze with Selected Strategies"}
+        </Button>
+
+        {/* Selected Strategies Summary */}
+        {selectedStrategies.length > 0 && (
+          <div className="pt-2 border-t">
+            <div className="flex flex-wrap gap-1">
+              {selectedStrategies.map((strategy) => (
+                <Badge key={strategy} variant="secondary" className="text-xs">
+                  {strategy}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

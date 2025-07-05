@@ -1,6 +1,7 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { BotStatus } from "@/components/dashboard/BotStatus";
 import { AISignals } from "@/components/dashboard/AISignals";
+import { AIStrategySelector } from "@/components/dashboard/AIStrategySelector";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { TransactionHistory } from "@/components/dashboard/TransactionHistory";
 import { TradingCharts } from "@/components/dashboard/TradingCharts";
@@ -17,14 +18,19 @@ const Dashboard = () => {
         {/* Trading Charts Section */}
         <TradingCharts />
 
-        {/* Middle Section - AI Signals and Performance */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          <div className="lg:col-span-1">
+        {/* AI Section - Strategy Configuration & Trading Signals */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 lg:items-start">
+          <div className="lg:col-span-1 h-full">
+            <AIStrategySelector />
+          </div>
+          <div className="lg:col-span-2 h-full">
             <AISignals />
           </div>
-          <div className="lg:col-span-2">
-            <PerformanceChart />
-          </div>
+        </div>
+
+        {/* Performance Section - Overview & Metrics */}
+        <div>
+          <PerformanceChart />
         </div>
 
         {/* Bottom Section - Transaction History */}
