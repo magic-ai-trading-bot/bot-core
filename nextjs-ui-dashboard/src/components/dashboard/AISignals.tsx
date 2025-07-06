@@ -1200,20 +1200,35 @@ export function AISignals() {
         take_profit_suggestion: null,
       },
     })),
-  ].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+  ];
+
+  // Normalize and sort signals by timestamp (newest first)
+  const normalizedSignals = allSignalsRaw
+    .map((signal) => ({
+      ...signal,
+      symbol: (signal.symbol || "unknown").toUpperCase(), // Normalize symbol names
+      timestamp:
+        typeof signal.timestamp === "string"
+          ? signal.timestamp
+          : new Date(signal.timestamp).toISOString(),
+      timestampMs: new Date(signal.timestamp).getTime(),
+    }))
+    .sort((a, b) => b.timestampMs - a.timestampMs); // Sort by timestamp descending (newest first)
 
   // Filter to show only the most recent signal per token pair
-  const uniqueSignalsMap = new Map<string, CombinedSignal>();
-  allSignalsRaw.forEach((signal) => {
-    const symbol = signal.symbol || "unknown";
+  const uniqueSignalsMap = new Map<string, any>();
+  normalizedSignals.forEach((signal) => {
+    const symbol = signal.symbol;
+    // Only keep the signal if this symbol hasn't been seen yet (since we're sorted by newest first)
     if (!uniqueSignalsMap.has(symbol)) {
-      uniqueSignalsMap.set(symbol, signal as CombinedSignal);
+      uniqueSignalsMap.set(symbol, signal);
     }
   });
 
-  const allSignals = Array.from(uniqueSignalsMap.values());
+  // Convert back to array and sort again to maintain order
+  const allSignals = Array.from(uniqueSignalsMap.values()).sort(
+    (a, b) => b.timestampMs - a.timestampMs
+  );
 
   interface CombinedSignal {
     signal: string;

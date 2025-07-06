@@ -419,7 +419,7 @@ impl Default for AISettings {
         Self {
             service_url: "http://python-ai-service:8000".to_string(),
             request_timeout_seconds: 30,
-            signal_refresh_interval_minutes: 30, // Increased from 5 to 30 minutes to avoid rate limits
+            signal_refresh_interval_minutes: 5, // Changed from 30 to 5 minutes for faster signal processing
             enable_realtime_signals: true,
             confidence_thresholds,
             enable_feedback_learning: true,

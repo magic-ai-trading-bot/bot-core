@@ -1026,6 +1026,37 @@ impl PaperTradingEngine {
         Ok(())
     }
     
+    /// Update signal refresh interval in minutes
+    pub async fn update_signal_refresh_interval(&self, interval_minutes: u32) -> Result<()> {
+        if interval_minutes == 0 || interval_minutes > 1440 {
+            return Err(anyhow::anyhow!("Signal refresh interval must be between 1 and 1440 minutes"));
+        }
+        
+        let mut settings = self.settings.write().await;
+        
+        // Update the signal refresh interval
+        settings.ai.signal_refresh_interval_minutes = interval_minutes;
+        
+        // Save updated settings to database
+        if let Err(e) = self.storage.save_paper_trading_settings(&settings).await {
+            error!("❌ Failed to save settings to database: {}", e);
+            // Continue anyway - settings are still updated in memory
+        }
+        
+        // Broadcast settings update
+        let _ = self.event_broadcaster.send(PaperTradingEvent {
+            event_type: "settings_updated".to_string(),
+            data: serde_json::json!({
+                "signal_refresh_interval_minutes": interval_minutes,
+                "timestamp": Utc::now()
+            }),
+            timestamp: Utc::now(),
+        });
+        
+        info!("✅ Signal refresh interval updated to: {} minutes and saved to database", interval_minutes);
+        Ok(())
+    }
+    
     /// Trigger manual AI analysis and trade execution
     pub async fn trigger_manual_analysis(&self) -> Result<()> {
         if !*self.is_running.read().await {
