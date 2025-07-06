@@ -86,7 +86,7 @@ pub struct TickerEvent {
     pub event_time: i64,
     #[serde(rename = "s")]
     pub symbol: String,
-    #[serde(rename = "c")]
+    #[serde(rename = "p")]
     pub price_change: String,
     #[serde(rename = "P")]
     pub price_change_percent: String,

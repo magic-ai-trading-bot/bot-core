@@ -802,12 +802,6 @@ export const usePaperTrading = () => {
 
         // Start heartbeat
         startHeartbeat();
-
-        // Show connection success toast
-        toast({
-          title: "🔗 Real-time connection established",
-          description: "WebSocket connected successfully",
-        });
       };
 
       ws.onmessage = (event) => {
@@ -953,12 +947,6 @@ export const usePaperTrading = () => {
     console.log(
       `⏰ Scheduling reconnection attempt ${reconnectAttempts.current} in ${delay}ms`
     );
-
-    // Show reconnection toast
-    toast({
-      title: "🔄 Reconnecting...",
-      description: `Attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`,
-    });
 
     reconnectTimeoutRef.current = setTimeout(() => {
       connectWebSocket();

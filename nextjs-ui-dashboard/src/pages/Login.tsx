@@ -7,6 +7,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import ChatBot from "@/components/ChatBot";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -165,6 +166,9 @@ const Login = () => {
           <p>Bảo mật với mã hóa end-to-end và xác thực 2FA</p>
         </div>
       </div>
+
+      {/* Chatbot Widget */}
+      <ChatBot />
     </div>
   );
 };

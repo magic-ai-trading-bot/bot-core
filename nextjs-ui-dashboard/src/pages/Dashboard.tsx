@@ -5,6 +5,7 @@ import { AIStrategySelector } from "@/components/dashboard/AIStrategySelector";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { TransactionHistory } from "@/components/dashboard/TransactionHistory";
 import { TradingCharts } from "@/components/dashboard/TradingCharts";
+import ChatBot from "@/components/ChatBot";
 
 const Dashboard = () => {
   return (
@@ -36,6 +37,9 @@ const Dashboard = () => {
         {/* Bottom Section - Transaction History */}
         <TransactionHistory />
       </div>
+
+      {/* Chatbot Widget */}
+      <ChatBot />
     </div>
   );
 };
