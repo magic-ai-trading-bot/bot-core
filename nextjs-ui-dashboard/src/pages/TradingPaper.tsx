@@ -44,6 +44,7 @@ import {
   WifiOff,
   Clock,
 } from "lucide-react";
+import ChatBot from "@/components/ChatBot";
 
 // Symbol configuration interface
 interface SymbolConfig {
@@ -110,20 +111,7 @@ const TradingPaper = () => {
         const timeSinceUpdate = Date.now() - lastUpdated.getTime();
         const newWsConnected = timeSinceUpdate < 30000;
 
-        // Show toast when connection status changes
-        if (wsConnected !== newWsConnected) {
-          if (newWsConnected) {
-            toast.success("WebSocket reconnected!", {
-              description: "Real-time updates resumed",
-              duration: 2000,
-            });
-          } else {
-            toast.warning("WebSocket disconnected", {
-              description: "Real-time updates paused",
-              duration: 3000,
-            });
-          }
-        }
+        // Update connection status silently - no toast notifications
 
         setWsConnected(newWsConnected);
       }
@@ -191,10 +179,7 @@ const TradingPaper = () => {
   const fetchAISignals = async () => {
     try {
       await refreshAISignals();
-      toast.success("Tín hiệu AI đã được cập nhật!", {
-        description: "Dữ liệu tín hiệu mới nhất đã được tải về",
-        duration: 2000,
-      });
+      // Silent refresh - no toast notification needed
     } catch (error) {
       console.error("Failed to refresh AI signals:", error);
       toast.error("Lỗi khi cập nhật tín hiệu AI", {
@@ -230,10 +215,7 @@ const TradingPaper = () => {
 
       if (data.success && data.data) {
         setSymbolSettings(data.data);
-        toast.success("Cài đặt symbols đã được tải!", {
-          description: "Hiển thị cài đặt hiện tại cho từng symbol",
-          duration: 2000,
-        });
+        // Silent load - no toast notification needed
       } else {
         throw new Error(data.error || "Failed to load symbol settings");
       }
@@ -295,10 +277,7 @@ const TradingPaper = () => {
       try {
         await refreshSettings(); // Load latest settings from backend
         await loadSymbolSettings(); // Load symbol settings
-        toast.success("Cài đặt đã được tải về!", {
-          description: "Hiển thị cài đặt hiện tại từ hệ thống",
-          duration: 2000,
-        });
+        // Silent load - no toast notification needed
       } catch (error) {
         console.error("Failed to refresh settings:", error);
         toast.error("Lỗi khi tải cài đặt", {
@@ -2281,6 +2260,9 @@ const TradingPaper = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Chatbot Widget */}
+      <ChatBot />
     </div>
   );
 };

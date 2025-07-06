@@ -50,7 +50,7 @@ struct PythonMarketConditionRequest {
 impl From<&crate::market_data::cache::CandleData> for PythonCandleData {
     fn from(candle: &crate::market_data::cache::CandleData) -> Self {
         Self {
-            timestamp: candle.open_time, // Use open_time as timestamp for Python service
+            timestamp: candle.open_time,
             open: candle.open,
             high: candle.high,
             low: candle.low,

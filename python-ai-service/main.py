@@ -230,12 +230,24 @@ async def lifespan(app: FastAPI):
         mongodb_client = None
         mongodb_db = None
     
-    # Initialize OpenAI client
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        # Use fallback key if available
-        api_key = "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"
-        logger.warning("⚠️ Using fallback OpenAI API key")
+    # Initialize OpenAI client with multiple API keys for fallback
+    api_keys = [
+        os.getenv("OPENAI_API_KEY"),
+        "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",
+        "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"
+    ]
+    
+    # Filter out None/empty keys and invalid keys
+    valid_api_keys = [key for key in api_keys if key and not key.startswith("your-")]
+    
+    if not valid_api_keys:
+        logger.error("❌ No valid OpenAI API keys found!")
+        api_key = None
+    else:
+        api_key = valid_api_keys[0]  # Use the first valid key
+        logger.info(f"✅ Found {len(valid_api_keys)} valid API keys for fallback")
+        if len(valid_api_keys) > 1:
+            logger.info("🔄 Backup keys available for auto-fallback on rate limits")
     
     logger.info(f"🔑 OpenAI API key present: {bool(api_key)}")
     if api_key:
@@ -249,10 +261,11 @@ async def lifespan(app: FastAPI):
         
         # Use direct HTTP client to bypass OpenAI SDK conflicts
         try:
-            openai_client = DirectOpenAIClient(api_key)
+            openai_client = DirectOpenAIClient(valid_api_keys)  # Pass all valid keys
             logger.info("✅ Direct OpenAI HTTP client initialized successfully")
-            logger.info(f"🔑 API key configured: {api_key[:15]}...{api_key[-10:]}")
-            logger.info("🔄 Using direct HTTP calls to OpenAI API")
+            logger.info(f"🔑 Primary API key: {api_key[:15]}...{api_key[-10:]}")
+            logger.info(f"🔑 Total backup keys: {len(valid_api_keys) - 1}")
+            logger.info("🔄 Using direct HTTP calls to OpenAI API with auto-fallback")
         except Exception as e:
             logger.error(f"❌ Failed to initialize direct OpenAI client: {e}")
             openai_client = None
@@ -500,81 +513,134 @@ class TechnicalAnalyzer:
 # === HTTP-BASED GPT-4 CLIENT ===
 
 class DirectOpenAIClient:
-    """Direct HTTP client for OpenAI API to bypass SDK issues."""
+    """Direct HTTP client for OpenAI API with auto-fallback support."""
     
-    def __init__(self, api_key: str):
-        self.api_key = api_key
+    def __init__(self, api_keys: list):
+        self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
+        self.current_key_index = 0
         self.base_url = "https://api.openai.com/v1"
+        self.rate_limited_keys = set()  # Track which keys are rate limited
         
+    def get_current_api_key(self):
+        """Get the current API key, cycling through available keys if needed."""
+        available_keys = [key for i, key in enumerate(self.api_keys) if i not in self.rate_limited_keys]
+        
+        if not available_keys:
+            # All keys are rate limited, clear the set and start over
+            logger.warning("🔄 All API keys rate limited, clearing and retrying...")
+            self.rate_limited_keys.clear()
+            available_keys = self.api_keys
+        
+        if self.current_key_index >= len(available_keys):
+            self.current_key_index = 0
+            
+        return available_keys[self.current_key_index], self.current_key_index
+
     async def chat_completions_create(self, model: str, messages: list, temperature: float = 0.3, max_tokens: int = 2000):
-        """Direct HTTP call to OpenAI chat completions API with intelligent rate limiting."""
+        """Direct HTTP call to OpenAI chat completions API with auto-fallback on rate limits."""
         global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME
         import httpx
         
-        # Check if we're still in a rate limit period
-        if OPENAI_RATE_LIMIT_RESET_TIME:
-            if datetime.now() < OPENAI_RATE_LIMIT_RESET_TIME:
-                remaining_time = (OPENAI_RATE_LIMIT_RESET_TIME - datetime.now()).total_seconds()
-                logger.warning(f"⏰ Still in rate limit period, {remaining_time:.0f}s remaining")
-                raise Exception(f"Rate limit active for {remaining_time:.0f}s more")
-            else:
-                # Rate limit period expired, reset it
-                OPENAI_RATE_LIMIT_RESET_TIME = None
-                logger.info("✅ Rate limit period expired, ready to try again")
+        # Try each available API key until success or all are exhausted
+        max_attempts = len(self.api_keys)
         
-        # Rate limiting: ensure minimum delay between requests
-        if last_openai_request_time:
-            time_since_last = (datetime.now() - last_openai_request_time).total_seconds()
-            if time_since_last < OPENAI_REQUEST_DELAY:
-                delay = OPENAI_REQUEST_DELAY - time_since_last
-                logger.info(f"⏳ Rate limiting: waiting {delay:.1f}s before OpenAI request")
-                await asyncio.sleep(delay)
-        
-        last_openai_request_time = datetime.now()
-        
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }
-        
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload
-                )
+        for attempt in range(max_attempts):
+            current_key, key_index = self.get_current_api_key()
+            
+            # Check if we're still in a rate limit period
+            if OPENAI_RATE_LIMIT_RESET_TIME:
+                if datetime.now() < OPENAI_RATE_LIMIT_RESET_TIME:
+                    remaining_time = (OPENAI_RATE_LIMIT_RESET_TIME - datetime.now()).total_seconds()
+                    logger.warning(f"⏰ Key {key_index + 1} in rate limit period, {remaining_time:.0f}s remaining")
+                    # Try next key
+                    self.current_key_index += 1
+                    continue
+                else:
+                    # Rate limit period expired, reset it
+                    OPENAI_RATE_LIMIT_RESET_TIME = None
+                    self.rate_limited_keys.discard(key_index)
+                    logger.info(f"✅ Key {key_index + 1} rate limit expired")
+            
+            # Rate limiting: ensure minimum delay between requests
+            if last_openai_request_time:
+                time_since_last = (datetime.now() - last_openai_request_time).total_seconds()
+                if time_since_last < OPENAI_REQUEST_DELAY:
+                    delay = OPENAI_REQUEST_DELAY - time_since_last
+                    logger.info(f"⏳ Rate limiting: waiting {delay:.1f}s before request")
+                    await asyncio.sleep(delay)
+            
+            last_openai_request_time = datetime.now()
+            
+            headers = {
+                "Authorization": f"Bearer {current_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            
+            try:
+                logger.info(f"🔑 Using API key {key_index + 1}/{len(self.api_keys)} (...{current_key[-8:]})")
                 
-                if response.status_code == 429:
-                    # Handle rate limit response
-                    retry_after = response.headers.get('retry-after')
-                    if retry_after:
-                        reset_time = datetime.now() + timedelta(seconds=int(retry_after))
-                        OPENAI_RATE_LIMIT_RESET_TIME = reset_time
-                        logger.warning(f"⏰ Rate limit hit, will reset at {reset_time}")
-                    else:
-                        # Default to 1 hour if no retry-after header
-                        OPENAI_RATE_LIMIT_RESET_TIME = datetime.now() + timedelta(hours=1)
-                        logger.warning("⏰ Rate limit hit, defaulting to 1 hour cooldown")
-                
-                response.raise_for_status()
-                return response.json()
-                
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 429:
-                logger.error(f"🚫 OpenAI rate limit exceeded (429)")
-            elif e.response.status_code == 401:
-                logger.error(f"🔑 OpenAI authentication failed (401) - check API key")
-            elif e.response.status_code == 403:
-                logger.error(f"💰 OpenAI quota exceeded (403) - check billing")
-            raise
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload
+                    )
+                    
+                    if response.status_code == 429:
+                        # Handle rate limit response
+                        self.rate_limited_keys.add(key_index)
+                        retry_after = response.headers.get('retry-after')
+                        if retry_after:
+                            reset_time = datetime.now() + timedelta(seconds=int(retry_after))
+                            OPENAI_RATE_LIMIT_RESET_TIME = reset_time
+                            logger.warning(f"⏰ Key {key_index + 1} rate limited until {reset_time}")
+                        else:
+                            # Default to 1 hour if no retry-after header
+                            OPENAI_RATE_LIMIT_RESET_TIME = datetime.now() + timedelta(hours=1)
+                            logger.warning(f"⏰ Key {key_index + 1} rate limited for 1 hour")
+                        
+                        # Try next key
+                        self.current_key_index += 1
+                        continue
+                    
+                    response.raise_for_status()
+                    logger.info(f"✅ Request successful with key {key_index + 1}")
+                    return response.json()
+                    
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    logger.error(f"🚫 Key {key_index + 1} rate limit exceeded (429)")
+                    self.rate_limited_keys.add(key_index)
+                    self.current_key_index += 1
+                    continue
+                elif e.response.status_code == 401:
+                    logger.error(f"🔑 Key {key_index + 1} authentication failed (401)")
+                    self.current_key_index += 1
+                    continue
+                elif e.response.status_code == 403:
+                    logger.error(f"💰 Key {key_index + 1} quota exceeded (403)")
+                    self.current_key_index += 1
+                    continue
+                else:
+                    logger.error(f"❌ Key {key_index + 1} API error: {e.response.status_code}")
+                    raise
+            except Exception as e:
+                logger.error(f"❌ Key {key_index + 1} network error: {e}")
+                if attempt == max_attempts - 1:  # Last attempt
+                    raise
+                else:
+                    self.current_key_index += 1
+                    continue
+        
+        # If we get here, all keys failed
+        raise Exception("All API keys exhausted or rate limited")
 
 # === GPT-4 AI ANALYZER ===
 
