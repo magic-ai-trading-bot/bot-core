@@ -144,6 +144,12 @@ pub struct UpdateSymbolSettingsRequest {
     pub symbols: std::collections::HashMap<String, SymbolConfig>,
 }
 
+/// Request to update signal refresh interval
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateSignalIntervalRequest {
+    pub interval_minutes: u32,
+}
+
 /// Response for API operations
 #[derive(Debug, Serialize)]
 pub struct ApiResponse<T> {
@@ -326,6 +332,15 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(trigger_manual_analysis);
         
+        // PUT /api/paper-trading/signal-interval
+        let update_signal_interval_route = base_path
+            .and(warp::path("signal-interval"))
+            .and(warp::path::end())
+            .and(warp::put())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(update_signal_refresh_interval);
+        
         status_route
             .or(portfolio_route)
             .or(open_trades_route)
@@ -342,6 +357,7 @@ impl PaperTradingApi {
             .or(start_route)
             .or(stop_route)
             .or(trigger_analysis_route)
+            .or(update_signal_interval_route)
             .with(cors)
     }
 }
@@ -870,6 +886,34 @@ async fn trigger_manual_analysis(api: Arc<PaperTradingApi>) -> Result<impl Reply
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
                 StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        }
+    }
+}
+
+/// Update signal refresh interval
+async fn update_signal_refresh_interval(
+    request: UpdateSignalIntervalRequest,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    log::info!("Updating signal refresh interval: {:?}", request.interval_minutes);
+    
+    match api.engine.update_signal_refresh_interval(request.interval_minutes).await {
+        Ok(_) => {
+            let response = serde_json::json!({
+                "message": "Signal refresh interval updated successfully",
+                "updated_interval": request.interval_minutes,
+            });
+            
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => {
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::BAD_REQUEST,
             ))
         }
     }
