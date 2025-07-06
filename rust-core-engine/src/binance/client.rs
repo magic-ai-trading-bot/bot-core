@@ -257,4 +257,18 @@ impl BinanceClient {
 
         self.make_request(Method::POST, "/fapi/v1/marginType", Some(params), true).await
     }
+
+    pub async fn get_symbol_price(&self, symbol: &str) -> Result<SymbolPrice> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+
+        self.make_request(Method::GET, "/ticker/price", Some(params), false).await
+    }
+
+    pub async fn get_funding_rate(&self, symbol: &str) -> Result<FundingRate> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+
+        self.make_request(Method::GET, "/fapi/v1/fundingRate", Some(params), false).await
+    }
 } 

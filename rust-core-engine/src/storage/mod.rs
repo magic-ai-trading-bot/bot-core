@@ -1,6 +1,8 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
+use chrono::{DateTime, Utc};
+use futures::stream::TryStreamExt;
 
 #[cfg(feature = "database")]
 use mongodb::{Client, Collection, Database};
@@ -11,6 +13,7 @@ use futures::stream::StreamExt;
 
 use crate::market_data::analyzer::MultiTimeframeAnalysis;
 use crate::binance::types::Kline;
+use crate::paper_trading::{PaperTrade, PaperPortfolio, AITradingSignal};
 
 #[derive(Clone)]
 pub struct Storage {
@@ -380,6 +383,276 @@ impl Storage {
     pub fn get_database(&self) -> Option<&()> {
         None
     }
+
+    /// Get paper trading collection
+    pub fn paper_trades(&self) -> Result<Collection<PaperTradingRecord>> {
+        self.db.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("paper_trades"))
+    }
+    
+    /// Get portfolio history collection
+    pub fn portfolio_history(&self) -> Result<Collection<PortfolioHistoryRecord>> {
+        self.db.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("portfolio_history"))
+    }
+    
+    /// Get AI signals collection
+    pub fn ai_signals(&self) -> Result<Collection<AISignalRecord>> {
+        self.db.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("ai_signals"))
+    }
+    
+    /// Get performance metrics collection
+    pub fn performance_metrics(&self) -> Result<Collection<PerformanceMetricsRecord>> {
+        self.db.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("performance_metrics"))
+    }
+    
+    /// Get paper trading settings collection
+    pub fn paper_trading_settings(&self) -> Result<Collection<PaperTradingSettingsRecord>> {
+        self.db.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("paper_trading_settings"))
+    }
+    
+    /// Save paper trade to database
+    pub async fn save_paper_trade(&self, trade: &PaperTrade) -> Result<()> {
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: trade.id.clone(),
+            symbol: trade.symbol.clone(),
+            trade_type: format!("{:?}", trade.trade_type),
+            status: format!("{:?}", trade.status),
+            entry_price: trade.entry_price,
+            exit_price: trade.exit_price,
+            quantity: trade.quantity,
+            leverage: trade.leverage,
+            pnl: trade.realized_pnl,
+            pnl_percentage: trade.pnl_percentage,
+            trading_fees: trade.trading_fees,
+            funding_fees: trade.funding_fees,
+            open_time: trade.open_time,
+            close_time: trade.close_time,
+            ai_signal_id: trade.ai_signal_id.clone(),
+            ai_confidence: trade.ai_confidence,
+            close_reason: trade.close_reason.as_ref().map(|r| format!("{:?}", r)),
+            created_at: Utc::now(),
+        };
+        
+        self.paper_trades()?.insert_one(record, None).await?;
+        Ok(())
+    }
+    
+    /// Update paper trade in database
+    pub async fn update_paper_trade(&self, trade: &PaperTrade) -> Result<()> {
+        let filter = doc! { "trade_id": &trade.id };
+        let update = doc! {
+            "$set": {
+                "status": format!("{:?}", trade.status),
+                "exit_price": trade.exit_price,
+                "pnl": trade.realized_pnl,
+                "pnl_percentage": trade.pnl_percentage,
+                "funding_fees": trade.funding_fees,
+                "close_time": trade.close_time,
+                "close_reason": trade.close_reason.as_ref().map(|r| format!("{:?}", r)),
+            }
+        };
+        
+        self.paper_trades()?.update_one(filter, update, None).await?;
+        Ok(())
+    }
+    
+    /// Save portfolio snapshot to history
+    pub async fn save_portfolio_snapshot(&self, portfolio: &PaperPortfolio) -> Result<()> {
+        let record = PortfolioHistoryRecord {
+            id: None,
+            timestamp: Utc::now(),
+            current_balance: portfolio.cash_balance,
+            equity: portfolio.equity,
+            margin_used: portfolio.margin_used,
+            free_margin: portfolio.free_margin,
+            total_pnl: portfolio.metrics.total_pnl,
+            total_pnl_percentage: portfolio.metrics.total_pnl_percentage,
+            total_trades: portfolio.metrics.total_trades as u32,
+            win_rate: portfolio.metrics.win_rate,
+            profit_factor: portfolio.metrics.profit_factor,
+            max_drawdown: portfolio.metrics.max_drawdown,
+            max_drawdown_percentage: portfolio.metrics.max_drawdown_percentage,
+            open_positions: portfolio.open_trade_ids.len() as u32,
+            created_at: Utc::now(),
+        };
+        
+        self.portfolio_history()?.insert_one(record, None).await?;
+        Ok(())
+    }
+    
+    /// Save AI signal to database
+    pub async fn save_ai_signal(&self, signal: &AITradingSignal, executed: bool, trade_id: Option<String>) -> Result<()> {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: signal.id.clone(),
+            symbol: signal.symbol.clone(),
+            signal_type: format!("{:?}", signal.signal_type),
+            confidence: signal.confidence,
+            reasoning: signal.reasoning.clone(),
+            entry_price: signal.entry_price,
+            trend_direction: signal.market_analysis.trend_direction.clone(),
+            trend_strength: signal.market_analysis.trend_strength,
+            volatility: signal.market_analysis.volatility,
+            risk_score: signal.market_analysis.risk_score,
+            executed,
+            trade_id,
+            created_at: Utc::now(),
+            timestamp: signal.timestamp,
+        };
+        
+        self.ai_signals()?.insert_one(record, None).await?;
+        Ok(())
+    }
+    
+    /// Save daily performance metrics
+    pub async fn save_daily_metrics(&self, portfolio: &PaperPortfolio, daily_pnl: f64) -> Result<()> {
+        let record = PerformanceMetricsRecord {
+            id: None,
+            date: Utc::now(),
+            total_trades: portfolio.metrics.total_trades as u32,
+            winning_trades: (portfolio.metrics.win_rate * portfolio.metrics.total_trades as f64 / 100.0) as u32,
+            losing_trades: portfolio.metrics.total_trades as u32 - (portfolio.metrics.win_rate * portfolio.metrics.total_trades as f64 / 100.0) as u32,
+            win_rate: portfolio.metrics.win_rate,
+            average_win: portfolio.metrics.average_win,
+            average_loss: portfolio.metrics.average_loss,
+            largest_win: portfolio.metrics.largest_win,
+            largest_loss: portfolio.metrics.largest_loss,
+            profit_factor: portfolio.metrics.profit_factor,
+            sharpe_ratio: portfolio.metrics.sharpe_ratio,
+            max_drawdown: portfolio.metrics.max_drawdown,
+            max_drawdown_percentage: portfolio.metrics.max_drawdown_percentage,
+            total_pnl: portfolio.metrics.total_pnl,
+            daily_pnl,
+            created_at: Utc::now(),
+        };
+        
+        self.performance_metrics()?.insert_one(record, None).await?;
+        Ok(())
+    }
+    
+    /// Get trade history from database
+    pub async fn get_paper_trades_history(&self, limit: Option<i64>) -> Result<Vec<PaperTradingRecord>> {
+        let options = mongodb::options::FindOptions::builder()
+            .sort(doc! { "created_at": -1 })
+            .limit(limit)
+            .build();
+            
+        let cursor = self.paper_trades()?.find(None, options).await?;
+        let trades: Vec<PaperTradingRecord> = cursor.try_collect().await?;
+        Ok(trades)
+    }
+    
+    /// Get portfolio history from database
+    pub async fn get_portfolio_history(&self, days: Option<i64>) -> Result<Vec<PortfolioHistoryRecord>> {
+        let filter = if let Some(days) = days {
+            let start_date = Utc::now() - chrono::Duration::days(days);
+            doc! { "timestamp": { "$gte": start_date } }
+        } else {
+            doc! {}
+        };
+        
+        let options = mongodb::options::FindOptions::builder()
+            .sort(doc! { "timestamp": 1 })
+            .build();
+            
+        let cursor = self.portfolio_history()?.find(filter, options).await?;
+        let history: Vec<PortfolioHistoryRecord> = cursor.try_collect().await?;
+        Ok(history)
+    }
+    
+    /// Get AI signals history from database
+    pub async fn get_ai_signals_history(&self, symbol: Option<&str>, limit: Option<i64>) -> Result<Vec<AISignalRecord>> {
+        let filter = if let Some(symbol) = symbol {
+            doc! { "symbol": symbol }
+        } else {
+            doc! {}
+        };
+        
+        let options = mongodb::options::FindOptions::builder()
+            .sort(doc! { "timestamp": -1 })
+            .limit(limit)
+            .build();
+            
+        let cursor = self.ai_signals()?.find(filter, options).await?;
+        let signals: Vec<AISignalRecord> = cursor.try_collect().await?;
+        Ok(signals)
+    }
+    
+    /// Save paper trading settings to database
+    pub async fn save_paper_trading_settings(&self, settings: &crate::paper_trading::PaperTradingSettings) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                // Convert settings to BSON document
+                let settings_bson = bson::to_bson(settings)?;
+                let settings_doc = settings_bson.as_document()
+                    .ok_or_else(|| anyhow::anyhow!("Failed to convert settings to document"))?
+                    .clone();
+                
+                let record = PaperTradingSettingsRecord {
+                    id: None,
+                    settings_data: settings_doc,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                };
+                
+                // Use upsert to update existing or create new
+                let filter = doc! {}; // Only one settings record
+                let update = doc! {
+                    "$set": {
+                        "settings_data": &record.settings_data,
+                        "updated_at": &record.updated_at
+                    },
+                    "$setOnInsert": {
+                        "created_at": &record.created_at
+                    }
+                };
+                let options = mongodb::options::UpdateOptions::builder()
+                    .upsert(true)
+                    .build();
+                
+                self.paper_trading_settings()?.update_one(filter, update, options).await?;
+                
+                info!("💾 Paper trading settings saved to database");
+                return Ok(());
+            }
+        }
+        
+        info!("💾 Paper trading settings saved (in-memory fallback)");
+        Ok(())
+    }
+    
+    /// Load paper trading settings from database
+    pub async fn load_paper_trading_settings(&self) -> Result<Option<crate::paper_trading::PaperTradingSettings>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let record = self.paper_trading_settings()?.find_one(doc! {}, None).await?;
+                
+                if let Some(record) = record {
+                    // Convert BSON document back to settings
+                    let settings_bson = bson::Bson::Document(record.settings_data);
+                    let settings = bson::from_bson::<crate::paper_trading::PaperTradingSettings>(settings_bson)?;
+                    
+                    info!("📖 Paper trading settings loaded from database (updated: {})", record.updated_at);
+                    return Ok(Some(settings));
+                }
+            }
+        }
+        
+        info!("📖 No saved paper trading settings found, will use defaults");
+        Ok(None)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -425,4 +698,101 @@ impl Default for PerformanceStats {
             max_loss: 0.0,
         }
     }
+}
+
+/// Paper trading data models for MongoDB
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaperTradingRecord {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    pub trade_id: String,
+    pub symbol: String,
+    pub trade_type: String,
+    pub status: String,
+    pub entry_price: f64,
+    pub exit_price: Option<f64>,
+    pub quantity: f64,
+    pub leverage: u8,
+    pub pnl: Option<f64>,
+    pub pnl_percentage: f64,
+    pub trading_fees: f64,
+    pub funding_fees: f64,
+    pub open_time: DateTime<Utc>,
+    pub close_time: Option<DateTime<Utc>>,
+    pub ai_signal_id: Option<String>,
+    pub ai_confidence: Option<f64>,
+    pub close_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioHistoryRecord {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    pub timestamp: DateTime<Utc>,
+    pub current_balance: f64,
+    pub equity: f64,
+    pub margin_used: f64,
+    pub free_margin: f64,
+    pub total_pnl: f64,
+    pub total_pnl_percentage: f64,
+    pub total_trades: u32,
+    pub win_rate: f64,
+    pub profit_factor: f64,
+    pub max_drawdown: f64,
+    pub max_drawdown_percentage: f64,
+    pub open_positions: u32,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AISignalRecord {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    pub signal_id: String,
+    pub symbol: String,
+    pub signal_type: String,
+    pub confidence: f64,
+    pub reasoning: String,
+    pub entry_price: f64,
+    pub trend_direction: String,
+    pub trend_strength: f64,
+    pub volatility: f64,
+    pub risk_score: f64,
+    pub executed: bool,
+    pub trade_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformanceMetricsRecord {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    pub date: DateTime<Utc>,
+    pub total_trades: u32,
+    pub winning_trades: u32,
+    pub losing_trades: u32,
+    pub win_rate: f64,
+    pub average_win: f64,
+    pub average_loss: f64,
+    pub largest_win: f64,
+    pub largest_loss: f64,
+    pub profit_factor: f64,
+    pub sharpe_ratio: f64,
+    pub max_drawdown: f64,
+    pub max_drawdown_percentage: f64,
+    pub total_pnl: f64,
+    pub daily_pnl: f64,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Paper trading settings record for persistence
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaperTradingSettingsRecord {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    pub settings_data: mongodb::bson::Document,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 } 

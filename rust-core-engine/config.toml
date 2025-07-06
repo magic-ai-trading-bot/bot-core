@@ -2,10 +2,11 @@
 # Copy this file to config.toml and customize for your needs
 
 [binance]
-# Your Binance API credentials
-# Get these from https://www.binance.com/en/support/faq/360002502072
-api_key = "your_binance_api_key_here"
-secret_key = "your_binance_secret_key_here"
+# Your Binance API credentials  
+# Using public API keys for market data access (paper trading only)
+# For live trading, replace with real API keys from Binance
+api_key = "public_api_key_for_market_data"
+secret_key = "public_secret_key_for_market_data"
 
 # Use mainnet for real market data (live data)
 testnet = false
@@ -45,7 +46,7 @@ cache_size = 500
 
 # Python AI service URL for market analysis
 # You need to run a separate Python service that accepts analysis requests
-python_ai_service_url = "http://localhost:8000"
+python_ai_service_url = "http://python-ai-service-dev:8000"
 
 [trading]
 # IMPORTANT: Set to true only when you're ready for live trading

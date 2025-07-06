@@ -1,5 +1,5 @@
 # Multi-stage build for optimized React application with Bun
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -7,8 +7,11 @@ WORKDIR /app
 # Copy package files
 COPY package.json bun.lockb* ./
 
-# Install dependencies
-RUN bun install --frozen-lockfile --production
+# Install dependencies with all optional dependencies
+RUN bun install --frozen-lockfile
+
+# Add missing rollup dependencies for ARM64
+RUN bun add -D @rollup/rollup-linux-arm64-gnu @rollup/rollup-linux-arm64-musl || true
 
 # Copy source code
 COPY . .

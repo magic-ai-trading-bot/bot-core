@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -14,7 +14,6 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { register, isAuthenticated, loading, error } = useAuth();
 
   // Redirect if already authenticated
@@ -28,52 +27,48 @@ const Register = () => {
     e.preventDefault();
 
     if (!email || !password || !confirmPassword) {
-      toast({
-        title: "Lỗi đăng ký",
+      toast.error("Lỗi đăng ký", {
         description: "Vui lòng điền đầy đủ thông tin",
-        variant: "destructive",
       });
       return;
     }
 
     if (password !== confirmPassword) {
-      toast({
-        title: "Lỗi đăng ký",
+      toast.error("Lỗi đăng ký", {
         description: "Mật khẩu xác nhận không khớp",
-        variant: "destructive",
       });
       return;
     }
 
     if (password.length < 6) {
-      toast({
-        title: "Lỗi đăng ký",
+      toast.error("Lỗi đăng ký", {
         description: "Mật khẩu phải có ít nhất 6 ký tự",
-        variant: "destructive",
       });
       return;
     }
 
     try {
+      toast.loading("Đang đăng ký...", { id: "register-loading" });
+
       const success = await register(email, password, fullName || undefined);
+
       if (success) {
-        toast({
-          title: "Đăng ký thành công",
+        toast.success("Đăng ký thành công", {
           description: "Chào mừng bạn đến với Trading Bot Dashboard!",
+          id: "register-loading",
         });
         navigate("/dashboard", { replace: true });
-      } else if (error) {
-        toast({
-          title: "Lỗi đăng ký",
-          description: error,
-          variant: "destructive",
+      } else {
+        toast.error("Lỗi đăng ký", {
+          description: error || "Không thể tạo tài khoản. Vui lòng thử lại.",
+          id: "register-loading",
         });
       }
     } catch (err) {
-      toast({
-        title: "Lỗi đăng ký",
-        description: "Có lỗi xảy ra khi đăng ký",
-        variant: "destructive",
+      console.error("Registration error:", err);
+      toast.error("Lỗi đăng ký", {
+        description: "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.",
+        id: "register-loading",
       });
     }
   };

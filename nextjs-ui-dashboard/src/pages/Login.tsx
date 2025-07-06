@@ -4,15 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { login, isAuthenticated, loading, error } = useAuth();
 
   // Redirect if already authenticated
@@ -26,34 +25,34 @@ const Login = () => {
     e.preventDefault();
 
     if (!email || !password) {
-      toast({
-        title: "Lỗi đăng nhập",
+      toast.error("Lỗi đăng nhập", {
         description: "Vui lòng nhập email và mật khẩu",
-        variant: "destructive",
       });
       return;
     }
 
     try {
+      toast.loading("Đang đăng nhập...", { id: "login-loading" });
+
       const success = await login(email, password);
+
       if (success) {
-        toast({
-          title: "Đăng nhập thành công",
+        toast.success("Đăng nhập thành công", {
           description: "Chào mừng trở lại với Trading Bot Dashboard!",
+          id: "login-loading",
         });
         navigate("/dashboard", { replace: true });
-      } else if (error) {
-        toast({
-          title: "Lỗi đăng nhập",
-          description: error,
-          variant: "destructive",
+      } else {
+        toast.error("Lỗi đăng nhập", {
+          description: error || "Thông tin đăng nhập không chính xác",
+          id: "login-loading",
         });
       }
     } catch (err) {
-      toast({
-        title: "Lỗi đăng nhập",
-        description: "Có lỗi xảy ra khi đăng nhập",
-        variant: "destructive",
+      console.error("Login error:", err);
+      toast.error("Lỗi đăng nhập", {
+        description: "Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.",
+        id: "login-loading",
       });
     }
   };

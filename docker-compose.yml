@@ -15,7 +15,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_token}
       - PYTHON_API_KEY=${PYTHON_API_KEY:-python_api_key}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
     volumes:
       - ./python-ai-service/models:/app/models
       - ./python-ai-service/logs:/app/logs
@@ -57,7 +57,7 @@ services:
       - LOG_LEVEL=DEBUG
       - FLASK_ENV=development
       - ENABLE_HOT_RELOAD=true
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
     volumes:
       - ./python-ai-service:/app
       - /app/__pycache__

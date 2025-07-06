@@ -18,6 +18,19 @@ pub struct Kline {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SymbolPrice {
+    pub symbol: String,
+    pub price: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FundingRate {
+    pub symbol: String,
+    pub funding_rate: String,
+    pub funding_time: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KlineEvent {
     #[serde(rename = "e")]
     pub event_type: String,

@@ -1,10 +1,5 @@
 # Development Dockerfile for React UI Dashboard with hot reload using Bun
-FROM oven/bun:1-alpine as base
-
-# Install dependencies
-RUN apk add --no-cache \
-    curl \
-    git
+FROM oven/bun:1 as base
 
 # Set working directory
 WORKDIR /app
@@ -13,20 +8,21 @@ WORKDIR /app
 COPY package.json ./
 COPY bun.lockb* ./
 
-# Install dependencies with bun
+# Install dependencies with bun (all optional dependencies for development)
 RUN bun install --frozen-lockfile
 
-# Development stage
-FROM oven/bun:1-alpine as development
+# Add missing rollup dependencies for ARM64
+RUN bun add -D @rollup/rollup-linux-arm64-gnu @rollup/rollup-linux-arm64-musl || true
 
-# Install runtime dependencies
-RUN apk add --no-cache \
-    curl \
-    git
+# Development stage
+FROM oven/bun:1 as development
+
+# Install curl for health check
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Create app user
-RUN addgroup -g 1001 -S appuser && \
-    adduser -S appuser -u 1001
+RUN groupadd -g 1001 appuser && \
+    useradd -r -u 1001 -g appuser appuser
 
 # Set working directory
 WORKDIR /app
@@ -46,8 +42,8 @@ USER appuser
 
 # Set environment variables for development
 ENV NODE_ENV=development
-ENV VITE_API_URL=http://localhost:8080
-ENV VITE_AI_API_URL=http://localhost:8000
+ENV VITE_RUST_API_URL=http://localhost:8080
+ENV VITE_WS_URL=ws://localhost:8080/ws
 ENV CHOKIDAR_USEPOLLING=true
 ENV WATCHPACK_POLLING=true
 

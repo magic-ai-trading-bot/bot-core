@@ -14,11 +14,13 @@ mod monitoring;
 mod api;
 mod strategies;
 mod ai;
+mod paper_trading;
 
 use config::Config;
 use market_data::MarketDataProcessor;
 use trading::TradingEngine;
 use api::ApiServer;
+use paper_trading::{PaperTradingEngine, PaperTradingSettings};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "binance-trading-bot", about = "A comprehensive Binance trading bot")]
@@ -73,15 +75,59 @@ async fn main() -> Result<()> {
     
     // Create shared broadcast channel for WebSocket updates
     let (ws_sender, _) = broadcast::channel::<String>(1000);
+    let (paper_trading_event_sender, _) = broadcast::channel::<paper_trading::PaperTradingEvent>(1000);
     
     // Set WebSocket broadcaster for market data processor
     market_data_processor.set_ws_broadcaster(ws_sender.clone());
+    
+    // Initialize Paper Trading Engine with proper configuration
+    let mut paper_trading_settings = PaperTradingSettings::default();
+    
+    // Note: Confidence threshold will be loaded from database if available
+    // Default is 0.65 (65%) but can be updated via API to 0.45 (45%) for Low Volatility
+    
+    // Setup trading symbols with proper configuration
+    let trading_symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+    for symbol in trading_symbols {
+        let symbol_settings = paper_trading::settings::SymbolSettings {
+            enabled: true,
+            leverage: Some(10),
+            position_size_pct: Some(5.0),  // 5% of portfolio per trade
+            stop_loss_pct: Some(2.0),      // 2% stop loss
+            take_profit_pct: Some(4.0),    // 4% take profit  
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: Some(1),        // 1 position per symbol max
+            custom_params: std::collections::HashMap::new(),
+        };
+        paper_trading_settings.set_symbol_settings(symbol.to_string(), symbol_settings);
+    }
+    
+    let binance_client = binance::BinanceClient::new(config.binance.clone());
+    let ai_service = ai::AIService::new(ai::AIServiceConfig {
+        python_service_url: config.market_data.python_ai_service_url.clone(),
+        request_timeout_seconds: 30,
+        max_retries: 3,
+        enable_caching: true,
+        cache_ttl_seconds: 300,
+    });
+    
+    let paper_trading_engine = std::sync::Arc::new(
+        PaperTradingEngine::new(
+            paper_trading_settings,
+            binance_client,
+            ai_service,
+            storage.clone(),
+            paper_trading_event_sender,
+        ).await?
+    );
     
     // Initialize API server with WebSocket broadcaster
     let api_server = ApiServer::new(
         config.api.clone(),
         market_data_processor.clone(),
         trading_engine.clone(),
+        paper_trading_engine.clone(),
         ws_sender.clone(),
         storage.clone(),
     ).await?;
@@ -95,6 +141,11 @@ async fn main() -> Result<()> {
         trading_engine.start().await
     });
     
+    let paper_trading_handle = tokio::spawn(async move {
+        let engine = paper_trading_engine.clone();
+        engine.start().await
+    });
+    
     let api_handle = tokio::spawn(async move {
         api_server.start().await
     });
@@ -105,6 +156,7 @@ async fn main() -> Result<()> {
     tokio::try_join!(
         async { market_data_handle.await? },
         async { trading_handle.await? },
+        async { paper_trading_handle.await? },
         async { api_handle.await? }
     )?;
     
