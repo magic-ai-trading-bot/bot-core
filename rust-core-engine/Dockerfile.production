@@ -1,0 +1,57 @@
+# Production Dockerfile for Rust Core Engine
+FROM rust:alpine AS builder
+
+# Install dependencies
+RUN apk add --no-cache \
+    musl-dev \
+    libressl-dev \
+    pkgconfig \
+    curl
+
+WORKDIR /app
+
+# Copy manifests
+COPY Cargo.toml Cargo.lock ./
+
+# Create a dummy main to cache dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+# Build dependencies (this will be cached unless Cargo.toml changes)
+RUN cargo build --release
+RUN rm src/main.rs
+
+# Copy source code
+COPY src ./src
+COPY config.toml ./config.toml
+
+# Build application
+RUN cargo build --release --bin binance-trading-bot
+
+# Runtime stage
+FROM alpine:latest
+
+RUN apk add --no-cache \
+    ca-certificates \
+    libressl
+
+WORKDIR /app
+
+# Copy the binary from builder stage
+COPY --from=builder /app/target/release/binance-trading-bot /app/binance-trading-bot
+COPY --from=builder /app/config.toml /app/config.toml
+
+# Create directories
+RUN mkdir -p /app/data /app/logs
+
+# Set permissions
+RUN chmod +x /app/binance-trading-bot
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run the binary
+CMD ["./binance-trading-bot"] 

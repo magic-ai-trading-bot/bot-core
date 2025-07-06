@@ -1,0 +1,63 @@
+# Fly.io configuration for React Dashboard
+app = "trading-bot-dashboard"
+primary_region = "sin"  # Singapore region for low latency
+
+[build]
+  dockerfile = "Dockerfile.production"
+
+[env]
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 800
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 80
+  processes = ["app"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 800
+
+# Health checks
+[checks]
+  [checks.alive]
+    grace_period = "5s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    port = 80
+    protocol = "http"
+    timeout = "5s"
+    type = "http"
+
+# Resource allocation - Frontend needs less resources
+[vm]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+# Restart policy
+[restart]
+  policy = "on-failure" 
