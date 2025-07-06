@@ -1,0 +1,42 @@
+# Fly.io configuration for MongoDB Database
+app = "trading-bot-database"
+primary_region = "sin"  # Singapore region for low latency
+
+[build]
+  image = "mongo:7.0"
+
+[env]
+  MONGO_INITDB_ROOT_USERNAME = "admin"
+  MONGO_INITDB_DATABASE = "trading_bot"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 27017
+
+  [[services.ports]]
+    port = 27017
+
+# Health checks
+[checks]
+  [checks.mongo]
+    grace_period = "10s"
+    interval = "30s"
+    timeout = "5s"
+    type = "tcp"
+    port = 27017
+
+# Resource allocation - Database needs more memory and storage
+[vm]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 2048
+
+# Persistent volume for database
+[[mounts]]
+  source = "mongodb_data"
+  destination = "/data/db"
+  initial_size = "10GB"
+
+# Restart policy
+[restart]
+  policy = "on-failure" 
