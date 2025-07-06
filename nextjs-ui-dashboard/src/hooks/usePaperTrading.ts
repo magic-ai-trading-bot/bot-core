@@ -297,6 +297,31 @@ export const usePaperTrading = () => {
     }
   }, [API_BASE]);
 
+  // Helper function to deduplicate signals by symbol and recency
+  const deduplicateSignals = useCallback((signals: AISignal[]): AISignal[] => {
+    const signalMap = new Map<string, AISignal>();
+
+    // Sort signals by timestamp (newest first)
+    const sortedSignals = [...signals].sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    // Keep only the most recent signal for each symbol
+    for (const signal of sortedSignals) {
+      if (!signalMap.has(signal.symbol)) {
+        // Only keep signals from the last 30 minutes
+        const signalAge = Date.now() - new Date(signal.timestamp).getTime();
+        if (signalAge < 30 * 60 * 1000) {
+          // 30 minutes
+          signalMap.set(signal.symbol, signal);
+        }
+      }
+    }
+
+    return Array.from(signalMap.values()).slice(0, 8); // Limit to 8 signals max
+  }, []);
+
   // Manual fetch AI signals (for refresh button only)
   const fetchAISignals = useCallback(async () => {
     try {
@@ -365,23 +390,19 @@ export const usePaperTrading = () => {
       );
 
       setState((prev) => {
-        // Merge with existing signals, removing duplicates by symbol
-        const existingSignals = prev.recentSignals.filter(
-          (existing) =>
-            !validSignals.some(
-              (newSignal) => newSignal.symbol === existing.symbol
-            )
-        );
+        // Merge with existing signals and deduplicate
+        const allSignals = [...validSignals, ...prev.recentSignals];
+        const deduplicatedSignals = deduplicateSignals(allSignals);
 
         return {
           ...prev,
-          recentSignals: [...validSignals, ...existingSignals].slice(0, 10), // Keep latest 10
+          recentSignals: deduplicatedSignals,
         };
       });
     } catch (error) {
       console.error("Failed to fetch AI signals:", error);
     }
-  }, [API_BASE]);
+  }, [API_BASE, deduplicateSignals]);
 
   // Start paper trading
   const startTrading = useCallback(async () => {
@@ -615,9 +636,18 @@ export const usePaperTrading = () => {
       import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws"
     ).replace("http", "ws");
     const ws = new WebSocket(wsUrl);
+    let heartbeatInterval: NodeJS.Timeout | null = null;
 
     ws.onopen = () => {
       console.log("📡 Paper Trading WebSocket connected");
+
+      // Start heartbeat to keep connection alive
+      heartbeatInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "ping" }));
+          console.log("💓 Paper Trading WebSocket heartbeat sent");
+        }
+      }, 30000); // Send heartbeat every 30 seconds
     };
 
     ws.onmessage = (event) => {
@@ -633,28 +663,69 @@ export const usePaperTrading = () => {
         const data = message.data;
 
         switch (eventType) {
-          case "engine_started":
-            setState((prev) => ({
-              ...prev,
-              isActive: true,
-              lastUpdated: new Date(),
-            }));
-            break;
+          case "MarketData":
+            // Handle real-time price updates from WebSocket (same as Dashboard)
+            if (data && data.symbol && data.price) {
+              console.log(
+                `🚀 Real-time price update: ${data.symbol} = $${data.price}`
+              );
 
-          case "engine_stopped":
-            setState((prev) => ({
-              ...prev,
-              isActive: false,
-              lastUpdated: new Date(),
-            }));
+              // Update portfolio with new price information
+              setState((prev) => {
+                // Calculate approximate unrealized P&L for open trades
+                let totalUnrealizedPnl = 0;
+
+                const updatedOpenTrades = prev.openTrades.map((trade) => {
+                  if (trade.symbol === data.symbol) {
+                    // Calculate unrealized P&L based on trade type
+                    const priceDiff = data.price - trade.entry_price;
+                    const newUnrealizedPnl =
+                      trade.trade_type === "Long"
+                        ? priceDiff * trade.quantity
+                        : -priceDiff * trade.quantity;
+
+                    totalUnrealizedPnl += newUnrealizedPnl;
+
+                    // Update trade with approximate P&L (actual update from backend will override)
+                    return {
+                      ...trade,
+                      pnl: newUnrealizedPnl,
+                    };
+                  } else {
+                    totalUnrealizedPnl += trade.pnl || 0;
+                  }
+                  return trade;
+                });
+
+                // Update portfolio equity with real-time price changes
+                const updatedPortfolio = {
+                  ...prev.portfolio,
+                  equity: prev.portfolio.current_balance + totalUnrealizedPnl,
+                  total_pnl: totalUnrealizedPnl,
+                };
+
+                return {
+                  ...prev,
+                  openTrades: updatedOpenTrades,
+                  portfolio: updatedPortfolio,
+                  lastUpdated: new Date(),
+                };
+              });
+
+              // Periodically fetch fresh data to ensure accuracy (less frequent now)
+              if (Math.random() < 0.05) {
+                // 5% chance to fetch fresh data
+                fetchPortfolioStatus();
+              }
+            }
             break;
 
           case "price_update":
-            // Real-time price updates (every second)
+            // Legacy price update format
             console.log("💰 Real-time price update:", data);
-            // Trigger refresh of open trades to update unrealized P&L
+            // Trigger refresh of portfolio data to update P&L
             if (data && Object.keys(data).length > 0) {
-              fetchOpenTrades();
+              fetchPortfolioStatus();
             }
             break;
 
@@ -689,36 +760,18 @@ export const usePaperTrading = () => {
             // Real-time AI signals
             if (data) {
               console.log("🤖 New AI Signal:", data);
-              setState((prev) => ({
-                ...prev,
-                recentSignals: [data, ...prev.recentSignals.slice(0, 19)],
-                lastUpdated: new Date(),
-              }));
+              setState((prev) => {
+                // Add new signal and deduplicate all signals
+                const allSignals = [data, ...prev.recentSignals];
+                const deduplicatedSignals = deduplicateSignals(allSignals);
+
+                return {
+                  ...prev,
+                  recentSignals: deduplicatedSignals,
+                  lastUpdated: new Date(),
+                };
+              });
             }
-            break;
-
-          case "portfolio_reset":
-            console.log("🔄 Portfolio reset");
-            // Refresh everything after reset
-            fetchPortfolioStatus();
-            fetchOpenTrades();
-            fetchClosedTrades();
-            break;
-
-          case "settings_updated":
-            console.log("⚙️ Settings updated");
-            fetchCurrentSettings();
-            break;
-
-          case "MarketData":
-            // Handle market data updates (price updates, volume, etc.)
-            // This is sent frequently by the backend but we don't need to process it
-            // Just acknowledge it to avoid "unknown message type" errors
-            break;
-
-          case "ChartUpdate":
-            // Handle chart data updates
-            // Similar to MarketData, just acknowledge to avoid errors
             break;
 
           case "Connected":
@@ -726,26 +779,19 @@ export const usePaperTrading = () => {
               "📡 Paper Trading WebSocket connected:",
               message.message
             );
+            setState((prev) => ({
+              ...prev,
+              lastUpdated: new Date(),
+            }));
             break;
 
           case "Pong":
             // Keep-alive response, no action needed
-            break;
-
-          case "Error":
-            console.error("📡 Paper Trading WebSocket error:", message.data);
-            if (message.data) {
-              setState((prev) => ({
-                ...prev,
-                error: message.data.message || "WebSocket error",
-                lastUpdated: new Date(),
-              }));
-            }
+            console.log("💓 Paper Trading WebSocket pong received");
             break;
 
           default:
-            // Log unknown message types for debugging
-            console.log("📡 Unknown WebSocket message type:", message.type);
+            // Silently ignore unknown message types
             break;
         }
       } catch (error) {
@@ -755,279 +801,32 @@ export const usePaperTrading = () => {
 
     ws.onclose = () => {
       console.log("📡 Paper Trading WebSocket disconnected");
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
     };
 
     ws.onerror = (error) => {
       console.error("📡 Paper Trading WebSocket error:", error);
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
     };
 
     return () => {
-      ws.close();
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
   }, [
+    fetchPortfolioStatus,
     fetchOpenTrades,
     fetchClosedTrades,
-    fetchPortfolioStatus,
-    fetchCurrentSettings,
-  ]); // Dependencies for WebSocket callbacks
-
-  // WebSocket connection management
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 10;
-  const reconnectDelay = useRef(1000); // Start with 1 second
-
-  // Enhanced WebSocket connection with retry logic
-  const connectWebSocket = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return; // Already connected
-    }
-
-    try {
-      const ws = new WebSocket("ws://localhost:8080/ws");
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log("✅ WebSocket connected");
-        setState((prev) => ({
-          ...prev,
-          isActive: true,
-          lastUpdated: new Date(),
-        }));
-        setState((prev) => ({ ...prev, error: null }));
-        reconnectAttempts.current = 0;
-        reconnectDelay.current = 1000; // Reset delay
-
-        // Start heartbeat
-        startHeartbeat();
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("📡 WebSocket message:", data);
-
-          // Handle different event types from Rust backend
-          switch (data.event_type) {
-            case "price_update":
-              console.log("💰 Price update:", data.data);
-              setState((prev) => ({
-                ...prev,
-                portfolio: { ...prev.portfolio, ...data.data },
-                lastUpdated: new Date(),
-              }));
-              break;
-
-            case "trade_executed":
-              console.log("🎯 Trade executed:", data.data);
-              fetchPortfolioStatus();
-              fetchOpenTrades();
-              setState((prev) => ({
-                ...prev,
-                portfolio: { ...prev.portfolio, ...data.data },
-                lastUpdated: new Date(),
-              }));
-              break;
-
-            case "trade_closed":
-              console.log("🔒 Trade closed:", data.data);
-              fetchPortfolioStatus();
-              fetchOpenTrades();
-              fetchClosedTrades();
-              setState((prev) => ({
-                ...prev,
-                portfolio: { ...prev.portfolio, ...data.data },
-                lastUpdated: new Date(),
-              }));
-              break;
-
-            case "performance_update":
-              console.log("📊 Performance update:", data.data);
-              fetchPortfolioStatus();
-              setState((prev) => ({
-                ...prev,
-                portfolio: { ...prev.portfolio, ...data.data },
-                lastUpdated: new Date(),
-              }));
-              break;
-
-            case "AISignalReceived":
-              console.log("🤖 AI Signal received:", data.data);
-              setState((prev) => ({
-                ...prev,
-                recentSignals: [data.data, ...prev.recentSignals.slice(0, 19)],
-                lastUpdated: new Date(),
-              }));
-
-              // Show AI signal notification
-              toast({
-                title: "🤖 AI Signal Received",
-                description: `${data.data.signal?.toUpperCase()} ${
-                  data.data.symbol
-                } (${Math.round(data.data.confidence * 100)}%)`,
-              });
-              break;
-
-            case "pong":
-              // Heartbeat response
-              console.log("💓 Heartbeat response received");
-              break;
-
-            default:
-              console.log("📨 Unknown event type:", data.event_type);
-          }
-
-          // Update counter (removed spam sync notification)
-          setState((prev) => {
-            const newUpdateCounter = prev.updateCounter + 1;
-            return { ...prev, updateCounter: newUpdateCounter };
-          });
-        } catch (error) {
-          console.error("❌ Error parsing WebSocket message:", error);
-        }
-      };
-
-      ws.onclose = (event) => {
-        console.log("❌ WebSocket disconnected:", event.code, event.reason);
-        setState((prev) => ({
-          ...prev,
-          isActive: false,
-          lastUpdated: new Date(),
-        }));
-        stopHeartbeat();
-
-        // Only attempt reconnection if it wasn't a normal closure
-        if (event.code !== 1000) {
-          scheduleReconnect();
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("❌ WebSocket error:", error);
-        setState((prev) => ({
-          ...prev,
-          error: "WebSocket connection failed",
-          isActive: false,
-          lastUpdated: new Date(),
-        }));
-        stopHeartbeat();
-      };
-    } catch (error) {
-      console.error("❌ Failed to create WebSocket:", error);
-      setState((prev) => ({
-        ...prev,
-        error: "Failed to establish WebSocket connection",
-        isActive: false,
-        lastUpdated: new Date(),
-      }));
-      scheduleReconnect();
-    }
-  }, [fetchPortfolioStatus, fetchOpenTrades, fetchClosedTrades, setState]);
-
-  // Schedule reconnection with exponential backoff
-  const scheduleReconnect = useCallback(() => {
-    if (reconnectAttempts.current >= maxReconnectAttempts) {
-      console.error("❌ Max reconnection attempts reached");
-      toast({
-        variant: "destructive",
-        title: "🔌 Connection lost",
-        description: "Please refresh the page to reconnect.",
-      });
-      return;
-    }
-
-    reconnectAttempts.current++;
-    const delay = Math.min(
-      reconnectDelay.current * Math.pow(2, reconnectAttempts.current - 1),
-      30000
-    ); // Max 30 seconds
-
-    console.log(
-      `⏰ Scheduling reconnection attempt ${reconnectAttempts.current} in ${delay}ms`
-    );
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      connectWebSocket();
-    }, delay);
-  }, [connectWebSocket]);
-
-  // Start heartbeat to keep connection alive
-  const startHeartbeat = useCallback(() => {
-    stopHeartbeat(); // Clear any existing heartbeat
-
-    heartbeatIntervalRef.current = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "ping" }));
-        console.log("💓 Heartbeat sent");
-      }
-    }, 30000); // Send heartbeat every 30 seconds
-  }, []);
-
-  // Stop heartbeat
-  const stopHeartbeat = useCallback(() => {
-    if (heartbeatIntervalRef.current) {
-      clearInterval(heartbeatIntervalRef.current);
-      heartbeatIntervalRef.current = null;
-    }
-  }, []);
-
-  // Enhanced cleanup function
-  const cleanup = useCallback(() => {
-    // Clear reconnection timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    // Stop heartbeat
-    stopHeartbeat();
-
-    // Close WebSocket connection
-    if (wsRef.current) {
-      wsRef.current.close(1000, "Component unmounting");
-      wsRef.current = null;
-    }
-  }, [stopHeartbeat]);
-
-  // Enhanced useEffect for WebSocket management
-  useEffect(() => {
-    connectWebSocket();
-
-    // Handle page visibility changes
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Page became visible, ensure connection is active
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-          console.log("📱 Page visible, reconnecting WebSocket...");
-          connectWebSocket();
-        }
-      }
-    };
-
-    // Handle online/offline events
-    const handleOnline = () => {
-      console.log("🌐 Network online, reconnecting WebSocket...");
-      connectWebSocket();
-    };
-
-    const handleOffline = () => {
-      console.log("📡 Network offline, cleaning up WebSocket...");
-      cleanup();
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-      cleanup();
-    };
-  }, [connectWebSocket, cleanup]);
+    deduplicateSignals,
+  ]);
 
   return {
     // State

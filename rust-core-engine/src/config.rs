@@ -142,12 +142,15 @@ impl Config {
 // Helper function to validate configuration
 impl Config {
     pub fn validate(&self) -> Result<()> {
-        if self.binance.api_key.is_empty() {
-            return Err(anyhow::anyhow!("Binance API key is required"));
-        }
-        
-        if self.binance.secret_key.is_empty() {
-            return Err(anyhow::anyhow!("Binance secret key is required"));
+        // For paper trading, we can skip API key validation
+        if self.trading.enabled {
+            if self.binance.api_key.is_empty() {
+                return Err(anyhow::anyhow!("Binance API key is required for live trading"));
+            }
+            
+            if self.binance.secret_key.is_empty() {
+                return Err(anyhow::anyhow!("Binance secret key is required for live trading"));
+            }
         }
         
         if self.market_data.symbols.is_empty() {
