@@ -46,6 +46,15 @@ export function DashboardHeader() {
             Dashboard
           </Button>
         </Link>
+        <Link to="/trading-paper">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-xs lg:text-sm"
+          >
+            Trading Paper
+          </Button>
+        </Link>
         <Link to="/settings">
           <Button
             variant="ghost"

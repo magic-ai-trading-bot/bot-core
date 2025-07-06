@@ -16,10 +16,10 @@ model:
   validation_split: 0.2
 
 trading:
-  long_threshold: 0.6
-  short_threshold: 0.4
+  long_threshold: 0.55
+  short_threshold: 0.45
   neutral_zone: 0.1
-  confidence_threshold: 0.55
+  confidence_threshold: 0.45
 
 technical_indicators:
   rsi_period: 14

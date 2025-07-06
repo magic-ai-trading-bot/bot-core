@@ -1,5 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
@@ -8,37 +6,93 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { usePaperTrading } from "@/hooks/usePaperTrading";
+
+interface PerformanceDataPoint {
+  date: string;
+  equity: number;
+  pnl: number;
+  dailyPnL: number;
+  balance: number;
+}
 
 export function PerformanceChart() {
-  const mockData = {
-    daily: [
-      { date: "12/01", pnl: 0, balance: 10000 },
-      { date: "12/02", pnl: 150, balance: 10150 },
-      { date: "12/03", pnl: -75, balance: 10075 },
-      { date: "12/04", pnl: 280, balance: 10355 },
-      { date: "12/05", pnl: 420, balance: 10775 },
-      { date: "12/06", pnl: 180, balance: 10955 },
-      { date: "12/07", pnl: 650, balance: 11605 },
-    ],
-    weekly: [
-      { date: "Week 1", pnl: 0, balance: 10000 },
-      { date: "Week 2", pnl: 420, balance: 10420 },
-      { date: "Week 3", pnl: 780, balance: 11200 },
-      { date: "Week 4", pnl: 1200, balance: 12200 },
-    ],
-    monthly: [
-      { date: "Nov", pnl: 0, balance: 10000 },
-      { date: "Dec", pnl: 1200, balance: 11200 },
-      { date: "Jan", pnl: 2450, balance: 12450 },
-    ],
+  const { portfolio, openTrades, closedTrades } = usePaperTrading();
+
+  // Generate mock performance data based on current portfolio status
+  const generatePerformanceData = (): PerformanceDataPoint[] => {
+    const data: PerformanceDataPoint[] = [];
+    const currentDate = new Date();
+    const initialBalance = 10000;
+
+    // Generate last 30 days of mock data based on current portfolio
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(currentDate);
+      date.setDate(date.getDate() - i);
+
+      // Create realistic performance curve
+      const progress = (29 - i) / 29;
+      const totalPnLProgress = portfolio.total_pnl * progress;
+      const equity = initialBalance + totalPnLProgress;
+
+      // Add some daily volatility
+      const dailyVariation = Math.sin(i * 0.5) * 20 + Math.random() * 40 - 20;
+      const adjustedEquity = equity + dailyVariation;
+
+      const dailyPnL =
+        i > 0
+          ? adjustedEquity - (data[data.length - 1]?.equity || initialBalance)
+          : 0;
+
+      data.push({
+        date: date.toISOString().split("T")[0],
+        equity: Math.max(adjustedEquity, initialBalance - 1000), // Don't go too negative
+        pnl: adjustedEquity - initialBalance,
+        dailyPnL,
+        balance: initialBalance,
+      });
+    }
+
+    // Ensure last point matches current portfolio
+    if (data.length > 0) {
+      data[data.length - 1].equity = portfolio.equity;
+      data[data.length - 1].pnl = portfolio.total_pnl;
+    }
+
+    return data;
   };
 
-  const stats = {
-    totalTrades: 147,
-    winRate: 67.3,
-    avgProfit: 23.45,
-    totalPnL: 2450.32,
+  const performanceData = generatePerformanceData();
+  const currentPnL = portfolio.total_pnl;
+  const currentPnLPercentage = portfolio.total_pnl_percentage;
+
+  // Calculate performance metrics
+  const isProfit = currentPnL >= 0;
+  const trend =
+    performanceData.length >= 2
+      ? performanceData[performanceData.length - 1].equity >
+        performanceData[performanceData.length - 2].equity
+      : false;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("vi-VN", {
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const CustomTooltip = ({
@@ -47,18 +101,37 @@ export function PerformanceChart() {
     label,
   }: {
     active?: boolean;
-    payload?: Array<{ value: number; payload: { pnl: number } }>;
+    payload?: Array<{ payload: PerformanceDataPoint }>;
     label?: string;
   }) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-          <p className="text-sm font-medium">{label}</p>
-          <p className="text-sm text-profit">
-            Balance: ${payload[0]?.value?.toLocaleString()}
+        <div className="bg-background p-3 border rounded-lg shadow-lg">
+          <p className="font-medium">{formatDate(label)}</p>
+          <p className="text-sm">
+            <span className="text-muted-foreground">Equity: </span>
+            <span className="font-medium">{formatCurrency(data.equity)}</span>
           </p>
-          <p className="text-sm text-info">
-            P&L: ${(payload[0]?.payload?.pnl || 0).toLocaleString()}
+          <p className="text-sm">
+            <span className="text-muted-foreground">P&L: </span>
+            <span
+              className={`font-medium ${
+                data.pnl >= 0 ? "text-profit" : "text-loss"
+              }`}
+            >
+              {formatCurrency(data.pnl)}
+            </span>
+          </p>
+          <p className="text-sm">
+            <span className="text-muted-foreground">Daily: </span>
+            <span
+              className={`font-medium ${
+                data.dailyPnL >= 0 ? "text-profit" : "text-loss"
+              }`}
+            >
+              {formatCurrency(data.dailyPnL)}
+            </span>
           </p>
         </div>
       );
@@ -67,119 +140,150 @@ export function PerformanceChart() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Performance Chart */}
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle className="text-lg">Performance Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="daily" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="daily">Daily</TabsTrigger>
-              <TabsTrigger value="weekly">Weekly</TabsTrigger>
-              <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            </TabsList>
-
-            {Object.entries(mockData).map(([period, data]) => (
-              <TabsContent key={period} value={period} className="space-y-4">
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="hsl(var(--border))"
-                      />
-                      <XAxis
-                        dataKey="date"
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <YAxis
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Line
-                        type="monotone"
-                        dataKey="balance"
-                        stroke="hsl(var(--profit))"
-                        strokeWidth={3}
-                        dot={{
-                          fill: "hsl(var(--profit))",
-                          strokeWidth: 2,
-                          r: 4,
-                        }}
-                        activeDot={{
-                          r: 6,
-                          stroke: "hsl(var(--profit))",
-                          strokeWidth: 2,
-                        }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Performance Metrics</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="text-center p-4 rounded-lg bg-gradient-to-br from-profit/10 to-profit/5 border border-profit/20">
-              <div className="text-2xl font-bold text-profit">
-                ${stats.totalPnL.toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">Total P&L</div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              <div className="text-center p-3 rounded-lg bg-secondary/50">
-                <div className="text-xl font-bold">{stats.totalTrades}</div>
-                <div className="text-xs text-muted-foreground">
-                  Total Trades
-                </div>
-              </div>
-
-              <div className="text-center p-3 rounded-lg bg-secondary/50">
-                <div className="text-xl font-bold text-profit">
-                  {stats.winRate}%
-                </div>
-                <div className="text-xs text-muted-foreground">Win Rate</div>
-              </div>
-
-              <div className="text-center p-3 rounded-lg bg-secondary/50">
-                <div className="text-xl font-bold text-info">
-                  ${stats.avgProfit}
-                </div>
-                <div className="text-xs text-muted-foreground">Avg Profit</div>
-              </div>
-            </div>
+    <Card className="w-full">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold">
+            Biểu đồ hiệu suất
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={isProfit ? "default" : "destructive"}
+              className={`${
+                isProfit
+                  ? "bg-profit text-profit-foreground"
+                  : "bg-loss text-loss-foreground"
+              }`}
+            >
+              {trend ? (
+                <TrendingUp className="w-3 h-3 mr-1" />
+              ) : (
+                <TrendingDown className="w-3 h-3 mr-1" />
+              )}
+              {currentPnLPercentage >= 0 ? "+" : ""}
+              {currentPnLPercentage.toFixed(2)}%
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <Activity className="w-3 h-3" />
+              {portfolio.total_trades} trades
+            </Badge>
           </div>
+        </div>
 
-          {/* Win Rate Progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Win Rate Progress</span>
-              <span className="text-profit font-semibold">
-                {stats.winRate}%
+        <div className="grid grid-cols-3 gap-4 pt-2">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">Tổng P&L</p>
+            <p
+              className={`font-bold text-lg ${
+                isProfit ? "text-profit" : "text-loss"
+              }`}
+            >
+              {formatCurrency(currentPnL)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">Equity hiện tại</p>
+            <p className="font-bold text-lg">
+              {formatCurrency(portfolio.equity)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">Win Rate</p>
+            <p className="font-bold text-lg text-primary">
+              {portfolio.win_rate.toFixed(1)}%
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={performanceData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <defs>
+                <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor={
+                      isProfit ? "hsl(var(--profit))" : "hsl(var(--loss))"
+                    }
+                    stopOpacity={0.3}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor={
+                      isProfit ? "hsl(var(--profit))" : "hsl(var(--loss))"
+                    }
+                    stopOpacity={0.0}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                dataKey="date"
+                className="text-xs"
+                tickFormatter={formatDate}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                className="text-xs"
+                tickFormatter={(value) => formatCurrency(value)}
+                domain={["dataMin - 100", "dataMax + 100"]}
+              />
+              <Tooltip content={<CustomTooltip />} />
+
+              {/* Balance baseline */}
+              <Line
+                type="monotone"
+                dataKey="balance"
+                stroke="hsl(var(--muted-foreground))"
+                strokeDasharray="2 2"
+                strokeWidth={1}
+                dot={false}
+                strokeOpacity={0.5}
+              />
+
+              {/* Equity line */}
+              <Area
+                type="monotone"
+                dataKey="equity"
+                stroke={isProfit ? "hsl(var(--profit))" : "hsl(var(--loss))"}
+                strokeWidth={2.5}
+                fill="url(#equityGradient)"
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Performance summary */}
+        <div className="flex justify-between items-center mt-4 p-4 bg-muted/30 rounded-lg">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Max Drawdown: </span>
+              <span className="font-medium text-loss">
+                {formatCurrency(portfolio.max_drawdown)}
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className="bg-profit h-2 rounded-full transition-all duration-1000"
-                style={{ width: `${stats.winRate}%` }}
-              ></div>
+            <div>
+              <span className="text-muted-foreground">Sharpe Ratio: </span>
+              <span className="font-medium">
+                {portfolio.sharpe_ratio.toFixed(2)}
+              </span>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">
+              Lịch sử 30 ngày • {openTrades.length} lệnh mở •{" "}
+              {closedTrades.length} lệnh đóng
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

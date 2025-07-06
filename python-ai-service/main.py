@@ -234,7 +234,7 @@ async def lifespan(app: FastAPI):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         # Use fallback key if available
-        api_key = "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"
+        api_key = "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"
         logger.warning("⚠️ Using fallback OpenAI API key")
     
     logger.info(f"🔑 OpenAI API key present: {bool(api_key)}")
@@ -692,8 +692,8 @@ class GPTTradingAnalyzer:
     
     def _fallback_analysis(self, request: AIAnalysisRequest, indicators_1h: Dict, indicators_4h: Dict) -> Dict[str, Any]:
         """Fallback technical analysis when GPT-4 is not available."""
-        signal = "Neutral"
-        confidence = 0.6
+        signal = "Long"  # Default to Long instead of Neutral
+        confidence = 0.65  # Higher confidence for more trades
         reasoning = "Technical analysis (GPT-4 unavailable): "
         
         signals = []
@@ -835,7 +835,7 @@ Your task is to analyze market data and provide trading signals with detailed re
     }
 }
 
-Be conservative with confidence scores. Only use confidence > 0.8 for very strong signals with multiple confirmations."""
+Be more aggressive with trading signals. Use confidence > 0.6 for strong signals and > 0.5 for moderate signals. Favor actionable Long/Short signals over Neutral when there are clear technical indicators."""
 
     def _prepare_market_context(self, request: AIAnalysisRequest, indicators_1h: Dict, indicators_4h: Dict) -> str:
         """Prepare market context for GPT-4."""

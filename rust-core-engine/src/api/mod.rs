@@ -17,12 +17,16 @@ use crate::monitoring::MonitoringService;
 use crate::auth::{AuthService, UserRepository};
 use crate::storage::Storage;
 use crate::ai::AIService;
+use crate::paper_trading::PaperTradingEngine;
+
+pub mod paper_trading;
 
 #[derive(Clone)]
 pub struct ApiServer {
     config: ApiConfig,
     market_data: MarketDataProcessor,
     trading_engine: TradingEngine,
+    paper_trading_engine: Arc<PaperTradingEngine>,
     monitoring: Arc<RwLock<MonitoringService>>,
     ws_broadcaster: broadcast::Sender<String>,
     auth_service: AuthService,
@@ -71,6 +75,7 @@ impl ApiServer {
         config: ApiConfig,
         market_data: MarketDataProcessor,
         trading_engine: TradingEngine,
+        paper_trading_engine: Arc<PaperTradingEngine>,
         ws_broadcaster: broadcast::Sender<String>,
         storage: Storage,
     ) -> Result<Self> {
@@ -100,6 +105,7 @@ impl ApiServer {
             config,
             market_data,
             trading_engine,
+            paper_trading_engine,
             monitoring: Arc::new(RwLock::new(MonitoringService::new())),
             ws_broadcaster,
             auth_service,
@@ -153,12 +159,17 @@ impl ApiServer {
         // AI routes
         let ai_routes = self.ai_routes();
 
+        // Paper trading routes
+        let paper_trading_api = paper_trading::PaperTradingApi::new(self.paper_trading_engine.clone());
+        let paper_trading = paper_trading_api.routes();
+
         // Combine all routes
         let api_routes = health
             .or(market_data)
             .or(trading)
             .or(monitoring)
             .or(ai_routes)
+            .or(paper_trading)
             .or(self.auth_service.routes());
 
         let api = warp::path("api").and(api_routes);
