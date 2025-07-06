@@ -2,20 +2,24 @@
 # Copy this file to config.toml and customize for your needs
 
 [binance]
-# Your Binance API credentials  
-# Using public API keys for market data access (paper trading only)
-# For live trading, replace with real API keys from Binance
-api_key = "public_api_key_for_market_data"
-secret_key = "public_secret_key_for_market_data"
+# Binance Testnet API credentials for safe testing
+api_key = "iiZAQULhnkkfDiueUWavpVXzePSi1WjKlJwiB3k72EZTif2k4BcWuCC8FNqo1R1F"
+secret_key = "oJNiTwYTh3oc2iPz5oXg2Phqoa7MhhV2IO9llyezVkh3pHtCYiC2v4Uym1kcAriK"
 
-# Use mainnet for real market data (live data)
-testnet = false
+# Use testnet for safe testing (no real money involved)
+testnet = true
+
+# For testnet, use these URLs:
+base_url = "https://testnet.binance.vision"
+ws_url = "wss://stream.testnet.binance.vision"
+futures_base_url = "https://testnet.binancefuture.com"
+futures_ws_url = "wss://stream.binancefuture.com/ws"
 
 # API endpoints (mainnet URLs for real market data)
-base_url = "https://api.binance.com"
-ws_url = "wss://stream.binance.com:9443"
-futures_base_url = "https://fapi.binance.com"
-futures_ws_url = "wss://fstream.binance.com"
+# base_url = "https://api.binance.com"
+# ws_url = "wss://stream.binance.com:9443"
+# futures_base_url = "https://fapi.binance.com"
+# futures_ws_url = "wss://fstream.binance.com"
 
 # For safe testing, use these URLs instead:
 # testnet = true
@@ -75,6 +79,7 @@ margin_type = "CROSSED"        # CROSSED or ISOLATED
 
 [database]
 # MongoDB database for storing trade history and analysis results
+# Enable MongoDB for user authentication and data storage
 url = "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin"
 database_name = "trading_bot"
 max_connections = 10

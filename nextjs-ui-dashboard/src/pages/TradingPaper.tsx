@@ -121,11 +121,16 @@ const TradingPaper = () => {
   }, [lastUpdated, wsConnected]);
 
   // State for trade details popup
-  const [selectedTrade, setSelectedTrade] = useState<PaperTrade | null>(null);
+  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
   const [isTradeDetailOpen, setIsTradeDetailOpen] = useState(false);
 
   // Additional properties and functions
   const trades = [...openTrades, ...closedTrades];
+
+  // Get selected trade dynamically for realtime updates
+  const selectedTrade = selectedTradeId
+    ? trades.find((trade) => trade.id === selectedTradeId) || null
+    : null;
 
   const togglePaperTrading = async (active: boolean) => {
     try {
@@ -159,7 +164,7 @@ const TradingPaper = () => {
 
   // Open trade details popup
   const openTradeDetails = (trade: PaperTrade) => {
-    setSelectedTrade(trade);
+    setSelectedTradeId(trade.id);
     setIsTradeDetailOpen(true);
   };
 
@@ -203,6 +208,61 @@ const TradingPaper = () => {
   useEffect(() => {
     setSettingsForm(settings);
   }, [settings]);
+
+  // Close popup if selected trade no longer exists (was closed)
+  useEffect(() => {
+    if (selectedTradeId && !selectedTrade && isTradeDetailOpen) {
+      setIsTradeDetailOpen(false);
+      setSelectedTradeId(null);
+      toast.info("Giao dịch đã được đóng", {
+        description: "Popup đã được đóng vì giao dịch không còn tồn tại",
+        duration: 3000,
+      });
+    }
+  }, [selectedTradeId, selectedTrade, isTradeDetailOpen]);
+
+  // Track P&L changes for selected trade (for realtime updates)
+  const [lastSelectedTradePnl, setLastSelectedTradePnl] = useState<
+    number | null
+  >(null);
+
+  useEffect(() => {
+    if (selectedTrade && isTradeDetailOpen) {
+      const currentPnl = selectedTrade.pnl || 0;
+
+      // Only show toast if this is not the first load and P&L has changed significantly
+      if (
+        lastSelectedTradePnl !== null &&
+        Math.abs(currentPnl - lastSelectedTradePnl) > 0.1
+      ) {
+        const change = currentPnl - lastSelectedTradePnl;
+        const isPositive = change > 0;
+
+        // Only show toast for meaningful changes (avoid spam)
+        if (Math.abs(change) > 1) {
+          const formatCurrency = (value: number) => {
+            return new Intl.NumberFormat("vi-VN", {
+              style: "currency",
+              currency: "USD",
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(value);
+          };
+
+          toast.info(`${selectedTrade.symbol} P&L Updated`, {
+            description: `${isPositive ? "↗️" : "↘️"} ${formatCurrency(
+              change
+            )} (${formatCurrency(currentPnl)} total)`,
+            duration: 2000,
+          });
+        }
+      }
+
+      setLastSelectedTradePnl(currentPnl);
+    } else if (!isTradeDetailOpen) {
+      setLastSelectedTradePnl(null);
+    }
+  }, [selectedTrade, isTradeDetailOpen, lastSelectedTradePnl]);
 
   // Load symbol settings
   const loadSymbolSettings = async () => {
@@ -1234,10 +1294,18 @@ const TradingPaper = () => {
           <TabsContent value="trades" className="space-y-4 lg:space-y-6">
             {/* Open Trades */}
             {openTrades.length > 0 && (
-              <Card>
+              <Card className={wsConnected ? "ring-1 ring-green-500/20" : ""}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Lệnh đang mở ({openTrades.length})</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      Lệnh đang mở ({openTrades.length})
+                      {wsConnected && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-xs text-green-600">Live</span>
+                        </div>
+                      )}
+                    </CardTitle>
                     <div className="text-right space-y-1">
                       <div>
                         <div className="text-sm text-muted-foreground">
@@ -1433,9 +1501,17 @@ const TradingPaper = () => {
             )}
 
             {/* Closed Trades */}
-            <Card>
+            <Card className={wsConnected ? "ring-1 ring-green-500/20" : ""}>
               <CardHeader>
-                <CardTitle>Lịch sử giao dịch ({closedTrades.length})</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Lịch sử giao dịch ({closedTrades.length})
+                  {wsConnected && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-600">Live</span>
+                    </div>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {closedTrades.length > 0 ? (
@@ -1816,6 +1892,12 @@ const TradingPaper = () => {
               <span className="text-sm font-normal text-muted-foreground">
                 Chi tiết giao dịch
               </span>
+              {wsConnected && selectedTrade?.status === "Open" && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-green-600">Live</span>
+                </div>
+              )}
             </DialogTitle>
             <DialogDescription>
               Thông tin chi tiết về vị thế đang mở

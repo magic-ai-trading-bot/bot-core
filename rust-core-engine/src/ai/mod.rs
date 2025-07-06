@@ -155,6 +155,18 @@ pub struct AIStrategyContext {
     pub technical_indicators: HashMap<String, serde_json::Value>,
 }
 
+impl Default for AIStrategyContext {
+    fn default() -> Self {
+        Self {
+            selected_strategies: vec!["RSI Strategy".to_string(), "MACD Strategy".to_string()],
+            market_condition: "Unknown".to_string(),
+            risk_level: "Moderate".to_string(),
+            user_preferences: HashMap::new(),
+            technical_indicators: HashMap::new(),
+        }
+    }
+}
+
 /// AI analysis request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIAnalysisRequest {

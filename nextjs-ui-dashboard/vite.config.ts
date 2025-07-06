@@ -49,6 +49,8 @@ export default defineConfig(({ mode }) => ({
     "import.meta.env.VITE_WS_URL": JSON.stringify(
       process.env.VITE_WS_URL || "ws://localhost:8080/ws"
     ),
+    // Fix for Node.js globals in browser
+    global: "globalThis",
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(
     Boolean
@@ -61,5 +63,14 @@ export default defineConfig(({ mode }) => ({
   // Bun compatibility optimizations
   optimizeDeps: {
     exclude: ["ws"],
+    include: ["react", "react-dom"],
+    // Force pre-bundling of problematic dependencies
+    force: true,
+  },
+  // Additional configuration for Node.js compatibility
+  build: {
+    rollupOptions: {
+      external: ["ws"],
+    },
   },
 }));
