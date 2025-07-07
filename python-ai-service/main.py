@@ -39,7 +39,7 @@ mongodb_db = None
 import asyncio
 from datetime import datetime
 last_openai_request_time = None
-OPENAI_REQUEST_DELAY = 20  # 20 seconds between requests (GPT-3.5 is less limited)
+OPENAI_REQUEST_DELAY = 20  # 20 seconds between requests (GPT-4o-mini rate limiting)
 OPENAI_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
 
 # MongoDB storage for AI analysis results
@@ -406,7 +406,7 @@ class AIServiceInfo(BaseModel):
     """AI service information."""
     service_name: str = Field(default="GPT-4 Trading AI")
     version: str = Field(default="2.0.0")
-    model_version: str = Field(default="gpt-3.5-turbo")
+    model_version: str = Field(default="gpt-4o-mini")
     supported_timeframes: List[str] = Field(default_factory=lambda: ["1m", "5m", "15m", "1h", "4h", "1d"])
     supported_symbols: List[str] = Field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"])
     capabilities: List[str] = Field(default_factory=lambda: [
@@ -536,7 +536,7 @@ class DirectOpenAIClient:
             
         return available_keys[self.current_key_index], self.current_key_index
 
-    async def chat_completions_create(self, model: str, messages: list, temperature: float = 0.3, max_tokens: int = 2000):
+    async def chat_completions_create(self, model: str, messages: list, temperature: float = 0.0, max_tokens: int = 2000):
         """Direct HTTP call to OpenAI chat completions API with auto-fallback on rate limits."""
         global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME
         import httpx
@@ -718,12 +718,12 @@ class GPTTradingAnalyzer:
             # Call GPT-4
             logger.info("🔄 Calling GPT-4 API...")
             response = await self.client.chat_completions_create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": self._get_system_prompt()},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,
+                temperature=0.0,
                 max_tokens=2000
             )
             
@@ -1211,9 +1211,9 @@ async def debug_gpt4():
     
     try:
         # Test simple API call
-        logger.info("🧪 Testing GPT-3.5 API connection...")
+        logger.info("🧪 Testing GPT-4o-mini API connection...")
         response = await openai_client.chat_completions_create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "user", "content": "Respond with just the word 'SUCCESS'"}
             ],
@@ -1223,8 +1223,8 @@ async def debug_gpt4():
         
         result["status"] = "success"
         result["test_response"] = response["choices"][0]["message"]["content"]
-        result["model_used"] = "gpt-3.5-turbo"
-        logger.info("✅ GPT-3.5 test successful")
+        result["model_used"] = "gpt-4o-mini"
+        logger.info("✅ GPT-4o-mini test successful")
         
     except Exception as e:
         result["status"] = "failed"

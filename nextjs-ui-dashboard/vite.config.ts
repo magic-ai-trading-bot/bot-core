@@ -8,6 +8,18 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 3000,
+    // Allow ngrok and other tunnel hosts
+    allowedHosts: [
+      "120d-42-114-130-123.ngrok-free.app",
+      "localhost",
+      "127.0.0.1",
+      "0.0.0.0",
+      ".ngrok-free.app",
+      ".ngrok.app",
+      ".ngrok.io",
+      ".tunnel.me",
+      ".localtunnel.me",
+    ],
     hmr: {
       // Fix WebSocket compatibility with Bun
       port: 24678,
