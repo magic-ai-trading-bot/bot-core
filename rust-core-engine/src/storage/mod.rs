@@ -29,19 +29,20 @@ impl Storage {
     pub async fn new(config: &crate::config::DatabaseConfig) -> Result<Self> {
         #[cfg(feature = "database")]
         {
-            if config.url.starts_with("mongodb://") {
+            if config.url.starts_with("mongodb://") || config.url.starts_with("mongodb+srv://") {
                 let client = Client::with_uri_str(&config.url).await?;
                 let db = client.database(&config.database_name.as_ref().unwrap_or(&"trading_bot".to_string()));
                 
                 // Test connection by listing collections
                 let _ = db.list_collection_names(None).await?;
                 
-                info!("MongoDB connected successfully");
+                info!("MongoDB connected successfully to: {}", config.url);
                 
                 Ok(Self {
                     db: Some(db),
                 })
             } else {
+                info!("Database URL not recognized as MongoDB connection string: {}", config.url);
                 Ok(Self { db: None })
             }
         }
