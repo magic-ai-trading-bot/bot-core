@@ -101,7 +101,7 @@ services:
       - "8080:8080"
     environment:
       - RUST_LOG=${RUST_LOG:-info}
-      - DATABASE_URL=mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin
+      - DATABASE_URL=mongodb+srv://trading-bot:Dung15697@trading-bot.hqeanzi.mongodb.net/trading_bot
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-your_api_key_here}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-your_secret_key_here}
@@ -123,8 +123,6 @@ services:
       start_period: 60s
     depends_on:
       python-ai-service:
-        condition: service_healthy
-      mongodb:
         condition: service_healthy
     deploy:
       resources:
@@ -149,7 +147,7 @@ services:
     environment:
       - RUST_LOG=debug
       - RUST_BACKTRACE=1
-      - DATABASE_URL=mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin
+      - DATABASE_URL=mongodb+srv://trading-bot:Dung15697@trading-bot.hqeanzi.mongodb.net/trading_bot
       - PYTHON_AI_SERVICE_URL=http://python-ai-service-dev:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-your_api_key_here}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-your_secret_key_here}
@@ -175,8 +173,6 @@ services:
       start_period: 60s
     depends_on:
       python-ai-service-dev:
-        condition: service_healthy
-      mongodb:
         condition: service_healthy
     deploy:
       resources:
@@ -358,31 +354,6 @@ services:
     profiles:
       - monitoring
 
-  # MongoDB database
-  mongodb:
-    image: mongo:7-jammy
-    container_name: mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-botuser}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-defaultpassword}
-      - MONGO_INITDB_DATABASE=trading_bot
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - bot-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    profiles:
-      - dev
-      - prod
-
 networks:
   bot-network:
     driver: bridge
@@ -400,6 +371,4 @@ volumes:
   grafana_data:
     driver: local
   rust_target_cache:
-    driver: local
-  mongodb_data:
     driver: local

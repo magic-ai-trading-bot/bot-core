@@ -128,7 +128,29 @@ impl Config {
         }
         
         let content = fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&content)?;
+        let mut config: Config = toml::from_str(&content)?;
+        
+        // Override with environment variables if they exist
+        if let Ok(database_url) = std::env::var("DATABASE_URL") {
+            config.database.url = database_url;
+        }
+        
+        if let Ok(binance_api_key) = std::env::var("BINANCE_API_KEY") {
+            config.binance.api_key = binance_api_key;
+        }
+        
+        if let Ok(binance_secret_key) = std::env::var("BINANCE_SECRET_KEY") {
+            config.binance.secret_key = binance_secret_key;
+        }
+        
+        if let Ok(testnet) = std::env::var("BINANCE_TESTNET") {
+            config.binance.testnet = testnet == "true";
+        }
+        
+        if let Ok(python_url) = std::env::var("PYTHON_AI_SERVICE_URL") {
+            config.market_data.python_ai_service_url = python_url;
+        }
+        
         Ok(config)
     }
     
