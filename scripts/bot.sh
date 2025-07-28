@@ -34,18 +34,24 @@ print_usage() {
     echo "  status    - Show service status"
     echo "  logs      - Show logs for all services"
     echo "  clean     - Clean up containers and volumes"
+    echo "  verify    - Verify setup and configuration"
     echo "  help      - Show this help message"
     echo ""
     echo -e "${YELLOW}Options:${NC}"
     echo "  --memory-optimized  - Use memory optimized settings"
-    echo "  --service SERVICE   - Target specific service (python-ai-service, rust-core-engine, nextjs-ui-dashboard)"
+    echo "  --with-enterprise   - Include enterprise features (Redis, RabbitMQ, Kong, Monitoring)"
+    echo "  --with-redis        - Include Redis cache"
+    echo "  --with-rabbitmq     - Include RabbitMQ message queue"
+    echo "  --with-kong         - Include Kong API Gateway"
+    echo "  --with-monitoring   - Include Prometheus & Grafana"
+    echo "  --service SERVICE   - Target specific service"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
-    echo "  $0 start                      # Start all services"
+    echo "  $0 start                      # Start core services only"
+    echo "  $0 start --with-enterprise    # Start all services including enterprise features"
+    echo "  $0 start --with-redis --with-monitoring  # Start with specific features"
     echo "  $0 dev                        # Start in development mode"
-    echo "  $0 start --memory-optimized   # Start with memory optimization"
     echo "  $0 logs --service python-ai-service  # Show logs for specific service"
-    echo "  $0 stop                       # Stop all services"
 }
 
 print_status() {
@@ -109,13 +115,50 @@ check_prerequisites() {
 start_services() {
     print_status "Starting services..."
     
+    # Build profiles string
+    PROFILES=""
     if [[ "$DEV_MODE" == "true" ]]; then
-        docker compose --profile dev up -d
+        PROFILES="--profile dev"
+    else
+        PROFILES="--profile prod"
+    fi
+    
+    # Add enterprise features if requested
+    if [[ "$WITH_ENTERPRISE" == "true" ]]; then
+        PROFILES="$PROFILES --profile redis --profile messaging --profile monitoring --profile api-gateway"
+        print_status "Including all enterprise features"
+    else
+        # Add individual features
+        if [[ "$WITH_REDIS" == "true" ]]; then
+            PROFILES="$PROFILES --profile redis"
+            print_status "Including Redis cache"
+        fi
+        if [[ "$WITH_RABBITMQ" == "true" ]]; then
+            PROFILES="$PROFILES --profile messaging"
+            print_status "Including RabbitMQ message queue"
+        fi
+        if [[ "$WITH_KONG" == "true" ]]; then
+            PROFILES="$PROFILES --profile api-gateway"
+            print_status "Including Kong API Gateway"
+        fi
+        if [[ "$WITH_MONITORING" == "true" ]]; then
+            PROFILES="$PROFILES --profile monitoring"
+            print_status "Including Prometheus & Grafana monitoring"
+        fi
+    fi
+    
+    # Start services with selected profiles
+    docker compose $PROFILES up -d
+    
+    if [[ "$DEV_MODE" == "true" ]]; then
         print_success "Development services started"
     else
-        docker compose --profile prod up -d
         print_success "Production services started"
     fi
+    
+    # Wait for services to be ready
+    print_status "Waiting for services to be ready..."
+    sleep 5
     
     show_status
     show_urls
@@ -187,9 +230,28 @@ clean_up() {
 show_urls() {
     echo ""
     print_success "🎯 Service URLs:"
-    echo -e "${GREEN}✅ Frontend Dashboard: ${CYAN}http://localhost:3000${NC}"
-    echo -e "${GREEN}✅ Rust Core Engine: ${CYAN}http://localhost:8080/api/health${NC}"
-    echo -e "${GREEN}✅ Python AI Service: ${CYAN}http://localhost:8000/health${NC}"
+    echo -e "${GREEN}Core Services:${NC}"
+    echo -e "  📊 Frontend Dashboard: ${CYAN}http://localhost:3000${NC}"
+    echo -e "  🦀 Rust Core Engine: ${CYAN}http://localhost:8080/api/health${NC}"
+    echo -e "  🐍 Python AI Service: ${CYAN}http://localhost:8000/health${NC}"
+    
+    # Check if enterprise features are running
+    if docker ps --format '{{.Names}}' | grep -q "rabbitmq"; then
+        echo -e "\n${GREEN}Enterprise Features:${NC}"
+        if docker ps --format '{{.Names}}' | grep -q "rabbitmq"; then
+            echo -e "  🐰 RabbitMQ Management: ${CYAN}http://localhost:15672${NC} (admin/admin)"
+        fi
+        if docker ps --format '{{.Names}}' | grep -q "kong"; then
+            echo -e "  👑 Kong Admin API: ${CYAN}http://localhost:8001${NC}"
+            echo -e "  🔀 Kong Proxy: ${CYAN}http://localhost:8100${NC}"
+        fi
+        if docker ps --format '{{.Names}}' | grep -q "prometheus"; then
+            echo -e "  📈 Prometheus: ${CYAN}http://localhost:9090${NC}"
+        fi
+        if docker ps --format '{{.Names}}' | grep -q "grafana"; then
+            echo -e "  📊 Grafana: ${CYAN}http://localhost:3001${NC} (admin/admin)"
+        fi
+    fi
     echo ""
 }
 
@@ -198,10 +260,15 @@ COMMAND=""
 MEMORY_OPTIMIZED="false"
 DEV_MODE="false"
 SERVICE=""
+WITH_ENTERPRISE="false"
+WITH_REDIS="false"
+WITH_RABBITMQ="false"
+WITH_KONG="false"
+WITH_MONITORING="false"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        start|dev|stop|restart|build|status|logs|clean|help)
+        start|dev|stop|restart|build|status|logs|clean|verify|help)
             COMMAND="$1"
             if [[ "$1" == "dev" ]]; then
                 DEV_MODE="true"
@@ -210,6 +277,26 @@ while [[ $# -gt 0 ]]; do
             ;;
         --memory-optimized)
             MEMORY_OPTIMIZED="true"
+            shift
+            ;;
+        --with-enterprise)
+            WITH_ENTERPRISE="true"
+            shift
+            ;;
+        --with-redis)
+            WITH_REDIS="true"
+            shift
+            ;;
+        --with-rabbitmq)
+            WITH_RABBITMQ="true"
+            shift
+            ;;
+        --with-kong)
+            WITH_KONG="true"
+            shift
+            ;;
+        --with-monitoring)
+            WITH_MONITORING="true"
             shift
             ;;
         --service)
@@ -259,6 +346,13 @@ case $COMMAND in
         ;;
     clean)
         clean_up
+        ;;
+    verify)
+        if [[ -f "./scripts/verify-setup.sh" ]]; then
+            ./scripts/verify-setup.sh
+        else
+            print_error "Verify script not found"
+        fi
         ;;
     help)
         print_usage
