@@ -13,9 +13,9 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_token}
-      - PYTHON_API_KEY=${PYTHON_API_KEY:-python_api_key}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN}
+      - PYTHON_API_KEY=${PYTHON_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./python-ai-service/models:/app/models
       - ./python-ai-service/logs:/app/logs
@@ -57,7 +57,7 @@ services:
       - LOG_LEVEL=DEBUG
       - FLASK_ENV=development
       - ENABLE_HOT_RELOAD=true
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./python-ai-service:/app
       - /app/__pycache__
@@ -101,14 +101,14 @@ services:
       - "8080:8080"
     environment:
       - RUST_LOG=${RUST_LOG:-info}
-      - DATABASE_URL=mongodb+srv://trading-bot:Dung15697@trading-bot.hqeanzi.mongodb.net/trading_bot
+      - DATABASE_URL=${DATABASE_URL}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-your_api_key_here}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-your_secret_key_here}
       - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
       - TRADING_ENABLED=${TRADING_ENABLED:-false}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_token}
-      - RUST_API_KEY=${RUST_API_KEY:-rust_api_key}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN}
+      - RUST_API_KEY=${RUST_API_KEY}
     volumes:
       - ./rust-core-engine/data:/app/data
       - ./rust-core-engine/logs:/app/logs
@@ -147,14 +147,14 @@ services:
     environment:
       - RUST_LOG=debug
       - RUST_BACKTRACE=1
-      - DATABASE_URL=mongodb+srv://trading-bot:Dung15697@trading-bot.hqeanzi.mongodb.net/trading_bot
+      - DATABASE_URL=${DATABASE_URL}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service-dev:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-your_api_key_here}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-your_secret_key_here}
       - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
       - TRADING_ENABLED=${TRADING_ENABLED:-false}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_token}
-      - RUST_API_KEY=${RUST_API_KEY:-rust_api_key}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN}
+      - RUST_API_KEY=${RUST_API_KEY}
     volumes:
       - ./rust-core-engine/src:/app/src
       - ./rust-core-engine/Cargo.toml:/app/Cargo.toml
@@ -199,7 +199,7 @@ services:
       - VITE_API_TIMEOUT=10000
       - VITE_REFRESH_INTERVAL=5000
       - VITE_ENABLE_REALTIME=true
-      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:-dashboard_secret}
+      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET}
       - NODE_OPTIONS="--max-old-space-size=${NODE_MEMORY:-1024}"
     # No volumes needed for production static serving
     networks:
@@ -278,35 +278,13 @@ services:
     profiles:
       - dev
 
-  # Database service (PostgreSQL) - Optional enhancement
-  postgres:
-    image: postgres:15-alpine
-    container_name: postgres-db
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=trading_bot
-      - POSTGRES_USER=botuser
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-defaultpassword}
-      - POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - bot-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U botuser -d trading_bot"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    profiles:
-      - postgres
 
   # Redis service - For caching and session management
   redis:
     image: redis:7-alpine
     container_name: redis-cache
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-defaultpassword}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
@@ -319,6 +297,109 @@ services:
       start_period: 30s
     profiles:
       - redis
+
+  # RabbitMQ service - Message queue for async processing
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+      - RABBITMQ_DEFAULT_VHOST=bot-core
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - messaging
+
+  # Kong API Gateway
+  kong-database:
+    image: postgres:13-alpine
+    container_name: kong-database
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=kong
+      - POSTGRES_USER=kong
+      - POSTGRES_PASSWORD=${KONG_DB_PASSWORD}
+    volumes:
+      - kong_data:/var/lib/postgresql/data
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - api-gateway
+
+  kong-migration:
+    image: kong:3.4-alpine
+    container_name: kong-migration
+    command: kong migrations bootstrap
+    depends_on:
+      kong-database:
+        condition: service_healthy
+    environment:
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=kong-database
+      - KONG_PG_USER=kong
+      - KONG_PG_PASSWORD=${KONG_DB_PASSWORD}
+    networks:
+      - bot-network
+    restart: on-failure
+    profiles:
+      - api-gateway
+
+  kong:
+    image: kong:3.4-alpine
+    container_name: kong
+    restart: unless-stopped
+    depends_on:
+      kong-database:
+        condition: service_healthy
+      kong-migration:
+        condition: service_completed_successfully
+    environment:
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=kong-database
+      - KONG_PG_USER=kong
+      - KONG_PG_PASSWORD=${KONG_DB_PASSWORD}
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001
+      - KONG_DECLARATIVE_CONFIG=/opt/kong/kong.yml
+    ports:
+      - "8100:8000"  # Proxy (changed from 8000 to avoid conflict)
+      - "8443:8443"  # Proxy SSL
+      - "8001:8001"  # Admin API
+      - "8444:8444"  # Admin SSL
+    volumes:
+      - ./kong/kong.yml:/opt/kong/kong.yml:ro
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - api-gateway
 
   # Prometheus monitoring
   prometheus:
@@ -362,9 +443,11 @@ networks:
         - subnet: 172.20.0.0/16
 
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  kong_data:
     driver: local
   prometheus_data:
     driver: local

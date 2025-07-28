@@ -1,0 +1,175 @@
+{
+  "rabbit_version": "3.12",
+  "rabbitmq_version": "3.12",
+  "product_name": "RabbitMQ",
+  "product_version": "3.12",
+  "users": [
+    {
+      "name": "admin",
+      "password_hash": "WILL_BE_REPLACED",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"]
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "bot-core",
+      "description": "Bot Core vhost",
+      "tags": []
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "bot-core",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "trading.events",
+      "vhost": "bot-core",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "ai.predictions",
+      "vhost": "bot-core",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "market.data",
+      "vhost": "bot-core",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "dlx.exchange",
+      "vhost": "bot-core",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "trading.signals",
+      "vhost": "bot-core",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 3600000,
+        "x-max-length": 10000,
+        "x-dead-letter-exchange": "dlx.exchange"
+      }
+    },
+    {
+      "name": "trading.executions",
+      "vhost": "bot-core",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 3600000,
+        "x-max-length": 10000,
+        "x-dead-letter-exchange": "dlx.exchange"
+      }
+    },
+    {
+      "name": "ai.analysis",
+      "vhost": "bot-core",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 1800000,
+        "x-max-length": 5000
+      }
+    },
+    {
+      "name": "market.updates",
+      "vhost": "bot-core",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 300000,
+        "x-max-length": 50000
+      }
+    },
+    {
+      "name": "dlq.failed",
+      "vhost": "bot-core",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "trading.events",
+      "vhost": "bot-core",
+      "destination": "trading.signals",
+      "destination_type": "queue",
+      "routing_key": "signal.*",
+      "arguments": {}
+    },
+    {
+      "source": "trading.events",
+      "vhost": "bot-core",
+      "destination": "trading.executions",
+      "destination_type": "queue",
+      "routing_key": "execution.*",
+      "arguments": {}
+    },
+    {
+      "source": "ai.predictions",
+      "vhost": "bot-core",
+      "destination": "ai.analysis",
+      "destination_type": "queue",
+      "routing_key": "analysis.*",
+      "arguments": {}
+    },
+    {
+      "source": "market.data",
+      "vhost": "bot-core",
+      "destination": "market.updates",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    },
+    {
+      "source": "dlx.exchange",
+      "vhost": "bot-core",
+      "destination": "dlq.failed",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    }
+  ],
+  "policies": [
+    {
+      "vhost": "bot-core",
+      "name": "ha-policy",
+      "pattern": "^trading\\.",
+      "apply-to": "queues",
+      "definition": {
+        "ha-mode": "exactly",
+        "ha-params": 2,
+        "ha-sync-mode": "automatic"
+      },
+      "priority": 1
+    }
+  ]
+}

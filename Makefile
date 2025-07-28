@@ -80,9 +80,7 @@ start-core: ## Start core services only
 	@echo "Starting core services..."
 	@docker-compose up -d rust-core-engine python-ai-service nextjs-ui-dashboard
 
-start-with-db: ## Start services with PostgreSQL
-	@echo "Starting services with PostgreSQL..."
-	@docker-compose --profile postgres up -d
+# PostgreSQL removed - MongoDB only
 
 start-with-monitoring: ## Start services with monitoring
 	@echo "Starting services with monitoring..."
@@ -90,7 +88,7 @@ start-with-monitoring: ## Start services with monitoring
 
 start-all: ## Start all services including optional ones
 	@echo "Starting all services..."
-	@docker-compose --profile postgres --profile redis --profile monitoring up -d
+	@docker-compose --profile redis --profile monitoring up -d
 
 stop: ## Stop all services
 	@echo "Stopping all services..."
@@ -245,14 +243,14 @@ health: ## Check health of all services
 	@echo "Python AI: $$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health || echo 'DOWN')"
 	@echo "Rust Core: $$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health || echo 'DOWN')"
 
-# Database Operations
-db-backup: ## Backup database
-	@echo "Backing up database..."
-	@docker-compose exec postgres pg_dump -U botuser trading_bot > backup_$$(date +%Y%m%d_%H%M%S).sql
+# MongoDB Operations
+db-backup: ## Backup MongoDB
+	@echo "Backing up MongoDB..."
+	@docker exec mongodb-primary mongodump --uri="${DATABASE_URL}" --out=/backup/dump_$$(date +%Y%m%d_%H%M%S)
 
-db-restore: ## Restore database from backup (specify BACKUP_FILE)
-	@echo "Restoring database from $(BACKUP_FILE)..."
-	@docker-compose exec -T postgres psql -U botuser trading_bot < $(BACKUP_FILE)
+db-restore: ## Restore MongoDB from backup (specify BACKUP_DIR)
+	@echo "Restoring MongoDB from $(BACKUP_DIR)..."
+	@docker exec mongodb-primary mongorestore --uri="${DATABASE_URL}" --dir=$(BACKUP_DIR)
 
 # Production Deployment
 docker-build: ## Build Docker images for production
