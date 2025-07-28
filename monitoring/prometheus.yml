@@ -1,0 +1,60 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'bot-core-monitor'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules
+rule_files:
+  - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Rust Core Engine metrics
+  - job_name: 'rust-core-engine'
+    static_configs:
+      - targets: ['rust-core-engine:8080']
+    metrics_path: '/metrics'
+
+  # Python AI Service metrics
+  - job_name: 'python-ai-service'
+    static_configs:
+      - targets: ['python-ai-service:8000']
+    metrics_path: '/metrics'
+
+  # Node.js Dashboard metrics
+  - job_name: 'nextjs-ui-dashboard'
+    static_configs:
+      - targets: ['nextjs-ui-dashboard:3000']
+    metrics_path: '/api/metrics'
+
+  # Docker containers monitoring
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8081']
+
+  # Node exporter for host metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # PostgreSQL exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
