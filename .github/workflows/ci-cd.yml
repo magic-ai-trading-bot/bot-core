@@ -1,0 +1,254 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+  DOCKER_IMAGE_PREFIX: ${{ github.repository_owner }}/bot-core
+
+jobs:
+  # Security scanning
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+
+  # Rust tests and build
+  rust-ci:
+    name: Rust CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust-core-engine/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Format check
+        run: cd rust-core-engine && cargo fmt -- --check
+      
+      - name: Clippy
+        run: cd rust-core-engine && cargo clippy -- -D warnings
+      
+      - name: Test
+        run: cd rust-core-engine && cargo test
+      
+      - name: Build
+        run: cd rust-core-engine && cargo build --release
+
+  # Python tests and build
+  python-ci:
+    name: Python CI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10']
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+      
+      - name: Install dependencies
+        run: |
+          cd python-ai-service
+          pip install -r requirements.txt
+          pip install -r requirements.dev.txt
+      
+      - name: Lint with flake8
+        run: |
+          cd python-ai-service
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      
+      - name: Test with pytest
+        run: |
+          cd python-ai-service
+          pytest tests/ -v --cov=./ --cov-report=xml
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./python-ai-service/coverage.xml
+          flags: python
+
+  # Frontend tests and build
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            nextjs-ui-dashboard/node_modules
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+      
+      - name: Install dependencies
+        run: cd nextjs-ui-dashboard && bun install
+      
+      - name: Lint
+        run: cd nextjs-ui-dashboard && bun run lint
+      
+      - name: Type check
+        run: cd nextjs-ui-dashboard && bun run type-check
+      
+      - name: Test
+        run: cd nextjs-ui-dashboard && bun test
+      
+      - name: Build
+        run: cd nextjs-ui-dashboard && bun run build
+
+  # Docker build and push
+  docker-build:
+    name: Docker Build & Push
+    needs: [rust-ci, python-ci, frontend-ci, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [rust-core-engine, python-ai-service, nextjs-ui-dashboard]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE_PREFIX }}-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_CONTEXT_KEEP_GIT_DIR=true
+
+  # Integration tests
+  integration-tests:
+    name: Integration Tests
+    needs: [docker-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          ./scripts/generate-secrets.sh
+      
+      - name: Start services
+        run: |
+          docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
+          sleep 30  # Wait for services to be ready
+      
+      - name: Run integration tests
+        run: |
+          make test-integration
+      
+      - name: Stop services
+        if: always()
+        run: docker-compose down
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy to staging
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        run: |
+          echo "$STAGING_SSH_KEY" > deploy_key
+          chmod 600 deploy_key
+          ssh -i deploy_key -o StrictHostKeyChecking=no $STAGING_HOST '
+            cd /opt/bot-core &&
+            git pull &&
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull &&
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          '
+          rm deploy_key
