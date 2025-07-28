@@ -1,0 +1,311 @@
+_format_version: "3.0"
+_transform: true
+
+# Services
+services:
+  - name: rust-core-api
+    url: http://rust-core-engine:8080
+    protocol: http
+    host: rust-core-engine
+    port: 8080
+    path: /
+    retries: 5
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    routes:
+      - name: rust-api-route
+        paths:
+          - /api
+        strip_path: false
+        preserve_host: true
+        protocols:
+          - http
+          - https
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+
+  - name: python-ai-api
+    url: http://python-ai-service:8000
+    protocol: http
+    host: python-ai-service
+    port: 8000
+    path: /
+    retries: 3
+    connect_timeout: 60000
+    write_timeout: 300000
+    read_timeout: 300000
+    routes:
+      - name: ai-api-route
+        paths:
+          - /ai
+        strip_path: true
+        protocols:
+          - http
+          - https
+
+  - name: websocket-service
+    url: ws://rust-core-engine:8080/ws
+    protocol: ws
+    host: rust-core-engine
+    port: 8080
+    path: /ws
+    routes:
+      - name: websocket-route
+        paths:
+          - /ws
+        protocols:
+          - ws
+          - wss
+        preserve_host: true
+
+# Plugins
+plugins:
+  # Rate limiting
+  - name: rate-limiting
+    config:
+      minute: 60
+      hour: 1000
+      policy: redis
+      redis_host: redis
+      redis_port: 6379
+      redis_password: ${REDIS_PASSWORD}
+      fault_tolerant: true
+      hide_client_headers: false
+
+  # API Key Authentication
+  - name: key-auth
+    config:
+      key_names:
+        - api-key
+        - apikey
+        - X-API-Key
+      hide_credentials: true
+      anonymous: null
+      key_in_header: true
+      key_in_query: true
+      key_in_body: false
+      run_on_preflight: true
+
+  # JWT Authentication
+  - name: jwt
+    route: rust-api-route
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+      secret_is_base64: false
+      anonymous: null
+      run_on_preflight: true
+      maximum_expiration: 31536000
+      algorithm: RS256
+
+  # CORS
+  - name: cors
+    config:
+      origins:
+        - http://localhost:3000
+        - https://your-domain.com
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Auth-Token
+        - X-API-Key
+        - Authorization
+      exposed_headers:
+        - X-Auth-Token
+        - X-RateLimit-Limit
+        - X-RateLimit-Remaining
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  # Request/Response Transformer
+  - name: request-transformer
+    route: ai-api-route
+    config:
+      add:
+        headers:
+          - X-AI-Service:true
+      remove:
+        headers:
+          - Cookie
+        
+  # Response Transformer
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - X-Kong-Proxy:true
+          - X-Kong-Version:3.0
+      remove:
+        headers:
+          - Server
+          - X-Powered-By
+
+  # Request Size Limiting
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+      size_unit: megabytes
+      require_content_length: false
+
+  # IP Restriction (example)
+  - name: ip-restriction
+    enabled: false
+    config:
+      allow:
+        - 192.168.1.0/24
+        - 10.0.0.0/8
+      deny: null
+      status: 403
+      message: Access denied
+
+  # Bot Detection
+  - name: bot-detection
+    config:
+      allow:
+        - "(Uptime-Kuma)"
+      deny:
+        - "(bot|crawler|spider|scraper)"
+
+  # Request Termination for health checks
+  - name: request-termination
+    route: health-check-route
+    config:
+      status_code: 200
+      content_type: text/plain
+      body: "OK"
+
+  # Prometheus Metrics
+  - name: prometheus
+    config:
+      per_consumer: false
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+
+# Upstreams with health checks
+upstreams:
+  - name: rust-core-upstream
+    algorithm: round-robin
+    slots: 10000
+    healthchecks:
+      active:
+        healthy:
+          interval: 10
+          successes: 2
+          http_statuses:
+            - 200
+            - 302
+        unhealthy:
+          interval: 5
+          tcp_failures: 2
+          timeouts: 3
+          http_failures: 3
+          http_statuses:
+            - 429
+            - 500
+            - 503
+      passive:
+        healthy:
+          successes: 5
+          http_statuses:
+            - 200
+            - 201
+            - 202
+            - 204
+        unhealthy:
+          tcp_failures: 2
+          http_failures: 5
+          timeouts: 3
+          http_statuses:
+            - 429
+            - 500
+            - 502
+            - 503
+            - 504
+    targets:
+      - target: rust-core-engine:8080
+        weight: 100
+
+  - name: python-ai-upstream
+    algorithm: least-connections
+    slots: 10000
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 1
+          http_statuses:
+            - 200
+        unhealthy:
+          interval: 10
+          http_failures: 2
+          timeouts: 5
+    targets:
+      - target: python-ai-service:8000
+        weight: 100
+
+# Consumers (API Users)
+consumers:
+  - username: dashboard-app
+    custom_id: dashboard-001
+    tags:
+      - frontend
+      - production
+
+  - username: monitoring-service
+    custom_id: monitoring-001
+    tags:
+      - monitoring
+      - internal
+    keyauth_credentials:
+      - key: ${MONITORING_API_KEY}
+
+# Routes
+routes:
+  - name: health-check-route
+    paths:
+      - /health
+      - /api/health
+    protocols:
+      - http
+      - https
+    strip_path: false
+    preserve_host: false
+
+# Certificates (for HTTPS)
+certificates:
+  - cert: |
+      -----BEGIN CERTIFICATE-----
+      ${SSL_CERTIFICATE}
+      -----END CERTIFICATE-----
+    key: |
+      -----BEGIN PRIVATE KEY-----
+      ${SSL_PRIVATE_KEY}
+      -----END PRIVATE KEY-----
+    snis:
+      - your-domain.com
+      - www.your-domain.com
