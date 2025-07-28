@@ -71,23 +71,19 @@ check_dir "nextjs-ui-dashboard"
 # 4. Check New Service Configs
 echo ""
 echo "4. Checking Enterprise Feature Configurations..."
-check_dir "rabbitmq"
-check_file "rabbitmq/rabbitmq.conf"
-check_file "rabbitmq/definitions.json"
+check_dir "infrastructure"
+check_file "infrastructure/rabbitmq/rabbitmq.conf"
+check_file "infrastructure/rabbitmq/definitions.json"
 
-check_dir "kong"
-check_file "kong/kong.yml"
+check_file "infrastructure/kong/kong.yml"
 
-check_dir "monitoring"
-check_file "monitoring/prometheus.yml"
-check_file "monitoring/alerts/alerts.yml"
+check_file "infrastructure/monitoring/prometheus.yml"
+check_file "infrastructure/monitoring/alerts/alerts.yml"
 
-check_dir "nginx"
-check_file "nginx/nginx.conf"
+check_file "infrastructure/nginx/nginx.conf"
 
-check_dir "mongodb"
-check_file "mongodb/replica.key"
-check_file "mongodb/init-replica.js"
+check_file "infrastructure/mongodb/replica.key"
+check_file "infrastructure/mongodb/init-replica.js"
 
 # PostgreSQL removed - using MongoDB only
 

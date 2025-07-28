@@ -7,7 +7,7 @@
 .DEFAULT_GOAL := help
 
 # Variables
-COMPOSE_FILE := docker-compose.yml
+COMPOSE_FILE := infrastructure/docker/docker-compose.yml
 SERVICES := rust-core-engine python-ai-service nextjs-ui-dashboard
 DOCKER_REGISTRY := your-registry.com
 DOCKER_TAG := latest
@@ -114,23 +114,23 @@ logs-frontend: ## Show logs for Frontend service
 # Development
 dev: ## Start all services in development mode with hot reload
 	@echo "Starting all services in development mode with hot reload..."
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up --build
 
 dev-detach: ## Start all services in development mode (detached)
 	@echo "Starting all services in development mode (detached)..."
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 dev-rust: ## Start Rust service in development mode with hot reload
 	@echo "Starting Rust service in development mode with hot reload..."
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml up rust-core-engine --build
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up rust-core-engine --build
 
 dev-python: ## Start Python service in development mode with hot reload
 	@echo "Starting Python service in development mode with hot reload..."
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml up python-ai-service --build
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up python-ai-service --build
 
 dev-frontend: ## Start Frontend service in development mode with hot reload
 	@echo "Starting Frontend service in development mode with hot reload..."
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml up nextjs-ui-dashboard --build
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up nextjs-ui-dashboard --build
 
 dev-local-rust: ## Start Rust service locally (without Docker)
 	@echo "Starting Rust service locally..."
@@ -145,16 +145,16 @@ dev-local-frontend: ## Start Frontend service locally (without Docker)
 	@cd nextjs-ui-dashboard && npm run dev
 
 dev-logs: ## Show development logs
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml logs -f
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml logs -f
 
 dev-stop: ## Stop development services
 	@echo "Stopping development services..."
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml down
 
 dev-rebuild: ## Rebuild and restart development services
 	@echo "Rebuilding development services..."
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
-	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml down
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up --build -d
 
 # Testing
 test: ## Run all tests
@@ -267,7 +267,7 @@ docker-push: ## Push Docker images to registry
 
 deploy: ## Deploy to production
 	@echo "Deploying to production..."
-	@docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+	@docker-compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.prod.yml up -d
 
 # Quick commands
 up: start ## Alias for start
