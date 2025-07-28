@@ -89,10 +89,10 @@ nano .env  # Thêm API keys của bạn
        │         │          │          │
 ┌──────▼─────────▼──────────▼──────────▼─────────┐
 │              Data Layer                         │
-├─────────────┬──────────────┬───────────────────┤
-│  MongoDB    │  PostgreSQL  │   Redis Cache     │
-│  Replicas   │  Replicas    │                   │
-└─────────────┴──────────────┴───────────────────┘
+├─────────────────────────┬───────────────────────┤
+│     MongoDB Replicas    │     Redis Cache       │
+│   (Primary + Secondary) │   (Session & Cache)   │
+└─────────────────────────┴───────────────────────┘
 ```
 
 ### Services Chi Tiết
@@ -203,7 +203,6 @@ make lint
 ```env
 # Database
 DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/trading_bot
-POSTGRES_PASSWORD=secure-password
 REDIS_PASSWORD=secure-password
 
 # API Keys
