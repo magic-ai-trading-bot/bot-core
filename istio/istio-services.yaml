@@ -1,0 +1,297 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bot-core
+  labels:
+    istio-injection: enabled
+---
+# Virtual Service for Rust Core Engine
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: rust-core-engine
+  namespace: bot-core
+spec:
+  hosts:
+  - rust-core-engine
+  http:
+  - match:
+    - headers:
+        canary:
+          exact: "true"
+    route:
+    - destination:
+        host: rust-core-engine
+        subset: canary
+      weight: 100
+  - route:
+    - destination:
+        host: rust-core-engine
+        subset: stable
+      weight: 90
+    - destination:
+        host: rust-core-engine
+        subset: canary
+      weight: 10
+  - timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx
+---
+# Destination Rule for Rust Core Engine
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: rust-core-engine
+  namespace: bot-core
+spec:
+  host: rust-core-engine
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 2
+    loadBalancer:
+      consistentHash:
+        httpCookie:
+          name: "session"
+          ttl: 3600s
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+  - name: canary
+    labels:
+      version: canary
+---
+# Virtual Service for Python AI Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: python-ai-service
+  namespace: bot-core
+spec:
+  hosts:
+  - python-ai-service
+  http:
+  - timeout: 300s
+    retries:
+      attempts: 2
+      perTryTimeout: 100s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    route:
+    - destination:
+        host: python-ai-service
+      weight: 100
+  - fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+    route:
+    - destination:
+        host: python-ai-service
+---
+# Service Entry for External APIs
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: binance-api
+  namespace: bot-core
+spec:
+  hosts:
+  - api.binance.com
+  - testnet.binance.vision
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: openai-api
+  namespace: bot-core
+spec:
+  hosts:
+  - api.openai.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+---
+# Circuit Breaker for External Services
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: binance-api
+  namespace: bot-core
+spec:
+  host: api.binance.com
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 10
+      http:
+        http1MaxPendingRequests: 10
+        http2MaxRequests: 20
+    outlierDetection:
+      consecutiveErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+      minHealthPercent: 0
+---
+# Gateway for Ingress Traffic
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: bot-core-gateway
+  namespace: bot-core
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: bot-core-cert
+    hosts:
+    - "bot-core.example.com"
+    - "www.bot-core.example.com"
+---
+# Virtual Service for Gateway
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: bot-core-vs
+  namespace: bot-core
+spec:
+  hosts:
+  - "bot-core.example.com"
+  - "www.bot-core.example.com"
+  gateways:
+  - bot-core-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/api"
+    route:
+    - destination:
+        host: rust-core-engine
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/ai"
+    route:
+    - destination:
+        host: python-ai-service
+        port:
+          number: 8000
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: nextjs-ui-dashboard
+        port:
+          number: 3000
+---
+# Authorization Policy
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bot-core-auth
+  namespace: bot-core
+spec:
+  selector:
+    matchLabels:
+      app: rust-core-engine
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/bot-core/sa/python-ai-service"]
+    - source:
+        principals: ["cluster.local/ns/bot-core/sa/nextjs-ui-dashboard"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/api/*"]
+  - from:
+    - source:
+        notNamespaces: ["kube-system", "istio-system"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/metrics"]
+---
+# PeerAuthentication for mTLS
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: bot-core
+spec:
+  mtls:
+    mode: STRICT
+---
+# Request Authentication for JWT
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: bot-core
+spec:
+  selector:
+    matchLabels:
+      app: rust-core-engine
+  jwtRules:
+  - issuer: "bot-core-auth"
+    jwksUri: "https://bot-core.example.com/.well-known/jwks.json"
+    forwardOriginalToken: true
+---
+# Telemetry Configuration
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: metrics
+  namespace: bot-core
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    overrides:
+    - match:
+        metric: REQUEST_COUNT
+      tagOverrides:
+        method:
+          value: request.method | "unknown"
+        response_code:
+          value: response.code | 0
+        service:
+          value: destination.service.name | "unknown"
