@@ -181,8 +181,8 @@ impl Strategy for VolumeStrategy {
 impl VolumeStrategy {
     fn analyze_volume_signals(
         &self,
-        current_volume: f64,
-        avg_volume: f64,
+        _current_volume: f64,
+        _avg_volume: f64,
         volume_ratio: f64,
         recent_volumes: &[f64],
         recent_price_changes: &[f64],
@@ -197,7 +197,7 @@ impl VolumeStrategy {
 
         // Calculate volume-weighted price momentum
         let mut bullish_volume = 0.0;
-        let mut bearish_volume = 0.0;
+        let mut _bearish_volume = 0.0;
         let mut total_volume = 0.0;
 
         for (i, &volume) in recent_volumes.iter().enumerate() {
@@ -208,7 +208,7 @@ impl VolumeStrategy {
                 if price_change > 0.0 {
                     bullish_volume += volume;
                 } else {
-                    bearish_volume += volume;
+                    _bearish_volume += volume;
                 }
             }
         }

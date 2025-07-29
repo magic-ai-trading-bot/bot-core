@@ -602,7 +602,7 @@ async fn update_strategy_settings(
 
     // Get current settings and update with new values
     let current_settings = api.engine.get_settings().await;
-    let mut _new_settings = current_settings.clone();
+    let _new_settings = current_settings.clone();
 
     // Update confidence threshold - this is the key setting!
     let confidence_threshold = request.settings.engine.min_confidence_threshold;

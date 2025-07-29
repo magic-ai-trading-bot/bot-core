@@ -213,7 +213,7 @@ impl RsiStrategy {
         rsi_1h: f64,
         rsi_4h: f64,
         prev_rsi_1h: f64,
-        prev_rsi_4h: f64,
+        _prev_rsi_4h: f64,
         oversold: f64,
         overbought: f64,
         extreme_oversold: f64,
