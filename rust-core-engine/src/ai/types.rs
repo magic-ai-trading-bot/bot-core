@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Error types for AI operations
+#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum AIError {
     #[error("Network error: {0}")]

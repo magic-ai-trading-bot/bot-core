@@ -60,6 +60,7 @@ impl RiskManager {
         Ok(true)
     }
 
+    #[allow(dead_code)]
     pub fn calculate_position_size(
         &self,
         _symbol: &str,
@@ -71,10 +72,12 @@ impl RiskManager {
         self.config.default_quantity
     }
 
+    #[allow(dead_code)]
     pub fn get_max_positions(&self) -> u32 {
         self.config.max_positions
     }
 
+    #[allow(dead_code)]
     pub fn get_risk_percentage(&self) -> f64 {
         self.config.risk_percentage
     }

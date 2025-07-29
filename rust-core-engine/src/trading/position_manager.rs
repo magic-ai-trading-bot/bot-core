@@ -91,6 +91,7 @@ impl PositionManager {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_total_exposure(&self) -> f64 {
         self.positions
             .iter()
