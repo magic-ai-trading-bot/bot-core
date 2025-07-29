@@ -3,7 +3,6 @@ use crate::strategies::{
     bollinger_strategy::BollingerStrategy, macd_strategy::MacdStrategy, rsi_strategy::RsiStrategy,
     volume_strategy::VolumeStrategy,
 };
-use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::RwLock;

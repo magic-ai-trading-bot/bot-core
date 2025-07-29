@@ -1,5 +1,5 @@
 use super::*;
-use crate::strategies::indicators::{calculate_macd, MacdResult};
+use crate::strategies::indicators::calculate_macd;
 use async_trait::async_trait;
 use serde_json::json;
 
