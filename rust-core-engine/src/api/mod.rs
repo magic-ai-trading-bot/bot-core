@@ -557,12 +557,19 @@ impl ApiServer {
             .and(warp::post())
             .and(warp::body::json())
             .and(warp::any().map(move || ai_service_clone3.clone()))
-            .and_then(|feedback: crate::ai::PerformanceFeedback, ai_service: crate::ai::AIService| async move {
-                match ai_service.send_performance_feedback(feedback).await {
-                    Ok(_) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success("Feedback sent successfully"))),
-                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
-                }
-            });
+            .and_then(
+                |feedback: crate::ai::PerformanceFeedback,
+                 ai_service: crate::ai::AIService| async move {
+                    match ai_service.send_performance_feedback(feedback).await {
+                        Ok(_) => Ok::<_, warp::Rejection>(warp::reply::json(
+                            &ApiResponse::success("Feedback sent successfully"),
+                        )),
+                        Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
+                            &ApiResponse::<()>::error(e.to_string()),
+                        )),
+                    }
+                },
+            );
 
         // AI service info endpoint
         let ai_service_clone4 = self.ai_service.clone();
@@ -571,8 +578,12 @@ impl ApiServer {
             .and(warp::any().map(move || ai_service_clone4.clone()))
             .and_then(|ai_service: crate::ai::AIService| async move {
                 match ai_service.get_service_info().await {
-                    Ok(info) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(info))),
-                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                    Ok(info) => Ok::<_, warp::Rejection>(warp::reply::json(
+                        &ApiResponse::success(info),
+                    )),
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
+                        &ApiResponse::<()>::error(e.to_string()),
+                    )),
                 }
             });
 
@@ -583,13 +594,23 @@ impl ApiServer {
             .and(warp::any().map(move || ai_service_clone5.clone()))
             .and_then(|ai_service: crate::ai::AIService| async move {
                 match ai_service.get_supported_strategies().await {
-                    Ok(strategies) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(strategies))),
-                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
+                    Ok(strategies) => Ok::<_, warp::Rejection>(warp::reply::json(
+                        &ApiResponse::success(strategies),
+                    )),
+                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
+                        &ApiResponse::<()>::error(e.to_string()),
+                    )),
                 }
             });
 
-        warp::path("ai")
-            .and(ai_analyze.or(strategy_recommendations).or(market_condition).or(performance_feedback).or(ai_info).or(ai_strategies))
+        warp::path("ai").and(
+            ai_analyze
+                .or(strategy_recommendations)
+                .or(market_condition)
+                .or(performance_feedback)
+                .or(ai_info)
+                .or(ai_strategies),
+        )
     }
 }
 
