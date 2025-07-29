@@ -1059,7 +1059,7 @@ impl PaperTradingEngine {
 
     /// Update confidence threshold for AI signals
     pub async fn update_confidence_threshold(&self, threshold: f64) -> Result<()> {
-        if threshold < 0.0 || threshold > 1.0 {
+        if !(0.0..=1.0).contains(&threshold) {
             return Err(anyhow::anyhow!(
                 "Confidence threshold must be between 0.0 and 1.0"
             ));

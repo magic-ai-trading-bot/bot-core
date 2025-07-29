@@ -529,7 +529,7 @@ impl PaperTradingSettings {
         }
 
         // Validate strategy settings
-        if self.strategy.min_ai_confidence < 0.0 || self.strategy.min_ai_confidence > 1.0 {
+        if !(0.0..=1.0).contains(&self.strategy.min_ai_confidence) {
             return Err(anyhow::anyhow!("AI confidence must be between 0 and 1"));
         }
 

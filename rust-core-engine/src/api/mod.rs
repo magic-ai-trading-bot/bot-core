@@ -1,7 +1,6 @@
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::convert::Infallible;
 use std::sync::Arc;
 use tokio::sync::broadcast;

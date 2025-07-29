@@ -25,8 +25,9 @@ pub enum AIError {
 }
 
 /// AI analysis status
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum AIAnalysisStatus {
+    #[default]
     Pending,
     Processing,
     Completed,
@@ -246,12 +247,6 @@ impl std::fmt::Display for AIConfidenceLevel {
             AIConfidenceLevel::High => "High",
             AIConfidenceLevel::VeryHigh => "Very High",
         };
-        write!(f, "{}", s)
-    }
-}
-
-impl Default for AIAnalysisStatus {
-    fn default() -> Self {
-        AIAnalysisStatus::Pending
+        write!(f, "{s}")
     }
 }

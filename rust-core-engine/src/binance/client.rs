@@ -52,9 +52,9 @@ impl BinanceClient {
         T: DeserializeOwned,
     {
         let mut url = if endpoint.starts_with("/fapi/") {
-            Url::parse(&format!("{}{}", self.config.futures_base_url, endpoint))?
+            Url::parse(&format!("{}{endpoint}", self.config.futures_base_url))?
         } else {
-            Url::parse(&format!("{}/api/v3{}", self.config.base_url, endpoint))?
+            Url::parse(&format!("{}/api/v3{endpoint}", self.config.base_url))?
         };
 
         let mut query_params = params.unwrap_or_default();
@@ -64,7 +64,7 @@ impl BinanceClient {
 
             let query_string = query_params
                 .iter()
-                .map(|(k, v)| format!("{}={}", k, v))
+                .map(|(k, v)| format!("{k}={v}"))
                 .collect::<Vec<_>>()
                 .join("&");
 
@@ -86,14 +86,14 @@ impl BinanceClient {
             request_builder = request_builder.header("X-MBX-APIKEY", &self.config.api_key);
         }
 
-        trace!("Making request to: {}", url);
+        trace!("Making request to: {url}");
 
         let response = request_builder.send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await?;
-            error!("Request failed with status {}: {}", status, error_text);
+            error!("Request failed with status {status}: {error_text}");
             return Err(anyhow::anyhow!(
                 "API request failed: {} - {}",
                 status,
@@ -102,7 +102,7 @@ impl BinanceClient {
         }
 
         let response_text = response.text().await?;
-        trace!("Response: {}", response_text);
+        trace!("Response: {response_text}");
 
         let result: T = serde_json::from_str(&response_text)?;
         Ok(result)

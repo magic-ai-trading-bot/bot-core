@@ -232,7 +232,7 @@ impl PaperPortfolio {
         let trade = self
             .trades
             .get_mut(trade_id)
-            .ok_or_else(|| anyhow::anyhow!("Trade not found: {}", trade_id))?;
+            .ok_or_else(|| anyhow::anyhow!("Trade not found: {trade_id}"))?;
 
         if trade.status != TradeStatus::Open {
             return Err(anyhow::anyhow!("Trade is not open"));
@@ -668,17 +668,17 @@ impl PaperPortfolio {
             .closed_trade_ids
             .iter()
             .filter_map(|id| self.trades.get(id))
-            .filter(|trade| trade.close_time.map_or(false, |ct| ct >= today_start))
+            .filter(|trade| trade.close_time.is_some_and(|ct| ct >= today_start))
             .collect();
 
         let winning_today = today_trades
             .iter()
-            .filter(|trade| trade.realized_pnl.map_or(false, |pnl| pnl > 0.0))
+            .filter(|trade| trade.realized_pnl.is_some_and(|pnl| pnl > 0.0))
             .count() as u32;
 
         let losing_today = today_trades
             .iter()
-            .filter(|trade| trade.realized_pnl.map_or(false, |pnl| pnl < 0.0))
+            .filter(|trade| trade.realized_pnl.is_some_and(|pnl| pnl < 0.0))
             .count() as u32;
 
         let total_volume_today = today_trades

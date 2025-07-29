@@ -568,10 +568,10 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
             max_portfolio_risk: engine_settings.risk.max_portfolio_risk_pct,
             stop_loss_percent: engine_settings.risk.default_stop_loss_pct,
             take_profit_percent: engine_settings.risk.default_take_profit_pct,
-            max_leverage: engine_settings.risk.max_leverage as u32,
+            max_leverage: engine_settings.risk.max_leverage.into(),
             max_drawdown: engine_settings.risk.max_drawdown_pct,
             daily_loss_limit: engine_settings.risk.daily_loss_limit_pct,
-            max_consecutive_losses: engine_settings.risk.max_consecutive_losses as u32,
+            max_consecutive_losses: engine_settings.risk.max_consecutive_losses,
         },
         engine: EngineSettings {
             min_confidence_threshold: engine_settings.strategy.min_ai_confidence, // 🎯 ACTUAL THRESHOLD

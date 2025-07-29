@@ -22,19 +22,21 @@ pub struct StrategyContext {
 }
 
 /// Market condition assessment
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum MarketCondition {
     Trending,
     Ranging,
     Volatile,
     LowVolume,
+    #[default]
     Unknown,
 }
 
 /// Risk level for trading
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum RiskLevel {
     Conservative,
+    #[default]
     Moderate,
     Aggressive,
 }
@@ -160,18 +162,6 @@ pub enum SignalQualityRating {
     Average,
     Poor,
     VeryPoor,
-}
-
-impl Default for MarketCondition {
-    fn default() -> Self {
-        MarketCondition::Unknown
-    }
-}
-
-impl Default for RiskLevel {
-    fn default() -> Self {
-        RiskLevel::Moderate
-    }
 }
 
 impl Default for StrategyContext {

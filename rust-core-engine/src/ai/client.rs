@@ -161,7 +161,7 @@ impl AIClient {
             .json(&python_request)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to send AI analysis request: {}", e))?;
+            .map_err(|e| anyhow!("Failed to send AI analysis request: {e}"))?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -170,16 +170,14 @@ impl AIClient {
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow!(
-                "AI analysis request failed with status {}: {}",
-                status,
-                error_text
+                "AI analysis request failed with status {status}: {error_text}"
             ));
         }
 
         let ai_response: AISignalResponse = response
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse AI analysis response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse AI analysis response: {e}"))?;
 
         Ok(ai_response)
     }
@@ -201,7 +199,7 @@ impl AIClient {
             .json(&python_request)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to send strategy recommendation request: {}", e))?;
+            .map_err(|e| anyhow!("Failed to send strategy recommendation request: {e}"))?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -219,7 +217,7 @@ impl AIClient {
         let recommendations: Vec<StrategyRecommendation> = response
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse strategy recommendations response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse strategy recommendations response: {e}"))?;
 
         Ok(recommendations)
     }
@@ -241,7 +239,7 @@ impl AIClient {
             .json(&python_request)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to send market condition request: {}", e))?;
+            .map_err(|e| anyhow!("Failed to send market condition request: {e}"))?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -259,7 +257,7 @@ impl AIClient {
         let analysis: MarketConditionAnalysis = response
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse market condition response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse market condition response: {e}"))?;
 
         Ok(analysis)
     }
@@ -275,7 +273,7 @@ impl AIClient {
             .json(feedback)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to send performance feedback: {}", e))?;
+            .map_err(|e| anyhow!("Failed to send performance feedback: {e}"))?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -302,7 +300,7 @@ impl AIClient {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to perform health check: {}", e))?;
+            .map_err(|e| anyhow!("Failed to perform health check: {e}"))?;
 
         Ok(response.status().is_success())
     }
@@ -316,7 +314,7 @@ impl AIClient {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to get service info: {}", e))?;
+            .map_err(|e| anyhow!("Failed to get service info: {e}"))?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -334,7 +332,7 @@ impl AIClient {
         let info: AIServiceInfo = response
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse service info response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse service info response: {e}"))?;
 
         Ok(info)
     }
@@ -348,7 +346,7 @@ impl AIClient {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to get supported strategies: {}", e))?;
+            .map_err(|e| anyhow!("Failed to get supported strategies: {e}"))?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -366,7 +364,7 @@ impl AIClient {
         let strategies: SupportedStrategiesResponse = response
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse supported strategies response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse supported strategies response: {e}"))?;
 
         Ok(strategies)
     }
@@ -380,7 +378,7 @@ impl AIClient {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow!("Failed to get model performance: {}", e))?;
+            .map_err(|e| anyhow!("Failed to get model performance: {e}"))?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -398,7 +396,7 @@ impl AIClient {
         let performance: AIModelPerformance = response
             .json()
             .await
-            .map_err(|e| anyhow!("Failed to parse model performance response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse model performance response: {e}"))?;
 
         Ok(performance)
     }
