@@ -65,10 +65,8 @@ impl From<&AIAnalysisRequest> for PythonAIAnalysisRequest {
         let mut python_timeframe_data = HashMap::new();
         
         for (timeframe, candles) in &request.timeframe_data {
-            let python_candles: Vec<PythonCandleData> = candles
-                .iter()
-                .map(PythonCandleData::from)
-                .collect();
+            let python_candles: Vec<PythonCandleData> =
+                candles.iter().map(PythonCandleData::from).collect();
             python_timeframe_data.insert(timeframe.clone(), python_candles);
         }
         
@@ -88,10 +86,8 @@ impl From<&StrategyRecommendationRequest> for PythonStrategyRecommendationReques
         let mut python_timeframe_data = HashMap::new();
         
         for (timeframe, candles) in &request.timeframe_data {
-            let python_candles: Vec<PythonCandleData> = candles
-                .iter()
-                .map(PythonCandleData::from)
-                .collect();
+            let python_candles: Vec<PythonCandleData> =
+                candles.iter().map(PythonCandleData::from).collect();
             python_timeframe_data.insert(timeframe.clone(), python_candles);
         }
         
@@ -110,10 +106,8 @@ impl From<&MarketConditionRequest> for PythonMarketConditionRequest {
         let mut python_timeframe_data = HashMap::new();
         
         for (timeframe, candles) in &request.timeframe_data {
-            let python_candles: Vec<PythonCandleData> = candles
-                .iter()
-                .map(PythonCandleData::from)
-                .collect();
+            let python_candles: Vec<PythonCandleData> =
+                candles.iter().map(PythonCandleData::from).collect();
             python_timeframe_data.insert(timeframe.clone(), python_candles);
         }
         
