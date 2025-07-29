@@ -57,14 +57,14 @@ impl AIService {
                 Err(e) => {
                     attempts += 1;
                     if attempts > max_retries {
-                        return Err(e.into());
+                        return Err(e);
                     }
 
                     // Exponential backoff
                     let delay = std::time::Duration::from_millis(100 * (2_u64.pow(attempts - 1)));
                     tokio::time::sleep(delay).await;
 
-                    log::warn!("AI analysis attempt {} failed, retrying: {}", attempts, e);
+                    log::warn!("AI analysis attempt {attempts} failed, retrying: {e}");
                 }
             }
         }
@@ -92,7 +92,7 @@ impl AIService {
         self.client
             .get_strategy_recommendations(&request)
             .await
-            .map_err(|e| e.into())
+            .map_err(|e| e)
     }
 
     /// Get market condition analysis
@@ -111,7 +111,7 @@ impl AIService {
         self.client
             .analyze_market_condition(&request)
             .await
-            .map_err(|e| e.into())
+            .map_err(|e| e)
     }
 
     /// Send strategy performance feedback to AI for learning
@@ -119,22 +119,19 @@ impl AIService {
         self.client
             .send_performance_feedback(&feedback)
             .await
-            .map_err(|e| e.into())
+            .map_err(|e| e)
     }
 
     /// Get AI service information
     pub async fn get_service_info(&self) -> Result<crate::ai::client::AIServiceInfo> {
-        self.client.get_service_info().await.map_err(|e| e.into())
+        self.client.get_service_info().await.map_err(|e| e)
     }
 
     /// Get supported strategies
     pub async fn get_supported_strategies(
         &self,
     ) -> Result<crate::ai::client::SupportedStrategiesResponse> {
-        self.client
-            .get_supported_strategies()
-            .await
-            .map_err(|e| e.into())
+        self.client.get_supported_strategies().await.map_err(|e| e)
     }
 }
 

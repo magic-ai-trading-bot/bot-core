@@ -36,7 +36,7 @@ impl BinanceWebSocket {
                     break;
                 }
                 Err(e) => {
-                    error!("WebSocket error: {}", e);
+                    error!("WebSocket error: {e}");
                     reconnect_attempts += 1;
 
                     if reconnect_attempts >= max_reconnect_attempts {
@@ -61,7 +61,7 @@ impl BinanceWebSocket {
         let streams = self.build_stream_names(symbols, timeframes);
         let url = self.build_websocket_url(&streams)?;
 
-        info!("Connecting to WebSocket: {}", url);
+        info!("Connecting to WebSocket: {url}");
 
         let (ws_stream, _) = connect_async(&url).await?;
         let (mut write, mut read) = ws_stream.split();
@@ -73,7 +73,7 @@ impl BinanceWebSocket {
             match message {
                 Ok(Message::Text(text)) => {
                     if let Err(e) = self.handle_message(&text) {
-                        error!("Error handling message: {}", e);
+                        error!("Error handling message: {e}");
                     }
                 }
                 Ok(Message::Close(_)) => {
@@ -83,7 +83,7 @@ impl BinanceWebSocket {
                 Ok(Message::Ping(data)) => {
                     debug!("Received ping, sending pong");
                     if let Err(e) = write.send(Message::Pong(data)).await {
-                        error!("Failed to send pong: {}", e);
+                        error!("Failed to send pong: {e}");
                         break;
                     }
                 }
@@ -91,8 +91,8 @@ impl BinanceWebSocket {
                     // Ignore other message types (binary, pong, etc.)
                 }
                 Err(e) => {
-                    error!("WebSocket error: {}", e);
-                    return Err(e.into());
+                    error!("WebSocket error: {e}");
+                    return Err(e);
                 }
             }
         }
@@ -108,14 +108,14 @@ impl BinanceWebSocket {
 
             // Add kline streams for each timeframe
             for timeframe in timeframes {
-                streams.push(format!("{}@kline_{}", symbol_lower, timeframe));
+                streams.push(format!("{symbol_lower}@kline_{timeframe}"));
             }
 
             // Add 24hr ticker stream
-            streams.push(format!("{}@ticker", symbol_lower));
+            streams.push(format!("{symbol_lower}@ticker"));
 
             // Add depth stream (order book updates)
-            streams.push(format!("{}@depth@100ms", symbol_lower));
+            streams.push(format!("{symbol_lower}@depth@100ms"));
         }
 
         streams
@@ -130,7 +130,7 @@ impl BinanceWebSocket {
 
         if streams.len() == 1 {
             // Single stream
-            Ok(Url::parse(&format!("{}/{}", base_url, streams[0]))?)
+            Ok(Url::parse(&format!("{base_url}/{}", streams[0]))?)
         } else {
             // Multiple streams using combined stream endpoint
             let stream_list = streams.join("/");
@@ -142,7 +142,7 @@ impl BinanceWebSocket {
     }
 
     fn handle_message(&self, text: &str) -> Result<()> {
-        debug!("Received message: {}", text);
+        debug!("Received message: {text}");
 
         // Try to parse as a combined stream message first
         if let Ok(combined_msg) = serde_json::from_str::<WebSocketMessage>(text) {
@@ -154,7 +154,7 @@ impl BinanceWebSocket {
             return self.handle_stream_data(&value);
         }
 
-        warn!("Failed to parse WebSocket message: {}", text);
+        warn!("Failed to parse WebSocket message: {text}");
         Ok(())
     }
 
@@ -165,37 +165,37 @@ impl BinanceWebSocket {
                 "kline" => {
                     if let Ok(kline_event) = serde_json::from_value::<KlineEvent>(data.clone()) {
                         if let Err(e) = self.sender.send(StreamEvent::Kline(kline_event)) {
-                            error!("Failed to send kline event: {}", e);
+                            error!("Failed to send kline event: {e}");
                         }
                     } else {
-                        warn!("Failed to parse kline event: {}", data);
+                        warn!("Failed to parse kline event: {data}");
                     }
                 }
                 "24hrTicker" => {
                     if let Ok(ticker_event) = serde_json::from_value::<TickerEvent>(data.clone()) {
                         if let Err(e) = self.sender.send(StreamEvent::Ticker(ticker_event)) {
-                            error!("Failed to send ticker event: {}", e);
+                            error!("Failed to send ticker event: {e}");
                         }
                     } else {
-                        warn!("Failed to parse ticker event: {}", data);
+                        warn!("Failed to parse ticker event: {data}");
                     }
                 }
                 "depthUpdate" => {
                     if let Ok(depth_event) = serde_json::from_value::<OrderBookEvent>(data.clone())
                     {
                         if let Err(e) = self.sender.send(StreamEvent::OrderBook(depth_event)) {
-                            error!("Failed to send order book event: {}", e);
+                            error!("Failed to send order book event: {e}");
                         }
                     } else {
-                        warn!("Failed to parse order book event: {}", data);
+                        warn!("Failed to parse order book event: {data}");
                     }
                 }
                 _ => {
-                    debug!("Unknown event type: {}", event_type);
+                    debug!("Unknown event type: {event_type}");
                 }
             }
         } else {
-            debug!("Message without event type: {}", data);
+            debug!("Message without event type: {data}");
         }
 
         Ok(())
@@ -229,7 +229,7 @@ impl BinanceUserDataStream {
     pub async fn start(&self) -> Result<()> {
         let url = format!("{}/ws/{}", self.config.futures_ws_url, self.listen_key);
 
-        info!("Connecting to user data stream: {}", url);
+        info!("Connecting to user data stream: {url}");
 
         let (ws_stream, _) = connect_async(&url).await?;
         let (mut write, mut read) = ws_stream.split();
@@ -242,7 +242,7 @@ impl BinanceUserDataStream {
             loop {
                 keepalive_interval.tick().await;
                 // In a real implementation, you would call the PUT /fapi/v1/listenKey endpoint
-                info!("Keeping listen key alive: {}", listen_key);
+                info!("Keeping listen key alive: {listen_key}");
             }
         });
 
@@ -251,7 +251,7 @@ impl BinanceUserDataStream {
                 Ok(Message::Text(text)) => {
                     if let Ok(data) = serde_json::from_str::<serde_json::Value>(&text) {
                         if let Err(e) = self.sender.send(data) {
-                            error!("Failed to send user data event: {}", e);
+                            error!("Failed to send user data event: {e}");
                         }
                     }
                 }
@@ -262,14 +262,14 @@ impl BinanceUserDataStream {
                 Ok(Message::Ping(data)) => {
                     debug!("Received ping on user data stream");
                     if let Err(e) = write.send(Message::Pong(data)).await {
-                        error!("Failed to send pong: {}", e);
+                        error!("Failed to send pong: {e}");
                         break;
                     }
                 }
                 Ok(_) => {}
                 Err(e) => {
-                    error!("User data stream error: {}", e);
-                    return Err(e.into());
+                    error!("User data stream error: {e}");
+                    return Err(e);
                 }
             }
         }

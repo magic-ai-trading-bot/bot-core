@@ -65,7 +65,7 @@ impl IntoResponse for AppError {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "validation_error")
             }
             AppError::ExternalApi(ref msg) => {
-                tracing::error!("External API error: {}", msg);
+                tracing::error!("External API error: {msg}");
                 (
                     StatusCode::BAD_GATEWAY,
                     "External service error",
@@ -99,7 +99,7 @@ impl IntoResponse for AppError {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "websocket_error")
             }
             AppError::Config(ref msg) => {
-                tracing::error!("Configuration error: {}", msg);
+                tracing::error!("Configuration error: {msg}");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Configuration error",
@@ -151,7 +151,7 @@ where
     fn context(self, msg: &str) -> AppResult<T> {
         self.map_err(|e| {
             let app_error: AppError = e.into();
-            tracing::error!("{}: {:?}", msg, app_error);
+            tracing::error!("{msg}: {:?}", app_error);
             app_error
         })
     }
@@ -163,7 +163,7 @@ where
         self.map_err(|e| {
             let app_error: AppError = e.into();
             let context = f();
-            tracing::error!("{}: {:?}", context, app_error);
+            tracing::error!("{context}: {:?}", app_error);
             app_error
         })
     }
