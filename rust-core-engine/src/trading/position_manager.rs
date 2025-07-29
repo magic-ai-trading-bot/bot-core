@@ -48,7 +48,9 @@ impl PositionManager {
     }
 
     pub fn get_position(&self, symbol: &str) -> Option<Position> {
-        self.positions.get(symbol).map(|entry| entry.value().clone())
+        self.positions
+            .get(symbol)
+            .map(|entry| entry.value().clone())
     }
 
     pub fn has_position(&self, symbol: &str) -> bool {
@@ -98,4 +100,4 @@ impl PositionManager {
             })
             .sum()
     }
-} 
+}

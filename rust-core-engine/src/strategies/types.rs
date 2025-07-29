@@ -218,4 +218,4 @@ impl std::fmt::Display for RiskLevel {
         };
         write!(f, "{}", s)
     }
-} 
+}
