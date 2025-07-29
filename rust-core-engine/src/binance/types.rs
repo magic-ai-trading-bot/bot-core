@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kline {
@@ -327,7 +327,9 @@ pub enum WebSocketEvent {
 
 // Utility functions for type conversions
 impl Kline {
-    pub fn to_decimal_values(&self) -> Result<(Decimal, Decimal, Decimal, Decimal, Decimal), rust_decimal::Error> {
+    pub fn to_decimal_values(
+        &self,
+    ) -> Result<(Decimal, Decimal, Decimal, Decimal, Decimal), rust_decimal::Error> {
         let open = self.open.parse::<Decimal>()?;
         let high = self.high.parse::<Decimal>()?;
         let low = self.low.parse::<Decimal>()?;
@@ -338,7 +340,9 @@ impl Kline {
 }
 
 impl KlineData {
-    pub fn to_decimal_values(&self) -> Result<(Decimal, Decimal, Decimal, Decimal, Decimal), rust_decimal::Error> {
+    pub fn to_decimal_values(
+        &self,
+    ) -> Result<(Decimal, Decimal, Decimal, Decimal, Decimal), rust_decimal::Error> {
         let open = self.open_price.parse::<Decimal>()?;
         let high = self.high_price.parse::<Decimal>()?;
         let low = self.low_price.parse::<Decimal>()?;
@@ -346,4 +350,5 @@ impl KlineData {
         let volume = self.base_asset_volume.parse::<Decimal>()?;
         Ok((open, high, low, close, volume))
     }
-} 
+}
+

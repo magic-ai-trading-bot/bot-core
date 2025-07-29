@@ -72,7 +72,7 @@ impl MonitoringService {
         self.metrics.active_positions = active_positions;
         self.metrics.cache_size = cache_size;
         self.metrics.last_update = chrono::Utc::now().timestamp();
-        
+
         // In a real implementation, you would get actual memory and CPU usage
         self.metrics.memory_usage_mb = 50.0; // Placeholder
         self.metrics.cpu_usage_percent = 10.0; // Placeholder
@@ -92,7 +92,10 @@ impl MonitoringService {
 
     pub fn record_reconnect(&mut self) {
         self.connection_status.reconnect_count += 1;
-        warn!("Connection reconnect #{}", self.connection_status.reconnect_count);
+        warn!(
+            "Connection reconnect #{}",
+            self.connection_status.reconnect_count
+        );
     }
 
     pub fn get_system_metrics(&self) -> &SystemMetrics {
@@ -112,9 +115,15 @@ impl MonitoringService {
         info!("  Uptime: {} seconds", self.metrics.uptime_seconds);
         info!("  Active Positions: {}", self.metrics.active_positions);
         info!("  Cache Size: {}", self.metrics.cache_size);
-        info!("  WebSocket Connected: {}", self.connection_status.websocket_connected);
-        info!("  API Responsive: {}", self.connection_status.api_responsive);
+        info!(
+            "  WebSocket Connected: {}",
+            self.connection_status.websocket_connected
+        );
+        info!(
+            "  API Responsive: {}",
+            self.connection_status.api_responsive
+        );
         info!("  Total PnL: {:.2}", self.trading_metrics.total_pnl);
         info!("  Win Rate: {:.2}%", self.trading_metrics.win_rate);
     }
-} 
+}
