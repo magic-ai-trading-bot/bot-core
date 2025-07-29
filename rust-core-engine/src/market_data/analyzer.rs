@@ -286,11 +286,10 @@ impl MarketDataAnalyzer {
     ) -> Result<(Option<f64>, Option<f64>, Option<f64>, Option<f64>)> {
         let current_price = self.cache.get_latest_price(symbol);
 
-        if current_price.is_none() {
-            return Ok((None, None, None, None));
-        }
-
-        let current_price = current_price.unwrap();
+        let current_price = match current_price {
+            Some(price) => price,
+            None => return Ok((None, None, None, None)),
+        };
 
         // Use the longest timeframe for main signal direction
         let main_analysis = timeframe_signals

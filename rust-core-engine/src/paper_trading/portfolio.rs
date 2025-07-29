@@ -658,7 +658,10 @@ impl PaperPortfolio {
         };
 
         // Count today's trades
-        let today_start = today.and_hms_opt(0, 0, 0).unwrap().and_utc();
+        let today_start = today
+            .and_hms_opt(0, 0, 0)
+            .expect("Valid time 00:00:00")
+            .and_utc();
         let today_trades: Vec<&PaperTrade> = self
             .closed_trade_ids
             .iter()
