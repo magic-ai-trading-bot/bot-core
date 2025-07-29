@@ -572,10 +572,10 @@ impl ApiServer {
                                 "reasoning": response.reasoning,
                                 "strategy_scores": response.strategy_scores
                             },
-                            "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64
+                            "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64
                         });
                         if let Ok(message_str) = serde_json::to_string(&signal_message) {
-                            if let Err(_) = broadcaster.send(message_str) {
+                            if broadcaster.send(message_str).is_err() {
                                 // Log error if needed, but don't fail the request
                                 debug!("No WebSocket subscribers for AI signal broadcast");
                             } else {
