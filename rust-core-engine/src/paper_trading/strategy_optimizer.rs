@@ -1,7 +1,7 @@
 use anyhow::Result;
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc, Duration};
 
 // Removed unused imports
 use super::portfolio::PortfolioMetrics;
@@ -12,16 +12,16 @@ use super::portfolio::PortfolioMetrics;
 pub struct StrategyOptimizer {
     /// Historical performance data
     performance_history: Vec<PerformanceSnapshot>,
-    
+
     /// Optimization parameters
     optimization_config: OptimizationConfig,
-    
+
     /// Current parameter sets being tested
     parameter_tests: HashMap<String, ParameterTest>,
-    
+
     /// Best performing parameters
     best_parameters: HashMap<String, HashMap<String, serde_json::Value>>,
-    
+
     /// Market regime detector
     regime_detector: MarketRegimeDetector,
 }
@@ -77,34 +77,34 @@ pub struct ParameterTest {
 pub struct OptimizationConfig {
     /// Minimum number of trades before optimization
     pub min_trades_for_optimization: u32,
-    
+
     /// Optimization period in days
     pub optimization_period_days: u32,
-    
+
     /// Number of parameter sets to test simultaneously
     pub max_concurrent_tests: u32,
-    
+
     /// Performance metric to optimize
     pub primary_metric: OptimizationMetric,
-    
+
     /// Secondary metrics with weights
     pub secondary_metrics: HashMap<OptimizationMetric, f64>,
-    
+
     /// Enable genetic algorithm optimization
     pub enable_genetic_algorithm: bool,
-    
+
     /// Population size for genetic algorithm
     pub genetic_population_size: u32,
-    
+
     /// Mutation rate for genetic algorithm
     pub genetic_mutation_rate: f64,
-    
+
     /// Enable Bayesian optimization
     pub enable_bayesian_optimization: bool,
-    
+
     /// Enable walk-forward optimization
     pub enable_walk_forward: bool,
-    
+
     /// Out-of-sample testing percentage
     pub out_of_sample_percentage: f64,
 }
@@ -114,13 +114,13 @@ pub struct OptimizationConfig {
 pub struct MarketRegimeDetector {
     /// Historical price data for regime detection
     price_history: Vec<PricePoint>,
-    
+
     /// Current detected regime
     current_regime: MarketRegime,
-    
+
     /// Regime transition probability
     transition_probabilities: HashMap<MarketRegime, HashMap<MarketRegime, f64>>,
-    
+
     /// Regime-specific statistics
     regime_stats: HashMap<MarketRegime, RegimeStatistics>,
 }
@@ -218,7 +218,7 @@ impl StrategyOptimizer {
             regime_detector: MarketRegimeDetector::new(),
         }
     }
-    
+
     /// Add performance snapshot for optimization analysis
     pub fn add_performance_snapshot(
         &mut self,
@@ -234,31 +234,36 @@ impl StrategyOptimizer {
             active_strategies,
             parameters_used,
         };
-        
+
         self.performance_history.push(snapshot);
-        
+
         // Keep only relevant history
-        let cutoff_date = Utc::now() - Duration::days(self.optimization_config.optimization_period_days as i64);
-        self.performance_history.retain(|s| s.timestamp >= cutoff_date);
-        
+        let cutoff_date =
+            Utc::now() - Duration::days(self.optimization_config.optimization_period_days as i64);
+        self.performance_history
+            .retain(|s| s.timestamp >= cutoff_date);
+
         // Update regime detector
-        self.regime_detector.update_with_conditions(&market_conditions);
+        self.regime_detector
+            .update_with_conditions(&market_conditions);
     }
-    
+
     /// Analyze current performance and generate optimization recommendations
     pub fn analyze_and_recommend(&mut self) -> Result<Vec<OptimizationRecommendation>> {
-        if self.performance_history.len() < self.optimization_config.min_trades_for_optimization as usize {
+        if self.performance_history.len()
+            < self.optimization_config.min_trades_for_optimization as usize
+        {
             return Ok(Vec::new());
         }
-        
+
         let mut recommendations = Vec::new();
-        
+
         // Detect current market regime
         let current_regime = self.regime_detector.detect_current_regime();
-        
+
         // Analyze performance by strategy
         let strategy_analysis = self.analyze_strategy_performance()?;
-        
+
         // Generate recommendations for each underperforming strategy
         for (strategy_name, performance) in strategy_analysis {
             if self.should_optimize_strategy(&strategy_name, &performance) {
@@ -270,56 +275,58 @@ impl StrategyOptimizer {
                 recommendations.push(recommendation);
             }
         }
-        
+
         // Apply genetic algorithm if enabled
         if self.optimization_config.enable_genetic_algorithm {
             let genetic_recommendations = self.apply_genetic_optimization(current_regime)?;
             recommendations.extend(genetic_recommendations);
         }
-        
+
         // Apply Bayesian optimization if enabled
         if self.optimization_config.enable_bayesian_optimization {
             let bayesian_recommendations = self.apply_bayesian_optimization(current_regime)?;
             recommendations.extend(bayesian_recommendations);
         }
-        
+
         Ok(recommendations)
     }
-    
+
     /// Analyze strategy performance across different conditions
     fn analyze_strategy_performance(&self) -> Result<HashMap<String, StrategyAnalysis>> {
         let mut analysis = HashMap::new();
-        
+
         // Group performance by strategy
         for snapshot in &self.performance_history {
             for (strategy_name, performance) in &snapshot.active_strategies {
-                let entry = analysis.entry(strategy_name.clone()).or_insert_with(|| StrategyAnalysis::new());
+                let entry = analysis
+                    .entry(strategy_name.clone())
+                    .or_insert_with(|| StrategyAnalysis::new());
                 entry.add_performance_point(performance, &snapshot.market_conditions);
             }
         }
-        
+
         // Calculate statistics for each strategy
         for (_, strategy_analysis) in analysis.iter_mut() {
             strategy_analysis.calculate_statistics();
         }
-        
+
         Ok(analysis)
     }
-    
+
     /// Check if a strategy should be optimized
     fn should_optimize_strategy(&self, _strategy_name: &str, analysis: &StrategyAnalysis) -> bool {
         // Don't optimize if insufficient data
         if analysis.total_trades < self.optimization_config.min_trades_for_optimization {
             return false;
         }
-        
+
         // Optimize if performance is below threshold
         let performance_threshold = 0.3; // 30th percentile
         analysis.performance_percentile < performance_threshold ||
         analysis.recent_performance_decline > 0.1 || // 10% decline
         analysis.regime_adaptation_score < 0.5
     }
-    
+
     /// Generate optimization recommendation for a strategy
     fn generate_optimization_recommendation(
         &self,
@@ -333,25 +340,29 @@ impl StrategyOptimizer {
             .and_then(|stats| stats.best_parameters.get(&strategy_name))
             .cloned()
             .unwrap_or_default();
-        
+
         // Generate parameter variations
-        let recommended_parameters = self.generate_parameter_variations(&strategy_name, &base_parameters, &analysis)?;
-        
+        let recommended_parameters =
+            self.generate_parameter_variations(&strategy_name, &base_parameters, &analysis)?;
+
         // Estimate improvement potential
-        let expected_improvement = self.estimate_improvement_potential(&analysis, &recommended_parameters);
-        
+        let expected_improvement =
+            self.estimate_improvement_potential(&analysis, &recommended_parameters);
+
         // Calculate confidence based on data quality and consistency
         let confidence = self.calculate_recommendation_confidence(&analysis);
-        
+
         // Generate reasoning
-        let reasoning = self.generate_optimization_reasoning(&strategy_name, &analysis, current_regime);
-        
+        let reasoning =
+            self.generate_optimization_reasoning(&strategy_name, &analysis, current_regime);
+
         // Run backtesting
-        let backtesting_results = self.run_parameter_backtest(&strategy_name, &recommended_parameters)?;
-        
+        let backtesting_results =
+            self.run_parameter_backtest(&strategy_name, &recommended_parameters)?;
+
         // Assess risks
         let risk_assessment = self.assess_optimization_risks(&analysis, &recommended_parameters);
-        
+
         Ok(OptimizationRecommendation {
             strategy_name,
             recommended_parameters,
@@ -363,7 +374,7 @@ impl StrategyOptimizer {
             risk_assessment,
         })
     }
-    
+
     /// Generate parameter variations using multiple methods
     fn generate_parameter_variations(
         &self,
@@ -372,107 +383,123 @@ impl StrategyOptimizer {
         analysis: &StrategyAnalysis,
     ) -> Result<HashMap<String, serde_json::Value>> {
         let mut optimized_parameters = base_parameters.clone();
-        
+
         // Apply performance-based adjustments
         if analysis.avg_win_rate < 0.5 {
             // Increase selectivity
             self.adjust_selectivity_parameters(&mut optimized_parameters, 1.2);
         }
-        
+
         if analysis.avg_profit_factor < 1.5 {
             // Improve risk/reward
             self.adjust_risk_reward_parameters(&mut optimized_parameters, 1.3);
         }
-        
+
         if analysis.max_drawdown > 0.15 {
             // Reduce risk
             self.adjust_risk_parameters(&mut optimized_parameters, 0.8);
         }
-        
+
         // Apply regime-specific adjustments
         let current_regime = self.regime_detector.detect_current_regime();
         match current_regime {
             MarketRegime::HighVolatility => {
                 self.adjust_for_high_volatility(&mut optimized_parameters);
-            },
+            }
             MarketRegime::Sideways => {
                 self.adjust_for_sideways_market(&mut optimized_parameters);
-            },
+            }
             MarketRegime::BullTrending | MarketRegime::BearTrending => {
                 self.adjust_for_trending_market(&mut optimized_parameters);
-            },
-            _ => {},
+            }
+            _ => {}
         }
-        
+
         Ok(optimized_parameters)
     }
-    
+
     /// Adjust parameters for higher selectivity
-    fn adjust_selectivity_parameters(&self, parameters: &mut HashMap<String, serde_json::Value>, factor: f64) {
+    fn adjust_selectivity_parameters(
+        &self,
+        parameters: &mut HashMap<String, serde_json::Value>,
+        factor: f64,
+    ) {
         // Increase confidence thresholds
         if let Some(confidence) = parameters.get_mut("min_confidence") {
             if let Some(val) = confidence.as_f64() {
                 *confidence = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor).unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap())
+                    serde_json::Number::from_f64(val * factor)
+                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
                 );
             }
         }
-        
+
         // Tighten entry conditions
         if let Some(threshold) = parameters.get_mut("entry_threshold") {
             if let Some(val) = threshold.as_f64() {
                 *threshold = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor).unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap())
+                    serde_json::Number::from_f64(val * factor)
+                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
                 );
             }
         }
     }
-    
+
     /// Adjust risk/reward parameters
-    fn adjust_risk_reward_parameters(&self, parameters: &mut HashMap<String, serde_json::Value>, factor: f64) {
+    fn adjust_risk_reward_parameters(
+        &self,
+        parameters: &mut HashMap<String, serde_json::Value>,
+        factor: f64,
+    ) {
         // Increase take profit relative to stop loss
         if let Some(tp_ratio) = parameters.get_mut("take_profit_ratio") {
             if let Some(val) = tp_ratio.as_f64() {
                 *tp_ratio = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor).unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap())
+                    serde_json::Number::from_f64(val * factor)
+                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
                 );
             }
         }
     }
-    
+
     /// Adjust risk parameters
-    fn adjust_risk_parameters(&self, parameters: &mut HashMap<String, serde_json::Value>, factor: f64) {
+    fn adjust_risk_parameters(
+        &self,
+        parameters: &mut HashMap<String, serde_json::Value>,
+        factor: f64,
+    ) {
         // Reduce position sizes
         if let Some(position_size) = parameters.get_mut("position_size_multiplier") {
             if let Some(val) = position_size.as_f64() {
                 *position_size = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor).unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap())
+                    serde_json::Number::from_f64(val * factor)
+                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
                 );
             }
         }
     }
-    
+
     /// Adjust parameters for high volatility market
     fn adjust_for_high_volatility(&self, parameters: &mut HashMap<String, serde_json::Value>) {
         // Wider stop losses
         if let Some(sl_multiplier) = parameters.get_mut("stop_loss_multiplier") {
             if let Some(val) = sl_multiplier.as_f64() {
                 *sl_multiplier = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * 1.5).unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap())
+                    serde_json::Number::from_f64(val * 1.5)
+                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
                 );
             }
         }
-        
+
         // Lower leverage
         if let Some(leverage) = parameters.get_mut("max_leverage") {
             if let Some(val) = leverage.as_u64() {
-                *leverage = serde_json::Value::Number(
-                    serde_json::Number::from((val as f64 * 0.7) as u64)
-                );
+                *leverage =
+                    serde_json::Value::Number(serde_json::Number::from((val as f64 * 0.7) as u64));
             }
         }
     }
-    
+
     /// Adjust parameters for sideways market
     fn adjust_for_sideways_market(&self, parameters: &mut HashMap<String, serde_json::Value>) {
         // Shorter timeframes
@@ -481,17 +508,18 @@ impl StrategyOptimizer {
                 *timeframe = serde_json::Value::String("1h".to_string());
             }
         }
-        
+
         // More conservative entry
         if let Some(entry_threshold) = parameters.get_mut("entry_threshold") {
             if let Some(val) = entry_threshold.as_f64() {
                 *entry_threshold = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * 1.2).unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap())
+                    serde_json::Number::from_f64(val * 1.2)
+                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
                 );
             }
         }
     }
-    
+
     /// Adjust parameters for trending market
     fn adjust_for_trending_market(&self, parameters: &mut HashMap<String, serde_json::Value>) {
         // Longer timeframes
@@ -500,17 +528,18 @@ impl StrategyOptimizer {
                 *timeframe = serde_json::Value::String("4h".to_string());
             }
         }
-        
+
         // More aggressive position sizing
         if let Some(position_multiplier) = parameters.get_mut("position_size_multiplier") {
             if let Some(val) = position_multiplier.as_f64() {
                 *position_multiplier = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * 1.2).unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap())
+                    serde_json::Number::from_f64(val * 1.2)
+                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
                 );
             }
         }
     }
-    
+
     /// Estimate improvement potential
     fn estimate_improvement_potential(
         &self,
@@ -521,32 +550,32 @@ impl StrategyOptimizer {
         let current_score = analysis.overall_performance_score;
         let theoretical_max = 1.0;
         let improvement_potential = (theoretical_max - current_score) * 0.6; // Conservative estimate
-        
+
         improvement_potential.min(0.5) // Cap at 50% improvement
     }
-    
+
     /// Calculate confidence in recommendation
     fn calculate_recommendation_confidence(&self, analysis: &StrategyAnalysis) -> f64 {
         let mut confidence: f64 = 0.5; // Base confidence
-        
+
         // Increase confidence with more data
         if analysis.total_trades > 100 {
             confidence += 0.2;
         }
-        
+
         // Increase confidence with consistent underperformance
         if analysis.performance_consistency > 0.7 {
             confidence += 0.2;
         }
-        
+
         // Decrease confidence with high variance
         if analysis.performance_variance > 0.5 {
             confidence -= 0.1;
         }
-        
+
         confidence.max(0.0).min(1.0)
     }
-    
+
     /// Generate reasoning for optimization
     fn generate_optimization_reasoning(
         &self,
@@ -555,30 +584,33 @@ impl StrategyOptimizer {
         regime: MarketRegime,
     ) -> String {
         let mut reasons = Vec::new();
-        
+
         if analysis.avg_win_rate < 0.5 {
-            reasons.push("Low win rate suggests need for more selective entry criteria".to_string());
+            reasons
+                .push("Low win rate suggests need for more selective entry criteria".to_string());
         }
-        
+
         if analysis.avg_profit_factor < 1.5 {
-            reasons.push("Poor risk/reward ratio indicates need for better exit strategies".to_string());
+            reasons.push(
+                "Poor risk/reward ratio indicates need for better exit strategies".to_string(),
+            );
         }
-        
+
         if analysis.max_drawdown > 0.15 {
             reasons.push("High drawdown suggests excessive risk taking".to_string());
         }
-        
+
         if analysis.regime_adaptation_score < 0.5 {
             reasons.push(format!("Poor adaptation to {:?} market conditions", regime));
         }
-        
+
         if reasons.is_empty() {
             reasons.push("Proactive optimization based on market regime change".to_string());
         }
-        
+
         reasons.join(". ")
     }
-    
+
     /// Run backtesting with new parameters
     fn run_parameter_backtest(
         &self,
@@ -593,18 +625,18 @@ impl StrategyOptimizer {
         let mut max_drawdown = 0.0;
         let mut peak = 0.0;
         let monthly_returns = Vec::new();
-        
+
         // Simulate performance with new parameters
         for snapshot in &self.performance_history {
             if let Some(strategy_perf) = snapshot.active_strategies.get(strategy_name) {
                 total_trades += strategy_perf.executed_trades;
                 wins += (strategy_perf.executed_trades as f64 * strategy_perf.win_rate) as u32;
-                
+
                 // Simulate adjusted returns based on parameter changes
                 let simulated_return = strategy_perf.avg_profit * 1.1; // Optimistic adjustment
                 total_return += simulated_return;
                 returns.push(simulated_return);
-                
+
                 // Track drawdown
                 if total_return > peak {
                     peak = total_return;
@@ -615,32 +647,46 @@ impl StrategyOptimizer {
                 }
             }
         }
-        
-        let win_rate = if total_trades > 0 { wins as f64 / total_trades as f64 } else { 0.0 };
-        
+
+        let win_rate = if total_trades > 0 {
+            wins as f64 / total_trades as f64
+        } else {
+            0.0
+        };
+
         // Calculate Sharpe ratio
         let avg_return = if !returns.is_empty() {
             returns.iter().sum::<f64>() / returns.len() as f64
         } else {
             0.0
         };
-        
+
         let return_std = if returns.len() > 1 {
-            let variance = returns.iter()
+            let variance = returns
+                .iter()
                 .map(|r| (r - avg_return).powi(2))
-                .sum::<f64>() / (returns.len() - 1) as f64;
+                .sum::<f64>()
+                / (returns.len() - 1) as f64;
             variance.sqrt()
         } else {
             1.0
         };
-        
-        let sharpe_ratio = if return_std > 0.0 { avg_return / return_std } else { 0.0 };
-        
+
+        let sharpe_ratio = if return_std > 0.0 {
+            avg_return / return_std
+        } else {
+            0.0
+        };
+
         // Calculate profit factor
         let gross_profit: f64 = returns.iter().filter(|&&r| r > 0.0).sum();
         let gross_loss: f64 = returns.iter().filter(|&&r| r < 0.0).map(|r| r.abs()).sum();
-        let profit_factor = if gross_loss > 0.0 { gross_profit / gross_loss } else { 0.0 };
-        
+        let profit_factor = if gross_loss > 0.0 {
+            gross_profit / gross_loss
+        } else {
+            0.0
+        };
+
         Ok(BacktestingResults {
             total_trades,
             win_rate,
@@ -652,7 +698,7 @@ impl StrategyOptimizer {
             trade_distribution: HashMap::new(),
         })
     }
-    
+
     /// Assess optimization risks
     fn assess_optimization_risks(
         &self,
@@ -667,28 +713,29 @@ impl StrategyOptimizer {
         } else {
             0.3 // Low risk with sufficient consistent data
         };
-        
+
         // Calculate parameter sensitivity (simplified)
         let mut parameter_sensitivity = HashMap::new();
         for (param_name, _) in _parameters {
             // Simplified sensitivity analysis
             parameter_sensitivity.insert(param_name.clone(), 0.5);
         }
-        
+
         // Calculate regime dependency
         let regime_dependency = 1.0 - analysis.regime_adaptation_score;
-        
+
         // Calculate data sufficiency
         let data_sufficiency = (analysis.total_trades as f64 / 100.0).min(1.0);
-        
+
         let recommendation = if overfitting_risk > 0.7 {
-            "High overfitting risk - use conservative parameter adjustments and monitor closely".to_string()
+            "High overfitting risk - use conservative parameter adjustments and monitor closely"
+                .to_string()
         } else if regime_dependency > 0.6 {
             "Strategy shows high regime dependency - consider regime-aware parameters".to_string()
         } else {
             "Optimization appears safe to implement".to_string()
         };
-        
+
         OptimizationRiskAssessment {
             overfitting_risk,
             parameter_sensitivity,
@@ -697,17 +744,23 @@ impl StrategyOptimizer {
             recommendation,
         }
     }
-    
+
     /// Apply genetic algorithm optimization
-    fn apply_genetic_optimization(&self, _regime: MarketRegime) -> Result<Vec<OptimizationRecommendation>> {
+    fn apply_genetic_optimization(
+        &self,
+        _regime: MarketRegime,
+    ) -> Result<Vec<OptimizationRecommendation>> {
         // Placeholder for genetic algorithm implementation
         // In a full implementation, this would create populations of parameter sets,
         // evaluate their fitness, and evolve them over generations
         Ok(Vec::new())
     }
-    
+
     /// Apply Bayesian optimization
-    fn apply_bayesian_optimization(&self, _regime: MarketRegime) -> Result<Vec<OptimizationRecommendation>> {
+    fn apply_bayesian_optimization(
+        &self,
+        _regime: MarketRegime,
+    ) -> Result<Vec<OptimizationRecommendation>> {
         // Placeholder for Bayesian optimization implementation
         // This would use Gaussian processes to model the parameter space
         // and suggest optimal parameter combinations
@@ -747,13 +800,17 @@ impl StrategyAnalysis {
             regime_performance: HashMap::new(),
         }
     }
-    
-    pub fn add_performance_point(&mut self, performance: &StrategyPerformance, _conditions: &MarketConditions) {
+
+    pub fn add_performance_point(
+        &mut self,
+        performance: &StrategyPerformance,
+        _conditions: &MarketConditions,
+    ) {
         // Implementation would accumulate performance data
         self.total_trades += performance.executed_trades;
         // ... other accumulations
     }
-    
+
     pub fn calculate_statistics(&mut self) {
         // Implementation would calculate final statistics
         self.overall_performance_score = (self.avg_win_rate + self.avg_profit_factor / 3.0) / 2.0;
@@ -770,11 +827,11 @@ impl MarketRegimeDetector {
             regime_stats: HashMap::new(),
         }
     }
-    
+
     pub fn update_with_conditions(&mut self, _conditions: &MarketConditions) {
         // Implementation would update regime detection based on market conditions
     }
-    
+
     pub fn detect_current_regime(&self) -> MarketRegime {
         // Simplified regime detection
         // In practice, this would use sophisticated algorithms
@@ -803,4 +860,4 @@ impl Default for OptimizationConfig {
             out_of_sample_percentage: 20.0,
         }
     }
-} 
+}
