@@ -10,7 +10,6 @@ use tracing::{debug, error, info, warn};
 use crate::ai::AIService;
 use crate::binance::BinanceClient;
 use crate::storage::Storage;
-use crate::strategies::{MarketCondition, RiskLevel};
 
 use super::{
     portfolio::PaperPortfolio,

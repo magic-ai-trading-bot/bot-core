@@ -278,11 +278,12 @@ impl PaperPortfolio {
         }
 
         // Update all open trades
-        for trade_id in &self.open_trade_ids.clone() {
+        let open_trades = self.open_trade_ids.clone();
+        for trade_id in &open_trades {
             if let Some(trade) = self.trades.get_mut(trade_id) {
-                if let Some(&current_price) = prices.get(&trade.symbol) {
+                if let Some(current_price) = prices.get(&trade.symbol) {
                     let funding_rate = self.funding_rates.get(&trade.symbol).copied();
-                    trade.update_with_price(current_price, funding_rate);
+                    trade.update_with_price(*current_price, funding_rate);
                 }
             }
         }
@@ -296,30 +297,31 @@ impl PaperPortfolio {
     pub fn check_automatic_closures(&mut self) -> Vec<String> {
         let mut closed_trades = Vec::new();
 
-        for trade_id in &self.open_trade_ids.clone() {
+        let open_trades = self.open_trade_ids.clone();
+        for trade_id in &open_trades {
             if let Some(trade) = self.trades.get(trade_id) {
-                if let Some(&current_price) = self.current_prices.get(&trade.symbol) {
+                if let Some(current_price) = self.current_prices.get(&trade.symbol) {
                     let mut should_close = false;
                     let mut close_reason = CloseReason::Manual;
 
                     // Check stop loss
-                    if trade.should_stop_loss(current_price) {
+                    if trade.should_stop_loss(*current_price) {
                         should_close = true;
                         close_reason = CloseReason::StopLoss;
                     }
                     // Check take profit
-                    else if trade.should_take_profit(current_price) {
+                    else if trade.should_take_profit(*current_price) {
                         should_close = true;
                         close_reason = CloseReason::TakeProfit;
                     }
                     // Check liquidation risk
-                    else if trade.is_at_liquidation_risk(current_price) {
+                    else if trade.is_at_liquidation_risk(*current_price) {
                         should_close = true;
                         close_reason = CloseReason::MarginCall;
                     }
 
                     if should_close {
-                        if let Ok(()) = self.close_trade(trade_id, current_price, close_reason) {
+                        if let Ok(()) = self.close_trade(trade_id, *current_price, close_reason) {
                             closed_trades.push(trade_id.clone());
                         }
                     }

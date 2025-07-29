@@ -12,8 +12,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // Re-export key types
-pub use strategy_engine::*;
-pub use types::*;
 
 /// Core trait for all trading strategies
 #[async_trait]

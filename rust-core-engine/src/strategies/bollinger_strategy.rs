@@ -1,5 +1,5 @@
 use super::*;
-use crate::strategies::indicators::{calculate_bollinger_bands, BollingerBands};
+use crate::strategies::indicators::calculate_bollinger_bands;
 use async_trait::async_trait;
 use serde_json::json;
 

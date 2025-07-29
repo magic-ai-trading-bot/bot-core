@@ -8,7 +8,6 @@ use std::collections::HashMap;
 
 // Re-export key types
 pub use client::*;
-pub use types::*;
 
 /// AI analysis service for communicating with Python AI
 #[derive(Debug, Clone)]

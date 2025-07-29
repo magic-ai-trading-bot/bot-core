@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
     market_data_processor.set_ws_broadcaster(ws_sender.clone());
 
     // Initialize Paper Trading Engine with proper configuration
-    let paper_trading_settings = PaperTradingSettings::default();
+    let mut paper_trading_settings = PaperTradingSettings::default();
 
     // Note: Confidence threshold will be loaded from database if available
     // Default is 0.65 (65%) but can be updated via API to 0.45 (45%) for Low Volatility

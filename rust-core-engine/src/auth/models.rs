@@ -20,7 +20,6 @@ mod date_time_serde {
     where
         D: Deserializer<'de>,
     {
-        use bson::DateTime as BsonDateTime;
         use serde::de::Error;
 
         // Try to deserialize from different formats
@@ -56,7 +55,6 @@ mod optional_date_time_serde {
     where
         D: Deserializer<'de>,
     {
-        use bson::DateTime as BsonDateTime;
         use serde::de::Error;
 
         let value: Option<bson::Bson> = Option::deserialize(deserializer)?;
