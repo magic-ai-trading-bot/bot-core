@@ -262,7 +262,7 @@ impl MarketDataProcessor {
         event: &StreamEvent,
         cache: &MarketDataCache,
         ws_broadcaster: &Option<broadcast::Sender<String>>,
-        storage: &Option<Storage>,
+        _storage: &Option<Storage>,
     ) -> Result<()> {
         match event {
             StreamEvent::Kline(kline_event) => {
