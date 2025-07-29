@@ -1,14 +1,14 @@
+use axum::{
+    extract::ConnectInfo,
+    http::{Request, StatusCode},
+    middleware::Next,
+    response::Response,
+};
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use axum::{
-    middleware::Next,
-    response::Response,
-    extract::ConnectInfo,
-    http::{Request, StatusCode},
-};
-use std::net::SocketAddr;
 use tower::ServiceBuilder;
 use tower_http::limit::RateLimitLayer;
 
@@ -31,16 +31,18 @@ impl RateLimiter {
     pub async fn check_rate_limit(&self, client_id: &str) -> Result<(), StatusCode> {
         let now = Instant::now();
         let mut requests = self.requests.write().await;
-        
-        let client_requests = requests.entry(client_id.to_string()).or_insert_with(Vec::new);
-        
+
+        let client_requests = requests
+            .entry(client_id.to_string())
+            .or_insert_with(Vec::new);
+
         // Remove old requests outside the window
         client_requests.retain(|&req_time| now.duration_since(req_time) < self.window);
-        
+
         if client_requests.len() >= self.max_requests {
             return Err(StatusCode::TOO_MANY_REQUESTS);
         }
-        
+
         client_requests.push(now);
         Ok(())
     }
@@ -48,7 +50,7 @@ impl RateLimiter {
     pub async fn cleanup(&self) {
         let now = Instant::now();
         let mut requests = self.requests.write().await;
-        
+
         requests.retain(|_, times| {
             times.retain(|&req_time| now.duration_since(req_time) < self.window);
             !times.is_empty()
@@ -63,9 +65,9 @@ pub async fn rate_limit_middleware<B>(
     rate_limiter: Arc<RateLimiter>,
 ) -> Result<Response, StatusCode> {
     let client_id = addr.ip().to_string();
-    
+
     rate_limiter.check_rate_limit(&client_id).await?;
-    
+
     Ok(next.run(req).await)
 }
 
@@ -137,11 +139,11 @@ impl CircuitBreaker {
             Err(e) => {
                 state.failures += 1;
                 state.last_failure = Some(Instant::now());
-                
+
                 if state.failures >= self.failure_threshold {
                     state.state = BreakerState::Open;
                 }
-                
+
                 Err(e)
             }
         }

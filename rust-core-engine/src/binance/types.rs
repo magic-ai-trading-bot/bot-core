@@ -351,4 +351,3 @@ impl KlineData {
         Ok((open, high, low, close, volume))
     }
 }
-

@@ -1,18 +1,18 @@
 use anyhow::Result;
+use chrono;
+use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
-use serde_json::json;
-use chrono;
 
 use crate::binance::{BinanceClient, BinanceWebSocket, StreamEvent};
 use crate::config::{BinanceConfig, MarketDataConfig};
 use crate::storage::Storage;
 
-use super::cache::MarketDataCache;
 use super::analyzer::MarketDataAnalyzer;
+use super::cache::MarketDataCache;
 
 // Chart data structures for API responses
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -77,33 +77,32 @@ impl MarketDataProcessor {
 
     pub async fn start(&self) -> Result<()> {
         info!("Starting Market Data Processor");
-        
+
         // Load historical data first
         self.load_historical_data().await?;
-        
+
         // Check if WebSocket should be disabled (for debugging)
         let disable_websocket = std::env::var("DISABLE_WEBSOCKET").unwrap_or_default() == "true";
-        
+
         if disable_websocket {
             info!("WebSocket disabled via DISABLE_WEBSOCKET environment variable");
-            
+
             // Start periodic tasks only
             let update_handle = self.start_periodic_updates();
             let analysis_handle = self.start_periodic_analysis();
-            
+
             // Wait for periodic tasks only
-            tokio::try_join!(
-                async { update_handle.await? },
-                async { analysis_handle.await? }
-            )?;
+            tokio::try_join!(async { update_handle.await? }, async {
+                analysis_handle.await?
+            })?;
         } else {
             // Start WebSocket connections
             let websocket_handle = self.start_websocket_streams().await?;
-            
+
             // Start periodic tasks
             let update_handle = self.start_periodic_updates();
             let analysis_handle = self.start_periodic_analysis();
-            
+
             // Wait for all tasks
             tokio::try_join!(
                 async { websocket_handle.await? },
@@ -111,68 +110,100 @@ impl MarketDataProcessor {
                 async { analysis_handle.await? }
             )?;
         }
-        
+
         Ok(())
     }
 
     async fn load_historical_data(&self) -> Result<()> {
         info!("Loading historical market data");
-        
+
         for symbol in &self.config.symbols {
             for timeframe in &self.config.timeframes {
                 match self.load_historical_klines(symbol, timeframe).await {
                     Ok(count) => {
-                        info!("Loaded {} historical candles for {} {}", count, symbol, timeframe);
+                        info!(
+                            "Loaded {} historical candles for {} {}",
+                            count, symbol, timeframe
+                        );
                     }
                     Err(e) => {
-                        warn!("Failed to load historical data for {} {}: {}", symbol, timeframe, e);
+                        warn!(
+                            "Failed to load historical data for {} {}: {}",
+                            symbol, timeframe, e
+                        );
                     }
                 }
-                
+
                 // Add small delay to avoid rate limiting
                 sleep(Duration::from_millis(100)).await;
             }
         }
-        
+
         info!("Historical data loading completed");
         Ok(())
     }
 
     async fn load_historical_klines(&self, symbol: &str, timeframe: &str) -> Result<usize> {
         // Try to load from database first
-        let cached_klines = self.storage.get_market_data(symbol, timeframe, Some(self.config.kline_limit as i64)).await?;
-        
+        let cached_klines = self
+            .storage
+            .get_market_data(symbol, timeframe, Some(self.config.kline_limit as i64))
+            .await?;
+
         if !cached_klines.is_empty() {
             // Use cached data
-            info!("Loaded {} cached klines for {} {}", cached_klines.len(), symbol, timeframe);
-            self.cache.add_historical_klines(symbol, timeframe, cached_klines.clone());
-            
+            info!(
+                "Loaded {} cached klines for {} {}",
+                cached_klines.len(),
+                symbol,
+                timeframe
+            );
+            self.cache
+                .add_historical_klines(symbol, timeframe, cached_klines.clone());
+
             // Still fetch latest data to update cache
-            match self.client.get_futures_klines(symbol, timeframe, Some(10)).await {
+            match self
+                .client
+                .get_futures_klines(symbol, timeframe, Some(10))
+                .await
+            {
                 Ok(latest_klines) => {
-                    if let Err(e) = self.storage.store_market_data(symbol, timeframe, &latest_klines).await {
+                    if let Err(e) = self
+                        .storage
+                        .store_market_data(symbol, timeframe, &latest_klines)
+                        .await
+                    {
                         warn!("Failed to store latest market data: {}", e);
                     }
-                    self.cache.add_historical_klines(symbol, timeframe, latest_klines);
+                    self.cache
+                        .add_historical_klines(symbol, timeframe, latest_klines);
                 }
-                Err(e) => warn!("Failed to fetch latest data for {} {}: {}", symbol, timeframe, e),
+                Err(e) => warn!(
+                    "Failed to fetch latest data for {} {}: {}",
+                    symbol, timeframe, e
+                ),
             }
-            
+
             Ok(cached_klines.len())
         } else {
             // Fetch from API if no cached data
-            let klines = self.client
+            let klines = self
+                .client
                 .get_futures_klines(symbol, timeframe, Some(self.config.kline_limit))
                 .await?;
-            
+
             // Store in database
-            if let Err(e) = self.storage.store_market_data(symbol, timeframe, &klines).await {
+            if let Err(e) = self
+                .storage
+                .store_market_data(symbol, timeframe, &klines)
+                .await
+            {
                 warn!("Failed to store market data: {}", e);
             }
-            
+
             let count = klines.len();
             self.cache.add_historical_klines(symbol, timeframe, klines);
-            
+
             Ok(count)
         }
     }
@@ -183,23 +214,20 @@ impl MarketDataProcessor {
         let timeframes = self.config.timeframes.clone();
         let cache = self.cache.clone();
         let ws_broadcaster = self.ws_broadcaster.clone();
-        
+
         // Start WebSocket connection
-        let ws_handle = tokio::spawn(async move {
-            websocket.start(symbols, timeframes).await
-        });
-        
+        let ws_handle = tokio::spawn(async move { websocket.start(symbols, timeframes).await });
+
         // Start message processing
         let processor_handle = tokio::spawn(async move {
             Self::process_websocket_messages(receiver, cache, ws_broadcaster).await
         });
-        
+
         // Return a combined handle
         Ok(tokio::spawn(async move {
-            tokio::try_join!(
-                async { ws_handle.await? },
-                async { processor_handle.await? }
-            )?;
+            tokio::try_join!(async { ws_handle.await? }, async {
+                processor_handle.await?
+            })?;
             Ok(())
         }))
     }
@@ -210,11 +238,13 @@ impl MarketDataProcessor {
         ws_broadcaster: Option<broadcast::Sender<String>>,
     ) -> Result<()> {
         info!("Starting WebSocket message processing");
-        
+
         loop {
             match receiver.recv().await {
                 Some(event) => {
-                    if let Err(e) = Self::handle_stream_event(&event, &cache, &ws_broadcaster, &None).await {
+                    if let Err(e) =
+                        Self::handle_stream_event(&event, &cache, &ws_broadcaster, &None).await
+                    {
                         error!("Error handling stream event: {}", e);
                     }
                 }
@@ -224,12 +254,12 @@ impl MarketDataProcessor {
                 }
             }
         }
-        
+
         Ok(())
     }
 
     async fn handle_stream_event(
-        event: &StreamEvent, 
+        event: &StreamEvent,
         cache: &MarketDataCache,
         ws_broadcaster: &Option<broadcast::Sender<String>>,
         storage: &Option<Storage>,
@@ -241,17 +271,19 @@ impl MarketDataProcessor {
                     &kline_event.kline.interval,
                     &kline_event.kline,
                 );
-                
-                debug!("Updated kline data for {} {} - Close: {} (closed: {})",
-                       kline_event.symbol, 
-                       kline_event.kline.interval,
-                       kline_event.kline.close_price,
-                       kline_event.kline.is_this_kline_closed);
-                
+
+                debug!(
+                    "Updated kline data for {} {} - Close: {} (closed: {})",
+                    kline_event.symbol,
+                    kline_event.kline.interval,
+                    kline_event.kline.close_price,
+                    kline_event.kline.is_this_kline_closed
+                );
+
                 // Broadcast price update via WebSocket (compatible with frontend)
                 if let Some(broadcaster) = ws_broadcaster {
                     let current_price = kline_event.kline.close_price.parse::<f64>().unwrap_or(0.0);
-                    
+
                     // Send MarketData update for immediate price updates
                     let market_data_update = json!({
                         "type": "MarketData",
@@ -265,7 +297,7 @@ impl MarketDataProcessor {
                         },
                         "timestamp": chrono::Utc::now().to_rfc3339()
                     });
-                    
+
                     // Send ChartUpdate if kline is closed (more detailed update)
                     if kline_event.kline.is_this_kline_closed {
                         let chart_update = json!({
@@ -290,14 +322,14 @@ impl MarketDataProcessor {
                             },
                             "timestamp": chrono::Utc::now().to_rfc3339()
                         });
-                        
+
                         if let Err(e) = broadcaster.send(chart_update.to_string()) {
                             if broadcaster.receiver_count() > 0 {
                                 warn!("Failed to broadcast chart update: {}", e);
                             }
                         }
                     }
-                    
+
                     if let Err(e) = broadcaster.send(market_data_update.to_string()) {
                         if broadcaster.receiver_count() > 0 {
                             warn!("Failed to broadcast market data update: {}", e);
@@ -306,17 +338,21 @@ impl MarketDataProcessor {
                 }
             }
             StreamEvent::Ticker(ticker_event) => {
-                debug!("Received ticker update for {}: {}", 
-                       ticker_event.symbol, ticker_event.last_price);
+                debug!(
+                    "Received ticker update for {}: {}",
+                    ticker_event.symbol, ticker_event.last_price
+                );
             }
             StreamEvent::OrderBook(orderbook_event) => {
-                debug!("Received order book update for {} (bids: {}, asks: {})",
-                       orderbook_event.symbol,
-                       orderbook_event.bids.len(),
-                       orderbook_event.asks.len());
+                debug!(
+                    "Received order book update for {} (bids: {}, asks: {})",
+                    orderbook_event.symbol,
+                    orderbook_event.bids.len(),
+                    orderbook_event.asks.len()
+                );
             }
         }
-        
+
         Ok(())
     }
 
@@ -326,34 +362,34 @@ impl MarketDataProcessor {
         let symbols = self.config.symbols.clone();
         let timeframes = self.config.timeframes.clone();
         let update_interval = self.config.update_interval_ms;
-        
+
         tokio::spawn(async move {
             let mut interval = interval(Duration::from_millis(update_interval));
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Periodically refresh data to ensure we don't miss anything
                 for symbol in &symbols {
                     for timeframe in &timeframes {
                         // Only update longer timeframes periodically (not 1m which updates via WebSocket)
                         if matches!(timeframe.as_str(), "1h" | "4h" | "1d") {
-                            if let Err(e) = Self::refresh_timeframe_data(
-                                &client, 
-                                &cache, 
-                                symbol, 
-                                timeframe
-                            ).await {
+                            if let Err(e) =
+                                Self::refresh_timeframe_data(&client, &cache, symbol, timeframe)
+                                    .await
+                            {
                                 warn!("Failed to refresh {} {}: {}", symbol, timeframe, e);
                             }
                         }
                     }
                 }
-                
+
                 // Log cache statistics
                 let stats = cache.get_cache_stats();
-                debug!("Cache stats: {} symbols, {} timeframes, {} total candles", 
-                       stats.cached_symbols, stats.total_timeframes, stats.total_candles);
+                debug!(
+                    "Cache stats: {} symbols, {} timeframes, {} total candles",
+                    stats.cached_symbols, stats.total_timeframes, stats.total_candles
+                );
             }
         })
     }
@@ -367,13 +403,13 @@ impl MarketDataProcessor {
         let klines = client
             .get_futures_klines(symbol, timeframe, Some(100))
             .await?;
-        
+
         // Only add the latest few candles to avoid overwriting historical data
         if !klines.is_empty() {
             let latest_klines = klines.into_iter().rev().take(5).rev().collect();
             cache.add_historical_klines(symbol, timeframe, latest_klines);
         }
-        
+
         Ok(())
     }
 
@@ -382,25 +418,27 @@ impl MarketDataProcessor {
         let symbols = self.config.symbols.clone();
         let timeframes = self.config.timeframes.clone();
         let storage = self.storage.clone();
-        
+
         tokio::spawn(async move {
             // Run analysis every 5 minutes
             let mut interval = interval(Duration::from_secs(5 * 60));
-            
+
             loop {
                 interval.tick().await;
-                
+
                 info!("Starting periodic market analysis");
-                
+
                 for symbol in &symbols {
                     match analyzer
                         .analyze_multi_timeframe(symbol, &timeframes, "trend_analysis", Some(100))
                         .await
                     {
                         Ok(analysis) => {
-                            info!("Analysis completed for {}: {:?} (confidence: {:.2})",
-                                  symbol, analysis.overall_signal, analysis.overall_confidence);
-                            
+                            info!(
+                                "Analysis completed for {}: {:?} (confidence: {:.2})",
+                                symbol, analysis.overall_signal, analysis.overall_confidence
+                            );
+
                             // Store analysis result
                             if let Err(e) = storage.store_analysis(&analysis).await {
                                 error!("Failed to store analysis for {}: {}", symbol, e);
@@ -410,11 +448,11 @@ impl MarketDataProcessor {
                             warn!("Analysis failed for {}: {}", symbol, e);
                         }
                     }
-                    
+
                     // Small delay between symbols
                     sleep(Duration::from_millis(500)).await;
                 }
-                
+
                 info!("Periodic analysis completed");
             }
         })
@@ -429,7 +467,10 @@ impl MarketDataProcessor {
         self.analyzer.clone()
     }
 
-    pub async fn get_latest_analysis(&self, symbol: &str) -> Result<super::analyzer::MultiTimeframeAnalysis> {
+    pub async fn get_latest_analysis(
+        &self,
+        symbol: &str,
+    ) -> Result<super::analyzer::MultiTimeframeAnalysis> {
         self.analyzer
             .analyze_multi_timeframe(symbol, &self.config.timeframes, "trend_analysis", Some(100))
             .await
@@ -437,16 +478,18 @@ impl MarketDataProcessor {
 
     pub async fn force_refresh_symbol(&self, symbol: &str) -> Result<()> {
         info!("Force refreshing data for {}", symbol);
-        
+
         for timeframe in &self.config.timeframes {
             self.load_historical_klines(symbol, timeframe).await?;
         }
-        
+
         Ok(())
     }
 
     pub async fn get_market_overview(&self) -> Result<Vec<super::analyzer::MarketOverview>> {
-        self.analyzer.get_market_overview(&self.config.symbols).await
+        self.analyzer
+            .get_market_overview(&self.config.symbols)
+            .await
     }
 
     pub fn get_cache_statistics(&self) -> super::cache::CacheStats {
@@ -462,10 +505,18 @@ impl MarketDataProcessor {
     }
 
     // NEW: Chart data methods for API support (now using MongoDB instead of cache)
-    pub async fn get_chart_data(&self, symbol: &str, timeframe: &str, limit: Option<usize>) -> Result<ChartData> {
+    pub async fn get_chart_data(
+        &self,
+        symbol: &str,
+        timeframe: &str,
+        limit: Option<usize>,
+    ) -> Result<ChartData> {
         // Get data directly from MongoDB
-        let klines = self.storage.get_market_data(symbol, timeframe, limit.map(|l| l as i64)).await?;
-        
+        let klines = self
+            .storage
+            .get_market_data(symbol, timeframe, limit.map(|l| l as i64))
+            .await?;
+
         // Convert Klines to CandleData
         let candle_data: Vec<CandleData> = klines
             .iter()
@@ -478,31 +529,30 @@ impl MarketDataProcessor {
                 volume: kline.volume.parse::<f64>().unwrap_or(0.0),
             })
             .collect();
-        
+
         // Calculate 24h statistics
         let (volume_24h, price_change_24h, price_change_percent_24h) = if candle_data.len() >= 24 {
             let latest_price = candle_data.last().map(|c| c.close).unwrap_or(0.0);
-            let price_24h_ago = candle_data.get(candle_data.len() - 24)
+            let price_24h_ago = candle_data
+                .get(candle_data.len() - 24)
                 .map(|c| c.close)
                 .unwrap_or(latest_price);
-            let volume_24h: f64 = candle_data.iter().rev().take(24)
-                .map(|c| c.volume)
-                .sum();
-            
+            let volume_24h: f64 = candle_data.iter().rev().take(24).map(|c| c.volume).sum();
+
             let price_change = latest_price - price_24h_ago;
             let price_change_percent = if price_24h_ago > 0.0 {
                 (price_change / price_24h_ago) * 100.0
             } else {
                 0.0
             };
-            
+
             (volume_24h, price_change, price_change_percent)
         } else {
             (0.0, 0.0, 0.0)
         };
-        
+
         let latest_price = candle_data.last().map(|c| c.close).unwrap_or(0.0);
-        
+
         Ok(ChartData {
             symbol: symbol.to_string(),
             timeframe: timeframe.to_string(),
@@ -521,24 +571,30 @@ impl MarketDataProcessor {
         limit: Option<usize>,
     ) -> Result<Vec<ChartData>> {
         let mut charts = Vec::new();
-        
+
         for symbol in symbols {
             for timeframe in &timeframes {
                 match self.get_chart_data(&symbol, timeframe, limit).await {
                     Ok(chart_data) => charts.push(chart_data),
                     Err(e) => {
-                        warn!("Failed to get chart data for {} {}: {}", symbol, timeframe, e);
+                        warn!(
+                            "Failed to get chart data for {} {}: {}",
+                            symbol, timeframe, e
+                        );
                     }
                 }
             }
         }
-        
+
         Ok(charts)
     }
 
     pub async fn add_symbol(&self, symbol: String, timeframes: Vec<String>) -> Result<()> {
-        info!("Adding new symbol {} with timeframes {:?}", symbol, timeframes);
-        
+        info!(
+            "Adding new symbol {} with timeframes {:?}",
+            symbol, timeframes
+        );
+
         // Add symbol to config (this will persist it)
         if !self.config.symbols.contains(&symbol) {
             // Note: This is a temporary fix. In production, you'd want to update persistent config
@@ -546,42 +602,48 @@ impl MarketDataProcessor {
             config_symbols.push(symbol.clone());
             info!("Added {} to supported symbols list", symbol);
         }
-        
+
         // Load historical data for the new symbol
         for timeframe in &timeframes {
             match self.load_historical_klines(&symbol, timeframe).await {
                 Ok(count) => {
-                    info!("Loaded {} historical candles for {} {}", count, symbol, timeframe);
+                    info!(
+                        "Loaded {} historical candles for {} {}",
+                        count, symbol, timeframe
+                    );
                 }
                 Err(e) => {
-                    warn!("Failed to load historical data for {} {}: {}", symbol, timeframe, e);
+                    warn!(
+                        "Failed to load historical data for {} {}: {}",
+                        symbol, timeframe, e
+                    );
                 }
             }
-            
+
             // Add small delay to avoid rate limiting
             sleep(Duration::from_millis(100)).await;
         }
-        
+
         // TODO: For full dynamic support, we need to:
         // 1. Restart WebSocket connections with new symbol
-        // 2. Update persistent configuration  
+        // 2. Update persistent configuration
         // For now, users need to restart the service to get WebSocket updates for new symbols
         warn!("New symbol {} added to historical data. Restart service to get real-time updates via WebSocket.", symbol);
-        
+
         Ok(())
     }
 
     pub async fn remove_symbol(&self, symbol: &str) -> Result<()> {
         info!("Removing symbol {}", symbol);
-        
+
         // Remove from cache
         self.cache.remove_symbol(symbol);
-        
+
         // Note: In a real implementation, you would also need to:
         // 1. Update the WebSocket streams to exclude the symbol
         // 2. Update the configuration to remove the symbol
         // 3. Restart WebSocket connections without the symbol
-        
+
         Ok(())
     }
-} 
+}

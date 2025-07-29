@@ -111,4 +111,3 @@ mod tests {
         assert!(!claims.is_admin);
     }
 }
-

@@ -27,29 +27,36 @@ impl RiskManager {
 
         // Check signal confidence threshold
         let min_confidence = match analysis.overall_signal {
-            crate::market_data::analyzer::TradingSignal::StrongBuy | 
-            crate::market_data::analyzer::TradingSignal::StrongSell => 0.7,
-            crate::market_data::analyzer::TradingSignal::Buy | 
-            crate::market_data::analyzer::TradingSignal::Sell => 0.8,
+            crate::market_data::analyzer::TradingSignal::StrongBuy
+            | crate::market_data::analyzer::TradingSignal::StrongSell => 0.7,
+            crate::market_data::analyzer::TradingSignal::Buy
+            | crate::market_data::analyzer::TradingSignal::Sell => 0.8,
             crate::market_data::analyzer::TradingSignal::Hold => return Ok(false),
         };
 
         if analysis.overall_confidence < min_confidence {
-            debug!("Signal confidence {} below threshold {} for {}", 
-                   analysis.overall_confidence, min_confidence, symbol);
+            debug!(
+                "Signal confidence {} below threshold {} for {}",
+                analysis.overall_confidence, min_confidence, symbol
+            );
             return Ok(false);
         }
 
         // Check risk-reward ratio if available
         if let Some(risk_reward) = analysis.risk_reward_ratio {
             if risk_reward < 1.5 {
-                debug!("Risk-reward ratio {} below minimum 1.5 for {}", risk_reward, symbol);
+                debug!(
+                    "Risk-reward ratio {} below minimum 1.5 for {}",
+                    risk_reward, symbol
+                );
                 return Ok(false);
             }
         }
 
-        debug!("Risk check passed for {} with confidence {:.2}", 
-               symbol, analysis.overall_confidence);
+        debug!(
+            "Risk check passed for {} with confidence {:.2}",
+            symbol, analysis.overall_confidence
+        );
         Ok(true)
     }
 
@@ -71,4 +78,4 @@ impl RiskManager {
     pub fn get_risk_percentage(&self) -> f64 {
         self.config.risk_percentage
     }
-} 
+}

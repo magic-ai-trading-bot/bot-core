@@ -254,4 +254,3 @@ impl Default for AIAnalysisStatus {
         AIAnalysisStatus::Pending
     }
 }
-

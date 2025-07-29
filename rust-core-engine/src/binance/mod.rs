@@ -1,7 +1,7 @@
 pub mod client;
-pub mod websocket;
 pub mod types;
+pub mod websocket;
 
 pub use client::BinanceClient;
+pub use types::*;
 pub use websocket::BinanceWebSocket;
-pub use types::*; 
