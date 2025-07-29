@@ -434,4 +434,3 @@ pub struct AIModelPerformance {
 pub struct SupportedStrategiesResponse {
     pub strategies: Vec<String>,
 }
-
