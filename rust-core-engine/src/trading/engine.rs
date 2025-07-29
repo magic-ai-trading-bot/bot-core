@@ -40,11 +40,11 @@ impl TradingEngine {
             if let Err(e) = client.change_leverage(symbol, config.leverage).await {
                 warn!("Failed to set leverage for {}: {}", symbol, e);
             }
-            
+
             if let Err(e) = client.change_margin_type(symbol, &config.margin_type).await {
                 warn!("Failed to set margin type for {}: {}", symbol, e);
             }
-            
+
             sleep(Duration::from_millis(100)).await; // Rate limiting
         }
 
@@ -72,33 +72,36 @@ impl TradingEngine {
 
         // Start main trading loop
         let trading_handle = self.start_trading_loop();
-        
+
         // Start position monitoring
         let monitoring_handle = self.start_position_monitoring();
 
         // Wait for both tasks
-        tokio::try_join!(
-            async { trading_handle.await? },
-            async { monitoring_handle.await? }
-        )?;
+        tokio::try_join!(async { trading_handle.await? }, async {
+            monitoring_handle.await?
+        })?;
 
         Ok(())
     }
 
     async fn sync_positions(&self) -> Result<()> {
         info!("Syncing positions with exchange");
-        
+
         let positions = self.client.get_futures_positions().await?;
         let mut active_positions = 0;
 
         for binance_position in positions {
             let position_amt: f64 = binance_position.position_amt.parse().unwrap_or(0.0);
-            
+
             if position_amt.abs() > 0.0 {
                 let position = Position {
                     id: Uuid::new_v4().to_string(),
                     symbol: binance_position.symbol.clone(),
-                    side: if position_amt > 0.0 { "BUY".to_string() } else { "SELL".to_string() },
+                    side: if position_amt > 0.0 {
+                        "BUY".to_string()
+                    } else {
+                        "SELL".to_string()
+                    },
                     size: position_amt.abs(),
                     entry_price: binance_position.entry_price.parse().unwrap_or(0.0),
                     current_price: binance_position.mark_price.parse().unwrap_or(0.0),
@@ -110,11 +113,13 @@ impl TradingEngine {
 
                 self.position_manager.add_position(position);
                 active_positions += 1;
-                
-                info!("Synced position: {} {} {}", 
-                      binance_position.symbol, 
-                      if position_amt > 0.0 { "LONG" } else { "SHORT" },
-                      position_amt.abs());
+
+                info!(
+                    "Synced position: {} {} {}",
+                    binance_position.symbol,
+                    if position_amt > 0.0 { "LONG" } else { "SHORT" },
+                    position_amt.abs()
+                );
             }
         }
 
@@ -145,7 +150,9 @@ impl TradingEngine {
                         &client,
                         &storage,
                         symbol,
-                    ).await {
+                    )
+                    .await
+                    {
                         error!("Error processing trading opportunity for {}: {}", symbol, e);
                     }
                 }
@@ -178,14 +185,18 @@ impl TradingEngine {
 
         // Check if signal is strong enough and has good confidence
         let should_trade = match analysis.overall_signal {
-            TradingSignal::StrongBuy | TradingSignal::StrongSell => analysis.overall_confidence >= 0.7,
+            TradingSignal::StrongBuy | TradingSignal::StrongSell => {
+                analysis.overall_confidence >= 0.7
+            }
             TradingSignal::Buy | TradingSignal::Sell => analysis.overall_confidence >= 0.8,
             TradingSignal::Hold => false,
         };
 
         if !should_trade {
-            debug!("Signal not strong enough for {}: {:?} (confidence: {:.2})", 
-                   symbol, analysis.overall_signal, analysis.overall_confidence);
+            debug!(
+                "Signal not strong enough for {}: {:?} (confidence: {:.2})",
+                symbol, analysis.overall_signal, analysis.overall_confidence
+            );
             return Ok(());
         }
 
@@ -198,10 +209,14 @@ impl TradingEngine {
         // Execute trade
         match Self::execute_trade(client, storage, symbol, &analysis).await {
             Ok(trade_record) => {
-                info!("Executed trade: {} {} {} @ {}", 
-                      trade_record.symbol, trade_record.side, 
-                      trade_record.quantity, trade_record.entry_price);
-                
+                info!(
+                    "Executed trade: {} {} {} @ {}",
+                    trade_record.symbol,
+                    trade_record.side,
+                    trade_record.quantity,
+                    trade_record.entry_price
+                );
+
                 // Create position record
                 let position = Position {
                     id: Uuid::new_v4().to_string(),
@@ -307,7 +322,9 @@ impl TradingEngine {
                         &storage,
                         &market_data,
                         &position,
-                    ).await {
+                    )
+                    .await
+                    {
                         error!("Error monitoring position {}: {}", position.symbol, e);
                     }
                 }
@@ -331,7 +348,7 @@ impl TradingEngine {
         // Update position with current price
         let mut updated_position = position.clone();
         updated_position.current_price = current_price;
-        
+
         // Calculate unrealized PnL
         let price_diff = if position.side == "BUY" {
             current_price - position.entry_price
@@ -364,8 +381,11 @@ impl TradingEngine {
         };
 
         if should_close {
-            info!("Closing position {} due to stop loss/take profit", position.symbol);
-            
+            info!(
+                "Closing position {} due to stop loss/take profit",
+                position.symbol
+            );
+
             match Self::close_position(client, storage, position).await {
                 Ok(_) => {
                     position_manager.remove_position(&position.id);
@@ -388,7 +408,11 @@ impl TradingEngine {
         storage: &Storage,
         position: &Position,
     ) -> Result<()> {
-        let close_side = if position.side == "BUY" { "SELL" } else { "BUY" };
+        let close_side = if position.side == "BUY" {
+            "SELL"
+        } else {
+            "BUY"
+        };
 
         let order_request = NewOrderRequest {
             symbol: position.symbol.clone(),
@@ -455,4 +479,4 @@ impl TradingEngine {
     pub async fn get_performance_stats(&self) -> Result<crate::storage::PerformanceStats> {
         self.storage.get_performance_stats().await
     }
-} 
+}

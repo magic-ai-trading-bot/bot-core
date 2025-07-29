@@ -1,13 +1,13 @@
-use std::convert::Infallible;
-use warp::{Filter, Rejection, Reply};
 use serde_json::json;
-use validator::Validate;
+use std::convert::Infallible;
 use tracing::{error, info, warn};
+use validator::Validate;
+use warp::{Filter, Rejection, Reply};
 
 use super::{
-    models::{LoginRequest, LoginResponse, RegisterRequest, User},
-    jwt::{JwtService, PasswordService},
     database::UserRepository,
+    jwt::{JwtService, PasswordService},
+    models::{LoginRequest, LoginResponse, RegisterRequest, User},
 };
 
 #[derive(Clone)]
@@ -42,8 +42,7 @@ impl AuthService {
         let verify = self.verify_route();
         let profile = self.profile_route();
 
-        warp::path("auth")
-            .and(register.or(login).or(verify).or(profile))
+        warp::path("auth").and(register.or(login).or(verify).or(profile))
     }
 
     fn register_route(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
@@ -105,7 +104,10 @@ async fn handle_register(
     // Check if email already exists
     match auth_service.user_repo.email_exists(&request.email).await {
         Ok(exists) if exists => {
-            warn!("Registration failed: email already exists: {}", request.email);
+            warn!(
+                "Registration failed: email already exists: {}",
+                request.email
+            );
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({
                     "success": false,
@@ -144,11 +146,14 @@ async fn handle_register(
 
     // Create user
     let user = User::new(request.email.clone(), password_hash, request.full_name);
-    
+
     match auth_service.user_repo.create_user(user.clone()).await {
         Ok(user_id) => {
-            info!("User created successfully: {} (ID: {})", request.email, user_id);
-            
+            info!(
+                "User created successfully: {} (ID: {})",
+                request.email, user_id
+            );
+
             // Generate token
             let token = match auth_service.jwt_service.generate_token(
                 &user_id.to_hex(),
@@ -254,7 +259,7 @@ async fn handle_login(
     match PasswordService::verify_password(&request.password, &user.password_hash) {
         Ok(true) => {
             info!("Login successful for user: {}", request.email);
-            
+
             // Update last login
             if let Some(user_id) = user.id {
                 if let Err(e) = auth_service.user_repo.update_last_login(&user_id).await {
@@ -264,23 +269,23 @@ async fn handle_login(
 
             // Generate token
             let user_id = user.id.as_ref().map(|id| id.to_hex()).unwrap_or_default();
-            let token = match auth_service.jwt_service.generate_token(
-                &user_id,
-                &user.email,
-                user.is_admin,
-            ) {
-                Ok(token) => token,
-                Err(e) => {
-                    error!("Token generation failed: {}", e);
-                    return Ok(warp::reply::with_status(
-                        warp::reply::json(&json!({
-                            "success": false,
-                            "error": "Internal server error"
-                        })),
-                        warp::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    ));
-                }
-            };
+            let token =
+                match auth_service
+                    .jwt_service
+                    .generate_token(&user_id, &user.email, user.is_admin)
+                {
+                    Ok(token) => token,
+                    Err(e) => {
+                        error!("Token generation failed: {}", e);
+                        return Ok(warp::reply::with_status(
+                            warp::reply::json(&json!({
+                                "success": false,
+                                "error": "Internal server error"
+                            })),
+                            warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        ));
+                    }
+                };
 
             let response = LoginResponse {
                 token,
@@ -336,29 +341,25 @@ async fn handle_verify(
     };
 
     match auth_service.jwt_service.verify_token(token) {
-        Ok(claims) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&json!({
-                    "success": true,
-                    "data": {
-                        "user_id": claims.sub,
-                        "email": claims.email,
-                        "is_admin": claims.is_admin,
-                        "exp": claims.exp
-                    }
-                })),
-                warp::http::StatusCode::OK,
-            ))
-        }
-        Err(_) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&json!({
-                    "success": false,
-                    "error": "Invalid or expired token"
-                })),
-                warp::http::StatusCode::UNAUTHORIZED,
-            ))
-        }
+        Ok(claims) => Ok(warp::reply::with_status(
+            warp::reply::json(&json!({
+                "success": true,
+                "data": {
+                    "user_id": claims.sub,
+                    "email": claims.email,
+                    "is_admin": claims.is_admin,
+                    "exp": claims.exp
+                }
+            })),
+            warp::http::StatusCode::OK,
+        )),
+        Err(_) => Ok(warp::reply::with_status(
+            warp::reply::json(&json!({
+                "success": false,
+                "error": "Invalid or expired token"
+            })),
+            warp::http::StatusCode::UNAUTHORIZED,
+        )),
     }
 }
 
@@ -406,24 +407,20 @@ async fn handle_profile(
     };
 
     match auth_service.user_repo.find_by_id(&user_id).await {
-        Ok(Some(user)) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&json!({
-                    "success": true,
-                    "data": user.to_profile()
-                })),
-                warp::http::StatusCode::OK,
-            ))
-        }
-        Ok(None) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&json!({
-                    "success": false,
-                    "error": "User not found"
-                })),
-                warp::http::StatusCode::NOT_FOUND,
-            ))
-        }
+        Ok(Some(user)) => Ok(warp::reply::with_status(
+            warp::reply::json(&json!({
+                "success": true,
+                "data": user.to_profile()
+            })),
+            warp::http::StatusCode::OK,
+        )),
+        Ok(None) => Ok(warp::reply::with_status(
+            warp::reply::json(&json!({
+                "success": false,
+                "error": "User not found"
+            })),
+            warp::http::StatusCode::NOT_FOUND,
+        )),
         Err(e) => {
             error!("Database error finding user: {}", e);
             Ok(warp::reply::with_status(
@@ -435,4 +432,4 @@ async fn handle_profile(
             ))
         }
     }
-} 
+}

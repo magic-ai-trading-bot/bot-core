@@ -1,22 +1,28 @@
+use serde_json::json;
 use std::convert::Infallible;
 use warp::{Filter, Rejection, Reply};
-use serde_json::json;
 
 use super::jwt::{Claims, JwtService};
 
-pub fn with_auth(jwt_service: JwtService) -> impl Filter<Extract = (Claims,), Error = Rejection> + Clone {
+pub fn with_auth(
+    jwt_service: JwtService,
+) -> impl Filter<Extract = (Claims,), Error = Rejection> + Clone {
     warp::header::<String>("authorization")
         .and(warp::any().map(move || jwt_service.clone()))
         .and_then(authorize)
 }
 
-pub fn with_optional_auth(jwt_service: JwtService) -> impl Filter<Extract = (Option<Claims>,), Error = Rejection> + Clone {
+pub fn with_optional_auth(
+    jwt_service: JwtService,
+) -> impl Filter<Extract = (Option<Claims>,), Error = Rejection> + Clone {
     warp::header::optional::<String>("authorization")
         .and(warp::any().map(move || jwt_service.clone()))
         .and_then(optional_authorize)
 }
 
-pub fn with_admin_auth(jwt_service: JwtService) -> impl Filter<Extract = (Claims,), Error = Rejection> + Clone {
+pub fn with_admin_auth(
+    jwt_service: JwtService,
+) -> impl Filter<Extract = (Claims,), Error = Rejection> + Clone {
     warp::header::<String>("authorization")
         .and(warp::any().map(move || jwt_service.clone()))
         .and_then(admin_authorize)
@@ -36,7 +42,10 @@ async fn authorize(auth_header: String, jwt_service: JwtService) -> Result<Claim
     }
 }
 
-async fn optional_authorize(auth_header: Option<String>, jwt_service: JwtService) -> Result<Option<Claims>, Rejection> {
+async fn optional_authorize(
+    auth_header: Option<String>,
+    jwt_service: JwtService,
+) -> Result<Option<Claims>, Rejection> {
     match auth_header {
         Some(header) => {
             let token = match JwtService::extract_token_from_header(&header) {
@@ -53,9 +62,12 @@ async fn optional_authorize(auth_header: Option<String>, jwt_service: JwtService
     }
 }
 
-async fn admin_authorize(auth_header: String, jwt_service: JwtService) -> Result<Claims, Rejection> {
+async fn admin_authorize(
+    auth_header: String,
+    jwt_service: JwtService,
+) -> Result<Claims, Rejection> {
     let claims = authorize(auth_header, jwt_service).await?;
-    
+
     if claims.is_admin {
         Ok(claims)
     } else {
@@ -79,15 +91,15 @@ pub async fn handle_auth_rejection(err: Rejection) -> Result<impl Reply, Infalli
         let (code, message) = match auth_error {
             AuthError::InvalidHeader => (
                 warp::http::StatusCode::UNAUTHORIZED,
-                "Invalid authorization header"
+                "Invalid authorization header",
             ),
             AuthError::InvalidToken => (
                 warp::http::StatusCode::UNAUTHORIZED,
-                "Invalid or expired token"
+                "Invalid or expired token",
             ),
             AuthError::InsufficientPermissions => (
                 warp::http::StatusCode::FORBIDDEN,
-                "Insufficient permissions"
+                "Insufficient permissions",
             ),
         };
 
@@ -115,4 +127,4 @@ pub async fn handle_auth_rejection(err: Rejection) -> Result<impl Reply, Infalli
             warp::http::StatusCode::INTERNAL_SERVER_ERROR,
         ))
     }
-} 
+}

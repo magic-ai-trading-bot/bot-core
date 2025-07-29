@@ -208,4 +208,3 @@ impl User {
         self.updated_at = Utc::now();
     }
 }
-
