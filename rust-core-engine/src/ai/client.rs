@@ -1,9 +1,9 @@
 use super::*;
+use anyhow::{anyhow, Result};
 use reqwest::{Client, RequestBuilder};
-use std::time::Duration;
-use anyhow::{Result, anyhow};
 use serde_json;
 use std::collections::HashMap;
+use std::time::Duration;
 
 // Helper structure for Python AI service (matches its expected format)
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
