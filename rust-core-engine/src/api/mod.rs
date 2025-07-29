@@ -750,4 +750,3 @@ impl From<crate::ai::MarketConditionRequest> for crate::strategies::StrategyInpu
         }
     }
 }
-
