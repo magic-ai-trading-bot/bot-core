@@ -312,8 +312,8 @@ services:
       - "15672:15672" # Management UI
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./infrastructure/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infrastructure/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     networks:
       - bot-network
     healthcheck:
@@ -390,7 +390,7 @@ services:
       - "8001:8001"  # Admin API
       - "8444:8444"  # Admin SSL
     volumes:
-      - ./kong/kong.yml:/opt/kong/kong.yml:ro
+      - ./infrastructure/kong/kong.yml:/opt/kong/kong.yml:ro
     networks:
       - bot-network
     healthcheck:
@@ -409,7 +409,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     networks:
       - bot-network
@@ -427,7 +427,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana:/etc/grafana/provisioning
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
     networks:
       - bot-network
     depends_on:
