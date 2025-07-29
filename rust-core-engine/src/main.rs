@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+
 use anyhow::Result;
 use structopt::StructOpt;
 use tokio::sync::broadcast;

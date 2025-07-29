@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::*;
 use anyhow::{anyhow, Result};
 use reqwest::Client;
