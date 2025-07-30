@@ -606,7 +606,7 @@ async fn update_strategy_settings(
 
     // Update confidence threshold - this is the key setting!
     let confidence_threshold = request.settings.engine.min_confidence_threshold;
-    log::info!("Applying confidence threshold: {}", confidence_threshold);
+    log::info!("Applying confidence threshold: {confidence_threshold}");
 
     // Update engine confidence threshold (this affects trade creation)
     // We need to update the internal engine configuration
@@ -617,8 +617,7 @@ async fn update_strategy_settings(
     {
         Ok(_) => {
             log::info!(
-                "✅ Confidence threshold updated to: {}",
-                confidence_threshold
+                "✅ Confidence threshold updated to: {confidence_threshold}"
             );
 
             let response = serde_json::json!({
@@ -636,12 +635,11 @@ async fn update_strategy_settings(
             ))
         }
         Err(e) => {
-            log::error!("❌ Failed to update confidence threshold: {}", e);
+            log::error!("❌ Failed to update confidence threshold: {e}");
 
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(format!(
-                    "Failed to update settings: {}",
-                    e
+                    "Failed to update settings: {e}"
                 ))),
                 StatusCode::INTERNAL_SERVER_ERROR,
             ))
@@ -745,7 +743,7 @@ async fn update_basic_settings(
             // If initial balance changed, reset portfolio
             if request.initial_balance.is_some() {
                 if let Err(e) = api.engine.reset_portfolio().await {
-                    log::error!("Failed to reset portfolio after settings update: {}", e);
+                    log::error!("Failed to reset portfolio after settings update: {e}");
                 }
             }
 

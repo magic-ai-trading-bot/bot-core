@@ -92,7 +92,6 @@ impl AIService {
         self.client
             .get_strategy_recommendations(&request)
             .await
-            .map_err(|e| e)
     }
 
     /// Get market condition analysis
@@ -111,7 +110,6 @@ impl AIService {
         self.client
             .analyze_market_condition(&request)
             .await
-            .map_err(|e| e)
     }
 
     /// Send strategy performance feedback to AI for learning
@@ -119,19 +117,18 @@ impl AIService {
         self.client
             .send_performance_feedback(&feedback)
             .await
-            .map_err(|e| e)
     }
 
     /// Get AI service information
     pub async fn get_service_info(&self) -> Result<crate::ai::client::AIServiceInfo> {
-        self.client.get_service_info().await.map_err(|e| e)
+        self.client.get_service_info().await
     }
 
     /// Get supported strategies
     pub async fn get_supported_strategies(
         &self,
     ) -> Result<crate::ai::client::SupportedStrategiesResponse> {
-        self.client.get_supported_strategies().await.map_err(|e| e)
+        self.client.get_supported_strategies().await
     }
 }
 

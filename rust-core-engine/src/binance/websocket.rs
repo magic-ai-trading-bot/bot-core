@@ -41,7 +41,7 @@ impl BinanceWebSocket {
 
                     if reconnect_attempts >= max_reconnect_attempts {
                         error!("Max reconnection attempts reached, giving up");
-                        return Err(e);
+                        return Err(e.into());
                     }
 
                     let delay = Duration::from_secs(2_u64.pow(reconnect_attempts.min(6)));
@@ -92,7 +92,7 @@ impl BinanceWebSocket {
                 }
                 Err(e) => {
                     error!("WebSocket error: {e}");
-                    return Err(e);
+                    return Err(e.into());
                 }
             }
         }
@@ -269,7 +269,7 @@ impl BinanceUserDataStream {
                 Ok(_) => {}
                 Err(e) => {
                     error!("User data stream error: {e}");
-                    return Err(e);
+                    return Err(e.into());
                 }
             }
         }

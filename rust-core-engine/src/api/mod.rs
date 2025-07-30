@@ -563,7 +563,7 @@ impl ApiServer {
                             "type": "AISignalReceived",
                             "data": {
                                 "symbol": symbol,
-                                "signal": response.signal.to_string().to_lowercase(),
+                                "signal": response.signal.as_str().to_lowercase(),
                                 "confidence": response.confidence,
                                 "timestamp": response.timestamp,
                                 "model_type": "GPT-4",
