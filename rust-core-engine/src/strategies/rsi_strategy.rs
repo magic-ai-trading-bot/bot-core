@@ -114,10 +114,10 @@ impl Strategy for RsiStrategy {
 
         // Calculate RSI for both timeframes
         let primary_rsi = calculate_rsi(primary_candles, rsi_period)
-            .map_err(|e| StrategyError::CalculationError(e))?;
+            .map_err(StrategyError::CalculationError)?;
 
         let confirmation_rsi = calculate_rsi(confirmation_candles, rsi_period)
-            .map_err(|e| StrategyError::CalculationError(e))?;
+            .map_err(StrategyError::CalculationError)?;
 
         if primary_rsi.is_empty() || confirmation_rsi.is_empty() {
             return Err(StrategyError::InsufficientData(

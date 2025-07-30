@@ -83,7 +83,7 @@ impl Strategy for VolumeStrategy {
         // Calculate volume moving average
         let volumes: Vec<f64> = candles.iter().map(|c| c.volume).collect();
         let volume_sma = calculate_sma(&volumes, volume_sma_period)
-            .map_err(|e| StrategyError::CalculationError(e))?;
+            .map_err(StrategyError::CalculationError)?;
 
         if volume_sma.is_empty() {
             return Err(StrategyError::InsufficientData(
@@ -110,7 +110,7 @@ impl Strategy for VolumeStrategy {
 
         // Calculate volume profile
         let volume_profile = calculate_volume_profile(recent_candles, 20)
-            .map_err(|e| StrategyError::CalculationError(e))?;
+            .map_err(StrategyError::CalculationError)?;
 
         let current_price = data.current_price;
         let poc_distance = ((current_price - volume_profile.poc) / current_price).abs();
