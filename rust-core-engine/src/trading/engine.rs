@@ -170,7 +170,7 @@ impl TradingEngine {
     ) -> Result<()> {
         // Check if we already have a position for this symbol
         if position_manager.has_position(symbol) {
-            debug!("Already have position for {}, skipping", symbol);
+            debug!("Already have position for {symbol}, skipping");
             return Ok(());
         }
 

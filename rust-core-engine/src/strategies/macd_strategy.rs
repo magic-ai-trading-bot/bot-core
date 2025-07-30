@@ -105,7 +105,7 @@ impl Strategy for MacdStrategy {
 
         // Calculate MACD for both timeframes
         let primary_macd = calculate_macd(primary_candles, fast_period, slow_period, signal_period)
-            .map_err(|e| StrategyError::CalculationError(e))?;
+            .map_err(StrategyError::CalculationError)?;
 
         let confirmation_macd = calculate_macd(
             confirmation_candles,
@@ -113,7 +113,7 @@ impl Strategy for MacdStrategy {
             slow_period,
             signal_period,
         )
-        .map_err(|e| StrategyError::CalculationError(e))?;
+        .map_err(StrategyError::CalculationError)?;
 
         if primary_macd.histogram.is_empty() || confirmation_macd.histogram.is_empty() {
             return Err(StrategyError::InsufficientData(
