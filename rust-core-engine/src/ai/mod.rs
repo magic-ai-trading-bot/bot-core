@@ -89,9 +89,7 @@ impl AIService {
             timestamp: market_data.timestamp,
         };
 
-        self.client
-            .get_strategy_recommendations(&request)
-            .await
+        self.client.get_strategy_recommendations(&request).await
     }
 
     /// Get market condition analysis
@@ -107,16 +105,12 @@ impl AIService {
             timestamp: data.timestamp,
         };
 
-        self.client
-            .analyze_market_condition(&request)
-            .await
+        self.client.analyze_market_condition(&request).await
     }
 
     /// Send strategy performance feedback to AI for learning
     pub async fn send_performance_feedback(&self, feedback: PerformanceFeedback) -> Result<()> {
-        self.client
-            .send_performance_feedback(&feedback)
-            .await
+        self.client.send_performance_feedback(&feedback).await
     }
 
     /// Get AI service information

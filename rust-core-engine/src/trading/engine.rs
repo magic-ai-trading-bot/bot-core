@@ -359,13 +359,13 @@ impl TradingEngine {
 
         // Check for stop loss or take profit
         let should_close = if let Some(stop_loss) = position.stop_loss {
-            (position.side == "BUY" && current_price <= stop_loss) ||
-            (position.side == "SELL" && current_price >= stop_loss)
+            (position.side == "BUY" && current_price <= stop_loss)
+                || (position.side == "SELL" && current_price >= stop_loss)
         } else {
             false
         } || if let Some(take_profit) = position.take_profit {
-            (position.side == "BUY" && current_price >= take_profit) ||
-            (position.side == "SELL" && current_price <= take_profit)
+            (position.side == "BUY" && current_price >= take_profit)
+                || (position.side == "SELL" && current_price <= take_profit)
         } else {
             false
         };
