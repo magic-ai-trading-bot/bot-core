@@ -73,7 +73,7 @@ impl Strategy for BollingerStrategy {
         let confirmation_timeframe = "4h";
 
         let primary_candles = data.timeframe_data.get(primary_timeframe).ok_or_else(|| {
-            StrategyError::InsufficientData(format!("Missing {} data", primary_timeframe))
+            StrategyError::InsufficientData(format!("Missing {primary_timeframe} data"))
         })?;
 
         let confirmation_candles =
@@ -81,8 +81,7 @@ impl Strategy for BollingerStrategy {
                 .get(confirmation_timeframe)
                 .ok_or_else(|| {
                     StrategyError::InsufficientData(format!(
-                        "Missing {} data",
-                        confirmation_timeframe
+                        "Missing {confirmation_timeframe} data"
                     ))
                 })?;
 
@@ -91,11 +90,11 @@ impl Strategy for BollingerStrategy {
 
         // Calculate Bollinger Bands for both timeframes
         let primary_bb = calculate_bollinger_bands(primary_candles, bb_period, bb_multiplier)
-            .map_err(|e| StrategyError::CalculationError(e))?;
+            .map_err(StrategyError::CalculationError)?;
 
         let confirmation_bb =
             calculate_bollinger_bands(confirmation_candles, bb_period, bb_multiplier)
-                .map_err(|e| StrategyError::CalculationError(e))?;
+                .map_err(StrategyError::CalculationError)?;
 
         if primary_bb.upper.is_empty() || confirmation_bb.upper.is_empty() {
             return Err(StrategyError::InsufficientData(
