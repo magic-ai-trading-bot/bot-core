@@ -135,8 +135,7 @@ impl BinanceWebSocket {
             // Multiple streams using combined stream endpoint
             let stream_list = streams.join("/");
             Ok(Url::parse(&format!(
-                "{}/stream?streams={}",
-                base_url, stream_list
+                "{base_url}/stream?streams={stream_list}"
             ))?)
         }
     }

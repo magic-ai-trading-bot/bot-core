@@ -336,7 +336,7 @@ impl MarketDataCache {
             .iter()
             .filter_map(|entry| {
                 let key = entry.key();
-                if key.starts_with(&format!("{}:", symbol_upper)) {
+                if key.starts_with(&format!("{symbol_upper}:")) {
                     Some(key.clone())
                 } else {
                     None

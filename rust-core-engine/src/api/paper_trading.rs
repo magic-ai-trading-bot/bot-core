@@ -686,7 +686,7 @@ async fn update_basic_settings(
     request: UpdateBasicSettingsRequest,
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
-    log::info!("Updating basic paper trading settings: {:?}", request);
+    log::info!("Updating basic paper trading settings: {request:?}");
 
     // Get current settings
     let current_settings = api.engine.get_settings().await;

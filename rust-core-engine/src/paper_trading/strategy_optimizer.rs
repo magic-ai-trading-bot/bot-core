@@ -601,7 +601,7 @@ impl StrategyOptimizer {
         }
 
         if analysis.regime_adaptation_score < 0.5 {
-            reasons.push(format!("Poor adaptation to {:?} market conditions", regime));
+            reasons.push(format!("Poor adaptation to {regime:?} market conditions"));
         }
 
         if reasons.is_empty() {
