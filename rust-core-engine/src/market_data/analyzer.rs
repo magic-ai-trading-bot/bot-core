@@ -125,7 +125,8 @@ impl MarketDataAnalyzer {
             parameters: HashMap::new(),
         };
 
-        let url = format!("{}/ai/analyze", self.ai_service_url);
+        let ai_service_url = &self.ai_service_url;
+        let url = format!("{ai_service_url}/ai/analyze");
 
         debug!(
             "Sending analysis request to {} for {} {}",

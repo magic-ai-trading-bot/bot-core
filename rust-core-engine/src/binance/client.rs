@@ -52,9 +52,11 @@ impl BinanceClient {
         T: DeserializeOwned,
     {
         let mut url = if endpoint.starts_with("/fapi/") {
-            Url::parse(&format!("{}{endpoint}", self.config.futures_base_url))?
+            let futures_base_url = &self.config.futures_base_url;
+            Url::parse(&format!("{futures_base_url}{endpoint}"))?
         } else {
-            Url::parse(&format!("{}/api/v3{endpoint}", self.config.base_url))?
+            let base_url = &self.config.base_url;
+            Url::parse(&format!("{base_url}/api/v3{endpoint}"))?
         };
 
         let mut query_params = params.unwrap_or_default();

@@ -300,7 +300,7 @@ impl StrategyOptimizer {
             for (strategy_name, performance) in &snapshot.active_strategies {
                 let entry = analysis
                     .entry(strategy_name.clone())
-                    .or_insert_with(|| StrategyAnalysis::new());
+                    .or_insert_with(StrategyAnalysis::new);
                 entry.add_performance_point(performance, &snapshot.market_conditions);
             }
         }
@@ -716,7 +716,7 @@ impl StrategyOptimizer {
 
         // Calculate parameter sensitivity (simplified)
         let mut parameter_sensitivity = HashMap::new();
-        for (param_name, _) in _parameters {
+        for param_name in _parameters.keys() {
             // Simplified sensitivity analysis
             parameter_sensitivity.insert(param_name.clone(), 0.5);
         }

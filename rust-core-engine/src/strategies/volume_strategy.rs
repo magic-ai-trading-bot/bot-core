@@ -73,7 +73,7 @@ impl Strategy for VolumeStrategy {
 
         let primary_timeframe = "1h";
         let candles = data.timeframe_data.get(primary_timeframe).ok_or_else(|| {
-            StrategyError::InsufficientData(format!("Missing {} data", primary_timeframe))
+            StrategyError::InsufficientData(format!("Missing {primary_timeframe} data"))
         })?;
 
         let volume_sma_period = self.get_volume_sma_period();
@@ -82,8 +82,8 @@ impl Strategy for VolumeStrategy {
 
         // Calculate volume moving average
         let volumes: Vec<f64> = candles.iter().map(|c| c.volume).collect();
-        let volume_sma = calculate_sma(&volumes, volume_sma_period)
-            .map_err(StrategyError::CalculationError)?;
+        let volume_sma =
+            calculate_sma(&volumes, volume_sma_period).map_err(StrategyError::CalculationError)?;
 
         if volume_sma.is_empty() {
             return Err(StrategyError::InsufficientData(
@@ -159,7 +159,7 @@ impl Strategy for VolumeStrategy {
 
         for timeframe in required_timeframes {
             let candles = data.timeframe_data.get(timeframe).ok_or_else(|| {
-                StrategyError::DataValidation(format!("Missing {} timeframe data", timeframe))
+                StrategyError::DataValidation(format!("Missing {timeframe} timeframe data"))
             })?;
 
             let min_required = self.get_volume_sma_period() + 5;
@@ -179,6 +179,7 @@ impl Strategy for VolumeStrategy {
 }
 
 impl VolumeStrategy {
+    #[allow(clippy::too_many_arguments)]
     fn analyze_volume_signals(
         &self,
         _current_volume: f64,

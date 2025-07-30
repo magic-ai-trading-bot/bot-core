@@ -97,7 +97,7 @@ impl Strategy for RsiStrategy {
         let confirmation_timeframe = "4h";
 
         let primary_candles = data.timeframe_data.get(primary_timeframe).ok_or_else(|| {
-            StrategyError::InsufficientData(format!("Missing {} data", primary_timeframe))
+            StrategyError::InsufficientData(format!("Missing {primary_timeframe} data"))
         })?;
 
         let confirmation_candles =
@@ -105,16 +105,15 @@ impl Strategy for RsiStrategy {
                 .get(confirmation_timeframe)
                 .ok_or_else(|| {
                     StrategyError::InsufficientData(format!(
-                        "Missing {} data",
-                        confirmation_timeframe
+                        "Missing {confirmation_timeframe} data"
                     ))
                 })?;
 
         let rsi_period = self.get_rsi_period();
 
         // Calculate RSI for both timeframes
-        let primary_rsi = calculate_rsi(primary_candles, rsi_period)
-            .map_err(StrategyError::CalculationError)?;
+        let primary_rsi =
+            calculate_rsi(primary_candles, rsi_period).map_err(StrategyError::CalculationError)?;
 
         let confirmation_rsi = calculate_rsi(confirmation_candles, rsi_period)
             .map_err(StrategyError::CalculationError)?;
@@ -188,17 +187,15 @@ impl Strategy for RsiStrategy {
 
         for timeframe in required_timeframes {
             let candles = data.timeframe_data.get(timeframe).ok_or_else(|| {
-                StrategyError::DataValidation(format!("Missing {} timeframe data", timeframe))
+                StrategyError::DataValidation(format!("Missing {timeframe} timeframe data"))
             })?;
 
             let min_required = self.get_rsi_period() + 5; // RSI period + buffer
 
             if candles.len() < min_required {
+                let candles_len = candles.len();
                 return Err(StrategyError::InsufficientData(format!(
-                    "Need at least {} candles for {} timeframe, got {}",
-                    min_required,
-                    timeframe,
-                    candles.len()
+                    "Need at least {min_required} candles for {timeframe} timeframe, got {candles_len}"
                 )));
             }
         }
@@ -208,6 +205,7 @@ impl Strategy for RsiStrategy {
 }
 
 impl RsiStrategy {
+    #[allow(clippy::too_many_arguments)]
     fn analyze_rsi_signals(
         &self,
         rsi_1h: f64,

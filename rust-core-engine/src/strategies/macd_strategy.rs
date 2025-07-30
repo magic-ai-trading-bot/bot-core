@@ -86,7 +86,7 @@ impl Strategy for MacdStrategy {
         let confirmation_timeframe = "4h";
 
         let primary_candles = data.timeframe_data.get(primary_timeframe).ok_or_else(|| {
-            StrategyError::InsufficientData(format!("Missing {} data", primary_timeframe))
+            StrategyError::InsufficientData(format!("Missing {primary_timeframe} data"))
         })?;
 
         let confirmation_candles =
@@ -94,8 +94,7 @@ impl Strategy for MacdStrategy {
                 .get(confirmation_timeframe)
                 .ok_or_else(|| {
                     StrategyError::InsufficientData(format!(
-                        "Missing {} data",
-                        confirmation_timeframe
+                        "Missing {confirmation_timeframe} data"
                     ))
                 })?;
 
@@ -200,17 +199,15 @@ impl Strategy for MacdStrategy {
 
         for timeframe in required_timeframes {
             let candles = data.timeframe_data.get(timeframe).ok_or_else(|| {
-                StrategyError::DataValidation(format!("Missing {} timeframe data", timeframe))
+                StrategyError::DataValidation(format!("Missing {timeframe} timeframe data"))
             })?;
 
             let min_required = self.get_slow_period() + self.get_signal_period() + 10; // MACD calculation + buffer
 
             if candles.len() < min_required {
+                let candles_len = candles.len();
                 return Err(StrategyError::InsufficientData(format!(
-                    "Need at least {} candles for {} timeframe, got {}",
-                    min_required,
-                    timeframe,
-                    candles.len()
+                    "Need at least {min_required} candles for {timeframe} timeframe, got {candles_len}"
                 )));
             }
         }
@@ -220,6 +217,7 @@ impl Strategy for MacdStrategy {
 }
 
 impl MacdStrategy {
+    #[allow(clippy::too_many_arguments)]
     fn analyze_macd_signals(
         &self,
         macd_1h: f64,

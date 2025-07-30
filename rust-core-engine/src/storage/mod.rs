@@ -32,7 +32,7 @@ impl Storage {
             if config.url.starts_with("mongodb://") || config.url.starts_with("mongodb+srv://") {
                 let client = Client::with_uri_str(&config.url).await?;
                 let db = client.database(
-                    &config
+                    config
                         .database_name
                         .as_ref()
                         .unwrap_or(&"trading_bot".to_string()),
@@ -252,29 +252,27 @@ impl Storage {
 
                 let mut cursor = collection.aggregate(pipeline, None).await?;
 
-                if let Some(result) = cursor.next().await {
-                    if let Ok(doc) = result {
-                        let total_trades = doc.get_i32("total_trades").unwrap_or(0) as u64;
-                        let winning_trades = doc.get_i32("winning_trades").unwrap_or(0) as u64;
-                        let losing_trades = doc.get_i32("losing_trades").unwrap_or(0) as u64;
+                if let Some(Ok(doc)) = cursor.next().await {
+                    let total_trades = doc.get_i32("total_trades").unwrap_or(0) as u64;
+                    let winning_trades = doc.get_i32("winning_trades").unwrap_or(0) as u64;
+                    let losing_trades = doc.get_i32("losing_trades").unwrap_or(0) as u64;
 
-                        let win_rate = if total_trades > 0 {
-                            (winning_trades as f64 / total_trades as f64) * 100.0
-                        } else {
-                            0.0
-                        };
+                    let win_rate = if total_trades > 0 {
+                        (winning_trades as f64 / total_trades as f64) * 100.0
+                    } else {
+                        0.0
+                    };
 
-                        return Ok(PerformanceStats {
-                            total_trades,
-                            winning_trades,
-                            losing_trades,
-                            win_rate,
-                            total_pnl: doc.get_f64("total_pnl").unwrap_or(0.0),
-                            avg_pnl: doc.get_f64("avg_pnl").unwrap_or(0.0),
-                            max_win: doc.get_f64("max_win").unwrap_or(0.0),
-                            max_loss: doc.get_f64("max_loss").unwrap_or(0.0),
-                        });
-                    }
+                    return Ok(PerformanceStats {
+                        total_trades,
+                        winning_trades,
+                        losing_trades,
+                        win_rate,
+                        total_pnl: doc.get_f64("total_pnl").unwrap_or(0.0),
+                        avg_pnl: doc.get_f64("avg_pnl").unwrap_or(0.0),
+                        max_win: doc.get_f64("max_win").unwrap_or(0.0),
+                        max_loss: doc.get_f64("max_loss").unwrap_or(0.0),
+                    });
                 }
             }
         }
@@ -496,7 +494,7 @@ impl Storage {
             close_time: trade.close_time,
             ai_signal_id: trade.ai_signal_id.clone(),
             ai_confidence: trade.ai_confidence,
-            close_reason: trade.close_reason.as_ref().map(|r| format!("{:?}", r)),
+            close_reason: trade.close_reason.as_ref().map(|r| format!("{r:?}")),
             created_at: Utc::now(),
         };
 
@@ -515,7 +513,7 @@ impl Storage {
                 "pnl_percentage": trade.pnl_percentage,
                 "funding_fees": trade.funding_fees,
                 "close_time": trade.close_time,
-                "close_reason": trade.close_reason.as_ref().map(|r| format!("{:?}", r)),
+                "close_reason": trade.close_reason.as_ref().map(|r| format!("{r:?}")),
             }
         };
 

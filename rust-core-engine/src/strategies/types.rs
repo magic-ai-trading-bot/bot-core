@@ -182,7 +182,7 @@ impl Default for StrategyContext {
 
 impl std::fmt::Display for super::TradingSignal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -195,7 +195,7 @@ impl std::fmt::Display for MarketCondition {
             MarketCondition::LowVolume => "Low Volume",
             MarketCondition::Unknown => "Unknown",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -206,6 +206,6 @@ impl std::fmt::Display for RiskLevel {
             RiskLevel::Moderate => "Moderate",
             RiskLevel::Aggressive => "Aggressive",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
