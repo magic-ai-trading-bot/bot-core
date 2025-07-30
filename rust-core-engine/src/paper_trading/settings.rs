@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Complete paper trading configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PaperTradingSettings {
     /// Basic trading parameters
     pub basic: BasicSettings,
@@ -337,20 +337,6 @@ pub enum NotificationChannel {
     Webhook(String),
 }
 
-impl Default for PaperTradingSettings {
-    fn default() -> Self {
-        Self {
-            basic: BasicSettings::default(),
-            risk: RiskSettings::default(),
-            strategy: StrategySettings::default(),
-            symbols: HashMap::new(),
-            ai: AISettings::default(),
-            execution: ExecutionSettings::default(),
-            notifications: NotificationSettings::default(),
-        }
-    }
-}
-
 impl Default for BasicSettings {
     fn default() -> Self {
         Self {
@@ -550,7 +536,7 @@ impl PaperTradingSettings {
         let symbol_specific = self.symbols.get(symbol);
 
         EffectiveSymbolSettings {
-            enabled: symbol_specific.map_or(true, |s| s.enabled),
+            enabled: symbol_specific.is_none_or(|s| s.enabled),
             leverage: symbol_specific
                 .and_then(|s| s.leverage)
                 .unwrap_or(self.basic.default_leverage),

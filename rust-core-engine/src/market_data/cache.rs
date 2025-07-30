@@ -160,7 +160,8 @@ impl MarketDataCache {
     }
 
     fn get_key(symbol: &str, timeframe: &str) -> String {
-        format!("{}:{timeframe}", symbol.to_uppercase())
+        let symbol_upper = symbol.to_uppercase();
+        format!("{symbol_upper}:{timeframe}")
     }
 
     pub fn update_kline(&self, symbol: &str, timeframe: &str, kline_data: &KlineData) {

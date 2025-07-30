@@ -191,7 +191,7 @@ impl Strategy for BollingerStrategy {
 
         for timeframe in required_timeframes {
             let candles = data.timeframe_data.get(timeframe).ok_or_else(|| {
-                StrategyError::DataValidation(format!("Missing {} timeframe data", timeframe))
+                StrategyError::DataValidation(format!("Missing {timeframe} timeframe data"))
             })?;
 
             let min_required = self.get_bb_period() + 5;
@@ -211,6 +211,7 @@ impl Strategy for BollingerStrategy {
 }
 
 impl BollingerStrategy {
+    #[allow(clippy::too_many_arguments)]
     fn analyze_bollinger_signals(
         &self,
         current_price: f64,

@@ -103,8 +103,7 @@ impl StrategyEngine {
             }
         }
         Err(StrategyError::InvalidConfiguration(format!(
-            "Strategy '{}' not found",
-            name
+            "Strategy '{name}' not found"
         )))
     }
 
@@ -127,7 +126,7 @@ impl StrategyEngine {
 
             // Validate data for this strategy
             if let Err(e) = strategy.validate_data(data) {
-                warn!("Strategy '{}' validation failed: {}", strategy_name, e);
+                warn!("Strategy '{strategy_name}' validation failed: {e}");
                 continue;
             }
 
@@ -151,7 +150,7 @@ impl StrategyEngine {
                     );
                 }
                 Err(e) => {
-                    warn!("Strategy '{}' analysis failed: {}", strategy_name, e);
+                    warn!("Strategy '{strategy_name}' analysis failed: {e}");
                     continue;
                 }
             }
@@ -263,8 +262,7 @@ impl StrategyEngine {
         };
 
         let reasoning = format!(
-            "Weighted average: Long={:.2}, Short={:.2}, Neutral={:.2}",
-            long_score, short_score, neutral_score
+            "Weighted average: Long={long_score:.2}, Short={short_score:.2}, Neutral={neutral_score:.2}"
         );
 
         (final_signal, avg_confidence, reasoning)
@@ -344,11 +342,7 @@ impl StrategyEngine {
             best_result.reasoning
         );
 
-        (
-            best_result.signal.clone(),
-            best_result.confidence,
-            reasoning,
-        )
+        (best_result.signal, best_result.confidence, reasoning)
     }
 
     fn combine_conservative(
@@ -390,7 +384,7 @@ impl StrategyEngine {
             return (
                 TradingSignal::Long,
                 avg_confidence * 0.9, // Conservative discount
-                format!("Conservative: {} high-confidence LONG signals", long_count),
+                format!("Conservative: {long_count} high-confidence LONG signals"),
             );
         }
 
@@ -405,10 +399,7 @@ impl StrategyEngine {
             return (
                 TradingSignal::Short,
                 avg_confidence * 0.9, // Conservative discount
-                format!(
-                    "Conservative: {} high-confidence SHORT signals",
-                    short_count
-                ),
+                format!("Conservative: {short_count} high-confidence SHORT signals"),
             );
         }
 

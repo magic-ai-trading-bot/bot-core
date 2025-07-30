@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use uuid::Uuid;
 
 /// Trade types supported
@@ -8,6 +9,15 @@ use uuid::Uuid;
 pub enum TradeType {
     Long,
     Short,
+}
+
+impl fmt::Display for TradeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TradeType::Long => write!(f, "Long"),
+            TradeType::Short => write!(f, "Short"),
+        }
+    }
 }
 
 /// Trade status
@@ -138,6 +148,7 @@ pub struct PaperTrade {
 
 impl PaperTrade {
     /// Create a new paper trade
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         symbol: String,
         trade_type: TradeType,
@@ -435,7 +446,7 @@ pub struct TradeSummary {
 }
 
 impl TradeType {
-    pub fn to_string(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             TradeType::Long => "Long",
             TradeType::Short => "Short",
@@ -452,7 +463,7 @@ impl TradeType {
 }
 
 impl TradeStatus {
-    pub fn to_string(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             TradeStatus::Open => "Open",
             TradeStatus::Closed => "Closed",

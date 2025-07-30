@@ -125,12 +125,11 @@ pub fn calculate_bollinger_bands(
     let mut upper = Vec::new();
     let mut lower = Vec::new();
 
-    for i in 0..sma.len() {
+    for (i, &mean) in sma.iter().enumerate() {
         let start_idx = i;
         let end_idx = i + period;
 
         // Calculate standard deviation
-        let mean = sma[i];
         let variance: f64 = prices[start_idx..end_idx]
             .iter()
             .map(|&price| (price - mean).powi(2))
@@ -235,8 +234,8 @@ pub fn calculate_ema(prices: &[f64], period: usize) -> Result<Vec<f64>, String> 
     ema_values.push(first_sma);
 
     // Calculate subsequent EMA values
-    for i in period..prices.len() {
-        let ema = (prices[i] * multiplier) + (ema_values.last().unwrap() * (1.0 - multiplier));
+    for price in prices.iter().skip(period) {
+        let ema = (price * multiplier) + (ema_values.last().unwrap() * (1.0 - multiplier));
         ema_values.push(ema);
     }
 

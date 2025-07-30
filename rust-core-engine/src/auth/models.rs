@@ -27,8 +27,9 @@ mod date_time_serde {
 
         match value {
             // BSON DateTime (from MongoDB)
-            bson::Bson::DateTime(dt) => Ok(DateTime::from_timestamp_millis(dt.timestamp_millis())
-                .unwrap_or_else(|| Utc::now())),
+            bson::Bson::DateTime(dt) => {
+                Ok(DateTime::from_timestamp_millis(dt.timestamp_millis()).unwrap_or_else(Utc::now))
+            }
             // String format (RFC 3339)
             bson::Bson::String(s) => s.parse().map_err(D::Error::custom),
             _ => Err(D::Error::custom("Expected DateTime or String")),
@@ -61,8 +62,7 @@ mod optional_date_time_serde {
 
         match value {
             Some(bson::Bson::DateTime(dt)) => Ok(Some(
-                DateTime::from_timestamp_millis(dt.timestamp_millis())
-                    .unwrap_or_else(|| Utc::now()),
+                DateTime::from_timestamp_millis(dt.timestamp_millis()).unwrap_or_else(Utc::now),
             )),
             Some(bson::Bson::String(s)) => Ok(Some(s.parse().map_err(D::Error::custom)?)),
             Some(_) => Err(D::Error::custom("Expected DateTime or String")),

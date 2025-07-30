@@ -149,7 +149,8 @@ impl AIClient {
         &self,
         request: &AIAnalysisRequest,
     ) -> Result<AISignalResponse> {
-        let url = format!("{}/ai/analyze", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/analyze");
 
         // Transform the request to Python-expected format
         let python_request = PythonAIAnalysisRequest::from(request);
@@ -187,7 +188,8 @@ impl AIClient {
         &self,
         request: &StrategyRecommendationRequest,
     ) -> Result<Vec<StrategyRecommendation>> {
-        let url = format!("{}/ai/strategy-recommendations", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/strategy-recommendations");
 
         // Transform the request to Python-expected format
         let python_request = PythonStrategyRecommendationRequest::from(request);
@@ -227,7 +229,8 @@ impl AIClient {
         &self,
         request: &MarketConditionRequest,
     ) -> Result<MarketConditionAnalysis> {
-        let url = format!("{}/ai/market-condition", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/market-condition");
 
         // Transform the request to Python-expected format
         let python_request = PythonMarketConditionRequest::from(request);
@@ -264,7 +267,8 @@ impl AIClient {
 
     /// Send performance feedback to AI for learning
     pub async fn send_performance_feedback(&self, feedback: &PerformanceFeedback) -> Result<()> {
-        let url = format!("{}/ai/feedback", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/feedback");
 
         let response = self
             .client
@@ -293,7 +297,8 @@ impl AIClient {
 
     /// Health check for AI service
     pub async fn health_check(&self) -> Result<bool> {
-        let url = format!("{}/health", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/health");
 
         let response = self
             .client
@@ -307,7 +312,8 @@ impl AIClient {
 
     /// Get AI service information
     pub async fn get_service_info(&self) -> Result<AIServiceInfo> {
-        let url = format!("{}/ai/info", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/info");
 
         let response = self
             .client
@@ -339,7 +345,8 @@ impl AIClient {
 
     /// Get supported strategies from AI service
     pub async fn get_supported_strategies(&self) -> Result<SupportedStrategiesResponse> {
-        let url = format!("{}/ai/strategies", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/strategies");
 
         let response = self
             .client
@@ -371,7 +378,8 @@ impl AIClient {
 
     /// Get AI model performance metrics
     pub async fn get_model_performance(&self) -> Result<AIModelPerformance> {
-        let url = format!("{}/ai/performance", self.base_url);
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/performance");
 
         let response = self
             .client

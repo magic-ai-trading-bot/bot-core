@@ -41,7 +41,7 @@ impl BinanceWebSocket {
 
                     if reconnect_attempts >= max_reconnect_attempts {
                         error!("Max reconnection attempts reached, giving up");
-                        return Err(e.into());
+                        return Err(e);
                     }
 
                     let delay = Duration::from_secs(2_u64.pow(reconnect_attempts.min(6)));
@@ -130,7 +130,8 @@ impl BinanceWebSocket {
 
         if streams.len() == 1 {
             // Single stream
-            Ok(Url::parse(&format!("{base_url}/{}", streams[0]))?)
+            let stream = &streams[0];
+            Ok(Url::parse(&format!("{base_url}/{stream}"))?)
         } else {
             // Multiple streams using combined stream endpoint
             let stream_list = streams.join("/");
@@ -226,7 +227,9 @@ impl BinanceUserDataStream {
     }
 
     pub async fn start(&self) -> Result<()> {
-        let url = format!("{}/ws/{}", self.config.futures_ws_url, self.listen_key);
+        let futures_ws_url = &self.config.futures_ws_url;
+        let listen_key = &self.listen_key;
+        let url = format!("{futures_ws_url}/ws/{listen_key}");
 
         info!("Connecting to user data stream: {url}");
 
