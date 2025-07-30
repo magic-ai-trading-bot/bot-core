@@ -616,9 +616,7 @@ async fn update_strategy_settings(
         .await
     {
         Ok(_) => {
-            log::info!(
-                "✅ Confidence threshold updated to: {confidence_threshold}"
-            );
+            log::info!("✅ Confidence threshold updated to: {confidence_threshold}");
 
             let response = serde_json::json!({
                 "message": "Strategy settings updated successfully",
