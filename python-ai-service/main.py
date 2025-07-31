@@ -404,6 +404,8 @@ class PerformanceFeedback(BaseModel):
 
 class AIServiceInfo(BaseModel):
     """AI service information."""
+    model_config = {"protected_namespaces": ()}
+    
     service_name: str = Field(default="GPT-4 Trading AI")
     version: str = Field(default="2.0.0")
     model_version: str = Field(default="gpt-4o-mini")
@@ -417,6 +419,8 @@ class AIServiceInfo(BaseModel):
 
 class AIModelPerformance(BaseModel):
     """AI model performance metrics."""
+    model_config = {"protected_namespaces": ()}
+    
     overall_accuracy: float = Field(default=0.85)
     precision: float = Field(default=0.82)
     recall: float = Field(default=0.78)
