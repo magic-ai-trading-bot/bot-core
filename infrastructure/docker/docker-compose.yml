@@ -16,6 +16,7 @@ services:
       - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN}
       - PYTHON_API_KEY=${PYTHON_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
       - ./python-ai-service/models:/app/models
       - ./python-ai-service/logs:/app/logs
@@ -58,6 +59,7 @@ services:
       - FLASK_ENV=development
       - ENABLE_HOT_RELOAD=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
       - ./python-ai-service:/app
       - /app/__pycache__
