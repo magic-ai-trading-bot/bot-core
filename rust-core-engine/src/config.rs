@@ -79,7 +79,14 @@ impl Default for Config {
             },
             market_data: MarketDataConfig {
                 symbols: vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()],
-                timeframes: vec!["1m".to_string(), "5m".to_string(), "15m".to_string(), "1h".to_string(), "4h".to_string(), "1d".to_string()],
+                timeframes: vec![
+                    "1m".to_string(),
+                    "5m".to_string(),
+                    "15m".to_string(),
+                    "1h".to_string(),
+                    "4h".to_string(),
+                    "1d".to_string(),
+                ],
                 kline_limit: 500,
                 update_interval_ms: 1000,
                 reconnect_interval_ms: 5000,
@@ -100,7 +107,8 @@ impl Default for Config {
                 margin_type: "CROSSED".to_string(),
             },
             database: DatabaseConfig {
-                url: "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin".to_string(),
+                url: "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin"
+                    .to_string(),
                 database_name: Some("trading_bot".to_string()),
                 max_connections: 10,
                 enable_logging: false,
@@ -118,7 +126,7 @@ impl Default for Config {
 impl Config {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
-        
+
         if !path.exists() {
             // Create default config file if it doesn't exist
             let default_config = Config::default();
@@ -126,34 +134,34 @@ impl Config {
             fs::write(path, config_str)?;
             return Ok(default_config);
         }
-        
+
         let content = fs::read_to_string(path)?;
         let mut config: Config = toml::from_str(&content)?;
-        
+
         // Override with environment variables if they exist
         if let Ok(database_url) = std::env::var("DATABASE_URL") {
             config.database.url = database_url;
         }
-        
+
         if let Ok(binance_api_key) = std::env::var("BINANCE_API_KEY") {
             config.binance.api_key = binance_api_key;
         }
-        
+
         if let Ok(binance_secret_key) = std::env::var("BINANCE_SECRET_KEY") {
             config.binance.secret_key = binance_secret_key;
         }
-        
+
         if let Ok(testnet) = std::env::var("BINANCE_TESTNET") {
             config.binance.testnet = testnet == "true";
         }
-        
+
         if let Ok(python_url) = std::env::var("PYTHON_AI_SERVICE_URL") {
             config.market_data.python_ai_service_url = python_url;
         }
-        
+
         Ok(config)
     }
-    
+
     pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let config_str = toml::to_string_pretty(self)?;
         fs::write(path, config_str)?;
@@ -167,26 +175,30 @@ impl Config {
         // For paper trading, we can skip API key validation
         if self.trading.enabled {
             if self.binance.api_key.is_empty() {
-                return Err(anyhow::anyhow!("Binance API key is required for live trading"));
+                return Err(anyhow::anyhow!(
+                    "Binance API key is required for live trading"
+                ));
             }
-            
+
             if self.binance.secret_key.is_empty() {
-                return Err(anyhow::anyhow!("Binance secret key is required for live trading"));
+                return Err(anyhow::anyhow!(
+                    "Binance secret key is required for live trading"
+                ));
             }
         }
-        
+
         if self.market_data.symbols.is_empty() {
             return Err(anyhow::anyhow!("At least one symbol must be configured"));
         }
-        
+
         if self.market_data.timeframes.is_empty() {
             return Err(anyhow::anyhow!("At least one timeframe must be configured"));
         }
-        
+
         if self.trading.risk_percentage <= 0.0 || self.trading.risk_percentage > 100.0 {
             return Err(anyhow::anyhow!("Risk percentage must be between 0 and 100"));
         }
-        
+
         Ok(())
     }
-} 
+}

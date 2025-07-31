@@ -1,41 +1,39 @@
-pub mod indicators;
-pub mod types;
-pub mod rsi_strategy;
-pub mod macd_strategy;
-pub mod volume_strategy;
 pub mod bollinger_strategy;
+pub mod indicators;
+pub mod macd_strategy;
+pub mod rsi_strategy;
 pub mod strategy_engine;
+pub mod types;
+pub mod volume_strategy;
 
+use crate::market_data::cache::CandleData;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::market_data::cache::CandleData;
 
 // Re-export key types
-pub use types::*;
-pub use strategy_engine::*;
 
 /// Core trait for all trading strategies
 #[async_trait]
 pub trait Strategy: Send + Sync {
     /// Unique identifier for the strategy
     fn name(&self) -> &'static str;
-    
+
     /// Strategy description
     fn description(&self) -> &'static str;
-    
+
     /// Required timeframes for this strategy
     fn required_timeframes(&self) -> Vec<&'static str>;
-    
+
     /// Analyze market data and generate trading signal
     async fn analyze(&self, data: &StrategyInput) -> Result<StrategyOutput, StrategyError>;
-    
+
     /// Get strategy configuration
     fn config(&self) -> &StrategyConfig;
-    
+
     /// Update strategy configuration
     fn update_config(&mut self, config: StrategyConfig);
-    
+
     /// Validate if strategy can analyze the given data
     fn validate_data(&self, data: &StrategyInput) -> Result<(), StrategyError>;
 }
@@ -82,13 +80,13 @@ pub struct StrategyConfig {
 pub enum StrategyError {
     #[error("Insufficient data: {0}")]
     InsufficientData(String),
-    
+
     #[error("Invalid configuration: {0}")]
     InvalidConfiguration(String),
-    
+
     #[error("Calculation error: {0}")]
     CalculationError(String),
-    
+
     #[error("Data validation error: {0}")]
     DataValidation(String),
 }
@@ -104,14 +102,14 @@ impl Default for StrategyConfig {
 }
 
 impl TradingSignal {
-    pub fn to_string(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             TradingSignal::Long => "LONG",
             TradingSignal::Short => "SHORT",
             TradingSignal::Neutral => "NEUTRAL",
         }
     }
-    
+
     pub fn from_string(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "LONG" => Some(TradingSignal::Long),
@@ -120,4 +118,4 @@ impl TradingSignal {
             _ => None,
         }
     }
-} 
+}

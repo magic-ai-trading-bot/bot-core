@@ -11,40 +11,40 @@ use thiserror::Error;
 pub enum AppError {
     #[error("Database error: {0}")]
     Database(#[from] mongodb::error::Error),
-    
+
     #[error("Authentication error: {0}")]
     Auth(String),
-    
+
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     #[error("External API error: {0}")]
     ExternalApi(String),
-    
+
     #[error("Trading error: {0}")]
     Trading(String),
-    
+
     #[error("Rate limit exceeded")]
     RateLimit,
-    
+
     #[error("Resource not found: {0}")]
     NotFound(String),
-    
+
     #[error("Insufficient funds")]
     InsufficientFunds,
-    
+
     #[error("Invalid market conditions: {0}")]
     InvalidMarketConditions(String),
-    
+
     #[error("WebSocket error: {0}")]
     WebSocket(String),
-    
+
     #[error("Configuration error: {0}")]
     Config(String),
-    
+
     #[error("Internal server error")]
     Internal,
-    
+
     #[error("Service unavailable: {0}")]
     ServiceUnavailable(String),
 }
@@ -54,47 +54,71 @@ impl IntoResponse for AppError {
         let (status, error_message, error_type) = match self {
             AppError::Database(ref e) => {
                 tracing::error!("Database error: {:?}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Database error occurred", "database_error")
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Database error occurred",
+                    "database_error",
+                )
             }
-            AppError::Auth(ref msg) => {
-                (StatusCode::UNAUTHORIZED, msg.as_str(), "auth_error")
-            }
+            AppError::Auth(ref msg) => (StatusCode::UNAUTHORIZED, msg.as_str(), "auth_error"),
             AppError::Validation(ref msg) => {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "validation_error")
             }
             AppError::ExternalApi(ref msg) => {
-                tracing::error!("External API error: {}", msg);
-                (StatusCode::BAD_GATEWAY, "External service error", "external_api_error")
+                tracing::error!("External API error: {msg}");
+                (
+                    StatusCode::BAD_GATEWAY,
+                    "External service error",
+                    "external_api_error",
+                )
             }
-            AppError::Trading(ref msg) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str(), "trading_error")
-            }
-            AppError::RateLimit => {
-                (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded", "rate_limit")
-            }
+            AppError::Trading(ref msg) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                msg.as_str(),
+                "trading_error",
+            ),
+            AppError::RateLimit => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "Rate limit exceeded",
+                "rate_limit",
+            ),
             AppError::NotFound(ref resource) => {
                 (StatusCode::NOT_FOUND, resource.as_str(), "not_found")
             }
-            AppError::InsufficientFunds => {
-                (StatusCode::PAYMENT_REQUIRED, "Insufficient funds", "insufficient_funds")
-            }
-            AppError::InvalidMarketConditions(ref msg) => {
-                (StatusCode::PRECONDITION_FAILED, msg.as_str(), "invalid_market_conditions")
-            }
+            AppError::InsufficientFunds => (
+                StatusCode::PAYMENT_REQUIRED,
+                "Insufficient funds",
+                "insufficient_funds",
+            ),
+            AppError::InvalidMarketConditions(ref msg) => (
+                StatusCode::PRECONDITION_FAILED,
+                msg.as_str(),
+                "invalid_market_conditions",
+            ),
             AppError::WebSocket(ref msg) => {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "websocket_error")
             }
             AppError::Config(ref msg) => {
-                tracing::error!("Configuration error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Configuration error", "config_error")
+                tracing::error!("Configuration error: {msg}");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Configuration error",
+                    "config_error",
+                )
             }
             AppError::Internal => {
                 tracing::error!("Internal server error");
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error", "internal_error")
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Internal server error",
+                    "internal_error",
+                )
             }
-            AppError::ServiceUnavailable(ref service) => {
-                (StatusCode::SERVICE_UNAVAILABLE, service.as_str(), "service_unavailable")
-            }
+            AppError::ServiceUnavailable(ref service) => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                service.as_str(),
+                "service_unavailable",
+            ),
         };
 
         let body = Json(json!({
@@ -127,7 +151,7 @@ where
     fn context(self, msg: &str) -> AppResult<T> {
         self.map_err(|e| {
             let app_error: AppError = e.into();
-            tracing::error!("{}: {:?}", msg, app_error);
+            tracing::error!("{msg}: {:?}", app_error);
             app_error
         })
     }
@@ -139,7 +163,7 @@ where
         self.map_err(|e| {
             let app_error: AppError = e.into();
             let context = f();
-            tracing::error!("{}: {:?}", context, app_error);
+            tracing::error!("{context}: {:?}", app_error);
             app_error
         })
     }
@@ -157,7 +181,12 @@ pub fn setup_panic_handler() {
         };
 
         let location = if let Some(location) = panic_info.location() {
-            format!("{}:{}:{}", location.file(), location.line(), location.column())
+            format!(
+                "{}:{}:{}",
+                location.file(),
+                location.line(),
+                location.column()
+            )
         } else {
             "Unknown location".to_string()
         };

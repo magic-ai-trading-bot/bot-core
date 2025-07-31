@@ -1,15 +1,17 @@
 use anyhow::Result;
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use jsonwebtoken::{
+    decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,  // user id
+    pub sub: String, // user id
     pub email: String,
     pub is_admin: bool,
-    pub exp: i64,     // expiration time
-    pub iat: i64,     // issued at
+    pub exp: i64, // expiration time
+    pub iat: i64, // issued at
 }
 
 #[derive(Clone)]
@@ -39,7 +41,11 @@ impl JwtService {
         };
 
         let header = Header::new(Algorithm::HS256);
-        let token = encode(&header, &claims, &EncodingKey::from_secret(self.secret.as_ref()))?;
+        let token = encode(
+            &header,
+            &claims,
+            &EncodingKey::from_secret(self.secret.as_ref()),
+        )?;
 
         Ok(token)
     }
@@ -56,11 +62,7 @@ impl JwtService {
     }
 
     pub fn extract_token_from_header(auth_header: &str) -> Option<&str> {
-        if auth_header.starts_with("Bearer ") {
-            Some(&auth_header[7..])
-        } else {
-            None
-        }
+        auth_header.strip_prefix("Bearer ")
     }
 }
 
@@ -87,7 +89,7 @@ mod tests {
     fn test_password_hashing() {
         let password = "test_password_123";
         let hashed = PasswordService::hash_password(password).unwrap();
-        
+
         assert!(PasswordService::verify_password(password, &hashed).unwrap());
         assert!(!PasswordService::verify_password("wrong_password", &hashed).unwrap());
     }
@@ -95,11 +97,13 @@ mod tests {
     #[test]
     fn test_jwt_token() {
         let jwt_service = JwtService::new("test_secret".to_string(), Some(1));
-        let token = jwt_service.generate_token("user123", "test@example.com", false).unwrap();
-        
+        let token = jwt_service
+            .generate_token("user123", "test@example.com", false)
+            .unwrap();
+
         let claims = jwt_service.verify_token(&token).unwrap();
         assert_eq!(claims.sub, "user123");
         assert_eq!(claims.email, "test@example.com");
         assert!(!claims.is_admin);
     }
-} 
+}

@@ -105,15 +105,17 @@ impl MarketDataAnalyzer {
         limit: Option<usize>,
     ) -> Result<AnalysisResponse> {
         let candles = self.cache.get_candles(symbol, timeframe, limit);
-        
+
         if candles.is_empty() {
-            return Err(anyhow::anyhow!("No candle data available for {} {}", symbol, timeframe));
+            return Err(anyhow::anyhow!(
+                "No candle data available for {} {}",
+                symbol,
+                timeframe
+            ));
         }
 
-        let analysis_candles: Vec<CandleDataForAnalysis> = candles
-            .iter()
-            .map(CandleDataForAnalysis::from)
-            .collect();
+        let analysis_candles: Vec<CandleDataForAnalysis> =
+            candles.iter().map(CandleDataForAnalysis::from).collect();
 
         let request = AnalysisRequest {
             symbol: symbol.to_uppercase(),
@@ -123,28 +125,37 @@ impl MarketDataAnalyzer {
             parameters: HashMap::new(),
         };
 
-        let url = format!("{}/ai/analyze", self.ai_service_url);
-        
-        debug!("Sending analysis request to {} for {} {}", url, symbol, timeframe);
-        
-        let response = self.client
-            .post(&url)
-            .json(&request)
-            .send()
-            .await?;
+        let ai_service_url = &self.ai_service_url;
+        let url = format!("{ai_service_url}/ai/analyze");
+
+        debug!(
+            "Sending analysis request to {} for {} {}",
+            url, symbol, timeframe
+        );
+
+        let response = self.client.post(&url).json(&request).send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await?;
-            error!("Analysis request failed with status {}: {}", status, error_text);
-            return Err(anyhow::anyhow!("AI service request failed: {} - {}", status, error_text));
+            error!(
+                "Analysis request failed with status {}: {}",
+                status, error_text
+            );
+            return Err(anyhow::anyhow!(
+                "AI service request failed: {} - {}",
+                status,
+                error_text
+            ));
         }
 
         let analysis_response: AnalysisResponse = response.json().await?;
-        
-        info!("Received analysis for {} {}: {:?} (confidence: {:.2})", 
-              symbol, timeframe, analysis_response.signal, analysis_response.confidence);
-        
+
+        info!(
+            "Received analysis for {} {}: {:?} (confidence: {:.2})",
+            symbol, timeframe, analysis_response.signal, analysis_response.confidence
+        );
+
         Ok(analysis_response)
     }
 
@@ -160,7 +171,10 @@ impl MarketDataAnalyzer {
 
         // Analyze each timeframe
         for timeframe in timeframes {
-            match self.analyze_single_timeframe(symbol, timeframe, analysis_type, limit).await {
+            match self
+                .analyze_single_timeframe(symbol, timeframe, analysis_type, limit)
+                .await
+            {
                 Ok(analysis) => {
                     timeframe_signals.insert(timeframe.clone(), analysis);
                 }
@@ -172,15 +186,19 @@ impl MarketDataAnalyzer {
         }
 
         if timeframe_signals.is_empty() {
-            return Err(anyhow::anyhow!("All timeframe analyses failed for {}", symbol));
+            return Err(anyhow::anyhow!(
+                "All timeframe analyses failed for {}",
+                symbol
+            ));
         }
 
         // Combine signals to determine overall signal
         let (overall_signal, overall_confidence) = self.combine_signals(&timeframe_signals);
-        
+
         // Calculate trade parameters based on multi-timeframe analysis
-        let (entry_price, stop_loss, take_profit, risk_reward_ratio) = 
-            self.calculate_trade_parameters(symbol, &timeframe_signals).await?;
+        let (entry_price, stop_loss, take_profit, risk_reward_ratio) = self
+            .calculate_trade_parameters(symbol, &timeframe_signals)
+            .await?;
 
         let multi_timeframe_analysis = MultiTimeframeAnalysis {
             symbol: symbol.to_uppercase(),
@@ -194,13 +212,18 @@ impl MarketDataAnalyzer {
             risk_reward_ratio,
         };
 
-        info!("Multi-timeframe analysis for {}: {:?} (confidence: {:.2})", 
-              symbol, multi_timeframe_analysis.overall_signal, overall_confidence);
+        info!(
+            "Multi-timeframe analysis for {}: {:?} (confidence: {:.2})",
+            symbol, multi_timeframe_analysis.overall_signal, overall_confidence
+        );
 
         Ok(multi_timeframe_analysis)
     }
 
-    fn combine_signals(&self, timeframe_signals: &HashMap<String, AnalysisResponse>) -> (TradingSignal, f64) {
+    fn combine_signals(
+        &self,
+        timeframe_signals: &HashMap<String, AnalysisResponse>,
+    ) -> (TradingSignal, f64) {
         if timeframe_signals.is_empty() {
             return (TradingSignal::Hold, 0.0);
         }
@@ -221,7 +244,7 @@ impl MarketDataAnalyzer {
 
         for (timeframe, analysis) in timeframe_signals {
             let weight = timeframe_weights.get(timeframe).unwrap_or(&1.0);
-            
+
             let signal_score = match analysis.signal {
                 TradingSignal::StrongBuy => 2.0,
                 TradingSignal::Buy => 1.0,
@@ -235,7 +258,11 @@ impl MarketDataAnalyzer {
             total_confidence += analysis.confidence;
         }
 
-        let average_score = if total_weight > 0.0 { weighted_score / total_weight } else { 0.0 };
+        let average_score = if total_weight > 0.0 {
+            weighted_score / total_weight
+        } else {
+            0.0
+        };
         let average_confidence = total_confidence / timeframe_signals.len() as f64;
 
         let overall_signal = if average_score >= 1.5 {
@@ -259,13 +286,12 @@ impl MarketDataAnalyzer {
         timeframe_signals: &HashMap<String, AnalysisResponse>,
     ) -> Result<(Option<f64>, Option<f64>, Option<f64>, Option<f64>)> {
         let current_price = self.cache.get_latest_price(symbol);
-        
-        if current_price.is_none() {
-            return Ok((None, None, None, None));
-        }
-        
-        let current_price = current_price.unwrap();
-        
+
+        let current_price = match current_price {
+            Some(price) => price,
+            None => return Ok((None, None, None, None)),
+        };
+
         // Use the longest timeframe for main signal direction
         let main_analysis = timeframe_signals
             .get("1d")
@@ -275,7 +301,7 @@ impl MarketDataAnalyzer {
 
         if let Some(analysis) = main_analysis {
             let entry_price = Some(current_price);
-            
+
             // Calculate stop loss and take profit based on signal
             let (stop_loss, take_profit) = match analysis.signal {
                 TradingSignal::Buy | TradingSignal::StrongBuy => {
@@ -315,17 +341,15 @@ impl MarketDataAnalyzer {
         for symbol in symbols {
             if let Some(latest_price) = self.cache.get_latest_price(symbol) {
                 let timeframes = self.cache.get_timeframes_for_symbol(symbol);
-                
+
                 let mut latest_analyses = HashMap::new();
                 for timeframe in &timeframes {
-                    // Get the most recent analysis (in a real implementation, 
+                    // Get the most recent analysis (in a real implementation,
                     // you'd cache these analyses)
-                    if let Ok(analysis) = self.analyze_single_timeframe(
-                        symbol, 
-                        timeframe, 
-                        "trend_analysis", 
-                        Some(50)
-                    ).await {
+                    if let Ok(analysis) = self
+                        .analyze_single_timeframe(symbol, timeframe, "trend_analysis", Some(50))
+                        .await
+                    {
                         latest_analyses.insert(timeframe.clone(), analysis);
                     }
                 }
@@ -347,14 +371,15 @@ impl MarketDataAnalyzer {
     fn get_data_freshness(&self, symbol: &str) -> HashMap<String, i64> {
         let mut freshness = HashMap::new();
         let timeframes = self.cache.get_timeframes_for_symbol(symbol);
-        
+
         for timeframe in timeframes {
             if let Some(latest_candle) = self.cache.get_latest_candle(symbol, &timeframe) {
-                let age_seconds = (chrono::Utc::now().timestamp_millis() - latest_candle.close_time) / 1000;
+                let age_seconds =
+                    (chrono::Utc::now().timestamp_millis() - latest_candle.close_time) / 1000;
                 freshness.insert(timeframe, age_seconds);
             }
         }
-        
+
         freshness
     }
 }
@@ -365,4 +390,4 @@ pub struct MarketOverview {
     pub current_price: f64,
     pub timeframe_analyses: HashMap<String, AnalysisResponse>,
     pub data_freshness: HashMap<String, i64>, // Age in seconds
-} 
+}

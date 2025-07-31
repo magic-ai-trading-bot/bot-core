@@ -1,14 +1,13 @@
 pub mod client;
 pub mod types;
 
+use crate::strategies::{StrategyInput, TradingSignal};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::strategies::{StrategyInput, TradingSignal};
 
 // Re-export key types
 pub use client::*;
-pub use types::*;
 
 /// AI analysis service for communicating with Python AI
 #[derive(Debug, Clone)]
@@ -30,13 +29,10 @@ pub struct AIServiceConfig {
 impl AIService {
     pub fn new(config: AIServiceConfig) -> Self {
         let client = AIClient::new(&config.python_service_url, config.request_timeout_seconds);
-        
-        Self {
-            client,
-            config,
-        }
+
+        Self { client, config }
     }
-    
+
     /// Analyze market data using AI and return trading signal
     pub async fn analyze_for_trading_signal(
         &self,
@@ -51,31 +47,34 @@ impl AIService {
             timestamp: data.timestamp,
             strategy_context,
         };
-        
+
         let mut attempts = 0;
         let max_retries = self.config.max_retries;
-        
+
         while attempts <= max_retries {
             match self.client.analyze_trading_signals(&request).await {
                 Ok(response) => return Ok(response),
                 Err(e) => {
                     attempts += 1;
                     if attempts > max_retries {
-                        return Err(e.into());
+                        return Err(e);
                     }
-                    
+
                     // Exponential backoff
                     let delay = std::time::Duration::from_millis(100 * (2_u64.pow(attempts - 1)));
                     tokio::time::sleep(delay).await;
-                    
-                    log::warn!("AI analysis attempt {} failed, retrying: {}", attempts, e);
+
+                    log::warn!("AI analysis attempt {attempts} failed, retrying: {e}");
                 }
             }
         }
-        
-        Err(anyhow::anyhow!("AI analysis failed after {} attempts", max_retries))
+
+        Err(anyhow::anyhow!(
+            "AI analysis failed after {} attempts",
+            max_retries
+        ))
     }
-    
+
     /// Get AI recommendations for strategy selection
     pub async fn get_strategy_recommendations(
         &self,
@@ -89,11 +88,10 @@ impl AIService {
             available_strategies,
             timestamp: market_data.timestamp,
         };
-        
+
         self.client.get_strategy_recommendations(&request).await
-            .map_err(|e| e.into())
     }
-    
+
     /// Get market condition analysis
     pub async fn analyze_market_condition(
         &self,
@@ -106,30 +104,25 @@ impl AIService {
             volume_24h: data.volume_24h,
             timestamp: data.timestamp,
         };
-        
+
         self.client.analyze_market_condition(&request).await
-            .map_err(|e| e.into())
     }
-    
+
     /// Send strategy performance feedback to AI for learning
-    pub async fn send_performance_feedback(
-        &self,
-        feedback: PerformanceFeedback,
-    ) -> Result<()> {
+    pub async fn send_performance_feedback(&self, feedback: PerformanceFeedback) -> Result<()> {
         self.client.send_performance_feedback(&feedback).await
-            .map_err(|e| e.into())
     }
-    
+
     /// Get AI service information
     pub async fn get_service_info(&self) -> Result<crate::ai::client::AIServiceInfo> {
         self.client.get_service_info().await
-            .map_err(|e| e.into())
     }
-    
+
     /// Get supported strategies
-    pub async fn get_supported_strategies(&self) -> Result<crate::ai::client::SupportedStrategiesResponse> {
+    pub async fn get_supported_strategies(
+        &self,
+    ) -> Result<crate::ai::client::SupportedStrategiesResponse> {
         self.client.get_supported_strategies().await
-            .map_err(|e| e.into())
     }
 }
 
@@ -262,4 +255,4 @@ pub struct PerformanceFeedback {
     pub confidence_was_accurate: bool,
     pub feedback_notes: Option<String>,
     pub timestamp: i64,
-} 
+}
