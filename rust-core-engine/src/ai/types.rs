@@ -2,30 +2,32 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Error types for AI operations
+#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum AIError {
     #[error("Network error: {0}")]
     Network(String),
-    
+
     #[error("Service unavailable: {0}")]
     ServiceUnavailable(String),
-    
+
     #[error("Invalid request: {0}")]
     InvalidRequest(String),
-    
+
     #[error("Analysis failed: {0}")]
     AnalysisFailed(String),
-    
+
     #[error("Timeout error: {0}")]
     Timeout(String),
-    
+
     #[error("Parsing error: {0}")]
     Parsing(String),
 }
 
 /// AI analysis status
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum AIAnalysisStatus {
+    #[default]
     Pending,
     Processing,
     Completed,
@@ -35,11 +37,11 @@ pub enum AIAnalysisStatus {
 /// AI confidence levels
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AIConfidenceLevel {
-    VeryLow,    // 0.0 - 0.2
-    Low,        // 0.2 - 0.4
-    Medium,     // 0.4 - 0.6
-    High,       // 0.6 - 0.8
-    VeryHigh,   // 0.8 - 1.0
+    VeryLow,  // 0.0 - 0.2
+    Low,      // 0.2 - 0.4
+    Medium,   // 0.4 - 0.6
+    High,     // 0.6 - 0.8
+    VeryHigh, // 0.8 - 1.0
 }
 
 impl AIConfidenceLevel {
@@ -52,7 +54,7 @@ impl AIConfidenceLevel {
             _ => Self::VeryHigh,
         }
     }
-    
+
     pub fn to_score_range(&self) -> (f64, f64) {
         match self {
             Self::VeryLow => (0.0, 0.2),
@@ -245,12 +247,6 @@ impl std::fmt::Display for AIConfidenceLevel {
             AIConfidenceLevel::High => "High",
             AIConfidenceLevel::VeryHigh => "Very High",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
-
-impl Default for AIAnalysisStatus {
-    fn default() -> Self {
-        AIAnalysisStatus::Pending
-    }
-} 

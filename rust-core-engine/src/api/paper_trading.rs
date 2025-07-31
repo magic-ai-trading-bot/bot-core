@@ -1,17 +1,10 @@
-use warp::{Filter, Reply, Rejection};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use warp::{Filter, Rejection, Reply};
 // Removed unused import
 use warp::http::StatusCode;
 
-use crate::paper_trading::{
-    PaperTradingEngine, 
-    PaperTradingSettings,
-};
-use crate::strategies::{
-    StrategyConfig, StrategyEngineConfig, SignalCombinationMode,
-    types::{MarketCondition, RiskLevel},
-};
+use crate::paper_trading::{PaperTradingEngine, PaperTradingSettings};
 
 /// API handlers for paper trading functionality
 pub struct PaperTradingApi {
@@ -168,7 +161,7 @@ impl<T> ApiResponse<T> {
             timestamp: chrono::Utc::now(),
         }
     }
-    
+
     pub fn error(message: String) -> Self {
         Self {
             success: false,
@@ -183,18 +176,18 @@ impl PaperTradingApi {
     pub fn new(engine: Arc<PaperTradingEngine>) -> Self {
         Self { engine }
     }
-    
+
     /// Create paper trading API routes
     pub fn routes(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
         let api = Arc::new(self.clone());
-        
+
         let cors = warp::cors()
             .allow_any_origin()
             .allow_headers(vec!["content-type", "authorization"])
             .allow_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"]);
-        
+
         let base_path = warp::path("paper-trading");
-        
+
         // GET /api/paper-trading/status
         let status_route = base_path
             .and(warp::path("status"))
@@ -202,7 +195,7 @@ impl PaperTradingApi {
             .and(warp::get())
             .and(with_api(api.clone()))
             .and_then(get_status);
-        
+
         // GET /api/paper-trading/portfolio
         let portfolio_route = base_path
             .and(warp::path("portfolio"))
@@ -210,7 +203,7 @@ impl PaperTradingApi {
             .and(warp::get())
             .and(with_api(api.clone()))
             .and_then(get_portfolio);
-        
+
         // GET /api/paper-trading/trades/open
         let open_trades_route = base_path
             .and(warp::path("trades"))
@@ -219,7 +212,7 @@ impl PaperTradingApi {
             .and(warp::get())
             .and(with_api(api.clone()))
             .and_then(get_open_trades);
-        
+
         // GET /api/paper-trading/trades/closed
         let closed_trades_route = base_path
             .and(warp::path("trades"))
@@ -228,7 +221,7 @@ impl PaperTradingApi {
             .and(warp::get())
             .and(with_api(api.clone()))
             .and_then(get_closed_trades);
-        
+
         // POST /api/paper-trading/trades/{trade_id}/close
         let close_trade_route = base_path
             .and(warp::path("trades"))
@@ -239,7 +232,7 @@ impl PaperTradingApi {
             .and(warp::body::json())
             .and(with_api(api.clone()))
             .and_then(close_trade);
-        
+
         // PUT /api/paper-trading/settings
         let update_settings_route = base_path
             .and(warp::path("settings"))
@@ -248,7 +241,7 @@ impl PaperTradingApi {
             .and(warp::body::json())
             .and(with_api(api.clone()))
             .and_then(update_settings);
-        
+
         // GET /api/paper-trading/strategy-settings
         let get_strategy_settings_route = base_path
             .and(warp::path("strategy-settings"))
@@ -256,7 +249,7 @@ impl PaperTradingApi {
             .and(warp::get())
             .and(with_api(api.clone()))
             .and_then(get_strategy_settings);
-        
+
         // PUT /api/paper-trading/strategy-settings
         let update_strategy_settings_route = base_path
             .and(warp::path("strategy-settings"))
@@ -265,7 +258,7 @@ impl PaperTradingApi {
             .and(warp::body::json())
             .and(with_api(api.clone()))
             .and_then(update_strategy_settings);
-        
+
         // GET /api/paper-trading/basic-settings
         let get_basic_settings_route = base_path
             .and(warp::path("basic-settings"))
@@ -273,7 +266,7 @@ impl PaperTradingApi {
             .and(warp::get())
             .and(with_api(api.clone()))
             .and_then(get_basic_settings);
-        
+
         // PUT /api/paper-trading/basic-settings
         let update_basic_settings_route = base_path
             .and(warp::path("basic-settings"))
@@ -282,7 +275,7 @@ impl PaperTradingApi {
             .and(warp::body::json())
             .and(with_api(api.clone()))
             .and_then(update_basic_settings);
-        
+
         // GET /api/paper-trading/symbols
         let get_symbols_route = base_path
             .and(warp::path("symbols"))
@@ -290,7 +283,7 @@ impl PaperTradingApi {
             .and(warp::get())
             .and(with_api(api.clone()))
             .and_then(get_symbol_settings);
-        
+
         // PUT /api/paper-trading/symbols
         let update_symbols_route = base_path
             .and(warp::path("symbols"))
@@ -299,7 +292,7 @@ impl PaperTradingApi {
             .and(warp::body::json())
             .and(with_api(api.clone()))
             .and_then(update_symbol_settings);
-        
+
         // POST /api/paper-trading/reset
         let reset_route = base_path
             .and(warp::path("reset"))
@@ -307,7 +300,7 @@ impl PaperTradingApi {
             .and(warp::post())
             .and(with_api(api.clone()))
             .and_then(reset_portfolio);
-        
+
         // POST /api/paper-trading/start
         let start_route = base_path
             .and(warp::path("start"))
@@ -315,7 +308,7 @@ impl PaperTradingApi {
             .and(warp::post())
             .and(with_api(api.clone()))
             .and_then(start_engine);
-        
+
         // POST /api/paper-trading/stop
         let stop_route = base_path
             .and(warp::path("stop"))
@@ -323,7 +316,7 @@ impl PaperTradingApi {
             .and(warp::post())
             .and(with_api(api.clone()))
             .and_then(stop_engine);
-        
+
         // POST /api/paper-trading/trigger-analysis
         let trigger_analysis_route = base_path
             .and(warp::path("trigger-analysis"))
@@ -331,7 +324,7 @@ impl PaperTradingApi {
             .and(warp::post())
             .and(with_api(api.clone()))
             .and_then(trigger_manual_analysis);
-        
+
         // PUT /api/paper-trading/signal-interval
         let update_signal_interval_route = base_path
             .and(warp::path("signal-interval"))
@@ -340,7 +333,7 @@ impl PaperTradingApi {
             .and(warp::body::json())
             .and(with_api(api.clone()))
             .and_then(update_signal_refresh_interval);
-        
+
         status_route
             .or(portfolio_route)
             .or(open_trades_route)
@@ -383,13 +376,13 @@ fn with_api(
 async fn get_status(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     let portfolio_status = api.engine.get_portfolio_status().await;
     let is_running = api.engine.is_running().await;
-    
+
     let status = serde_json::json!({
         "is_running": is_running,
         "portfolio": portfolio_status,
         "last_updated": chrono::Utc::now(),
     });
-    
+
     Ok(warp::reply::with_status(
         warp::reply::json(&ApiResponse::success(status)),
         StatusCode::OK,
@@ -399,7 +392,7 @@ async fn get_status(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> 
 /// Get portfolio performance summary
 async fn get_portfolio(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     let portfolio_status = api.engine.get_portfolio_status().await;
-    
+
     Ok(warp::reply::with_status(
         warp::reply::json(&ApiResponse::success(portfolio_status)),
         StatusCode::OK,
@@ -409,7 +402,7 @@ async fn get_portfolio(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejectio
 /// Get open trades
 async fn get_open_trades(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     let trades = api.engine.get_open_trades().await;
-    
+
     Ok(warp::reply::with_status(
         warp::reply::json(&ApiResponse::success(trades)),
         StatusCode::OK,
@@ -419,7 +412,7 @@ async fn get_open_trades(api: Arc<PaperTradingApi>) -> Result<impl Reply, Reject
 /// Get closed trades
 async fn get_closed_trades(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     let trades = api.engine.get_closed_trades().await;
-    
+
     Ok(warp::reply::with_status(
         warp::reply::json(&ApiResponse::success(trades)),
         StatusCode::OK,
@@ -438,18 +431,16 @@ async fn close_trade(
                 "trade_id": trade_id,
                 "message": "Trade closed successfully",
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::BAD_REQUEST,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
     }
 }
 
@@ -463,18 +454,16 @@ async fn update_settings(
             let response = serde_json::json!({
                 "message": "Settings updated successfully",
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::BAD_REQUEST,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
     }
 }
 
@@ -485,18 +474,16 @@ async fn reset_portfolio(api: Arc<PaperTradingApi>) -> Result<impl Reply, Reject
             let response = serde_json::json!({
                 "message": "Portfolio reset successfully",
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )),
     }
 }
 
@@ -508,18 +495,16 @@ async fn start_engine(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection
                 "message": "Paper trading engine start command received",
                 "note": "Engine will start in background",
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )),
     }
 }
 
@@ -530,18 +515,16 @@ async fn stop_engine(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection>
             let response = serde_json::json!({
                 "message": "Paper trading engine stopped successfully",
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )),
     }
 }
 
@@ -549,7 +532,7 @@ async fn stop_engine(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection>
 async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     // Get actual settings from engine
     let engine_settings = api.engine.get_settings().await;
-    
+
     let strategy_settings = TradingStrategySettings {
         strategies: StrategyConfigCollection {
             rsi: RsiConfig {
@@ -585,13 +568,13 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
             max_portfolio_risk: engine_settings.risk.max_portfolio_risk_pct,
             stop_loss_percent: engine_settings.risk.default_stop_loss_pct,
             take_profit_percent: engine_settings.risk.default_take_profit_pct,
-            max_leverage: engine_settings.risk.max_leverage as u32,
+            max_leverage: engine_settings.risk.max_leverage.into(),
             max_drawdown: engine_settings.risk.max_drawdown_pct,
             daily_loss_limit: engine_settings.risk.daily_loss_limit_pct,
-            max_consecutive_losses: engine_settings.risk.max_consecutive_losses as u32,
+            max_consecutive_losses: engine_settings.risk.max_consecutive_losses,
         },
         engine: EngineSettings {
-            min_confidence_threshold: engine_settings.strategy.min_ai_confidence,  // 🎯 ACTUAL THRESHOLD
+            min_confidence_threshold: engine_settings.strategy.min_ai_confidence, // 🎯 ACTUAL THRESHOLD
             signal_combination_mode: "WeightedAverage".to_string(),
             enabled_strategies: vec![
                 "RSI Strategy".to_string(),
@@ -603,7 +586,7 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
             risk_level: "Moderate".to_string(),
         },
     };
-    
+
     Ok(warp::reply::with_status(
         warp::reply::json(&ApiResponse::success(strategy_settings)),
         StatusCode::OK,
@@ -616,21 +599,25 @@ async fn update_strategy_settings(
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
     log::info!("Updating strategy settings: {:?}", request.settings);
-    
+
     // Get current settings and update with new values
     let current_settings = api.engine.get_settings().await;
-    let mut new_settings = current_settings.clone();
-    
+    let _new_settings = current_settings.clone();
+
     // Update confidence threshold - this is the key setting!
     let confidence_threshold = request.settings.engine.min_confidence_threshold;
-    log::info!("Applying confidence threshold: {}", confidence_threshold);
-    
+    log::info!("Applying confidence threshold: {confidence_threshold}");
+
     // Update engine confidence threshold (this affects trade creation)
     // We need to update the internal engine configuration
-    match api.engine.update_confidence_threshold(confidence_threshold).await {
+    match api
+        .engine
+        .update_confidence_threshold(confidence_threshold)
+        .await
+    {
         Ok(_) => {
-            log::info!("✅ Confidence threshold updated to: {}", confidence_threshold);
-            
+            log::info!("✅ Confidence threshold updated to: {confidence_threshold}");
+
             let response = serde_json::json!({
                 "message": "Strategy settings updated successfully",
                 "applied_settings": {
@@ -639,17 +626,19 @@ async fn update_strategy_settings(
                     "risk_level": request.settings.engine.risk_level,
                 },
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
+        }
         Err(e) => {
-            log::error!("❌ Failed to update confidence threshold: {}", e);
-            
+            log::error!("❌ Failed to update confidence threshold: {e}");
+
             Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(format!("Failed to update settings: {}", e))),
+                warp::reply::json(&ApiResponse::<()>::error(format!(
+                    "Failed to update settings: {e}"
+                ))),
                 StatusCode::INTERNAL_SERVER_ERROR,
             ))
         }
@@ -657,11 +646,9 @@ async fn update_strategy_settings(
 }
 
 /// Get basic paper trading settings
-async fn get_basic_settings(
-    api: Arc<PaperTradingApi>,
-) -> Result<impl Reply, Rejection> {
+async fn get_basic_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     let settings = api.engine.get_settings().await;
-    
+
     let basic_settings = serde_json::json!({
         "basic": {
             "initial_balance": settings.basic.initial_balance,
@@ -687,7 +674,7 @@ async fn get_basic_settings(
             "cool_down_minutes": settings.risk.cool_down_minutes
         }
     });
-    
+
     Ok(warp::reply::with_status(
         warp::reply::json(&ApiResponse::success(basic_settings)),
         StatusCode::OK,
@@ -699,12 +686,12 @@ async fn update_basic_settings(
     request: UpdateBasicSettingsRequest,
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
-    log::info!("Updating basic paper trading settings: {:?}", request);
-    
+    log::info!("Updating basic paper trading settings: {request:?}");
+
     // Get current settings
     let current_settings = api.engine.get_settings().await;
     let mut new_settings = current_settings.clone();
-    
+
     // Update basic settings fields
     if let Some(initial_balance) = request.initial_balance {
         new_settings.basic.initial_balance = initial_balance;
@@ -730,7 +717,7 @@ async fn update_basic_settings(
     if let Some(enabled) = request.enabled {
         new_settings.basic.enabled = enabled;
     }
-    
+
     // Update risk settings fields
     if let Some(max_risk_per_trade_pct) = request.max_risk_per_trade_pct {
         new_settings.risk.max_risk_per_trade_pct = max_risk_per_trade_pct;
@@ -747,46 +734,44 @@ async fn update_basic_settings(
     if let Some(max_leverage) = request.max_leverage {
         new_settings.risk.max_leverage = max_leverage;
     }
-    
+
     // Update the engine settings
     match api.engine.update_settings(new_settings).await {
         Ok(_) => {
             // If initial balance changed, reset portfolio
             if request.initial_balance.is_some() {
                 if let Err(e) = api.engine.reset_portfolio().await {
-                    log::error!("Failed to reset portfolio after settings update: {}", e);
+                    log::error!("Failed to reset portfolio after settings update: {e}");
                 }
             }
-            
+
             let response = serde_json::json!({
                 "message": "Basic settings updated successfully and portfolio reset",
                 "updated_fields": request,
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::BAD_REQUEST,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
     }
 }
 
 /// Get symbol settings
 async fn get_symbol_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     let settings = api.engine.get_settings().await;
-    
+
     // Convert internal symbol settings to frontend format
     let mut symbol_configs = std::collections::HashMap::new();
-    
+
     // Add default symbols with current settings or defaults
     let default_symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
-    
+
     for symbol in default_symbols {
         let symbol_setting = settings.symbols.get(symbol);
         let config = if let Some(setting) = symbol_setting {
@@ -809,10 +794,10 @@ async fn get_symbol_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Re
                 max_positions: Some(2),
             }
         };
-        
+
         symbol_configs.insert(symbol.to_string(), config);
     }
-    
+
     Ok(warp::reply::with_status(
         warp::reply::json(&ApiResponse::success(symbol_configs)),
         StatusCode::OK,
@@ -825,12 +810,12 @@ async fn update_symbol_settings(
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
     log::info!("Updating symbol settings: {:?}", request.symbols);
-    
+
     let mut current_settings = api.engine.get_settings().await;
-    
+
     // Clone the keys before iterating to avoid borrowing issues
     let symbol_keys: Vec<String> = request.symbols.keys().cloned().collect();
-    
+
     // Update symbol settings
     for (symbol, config) in request.symbols {
         let symbol_setting = crate::paper_trading::settings::SymbolSettings {
@@ -844,28 +829,28 @@ async fn update_symbol_settings(
             max_positions: config.max_positions,
             custom_params: std::collections::HashMap::new(),
         };
-        
-        current_settings.symbols.insert(symbol.clone(), symbol_setting);
+
+        current_settings
+            .symbols
+            .insert(symbol.clone(), symbol_setting);
     }
-    
+
     match api.engine.update_settings(current_settings).await {
         Ok(_) => {
             let response = serde_json::json!({
                 "message": "Symbol settings updated successfully",
                 "updated_symbols": symbol_keys,
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::BAD_REQUEST,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
     }
 }
 
@@ -876,18 +861,16 @@ async fn trigger_manual_analysis(api: Arc<PaperTradingApi>) -> Result<impl Reply
             let response = serde_json::json!({
                 "message": "Manual analysis triggered successfully",
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )),
     }
 }
 
@@ -896,26 +879,30 @@ async fn update_signal_refresh_interval(
     request: UpdateSignalIntervalRequest,
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
-    log::info!("Updating signal refresh interval: {:?}", request.interval_minutes);
-    
-    match api.engine.update_signal_refresh_interval(request.interval_minutes).await {
+    log::info!(
+        "Updating signal refresh interval: {:?}",
+        request.interval_minutes
+    );
+
+    match api
+        .engine
+        .update_signal_refresh_interval(request.interval_minutes)
+        .await
+    {
         Ok(_) => {
             let response = serde_json::json!({
                 "message": "Signal refresh interval updated successfully",
                 "updated_interval": request.interval_minutes,
             });
-            
+
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        },
-        Err(e) => {
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::BAD_REQUEST,
-            ))
         }
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
     }
 }
-

@@ -22,19 +22,21 @@ pub struct StrategyContext {
 }
 
 /// Market condition assessment
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum MarketCondition {
     Trending,
     Ranging,
     Volatile,
     LowVolume,
+    #[default]
     Unknown,
 }
 
 /// Risk level for trading
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum RiskLevel {
     Conservative,
+    #[default]
     Moderate,
     Aggressive,
 }
@@ -162,18 +164,6 @@ pub enum SignalQualityRating {
     VeryPoor,
 }
 
-impl Default for MarketCondition {
-    fn default() -> Self {
-        MarketCondition::Unknown
-    }
-}
-
-impl Default for RiskLevel {
-    fn default() -> Self {
-        RiskLevel::Moderate
-    }
-}
-
 impl Default for StrategyContext {
     fn default() -> Self {
         Self {
@@ -192,7 +182,7 @@ impl Default for StrategyContext {
 
 impl std::fmt::Display for super::TradingSignal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -205,7 +195,7 @@ impl std::fmt::Display for MarketCondition {
             MarketCondition::LowVolume => "Low Volume",
             MarketCondition::Unknown => "Unknown",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -216,6 +206,6 @@ impl std::fmt::Display for RiskLevel {
             RiskLevel::Moderate => "Moderate",
             RiskLevel::Aggressive => "Aggressive",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
-} 
+}

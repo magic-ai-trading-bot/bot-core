@@ -2,17 +2,17 @@
 
 pub mod engine;
 pub mod portfolio;
-pub mod trade;
 pub mod settings;
 pub mod strategy_optimizer;
+pub mod trade;
 
 pub use engine::PaperTradingEngine;
 pub use portfolio::PaperPortfolio;
-pub use trade::{PaperTrade, TradeType};
 pub use settings::PaperTradingSettings;
+pub use trade::PaperTrade;
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Paper trading signal from AI
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,4 +88,4 @@ pub struct PerformanceSummary {
     pub equity: f64,
     pub margin_used: f64,
     pub free_margin: f64,
-} 
+}

@@ -89,10 +89,10 @@ nano .env  # Thêm API keys của bạn
        │         │          │          │
 ┌──────▼─────────▼──────────▼──────────▼─────────┐
 │              Data Layer                         │
-├─────────────┬──────────────┬───────────────────┤
-│  MongoDB    │  PostgreSQL  │   Redis Cache     │
-│  Replicas   │  Replicas    │                   │
-└─────────────┴──────────────┴───────────────────┘
+├─────────────────────────┬───────────────────────┤
+│     MongoDB Replicas    │     Redis Cache       │
+│   (Primary + Secondary) │   (Session & Cache)   │
+└─────────────────────────┴───────────────────────┘
 ```
 
 ### Services Chi Tiết
@@ -203,7 +203,6 @@ make lint
 ```env
 # Database
 DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/trading_bot
-POSTGRES_PASSWORD=secure-password
 REDIS_PASSWORD=secure-password
 
 # API Keys
@@ -456,7 +455,7 @@ make health
 ./scripts/bot.sh logs --service rabbitmq
 ```
 
-## 📁 Cấu Trúc Folders Mới
+## 📁 Cấu Trúc Folders (Đã Tối Ưu)
 
 ```
 bot-core/
@@ -465,20 +464,30 @@ bot-core/
 │   ├── DISASTER_RECOVERY.md
 │   ├── PRODUCTION_DEPLOYMENT.md
 │   ├── SECURITY.md
-│   └── SYSTEM_OVERVIEW_10.md
-├── e2e/                # End-to-end tests (Cypress)
-├── istio/              # Service mesh configs
-├── kong/               # API Gateway configs
-├── monitoring/         # Prometheus & alerts
-├── nginx/              # Load balancer config
-├── rabbitmq/           # Message queue configs
-├── mongodb/            # MongoDB replica configs
-├── terraform/          # Infrastructure as Code
-└── scripts/
-    ├── bot.sh         # Main control script (UPDATED)
-    ├── demo.sh        # Demo các options
-    ├── generate-secrets.sh
-    └── verify-setup.sh # Kiểm tra configuration
+│   ├── SYSTEM_OVERVIEW_10.md
+│   └── DATABASE_ARCHITECTURE.md
+├── infrastructure/     # Tất cả infrastructure configs
+│   ├── docker/         # Docker compose files
+│   ├── kubernetes/     # K8s & Istio configs
+│   ├── terraform/      # Infrastructure as Code
+│   ├── nginx/          # Load balancer
+│   ├── kong/           # API Gateway
+│   ├── rabbitmq/       # Message queue
+│   ├── mongodb/        # Database configs
+│   └── monitoring/     # Prometheus & Grafana
+├── tests/              # Centralized testing
+│   ├── e2e/           # Cypress tests
+│   ├── integration/   # Integration tests
+│   └── performance/   # Performance tests
+├── scripts/           # Utility scripts
+│   ├── bot.sh         # Main control script
+│   ├── demo.sh        # Demo features
+│   ├── generate-secrets.sh
+│   ├── verify-setup.sh
+│   └── reorganize-structure.sh
+├── rust-core-engine/   # Rust trading engine
+├── python-ai-service/  # Python AI/ML service
+└── nextjs-ui-dashboard/ # React frontend
 ```
 
 ## 🚦 Services và Ports Mapping

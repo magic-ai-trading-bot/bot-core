@@ -8,8 +8,8 @@ use std::collections::HashMap;
 use tracing::{error, trace};
 use url::Url;
 
-use crate::config::BinanceConfig;
 use super::types::*;
+use crate::config::BinanceConfig;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -41,24 +41,32 @@ impl BinanceClient {
         Utc::now().timestamp_millis()
     }
 
-    async fn make_request<T>(&self, method: Method, endpoint: &str, params: Option<HashMap<String, String>>, signed: bool) -> Result<T>
+    async fn make_request<T>(
+        &self,
+        method: Method,
+        endpoint: &str,
+        params: Option<HashMap<String, String>>,
+        signed: bool,
+    ) -> Result<T>
     where
         T: DeserializeOwned,
     {
         let mut url = if endpoint.starts_with("/fapi/") {
-            Url::parse(&format!("{}{}", self.config.futures_base_url, endpoint))?
+            let futures_base_url = &self.config.futures_base_url;
+            Url::parse(&format!("{futures_base_url}{endpoint}"))?
         } else {
-            Url::parse(&format!("{}/api/v3{}", self.config.base_url, endpoint))?
+            let base_url = &self.config.base_url;
+            Url::parse(&format!("{base_url}/api/v3{endpoint}"))?
         };
 
         let mut query_params = params.unwrap_or_default();
 
         if signed {
             query_params.insert("timestamp".to_string(), Self::get_timestamp().to_string());
-            
+
             let query_string = query_params
                 .iter()
-                .map(|(k, v)| format!("{}={}", k, v))
+                .map(|(k, v)| format!("{k}={v}"))
                 .collect::<Vec<_>>()
                 .join("&");
 
@@ -75,41 +83,52 @@ impl BinanceClient {
 
         // Add headers
         request_builder = request_builder.header("Content-Type", "application/json");
-        
+
         if signed || !self.config.api_key.is_empty() {
             request_builder = request_builder.header("X-MBX-APIKEY", &self.config.api_key);
         }
 
-        trace!("Making request to: {}", url);
+        trace!("Making request to: {url}");
 
         let response = request_builder.send().await?;
-        
+
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await?;
-            error!("Request failed with status {}: {}", status, error_text);
-            return Err(anyhow::anyhow!("API request failed: {} - {}", status, error_text));
+            error!("Request failed with status {status}: {error_text}");
+            return Err(anyhow::anyhow!(
+                "API request failed: {} - {}",
+                status,
+                error_text
+            ));
         }
 
         let response_text = response.text().await?;
-        trace!("Response: {}", response_text);
-        
+        trace!("Response: {response_text}");
+
         let result: T = serde_json::from_str(&response_text)?;
         Ok(result)
     }
 
     // Public API endpoints
-    pub async fn get_klines(&self, symbol: &str, interval: &str, limit: Option<u16>) -> Result<Vec<Kline>> {
+    pub async fn get_klines(
+        &self,
+        symbol: &str,
+        interval: &str,
+        limit: Option<u16>,
+    ) -> Result<Vec<Kline>> {
         let mut params = HashMap::new();
         params.insert("symbol".to_string(), symbol.to_uppercase());
         params.insert("interval".to_string(), interval.to_string());
-        
+
         if let Some(limit) = limit {
             params.insert("limit".to_string(), limit.to_string());
         }
 
-        let response: Vec<serde_json::Value> = self.make_request(Method::GET, "/klines", Some(params), false).await?;
-        
+        let response: Vec<serde_json::Value> = self
+            .make_request(Method::GET, "/klines", Some(params), false)
+            .await?;
+
         let klines: Vec<Kline> = response
             .into_iter()
             .map(|k| {
@@ -137,17 +156,24 @@ impl BinanceClient {
         Ok(klines)
     }
 
-    pub async fn get_futures_klines(&self, symbol: &str, interval: &str, limit: Option<u16>) -> Result<Vec<Kline>> {
+    pub async fn get_futures_klines(
+        &self,
+        symbol: &str,
+        interval: &str,
+        limit: Option<u16>,
+    ) -> Result<Vec<Kline>> {
         let mut params = HashMap::new();
         params.insert("symbol".to_string(), symbol.to_uppercase());
         params.insert("interval".to_string(), interval.to_string());
-        
+
         if let Some(limit) = limit {
             params.insert("limit".to_string(), limit.to_string());
         }
 
-        let response: Vec<serde_json::Value> = self.make_request(Method::GET, "/fapi/v1/klines", Some(params), false).await?;
-        
+        let response: Vec<serde_json::Value> = self
+            .make_request(Method::GET, "/fapi/v1/klines", Some(params), false)
+            .await?;
+
         let klines: Vec<Kline> = response
             .into_iter()
             .map(|k| {
@@ -181,11 +207,13 @@ impl BinanceClient {
     }
 
     pub async fn get_futures_account(&self) -> Result<serde_json::Value> {
-        self.make_request(Method::GET, "/fapi/v2/account", None, true).await
+        self.make_request(Method::GET, "/fapi/v2/account", None, true)
+            .await
     }
 
     pub async fn get_futures_positions(&self) -> Result<Vec<FuturesPosition>> {
-        self.make_request(Method::GET, "/fapi/v2/positionRisk", None, true).await
+        self.make_request(Method::GET, "/fapi/v2/positionRisk", None, true)
+            .await
     }
 
     pub async fn get_open_orders(&self, symbol: Option<&str>) -> Result<Vec<FuturesOrder>> {
@@ -193,53 +221,64 @@ impl BinanceClient {
         if let Some(symbol) = symbol {
             params.insert("symbol".to_string(), symbol.to_uppercase());
         }
-        
-        self.make_request(Method::GET, "/fapi/v1/openOrders", Some(params), true).await
+
+        self.make_request(Method::GET, "/fapi/v1/openOrders", Some(params), true)
+            .await
     }
 
     pub async fn place_futures_order(&self, order: NewOrderRequest) -> Result<OrderResponse> {
         let mut params = HashMap::new();
-        
+
         params.insert("symbol".to_string(), order.symbol);
         params.insert("side".to_string(), order.side);
         params.insert("type".to_string(), order.r#type);
-        
+
         if let Some(quantity) = order.quantity {
             params.insert("quantity".to_string(), quantity);
         }
-        
+
         if let Some(price) = order.price {
             params.insert("price".to_string(), price);
         }
-        
+
         if let Some(time_in_force) = order.time_in_force {
             params.insert("timeInForce".to_string(), time_in_force);
         }
-        
+
         if let Some(reduce_only) = order.reduce_only {
             params.insert("reduceOnly".to_string(), reduce_only.to_string());
         }
-        
+
         if let Some(new_client_order_id) = order.new_client_order_id {
             params.insert("newClientOrderId".to_string(), new_client_order_id);
         }
 
-        self.make_request(Method::POST, "/fapi/v1/order", Some(params), true).await
+        self.make_request(Method::POST, "/fapi/v1/order", Some(params), true)
+            .await
     }
 
-    pub async fn cancel_order(&self, symbol: &str, order_id: Option<i64>, orig_client_order_id: Option<&str>) -> Result<serde_json::Value> {
+    pub async fn cancel_order(
+        &self,
+        symbol: &str,
+        order_id: Option<i64>,
+        orig_client_order_id: Option<&str>,
+    ) -> Result<serde_json::Value> {
         let mut params = HashMap::new();
         params.insert("symbol".to_string(), symbol.to_uppercase());
-        
+
         if let Some(order_id) = order_id {
             params.insert("orderId".to_string(), order_id.to_string());
         }
-        
+
         if let Some(orig_client_order_id) = orig_client_order_id {
-            params.insert("origClientOrderId".to_string(), orig_client_order_id.to_string());
+            params.insert(
+                "origClientOrderId".to_string(),
+                orig_client_order_id.to_string(),
+            );
         }
 
-        self.make_request(Method::DELETE, "/fapi/v1/order", Some(params), true).await
+        self.make_request(Method::DELETE, "/fapi/v1/order", Some(params), true)
+            .await
     }
 
     pub async fn change_leverage(&self, symbol: &str, leverage: u8) -> Result<serde_json::Value> {
@@ -247,28 +286,36 @@ impl BinanceClient {
         params.insert("symbol".to_string(), symbol.to_uppercase());
         params.insert("leverage".to_string(), leverage.to_string());
 
-        self.make_request(Method::POST, "/fapi/v1/leverage", Some(params), true).await
+        self.make_request(Method::POST, "/fapi/v1/leverage", Some(params), true)
+            .await
     }
 
-    pub async fn change_margin_type(&self, symbol: &str, margin_type: &str) -> Result<serde_json::Value> {
+    pub async fn change_margin_type(
+        &self,
+        symbol: &str,
+        margin_type: &str,
+    ) -> Result<serde_json::Value> {
         let mut params = HashMap::new();
         params.insert("symbol".to_string(), symbol.to_uppercase());
         params.insert("marginType".to_string(), margin_type.to_string());
 
-        self.make_request(Method::POST, "/fapi/v1/marginType", Some(params), true).await
+        self.make_request(Method::POST, "/fapi/v1/marginType", Some(params), true)
+            .await
     }
 
     pub async fn get_symbol_price(&self, symbol: &str) -> Result<SymbolPrice> {
         let mut params = HashMap::new();
         params.insert("symbol".to_string(), symbol.to_uppercase());
 
-        self.make_request(Method::GET, "/ticker/price", Some(params), false).await
+        self.make_request(Method::GET, "/ticker/price", Some(params), false)
+            .await
     }
 
     pub async fn get_funding_rate(&self, symbol: &str) -> Result<FundingRate> {
         let mut params = HashMap::new();
         params.insert("symbol".to_string(), symbol.to_uppercase());
 
-        self.make_request(Method::GET, "/fapi/v1/fundingRate", Some(params), false).await
+        self.make_request(Method::GET, "/fapi/v1/fundingRate", Some(params), false)
+            .await
     }
-} 
+}
