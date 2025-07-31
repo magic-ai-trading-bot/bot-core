@@ -1,0 +1,140 @@
+name: Python AI Service Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'python-ai-service/**'
+      - '.github/workflows/python-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'python-ai-service/**'
+      - '.github/workflows/python-tests.yml'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    name: Python AI Service Tests
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: password
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: 'python-ai-service/requirements*.txt'
+
+    - name: Install dependencies
+      run: |
+        cd python-ai-service
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+        pip install -r requirements.dev.txt
+        pip show flake8 || pip install flake8==6.0.0
+
+    - name: Lint with flake8
+      run: |
+        cd python-ai-service
+        which flake8 || (echo "flake8 not found, installing..." && pip install flake8==6.0.0)
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || true
+
+    - name: Type check with mypy
+      continue-on-error: true
+      run: |
+        cd python-ai-service
+        mypy . --ignore-missing-imports || true
+
+    - name: Run tests with coverage
+      env:
+        DATABASE_URL: mongodb://root:password@localhost:27017/test_trading_bot
+        OPENAI_API_KEYS: test_key_1,test_key_2,test_key_3
+        ENVIRONMENT: test
+        LOG_LEVEL: INFO
+      run: |
+        cd python-ai-service
+        chmod +x run_tests.sh
+        ./run_tests.sh
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: python-ai-service/coverage.xml
+        flags: python
+        name: python-ai-service-coverage
+        fail_ci_if_error: true
+
+    - name: Archive coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-coverage-report
+        path: python-ai-service/htmlcov/
+
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: py-cov-action/python-coverage-comment-action@v3
+      with:
+        GITHUB_TOKEN: ${{ github.token }}
+        COVERAGE_DATA_PATH: python-ai-service/coverage.xml
+
+    - name: Validate coverage threshold
+      run: |
+        cd python-ai-service
+        coverage report --fail-under=90
+
+  python-security:
+    runs-on: ubuntu-latest
+    name: Python Security Scan
+    needs: python-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        cd python-ai-service
+        pip install safety bandit
+
+    - name: Run safety check
+      run: |
+        cd python-ai-service
+        safety check -r requirements.txt --json || true
+
+    - name: Run bandit security check
+      run: |
+        cd python-ai-service
+        bandit -r . -f json || true
+
+    - name: Upload security scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: python-ai-service/bandit-report.sarif
+      continue-on-error: true

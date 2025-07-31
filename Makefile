@@ -157,11 +157,10 @@ dev-rebuild: ## Rebuild and restart development services
 	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up --build -d
 
 # Testing
-test: ## Run all tests
-	@echo "Running all tests..."
-	@$(MAKE) test-rust
-	@$(MAKE) test-python
-	@$(MAKE) test-frontend
+test: ## Run all tests with coverage
+	@echo "🧪 Running all tests with coverage..."
+	@chmod +x run_all_tests.sh
+	@./run_all_tests.sh
 
 test-integration: ## Run integration tests for all services
 	@echo "Running integration tests..."
@@ -186,17 +185,17 @@ test-websocket: ## Test WebSocket communication
 	@echo "Testing WebSocket integration..."
 	@cd nextjs-ui-dashboard && npm run test:websocket
 
-test-rust: ## Run Rust tests
-	@echo "Running Rust tests..."
-	@cd rust-core-engine && cargo test
+test-rust: ## Run Rust tests with coverage
+	@echo "🦀 Running Rust tests..."
+	@cd rust-core-engine && chmod +x run_tests.sh && ./run_tests.sh
 
-test-python: ## Run Python tests
-	@echo "Running Python tests..."
-	@cd python-ai-service && python -m pytest tests/ -v
+test-python: ## Run Python tests with coverage
+	@echo "🐍 Running Python tests..."
+	@cd python-ai-service && chmod +x run_tests.sh && ./run_tests.sh
 
-test-frontend: ## Run Frontend tests
-	@echo "Running Frontend tests..."
-	@cd nextjs-ui-dashboard && npm run test
+test-frontend: ## Run Frontend tests with coverage
+	@echo "⚛️  Running Next.js tests..."
+	@cd nextjs-ui-dashboard && chmod +x run_tests.sh && ./run_tests.sh
 
 # Linting and Code Quality
 lint: ## Run linting for all services
