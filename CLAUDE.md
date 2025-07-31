@@ -2,6 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 📋 Spec-Driven Development
+
+This project follows a **spec-driven development** approach. All features and APIs must conform to the specifications before implementation.
+
+### Specification Files
+- `specs/API_SPEC.md` - Complete API contracts for all services
+- `specs/DATA_MODELS.md` - Data structures and schemas
+- `specs/BUSINESS_RULES.md` - Business logic and trading rules
+- `specs/INTEGRATION_SPEC.md` - Service integration patterns
+- `examples/` - Request/response examples for all endpoints
+
+### Development Workflow
+1. **Read the spec first** - Always check relevant specification before implementing
+2. **Validate against spec** - Ensure implementation matches the specification exactly
+3. **Update spec if needed** - If changes are required, update spec BEFORE coding
+4. **Test against examples** - Use examples directory for testing
+
+### Key Principles
+- **Spec is the source of truth** - Code must match spec, not the other way around
+- **No undocumented features** - Every API endpoint must be in the spec
+- **Consistent data models** - Use DATA_MODELS.md for all data structures
+- **Follow business rules** - Implement all rules from BUSINESS_RULES.md
+
 ## 🚀 Quick Start Commands
 
 ```bash
