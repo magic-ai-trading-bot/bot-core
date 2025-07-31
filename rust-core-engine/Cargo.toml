@@ -41,4 +41,9 @@ async-trait = "0.1"
 
 [features]
 default = ["database"]
-database = ["mongodb", "bson"] 
+database = ["mongodb", "bson"]
+
+[dev-dependencies]
+tokio-test = "0.4"
+actix-web = { version = "4.0", features = ["macros"] }
+futures-util = "0.3" 

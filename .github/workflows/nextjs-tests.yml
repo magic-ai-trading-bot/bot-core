@@ -1,0 +1,205 @@
+name: Next.js Dashboard Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'nextjs-ui-dashboard/**'
+      - '.github/workflows/nextjs-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'nextjs-ui-dashboard/**'
+      - '.github/workflows/nextjs-tests.yml'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  nextjs-tests:
+    runs-on: ubuntu-latest
+    name: Next.js Dashboard Tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        npm install
+
+    - name: Type check
+      continue-on-error: true
+      run: |
+        cd nextjs-ui-dashboard
+        npm run type-check || true
+
+    - name: Lint check
+      continue-on-error: true
+      run: |
+        cd nextjs-ui-dashboard
+        npm run lint || true
+
+    - name: Build project
+      run: |
+        cd nextjs-ui-dashboard
+        npm run build
+
+    - name: Run tests with coverage
+      run: |
+        cd nextjs-ui-dashboard
+        chmod +x run_tests.sh
+        ./run_tests.sh
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: nextjs-ui-dashboard/coverage/clover.xml
+        flags: nextjs
+        name: nextjs-dashboard-coverage
+        fail_ci_if_error: true
+
+    - name: Archive coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: nextjs-coverage-report
+        path: nextjs-ui-dashboard/coverage/
+
+    - name: Archive build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nextjs-build
+        path: nextjs-ui-dashboard/dist/
+
+  nextjs-e2e:
+    runs-on: ubuntu-latest
+    name: Next.js E2E Tests
+    needs: nextjs-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        npm install
+
+    - name: Install Playwright browsers
+      run: |
+        cd nextjs-ui-dashboard
+        npx playwright install --with-deps
+
+    - name: Build application
+      run: |
+        cd nextjs-ui-dashboard
+        npm run build
+
+    - name: Start application
+      run: |
+        cd nextjs-ui-dashboard
+        npm run preview &
+        sleep 10
+
+    - name: Run E2E tests
+      run: |
+        cd nextjs-ui-dashboard
+        npx playwright test
+
+    - name: Archive E2E test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: nextjs-e2e-results
+        path: |
+          nextjs-ui-dashboard/test-results/
+          nextjs-ui-dashboard/playwright-report/
+
+  nextjs-visual-regression:
+    runs-on: ubuntu-latest
+    name: Visual Regression Tests
+    needs: nextjs-tests
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        npm install
+
+    - name: Build application
+      run: |
+        cd nextjs-ui-dashboard
+        npm run build
+
+    - name: Run visual regression tests
+      run: |
+        cd nextjs-ui-dashboard
+        npm run test:visual
+
+    - name: Upload visual test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: visual-regression-results
+        path: nextjs-ui-dashboard/__screenshots__/
+
+  nextjs-security:
+    runs-on: ubuntu-latest
+    name: Next.js Security Scan
+    needs: nextjs-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        npm install
+
+    - name: Run npm audit
+      run: |
+        cd nextjs-ui-dashboard
+        npm audit --audit-level moderate
+
+    - name: Run ESLint security rules
+      continue-on-error: true
+      run: |
+        cd nextjs-ui-dashboard
+        npx eslint . --ext .ts,.tsx --config .eslintrc.security.js || true
+
+    - name: Bundle analyzer
+      run: |
+        cd nextjs-ui-dashboard
+        npm run build:analyze
+
+    - name: Upload bundle analysis
+      uses: actions/upload-artifact@v4
+      with:
+        name: bundle-analysis
+        path: nextjs-ui-dashboard/.next/analyze/
