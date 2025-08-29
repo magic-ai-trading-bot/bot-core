@@ -253,14 +253,15 @@ jobs:
         # Check network connections
         ss -tuln | grep -E ":(3000|8000|8080)"
 
-    - name: Archive integration test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: integration-test-results
-        path: |
-          *.log
-          load_test.yml
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive integration test results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: integration-test-results
+    #     path: |
+    #       *.log
+    #       load_test.yml
 
     - name: Cleanup services
       if: always()

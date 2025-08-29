@@ -85,11 +85,12 @@ jobs:
         name: python-ai-service-coverage
         fail_ci_if_error: true
 
-    - name: Archive coverage reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-coverage-report
-        path: python-ai-service/htmlcov/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive coverage reports
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: python-coverage-report
+    #     path: python-ai-service/htmlcov/
 
     - name: Comment coverage on PR
       if: github.event_name == 'pull_request'
