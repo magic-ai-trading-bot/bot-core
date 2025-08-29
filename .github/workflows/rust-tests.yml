@@ -94,18 +94,20 @@ jobs:
         name: rust-core-engine-coverage
         fail_ci_if_error: true
 
-    - name: Archive coverage reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: rust-coverage-report
-        path: rust-core-engine/target/tarpaulin/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive coverage reports
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: rust-coverage-report
+    #     path: rust-core-engine/target/tarpaulin/
 
-    - name: Archive test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: rust-test-results
-        path: rust-core-engine/target/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive test results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: rust-test-results
+    #     path: rust-core-engine/target/
 
   rust-security:
     runs-on: ubuntu-latest
@@ -176,8 +178,9 @@ jobs:
         cd rust-core-engine
         cargo bench
 
-    - name: Archive benchmark results
-      uses: actions/upload-artifact@v4
-      with:
-        name: rust-benchmark-results
-        path: rust-core-engine/target/criterion/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive benchmark results
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: rust-benchmark-results
+    #     path: rust-core-engine/target/criterion/
