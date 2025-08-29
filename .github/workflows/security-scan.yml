@@ -159,7 +159,7 @@ jobs:
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: '1.81'
+        toolchain: '1.86'
         override: true
 
     - name: Python dependency check
