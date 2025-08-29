@@ -1,11 +1,7 @@
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
 use serde_json::json;
-use std::fmt;
+use std::convert::Infallible;
 use thiserror::Error;
+use warp::{http::StatusCode, reject::Reject, Rejection, Reply};
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -49,9 +45,13 @@ pub enum AppError {
     ServiceUnavailable(String),
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let (status, error_message, error_type) = match self {
+impl Reject for AppError {}
+
+// Convert AppError to a proper Warp reply
+pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
+    
+    let (status, error_message, error_type) = if let Some(app_error) = err.find::<AppError>() {
+        match app_error {
             AppError::Database(ref e) => {
                 tracing::error!("Database error: {:?}", e);
                 (
@@ -119,18 +119,25 @@ impl IntoResponse for AppError {
                 service.as_str(),
                 "service_unavailable",
             ),
-        };
+        }
+    } else if err.is_not_found() {
+        (StatusCode::NOT_FOUND, "Not found", "not_found")
+    } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
+        (StatusCode::METHOD_NOT_ALLOWED, "Method not allowed", "method_not_allowed")
+    } else {
+        tracing::error!("Unhandled rejection: {:?}", err);
+        (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error", "internal_error")
+    };
 
-        let body = Json(json!({
-            "error": {
-                "type": error_type,
-                "message": error_message,
-                "status": status.as_u16(),
-            }
-        }));
+    let reply = warp::reply::json(&json!({
+        "error": {
+            "type": error_type,
+            "message": error_message,
+            "status": status.as_u16(),
+        }
+    }));
 
-        (status, body).into_response()
-    }
+    Ok(warp::reply::with_status(reply, status))
 }
 
 // Result type alias for convenience
