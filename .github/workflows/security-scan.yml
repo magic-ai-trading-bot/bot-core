@@ -106,12 +106,13 @@ jobs:
       run: |
         semgrep --config=auto --json --output=semgrep-results.json .
 
-    - name: Upload Semgrep results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: semgrep-results
-        path: semgrep-results.json
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload Semgrep results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: semgrep-results
+    #     path: semgrep-results.json
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -180,15 +181,16 @@ jobs:
         cargo install --version 0.20.0 cargo-audit || cargo install cargo-audit --force || true
         cargo audit --json > cargo-audit.json || echo '{"vulnerabilities": [], "warnings": []}' > cargo-audit.json
 
-    - name: Upload dependency check results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: dependency-check-results
-        path: |
-          python-ai-service/safety-report.json
-          nextjs-ui-dashboard/npm-audit.json
-          rust-core-engine/cargo-audit.json
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload dependency check results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: dependency-check-results
+    #     path: |
+    #       python-ai-service/safety-report.json
+    #       nextjs-ui-dashboard/npm-audit.json
+    #       rust-core-engine/cargo-audit.json
 
   license-check:
     runs-on: ubuntu-latest
@@ -222,14 +224,15 @@ jobs:
         cargo install cargo-license
         cargo license --json > rust-licenses.json
 
-    - name: Upload license reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: license-reports
-        path: |
-          python-ai-service/python-licenses.json
-          nextjs-ui-dashboard/nodejs-licenses.json
-          rust-core-engine/rust-licenses.json
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload license reports
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: license-reports
+    #     path: |
+    #       python-ai-service/python-licenses.json
+    #       nextjs-ui-dashboard/nodejs-licenses.json
+    #       rust-core-engine/rust-licenses.json
 
   security-report:
     runs-on: ubuntu-latest
@@ -271,11 +274,12 @@ jobs:
         
         echo "Generated at: $(date)" >> security-summary.md
 
-    - name: Upload security summary
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-summary
-        path: security-summary.md
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload security summary
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: security-summary
+    #     path: security-summary.md
 
     - name: Comment security summary on PR
       if: github.event_name == 'pull_request'

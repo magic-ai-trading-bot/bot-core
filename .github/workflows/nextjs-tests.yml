@@ -65,17 +65,19 @@ jobs:
         name: nextjs-dashboard-coverage
         fail_ci_if_error: true
 
-    - name: Archive coverage reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: nextjs-coverage-report
-        path: nextjs-ui-dashboard/coverage/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive coverage reports
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: nextjs-coverage-report
+    #     path: nextjs-ui-dashboard/coverage/
 
-    - name: Archive build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: nextjs-build
-        path: nextjs-ui-dashboard/dist/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive build artifacts
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: nextjs-build
+    #     path: nextjs-ui-dashboard/dist/
 
   nextjs-e2e:
     runs-on: ubuntu-latest
@@ -117,14 +119,15 @@ jobs:
         cd nextjs-ui-dashboard
         npx playwright test
 
-    - name: Archive E2E test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: nextjs-e2e-results
-        path: |
-          nextjs-ui-dashboard/test-results/
-          nextjs-ui-dashboard/playwright-report/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive E2E test results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: nextjs-e2e-results
+    #     path: |
+    #       nextjs-ui-dashboard/test-results/
+    #       nextjs-ui-dashboard/playwright-report/
 
   nextjs-visual-regression:
     runs-on: ubuntu-latest
@@ -156,12 +159,13 @@ jobs:
         cd nextjs-ui-dashboard
         npm run test:visual
 
-    - name: Upload visual test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: visual-regression-results
-        path: nextjs-ui-dashboard/__screenshots__/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload visual test results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: visual-regression-results
+    #     path: nextjs-ui-dashboard/__screenshots__/
 
   nextjs-security:
     runs-on: ubuntu-latest
@@ -198,8 +202,9 @@ jobs:
         cd nextjs-ui-dashboard
         npm run build:analyze
 
-    - name: Upload bundle analysis
-      uses: actions/upload-artifact@v4
-      with:
-        name: bundle-analysis
-        path: nextjs-ui-dashboard/.next/analyze/
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload bundle analysis
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: bundle-analysis
+    #     path: nextjs-ui-dashboard/.next/analyze/
