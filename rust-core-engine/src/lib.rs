@@ -13,9 +13,15 @@ pub mod strategies;
 pub mod trading;
 
 // Re-export commonly used types
-pub use auth::models;
 pub use config::Config;
 pub use error::{AppError, AppResult};
+
+// Re-export models
+pub mod models {
+    pub use crate::auth::models::*;
+    pub use crate::binance::types::{Candle, OrderSide, OrderType, TimeInForce};
+    pub use crate::strategies::types::{Signal, SignalType};
+}
 
 // Re-export websocket for tests
 pub mod websocket {
