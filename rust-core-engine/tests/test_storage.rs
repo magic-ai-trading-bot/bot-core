@@ -23,7 +23,7 @@ async fn test_placeholder() {
 /*
 Original tests commented out - need refactoring:
 - test_trade_storage
-- test_candle_storage  
+- test_candle_storage
 - test_strategy_config_storage
 - test_performance_metrics_storage
 - test_storage_cleanup
