@@ -21,6 +21,12 @@ pub struct PositionManager {
     positions: Arc<DashMap<String, Position>>,
 }
 
+impl Default for PositionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PositionManager {
     pub fn new() -> Self {
         Self {

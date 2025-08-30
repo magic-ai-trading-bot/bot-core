@@ -121,7 +121,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
         }
     } else if err.is_not_found() {
         (StatusCode::NOT_FOUND, "Not found", "not_found")
-    } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
+    } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
         (
             StatusCode::METHOD_NOT_ALLOWED,
             "Method not allowed",
