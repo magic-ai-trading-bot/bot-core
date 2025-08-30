@@ -17,6 +17,11 @@ pub use auth::models;
 pub use config::Config;
 pub use error::{AppError, AppResult};
 
+// Re-export websocket for tests
+pub mod websocket {
+    pub use crate::binance::websocket::*;
+}
+
 // Re-export routes for tests
 pub mod routes {
     pub use crate::api::*;
