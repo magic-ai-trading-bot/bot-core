@@ -69,7 +69,7 @@ async fn test_moving_average_strategy() {
     // let db = setup_test_db().await;
 
     // Create MA strategy
-    let mut strategy = MovingAverageStrategy::new(10, 20);*/
+    let mut strategy = MovingAverageStrategy::new(10, 20);
 
     // Generate candles with crossover
     let mut candles = Vec::new();
