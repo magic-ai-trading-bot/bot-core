@@ -19,8 +19,30 @@ pub use error::{AppError, AppResult};
 // Re-export models
 pub mod models {
     pub use crate::auth::models::*;
-    pub use crate::binance::types::{Candle, OrderSide, OrderType, TimeInForce};
-    pub use crate::strategies::types::{Signal, SignalType};
+    // Types from binance module (if they exist)
+    // pub use crate::binance::types::{Candle, OrderSide, OrderType, TimeInForce};
+    
+    // Types from strategies module
+    // pub use crate::strategies::types::{Signal, SignalType};
+    
+    // Define Candle type for tests
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    pub struct Candle {
+        pub open: f64,
+        pub high: f64,
+        pub low: f64,
+        pub close: f64,
+        pub volume: f64,
+        pub open_time: i64,
+        pub close_time: i64,
+    }
+    
+    #[derive(Debug, Clone)]
+    pub enum SignalType {
+        Buy,
+        Sell,
+        Hold,
+    }
 }
 
 // Re-export websocket for tests

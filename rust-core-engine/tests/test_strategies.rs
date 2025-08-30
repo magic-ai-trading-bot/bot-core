@@ -5,15 +5,13 @@ use actix_web::{test, web, App};
 use binance_trading_bot::models::{Candle, SignalType};
 use binance_trading_bot::storage::Storage;
 use binance_trading_bot::strategies::{
-    macd_strategy::MacdStrategy,
-    rsi_strategy::RsiStrategy,
-    strategy_engine::StrategyEngine,
+    macd_strategy::MacdStrategy, rsi_strategy::RsiStrategy, strategy_engine::StrategyEngine,
     StrategyConfig,
 };
 use chrono::Utc;
-use std::collections::HashMap;
 use common::*;
 use serde_json::json;
+use std::collections::HashMap;
 
 #[actix_web::test]
 async fn test_rsi_strategy_calculation() {
