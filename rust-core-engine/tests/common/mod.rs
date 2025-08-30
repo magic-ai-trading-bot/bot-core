@@ -5,6 +5,7 @@ use chrono::Utc;
 use mongodb::{Client, Database};
 use serde_json::json;
 
+#[allow(dead_code)]
 pub async fn setup_test_db() -> Database {
     let client = Client::with_uri_str("mongodb://localhost:27017")
         .await
@@ -14,15 +15,18 @@ pub async fn setup_test_db() -> Database {
     client.database(&db_name)
 }
 
+#[allow(dead_code)]
 pub async fn cleanup_test_db(db: Database) {
     db.drop(None).await.ok();
 }
 
+#[allow(dead_code)]
 pub fn create_test_jwt(user_id: &str) -> String {
     // In real implementation, use proper JWT generation
     format!("test_jwt_token_{}", user_id)
 }
 
+#[allow(dead_code)]
 pub fn sample_candle_data() -> serde_json::Value {
     json!({
         "open": 45000.0,
@@ -35,6 +39,7 @@ pub fn sample_candle_data() -> serde_json::Value {
     })
 }
 
+#[allow(dead_code)]
 pub fn sample_trade_request() -> serde_json::Value {
     json!({
         "symbol": "BTCUSDT",
