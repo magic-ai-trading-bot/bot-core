@@ -34,7 +34,7 @@ async fn test_placeholder() {
 Original tests commented out - need refactoring:
 
 - test_rsi_strategy_calculation
-- test_macd_strategy_signals  
+- test_macd_strategy_signals
 - test_moving_average_strategy
 - test_strategy_engine_integration
 - test_strategy_persistence
