@@ -49,7 +49,6 @@ impl Reject for AppError {}
 
 // Convert AppError to a proper Warp reply
 pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
-    
     let (status, error_message, error_type) = if let Some(app_error) = err.find::<AppError>() {
         match app_error {
             AppError::Database(ref e) => {
@@ -123,10 +122,18 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
     } else if err.is_not_found() {
         (StatusCode::NOT_FOUND, "Not found", "not_found")
     } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
-        (StatusCode::METHOD_NOT_ALLOWED, "Method not allowed", "method_not_allowed")
+        (
+            StatusCode::METHOD_NOT_ALLOWED,
+            "Method not allowed",
+            "method_not_allowed",
+        )
     } else {
         tracing::error!("Unhandled rejection: {:?}", err);
-        (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error", "internal_error")
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error",
+            "internal_error",
+        )
     };
 
     let reply = warp::reply::json(&json!({
