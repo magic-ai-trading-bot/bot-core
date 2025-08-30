@@ -1,8 +1,10 @@
 mod common;
 
 use actix_web::{test, web, App};
+#[allow(unused_imports)]
 use binance_trading_bot::models::*;
 use binance_trading_bot::websocket::*;
+#[allow(unused_imports)]
 use common::*;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
@@ -11,7 +13,7 @@ use tokio_tungstenite::connect_async;
 #[actix_web::test]
 async fn test_websocket_connection() {
     // Start test server
-    let app = test::init_service(App::new().route("/ws", web::get().to(websocket_handler))).await;
+    let _app = test::init_service(App::new().route("/ws", web::get().to(websocket_handler))).await;
 
     // Connect client
     let ws_url = "ws://localhost:8080/ws";
@@ -150,7 +152,7 @@ async fn test_websocket_rate_limiting() {
 #[actix_web::test]
 async fn test_websocket_heartbeat() {
     // Test heartbeat/ping-pong mechanism
-    let app = test::init_service(App::new().route("/ws", web::get().to(websocket_handler))).await;
+    let _app = test::init_service(App::new().route("/ws", web::get().to(websocket_handler))).await;
 
     let ws_url = "ws://localhost:8080/ws";
     let (ws_stream, _) = connect_async(ws_url).await.unwrap();
@@ -238,7 +240,7 @@ async fn test_websocket_message_queuing() {
 #[actix_web::test]
 async fn test_websocket_concurrent_connections() {
     // Test handling multiple concurrent WebSocket connections
-    let app = test::init_service(App::new().route("/ws", web::get().to(websocket_handler))).await;
+    let _app = test::init_service(App::new().route("/ws", web::get().to(websocket_handler))).await;
 
     let mut handles = vec![];
 
