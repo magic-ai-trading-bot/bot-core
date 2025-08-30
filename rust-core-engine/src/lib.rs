@@ -21,10 +21,10 @@ pub mod models {
     pub use crate::auth::models::*;
     // Types from binance module (if they exist)
     // pub use crate::binance::types::{Candle, OrderSide, OrderType, TimeInForce};
-    
+
     // Types from strategies module
     // pub use crate::strategies::types::{Signal, SignalType};
-    
+
     // Define Candle type for tests
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub struct Candle {
@@ -36,7 +36,7 @@ pub mod models {
         pub open_time: i64,
         pub close_time: i64,
     }
-    
+
     #[derive(Debug, Clone)]
     pub enum SignalType {
         Buy,
