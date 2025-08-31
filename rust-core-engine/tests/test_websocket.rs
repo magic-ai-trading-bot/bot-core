@@ -3,6 +3,7 @@ mod common;
 use actix_web::{test, web, App};
 #[allow(unused_imports)]
 use binance_trading_bot::models::*;
+#[allow(unused_imports)]
 use binance_trading_bot::websocket::*;
 #[allow(unused_imports)]
 use common::*;
@@ -399,6 +400,7 @@ impl MessageQueue {
     }
 }
 
+#[allow(dead_code)]
 struct PriceUpdate {
     symbol: String,
     price: f64,
@@ -406,6 +408,7 @@ struct PriceUpdate {
     timestamp: i64,
 }
 
+#[allow(dead_code)]
 struct KlineData {
     symbol: String,
     interval: String,
