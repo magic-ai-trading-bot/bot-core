@@ -1,32 +1,53 @@
 mod common;
 
-#[allow(unused_imports)]
-use binance_trading_bot::auth::models::User;
-#[allow(unused_imports)]
-use binance_trading_bot::models::*;
-#[allow(unused_imports)]
+use binance_trading_bot::config::DatabaseConfig;
 use binance_trading_bot::storage::Storage;
-#[allow(unused_imports)]
-use chrono::Utc;
-#[allow(unused_imports)]
-use common::*;
-#[allow(unused_imports)]
-use mongodb::bson::doc;
 
-// Storage tests temporarily disabled - need to update to match actual API
 #[tokio::test]
-async fn test_placeholder() {
-    // Placeholder test to ensure file compiles
-    assert_eq!(1 + 1, 2);
+async fn test_storage_creation_with_mock_config() {
+    // Test with invalid MongoDB URL (will use in-memory)
+    let config = DatabaseConfig {
+        url: "invalid://localhost".to_string(),
+        database_name: Some("test_db".to_string()),
+    };
+    
+    let storage = Storage::new(&config).await;
+    assert!(storage.is_ok());
 }
 
-/*
-Original tests commented out - need refactoring:
-- test_trade_storage
-- test_candle_storage
-- test_strategy_config_storage
-- test_performance_metrics_storage
-- test_storage_cleanup
+#[tokio::test]
+async fn test_storage_operations() {
+    let config = DatabaseConfig {
+        url: "mock://test".to_string(),
+        database_name: Some("test_db".to_string()),
+    };
+    
+    let storage = Storage::new(&config).await.unwrap();
+    
+    // Test cleanup operation (should not panic)
+    let result = storage.cleanup_old_data(30).await;
+    assert!(result.is_ok());
+}
 
-Storage::new_with_db() doesn't exist in current implementation
-*/
+#[tokio::test]  
+async fn test_multiple_storage_instances() {
+    let config1 = DatabaseConfig {
+        url: "mock://test1".to_string(),
+        database_name: Some("test_db1".to_string()),
+    };
+    
+    let config2 = DatabaseConfig {
+        url: "mock://test2".to_string(),
+        database_name: Some("test_db2".to_string()),
+    };
+    
+    let storage1 = Storage::new(&config1).await.unwrap();
+    let storage2 = Storage::new(&config2).await.unwrap();
+    
+    // Both should work independently
+    let result1 = storage1.cleanup_old_data(30).await;
+    let result2 = storage2.cleanup_old_data(60).await;
+    
+    assert!(result1.is_ok());
+    assert!(result2.is_ok());
+}
