@@ -63,11 +63,11 @@ fn test_breakeven_calculation() {
     
     // For long position
     let long_breakeven = entry_price * (1.0 + 2.0 * fee_rate);
-    assert!((long_breakeven - 50100.0).abs() < 0.01);
+    assert!((long_breakeven - 50100.0_f64).abs() < 0.01);
     
     // For short position
     let short_breakeven = entry_price * (1.0 - 2.0 * fee_rate);
-    assert!((short_breakeven - 49900.0).abs() < 0.01);
+    assert!((short_breakeven - 49900.0_f64).abs() < 0.01);
 }
 
 #[test]
@@ -122,11 +122,11 @@ fn test_stop_loss_calculation() {
     
     // For long position
     let long_stop = entry_price * (1.0 - stop_loss_percent / 100.0);
-    assert!((long_stop - 49000.0).abs() < 0.01);
+    assert!((long_stop - 49000.0_f64).abs() < 0.01);
     
     // For short position
     let short_stop = entry_price * (1.0 + stop_loss_percent / 100.0);
-    assert!((short_stop - 51000.0).abs() < 0.01);
+    assert!((short_stop - 51000.0_f64).abs() < 0.01);
 }
 
 #[test]
@@ -137,11 +137,11 @@ fn test_take_profit_calculation() {
     
     // For long position
     let long_tp = entry_price * (1.0 + take_profit_percent / 100.0);
-    assert!((long_tp - 52500.0).abs() < 0.01);
+    assert!((long_tp - 52500.0_f64).abs() < 0.01);
     
     // For short position
     let short_tp = entry_price * (1.0 - take_profit_percent / 100.0);
-    assert!((short_tp - 47500.0).abs() < 0.01);
+    assert!((short_tp - 47500.0_f64).abs() < 0.01);
 }
 
 #[test]
