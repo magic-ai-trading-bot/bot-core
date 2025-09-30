@@ -53,14 +53,15 @@ export const formatTimestamp = (
       return date.toLocaleTimeString(locale)
     case 'datetime':
       return date.toLocaleString(locale)
-    case 'relative':
+    case 'relative': {
       const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
       const diff = (Date.now() - timestamp) / 1000 // in seconds
-      
+
       if (diff < 60) return rtf.format(-Math.floor(diff), 'second')
       if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute')
       if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour')
       return rtf.format(-Math.floor(diff / 86400), 'day')
+    }
     default:
       return date.toLocaleDateString(locale, {
         year: 'numeric',
