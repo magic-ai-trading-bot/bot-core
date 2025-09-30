@@ -9,10 +9,10 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "NODE_ENV=test vitest",
+    "test:ui": "NODE_ENV=test vitest --ui",
+    "test:run": "NODE_ENV=test vitest run",
+    "test:coverage": "NODE_ENV=test vitest run --coverage",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

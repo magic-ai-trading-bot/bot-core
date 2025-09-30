@@ -12,6 +12,7 @@ vi.mock('../../contexts/AuthContext', () => ({
     isLoading: false,
     error: null,
   }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 // Mock router
