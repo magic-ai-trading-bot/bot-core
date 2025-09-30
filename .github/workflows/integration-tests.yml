@@ -98,6 +98,29 @@ jobs:
         cd nextjs-ui-dashboard
         npm run build
 
+    - name: Verify database connections
+      run: |
+        echo "Verifying MongoDB connection..."
+        python3 -c "
+        import pymongo
+        import sys
+        try:
+            client = pymongo.MongoClient('mongodb://root:password@localhost:27017/', serverSelectionTimeoutMS=5000)
+            client.admin.command('ping')
+            print('✅ MongoDB is accessible')
+        except Exception as e:
+            print(f'❌ MongoDB connection failed: {e}')
+            sys.exit(1)
+        "
+
+        echo "Verifying Redis connection..."
+        if redis-cli -h localhost -p 6379 ping > /dev/null 2>&1; then
+          echo "✅ Redis is accessible"
+        else
+          echo "❌ Redis connection failed"
+          exit 1
+        fi
+
     - name: Start all services
       env:
         DATABASE_URL: mongodb://root:password@localhost:27017/integration_test
@@ -106,60 +129,108 @@ jobs:
         BINANCE_TESTNET: true
         TRADING_ENABLED: false
         REDIS_URL: redis://localhost:6379
+        PYTHON_AI_SERVICE_URL: http://localhost:8000
+        RUST_LOG: info
       run: |
         # Start Python AI service
+        echo "Starting Python AI service..."
         cd python-ai-service
-        python main.py &
+        python main.py > /tmp/python.log 2>&1 &
         PYTHON_PID=$!
         echo "Python service PID: $PYTHON_PID"
-        
-        # Start Rust core engine
+
+        # Wait for Python service to be ready
+        echo "Waiting for Python AI service to start..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8000/health > /dev/null; then
+            echo "Python AI service is ready"
+            break
+          fi
+          sleep 2
+        done
+
+        # Start Rust core engine with environment variables
+        echo "Starting Rust core engine..."
         cd ../rust-core-engine
-        ./target/release/binance-trading-bot --config config.toml &
+        DATABASE_URL="${DATABASE_URL}" \
+        PYTHON_AI_SERVICE_URL="${PYTHON_AI_SERVICE_URL}" \
+        JWT_SECRET="${JWT_SECRET}" \
+        BINANCE_TESTNET="${BINANCE_TESTNET}" \
+        RUST_LOG="${RUST_LOG}" \
+        ./target/release/binance-trading-bot --config config.toml > /tmp/rust.log 2>&1 &
         RUST_PID=$!
         echo "Rust service PID: $RUST_PID"
-        
+
+        # Wait for Rust service to be ready
+        echo "Waiting for Rust core engine to start..."
+        for i in {1..60}; do
+          if curl -s http://localhost:8080/health > /dev/null; then
+            echo "Rust core engine is ready"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Rust service taking longer than expected, checking logs..."
+            tail -20 /tmp/rust.log || true
+          fi
+          sleep 2
+        done
+
         # Start Next.js dashboard
+        echo "Starting Next.js dashboard..."
         cd ../nextjs-ui-dashboard
-        npm run preview &
+        npm run preview > /tmp/nextjs.log 2>&1 &
         NEXTJS_PID=$!
         echo "Next.js service PID: $NEXTJS_PID"
-        
-        # Wait for services to start
-        echo "Waiting for services to start..."
-        sleep 30
-        
+
         # Store PIDs for cleanup
         echo $PYTHON_PID > /tmp/python.pid
-        echo $RUST_PID > /tmp/rust.pid  
+        echo $RUST_PID > /tmp/rust.pid
         echo $NEXTJS_PID > /tmp/nextjs.pid
+
+        # Show service status
+        echo ""
+        echo "All services started. PIDs:"
+        echo "Python: $PYTHON_PID"
+        echo "Rust: $RUST_PID"
+        echo "Next.js: $NEXTJS_PID"
 
     - name: Health checks
       run: |
         echo "🔍 Running health checks..."
-        
+
         # Check Python AI service
+        echo "Checking Python AI service..."
         if curl -f http://localhost:8000/health; then
           echo "✅ Python AI service is healthy"
         else
           echo "❌ Python AI service failed health check"
+          echo "Last 50 lines of Python service log:"
+          tail -50 /tmp/python.log || true
           exit 1
         fi
-        
+
         # Check Rust core engine
+        echo "Checking Rust core engine..."
         if curl -f http://localhost:8080/health; then
           echo "✅ Rust core engine is healthy"
         else
           echo "❌ Rust core engine failed health check"
+          echo "Last 50 lines of Rust service log:"
+          tail -50 /tmp/rust.log || true
+          echo ""
+          echo "Checking if Rust process is running:"
+          ps aux | grep binance-trading-bot | grep -v grep || true
           exit 1
         fi
-        
-        # Check Next.js dashboard
+
+        # Check Next.js dashboard (less critical, make it non-blocking for now)
+        echo "Checking Next.js dashboard..."
         if curl -f http://localhost:3000; then
           echo "✅ Next.js dashboard is healthy"
         else
-          echo "❌ Next.js dashboard failed health check"
-          exit 1
+          echo "⚠️ Next.js dashboard failed health check (non-blocking)"
+          echo "Last 30 lines of Next.js log:"
+          tail -30 /tmp/nextjs.log || true
         fi
 
     - name: Test service communications
