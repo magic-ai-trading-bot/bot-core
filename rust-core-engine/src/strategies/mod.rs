@@ -6,6 +6,9 @@ pub mod strategy_engine;
 pub mod types;
 pub mod volume_strategy;
 
+#[cfg(test)]
+mod tests;
+
 use crate::market_data::cache::CandleData;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
