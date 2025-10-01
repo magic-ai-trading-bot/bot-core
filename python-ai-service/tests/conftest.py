@@ -56,20 +56,22 @@ def mock_mongodb():
     return mock_client, mock_db
 
 @pytest.fixture
-async def app():
+def app(mock_openai_client, mock_mongodb):
     """Create FastAPI test app."""
     with patch('main.openai_client') as mock_openai, \
          patch('main.mongodb_client') as mock_mongo_client, \
          patch('main.mongodb_db') as mock_mongo_db:
-        
+
         # Import app after patching
-        from main import app
-        
+        from main import app as fastapi_app
+
         # Set up mocks
-        mock_openai.return_value = mock_openai_client()
-        mock_mongo_client.return_value, mock_mongo_db.return_value = mock_mongodb()
-        
-        yield app
+        mock_openai.return_value = mock_openai_client
+        mongo_client, mongo_db = mock_mongodb
+        mock_mongo_client.return_value = mongo_client
+        mock_mongo_db.return_value = mongo_db
+
+        yield fastapi_app
 
 @pytest.fixture
 async def client(app) -> AsyncGenerator[AsyncClient, None]:

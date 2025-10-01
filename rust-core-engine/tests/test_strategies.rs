@@ -29,9 +29,7 @@ fn test_volatility_calculation() {
     let prices = vec![100.0, 102.0, 98.0, 103.0, 97.0];
     let avg = prices.iter().sum::<f64>() / prices.len() as f64;
 
-    let variance = prices.iter()
-        .map(|p| (p - avg).powi(2))
-        .sum::<f64>() / prices.len() as f64;
+    let variance = prices.iter().map(|p| (p - avg).powi(2)).sum::<f64>() / prices.len() as f64;
 
     let std_dev = variance.sqrt();
     assert!(std_dev > 0.0);
@@ -57,9 +55,7 @@ fn test_bollinger_bands_concept() {
     let prices = vec![100.0, 101.0, 99.0, 102.0, 98.0];
     let sma = prices.iter().sum::<f64>() / prices.len() as f64;
 
-    let variance = prices.iter()
-        .map(|p| (p - sma).powi(2))
-        .sum::<f64>() / prices.len() as f64;
+    let variance = prices.iter().map(|p| (p - sma).powi(2)).sum::<f64>() / prices.len() as f64;
     let std_dev = variance.sqrt();
 
     let upper_band = sma + (2.0 * std_dev);
