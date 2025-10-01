@@ -93,9 +93,9 @@ fn test_portfolio_allocation() {
     let mut allocations = HashMap::new();
 
     // Define allocation percentages
-    allocations.insert("BTC", 0.4);  // 40%
-    allocations.insert("ETH", 0.3);  // 30%
-    allocations.insert("SOL", 0.2);  // 20%
+    allocations.insert("BTC", 0.4); // 40%
+    allocations.insert("ETH", 0.3); // 30%
+    allocations.insert("SOL", 0.2); // 20%
     allocations.insert("CASH", 0.1); // 10%
 
     // Calculate actual amounts

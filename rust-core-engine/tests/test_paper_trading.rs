@@ -63,9 +63,11 @@ fn test_sharpe_ratio_calculation() {
     let avg_return: f64 = returns.iter().sum::<f64>() / returns.len() as f64;
 
     // Calculate standard deviation
-    let variance: f64 = returns.iter()
+    let variance: f64 = returns
+        .iter()
         .map(|r| (r - avg_return).powi(2))
-        .sum::<f64>() / returns.len() as f64;
+        .sum::<f64>()
+        / returns.len() as f64;
     let std_dev = variance.sqrt();
 
     // Calculate Sharpe ratio
