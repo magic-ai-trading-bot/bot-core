@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class TestFullAnalysisFlow:
     """Test complete analysis flow from request to storage."""
     
+    @pytest.mark.asyncio
     async def test_complete_analysis_flow(self, client, sample_ai_analysis_request, mock_openai_client, mock_mongodb):
         """Test full flow: receive request -> analyze -> store -> return."""
         # Setup mocks
@@ -45,6 +46,7 @@ class TestFullAnalysisFlow:
             await asyncio.sleep(0.1)  # Allow async storage to complete
             mock_store.assert_called_once()
     
+    @pytest.mark.asyncio
     async def test_periodic_analysis_task(self, mock_openai_client, mock_mongodb):
         """Test periodic analysis task execution."""
         from main import periodic_analysis_runner, ANALYSIS_SYMBOLS
@@ -79,6 +81,7 @@ class TestFullAnalysisFlow:
 class TestAPIKeyRotation:
     """Test API key rotation in real scenarios."""
     
+    @pytest.mark.asyncio
     async def test_api_key_rotation_on_rate_limit(self, client, sample_ai_analysis_request):
         """Test API key rotation when rate limited."""
         import httpx
@@ -122,6 +125,7 @@ class TestAPIKeyRotation:
 class TestMongoDBIntegration:
     """Test MongoDB integration scenarios."""
     
+    @pytest.mark.asyncio
     async def test_mongodb_connection_failure_recovery(self, client, sample_ai_analysis_request):
         """Test system continues working when MongoDB fails."""
         # Simulate MongoDB failure
@@ -133,6 +137,7 @@ class TestMongoDBIntegration:
             data = response.json()
             assert "signal" in data
     
+    @pytest.mark.asyncio
     async def test_mongodb_storage_and_retrieval(self, mock_mongodb):
         """Test storing and retrieving analysis from MongoDB."""
         from main import store_analysis_result, get_latest_analysis
@@ -180,6 +185,7 @@ class TestMongoDBIntegration:
 class TestWebSocketBroadcasting:
     """Test WebSocket broadcasting in real scenarios."""
     
+    @pytest.mark.asyncio
     async def test_analysis_broadcast_to_clients(self, test_client, mock_openai_client):
         """Test that analysis results are broadcast to WebSocket clients."""
         from main import ws_manager
@@ -213,6 +219,7 @@ class TestWebSocketBroadcasting:
 class TestErrorHandlingAndRecovery:
     """Test error handling and recovery mechanisms."""
     
+    @pytest.mark.asyncio
     async def test_openai_api_complete_failure(self, client, sample_ai_analysis_request):
         """Test handling when all OpenAI API keys fail."""
         with patch('main.openai_client', None):
@@ -220,6 +227,7 @@ class TestErrorHandlingAndRecovery:
             assert response.status_code == 503
             assert "service is currently unavailable" in response.json()["detail"]
     
+    @pytest.mark.asyncio
     async def test_invalid_candle_data_handling(self, client):
         """Test handling of malformed candle data."""
         bad_request = {
@@ -240,6 +248,7 @@ class TestErrorHandlingAndRecovery:
         response = await client.post("/ai/analyze", json=bad_request)
         assert response.status_code == 422  # Validation error
     
+    @pytest.mark.asyncio
     async def test_service_degradation(self, client, sample_ai_analysis_request):
         """Test service degradation when dependencies fail."""
         # Simulate various failures

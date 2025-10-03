@@ -30,6 +30,7 @@ def mock_httpx_client():
 class TestGPTTradingAnalyzer:
     """Test GPTTradingAnalyzer methods."""
     
+    @pytest.mark.asyncio
     async def test_analyze_trading_signals_success(self, gpt_analyzer, sample_ai_analysis_request):
         """Test successful signal analysis."""
         from main import AIAnalysisRequest
@@ -42,6 +43,7 @@ class TestGPTTradingAnalyzer:
         assert result.reasoning == "Test reasoning"
         assert "analysis_id" in result.metadata
     
+    @pytest.mark.asyncio
     async def test_analyze_with_api_error(self, gpt_analyzer, sample_ai_analysis_request, mock_openai_client):
         """Test handling of API errors."""
         from main import AIAnalysisRequest
@@ -54,6 +56,7 @@ class TestGPTTradingAnalyzer:
             await gpt_analyzer.analyze_trading_signals(request)
         assert "API Error" in str(exc_info.value)
     
+    @pytest.mark.asyncio
     async def test_analyze_with_invalid_json_response(self, gpt_analyzer, sample_ai_analysis_request, mock_openai_client):
         """Test handling of invalid JSON in response."""
         from main import AIAnalysisRequest
@@ -70,6 +73,7 @@ class TestGPTTradingAnalyzer:
         result = await gpt_analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]
     
+    @pytest.mark.asyncio
     async def test_direct_api_call(self, mock_httpx_client):
         """Test direct OpenAI API call."""
         from main import call_openai_api_direct
@@ -95,6 +99,7 @@ class TestGPTTradingAnalyzer:
             assert result == mock_response.json.return_value
             mock_httpx_client.post.assert_called_once()
     
+    @pytest.mark.asyncio
     async def test_rate_limiting(self, gpt_analyzer, sample_ai_analysis_request):
         """Test rate limiting behavior."""
         from main import AIAnalysisRequest, last_openai_request_time, OPENAI_REQUEST_DELAY
@@ -117,6 +122,7 @@ class TestGPTTradingAnalyzer:
 class TestStrategyRecommendations:
     """Test strategy recommendation functionality."""
     
+    @pytest.mark.asyncio
     async def test_get_strategy_recommendations(self, gpt_analyzer):
         """Test getting strategy recommendations."""
         from main import StrategyRequest
@@ -177,6 +183,7 @@ class TestStrategyRecommendations:
 class TestMarketConditionAnalysis:
     """Test market condition analysis functionality."""
     
+    @pytest.mark.asyncio
     async def test_analyze_market_condition(self, gpt_analyzer):
         """Test market condition analysis."""
         from main import MarketConditionRequest
@@ -229,6 +236,7 @@ class TestMarketConditionAnalysis:
 class TestAPIKeyRotation:
     """Test API key rotation functionality."""
     
+    @pytest.mark.asyncio
     async def test_api_key_fallback(self, mock_httpx_client):
         """Test fallback to next API key on failure."""
         from main import call_openai_with_fallback
