@@ -22,6 +22,7 @@ class TestWebSocketManager:
         manager = WebSocketManager()
         assert manager.active_connections == set()
     
+    @pytest.mark.asyncio
     async def test_connect_and_disconnect(self):
         """Test connecting and disconnecting WebSocket."""
         from main import WebSocketManager
@@ -41,6 +42,7 @@ class TestWebSocketManager:
         manager.disconnect(mock_websocket)
         assert mock_websocket not in manager.active_connections
     
+    @pytest.mark.asyncio
     async def test_broadcast_message(self):
         """Test broadcasting message to all connections."""
         from main import WebSocketManager
@@ -129,6 +131,7 @@ class TestWebSocketEndpoint:
 class TestWebSocketBroadcasting:
     """Test WebSocket broadcasting scenarios."""
     
+    @pytest.mark.asyncio
     async def test_broadcast_ai_signal(self):
         """Test broadcasting AI signal to WebSocket clients."""
         from main import ws_manager
@@ -157,6 +160,7 @@ class TestWebSocketBroadcasting:
         mock_ws1.send_json.assert_called_with(signal_data)
         mock_ws2.send_json.assert_called_with(signal_data)
     
+    @pytest.mark.asyncio
     async def test_broadcast_analysis_update(self):
         """Test broadcasting analysis update."""
         from main import ws_manager
@@ -176,6 +180,7 @@ class TestWebSocketBroadcasting:
         await ws_manager.broadcast(update_data)
         mock_ws.send_json.assert_called_with(update_data)
     
+    @pytest.mark.asyncio
     async def test_broadcast_error_notification(self):
         """Test broadcasting error notifications."""
         from main import ws_manager
@@ -195,6 +200,7 @@ class TestWebSocketBroadcasting:
         await ws_manager.broadcast(error_data)
         mock_ws.send_json.assert_called_with(error_data)
     
+    @pytest.mark.asyncio
     async def test_concurrent_broadcasts(self):
         """Test handling concurrent broadcasts."""
         from main import ws_manager

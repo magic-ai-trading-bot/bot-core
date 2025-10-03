@@ -4,6 +4,7 @@ Pytest configuration and fixtures for Python AI Service tests.
 
 import asyncio
 import pytest
+import pytest_asyncio
 from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import AsyncClient
@@ -73,7 +74,7 @@ def app(mock_openai_client, mock_mongodb):
 
         yield fastapi_app
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(app) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client."""
     async with AsyncClient(app=app, base_url="http://test") as ac:

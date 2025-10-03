@@ -10,7 +10,8 @@ import json
 @pytest.mark.unit
 class TestHealthEndpoint:
     """Test health check endpoint."""
-    
+
+    @pytest.mark.asyncio
     async def test_health_check_success(self, client, mock_mongodb):
         """Test successful health check."""
         response = await client.get("/health")
@@ -20,7 +21,8 @@ class TestHealthEndpoint:
         assert data["service"] == "GPT-4 Trading AI"
         assert data["gpt4_available"] is True
         assert data["mongodb_connected"] is True
-    
+
+    @pytest.mark.asyncio
     async def test_health_check_mongodb_down(self, client):
         """Test health check when MongoDB is down."""
         with patch('main.mongodb_client', None):
@@ -30,10 +32,11 @@ class TestHealthEndpoint:
             assert data["status"] == "healthy"
             assert data["mongodb_connected"] is False
 
-@pytest.mark.unit 
+@pytest.mark.unit
 class TestAIAnalysisEndpoint:
     """Test AI analysis endpoint."""
-    
+
+    @pytest.mark.asyncio
     async def test_analyze_success(self, client, sample_ai_analysis_request, mock_openai_client):
         """Test successful AI analysis."""
         with patch('main.openai_client', mock_openai_client):
@@ -44,21 +47,24 @@ class TestAIAnalysisEndpoint:
             assert data["confidence"] == 0.75
             assert data["reasoning"] == "Test reasoning"
             assert "metadata" in data
-    
+
+    @pytest.mark.asyncio
     async def test_analyze_invalid_symbol(self, client, sample_ai_analysis_request):
         """Test analysis with invalid symbol."""
         sample_ai_analysis_request["symbol"] = "INVALID"
         response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
         assert response.status_code == 400
         assert "not supported" in response.json()["detail"]
-    
+
+    @pytest.mark.asyncio
     async def test_analyze_insufficient_candles(self, client, sample_ai_analysis_request):
         """Test analysis with no candle data."""
         sample_ai_analysis_request["candles"] = []
         response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
         assert response.status_code == 400
         assert "At least 1 candle required" in response.json()["detail"]
-    
+
+    @pytest.mark.asyncio
     async def test_analyze_with_cached_result(self, client, sample_ai_analysis_request, mock_mongodb):
         """Test analysis returns cached result."""
         # Mock cached result
@@ -81,7 +87,8 @@ class TestAIAnalysisEndpoint:
 @pytest.mark.unit
 class TestStrategyRecommendations:
     """Test strategy recommendations endpoint."""
-    
+
+    @pytest.mark.asyncio
     async def test_strategy_recommendations_success(self, client, mock_openai_client):
         """Test successful strategy recommendations."""
         request_data = {
@@ -125,7 +132,8 @@ class TestStrategyRecommendations:
 @pytest.mark.unit
 class TestMarketCondition:
     """Test market condition analysis endpoint."""
-    
+
+    @pytest.mark.asyncio
     async def test_market_condition_success(self, client, mock_openai_client):
         """Test successful market condition analysis."""
         request_data = {
@@ -167,7 +175,8 @@ class TestMarketCondition:
 @pytest.mark.unit
 class TestFeedbackEndpoint:
     """Test feedback endpoint."""
-    
+
+    @pytest.mark.asyncio
     async def test_feedback_success(self, client):
         """Test successful feedback submission."""
         feedback_data = {
@@ -214,7 +223,8 @@ class TestWebSocket:
 @pytest.mark.unit
 class TestPerformanceEndpoint:
     """Test performance metrics endpoint."""
-    
+
+    @pytest.mark.asyncio
     async def test_get_performance(self, client):
         """Test getting performance metrics."""
         response = await client.get("/ai/performance")
@@ -227,7 +237,8 @@ class TestPerformanceEndpoint:
 @pytest.mark.unit
 class TestStorageEndpoints:
     """Test storage-related endpoints."""
-    
+
+    @pytest.mark.asyncio
     async def test_storage_stats_success(self, client, mock_mongodb):
         """Test storage statistics endpoint."""
         # Mock aggregation result
@@ -243,7 +254,8 @@ class TestStorageEndpoints:
             assert response.status_code == 200
             data = response.json()
             assert data["total_analyses"] == 500
-    
+
+    @pytest.mark.asyncio
     async def test_storage_stats_no_mongodb(self, client):
         """Test storage stats when MongoDB is unavailable."""
         with patch('main.mongodb_db', None):
@@ -251,7 +263,8 @@ class TestStorageEndpoints:
             assert response.status_code == 200
             data = response.json()
             assert data["error"] == "MongoDB not connected"
-    
+
+    @pytest.mark.asyncio
     async def test_clear_storage_success(self, client, mock_mongodb):
         """Test clearing storage."""
         mock_mongodb[1]["ai_analysis_results"].delete_many = AsyncMock(
@@ -267,7 +280,8 @@ class TestStorageEndpoints:
 @pytest.mark.unit
 class TestRootEndpoint:
     """Test root endpoint."""
-    
+
+    @pytest.mark.asyncio
     async def test_root_endpoint(self, client):
         """Test root endpoint returns service info."""
         response = await client.get("/")
