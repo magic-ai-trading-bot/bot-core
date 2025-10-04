@@ -95,9 +95,10 @@ jobs:
     - name: Comment coverage on PR
       if: github.event_name == 'pull_request'
       uses: py-cov-action/python-coverage-comment-action@v3
+      continue-on-error: true
       with:
         GITHUB_TOKEN: ${{ github.token }}
-        COVERAGE_DATA_PATH: python-ai-service/coverage.xml
+        COVERAGE_PATH: python-ai-service/coverage.xml
 
     # Coverage threshold temporarily disabled
     # - name: Validate coverage threshold
