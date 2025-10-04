@@ -10,11 +10,11 @@ tokio-tungstenite = { version = "0.20", features = ["rustls-tls-native-roots"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
-url = "2.3"
+url = "2.5.4"
 uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 log = "0.4"
 anyhow = "1.0"
 thiserror = "1.0"
@@ -38,6 +38,7 @@ jsonwebtoken = "9.1"
 bcrypt = "0.15"
 validator = { version = "0.16", features = ["derive"] }
 async-trait = "0.1"
+slab = "0.4.11"
 
 [features]
 default = ["database"]
