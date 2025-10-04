@@ -135,10 +135,19 @@ def sample_ai_analysis_request(sample_candle_data, sample_technical_indicators, 
     """Complete AI analysis request."""
     return {
         "symbol": "BTCUSDT",
-        "timeframe": "1h",
-        "candles": sample_candle_data,
-        "technical_indicators": sample_technical_indicators,
-        "market_context": sample_market_context
+        "timeframe_data": {
+            "1h": sample_candle_data
+        },
+        "current_price": 45189.23,
+        "volume_24h": 25000000000.0,
+        "timestamp": 1701234567000,
+        "strategy_context": {
+            "selected_strategies": ["RSI", "MACD"],
+            "risk_tolerance": "medium",
+            "trading_style": "swing",
+            "technical_indicators": sample_technical_indicators,
+            "market_context": sample_market_context
+        }
     }
 
 @pytest.fixture
