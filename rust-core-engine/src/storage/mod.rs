@@ -39,7 +39,7 @@ impl Storage {
                 );
 
                 // Test connection by listing collections
-                let _ = db.list_collection_names(None).await?;
+                let _ = db.list_collection_names().await?;
 
                 info!("MongoDB connected successfully to: {}", config.url);
 
@@ -79,11 +79,11 @@ impl Storage {
                 // Use upsert pattern
                 let filter = doc! { "symbol": &analysis.symbol };
                 let update = doc! { "$set": doc };
-                let options = mongodb::options::UpdateOptions::builder()
-                    .upsert(true)
-                    .build();
 
-                collection.update_one(filter, update, options).await?;
+                collection
+                    .update_one(filter, update)
+                    .upsert(true)
+                    .await?;
 
                 debug!(
                     "Stored analysis result for {} at {}",
@@ -111,7 +111,7 @@ impl Storage {
                 let collection: Collection<Document> = db.collection("analysis_results");
 
                 let filter = doc! { "symbol": symbol };
-                let doc = collection.find_one(filter, None).await?;
+                let doc = collection.find_one(filter).await?;
 
                 if let Some(doc) = doc {
                     if let Some(analysis_data) = doc.get("analysis_data") {
@@ -138,12 +138,12 @@ impl Storage {
                 let limit = limit.unwrap_or(100);
 
                 let filter = doc! { "symbol": symbol };
-                let options = mongodb::options::FindOptions::builder()
+
+                let mut cursor = collection
+                    .find(filter)
                     .limit(limit)
                     .sort(doc! { "timestamp": -1 })
-                    .build();
-
-                let mut cursor = collection.find(filter, options).await?;
+                    .await?;
 
                 let mut analyses = Vec::new();
                 while let Some(doc_result) = cursor.next().await {
@@ -171,7 +171,7 @@ impl Storage {
             if let Some(db) = &self.db {
                 let collection: Collection<TradeRecord> = db.collection("trade_records");
 
-                collection.insert_one(trade, None).await?;
+                collection.insert_one(trade).await?;
 
                 info!(
                     "Stored trade record for {} {} at {}",
@@ -205,12 +205,11 @@ impl Storage {
                     doc! {}
                 };
 
-                let options = mongodb::options::FindOptions::builder()
+                let mut cursor = collection
+                    .find(filter)
                     .limit(limit)
                     .sort(doc! { "entry_time": -1 })
-                    .build();
-
-                let mut cursor = collection.find(filter, options).await?;
+                    .await?;
 
                 let mut trades = Vec::new();
                 while let Some(result) = cursor.next().await {
@@ -250,7 +249,7 @@ impl Storage {
                     },
                 ];
 
-                let mut cursor = collection.aggregate(pipeline, None).await?;
+                let mut cursor = collection.aggregate(pipeline).await?;
 
                 if let Some(Ok(doc)) = cursor.next().await {
                     let total_trades = doc.get_i32("total_trades").unwrap_or(0) as u64;
@@ -311,7 +310,7 @@ impl Storage {
                 }
 
                 if !docs.is_empty() {
-                    collection.insert_many(docs, None).await?;
+                    collection.insert_many(docs).await?;
                     debug!(
                         "Stored {} market data entries for {} {}",
                         klines.len(),
@@ -343,12 +342,11 @@ impl Storage {
                     "symbol": symbol,
                     "timeframe": timeframe
                 };
-                let options = mongodb::options::FindOptions::builder()
+                let mut cursor = collection
+                    .find(filter)
                     .limit(limit)
                     .sort(doc! { "open_time": -1 })
-                    .build();
-
-                let mut cursor = collection.find(filter, options).await?;
+                    .await?;
 
                 let mut klines = Vec::new();
                 while let Some(result) = cursor.next().await {
@@ -409,11 +407,11 @@ impl Storage {
                 // Use upsert pattern
                 let filter = doc! { "symbol": symbol };
                 let update = doc! { "$set": doc };
-                let options = mongodb::options::UpdateOptions::builder()
-                    .upsert(true)
-                    .build();
 
-                collection.update_one(filter, update, options).await?;
+                collection
+                    .update_one(filter, update)
+                    .upsert(true)
+                    .await?;
 
                 debug!("Stored price history for {} at {}", symbol, price);
                 return Ok(());
@@ -498,7 +496,7 @@ impl Storage {
             created_at: Utc::now(),
         };
 
-        self.paper_trades()?.insert_one(record, None).await?;
+        self.paper_trades()?.insert_one(record).await?;
         Ok(())
     }
 
@@ -518,7 +516,7 @@ impl Storage {
         };
 
         self.paper_trades()?
-            .update_one(filter, update, None)
+            .update_one(filter, update)
             .await?;
         Ok(())
     }
@@ -543,7 +541,7 @@ impl Storage {
             created_at: Utc::now(),
         };
 
-        self.portfolio_history()?.insert_one(record, None).await?;
+        self.portfolio_history()?.insert_one(record).await?;
         Ok(())
     }
 
@@ -572,7 +570,7 @@ impl Storage {
             timestamp: signal.timestamp,
         };
 
-        self.ai_signals()?.insert_one(record, None).await?;
+        self.ai_signals()?.insert_one(record).await?;
         Ok(())
     }
 
@@ -605,7 +603,7 @@ impl Storage {
             created_at: Utc::now(),
         };
 
-        self.performance_metrics()?.insert_one(record, None).await?;
+        self.performance_metrics()?.insert_one(record).await?;
         Ok(())
     }
 
@@ -614,12 +612,12 @@ impl Storage {
         &self,
         limit: Option<i64>,
     ) -> Result<Vec<PaperTradingRecord>> {
-        let options = mongodb::options::FindOptions::builder()
+        let cursor = self
+            .paper_trades()?
+            .find(doc! {})
             .sort(doc! { "created_at": -1 })
-            .limit(limit)
-            .build();
-
-        let cursor = self.paper_trades()?.find(None, options).await?;
+            .limit(limit.unwrap_or(1000))
+            .await?;
         let trades: Vec<PaperTradingRecord> = cursor.try_collect().await?;
         Ok(trades)
     }
@@ -636,11 +634,11 @@ impl Storage {
             doc! {}
         };
 
-        let options = mongodb::options::FindOptions::builder()
+        let cursor = self
+            .portfolio_history()?
+            .find(filter)
             .sort(doc! { "timestamp": 1 })
-            .build();
-
-        let cursor = self.portfolio_history()?.find(filter, options).await?;
+            .await?;
         let history: Vec<PortfolioHistoryRecord> = cursor.try_collect().await?;
         Ok(history)
     }
@@ -657,12 +655,12 @@ impl Storage {
             doc! {}
         };
 
-        let options = mongodb::options::FindOptions::builder()
+        let cursor = self
+            .ai_signals()?
+            .find(filter)
             .sort(doc! { "timestamp": -1 })
-            .limit(limit)
-            .build();
-
-        let cursor = self.ai_signals()?.find(filter, options).await?;
+            .limit(limit.unwrap_or(1000))
+            .await?;
         let signals: Vec<AISignalRecord> = cursor.try_collect().await?;
         Ok(signals)
     }
@@ -700,12 +698,9 @@ impl Storage {
                         "created_at": &record.created_at
                     }
                 };
-                let options = mongodb::options::UpdateOptions::builder()
-                    .upsert(true)
-                    .build();
-
                 self.paper_trading_settings()?
-                    .update_one(filter, update, options)
+                    .update_one(filter, update)
+                    .upsert(true)
                     .await?;
 
                 info!("💾 Paper trading settings saved to database");
@@ -726,7 +721,7 @@ impl Storage {
             if let Some(_db) = &self.db {
                 let record = self
                     .paper_trading_settings()?
-                    .find_one(doc! {}, None)
+                    .find_one(doc! {})
                     .await?;
 
                 if let Some(record) = record {
