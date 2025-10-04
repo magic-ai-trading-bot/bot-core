@@ -72,16 +72,31 @@ class TestAIAnalysisEndpoint:
     @pytest.mark.asyncio
     async def test_analyze_with_cached_result(self, client, sample_ai_analysis_request, mock_mongodb):
         """Test analysis returns cached result."""
-        # Mock cached result
+        # Mock cached result with proper timestamp format (milliseconds)
+        timestamp_ms = int((datetime.now(timezone.utc) - timedelta(minutes=2)).timestamp() * 1000)
         cached_result = {
             "symbol": "BTCUSDT",
             "signal": "Short",
             "confidence": 0.85,
             "reasoning": "Cached reasoning",
-            "timestamp": datetime.now(timezone.utc) - timedelta(minutes=2),
-            "metadata": {"analysis_id": "cached_id"}
+            "timestamp": timestamp_ms,
+            "strategy_scores": {},
+            "market_analysis": {
+                "trend_direction": "Bearish",
+                "trend_strength": 0.75,
+                "support_levels": [45000],
+                "resistance_levels": [46000],
+                "volatility_level": "Medium",
+                "volume_analysis": "Decreasing volume"
+            },
+            "risk_assessment": {
+                "overall_risk": "Medium",
+                "technical_risk": 0.5,
+                "market_risk": 0.5,
+                "recommended_position_size": 0.02
+            }
         }
-        
+
         with patch('main.get_latest_analysis', AsyncMock(return_value=cached_result)):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
             assert response.status_code == 200
