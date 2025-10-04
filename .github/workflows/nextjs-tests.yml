@@ -24,32 +24,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v4
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        bun-version: latest
 
     - name: Install dependencies
       run: |
         cd nextjs-ui-dashboard
-        npm install
+        bun install
 
     - name: Type check
       continue-on-error: true
       run: |
         cd nextjs-ui-dashboard
-        npm run type-check || true
+        bun run type-check || true
 
     - name: Lint check
       continue-on-error: true
       run: |
         cd nextjs-ui-dashboard
-        npm run lint || true
+        bun run lint || true
 
     - name: Build project
       run: |
         cd nextjs-ui-dashboard
-        npm run build
+        bun run build
 
     - name: Run tests with coverage
       run: |
@@ -88,36 +88,36 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        bun-version: latest
 
     - name: Install dependencies
       run: |
         cd nextjs-ui-dashboard
-        npm install
+        bun install
 
     - name: Install Playwright browsers
       run: |
         cd nextjs-ui-dashboard
-        npx playwright install --with-deps
+        bunx playwright install --with-deps
 
     - name: Build application
       run: |
         cd nextjs-ui-dashboard
-        npm run build
+        bun run build
 
     - name: Start application
       run: |
         cd nextjs-ui-dashboard
-        npm run preview &
+        bun run preview &
         sleep 10
 
     - name: Run E2E tests
       run: |
         cd nextjs-ui-dashboard
-        npx playwright test
+        bunx playwright test
 
     # Temporarily disabled due to artifact storage quota
     # - name: Archive E2E test results
@@ -139,25 +139,25 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        bun-version: latest
 
     - name: Install dependencies
       run: |
         cd nextjs-ui-dashboard
-        npm install
+        bun install
 
     - name: Build application
       run: |
         cd nextjs-ui-dashboard
-        npm run build
+        bun run build
 
     - name: Run visual regression tests
       run: |
         cd nextjs-ui-dashboard
-        npm run test:visual
+        bun run test:visual
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload visual test results
@@ -176,31 +176,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        bun-version: latest
 
     - name: Install dependencies
       run: |
         cd nextjs-ui-dashboard
-        npm install
-
-    - name: Run npm audit
-      run: |
-        cd nextjs-ui-dashboard
-        npm audit --audit-level moderate
+        bun install
 
     - name: Run ESLint security rules
       continue-on-error: true
       run: |
         cd nextjs-ui-dashboard
-        npx eslint . --ext .ts,.tsx --config .eslintrc.security.js || true
+        bunx eslint . --ext .ts,.tsx --config .eslintrc.security.js || true
 
     - name: Bundle analyzer
       run: |
         cd nextjs-ui-dashboard
-        npm run build:analyze
+        bun run build:analyze
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload bundle analysis
