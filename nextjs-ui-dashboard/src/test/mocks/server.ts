@@ -26,6 +26,30 @@ export const handlers = [
     })
   }),
 
+  http.get('http://localhost:8080/api/auth/profile', () => {
+    return HttpResponse.json({
+      id: 'user123',
+      email: 'test@example.com',
+      full_name: 'Test User',
+      created_at: '2024-01-01T00:00:00Z',
+      roles: ['user'],
+    })
+  }),
+
+  http.put('http://localhost:8080/api/auth/profile', () => {
+    return HttpResponse.json({
+      id: 'user123',
+      email: 'test@example.com',
+      full_name: 'Updated User',
+      created_at: '2024-01-01T00:00:00Z',
+      roles: ['user'],
+    })
+  }),
+
+  http.post('http://localhost:8080/api/auth/change-password', () => {
+    return HttpResponse.json({ success: true })
+  }),
+
   // Trading endpoints
   http.get('http://localhost:8080/api/positions', () => {
     return HttpResponse.json({
