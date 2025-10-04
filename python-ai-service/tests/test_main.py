@@ -109,88 +109,53 @@ class TestStrategyRecommendations:
     """Test strategy recommendations endpoint."""
 
     @pytest.mark.asyncio
-    async def test_strategy_recommendations_success(self, client, mock_openai_client):
+    async def test_strategy_recommendations_success(self, client, sample_candle_data):
         """Test successful strategy recommendations."""
         request_data = {
-            "trading_style": "swing",
-            "risk_tolerance": "medium",
-            "capital": 10000,
-            "experience_level": "intermediate",
-            "preferred_timeframes": ["1h", "4h"],
-            "preferred_pairs": ["BTCUSDT", "ETHUSDT"],
-            "current_market_conditions": {
-                "btc_dominance": 48.5,
-                "total_market_cap": 1.75e12,
-                "fear_greed_index": 65
-            }
+            "symbol": "BTCUSDT",
+            "timeframe_data": {
+                "1h": sample_candle_data,
+                "4h": sample_candle_data
+            },
+            "current_price": 45189.23,
+            "available_strategies": ["RSI", "MACD", "EMA_Crossover"],
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
         }
-        
-        mock_response = {
-            "recommended_strategies": [{
-                "name": "EMA Crossover",
-                "suitability_score": 0.85
-            }],
-            "position_sizing": {
-                "method": "fixed_percentage",
-                "percentage": 2
-            }
-        }
-        
-        mock_openai_client.chat.completions.create.return_value = MagicMock(
-            choices=[MagicMock(
-                message=MagicMock(content=json.dumps(mock_response))
-            )]
-        )
-        
-        with patch('main.openai_client', mock_openai_client):
-            response = await client.post("/ai/strategy-recommendations", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-            assert "recommended_strategies" in data
-            assert len(data["recommended_strategies"]) > 0
+
+        response = await client.post("/ai/strategy-recommendations", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) > 0
+        # Check first recommendation has required fields
+        assert "strategy_name" in data[0]
+        assert "suitability_score" in data[0]
+        assert "reasoning" in data[0]
 
 @pytest.mark.unit
 class TestMarketCondition:
     """Test market condition analysis endpoint."""
 
     @pytest.mark.asyncio
-    async def test_market_condition_success(self, client, mock_openai_client):
+    async def test_market_condition_success(self, client, sample_candle_data):
         """Test successful market condition analysis."""
         request_data = {
-            "symbols": ["BTCUSDT", "ETHUSDT"],
-            "indicators": {
-                "BTCUSDT": {
-                    "price": 45000,
-                    "volume_24h": 25000000000,
-                    "price_change_24h": 2.5
-                },
-                "ETHUSDT": {
-                    "price": 2500,
-                    "volume_24h": 15000000000,
-                    "price_change_24h": 3.2
-                }
-            }
+            "symbol": "BTCUSDT",
+            "timeframe_data": {
+                "1h": sample_candle_data,
+                "4h": sample_candle_data
+            },
+            "current_price": 45000.0,
+            "volume_24h": 25000000000.0,
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
         }
-        
-        mock_response = {
-            "overall_market": "bullish",
-            "market_phase": "accumulation",
-            "volatility_level": "medium",
-            "trend_strength": 0.72
-        }
-        
-        mock_openai_client.chat.completions.create.return_value = MagicMock(
-            choices=[MagicMock(
-                message=MagicMock(content=json.dumps(mock_response))
-            )]
-        )
-        
-        with patch('main.openai_client', mock_openai_client):
-            response = await client.post("/ai/market-condition", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-            assert data["overall_market"] == "bullish"
-            assert "market_phase" in data
+
+        response = await client.post("/ai/market-condition", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert "condition_type" in data
+        assert "market_phase" in data
+        assert "confidence" in data
 
 @pytest.mark.unit
 class TestFeedbackEndpoint:
@@ -261,14 +226,14 @@ class TestStorageEndpoints:
     @pytest.mark.asyncio
     async def test_storage_stats_success(self, client, mock_mongodb):
         """Test storage statistics endpoint."""
-        # Mock aggregation result
-        mock_mongodb[1]["ai_analysis_results"].aggregate = AsyncMock(
-            return_value=AsyncMock(__aiter__=AsyncMock(return_value=iter([
-                {"_id": "BTCUSDT", "count": 100, "avg_confidence": 0.75}
-            ])))
-        )
+        # Create async iterator for aggregate
+        async def async_gen():
+            yield {"_id": "BTCUSDT", "count": 100, "latest": 1701234567000}
+
+        # Mock aggregation result with proper async iterator
+        mock_mongodb[1]["ai_analysis_results"].aggregate = MagicMock(return_value=async_gen())
         mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(return_value=500)
-        
+
         with patch('main.mongodb_db', mock_mongodb[1]):
             response = await client.get("/ai/storage/stats")
             assert response.status_code == 200
@@ -290,12 +255,13 @@ class TestStorageEndpoints:
         mock_mongodb[1]["ai_analysis_results"].delete_many = AsyncMock(
             return_value=MagicMock(deleted_count=100)
         )
-        
+
         with patch('main.mongodb_db', mock_mongodb[1]):
             response = await client.post("/ai/storage/clear")
             assert response.status_code == 200
             data = response.json()
-            assert data["deleted_count"] == 100
+            assert data["cleared_analyses"] == 100
+            assert data["message"] == "Storage cleared successfully"
 
 @pytest.mark.unit
 class TestRootEndpoint:
