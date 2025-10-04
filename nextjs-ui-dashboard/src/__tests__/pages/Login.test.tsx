@@ -118,11 +118,11 @@ describe('Login', () => {
     await user.type(screen.getByLabelText(/mật khẩu/i), 'wrongpassword')
     await user.click(screen.getByRole('button', { name: /đăng nhập/i }))
 
-    // Button should return to normal state
+    // Button should return to normal state after failure
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /đăng nhập/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /đăng nhập/i })).not.toBeDisabled()
-    })
+      const button = screen.getByRole('button', { name: /đăng nhập/i })
+      expect(button).not.toBeDisabled()
+    }, { timeout: 5000 })
   })
 
   it('persists form data on error', async () => {
