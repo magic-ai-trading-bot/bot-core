@@ -27,10 +27,10 @@ describe('AuthContext', () => {
 
   it('initializes with no user', () => {
     const { result } = renderHook(() => useAuth(), { wrapper })
-    
+
     expect(result.current.user).toBeNull()
     expect(result.current.isAuthenticated).toBe(false)
-    expect(result.current.isLoading).toBe(false)
+    expect(result.current.loading).toBe(false)
   })
 
   it('loads user from localStorage on init', () => {
@@ -154,14 +154,14 @@ describe('AuthContext', () => {
     const { result } = renderHook(() => useAuth(), { wrapper })
     
     // Should be loading initially
-    expect(result.current.isLoading).toBe(true)
+    expect(result.current.loading).toBe(true)
     
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 0))
     })
     
     expect(result.current.user).toEqual(mockUser)
-    expect(result.current.isLoading).toBe(false)
+    expect(result.current.loading).toBe(false)
     expect(mockFetch).toHaveBeenCalledWith(
       'http://localhost:8080/api/auth/me',
       expect.objectContaining({
@@ -277,7 +277,7 @@ describe('AuthContext', () => {
       })
     })
     
-    expect(result.current.isLoading).toBe(true)
+    expect(result.current.loading).toBe(true)
     
     // Resolve login
     await act(async () => {
@@ -288,7 +288,7 @@ describe('AuthContext', () => {
       await loginPromise
     })
     
-    expect(result.current.isLoading).toBe(false)
+    expect(result.current.loading).toBe(false)
   })
 
   it('provides auth token for API requests', () => {
