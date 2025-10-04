@@ -1507,7 +1507,7 @@ async def analyze_trading_signals(request: AIAnalysisRequest):
                 )
                 
                 # Broadcast stored signal via WebSocket
-                if ws_manager.connections:
+                if ws_manager.active_connections:
                     signal_data = {
                         "symbol": request.symbol,
                         "signal": stored_response.signal.lower(),
@@ -1540,7 +1540,7 @@ async def analyze_trading_signals(request: AIAnalysisRequest):
         await store_analysis_result(request.symbol, analysis_data)
         
         # Broadcast signal via WebSocket to connected clients
-        if ws_manager.connections:
+        if ws_manager.active_connections:
             signal_data = {
                 "symbol": request.symbol,
                 "signal": response.signal.lower(),
