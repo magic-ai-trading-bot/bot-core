@@ -63,7 +63,7 @@ class WebSocketManager:
         # Send welcome message
         await websocket.send_json({
             "type": "connection",
-            "message": "AI Signal WebSocket connected",
+            "message": "Connected to AI Trading Service",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
