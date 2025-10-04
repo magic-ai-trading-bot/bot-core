@@ -4,17 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { render } from '../../test/utils'
 import Login from '../../pages/Login'
 
-// Mock the auth hook
-const mockLogin = vi.fn()
-vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({
-    login: mockLogin,
-    isLoading: false,
-    error: null,
-  }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}))
-
 // Mock router
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
@@ -33,7 +22,6 @@ vi.mock('react-router-dom', async () => {
 describe('Login', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockLogin.mockResolvedValue({ token: 'mock-token' })
   })
 
   it('renders login form', () => {
