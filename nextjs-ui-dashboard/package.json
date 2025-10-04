@@ -13,6 +13,7 @@
     "test:ui": "NODE_ENV=test vitest --ui",
     "test:run": "NODE_ENV=test vitest run",
     "test:coverage": "NODE_ENV=test vitest run --coverage",
+    "test:visual": "echo 'Visual regression tests not yet implemented. Skipping...'",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
