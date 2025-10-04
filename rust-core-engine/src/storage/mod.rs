@@ -80,10 +80,7 @@ impl Storage {
                 let filter = doc! { "symbol": &analysis.symbol };
                 let update = doc! { "$set": doc };
 
-                collection
-                    .update_one(filter, update)
-                    .upsert(true)
-                    .await?;
+                collection.update_one(filter, update).upsert(true).await?;
 
                 debug!(
                     "Stored analysis result for {} at {}",
@@ -408,10 +405,7 @@ impl Storage {
                 let filter = doc! { "symbol": symbol };
                 let update = doc! { "$set": doc };
 
-                collection
-                    .update_one(filter, update)
-                    .upsert(true)
-                    .await?;
+                collection.update_one(filter, update).upsert(true).await?;
 
                 debug!("Stored price history for {} at {}", symbol, price);
                 return Ok(());
@@ -515,9 +509,7 @@ impl Storage {
             }
         };
 
-        self.paper_trades()?
-            .update_one(filter, update)
-            .await?;
+        self.paper_trades()?.update_one(filter, update).await?;
         Ok(())
     }
 
@@ -719,10 +711,7 @@ impl Storage {
         #[cfg(feature = "database")]
         {
             if let Some(_db) = &self.db {
-                let record = self
-                    .paper_trading_settings()?
-                    .find_one(doc! {})
-                    .await?;
+                let record = self.paper_trading_settings()?.find_one(doc! {}).await?;
 
                 if let Some(record) = record {
                     // Convert BSON document back to settings
