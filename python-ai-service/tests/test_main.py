@@ -200,20 +200,20 @@ class TestFeedbackEndpoint:
     async def test_feedback_success(self, client):
         """Test successful feedback submission."""
         feedback_data = {
-            "trade_id": "123e4567-e89b-12d3-a456-426614174000",
+            "signal_id": "123e4567-e89b-12d3-a456-426614174000",
             "symbol": "BTCUSDT",
-            "signal": "Long",
-            "confidence": 0.75,
+            "predicted_signal": "Long",
             "actual_outcome": "profit",
-            "profit_loss_percent": 2.5,
-            "holding_time_minutes": 180,
-            "notes": "Good signal"
+            "profit_loss": 2.5,
+            "confidence_was_accurate": True,
+            "feedback_notes": "Good signal",
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
         }
-        
+
         response = await client.post("/ai/feedback", json=feedback_data)
         assert response.status_code == 200
         data = response.json()
-        assert data["message"] == "Feedback received"
+        assert data["message"] == "Feedback received successfully"
 
 @pytest.mark.unit
 class TestWebSocket:
