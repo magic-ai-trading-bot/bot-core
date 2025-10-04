@@ -4,7 +4,7 @@ mod common;
 #[test]
 fn test_strategy_calculations() {
     // Test basic calculations
-    let prices = vec![100.0, 102.0, 101.0, 103.0, 104.0];
+    let prices = [100.0, 102.0, 101.0, 103.0, 104.0];
     let avg: f64 = prices.iter().sum::<f64>() / prices.len() as f64;
     assert_eq!(avg, 102.0);
 
@@ -19,14 +19,14 @@ fn test_strategy_calculations() {
 
 #[test]
 fn test_moving_average() {
-    let prices = vec![10.0, 20.0, 30.0, 40.0, 50.0];
+    let prices = [10.0, 20.0, 30.0, 40.0, 50.0];
     let sma = prices.iter().sum::<f64>() / prices.len() as f64;
     assert_eq!(sma, 30.0);
 }
 
 #[test]
 fn test_volatility_calculation() {
-    let prices = vec![100.0, 102.0, 98.0, 103.0, 97.0];
+    let prices = [100.0, 102.0, 98.0, 103.0, 97.0];
     let avg = prices.iter().sum::<f64>() / prices.len() as f64;
 
     let variance = prices.iter().map(|p| (p - avg).powi(2)).sum::<f64>() / prices.len() as f64;
@@ -38,8 +38,8 @@ fn test_volatility_calculation() {
 #[test]
 fn test_rsi_concept() {
     // Test RSI concept without actual implementation
-    let gains = vec![1.0, 0.0, 2.0, 0.0, 1.5];
-    let losses = vec![0.0, 0.5, 0.0, 1.0, 0.0];
+    let gains = [1.0, 0.0, 2.0, 0.0, 1.5];
+    let losses = [0.0, 0.5, 0.0, 1.0, 0.0];
 
     let avg_gain: f64 = gains.iter().sum::<f64>() / gains.len() as f64;
     let avg_loss: f64 = losses.iter().sum::<f64>() / losses.len() as f64;
@@ -47,12 +47,12 @@ fn test_rsi_concept() {
     let rs = avg_gain / avg_loss;
     let rsi = 100.0 - (100.0 / (1.0 + rs));
 
-    assert!(rsi >= 0.0 && rsi <= 100.0);
+    assert!((0.0..=100.0).contains(&rsi));
 }
 
 #[test]
 fn test_bollinger_bands_concept() {
-    let prices = vec![100.0, 101.0, 99.0, 102.0, 98.0];
+    let prices = [100.0, 101.0, 99.0, 102.0, 98.0];
     let sma = prices.iter().sum::<f64>() / prices.len() as f64;
 
     let variance = prices.iter().map(|p| (p - sma).powi(2)).sum::<f64>() / prices.len() as f64;
