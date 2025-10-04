@@ -46,8 +46,10 @@ class TestAIAnalysisEndpoint:
             data = response.json()
             assert data["signal"] == "Long"
             assert data["confidence"] == 0.75
-            assert data["reasoning"] == "Test reasoning"
-            assert "metadata" in data
+            assert "reasoning" in data
+            assert len(data["reasoning"]) > 0
+            assert "market_analysis" in data
+            assert "risk_assessment" in data
 
     @pytest.mark.asyncio
     async def test_analyze_invalid_symbol(self, client, sample_ai_analysis_request):

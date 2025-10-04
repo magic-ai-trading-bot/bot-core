@@ -27,13 +27,19 @@ def event_loop():
 def mock_openai_client():
     """Mock OpenAI client."""
     mock = AsyncMock()
-    mock.chat.completions.create = AsyncMock(return_value=MagicMock(
-        choices=[MagicMock(
-            message=MagicMock(
-                content='{"signal": "Long", "confidence": 0.75, "reasoning": "Test reasoning"}'
-            )
-        )]
-    ))
+
+    # Mock response as dictionary (as expected by the code)
+    mock_response = {
+        "choices": [{
+            "message": {
+                "content": '{"signal": "Long", "confidence": 0.75, "reasoning": "Strong bullish momentum based on technical indicators", "strategy_scores": {"RSI": 0.8, "MACD": 0.7}, "market_analysis": {"trend_direction": "Bullish", "trend_strength": 0.75, "support_levels": [45000], "resistance_levels": [46000], "volatility_level": "Medium", "volume_analysis": "Increasing volume"}, "risk_assessment": {"overall_risk": "Medium", "technical_risk": 0.4, "market_risk": 0.5, "recommended_position_size": 0.03}}'
+            }
+        }]
+    }
+
+    # Mock the custom chat_completions_create method
+    mock.chat_completions_create = AsyncMock(return_value=mock_response)
+
     return mock
 
 @pytest.fixture
@@ -41,38 +47,52 @@ def mock_mongodb():
     """Mock MongoDB client and database."""
     mock_client = AsyncMock()
     mock_db = AsyncMock()
-    
-    # Mock collections
-    mock_db.__getitem__ = MagicMock(return_value=AsyncMock())
-    mock_db["ai_analysis_results"].insert_one = AsyncMock(
-        return_value=MagicMock(inserted_id="test_id")
+
+    # Mock collection
+    mock_collection = AsyncMock()
+    mock_collection.insert_one = AsyncMock(
+        return_value=MagicMock(inserted_id="test_id_123")
     )
-    mock_db["ai_analysis_results"].find_one = AsyncMock(return_value=None)
-    mock_db["ai_analysis_results"].count_documents = AsyncMock(return_value=0)
-    
+    mock_collection.find_one = AsyncMock(return_value=None)
+    mock_collection.count_documents = AsyncMock(return_value=100)
+    mock_collection.delete_many = AsyncMock(
+        return_value=MagicMock(deleted_count=50)
+    )
+
+    # Mock __getitem__ to return collection
+    mock_db.__getitem__ = MagicMock(return_value=mock_collection)
+
     # Mock admin commands
     mock_client.admin.command = AsyncMock(return_value={"ok": 1})
     mock_client.get_default_database = MagicMock(return_value=mock_db)
-    
+
     return mock_client, mock_db
 
 @pytest.fixture
 def app(mock_openai_client, mock_mongodb):
-    """Create FastAPI test app."""
-    with patch('main.openai_client') as mock_openai, \
-         patch('main.mongodb_client') as mock_mongo_client, \
-         patch('main.mongodb_db') as mock_mongo_db:
+    """Create FastAPI test app with mocked dependencies."""
+    import main
 
-        # Import app after patching
-        from main import app as fastapi_app
+    # Get MongoDB mocks
+    mongo_client, mongo_db = mock_mongodb
 
-        # Set up mocks
-        mock_openai.return_value = mock_openai_client
-        mongo_client, mongo_db = mock_mongodb
-        mock_mongo_client.return_value = mongo_client
-        mock_mongo_db.return_value = mongo_db
+    # Patch the global variables in main module
+    main.openai_client = mock_openai_client
+    main.mongodb_client = mongo_client
+    main.mongodb_db = mongo_db
+    main.gpt_analyzer = None  # Reset analyzer
 
-        yield fastapi_app
+    # Mock WebSocket manager's active_connections
+    if hasattr(main, 'ws_manager'):
+        main.ws_manager.active_connections = set()
+
+    yield main.app
+
+    # Cleanup
+    main.openai_client = None
+    main.mongodb_client = None
+    main.mongodb_db = None
+    main.gpt_analyzer = None
 
 @pytest_asyncio.fixture
 async def client(app) -> AsyncGenerator[AsyncClient, None]:
