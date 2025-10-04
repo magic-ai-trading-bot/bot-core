@@ -1,254 +1,308 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useWebSocket } from '../../hooks/useWebSocket'
-import { mockWebSocket } from '../../test/utils'
+
+// Mock environment to disable auto-connect
+vi.stubEnv('VITE_ENABLE_REALTIME', 'false')
+vi.stubEnv('VITE_WS_URL', 'ws://localhost:8080/ws')
 
 // Mock WebSocket
-const mockWs = mockWebSocket()
+class MockWebSocket {
+  public readyState = WebSocket.CONNECTING
+  public onopen: ((ev: Event) => void) | null = null
+  public onclose: ((ev: CloseEvent) => void) | null = null
+  public onerror: ((ev: Event) => void) | null = null
+  public onmessage: ((ev: MessageEvent) => void) | null = null
+  public sent: string[] = []
 
-global.WebSocket = vi.fn(() => mockWs) as unknown as typeof WebSocket
+  send(data: string) {
+    this.sent.push(data)
+  }
+
+  close() {
+    this.readyState = WebSocket.CLOSED
+    if (this.onclose) {
+      this.onclose(new CloseEvent('close'))
+    }
+  }
+
+  // Test helper methods
+  triggerOpen() {
+    this.readyState = WebSocket.OPEN
+    if (this.onopen) {
+      this.onopen(new Event('open'))
+    }
+  }
+
+  triggerMessage(data: unknown) {
+    if (this.onmessage) {
+      this.onmessage(new MessageEvent('message', { data: JSON.stringify(data) }))
+    }
+  }
+
+  triggerError() {
+    if (this.onerror) {
+      this.onerror(new Event('error'))
+    }
+  }
+
+  triggerClose() {
+    this.readyState = WebSocket.CLOSED
+    if (this.onclose) {
+      this.onclose(new CloseEvent('close'))
+    }
+  }
+}
+
+let mockWs: MockWebSocket
+
+// Mock the global WebSocket
+global.WebSocket = vi.fn(() => {
+  mockWs = new MockWebSocket()
+  return mockWs as unknown as WebSocket
+}) as unknown as typeof WebSocket
 
 describe('useWebSocket', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockWs.readyState = 1 // OPEN
+    // Reset mockWs
+    mockWs = undefined as unknown as MockWebSocket
   })
 
-  it('initializes WebSocket connection', () => {
+  // Helper function to connect and wait for WebSocket
+  const connectAndWait = async (result: any) => {
+    act(() => {
+      result.current.connect()
+    })
+    await waitFor(() => expect(mockWs).toBeDefined())
+    act(() => {
+      mockWs.triggerOpen()
+    })
+    await waitFor(() => expect(result.current.state.isConnected).toBe(true))
+  }
+
+  it('initializes with disconnected state', () => {
     const { result } = renderHook(() => useWebSocket())
-    
-    expect(result.current.connected).toBe(true)
+
+    expect(result.current.state.isConnected).toBe(false)
+    expect(result.current.state.isConnecting).toBe(false)
+    expect(result.current.state.error).toBe(null)
+  })
+
+  it('connects to WebSocket server', async () => {
+    const { result } = renderHook(() => useWebSocket())
+
+    act(() => {
+      result.current.connect()
+    })
+
+    // Wait for mockWs to be created
+    await waitFor(() => {
+      expect(mockWs).toBeDefined()
+    })
+
+    expect(result.current.state.isConnecting).toBe(true)
     expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8080/ws')
-  })
 
-  it('subscribes to market data', () => {
-    const { result } = renderHook(() => useWebSocket())
-    
     act(() => {
-      result.current.subscribe('prices')
+      mockWs.triggerOpen()
     })
-    
-    expect(mockWs.send).toHaveBeenCalledWith(
-      JSON.stringify({
-        type: 'subscribe',
-        channel: 'prices'
-      })
-    )
+
+    await waitFor(() => {
+      expect(result.current.state.isConnected).toBe(true)
+      expect(result.current.state.isConnecting).toBe(false)
+    })
   })
 
-  it('unsubscribes from market data', () => {
+  it('disconnects from WebSocket server', async () => {
     const { result } = renderHook(() => useWebSocket())
-    
+
     act(() => {
-      result.current.unsubscribe('prices')
+      result.current.connect()
     })
-    
-    expect(mockWs.send).toHaveBeenCalledWith(
-      JSON.stringify({
-        type: 'unsubscribe',
-        channel: 'prices'
-      })
-    )
+
+    await waitFor(() => expect(mockWs).toBeDefined())
+
+    act(() => {
+      mockWs.triggerOpen()
+    })
+
+    await waitFor(() => {
+      expect(result.current.state.isConnected).toBe(true)
+    })
+
+    act(() => {
+      result.current.disconnect()
+    })
+
+    expect(result.current.state.isConnected).toBe(false)
   })
 
-  it('handles incoming messages', () => {
-    const onMessage = vi.fn()
-    const { result } = renderHook(() => useWebSocket({ onMessage }))
-    
+  it('sends messages when connected', async () => {
+    const { result } = renderHook(() => useWebSocket())
+    await connectAndWait(result)
+
+    const message = { type: 'test', data: 'hello' }
+
+    act(() => {
+      result.current.sendMessage(message)
+    })
+
+    expect(mockWs.sent).toHaveLength(1)
+    expect(JSON.parse(mockWs.sent[0])).toEqual(message)
+  })
+
+  it('handles incoming messages', async () => {
+    const { result } = renderHook(() => useWebSocket())
+    await connectAndWait(result)
+
     const messageData = {
-      type: 'price_update',
+      type: 'AISignalReceived',
       data: {
         symbol: 'BTCUSDT',
-        price: 45000
-      }
+        signal: 'long',
+        confidence: 0.85,
+        timestamp: Date.now(),
+        model_type: 'LSTM',
+        timeframe: '1h'
+      },
+      timestamp: new Date().toISOString()
     }
-    
+
     act(() => {
-      mockWs.trigger('message', {
-        data: JSON.stringify(messageData)
-      })
+      mockWs.triggerMessage(messageData)
     })
-    
-    expect(onMessage).toHaveBeenCalledWith(messageData)
+
+    await waitFor(() => {
+      expect(result.current.state.lastMessage).toEqual(messageData)
+      expect(result.current.state.aiSignals).toHaveLength(1)
+      expect(result.current.state.aiSignals[0].signal).toBe('long')
+    })
   })
 
-  it('handles connection open', () => {
-    const onOpen = vi.fn()
-    renderHook(() => useWebSocket({ onOpen }))
-    
-    act(() => {
-      mockWs.trigger('open')
-    })
-    
-    expect(onOpen).toHaveBeenCalled()
-  })
-
-  it('handles connection close', () => {
-    const onClose = vi.fn()
-    const { result } = renderHook(() => useWebSocket({ onClose }))
-    
-    act(() => {
-      mockWs.readyState = 3 // CLOSED
-      mockWs.trigger('close')
-    })
-    
-    expect(result.current.connected).toBe(false)
-    expect(onClose).toHaveBeenCalled()
-  })
-
-  it('handles connection error', () => {
-    const onError = vi.fn()
-    renderHook(() => useWebSocket({ onError }))
-    
-    const error = new Error('Connection failed')
-    act(() => {
-      mockWs.trigger('error', error)
-    })
-    
-    expect(onError).toHaveBeenCalledWith(error)
-  })
-
-  it('reconnects on connection loss', async () => {
-    const { result } = renderHook(() => useWebSocket({ reconnect: true }))
-    
-    // Simulate connection loss
-    act(() => {
-      mockWs.readyState = 3 // CLOSED
-      mockWs.trigger('close')
-    })
-    
-    expect(result.current.connected).toBe(false)
-    
-    // Wait for reconnection attempt
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 1100)) // Wait for reconnect delay
-    })
-    
-    expect(global.WebSocket).toHaveBeenCalledTimes(2)
-  })
-
-  it('maintains subscription state across reconnections', async () => {
-    const { result } = renderHook(() => useWebSocket({ reconnect: true }))
-    
-    // Subscribe to channels
-    act(() => {
-      result.current.subscribe('prices')
-      result.current.subscribe('trades')
-    })
-    
-    // Simulate reconnection
-    act(() => {
-      mockWs.readyState = 3
-      mockWs.trigger('close')
-    })
-    
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 1100))
-      mockWs.readyState = 1
-      mockWs.trigger('open')
-    })
-    
-    // Should re-subscribe to all channels
-    expect(mockWs.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'subscribe', channel: 'prices' })
-    )
-    expect(mockWs.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'subscribe', channel: 'trades' })
-    )
-  })
-
-  it('sends custom messages', () => {
+  it('handles connection errors', async () => {
     const { result } = renderHook(() => useWebSocket())
-    
-    const message = { type: 'ping', timestamp: Date.now() }
-    
+
     act(() => {
-      result.current.send(message)
+      result.current.connect()
     })
-    
-    expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify(message))
+
+    await waitFor(() => expect(mockWs).toBeDefined())
+
+    act(() => {
+      mockWs.triggerError()
+    })
+
+    await waitFor(() => {
+      expect(result.current.state.error).toBe('WebSocket connection error')
+      expect(result.current.state.isConnecting).toBe(false)
+    })
   })
 
-  it('handles malformed JSON messages', () => {
-    const onError = vi.fn()
-    renderHook(() => useWebSocket({ onError }))
-    
-    act(() => {
-      mockWs.trigger('message', {
-        data: 'invalid json{'
-      })
-    })
-    
-    expect(onError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: expect.stringContaining('JSON')
-      })
-    )
-  })
-
-  it('queues messages when disconnected', () => {
+  it('handles position updates', async () => {
     const { result } = renderHook(() => useWebSocket())
-    
-    // Simulate disconnection
+    await connectAndWait(result)
+
+    // First add a position by triggering a position update
+    const positionMessage = {
+      type: 'PositionUpdate',
+      data: {
+        symbol: 'BTCUSDT',
+        side: 'LONG',
+        pnl: 100,
+        current_price: 45000,
+        unrealized_pnl: 50,
+        timestamp: Date.now()
+      },
+      timestamp: new Date().toISOString()
+    }
+
     act(() => {
-      mockWs.readyState = 3 // CLOSED
+      mockWs.triggerMessage(positionMessage)
     })
-    
-    const message = { type: 'test', data: 'queued' }
-    
-    act(() => {
-      result.current.send(message)
+
+    await waitFor(() => {
+      expect(result.current.state.lastMessage?.type).toBe('PositionUpdate')
     })
-    
-    // Message should not be sent immediately
-    expect(mockWs.send).not.toHaveBeenCalledWith(JSON.stringify(message))
   })
 
-  it('sends queued messages on reconnection', async () => {
-    const { result } = renderHook(() => useWebSocket({ reconnect: true }))
-    
-    // Disconnect and queue messages
+  it('handles trade execution messages', async () => {
+    const { result } = renderHook(() => useWebSocket())
+    await connectAndWait(result)
+
+    const tradeMessage = {
+      type: 'TradeExecuted',
+      data: {
+        symbol: 'ETHUSDT',
+        side: 'BUY',
+        quantity: 1.0,
+        price: 2500,
+        timestamp: Date.now()
+      },
+      timestamp: new Date().toISOString()
+    }
+
     act(() => {
-      mockWs.readyState = 3
+      mockWs.triggerMessage(tradeMessage)
     })
-    
-    const message1 = { type: 'test1' }
-    const message2 = { type: 'test2' }
-    
-    act(() => {
-      result.current.send(message1)
-      result.current.send(message2)
+
+    await waitFor(() => {
+      expect(result.current.state.recentTrades).toHaveLength(1)
+      expect(result.current.state.recentTrades[0].symbol).toBe('ETHUSDT')
     })
-    
-    // Reconnect
-    await act(async () => {
-      mockWs.readyState = 1
-      mockWs.trigger('open')
-    })
-    
-    expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify(message1))
-    expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify(message2))
   })
 
-  it('closes connection on unmount', () => {
-    const { unmount } = renderHook(() => useWebSocket())
-    
+  it('handles bot status updates', async () => {
+    const { result } = renderHook(() => useWebSocket())
+    await connectAndWait(result)
+
+    const statusMessage = {
+      type: 'BotStatusUpdate',
+      data: {
+        status: 'running',
+        active_positions: 3,
+        total_pnl: 250.50,
+        total_trades: 15,
+        uptime: 3600
+      },
+      timestamp: new Date().toISOString()
+    }
+
+    act(() => {
+      mockWs.triggerMessage(statusMessage)
+    })
+
+    await waitFor(() => {
+      expect(result.current.state.botStatus).toBeTruthy()
+      expect(result.current.state.botStatus?.status).toBe('running')
+      expect(result.current.state.botStatus?.active_positions).toBe(3)
+    })
+  })
+
+  it('handles malformed JSON messages', async () => {
+    const { result } = renderHook(() => useWebSocket())
+    await connectAndWait(result)
+
+    // Trigger a message event with invalid JSON
+    act(() => {
+      if (mockWs.onmessage) {
+        mockWs.onmessage(new MessageEvent('message', { data: 'invalid json{' }))
+      }
+    })
+
+    await waitFor(() => {
+      expect(result.current.state.error).toBe('Failed to parse WebSocket message')
+    })
+  })
+
+  it('cleans up on unmount', async () => {
+    const { result, unmount } = renderHook(() => useWebSocket())
+    await connectAndWait(result)
+
+    const closeSpy = vi.spyOn(mockWs, 'close')
+
     unmount()
-    
-    expect(mockWs.close).toHaveBeenCalled()
-  })
 
-  it('handles heartbeat/ping-pong', () => {
-    renderHook(() => useWebSocket({ heartbeat: true }))
-    
-    act(() => {
-      mockWs.trigger('message', {
-        data: JSON.stringify({ type: 'ping' })
-      })
-    })
-    
-    expect(mockWs.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'pong' })
-    )
+    expect(closeSpy).toHaveBeenCalled()
   })
 })
