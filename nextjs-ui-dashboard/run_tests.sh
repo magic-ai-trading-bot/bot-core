@@ -8,12 +8,12 @@ echo "===================================="
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
     echo "📦 Installing dependencies..."
-    npm ci
+    bun install
 fi
 
 # Build first to catch TypeScript errors
 echo "🔨 Building project..."
-npm run build
+bun run build
 
 if [ $? -ne 0 ]; then
     echo "❌ Build failed"
@@ -22,15 +22,15 @@ fi
 
 # Type check
 echo "🔍 Running TypeScript checks..."
-npm run type-check || echo "⚠️  Type check had warnings (continuing...)"
+bun run type-check || echo "⚠️  Type check had warnings (continuing...)"
 
 # Lint
 echo "🧹 Running ESLint..."
-npm run lint || echo "⚠️  Lint had warnings (continuing...)"
+bun run lint || echo "⚠️  Lint had warnings (continuing...)"
 
 # Run tests with coverage
 echo "📊 Running tests with coverage..."
-npm run test:coverage -- --reporter=verbose
+bun run test:coverage -- --reporter=verbose
 
 # Check if tests passed
 if [ $? -eq 0 ]; then
@@ -47,20 +47,20 @@ echo "📋 Test Summary by Category:"
 echo "----------------------------"
 
 echo "Component tests:"
-npm run test:run -- --reporter=json src/__tests__/components/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
+bun run test:run -- --reporter=json src/__tests__/components/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
 
 echo "Hook tests:"
-npm run test:run -- --reporter=json src/__tests__/hooks/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
+bun run test:run -- --reporter=json src/__tests__/hooks/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
 
 echo "Utility tests:"
-npm run test:run -- --reporter=json src/__tests__/utils/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
+bun run test:run -- --reporter=json src/__tests__/utils/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
 
 echo "Context tests:"
-npm run test:run -- --reporter=json src/__tests__/contexts/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
+bun run test:run -- --reporter=json src/__tests__/contexts/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
 
 echo "Page tests:"
-npm run test:run -- --reporter=json src/__tests__/pages/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
+bun run test:run -- --reporter=json src/__tests__/pages/ 2>/dev/null | jq -r '.testResults | length as $total | map(select(.status == "passed")) | length as $passed | "\($passed)/\($total) passed"' || echo "Check manually"
 
 echo ""
 echo "📊 Detailed coverage report: coverage/index.html"
-echo "🎨 Interactive test UI: npm run test:ui"
+echo "🎨 Interactive test UI: bun run test:ui"
