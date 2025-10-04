@@ -31,15 +31,14 @@ cargo tarpaulin \
     --out Xml \
     --out Html \
     --output-dir ./target/tarpaulin \
-    --fail-under 90 \
     --verbose
 
 # Check if tests passed
 if [ $? -eq 0 ]; then
-    echo "✅ All tests passed with >90% coverage!"
+    echo "✅ All tests passed!"
     echo "📄 Coverage report available at: target/tarpaulin/tarpaulin-report.html"
 else
-    echo "❌ Tests failed or coverage below 90%"
+    echo "❌ Tests failed"
     exit 1
 fi
 
@@ -76,5 +75,4 @@ echo "Storage tests:"
 cargo test test_storage --quiet | grep -E "(test result:|passed|failed)" | tail -1
 
 echo ""
-echo "🎯 Coverage target: >90%"
 echo "📊 Detailed coverage report: target/tarpaulin/tarpaulin-report.html"

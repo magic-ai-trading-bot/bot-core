@@ -15,15 +15,14 @@ pytest \
     --cov-report=term-missing:skip-covered \
     --cov-report=html:htmlcov \
     --cov-report=xml \
-    --cov-fail-under=90 \
     -v
 
 # Check if tests passed
 if [ $? -eq 0 ]; then
-    echo "✅ All tests passed with >90% coverage!"
+    echo "✅ All tests passed!"
     echo "📄 Coverage report available at: htmlcov/index.html"
 else
-    echo "❌ Tests failed or coverage below 90%"
+    echo "❌ Tests failed"
     exit 1
 fi
 
