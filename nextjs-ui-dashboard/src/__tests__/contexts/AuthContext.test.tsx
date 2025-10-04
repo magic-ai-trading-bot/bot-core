@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterEach, afterAll } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuth } from '../../contexts/AuthContext'
 import { mockUser, mockLocalStorage } from '../../test/utils'
 import React from 'react'
+import { server } from '../../test/mocks/server'
+import { http, HttpResponse } from 'msw'
 
 // Mock localStorage
 Object.defineProperty(window, 'localStorage', {
@@ -10,27 +12,30 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 })
 
-// Mock fetch
-const mockFetch = vi.fn()
-global.fetch = mockFetch
-
 describe('AuthContext', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <AuthProvider>{children}</AuthProvider>
   )
 
+  beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+  afterEach(() => server.resetHandlers())
+  afterAll(() => server.close())
+
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.clear()
-    mockFetch.mockClear()
   })
 
-  it('initializes with no user', () => {
+  it('initializes with no user', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper })
+
+    // Wait for initialization to complete
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
 
     expect(result.current.user).toBeNull()
     expect(result.current.isAuthenticated).toBe(false)
-    expect(result.current.loading).toBe(false)
   })
 
   it.skip('loads user from localStorage on init', async () => {
@@ -49,46 +54,40 @@ describe('AuthContext', () => {
   })
 
   it('logs in user successfully', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        token: 'new-token',
-        user: mockUser,
-      }),
-    })
-
     const { result } = renderHook(() => useAuth(), { wrapper })
 
+    let loginResult: boolean = false
     await act(async () => {
-      await result.current.login('test@example.com', 'password123')
+      loginResult = await result.current.login('test@example.com', 'password123')
     })
 
+    expect(loginResult).toBe(true)
     expect(result.current.user).toBeDefined()
     expect(result.current.isAuthenticated).toBe(true)
   })
 
   it('handles login failure', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-      json: async () => ({
-        message: 'Invalid credentials',
-      }),
-    })
-    
-    const { result } = renderHook(() => useAuth(), { wrapper })
-    
-    await expect(
-      act(async () => {
-        await result.current.login({
-          email: 'test@example.com',
-          password: 'wrongpassword',
-        })
+    // Override MSW handler to return error
+    server.use(
+      http.post('http://localhost:8080/api/auth/login', () => {
+        return HttpResponse.json(
+          { success: false, error: 'Invalid credentials' },
+          { status: 401 }
+        )
       })
-    ).rejects.toThrow('Invalid credentials')
-    
+    )
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    let loginResult: boolean = true
+    await act(async () => {
+      loginResult = await result.current.login('test@example.com', 'wrongpassword')
+    })
+
+    expect(loginResult).toBe(false)
     expect(result.current.user).toBeNull()
     expect(result.current.isAuthenticated).toBe(false)
+    expect(result.current.error).toBeTruthy()
   })
 
   it.skip('registers user successfully', async () => {
@@ -245,18 +244,23 @@ describe('AuthContext', () => {
   })
 
   it('handles network errors gracefully', async () => {
-    mockFetch.mockRejectedValueOnce(new Error('Network error'))
-    
-    const { result } = renderHook(() => useAuth(), { wrapper })
-    
-    await expect(
-      act(async () => {
-        await result.current.login({
-          email: 'test@example.com',
-          password: 'password123',
-        })
+    // Simulate network error by closing the server
+    server.use(
+      http.post('http://localhost:8080/api/auth/login', () => {
+        return HttpResponse.error()
       })
-    ).rejects.toThrow('Network error')
+    )
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    let loginResult: boolean = true
+    await act(async () => {
+      loginResult = await result.current.login('test@example.com', 'password123')
+    })
+
+    expect(loginResult).toBe(false)
+    expect(result.current.error).toBeTruthy()
+    expect(result.current.isAuthenticated).toBe(false)
   })
 
   it.skip('sets loading state correctly during operations', async () => {
