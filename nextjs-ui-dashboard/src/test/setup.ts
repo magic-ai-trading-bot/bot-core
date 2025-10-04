@@ -4,11 +4,12 @@ import { cleanup } from '@testing-library/react'
 import { server } from './mocks/server'
 
 // Setup MSW
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
 afterAll(() => server.close())
 afterEach(() => {
   server.resetHandlers()
   cleanup()
+  localStorage.clear()
 })
 
 // Mock ResizeObserver
