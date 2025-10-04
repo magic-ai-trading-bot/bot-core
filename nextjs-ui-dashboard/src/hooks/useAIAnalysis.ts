@@ -52,13 +52,18 @@ export const useAIAnalysis = (): AIAnalysisHook => {
 
   const apiClient = useRef(new BotCoreApiClient());
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   const setLoading = useCallback((loading: boolean) => {
-    setState((prev) => ({ ...prev, isLoading: loading }));
+    if (isMountedRef.current) {
+      setState((prev) => ({ ...prev, isLoading: loading }));
+    }
   }, []);
 
   const setError = useCallback((error: string | null) => {
-    setState((prev) => ({ ...prev, error }));
+    if (isMountedRef.current) {
+      setState((prev) => ({ ...prev, error }));
+    }
   }, []);
 
   const clearError = useCallback(() => {
@@ -175,11 +180,13 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         // Add symbol to the response for display purposes
         const enhancedSignal = { ...signal, symbol };
 
-        setState((prev) => ({
-          ...prev,
-          signals: [enhancedSignal, ...prev.signals.slice(0, 19)], // Keep last 20 signals
-          lastUpdate: new Date().toISOString(),
-        }));
+        if (isMountedRef.current) {
+          setState((prev) => ({
+            ...prev,
+            signals: [enhancedSignal, ...prev.signals.slice(0, 19)], // Keep last 20 signals
+            lastUpdate: new Date().toISOString(),
+          }));
+        }
       } catch (error) {
         console.error("AI Analysis error:", error);
         setError(
@@ -210,10 +217,12 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         const recommendations =
           await apiClient.current.rust.getStrategyRecommendations(data);
 
-        setState((prev) => ({
-          ...prev,
-          strategies: recommendations,
-        }));
+        if (isMountedRef.current) {
+          setState((prev) => ({
+            ...prev,
+            strategies: recommendations,
+          }));
+        }
       } catch (error) {
         console.error("Strategy recommendations error:", error);
         setError(
@@ -248,10 +257,12 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           data
         );
 
-        setState((prev) => ({
-          ...prev,
-          marketCondition: condition,
-        }));
+        if (isMountedRef.current) {
+          setState((prev) => ({
+            ...prev,
+            marketCondition: condition,
+          }));
+        }
       } catch (error) {
         console.error("Market condition analysis error:", error);
         setError(
@@ -271,11 +282,13 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         apiClient.current.rust.getSupportedStrategies(),
       ]);
 
-      setState((prev) => ({
-        ...prev,
-        serviceInfo,
-        supportedStrategies: supportedStrategies.strategies,
-      }));
+      if (isMountedRef.current) {
+        setState((prev) => ({
+          ...prev,
+          serviceInfo,
+          supportedStrategies: supportedStrategies.strategies,
+        }));
+      }
     } catch (error) {
       console.error("Service info error:", error);
       // Don't show error for service info as it's not critical
@@ -309,15 +322,21 @@ export const useAIAnalysis = (): AIAnalysisHook => {
     refreshServiceInfo();
 
     // Analyze initial symbols
+    const timeouts: NodeJS.Timeout[] = [];
     DEFAULT_SYMBOLS.forEach((symbol, index) => {
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         analyzeSymbol(symbol);
       }, index * 1000); // Stagger initial requests
+      timeouts.push(timeout);
     });
 
     startAutoRefresh();
 
     return () => {
+      // Mark as unmounted to prevent state updates
+      isMountedRef.current = false;
+      // Clear all pending timeouts
+      timeouts.forEach(clearTimeout);
       stopAutoRefresh();
     };
   }, [refreshServiceInfo, analyzeSymbol, startAutoRefresh, stopAutoRefresh]);
