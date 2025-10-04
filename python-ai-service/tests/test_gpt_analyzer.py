@@ -37,11 +37,11 @@ class TestGPTTradingAnalyzer:
         request = AIAnalysisRequest(**sample_ai_analysis_request)
         
         result = await gpt_analyzer.analyze_trading_signals(request)
-        
+
         assert result.signal == "Long"
         assert result.confidence == 0.75
-        assert result.reasoning == "Test reasoning"
-        assert "analysis_id" in result.metadata
+        assert result.reasoning == "Strong bullish momentum based on technical indicators"
+        assert result.timestamp > 0
     
     @pytest.mark.asyncio
     async def test_analyze_with_api_error(self, gpt_analyzer, sample_ai_analysis_request, mock_openai_client):

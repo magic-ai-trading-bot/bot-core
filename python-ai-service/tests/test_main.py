@@ -213,7 +213,7 @@ class TestWebSocket:
             assert data["message"] == "Connected to AI Trading Service"
             
             # Test receiving AI signal
-            with patch('main.ws_manager.broadcast', AsyncMock()) as mock_broadcast:
+            with patch('main.ws_manager.broadcast_signal', AsyncMock()) as mock_broadcast:
                 # Simulate broadcasting
                 test_message = {
                     "type": "ai_signal",
