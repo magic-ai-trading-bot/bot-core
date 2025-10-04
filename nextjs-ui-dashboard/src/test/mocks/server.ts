@@ -6,48 +6,63 @@ export const handlers = [
   // Auth endpoints
   http.post('http://localhost:8080/api/auth/login', () => {
     return HttpResponse.json({
-      token: 'mock-jwt-token',
-      user: {
-        id: 'user123',
-        email: 'test@example.com',
-        full_name: 'Test User',
+      success: true,
+      data: {
+        token: 'mock-jwt-token',
+        user: {
+          id: 'user123',
+          email: 'test@example.com',
+          full_name: 'Test User',
+        },
       },
     })
   }),
 
   http.post('http://localhost:8080/api/auth/register', () => {
     return HttpResponse.json({
-      token: 'mock-jwt-token',
-      user: {
-        id: 'user123',
-        email: 'test@example.com',
-        full_name: 'Test User',
+      success: true,
+      data: {
+        token: 'mock-jwt-token',
+        user: {
+          id: 'user123',
+          email: 'test@example.com',
+          full_name: 'Test User',
+        },
       },
     })
   }),
 
   http.get('http://localhost:8080/api/auth/profile', () => {
     return HttpResponse.json({
-      id: 'user123',
-      email: 'test@example.com',
-      full_name: 'Test User',
-      created_at: '2024-01-01T00:00:00Z',
-      roles: ['user'],
+      success: true,
+      data: {
+        id: 'user123',
+        email: 'test@example.com',
+        full_name: 'Test User',
+        created_at: '2024-01-01T00:00:00Z',
+        roles: ['user'],
+      },
     })
   }),
 
   http.put('http://localhost:8080/api/auth/profile', () => {
     return HttpResponse.json({
-      id: 'user123',
-      email: 'test@example.com',
-      full_name: 'Updated User',
-      created_at: '2024-01-01T00:00:00Z',
-      roles: ['user'],
+      success: true,
+      data: {
+        id: 'user123',
+        email: 'test@example.com',
+        full_name: 'Updated User',
+        created_at: '2024-01-01T00:00:00Z',
+        roles: ['user'],
+      },
     })
   }),
 
   http.post('http://localhost:8080/api/auth/change-password', () => {
-    return HttpResponse.json({ success: true })
+    return HttpResponse.json({
+      success: true,
+      data: { message: 'Password updated' }
+    })
   }),
 
   // Trading endpoints
