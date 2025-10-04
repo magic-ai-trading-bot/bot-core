@@ -15,7 +15,7 @@ fn test_paper_trading_calculations() {
 fn test_portfolio_statistics() {
     let total_trades = 10;
     let winning_trades = 6;
-    let losing_trades = 4;
+    let _losing_trades = 4;
 
     // Calculate win rate
     let win_rate = (winning_trades as f64 / total_trades as f64) * 100.0;
@@ -56,7 +56,7 @@ fn test_portfolio_value_calculation() {
 
 #[test]
 fn test_sharpe_ratio_calculation() {
-    let returns = vec![0.01, 0.02, -0.005, 0.015, 0.03, -0.01, 0.025];
+    let returns = [0.01, 0.02, -0.005, 0.015, 0.03, -0.01, 0.025];
     let risk_free_rate = 0.02 / 252.0; // Daily risk-free rate
 
     // Calculate average return
