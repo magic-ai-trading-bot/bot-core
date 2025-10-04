@@ -17,7 +17,7 @@ pub async fn setup_test_db() -> Database {
 
 #[allow(dead_code)]
 pub async fn cleanup_test_db(db: Database) {
-    db.drop(None).await.ok();
+    db.drop().await.ok();
 }
 
 #[allow(dead_code)]
