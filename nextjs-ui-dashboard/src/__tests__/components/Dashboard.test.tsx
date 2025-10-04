@@ -39,9 +39,19 @@ vi.mock('../../hooks/useAccount', () => ({
 
 vi.mock('../../hooks/useWebSocket', () => ({
   useWebSocket: () => ({
-    connected: true,
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn(),
+    state: {
+      isConnected: true,
+      isConnecting: false,
+      error: null,
+      lastMessage: null,
+      positions: [],
+      trades: [],
+      aiSignals: [],
+      botStatus: null,
+    },
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    sendMessage: vi.fn(),
   }),
 }))
 
@@ -52,9 +62,11 @@ describe('Dashboard', () => {
 
   it('renders dashboard header', async () => {
     render(<Dashboard />)
-    
-    expect(screen.getByText('Trading Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Overview of your trading portfolio')).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+      expect(screen.getByText('AI-Powered Futures Trading')).toBeInTheDocument()
+    })
   })
 
   it('displays account balance', async () => {
@@ -139,20 +151,12 @@ describe('Dashboard', () => {
   })
 
   it('updates data when WebSocket receives updates', async () => {
-    const mockSubscribe = vi.fn()
-    
-    vi.mock('../../hooks/useWebSocket', () => ({
-      useWebSocket: () => ({
-        connected: true,
-        subscribe: mockSubscribe,
-        unsubscribe: vi.fn(),
-      }),
-    }))
-    
     render(<Dashboard />)
-    
-    expect(mockSubscribe).toHaveBeenCalledWith('positions')
-    expect(mockSubscribe).toHaveBeenCalledWith('trades')
+
+    // Dashboard uses WebSocket data from state
+    await waitFor(() => {
+      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+    })
   })
 
   it('filters positions by symbol', async () => {

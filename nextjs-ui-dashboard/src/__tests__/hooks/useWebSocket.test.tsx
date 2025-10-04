@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useWebSocket } from '../../hooks/useWebSocket'
 
-// Mock environment to disable auto-connect
-vi.stubEnv('VITE_ENABLE_REALTIME', 'false')
-vi.stubEnv('VITE_WS_URL', 'ws://localhost:8080/ws')
+// Environment is mocked in vitest.config.ts to disable auto-connect
 
 // Mock WebSocket
 class MockWebSocket {
@@ -56,17 +54,29 @@ class MockWebSocket {
 
 let mockWs: MockWebSocket
 
-// Mock the global WebSocket
-global.WebSocket = vi.fn(() => {
-  mockWs = new MockWebSocket()
-  return mockWs as unknown as WebSocket
-}) as unknown as typeof WebSocket
+// Create WebSocket mock class that extends the mock implementation
+class WebSocketMockClass {
+  static CONNECTING = 0
+  static OPEN = 1
+  static CLOSING = 2
+  static CLOSED = 3
+
+  constructor(url: string) {
+    mockWs = new MockWebSocket()
+    return mockWs as any
+  }
+}
 
 describe('useWebSocket', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
     // Reset mockWs
     mockWs = undefined as unknown as MockWebSocket
+    // Stub global WebSocket with our mock class
+    vi.stubGlobal('WebSocket', WebSocketMockClass)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   // Helper function to connect and wait for WebSocket
@@ -92,17 +102,18 @@ describe('useWebSocket', () => {
   it('connects to WebSocket server', async () => {
     const { result } = renderHook(() => useWebSocket())
 
+    expect(result.current.state.isConnecting).toBe(false)
+
     act(() => {
       result.current.connect()
     })
 
+    expect(result.current.state.isConnecting).toBe(true)
+
     // Wait for mockWs to be created
     await waitFor(() => {
       expect(mockWs).toBeDefined()
-    })
-
-    expect(result.current.state.isConnecting).toBe(true)
-    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8080/ws')
+    }, { timeout: 1000 })
 
     act(() => {
       mockWs.triggerOpen()

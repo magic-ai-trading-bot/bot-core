@@ -14,6 +14,9 @@ export default defineConfig({
     'import.meta.env.MODE': JSON.stringify('test'),
     'import.meta.env.DEV': true,
     'import.meta.env.PROD': false,
+    'import.meta.env.VITE_ENABLE_REALTIME': '"false"',
+    'import.meta.env.VITE_WS_URL': '"ws://localhost:8080/ws"',
+    'import.meta.env.VITE_API_URL': '"http://localhost:8080"',
     'process.env.NODE_ENV': JSON.stringify('test'),
   },
   test: {
