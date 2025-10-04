@@ -54,3 +54,14 @@ global.WebSocket = class WebSocket {
   CLOSING = 2
   CLOSED = 3
 } as unknown as typeof WebSocket
+
+// Mock HTMLFormElement.requestSubmit
+if (typeof HTMLFormElement.prototype.requestSubmit !== 'function') {
+  HTMLFormElement.prototype.requestSubmit = function(submitter?: HTMLElement) {
+    if (submitter) {
+      submitter.click()
+    } else {
+      this.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+    }
+  }
+}

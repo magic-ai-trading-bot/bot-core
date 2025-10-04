@@ -35,8 +35,8 @@ describe('TradingInterface', () => {
 
   it('renders trading form', () => {
     render(<TradingInterface />)
-    
-    expect(screen.getByText('Execute Trade')).toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: /execute trade/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/symbol/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/side/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/quantity/i)).toBeInTheDocument()
