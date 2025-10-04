@@ -226,6 +226,6 @@ class TestWebSocketBroadcasting:
             broadcast_task("type3")
         )
         
-        # Each connection should have received all messages
+        # Each connection should have received all messages (welcome + broadcasts)
         for ws in connections:
-            assert ws.send_json.call_count == 15  # 3 types * 5 messages each
+            assert ws.send_json.call_count == 16  # 1 welcome + 15 broadcasts (3 types * 5 messages each)
