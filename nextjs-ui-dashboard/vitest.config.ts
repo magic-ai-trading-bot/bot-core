@@ -30,6 +30,8 @@ export default defineConfig({
         isolate: false,
       },
     },
+    maxConcurrency: 1,
+    fileParallelism: false,
     maxWorkers: 1,
     minWorkers: 1,
     coverage: {
