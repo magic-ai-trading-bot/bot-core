@@ -50,53 +50,53 @@ ANALYSIS_INTERVAL_MINUTES = 5  # Run analysis every 5 minutes
 
 class WebSocketManager:
     """Manages WebSocket connections for real-time AI signal broadcasting."""
-    
+
     def __init__(self):
-        self.connections: Set[WebSocket] = set()
-    
+        self.active_connections: Set[WebSocket] = set()
+
     async def connect(self, websocket: WebSocket):
         """Accept new WebSocket connection."""
         await websocket.accept()
-        self.connections.add(websocket)
-        logger.info(f"🔗 New WebSocket connection. Total: {len(self.connections)}")
-        
+        self.active_connections.add(websocket)
+        logger.info(f"🔗 New WebSocket connection. Total: {len(self.active_connections)}")
+
         # Send welcome message
         await websocket.send_json({
-            "type": "Connected",
-            "message": "AI Signal WebSocket connected",
+            "type": "connection",
+            "message": "Connected to AI Trading Service",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
-    
+
     def disconnect(self, websocket: WebSocket):
         """Remove WebSocket connection."""
-        self.connections.discard(websocket)
-        logger.info(f"🔌 WebSocket disconnected. Remaining: {len(self.connections)}")
-    
+        self.active_connections.discard(websocket)
+        logger.info(f"🔌 WebSocket disconnected. Remaining: {len(self.active_connections)}")
+
     async def broadcast_signal(self, signal_data: Dict[str, Any]):
         """Broadcast AI signal to all connected clients."""
-        if not self.connections:
+        if not self.active_connections:
             return
-            
+
         message = {
             "type": "AISignalReceived",
             "data": signal_data,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        
+
         # Send to all connections
         disconnected = []
-        for connection in self.connections.copy():
+        for connection in self.active_connections.copy():
             try:
                 await connection.send_json(message)
             except Exception as e:
                 logger.warning(f"Failed to send to WebSocket: {e}")
                 disconnected.append(connection)
-        
+
         # Clean up disconnected clients
         for conn in disconnected:
-            self.connections.discard(conn)
-        
-        logger.info(f"📡 Broadcasted AI signal to {len(self.connections)} clients")
+            self.active_connections.discard(conn)
+
+        logger.info(f"📡 Broadcasted AI signal to {len(self.active_connections)} clients")
 
 # Global WebSocket manager
 ws_manager = WebSocketManager()
@@ -435,57 +435,239 @@ class AIModelPerformance(BaseModel):
 
 class TechnicalAnalyzer:
     """Technical analysis utilities."""
-    
+
+    @staticmethod
+    def prepare_dataframe(klines: List) -> pd.DataFrame:
+        """Convert Binance kline data to pandas DataFrame."""
+        if not klines:
+            return pd.DataFrame()
+
+        data = []
+        for kline in klines:
+            data.append({
+                'timestamp': pd.to_datetime(kline[0], unit='ms'),
+                'open': float(kline[1]),
+                'high': float(kline[2]),
+                'low': float(kline[3]),
+                'close': float(kline[4]),
+                'volume': float(kline[5])
+            })
+
+        df = pd.DataFrame(data)
+        df.set_index('timestamp', inplace=True)
+        return df
+
     @staticmethod
     def calculate_indicators(df: pd.DataFrame) -> Dict[str, Any]:
         """Calculate comprehensive technical indicators."""
         try:
+            if df.empty:
+                return {
+                    'rsi': 50.0,
+                    'macd': 0.0,
+                    'macd_signal': 0.0,
+                    'macd_histogram': 0.0,
+                    'bollinger_upper': 0.0,
+                    'bollinger_middle': 0.0,
+                    'bollinger_lower': 0.0,
+                    'ema_9': 0.0,
+                    'ema_21': 0.0,
+                    'ema_50': 0.0,
+                    'volume_sma': 0.0,
+                    'atr': 0.0,
+                    'adx': 0.0,
+                    'stochastic_k': 50.0,
+                    'stochastic_d': 50.0
+                }
+
             indicators = {}
-            
+
             # Trend indicators
-            indicators['sma_20'] = ta.trend.sma_indicator(df['close'], window=20).iloc[-1]
-            indicators['sma_50'] = ta.trend.sma_indicator(df['close'], window=50).iloc[-1]
-            indicators['ema_12'] = ta.trend.ema_indicator(df['close'], window=12).iloc[-1]
-            indicators['ema_26'] = ta.trend.ema_indicator(df['close'], window=26).iloc[-1]
-            
+            indicators['sma_20'] = ta.trend.sma_indicator(df['close'], window=20).iloc[-1] if len(df) >= 20 else df['close'].iloc[-1]
+            indicators['sma_50'] = ta.trend.sma_indicator(df['close'], window=50).iloc[-1] if len(df) >= 50 else df['close'].iloc[-1]
+            indicators['ema_9'] = ta.trend.ema_indicator(df['close'], window=9).iloc[-1] if len(df) >= 9 else df['close'].iloc[-1]
+            indicators['ema_12'] = ta.trend.ema_indicator(df['close'], window=12).iloc[-1] if len(df) >= 12 else df['close'].iloc[-1]
+            indicators['ema_21'] = ta.trend.ema_indicator(df['close'], window=21).iloc[-1] if len(df) >= 21 else df['close'].iloc[-1]
+            indicators['ema_26'] = ta.trend.ema_indicator(df['close'], window=26).iloc[-1] if len(df) >= 26 else df['close'].iloc[-1]
+            indicators['ema_50'] = ta.trend.ema_indicator(df['close'], window=50).iloc[-1] if len(df) >= 50 else df['close'].iloc[-1]
+
             # Momentum indicators
-            indicators['rsi'] = ta.momentum.rsi(df['close'], window=14).iloc[-1]
-            indicators['stoch_k'] = ta.momentum.stoch(df['high'], df['low'], df['close']).iloc[-1]
-            indicators['stoch_d'] = ta.momentum.stoch_signal(df['high'], df['low'], df['close']).iloc[-1]
-            
+            indicators['rsi'] = ta.momentum.rsi(df['close'], window=14).iloc[-1] if len(df) >= 14 else 50.0
+            indicators['stochastic_k'] = ta.momentum.stoch(df['high'], df['low'], df['close']).iloc[-1] if len(df) >= 14 else 50.0
+            indicators['stochastic_d'] = ta.momentum.stoch_signal(df['high'], df['low'], df['close']).iloc[-1] if len(df) >= 14 else 50.0
+            indicators['stoch_k'] = indicators['stochastic_k']
+            indicators['stoch_d'] = indicators['stochastic_d']
+
             # MACD
             macd_line = ta.trend.macd(df['close'])
             macd_signal = ta.trend.macd_signal(df['close'])
-            indicators['macd'] = macd_line.iloc[-1] if not macd_line.empty else 0
-            indicators['macd_signal'] = macd_signal.iloc[-1] if not macd_signal.empty else 0
+            indicators['macd'] = macd_line.iloc[-1] if not macd_line.empty else 0.0
+            indicators['macd_signal'] = macd_signal.iloc[-1] if not macd_signal.empty else 0.0
             indicators['macd_histogram'] = indicators['macd'] - indicators['macd_signal']
-            
+
             # Bollinger Bands
             bb_high = ta.volatility.bollinger_hband(df['close'])
             bb_low = ta.volatility.bollinger_lband(df['close'])
             bb_mid = ta.volatility.bollinger_mavg(df['close'])
-            
-            indicators['bb_upper'] = bb_high.iloc[-1] if not bb_high.empty else df['close'].iloc[-1] * 1.02
-            indicators['bb_lower'] = bb_low.iloc[-1] if not bb_low.empty else df['close'].iloc[-1] * 0.98
-            indicators['bb_middle'] = bb_mid.iloc[-1] if not bb_mid.empty else df['close'].iloc[-1]
-            
+
+            indicators['bollinger_upper'] = bb_high.iloc[-1] if not bb_high.empty else df['close'].iloc[-1] * 1.02
+            indicators['bollinger_lower'] = bb_low.iloc[-1] if not bb_low.empty else df['close'].iloc[-1] * 0.98
+            indicators['bollinger_middle'] = bb_mid.iloc[-1] if not bb_mid.empty else df['close'].iloc[-1]
+            indicators['bb_upper'] = indicators['bollinger_upper']
+            indicators['bb_lower'] = indicators['bollinger_lower']
+            indicators['bb_middle'] = indicators['bollinger_middle']
+
             current_price = df['close'].iloc[-1]
             bb_width = indicators['bb_upper'] - indicators['bb_lower']
             indicators['bb_position'] = (current_price - indicators['bb_lower']) / bb_width if bb_width > 0 else 0.5
-            
+
             # Volume indicators
             volume_sma_series = ta.trend.sma_indicator(df['volume'], window=20)
             indicators['volume_sma'] = volume_sma_series.iloc[-1] if not volume_sma_series.empty else df['volume'].mean()
             indicators['volume_ratio'] = df['volume'].iloc[-1] / indicators['volume_sma'] if indicators['volume_sma'] > 0 else 1.0
-            
+
             # Volatility
-            indicators['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close']).iloc[-1]
-            
+            atr_series = ta.volatility.average_true_range(df['high'], df['low'], df['close'])
+            indicators['atr'] = atr_series.iloc[-1] if not atr_series.empty else 0.0
+
+            # ADX (Average Directional Index)
+            adx_series = ta.trend.adx(df['high'], df['low'], df['close'])
+            indicators['adx'] = adx_series.iloc[-1] if not adx_series.empty else 25.0
+
             return indicators
-            
+
         except Exception as e:
             logger.warning(f"Error calculating indicators: {e}")
-            return {}
+            return {
+                'rsi': 50.0,
+                'macd': 0.0,
+                'macd_signal': 0.0,
+                'macd_histogram': 0.0,
+                'bollinger_upper': 0.0,
+                'bollinger_middle': 0.0,
+                'bollinger_lower': 0.0,
+                'ema_9': 0.0,
+                'ema_21': 0.0,
+                'ema_50': 0.0,
+                'volume_sma': 0.0,
+                'atr': 0.0,
+                'adx': 0.0,
+                'stochastic_k': 50.0,
+                'stochastic_d': 50.0
+            }
+
+    @staticmethod
+    def detect_patterns(df: pd.DataFrame) -> Dict[str, bool]:
+        """Detect common chart patterns."""
+        patterns = {
+            'double_top': False,
+            'double_bottom': False,
+            'head_shoulders': False,
+            'ascending_triangle': False,
+            'descending_triangle': False,
+            'bullish_flag': False,
+            'bearish_flag': False,
+            'cup_handle': False
+        }
+
+        if df.empty or len(df) < 20:
+            return patterns
+
+        try:
+            # Simple pattern detection logic
+            closes = df['close'].values
+            highs = df['high'].values
+            lows = df['low'].values
+
+            # Detect double top (price reaches similar high twice)
+            if len(df) >= 10:
+                recent_highs = highs[-10:]
+                max_val = np.max(recent_highs)
+                high_count = np.sum(np.abs(recent_highs - max_val) / max_val < 0.02)
+                patterns['double_top'] = high_count >= 2
+
+            # Detect double bottom (price reaches similar low twice)
+            if len(df) >= 10:
+                recent_lows = lows[-10:]
+                min_val = np.min(recent_lows)
+                low_count = np.sum(np.abs(recent_lows - min_val) / min_val < 0.02)
+                patterns['double_bottom'] = low_count >= 2
+
+            # Detect ascending triangle (higher lows, flat resistance)
+            if len(df) >= 15:
+                mid_lows = lows[-15:-5]
+                late_lows = lows[-5:]
+                mid_highs = highs[-15:-5]
+                late_highs = highs[-5:]
+                patterns['ascending_triangle'] = (np.mean(late_lows) > np.mean(mid_lows) and
+                                                 abs(np.mean(late_highs) - np.mean(mid_highs)) < np.std(highs[-15:]))
+
+            # Detect descending triangle (lower highs, flat support)
+            if len(df) >= 15:
+                mid_lows = lows[-15:-5]
+                late_lows = lows[-5:]
+                mid_highs = highs[-15:-5]
+                late_highs = highs[-5:]
+                patterns['descending_triangle'] = (np.mean(late_highs) < np.mean(mid_highs) and
+                                                   abs(np.mean(late_lows) - np.mean(mid_lows)) < np.std(lows[-15:]))
+
+        except Exception as e:
+            logger.warning(f"Error detecting patterns: {e}")
+
+        return patterns
+
+    @staticmethod
+    def get_market_context(df: pd.DataFrame, indicators: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate market context from DataFrame and indicators."""
+        context = {
+            'trend_strength': 0.0,
+            'volatility': 0.5,
+            'volume_trend': 'stable',
+            'market_sentiment': 'neutral'
+        }
+
+        if df.empty or not indicators:
+            return context
+
+        try:
+            # Calculate trend strength (-1 to 1)
+            rsi = indicators.get('rsi', 50.0)
+            if rsi > 70:
+                context['trend_strength'] = 0.8
+                context['market_sentiment'] = 'bullish'
+            elif rsi < 30:
+                context['trend_strength'] = -0.8
+                context['market_sentiment'] = 'bearish'
+            else:
+                context['trend_strength'] = (rsi - 50) / 50.0
+
+            # Calculate volatility (0 to 1)
+            atr = indicators.get('atr', 0.0)
+            current_price = df['close'].iloc[-1]
+            if current_price > 0:
+                context['volatility'] = min(1.0, atr / current_price * 100)
+
+            # Determine volume trend
+            volume_ratio = indicators.get('volume_ratio', 1.0)
+            if volume_ratio > 1.2:
+                context['volume_trend'] = 'increasing'
+            elif volume_ratio < 0.8:
+                context['volume_trend'] = 'decreasing'
+            else:
+                context['volume_trend'] = 'stable'
+
+            # Determine market sentiment
+            if context['market_sentiment'] == 'neutral':
+                macd_histogram = indicators.get('macd_histogram', 0.0)
+                if macd_histogram > 0 and indicators.get('ema_9', 0) > indicators.get('ema_21', 0):
+                    context['market_sentiment'] = 'bullish'
+                elif macd_histogram < 0 and indicators.get('ema_9', 0) < indicators.get('ema_21', 0):
+                    context['market_sentiment'] = 'bearish'
+
+        except Exception as e:
+            logger.warning(f"Error generating market context: {e}")
+
+        return context
     
     @staticmethod
     def candles_to_dataframe(timeframe_data: Dict[str, List[CandleData]]) -> Dict[str, pd.DataFrame]:
@@ -1325,7 +1507,7 @@ async def analyze_trading_signals(request: AIAnalysisRequest):
                 )
                 
                 # Broadcast stored signal via WebSocket
-                if ws_manager.connections:
+                if ws_manager.active_connections:
                     signal_data = {
                         "symbol": request.symbol,
                         "signal": stored_response.signal.lower(),
@@ -1358,7 +1540,7 @@ async def analyze_trading_signals(request: AIAnalysisRequest):
         await store_analysis_result(request.symbol, analysis_data)
         
         # Broadcast signal via WebSocket to connected clients
-        if ws_manager.connections:
+        if ws_manager.active_connections:
             signal_data = {
                 "symbol": request.symbol,
                 "signal": response.signal.lower(),

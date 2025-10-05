@@ -26,7 +26,7 @@ impl UserRepository {
             .options(index_options)
             .build();
 
-        if let Err(e) = collection.create_index(index_model, None).await {
+        if let Err(e) = collection.create_index(index_model).await {
             error!("Failed to create email index: {}", e);
         } else {
             info!("Email unique index created/ensured");
@@ -49,7 +49,7 @@ impl UserRepository {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Database not available"))?;
 
-        let result = collection.insert_one(user, None).await?;
+        let result = collection.insert_one(user).await?;
 
         if let Some(id) = result.inserted_id.as_object_id() {
             Ok(id)
@@ -65,7 +65,7 @@ impl UserRepository {
             .ok_or_else(|| anyhow::anyhow!("Database not available"))?;
 
         let filter = doc! { "email": email };
-        let user = collection.find_one(filter, None).await?;
+        let user = collection.find_one(filter).await?;
         Ok(user)
     }
 
@@ -76,7 +76,7 @@ impl UserRepository {
             .ok_or_else(|| anyhow::anyhow!("Database not available"))?;
 
         let filter = doc! { "_id": id };
-        let user = collection.find_one(filter, None).await?;
+        let user = collection.find_one(filter).await?;
         Ok(user)
     }
 
@@ -91,7 +91,7 @@ impl UserRepository {
             "$set": bson::to_document(&user)?
         };
 
-        let result = collection.update_one(filter, update, None).await?;
+        let result = collection.update_one(filter, update).await?;
 
         if result.matched_count == 0 {
             return Err(anyhow::anyhow!("User not found"));
@@ -114,7 +114,7 @@ impl UserRepository {
             }
         };
 
-        collection.update_one(filter, update, None).await?;
+        collection.update_one(filter, update).await?;
         Ok(())
     }
 
@@ -132,7 +132,7 @@ impl UserRepository {
             }
         };
 
-        collection.update_one(filter, update, None).await?;
+        collection.update_one(filter, update).await?;
         Ok(())
     }
 
@@ -142,7 +142,7 @@ impl UserRepository {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Database not available"))?;
 
-        let count = collection.count_documents(None, None).await?;
+        let count = collection.count_documents(doc! {}).await?;
         Ok(count)
     }
 
@@ -153,7 +153,7 @@ impl UserRepository {
             .ok_or_else(|| anyhow::anyhow!("Database not available"))?;
 
         let filter = doc! { "email": email };
-        let count = collection.count_documents(filter, None).await?;
+        let count = collection.count_documents(filter).await?;
         Ok(count > 0)
     }
 }

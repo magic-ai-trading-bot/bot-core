@@ -13,6 +13,7 @@ mod api;
 mod auth;
 mod binance;
 mod config;
+mod error;
 mod market_data;
 mod monitoring;
 mod paper_trading;

@@ -14,6 +14,7 @@ use super::risk_manager::RiskManager;
 
 #[derive(Clone)]
 pub struct TradingEngine {
+    #[allow(dead_code)]
     binance_config: BinanceConfig,
     config: TradingConfig,
     client: BinanceClient,

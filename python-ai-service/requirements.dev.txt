@@ -2,16 +2,20 @@
 -r requirements.txt
 
 # Development and testing tools
-pytest==7.4.0
+pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
-pytest-mock==3.11.1
+pytest-mock==3.12.0
 
 # Code quality and linting
 flake8==6.0.0
 black==23.7.0
 isort==5.12.0
 mypy==1.5.1
+
+# Type stubs
+types-requests==2.31.0.2
+types-PyYAML==6.0.12.11
 
 # Development server and hot reload
 watchdog==3.0.0

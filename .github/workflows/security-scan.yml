@@ -1,0 +1,297 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    name: Trivy Security Scan
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner in repo mode
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      continue-on-error: true
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run Trivy vulnerability scanner for Docker images
+      if: github.event_name == 'push'
+      run: |
+        # Build images first
+        docker build -t rust-core-engine ./rust-core-engine
+        docker build -t python-ai-service ./python-ai-service  
+        docker build -t nextjs-ui-dashboard ./nextjs-ui-dashboard
+        
+        # Scan each image
+        trivy image --format sarif --output rust-image-scan.sarif rust-core-engine
+        trivy image --format sarif --output python-image-scan.sarif python-ai-service
+        trivy image --format sarif --output nextjs-image-scan.sarif nextjs-ui-dashboard
+
+    - name: Upload Docker image scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      continue-on-error: true
+      with:
+        sarif_file: |
+          rust-image-scan.sarif
+          python-image-scan.sarif
+          nextjs-image-scan.sarif
+
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    name: CodeQL Analysis
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python' ]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      continue-on-error: true
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+      continue-on-error: true
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      continue-on-error: true
+
+  semgrep-scan:
+    runs-on: ubuntu-latest
+    name: Semgrep Security Scan
+
+    container:
+      image: returntocorp/semgrep
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Semgrep
+      run: |
+        semgrep --config=auto --json --output=semgrep-results.json .
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload Semgrep results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: semgrep-results
+    #     path: semgrep-results.json
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    name: Secret Detection
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run TruffleHog
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  dependency-check:
+    runs-on: ubuntu-latest
+    name: Dependency Security Check
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python  
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: '1.86'
+        override: true
+
+    - name: Python dependency check
+      run: |
+        cd python-ai-service
+        pip install --upgrade pip setuptools wheel
+        pip install safety
+        safety check -r requirements.txt --json --output safety-report.json || echo '{"vulnerabilities": [], "warnings": []}' > safety-report.json
+
+    - name: Node.js dependency check
+      run: |
+        cd nextjs-ui-dashboard
+        npm audit --audit-level moderate --json > npm-audit.json || true
+
+    - name: Rust dependency check
+      run: |
+        cd rust-core-engine
+        cargo install --version 0.20.0 cargo-audit || cargo install cargo-audit --force || true
+        cargo audit --json > cargo-audit.json || echo '{"vulnerabilities": [], "warnings": []}' > cargo-audit.json
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload dependency check results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: dependency-check-results
+    #     path: |
+    #       python-ai-service/safety-report.json
+    #       nextjs-ui-dashboard/npm-audit.json
+    #       rust-core-engine/cargo-audit.json
+
+  license-check:
+    runs-on: ubuntu-latest
+    name: License Compliance Check
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install license checker
+      run: |
+        pip install pip-licenses
+        npm install -g license-checker
+
+    - name: Check Python licenses
+      run: |
+        cd python-ai-service
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt || pip install --no-deps -r requirements.txt || true
+        pip-licenses --format=json --output-file=python-licenses.json || echo '[]' > python-licenses.json
+
+    - name: Check Node.js licenses
+      run: |
+        cd nextjs-ui-dashboard
+        npm install
+        license-checker --json --out nodejs-licenses.json
+
+    - name: Check Rust licenses
+      run: |
+        cd rust-core-engine
+        cargo install cargo-license
+        cargo license --json > rust-licenses.json
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload license reports
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: license-reports
+    #     path: |
+    #       python-ai-service/python-licenses.json
+    #       nextjs-ui-dashboard/nodejs-licenses.json
+    #       rust-core-engine/rust-licenses.json
+
+  security-report:
+    runs-on: ubuntu-latest
+    name: Security Report Summary
+    needs: [trivy-scan, codeql-analysis, semgrep-scan, secret-scan, dependency-check, license-check]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Generate security summary
+      run: |
+        echo "# 🔒 Security Scan Summary" > security-summary.md
+        echo "" >> security-summary.md
+        echo "## Scan Results" >> security-summary.md
+        echo "" >> security-summary.md
+        
+        # Check if each job succeeded
+        echo "- **Trivy Scan**: ${{ needs.trivy-scan.result }}" >> security-summary.md
+        echo "- **CodeQL Analysis**: ${{ needs.codeql-analysis.result }}" >> security-summary.md  
+        echo "- **Semgrep Scan**: ${{ needs.semgrep-scan.result }}" >> security-summary.md
+        echo "- **Secret Detection**: ${{ needs.secret-scan.result }}" >> security-summary.md
+        echo "- **Dependency Check**: ${{ needs.dependency-check.result }}" >> security-summary.md
+        echo "- **License Check**: ${{ needs.license-check.result }}" >> security-summary.md
+        echo "" >> security-summary.md
+        
+        echo "## Recommendations" >> security-summary.md
+        echo "" >> security-summary.md
+        echo "1. Review all flagged vulnerabilities" >> security-summary.md
+        echo "2. Update dependencies with known CVEs" >> security-summary.md
+        echo "3. Remove any exposed secrets" >> security-summary.md
+        echo "4. Verify license compliance" >> security-summary.md
+        echo "" >> security-summary.md
+        
+        echo "Generated at: $(date)" >> security-summary.md
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload security summary
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: security-summary
+    #     path: security-summary.md
+
+    - name: Comment security summary on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('security-summary.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });

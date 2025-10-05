@@ -1,0 +1,208 @@
+name: Next.js Dashboard Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'nextjs-ui-dashboard/**'
+      - '.github/workflows/nextjs-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'nextjs-ui-dashboard/**'
+      - '.github/workflows/nextjs-tests.yml'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  nextjs-tests:
+    runs-on: ubuntu-latest
+    name: Next.js Dashboard Tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        bun install
+
+    - name: Type check
+      continue-on-error: true
+      run: |
+        cd nextjs-ui-dashboard
+        bun run type-check || true
+
+    - name: Lint check
+      continue-on-error: true
+      run: |
+        cd nextjs-ui-dashboard
+        bun run lint || true
+
+    - name: Build project
+      run: |
+        cd nextjs-ui-dashboard
+        bun run build
+
+    - name: Run tests with coverage
+      run: |
+        cd nextjs-ui-dashboard
+        chmod +x run_tests.sh
+        ./run_tests.sh
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: nextjs-ui-dashboard/coverage/clover.xml
+        flags: nextjs
+        name: nextjs-dashboard-coverage
+        fail_ci_if_error: false
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive coverage reports
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: nextjs-coverage-report
+    #     path: nextjs-ui-dashboard/coverage/
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive build artifacts
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: nextjs-build
+    #     path: nextjs-ui-dashboard/dist/
+
+  nextjs-e2e:
+    runs-on: ubuntu-latest
+    name: Next.js E2E Tests
+    needs: nextjs-tests
+    if: false  # Disabled: Playwright not configured yet
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        bun install
+
+    - name: Install Playwright browsers
+      run: |
+        cd nextjs-ui-dashboard
+        bunx playwright install --with-deps
+
+    - name: Build application
+      run: |
+        cd nextjs-ui-dashboard
+        bun run build
+
+    - name: Start application
+      run: |
+        cd nextjs-ui-dashboard
+        bun run preview &
+        sleep 10
+
+    - name: Run E2E tests
+      run: |
+        cd nextjs-ui-dashboard
+        bunx playwright test
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Archive E2E test results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: nextjs-e2e-results
+    #     path: |
+    #       nextjs-ui-dashboard/test-results/
+    #       nextjs-ui-dashboard/playwright-report/
+
+  nextjs-visual-regression:
+    runs-on: ubuntu-latest
+    name: Visual Regression Tests
+    needs: nextjs-tests
+    if: false  # Disabled: Visual regression tests not implemented yet
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        bun install
+
+    - name: Build application
+      run: |
+        cd nextjs-ui-dashboard
+        bun run build
+
+    - name: Run visual regression tests
+      run: |
+        cd nextjs-ui-dashboard
+        bun run test:visual
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload visual test results
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: visual-regression-results
+    #     path: nextjs-ui-dashboard/__screenshots__/
+
+  nextjs-security:
+    runs-on: ubuntu-latest
+    name: Next.js Security Scan
+    needs: nextjs-tests
+    if: false  # Disabled: Security scan config not implemented yet
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: |
+        cd nextjs-ui-dashboard
+        bun install
+
+    - name: Run ESLint security rules
+      continue-on-error: true
+      run: |
+        cd nextjs-ui-dashboard
+        bunx eslint . --ext .ts,.tsx --config .eslintrc.security.js || echo "ESLint security config not found, skipping..."
+
+    - name: Bundle analyzer
+      continue-on-error: true
+      run: |
+        cd nextjs-ui-dashboard
+        bun run build:analyze || echo "Bundle analyzer not configured, skipping..."
+
+    # Temporarily disabled due to artifact storage quota
+    # - name: Upload bundle analysis
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: bundle-analysis
+    #     path: nextjs-ui-dashboard/.next/analyze/

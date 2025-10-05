@@ -39,6 +39,12 @@ pub struct MonitoringService {
     connection_status: ConnectionStatus,
 }
 
+impl Default for MonitoringService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MonitoringService {
     pub fn new() -> Self {
         Self {
