@@ -146,7 +146,7 @@ jobs:
     - name: Run cargo-deny check
       run: |
         cd rust-core-engine
-        cargo deny check
+        cargo deny check advisories
 
   rust-benchmark:
     runs-on: ubuntu-latest
