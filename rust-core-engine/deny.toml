@@ -1,18 +1,28 @@
 [advisories]
-db-path = "~/.cargo/advisory-db"
-db-urls = ["https://github.com/rustsec/advisory-db"]
-
-# RUSTSEC-2024-0421: idna Punycode vulnerability
-# Cannot fix: mongodb 2.8.2 uses trust-dns-proto 0.21 which requires idna 0.2
-# mongodb 3.x has breaking API changes requiring code refactor
-# Accepted risk: Low impact for trading bot use case (no IDNA domain validation)
+# Ignore unmaintained warnings for transitive dependencies
+# These are dependencies of dependencies that we cannot easily replace
 ignore = [
-    "RUSTSEC-2024-0421",  # idna Punycode labels issue
+    "RUSTSEC-2021-0145",  # atty is unmaintained
+    "RUSTSEC-2024-0370",  # proc-macro-error is unmaintained
+    "RUSTSEC-2021-0139",  # ansi_term is unmaintained
+    "RUSTSEC-2024-0320",  # yaml-rust is unmaintained
+    "RUSTSEC-2024-0375",  # atty potential unaligned read
 ]
 
-# Allow unmaintained/unsound warnings
-[advisories.unmaintained]
-allow = ["ansi_term", "atty", "proc-macro-error", "yaml-rust"]
+[licenses]
+# Allow common open source licenses
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+]
 
-[advisories.unsound]
-allow = ["atty"]
+[bans]
+multiple-versions = "warn"
+
+[sources]
+unknown-registry = "warn"
+unknown-git = "warn"
