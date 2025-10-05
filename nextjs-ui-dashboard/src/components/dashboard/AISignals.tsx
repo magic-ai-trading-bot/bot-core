@@ -1216,7 +1216,7 @@ export function AISignals() {
     .sort((a, b) => b.timestampMs - a.timestampMs); // Sort by timestamp descending (newest first)
 
   // Filter to show only the most recent signal per token pair
-  const uniqueSignalsMap = new Map<string, any>();
+  const uniqueSignalsMap = new Map<string, typeof normalizedSignals[0]>();
   normalizedSignals.forEach((signal) => {
     const symbol = signal.symbol;
     // Only keep the signal if this symbol hasn't been seen yet (since we're sorted by newest first)

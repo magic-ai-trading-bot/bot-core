@@ -349,3 +349,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Disclaimer
 
 This software is for educational and research purposes only. Trading cryptocurrencies involves substantial risk of loss and is not suitable for all investors. The authors are not responsible for any financial losses incurred through the use of this software. Always test thoroughly with testnet before using with real funds.
+# Trigger CI

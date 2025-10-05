@@ -784,6 +784,12 @@ pub struct StrategyAnalysis {
     pub regime_performance: HashMap<MarketRegime, f64>,
 }
 
+impl Default for StrategyAnalysis {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StrategyAnalysis {
     pub fn new() -> Self {
         Self {
@@ -815,6 +821,12 @@ impl StrategyAnalysis {
         // Implementation would calculate final statistics
         self.overall_performance_score = (self.avg_win_rate + self.avg_profit_factor / 3.0) / 2.0;
         // ... other calculations
+    }
+}
+
+impl Default for MarketRegimeDetector {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
