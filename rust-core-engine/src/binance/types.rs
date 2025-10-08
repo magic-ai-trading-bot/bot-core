@@ -351,3 +351,1953 @@ impl KlineData {
         Ok((open, high, low, close, volume))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_decimal::prelude::*;
+
+    #[test]
+    fn test_kline_serialization() {
+        let kline = Kline {
+            open_time: 1625097600000,
+            open: "34000.00".to_string(),
+            high: "35000.00".to_string(),
+            low: "33000.00".to_string(),
+            close: "34500.00".to_string(),
+            volume: "100.5".to_string(),
+            close_time: 1625097659999,
+            quote_asset_volume: "3450000.00".to_string(),
+            number_of_trades: 1000,
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let json = serde_json::to_string(&kline).unwrap();
+        assert!(json.contains("34000.00"));
+        assert!(json.contains("35000.00"));
+    }
+
+    #[test]
+    fn test_kline_deserialization() {
+        let json = r#"{
+            "open_time": 1625097600000,
+            "open": "34000.00",
+            "high": "35000.00",
+            "low": "33000.00",
+            "close": "34500.00",
+            "volume": "100.5",
+            "close_time": 1625097659999,
+            "quote_asset_volume": "3450000.00",
+            "number_of_trades": 1000,
+            "taker_buy_base_asset_volume": "50.25",
+            "taker_buy_quote_asset_volume": "1725000.00",
+            "ignore": "0"
+        }"#;
+
+        let kline: Kline = serde_json::from_str(json).unwrap();
+        assert_eq!(kline.open, "34000.00");
+        assert_eq!(kline.high, "35000.00");
+        assert_eq!(kline.volume, "100.5");
+        assert_eq!(kline.number_of_trades, 1000);
+    }
+
+    #[test]
+    fn test_kline_to_decimal_values() {
+        let kline = Kline {
+            open_time: 1625097600000,
+            open: "34000.00".to_string(),
+            high: "35000.00".to_string(),
+            low: "33000.00".to_string(),
+            close: "34500.00".to_string(),
+            volume: "100.5".to_string(),
+            close_time: 1625097659999,
+            quote_asset_volume: "3450000.00".to_string(),
+            number_of_trades: 1000,
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let result = kline.to_decimal_values().unwrap();
+        assert_eq!(result.0, Decimal::from_str("34000.00").unwrap());
+        assert_eq!(result.1, Decimal::from_str("35000.00").unwrap());
+        assert_eq!(result.2, Decimal::from_str("33000.00").unwrap());
+        assert_eq!(result.3, Decimal::from_str("34500.00").unwrap());
+        assert_eq!(result.4, Decimal::from_str("100.5").unwrap());
+    }
+
+    #[test]
+    fn test_kline_to_decimal_values_invalid() {
+        let kline = Kline {
+            open_time: 1625097600000,
+            open: "invalid".to_string(),
+            high: "35000.00".to_string(),
+            low: "33000.00".to_string(),
+            close: "34500.00".to_string(),
+            volume: "100.5".to_string(),
+            close_time: 1625097659999,
+            quote_asset_volume: "3450000.00".to_string(),
+            number_of_trades: 1000,
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        assert!(kline.to_decimal_values().is_err());
+    }
+
+    #[test]
+    fn test_symbol_price_serialization() {
+        let price = SymbolPrice {
+            symbol: "BTCUSDT".to_string(),
+            price: "34000.50".to_string(),
+        };
+
+        let json = serde_json::to_string(&price).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("34000.50"));
+    }
+
+    #[test]
+    fn test_funding_rate_deserialization() {
+        let json = r#"{
+            "symbol": "BTCUSDT",
+            "funding_rate": "0.0001",
+            "funding_time": 1625097600000
+        }"#;
+
+        let funding: FundingRate = serde_json::from_str(json).unwrap();
+        assert_eq!(funding.symbol, "BTCUSDT");
+        assert_eq!(funding.funding_rate, "0.0001");
+        assert_eq!(funding.funding_time, 1625097600000);
+    }
+
+    #[test]
+    fn test_kline_event_deserialization() {
+        let json = r#"{
+            "e": "kline",
+            "E": 1625097600000,
+            "s": "BTCUSDT",
+            "k": {
+                "t": 1625097600000,
+                "T": 1625097659999,
+                "s": "BTCUSDT",
+                "i": "1m",
+                "f": 100,
+                "L": 200,
+                "o": "34000.00",
+                "c": "34500.00",
+                "h": "35000.00",
+                "l": "33000.00",
+                "v": "100.5",
+                "n": 1000,
+                "x": true,
+                "q": "3450000.00",
+                "V": "50.25",
+                "Q": "1725000.00"
+            }
+        }"#;
+
+        let event: KlineEvent = serde_json::from_str(json).unwrap();
+        assert_eq!(event.event_type, "kline");
+        assert_eq!(event.symbol, "BTCUSDT");
+        assert_eq!(event.kline.interval, "1m");
+        assert_eq!(event.kline.is_this_kline_closed, true);
+    }
+
+    #[test]
+    fn test_kline_data_to_decimal_values() {
+        let kline_data = KlineData {
+            kline_start_time: 1625097600000,
+            kline_close_time: 1625097659999,
+            symbol: "BTCUSDT".to_string(),
+            interval: "1m".to_string(),
+            first_trade_id: 100,
+            last_trade_id: 200,
+            open_price: "34000.00".to_string(),
+            close_price: "34500.00".to_string(),
+            high_price: "35000.00".to_string(),
+            low_price: "33000.00".to_string(),
+            base_asset_volume: "100.5".to_string(),
+            number_of_trades: 1000,
+            is_this_kline_closed: true,
+            quote_asset_volume: "3450000.00".to_string(),
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+        };
+
+        let result = kline_data.to_decimal_values().unwrap();
+        assert_eq!(result.0, Decimal::from_str("34000.00").unwrap());
+        assert_eq!(result.1, Decimal::from_str("35000.00").unwrap());
+        assert_eq!(result.2, Decimal::from_str("33000.00").unwrap());
+        assert_eq!(result.3, Decimal::from_str("34500.00").unwrap());
+        assert_eq!(result.4, Decimal::from_str("100.5").unwrap());
+    }
+
+    #[test]
+    fn test_ticker_event_deserialization() {
+        let json = r#"{
+            "e": "24hrTicker",
+            "E": 1625097600000,
+            "s": "BTCUSDT",
+            "p": "500.00",
+            "P": "1.5",
+            "w": "34250.00",
+            "x": "33500.00",
+            "c": "34000.00",
+            "Q": "10.5",
+            "b": "33990.00",
+            "B": "5.0",
+            "a": "34010.00",
+            "A": "4.5",
+            "o": "33500.00",
+            "h": "35000.00",
+            "l": "33000.00",
+            "v": "1000.5",
+            "q": "34000000.00",
+            "O": 1625011200000,
+            "C": 1625097600000,
+            "F": 1000,
+            "L": 5000,
+            "n": 4000
+        }"#;
+
+        let event: TickerEvent = serde_json::from_str(json).unwrap();
+        assert_eq!(event.event_type, "24hrTicker");
+        assert_eq!(event.symbol, "BTCUSDT");
+        assert_eq!(event.last_price, "34000.00");
+        assert_eq!(event.total_number_of_trades, 4000);
+    }
+
+    #[test]
+    fn test_order_book_event_deserialization() {
+        let json = r#"{
+            "e": "depthUpdate",
+            "E": 1625097600000,
+            "s": "BTCUSDT",
+            "U": 1000,
+            "u": 1005,
+            "b": [["34000.00", "1.5"], ["33999.00", "2.0"]],
+            "a": [["34001.00", "1.0"], ["34002.00", "0.5"]]
+        }"#;
+
+        let event: OrderBookEvent = serde_json::from_str(json).unwrap();
+        assert_eq!(event.event_type, "depthUpdate");
+        assert_eq!(event.symbol, "BTCUSDT");
+        assert_eq!(event.bids.len(), 2);
+        assert_eq!(event.asks.len(), 2);
+        assert_eq!(event.bids[0].0, "34000.00");
+        assert_eq!(event.asks[0].1, "1.0");
+    }
+
+    #[test]
+    fn test_futures_order_deserialization() {
+        let json = r#"{
+            "symbol": "BTCUSDT",
+            "order_id": 12345,
+            "order_list_id": -1,
+            "client_order_id": "test123",
+            "price": "34000.00",
+            "orig_qty": "0.01",
+            "executed_qty": "0.005",
+            "cumulative_quote_qty": "170.00",
+            "status": "PARTIALLY_FILLED",
+            "time_in_force": "GTC",
+            "type": "LIMIT",
+            "side": "BUY",
+            "stop_price": "0.00",
+            "iceberg_qty": "0.00",
+            "time": 1625097600000,
+            "update_time": 1625097610000,
+            "is_working": true,
+            "orig_quote_order_qty": "340.00"
+        }"#;
+
+        let order: FuturesOrder = serde_json::from_str(json).unwrap();
+        assert_eq!(order.symbol, "BTCUSDT");
+        assert_eq!(order.order_id, 12345);
+        assert_eq!(order.status, "PARTIALLY_FILLED");
+        assert_eq!(order.side, "BUY");
+        assert_eq!(order.is_working, true);
+    }
+
+    #[test]
+    fn test_futures_position_deserialization() {
+        let json = r#"{
+            "symbol": "BTCUSDT",
+            "position_amt": "0.01",
+            "entry_price": "34000.00",
+            "mark_price": "34100.00",
+            "unrealized_pnl": "1.00",
+            "liquidation_price": "30000.00",
+            "leverage": "10",
+            "max_notional_value": "100000.00",
+            "margin_type": "isolated",
+            "isolated_margin": "340.00",
+            "is_auto_add_margin": false,
+            "position_side": "LONG",
+            "notional": "341.00",
+            "isolated_wallet": "340.00",
+            "update_time": 1625097600000
+        }"#;
+
+        let position: FuturesPosition = serde_json::from_str(json).unwrap();
+        assert_eq!(position.symbol, "BTCUSDT");
+        assert_eq!(position.position_amt, "0.01");
+        assert_eq!(position.leverage, "10");
+        assert_eq!(position.margin_type, "isolated");
+        assert_eq!(position.is_auto_add_margin, false);
+    }
+
+    #[test]
+    fn test_account_info_deserialization() {
+        let json = r#"{
+            "maker_commission": 10,
+            "taker_commission": 10,
+            "buyer_commission": 0,
+            "seller_commission": 0,
+            "can_trade": true,
+            "can_withdraw": true,
+            "can_deposit": true,
+            "update_time": 1625097600000,
+            "account_type": "SPOT",
+            "balances": [
+                {"asset": "BTC", "free": "1.0", "locked": "0.0"},
+                {"asset": "USDT", "free": "10000.0", "locked": "500.0"}
+            ],
+            "permissions": ["SPOT", "MARGIN"]
+        }"#;
+
+        let account: AccountInfo = serde_json::from_str(json).unwrap();
+        assert_eq!(account.can_trade, true);
+        assert_eq!(account.balances.len(), 2);
+        assert_eq!(account.balances[0].asset, "BTC");
+        assert_eq!(account.permissions.len(), 2);
+    }
+
+    #[test]
+    fn test_balance_clone() {
+        let balance = Balance {
+            asset: "BTC".to_string(),
+            free: "1.0".to_string(),
+            locked: "0.0".to_string(),
+        };
+
+        let cloned = balance.clone();
+        assert_eq!(balance.asset, cloned.asset);
+        assert_eq!(balance.free, cloned.free);
+    }
+
+    #[test]
+    fn test_new_order_request_serialization() {
+        let order = NewOrderRequest {
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            r#type: "LIMIT".to_string(),
+            quantity: Some("0.01".to_string()),
+            quote_order_qty: None,
+            price: Some("34000.00".to_string()),
+            new_client_order_id: Some("test123".to_string()),
+            stop_price: None,
+            iceberg_qty: None,
+            new_order_resp_type: None,
+            time_in_force: Some("GTC".to_string()),
+            reduce_only: None,
+            close_position: None,
+            position_side: Some("LONG".to_string()),
+            working_type: None,
+            price_protect: None,
+        };
+
+        let json = serde_json::to_string(&order).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("BUY"));
+        assert!(json.contains("LIMIT"));
+    }
+
+    #[test]
+    fn test_order_response_with_fills() {
+        let json = r#"{
+            "symbol": "BTCUSDT",
+            "order_id": 12345,
+            "order_list_id": -1,
+            "client_order_id": "test123",
+            "transact_time": 1625097600000,
+            "price": "34000.00",
+            "orig_qty": "0.01",
+            "executed_qty": "0.01",
+            "cumulative_quote_qty": "340.00",
+            "status": "FILLED",
+            "time_in_force": "GTC",
+            "type": "LIMIT",
+            "side": "BUY",
+            "fills": [
+                {
+                    "price": "34000.00",
+                    "qty": "0.01",
+                    "commission": "0.00001",
+                    "commission_asset": "BTC",
+                    "trade_id": 1001
+                }
+            ]
+        }"#;
+
+        let response: OrderResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.symbol, "BTCUSDT");
+        assert_eq!(response.status, "FILLED");
+        assert_eq!(response.fills.len(), 1);
+        assert_eq!(response.fills[0].trade_id, 1001);
+    }
+
+    #[test]
+    fn test_websocket_message_deserialization() {
+        let json = r#"{
+            "stream": "btcusdt@kline_1m",
+            "data": {"test": "value"}
+        }"#;
+
+        let msg: WebSocketMessage = serde_json::from_str(json).unwrap();
+        assert_eq!(msg.stream, "btcusdt@kline_1m");
+        assert!(msg.data.is_object());
+    }
+
+    #[test]
+    fn test_chart_update_event_serialization() {
+        let event = ChartUpdateEvent {
+            symbol: "BTCUSDT".to_string(),
+            timeframe: "1m".to_string(),
+            candle: ChartCandle {
+                timestamp: 1625097600000,
+                open: 34000.0,
+                high: 35000.0,
+                low: 33000.0,
+                close: 34500.0,
+                volume: 100.5,
+                is_closed: true,
+            },
+            latest_price: 34500.0,
+            price_change_24h: 500.0,
+            price_change_percent_24h: 1.5,
+            volume_24h: 1000.5,
+            timestamp: 1625097600000,
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("34500"));
+    }
+
+    #[test]
+    fn test_market_data_update_deserialization() {
+        let json = r#"{
+            "symbol": "BTCUSDT",
+            "price": 34500.0,
+            "price_change_24h": 500.0,
+            "price_change_percent_24h": 1.5,
+            "volume_24h": 1000.5,
+            "timestamp": 1625097600000
+        }"#;
+
+        let update: MarketDataUpdate = serde_json::from_str(json).unwrap();
+        assert_eq!(update.symbol, "BTCUSDT");
+        assert_eq!(update.price, 34500.0);
+        assert_eq!(update.volume_24h, 1000.5);
+    }
+
+    #[test]
+    fn test_websocket_event_chart_update() {
+        let json = r#"{
+            "type": "chart_update",
+            "symbol": "BTCUSDT",
+            "timeframe": "1m",
+            "candle": {
+                "timestamp": 1625097600000,
+                "open": 34000.0,
+                "high": 35000.0,
+                "low": 33000.0,
+                "close": 34500.0,
+                "volume": 100.5,
+                "is_closed": true
+            },
+            "latest_price": 34500.0,
+            "price_change_24h": 500.0,
+            "price_change_percent_24h": 1.5,
+            "volume_24h": 1000.5,
+            "timestamp": 1625097600000
+        }"#;
+
+        let event: WebSocketEvent = serde_json::from_str(json).unwrap();
+        match event {
+            WebSocketEvent::ChartUpdate(update) => {
+                assert_eq!(update.symbol, "BTCUSDT");
+                assert_eq!(update.candle.is_closed, true);
+            }
+            _ => panic!("Expected ChartUpdate variant"),
+        }
+    }
+
+    #[test]
+    fn test_websocket_event_error() {
+        let json = r#"{
+            "type": "error",
+            "message": "Connection failed"
+        }"#;
+
+        let event: WebSocketEvent = serde_json::from_str(json).unwrap();
+        match event {
+            WebSocketEvent::Error { message } => {
+                assert_eq!(message, "Connection failed");
+            }
+            _ => panic!("Expected Error variant"),
+        }
+    }
+
+    #[test]
+    fn test_chart_candle_clone() {
+        let candle = ChartCandle {
+            timestamp: 1625097600000,
+            open: 34000.0,
+            high: 35000.0,
+            low: 33000.0,
+            close: 34500.0,
+            volume: 100.5,
+            is_closed: true,
+        };
+
+        let cloned = candle.clone();
+        assert_eq!(candle.timestamp, cloned.timestamp);
+        assert_eq!(candle.close, cloned.close);
+        assert_eq!(candle.is_closed, cloned.is_closed);
+    }
+
+    // Additional comprehensive tests for edge cases and full coverage
+
+    #[test]
+    fn test_kline_with_empty_strings() {
+        let kline = Kline {
+            open_time: 0,
+            open: "".to_string(),
+            high: "".to_string(),
+            low: "".to_string(),
+            close: "".to_string(),
+            volume: "".to_string(),
+            close_time: 0,
+            quote_asset_volume: "".to_string(),
+            number_of_trades: 0,
+            taker_buy_base_asset_volume: "".to_string(),
+            taker_buy_quote_asset_volume: "".to_string(),
+            ignore: "".to_string(),
+        };
+
+        let json = serde_json::to_string(&kline).unwrap();
+        let deserialized: Kline = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.open, "");
+        assert_eq!(deserialized.number_of_trades, 0);
+    }
+
+    #[test]
+    fn test_kline_with_extreme_values() {
+        let kline = Kline {
+            open_time: i64::MAX,
+            open: "999999999.99999999".to_string(),
+            high: "999999999.99999999".to_string(),
+            low: "0.00000001".to_string(),
+            close: "500000000.00000000".to_string(),
+            volume: "99999999999.99999999".to_string(),
+            close_time: i64::MAX,
+            quote_asset_volume: "99999999999999.99".to_string(),
+            number_of_trades: i64::MAX,
+            taker_buy_base_asset_volume: "50000000000.00000000".to_string(),
+            taker_buy_quote_asset_volume: "50000000000000.00".to_string(),
+            ignore: "999".to_string(),
+        };
+
+        let json = serde_json::to_string(&kline).unwrap();
+        let deserialized: Kline = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.open_time, i64::MAX);
+        assert_eq!(deserialized.number_of_trades, i64::MAX);
+    }
+
+    #[test]
+    fn test_kline_roundtrip_serialization() {
+        let kline = Kline {
+            open_time: 1625097600000,
+            open: "34000.00".to_string(),
+            high: "35000.00".to_string(),
+            low: "33000.00".to_string(),
+            close: "34500.00".to_string(),
+            volume: "100.5".to_string(),
+            close_time: 1625097659999,
+            quote_asset_volume: "3450000.00".to_string(),
+            number_of_trades: 1000,
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let json = serde_json::to_string(&kline).unwrap();
+        let deserialized: Kline = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(kline.open_time, deserialized.open_time);
+        assert_eq!(kline.open, deserialized.open);
+        assert_eq!(kline.high, deserialized.high);
+        assert_eq!(kline.low, deserialized.low);
+        assert_eq!(kline.close, deserialized.close);
+        assert_eq!(kline.volume, deserialized.volume);
+        assert_eq!(kline.close_time, deserialized.close_time);
+    }
+
+    #[test]
+    fn test_kline_to_decimal_with_zero_values() {
+        let kline = Kline {
+            open_time: 0,
+            open: "0".to_string(),
+            high: "0".to_string(),
+            low: "0".to_string(),
+            close: "0".to_string(),
+            volume: "0".to_string(),
+            close_time: 0,
+            quote_asset_volume: "0".to_string(),
+            number_of_trades: 0,
+            taker_buy_base_asset_volume: "0".to_string(),
+            taker_buy_quote_asset_volume: "0".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let result = kline.to_decimal_values().unwrap();
+        assert_eq!(result.0, Decimal::ZERO);
+        assert_eq!(result.1, Decimal::ZERO);
+        assert_eq!(result.2, Decimal::ZERO);
+        assert_eq!(result.3, Decimal::ZERO);
+        assert_eq!(result.4, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_kline_clone_independence() {
+        let original = Kline {
+            open_time: 1625097600000,
+            open: "34000.00".to_string(),
+            high: "35000.00".to_string(),
+            low: "33000.00".to_string(),
+            close: "34500.00".to_string(),
+            volume: "100.5".to_string(),
+            close_time: 1625097659999,
+            quote_asset_volume: "3450000.00".to_string(),
+            number_of_trades: 1000,
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let cloned = original.clone();
+        assert_eq!(original.open_time, cloned.open_time);
+        assert_eq!(original.open, cloned.open);
+    }
+
+    #[test]
+    fn test_symbol_price_roundtrip() {
+        let price = SymbolPrice {
+            symbol: "ETHUSDT".to_string(),
+            price: "2500.75".to_string(),
+        };
+
+        let json = serde_json::to_string(&price).unwrap();
+        let deserialized: SymbolPrice = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(price.symbol, deserialized.symbol);
+        assert_eq!(price.price, deserialized.price);
+    }
+
+    #[test]
+    fn test_symbol_price_with_zero_price() {
+        let price = SymbolPrice {
+            symbol: "BTCUSDT".to_string(),
+            price: "0".to_string(),
+        };
+
+        let json = serde_json::to_string(&price).unwrap();
+        assert!(json.contains("\"price\":\"0\""));
+    }
+
+    #[test]
+    fn test_symbol_price_clone() {
+        let price = SymbolPrice {
+            symbol: "BTCUSDT".to_string(),
+            price: "50000.00".to_string(),
+        };
+
+        let cloned = price.clone();
+        assert_eq!(price.symbol, cloned.symbol);
+        assert_eq!(price.price, cloned.price);
+    }
+
+    #[test]
+    fn test_funding_rate_serialization() {
+        let funding = FundingRate {
+            symbol: "ETHUSDT".to_string(),
+            funding_rate: "0.0005".to_string(),
+            funding_time: 1625097600000,
+        };
+
+        let json = serde_json::to_string(&funding).unwrap();
+        assert!(json.contains("ETHUSDT"));
+        assert!(json.contains("0.0005"));
+    }
+
+    #[test]
+    fn test_funding_rate_roundtrip() {
+        let funding = FundingRate {
+            symbol: "BTCUSDT".to_string(),
+            funding_rate: "-0.0001".to_string(),
+            funding_time: 1625097600000,
+        };
+
+        let json = serde_json::to_string(&funding).unwrap();
+        let deserialized: FundingRate = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(funding.symbol, deserialized.symbol);
+        assert_eq!(funding.funding_rate, deserialized.funding_rate);
+        assert_eq!(funding.funding_time, deserialized.funding_time);
+    }
+
+    #[test]
+    fn test_funding_rate_clone() {
+        let funding = FundingRate {
+            symbol: "BTCUSDT".to_string(),
+            funding_rate: "0.0001".to_string(),
+            funding_time: 1625097600000,
+        };
+
+        let cloned = funding.clone();
+        assert_eq!(funding.symbol, cloned.symbol);
+        assert_eq!(funding.funding_rate, cloned.funding_rate);
+    }
+
+    #[test]
+    fn test_kline_event_serialization() {
+        let event = KlineEvent {
+            event_type: "kline".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            kline: KlineData {
+                kline_start_time: 1625097600000,
+                kline_close_time: 1625097659999,
+                symbol: "BTCUSDT".to_string(),
+                interval: "1m".to_string(),
+                first_trade_id: 100,
+                last_trade_id: 200,
+                open_price: "34000.00".to_string(),
+                close_price: "34500.00".to_string(),
+                high_price: "35000.00".to_string(),
+                low_price: "33000.00".to_string(),
+                base_asset_volume: "100.5".to_string(),
+                number_of_trades: 1000,
+                is_this_kline_closed: false,
+                quote_asset_volume: "3450000.00".to_string(),
+                taker_buy_base_asset_volume: "50.25".to_string(),
+                taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            },
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("\"e\":\"kline\""));
+        assert!(json.contains("\"s\":\"BTCUSDT\""));
+    }
+
+    #[test]
+    fn test_kline_event_clone() {
+        let event = KlineEvent {
+            event_type: "kline".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            kline: KlineData {
+                kline_start_time: 1625097600000,
+                kline_close_time: 1625097659999,
+                symbol: "BTCUSDT".to_string(),
+                interval: "1m".to_string(),
+                first_trade_id: 100,
+                last_trade_id: 200,
+                open_price: "34000.00".to_string(),
+                close_price: "34500.00".to_string(),
+                high_price: "35000.00".to_string(),
+                low_price: "33000.00".to_string(),
+                base_asset_volume: "100.5".to_string(),
+                number_of_trades: 1000,
+                is_this_kline_closed: true,
+                quote_asset_volume: "3450000.00".to_string(),
+                taker_buy_base_asset_volume: "50.25".to_string(),
+                taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            },
+        };
+
+        let cloned = event.clone();
+        assert_eq!(event.event_type, cloned.event_type);
+        assert_eq!(event.symbol, cloned.symbol);
+    }
+
+    #[test]
+    fn test_kline_data_serialization() {
+        let kline_data = KlineData {
+            kline_start_time: 1625097600000,
+            kline_close_time: 1625097659999,
+            symbol: "BTCUSDT".to_string(),
+            interval: "5m".to_string(),
+            first_trade_id: 500,
+            last_trade_id: 600,
+            open_price: "40000.00".to_string(),
+            close_price: "40500.00".to_string(),
+            high_price: "41000.00".to_string(),
+            low_price: "39500.00".to_string(),
+            base_asset_volume: "200.5".to_string(),
+            number_of_trades: 2000,
+            is_this_kline_closed: true,
+            quote_asset_volume: "8000000.00".to_string(),
+            taker_buy_base_asset_volume: "100.25".to_string(),
+            taker_buy_quote_asset_volume: "4000000.00".to_string(),
+        };
+
+        let json = serde_json::to_string(&kline_data).unwrap();
+        assert!(json.contains("\"i\":\"5m\""));
+        assert!(json.contains("\"x\":true"));
+    }
+
+    #[test]
+    fn test_kline_data_clone() {
+        let kline_data = KlineData {
+            kline_start_time: 1625097600000,
+            kline_close_time: 1625097659999,
+            symbol: "BTCUSDT".to_string(),
+            interval: "1m".to_string(),
+            first_trade_id: 100,
+            last_trade_id: 200,
+            open_price: "34000.00".to_string(),
+            close_price: "34500.00".to_string(),
+            high_price: "35000.00".to_string(),
+            low_price: "33000.00".to_string(),
+            base_asset_volume: "100.5".to_string(),
+            number_of_trades: 1000,
+            is_this_kline_closed: true,
+            quote_asset_volume: "3450000.00".to_string(),
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+        };
+
+        let cloned = kline_data.clone();
+        assert_eq!(kline_data.symbol, cloned.symbol);
+        assert_eq!(kline_data.interval, cloned.interval);
+    }
+
+    #[test]
+    fn test_kline_data_to_decimal_invalid_high() {
+        let kline_data = KlineData {
+            kline_start_time: 1625097600000,
+            kline_close_time: 1625097659999,
+            symbol: "BTCUSDT".to_string(),
+            interval: "1m".to_string(),
+            first_trade_id: 100,
+            last_trade_id: 200,
+            open_price: "34000.00".to_string(),
+            close_price: "34500.00".to_string(),
+            high_price: "invalid".to_string(),
+            low_price: "33000.00".to_string(),
+            base_asset_volume: "100.5".to_string(),
+            number_of_trades: 1000,
+            is_this_kline_closed: true,
+            quote_asset_volume: "3450000.00".to_string(),
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+        };
+
+        assert!(kline_data.to_decimal_values().is_err());
+    }
+
+    #[test]
+    fn test_ticker_event_serialization() {
+        let event = TickerEvent {
+            event_type: "24hrTicker".to_string(),
+            event_time: 1625097600000,
+            symbol: "ETHUSDT".to_string(),
+            price_change: "100.00".to_string(),
+            price_change_percent: "4.0".to_string(),
+            weighted_avg_price: "2550.00".to_string(),
+            prev_close_price: "2500.00".to_string(),
+            last_price: "2600.00".to_string(),
+            last_quantity: "5.0".to_string(),
+            best_bid_price: "2599.00".to_string(),
+            best_bid_quantity: "10.0".to_string(),
+            best_ask_price: "2601.00".to_string(),
+            best_ask_quantity: "8.0".to_string(),
+            open_price: "2500.00".to_string(),
+            high_price: "2650.00".to_string(),
+            low_price: "2480.00".to_string(),
+            total_traded_base_asset_volume: "5000.0".to_string(),
+            total_traded_quote_asset_volume: "12750000.00".to_string(),
+            statistics_open_time: 1625011200000,
+            statistics_close_time: 1625097600000,
+            first_trade_id: 2000,
+            last_trade_id: 10000,
+            total_number_of_trades: 8000,
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("\"e\":\"24hrTicker\""));
+        assert!(json.contains("\"s\":\"ETHUSDT\""));
+    }
+
+    #[test]
+    fn test_ticker_event_clone() {
+        let event = TickerEvent {
+            event_type: "24hrTicker".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            price_change: "500.00".to_string(),
+            price_change_percent: "1.5".to_string(),
+            weighted_avg_price: "34250.00".to_string(),
+            prev_close_price: "33500.00".to_string(),
+            last_price: "34000.00".to_string(),
+            last_quantity: "10.5".to_string(),
+            best_bid_price: "33990.00".to_string(),
+            best_bid_quantity: "5.0".to_string(),
+            best_ask_price: "34010.00".to_string(),
+            best_ask_quantity: "4.5".to_string(),
+            open_price: "33500.00".to_string(),
+            high_price: "35000.00".to_string(),
+            low_price: "33000.00".to_string(),
+            total_traded_base_asset_volume: "1000.5".to_string(),
+            total_traded_quote_asset_volume: "34000000.00".to_string(),
+            statistics_open_time: 1625011200000,
+            statistics_close_time: 1625097600000,
+            first_trade_id: 1000,
+            last_trade_id: 5000,
+            total_number_of_trades: 4000,
+        };
+
+        let cloned = event.clone();
+        assert_eq!(event.event_type, cloned.event_type);
+        assert_eq!(event.symbol, cloned.symbol);
+    }
+
+    #[test]
+    fn test_order_book_event_serialization() {
+        let event = OrderBookEvent {
+            event_type: "depthUpdate".to_string(),
+            event_time: 1625097600000,
+            symbol: "ETHUSDT".to_string(),
+            first_update_id: 2000,
+            final_update_id: 2010,
+            bids: vec![
+                ("2500.00".to_string(), "10.0".to_string()),
+                ("2499.00".to_string(), "15.0".to_string()),
+            ],
+            asks: vec![
+                ("2501.00".to_string(), "5.0".to_string()),
+                ("2502.00".to_string(), "8.0".to_string()),
+            ],
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("\"e\":\"depthUpdate\""));
+        assert!(json.contains("\"s\":\"ETHUSDT\""));
+    }
+
+    #[test]
+    fn test_order_book_event_clone() {
+        let event = OrderBookEvent {
+            event_type: "depthUpdate".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            first_update_id: 1000,
+            final_update_id: 1005,
+            bids: vec![("34000.00".to_string(), "1.5".to_string())],
+            asks: vec![("34001.00".to_string(), "1.0".to_string())],
+        };
+
+        let cloned = event.clone();
+        assert_eq!(event.event_type, cloned.event_type);
+        assert_eq!(event.bids.len(), cloned.bids.len());
+    }
+
+    #[test]
+    fn test_order_book_event_empty_bids_asks() {
+        let event = OrderBookEvent {
+            event_type: "depthUpdate".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            first_update_id: 1000,
+            final_update_id: 1000,
+            bids: vec![],
+            asks: vec![],
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        let deserialized: OrderBookEvent = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.bids.len(), 0);
+        assert_eq!(deserialized.asks.len(), 0);
+    }
+
+    #[test]
+    fn test_futures_order_serialization() {
+        let order = FuturesOrder {
+            symbol: "ETHUSDT".to_string(),
+            order_id: 67890,
+            order_list_id: -1,
+            client_order_id: "test456".to_string(),
+            price: "2500.00".to_string(),
+            orig_qty: "1.0".to_string(),
+            executed_qty: "0.5".to_string(),
+            cumulative_quote_qty: "1250.00".to_string(),
+            status: "PARTIALLY_FILLED".to_string(),
+            time_in_force: "GTC".to_string(),
+            r#type: "LIMIT".to_string(),
+            side: "SELL".to_string(),
+            stop_price: "0.00".to_string(),
+            iceberg_qty: "0.00".to_string(),
+            time: 1625097600000,
+            update_time: 1625097620000,
+            is_working: true,
+            orig_quote_order_qty: "2500.00".to_string(),
+        };
+
+        let json = serde_json::to_string(&order).unwrap();
+        assert!(json.contains("ETHUSDT"));
+        assert!(json.contains("SELL"));
+    }
+
+    #[test]
+    fn test_futures_order_clone() {
+        let order = FuturesOrder {
+            symbol: "BTCUSDT".to_string(),
+            order_id: 12345,
+            order_list_id: -1,
+            client_order_id: "test123".to_string(),
+            price: "34000.00".to_string(),
+            orig_qty: "0.01".to_string(),
+            executed_qty: "0.005".to_string(),
+            cumulative_quote_qty: "170.00".to_string(),
+            status: "PARTIALLY_FILLED".to_string(),
+            time_in_force: "GTC".to_string(),
+            r#type: "LIMIT".to_string(),
+            side: "BUY".to_string(),
+            stop_price: "0.00".to_string(),
+            iceberg_qty: "0.00".to_string(),
+            time: 1625097600000,
+            update_time: 1625097610000,
+            is_working: true,
+            orig_quote_order_qty: "340.00".to_string(),
+        };
+
+        let cloned = order.clone();
+        assert_eq!(order.symbol, cloned.symbol);
+        assert_eq!(order.order_id, cloned.order_id);
+    }
+
+    #[test]
+    fn test_futures_position_serialization() {
+        let position = FuturesPosition {
+            symbol: "ETHUSDT".to_string(),
+            position_amt: "2.0".to_string(),
+            entry_price: "2500.00".to_string(),
+            mark_price: "2600.00".to_string(),
+            unrealized_pnl: "200.00".to_string(),
+            liquidation_price: "2000.00".to_string(),
+            leverage: "5".to_string(),
+            max_notional_value: "50000.00".to_string(),
+            margin_type: "cross".to_string(),
+            isolated_margin: "0.00".to_string(),
+            is_auto_add_margin: true,
+            position_side: "SHORT".to_string(),
+            notional: "5200.00".to_string(),
+            isolated_wallet: "0.00".to_string(),
+            update_time: 1625097600000,
+        };
+
+        let json = serde_json::to_string(&position).unwrap();
+        assert!(json.contains("ETHUSDT"));
+        assert!(json.contains("cross"));
+    }
+
+    #[test]
+    fn test_futures_position_clone() {
+        let position = FuturesPosition {
+            symbol: "BTCUSDT".to_string(),
+            position_amt: "0.01".to_string(),
+            entry_price: "34000.00".to_string(),
+            mark_price: "34100.00".to_string(),
+            unrealized_pnl: "1.00".to_string(),
+            liquidation_price: "30000.00".to_string(),
+            leverage: "10".to_string(),
+            max_notional_value: "100000.00".to_string(),
+            margin_type: "isolated".to_string(),
+            isolated_margin: "340.00".to_string(),
+            is_auto_add_margin: false,
+            position_side: "LONG".to_string(),
+            notional: "341.00".to_string(),
+            isolated_wallet: "340.00".to_string(),
+            update_time: 1625097600000,
+        };
+
+        let cloned = position.clone();
+        assert_eq!(position.symbol, cloned.symbol);
+        assert_eq!(position.leverage, cloned.leverage);
+    }
+
+    #[test]
+    fn test_account_info_serialization() {
+        let account = AccountInfo {
+            maker_commission: 10,
+            taker_commission: 10,
+            buyer_commission: 0,
+            seller_commission: 0,
+            can_trade: true,
+            can_withdraw: false,
+            can_deposit: true,
+            update_time: 1625097600000,
+            account_type: "MARGIN".to_string(),
+            balances: vec![
+                Balance {
+                    asset: "ETH".to_string(),
+                    free: "5.0".to_string(),
+                    locked: "1.0".to_string(),
+                },
+            ],
+            permissions: vec!["SPOT".to_string(), "MARGIN".to_string()],
+        };
+
+        let json = serde_json::to_string(&account).unwrap();
+        assert!(json.contains("MARGIN"));
+        assert!(json.contains("ETH"));
+    }
+
+    #[test]
+    fn test_account_info_clone() {
+        let account = AccountInfo {
+            maker_commission: 10,
+            taker_commission: 10,
+            buyer_commission: 0,
+            seller_commission: 0,
+            can_trade: true,
+            can_withdraw: true,
+            can_deposit: true,
+            update_time: 1625097600000,
+            account_type: "SPOT".to_string(),
+            balances: vec![],
+            permissions: vec![],
+        };
+
+        let cloned = account.clone();
+        assert_eq!(account.maker_commission, cloned.maker_commission);
+        assert_eq!(account.can_trade, cloned.can_trade);
+    }
+
+    #[test]
+    fn test_balance_serialization() {
+        let balance = Balance {
+            asset: "USDT".to_string(),
+            free: "5000.00".to_string(),
+            locked: "250.00".to_string(),
+        };
+
+        let json = serde_json::to_string(&balance).unwrap();
+        assert!(json.contains("USDT"));
+        assert!(json.contains("5000.00"));
+    }
+
+    #[test]
+    fn test_balance_roundtrip() {
+        let balance = Balance {
+            asset: "BNB".to_string(),
+            free: "100.5".to_string(),
+            locked: "10.25".to_string(),
+        };
+
+        let json = serde_json::to_string(&balance).unwrap();
+        let deserialized: Balance = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(balance.asset, deserialized.asset);
+        assert_eq!(balance.free, deserialized.free);
+        assert_eq!(balance.locked, deserialized.locked);
+    }
+
+    #[test]
+    fn test_new_order_request_deserialization() {
+        let json = r#"{
+            "symbol": "ETHUSDT",
+            "side": "SELL",
+            "type": "MARKET",
+            "quantity": "1.0",
+            "quote_order_qty": null,
+            "price": null,
+            "new_client_order_id": "order789",
+            "stop_price": null,
+            "iceberg_qty": null,
+            "new_order_resp_type": "FULL",
+            "time_in_force": "IOC",
+            "reduce_only": true,
+            "close_position": false,
+            "position_side": "SHORT",
+            "working_type": "MARK_PRICE",
+            "price_protect": true
+        }"#;
+
+        let order: NewOrderRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(order.symbol, "ETHUSDT");
+        assert_eq!(order.side, "SELL");
+        assert_eq!(order.r#type, "MARKET");
+        assert_eq!(order.reduce_only, Some(true));
+        assert_eq!(order.price_protect, Some(true));
+    }
+
+    #[test]
+    fn test_new_order_request_clone() {
+        let order = NewOrderRequest {
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            r#type: "LIMIT".to_string(),
+            quantity: Some("0.01".to_string()),
+            quote_order_qty: None,
+            price: Some("34000.00".to_string()),
+            new_client_order_id: None,
+            stop_price: None,
+            iceberg_qty: None,
+            new_order_resp_type: None,
+            time_in_force: Some("GTC".to_string()),
+            reduce_only: None,
+            close_position: None,
+            position_side: None,
+            working_type: None,
+            price_protect: None,
+        };
+
+        let cloned = order.clone();
+        assert_eq!(order.symbol, cloned.symbol);
+        assert_eq!(order.side, cloned.side);
+    }
+
+    #[test]
+    fn test_order_response_serialization() {
+        let response = OrderResponse {
+            symbol: "ETHUSDT".to_string(),
+            order_id: 54321,
+            order_list_id: -1,
+            client_order_id: "order999".to_string(),
+            transact_time: 1625097600000,
+            price: "2500.00".to_string(),
+            orig_qty: "1.0".to_string(),
+            executed_qty: "1.0".to_string(),
+            cumulative_quote_qty: "2500.00".to_string(),
+            status: "FILLED".to_string(),
+            time_in_force: "GTC".to_string(),
+            r#type: "LIMIT".to_string(),
+            side: "BUY".to_string(),
+            fills: vec![],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("ETHUSDT"));
+        assert!(json.contains("FILLED"));
+    }
+
+    #[test]
+    fn test_order_response_clone() {
+        let response = OrderResponse {
+            symbol: "BTCUSDT".to_string(),
+            order_id: 12345,
+            order_list_id: -1,
+            client_order_id: "test123".to_string(),
+            transact_time: 1625097600000,
+            price: "34000.00".to_string(),
+            orig_qty: "0.01".to_string(),
+            executed_qty: "0.01".to_string(),
+            cumulative_quote_qty: "340.00".to_string(),
+            status: "FILLED".to_string(),
+            time_in_force: "GTC".to_string(),
+            r#type: "LIMIT".to_string(),
+            side: "BUY".to_string(),
+            fills: vec![],
+        };
+
+        let cloned = response.clone();
+        assert_eq!(response.symbol, cloned.symbol);
+        assert_eq!(response.order_id, cloned.order_id);
+    }
+
+    #[test]
+    fn test_fill_serialization() {
+        let fill = Fill {
+            price: "34000.00".to_string(),
+            qty: "0.01".to_string(),
+            commission: "0.00002".to_string(),
+            commission_asset: "BNB".to_string(),
+            trade_id: 9999,
+        };
+
+        let json = serde_json::to_string(&fill).unwrap();
+        assert!(json.contains("34000.00"));
+        assert!(json.contains("BNB"));
+    }
+
+    #[test]
+    fn test_fill_deserialization() {
+        let json = r#"{
+            "price": "2500.00",
+            "qty": "1.0",
+            "commission": "0.001",
+            "commission_asset": "ETH",
+            "trade_id": 8888
+        }"#;
+
+        let fill: Fill = serde_json::from_str(json).unwrap();
+        assert_eq!(fill.price, "2500.00");
+        assert_eq!(fill.qty, "1.0");
+        assert_eq!(fill.trade_id, 8888);
+    }
+
+    #[test]
+    fn test_fill_clone() {
+        let fill = Fill {
+            price: "34000.00".to_string(),
+            qty: "0.01".to_string(),
+            commission: "0.00001".to_string(),
+            commission_asset: "BTC".to_string(),
+            trade_id: 1001,
+        };
+
+        let cloned = fill.clone();
+        assert_eq!(fill.price, cloned.price);
+        assert_eq!(fill.trade_id, cloned.trade_id);
+    }
+
+    #[test]
+    fn test_websocket_message_serialization() {
+        let msg = WebSocketMessage {
+            stream: "ethusdt@ticker".to_string(),
+            data: serde_json::json!({"price": "2500.00"}),
+        };
+
+        let json = serde_json::to_string(&msg).unwrap();
+        assert!(json.contains("ethusdt@ticker"));
+    }
+
+    #[test]
+    fn test_websocket_message_clone() {
+        let msg = WebSocketMessage {
+            stream: "btcusdt@kline_1m".to_string(),
+            data: serde_json::json!({"test": "value"}),
+        };
+
+        let cloned = msg.clone();
+        assert_eq!(msg.stream, cloned.stream);
+    }
+
+    #[test]
+    fn test_stream_event_kline_variant_clone() {
+        let event = KlineEvent {
+            event_type: "kline".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            kline: KlineData {
+                kline_start_time: 1625097600000,
+                kline_close_time: 1625097659999,
+                symbol: "BTCUSDT".to_string(),
+                interval: "1m".to_string(),
+                first_trade_id: 100,
+                last_trade_id: 200,
+                open_price: "34000.00".to_string(),
+                close_price: "34500.00".to_string(),
+                high_price: "35000.00".to_string(),
+                low_price: "33000.00".to_string(),
+                base_asset_volume: "100.5".to_string(),
+                number_of_trades: 1000,
+                is_this_kline_closed: true,
+                quote_asset_volume: "3450000.00".to_string(),
+                taker_buy_base_asset_volume: "50.25".to_string(),
+                taker_buy_quote_asset_volume: "1725000.00".to_string(),
+            },
+        };
+
+        let cloned_event = event.clone();
+        assert_eq!(event.event_type, cloned_event.event_type);
+        assert_eq!(event.symbol, cloned_event.symbol);
+        assert_eq!(event.kline.interval, cloned_event.kline.interval);
+    }
+
+    #[test]
+    fn test_stream_event_ticker_variant_clone() {
+        let event = TickerEvent {
+            event_type: "24hrTicker".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            price_change: "500.00".to_string(),
+            price_change_percent: "1.5".to_string(),
+            weighted_avg_price: "34250.00".to_string(),
+            prev_close_price: "33500.00".to_string(),
+            last_price: "34000.00".to_string(),
+            last_quantity: "10.5".to_string(),
+            best_bid_price: "33990.00".to_string(),
+            best_bid_quantity: "5.0".to_string(),
+            best_ask_price: "34010.00".to_string(),
+            best_ask_quantity: "4.5".to_string(),
+            open_price: "33500.00".to_string(),
+            high_price: "35000.00".to_string(),
+            low_price: "33000.00".to_string(),
+            total_traded_base_asset_volume: "1000.5".to_string(),
+            total_traded_quote_asset_volume: "34000000.00".to_string(),
+            statistics_open_time: 1625011200000,
+            statistics_close_time: 1625097600000,
+            first_trade_id: 1000,
+            last_trade_id: 5000,
+            total_number_of_trades: 4000,
+        };
+
+        let cloned_event = event.clone();
+        assert_eq!(event.event_type, cloned_event.event_type);
+        assert_eq!(event.symbol, cloned_event.symbol);
+        assert_eq!(event.last_price, cloned_event.last_price);
+    }
+
+    #[test]
+    fn test_stream_event_orderbook_variant_clone() {
+        let event = OrderBookEvent {
+            event_type: "depthUpdate".to_string(),
+            event_time: 1625097600000,
+            symbol: "BTCUSDT".to_string(),
+            first_update_id: 1000,
+            final_update_id: 1005,
+            bids: vec![("34000.00".to_string(), "1.5".to_string())],
+            asks: vec![("34001.00".to_string(), "1.0".to_string())],
+        };
+
+        let cloned_event = event.clone();
+        assert_eq!(event.event_type, cloned_event.event_type);
+        assert_eq!(event.symbol, cloned_event.symbol);
+        assert_eq!(event.bids.len(), cloned_event.bids.len());
+    }
+
+    #[test]
+    fn test_chart_update_event_deserialization() {
+        let json = r#"{
+            "symbol": "ETHUSDT",
+            "timeframe": "5m",
+            "candle": {
+                "timestamp": 1625097600000,
+                "open": 2500.0,
+                "high": 2600.0,
+                "low": 2480.0,
+                "close": 2550.0,
+                "volume": 500.5,
+                "is_closed": false
+            },
+            "latest_price": 2550.0,
+            "price_change_24h": 100.0,
+            "price_change_percent_24h": 4.0,
+            "volume_24h": 5000.0,
+            "timestamp": 1625097600000
+        }"#;
+
+        let event: ChartUpdateEvent = serde_json::from_str(json).unwrap();
+        assert_eq!(event.symbol, "ETHUSDT");
+        assert_eq!(event.timeframe, "5m");
+        assert_eq!(event.candle.is_closed, false);
+    }
+
+    #[test]
+    fn test_chart_update_event_clone() {
+        let event = ChartUpdateEvent {
+            symbol: "BTCUSDT".to_string(),
+            timeframe: "1m".to_string(),
+            candle: ChartCandle {
+                timestamp: 1625097600000,
+                open: 34000.0,
+                high: 35000.0,
+                low: 33000.0,
+                close: 34500.0,
+                volume: 100.5,
+                is_closed: true,
+            },
+            latest_price: 34500.0,
+            price_change_24h: 500.0,
+            price_change_percent_24h: 1.5,
+            volume_24h: 1000.5,
+            timestamp: 1625097600000,
+        };
+
+        let cloned = event.clone();
+        assert_eq!(event.symbol, cloned.symbol);
+        assert_eq!(event.timeframe, cloned.timeframe);
+    }
+
+    #[test]
+    fn test_chart_candle_serialization() {
+        let candle = ChartCandle {
+            timestamp: 1625097600000,
+            open: 50000.0,
+            high: 51000.0,
+            low: 49500.0,
+            close: 50500.0,
+            volume: 250.75,
+            is_closed: false,
+        };
+
+        let json = serde_json::to_string(&candle).unwrap();
+        assert!(json.contains("50000"));
+        assert!(json.contains("false"));
+    }
+
+    #[test]
+    fn test_chart_candle_deserialization() {
+        let json = r#"{
+            "timestamp": 1625097600000,
+            "open": 40000.0,
+            "high": 41000.0,
+            "low": 39500.0,
+            "close": 40500.0,
+            "volume": 150.25,
+            "is_closed": true
+        }"#;
+
+        let candle: ChartCandle = serde_json::from_str(json).unwrap();
+        assert_eq!(candle.timestamp, 1625097600000);
+        assert_eq!(candle.open, 40000.0);
+        assert_eq!(candle.is_closed, true);
+    }
+
+    #[test]
+    fn test_chart_candle_with_zero_volume() {
+        let candle = ChartCandle {
+            timestamp: 1625097600000,
+            open: 34000.0,
+            high: 34000.0,
+            low: 34000.0,
+            close: 34000.0,
+            volume: 0.0,
+            is_closed: true,
+        };
+
+        let json = serde_json::to_string(&candle).unwrap();
+        let deserialized: ChartCandle = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.volume, 0.0);
+    }
+
+    #[test]
+    fn test_market_data_update_serialization() {
+        let update = MarketDataUpdate {
+            symbol: "ETHUSDT".to_string(),
+            price: 2600.0,
+            price_change_24h: 150.0,
+            price_change_percent_24h: 6.12,
+            volume_24h: 8000.25,
+            timestamp: 1625097600000,
+        };
+
+        let json = serde_json::to_string(&update).unwrap();
+        assert!(json.contains("ETHUSDT"));
+        assert!(json.contains("2600"));
+    }
+
+    #[test]
+    fn test_market_data_update_clone() {
+        let update = MarketDataUpdate {
+            symbol: "BTCUSDT".to_string(),
+            price: 34500.0,
+            price_change_24h: 500.0,
+            price_change_percent_24h: 1.5,
+            volume_24h: 1000.5,
+            timestamp: 1625097600000,
+        };
+
+        let cloned = update.clone();
+        assert_eq!(update.symbol, cloned.symbol);
+        assert_eq!(update.price, cloned.price);
+    }
+
+    #[test]
+    fn test_websocket_event_kline_variant() {
+        let json = r#"{
+            "type": "kline",
+            "e": "kline",
+            "E": 1625097600000,
+            "s": "BTCUSDT",
+            "k": {
+                "t": 1625097600000,
+                "T": 1625097659999,
+                "s": "BTCUSDT",
+                "i": "1m",
+                "f": 100,
+                "L": 200,
+                "o": "34000.00",
+                "c": "34500.00",
+                "h": "35000.00",
+                "l": "33000.00",
+                "v": "100.5",
+                "n": 1000,
+                "x": true,
+                "q": "3450000.00",
+                "V": "50.25",
+                "Q": "1725000.00"
+            }
+        }"#;
+
+        let event: WebSocketEvent = serde_json::from_str(json).unwrap();
+        match event {
+            WebSocketEvent::Kline(kline_event) => {
+                assert_eq!(kline_event.symbol, "BTCUSDT");
+            }
+            _ => panic!("Expected Kline variant"),
+        }
+    }
+
+    #[test]
+    fn test_websocket_event_ticker_variant() {
+        let json = r#"{
+            "type": "ticker",
+            "e": "24hrTicker",
+            "E": 1625097600000,
+            "s": "ETHUSDT",
+            "p": "100.00",
+            "P": "4.0",
+            "w": "2550.00",
+            "x": "2500.00",
+            "c": "2600.00",
+            "Q": "5.0",
+            "b": "2599.00",
+            "B": "10.0",
+            "a": "2601.00",
+            "A": "8.0",
+            "o": "2500.00",
+            "h": "2650.00",
+            "l": "2480.00",
+            "v": "5000.0",
+            "q": "12750000.00",
+            "O": 1625011200000,
+            "C": 1625097600000,
+            "F": 2000,
+            "L": 10000,
+            "n": 8000
+        }"#;
+
+        let event: WebSocketEvent = serde_json::from_str(json).unwrap();
+        match event {
+            WebSocketEvent::Ticker(ticker_event) => {
+                assert_eq!(ticker_event.symbol, "ETHUSDT");
+            }
+            _ => panic!("Expected Ticker variant"),
+        }
+    }
+
+    #[test]
+    fn test_websocket_event_orderbook_variant() {
+        let json = r#"{
+            "type": "orderbook",
+            "e": "depthUpdate",
+            "E": 1625097600000,
+            "s": "BTCUSDT",
+            "U": 1000,
+            "u": 1005,
+            "b": [["34000.00", "1.5"]],
+            "a": [["34001.00", "1.0"]]
+        }"#;
+
+        let event: WebSocketEvent = serde_json::from_str(json).unwrap();
+        match event {
+            WebSocketEvent::OrderBook(orderbook_event) => {
+                assert_eq!(orderbook_event.symbol, "BTCUSDT");
+            }
+            _ => panic!("Expected OrderBook variant"),
+        }
+    }
+
+    #[test]
+    fn test_websocket_event_market_data_variant() {
+        let json = r#"{
+            "type": "market_data",
+            "symbol": "BTCUSDT",
+            "price": 34500.0,
+            "price_change_24h": 500.0,
+            "price_change_percent_24h": 1.5,
+            "volume_24h": 1000.5,
+            "timestamp": 1625097600000
+        }"#;
+
+        let event: WebSocketEvent = serde_json::from_str(json).unwrap();
+        match event {
+            WebSocketEvent::MarketData(market_data) => {
+                assert_eq!(market_data.symbol, "BTCUSDT");
+                assert_eq!(market_data.price, 34500.0);
+            }
+            _ => panic!("Expected MarketData variant"),
+        }
+    }
+
+    #[test]
+    fn test_websocket_event_serialization() {
+        let event = WebSocketEvent::Error {
+            message: "Test error".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("error"));
+        assert!(json.contains("Test error"));
+    }
+
+    #[test]
+    fn test_kline_with_negative_values() {
+        let kline = Kline {
+            open_time: -1,
+            open: "-100.00".to_string(),
+            high: "-50.00".to_string(),
+            low: "-200.00".to_string(),
+            close: "-150.00".to_string(),
+            volume: "-10.5".to_string(),
+            close_time: -1,
+            quote_asset_volume: "-1000.00".to_string(),
+            number_of_trades: -1,
+            taker_buy_base_asset_volume: "-5.25".to_string(),
+            taker_buy_quote_asset_volume: "-500.00".to_string(),
+            ignore: "-1".to_string(),
+        };
+
+        let json = serde_json::to_string(&kline).unwrap();
+        let deserialized: Kline = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.open, "-100.00");
+        assert_eq!(deserialized.number_of_trades, -1);
+    }
+
+    #[test]
+    fn test_symbol_price_deserialization() {
+        let json = r#"{
+            "symbol": "BNBUSDT",
+            "price": "450.25"
+        }"#;
+
+        let price: SymbolPrice = serde_json::from_str(json).unwrap();
+        assert_eq!(price.symbol, "BNBUSDT");
+        assert_eq!(price.price, "450.25");
+    }
+
+    #[test]
+    fn test_kline_to_decimal_with_scientific_notation() {
+        let kline = Kline {
+            open_time: 1625097600000,
+            open: "0.0000123".to_string(),
+            high: "0.0000234".to_string(),
+            low: "0.0000056".to_string(),
+            close: "0.0000150".to_string(),
+            volume: "1000000".to_string(),
+            close_time: 1625097659999,
+            quote_asset_volume: "15.5".to_string(),
+            number_of_trades: 100,
+            taker_buy_base_asset_volume: "500000".to_string(),
+            taker_buy_quote_asset_volume: "7.5".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let result = kline.to_decimal_values();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_futures_order_roundtrip() {
+        let order = FuturesOrder {
+            symbol: "ADAUSDT".to_string(),
+            order_id: 99999,
+            order_list_id: 0,
+            client_order_id: "custom_id_123".to_string(),
+            price: "1.25".to_string(),
+            orig_qty: "100.0".to_string(),
+            executed_qty: "100.0".to_string(),
+            cumulative_quote_qty: "125.00".to_string(),
+            status: "FILLED".to_string(),
+            time_in_force: "IOC".to_string(),
+            r#type: "MARKET".to_string(),
+            side: "BUY".to_string(),
+            stop_price: "1.20".to_string(),
+            iceberg_qty: "10.0".to_string(),
+            time: 1625097600000,
+            update_time: 1625097605000,
+            is_working: false,
+            orig_quote_order_qty: "125.00".to_string(),
+        };
+
+        let json = serde_json::to_string(&order).unwrap();
+        let deserialized: FuturesOrder = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(order.symbol, deserialized.symbol);
+        assert_eq!(order.order_id, deserialized.order_id);
+        assert_eq!(order.status, deserialized.status);
+        assert_eq!(order.is_working, deserialized.is_working);
+    }
+
+    #[test]
+    fn test_account_info_with_empty_balances() {
+        let account = AccountInfo {
+            maker_commission: 0,
+            taker_commission: 0,
+            buyer_commission: 0,
+            seller_commission: 0,
+            can_trade: false,
+            can_withdraw: false,
+            can_deposit: false,
+            update_time: 0,
+            account_type: "SPOT".to_string(),
+            balances: vec![],
+            permissions: vec![],
+        };
+
+        let json = serde_json::to_string(&account).unwrap();
+        let deserialized: AccountInfo = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.balances.len(), 0);
+        assert_eq!(deserialized.permissions.len(), 0);
+        assert_eq!(deserialized.can_trade, false);
+    }
+
+    #[test]
+    fn test_new_order_request_with_all_none_options() {
+        let order = NewOrderRequest {
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            r#type: "MARKET".to_string(),
+            quantity: None,
+            quote_order_qty: None,
+            price: None,
+            new_client_order_id: None,
+            stop_price: None,
+            iceberg_qty: None,
+            new_order_resp_type: None,
+            time_in_force: None,
+            reduce_only: None,
+            close_position: None,
+            position_side: None,
+            working_type: None,
+            price_protect: None,
+        };
+
+        let json = serde_json::to_string(&order).unwrap();
+        let deserialized: NewOrderRequest = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.symbol, "BTCUSDT");
+        assert_eq!(deserialized.quantity, None);
+        assert_eq!(deserialized.price, None);
+    }
+
+    #[test]
+    fn test_order_response_with_multiple_fills() {
+        let response = OrderResponse {
+            symbol: "BTCUSDT".to_string(),
+            order_id: 11111,
+            order_list_id: -1,
+            client_order_id: "multi_fill_test".to_string(),
+            transact_time: 1625097600000,
+            price: "34000.00".to_string(),
+            orig_qty: "1.0".to_string(),
+            executed_qty: "1.0".to_string(),
+            cumulative_quote_qty: "34000.00".to_string(),
+            status: "FILLED".to_string(),
+            time_in_force: "GTC".to_string(),
+            r#type: "LIMIT".to_string(),
+            side: "BUY".to_string(),
+            fills: vec![
+                Fill {
+                    price: "34000.00".to_string(),
+                    qty: "0.5".to_string(),
+                    commission: "0.0005".to_string(),
+                    commission_asset: "BTC".to_string(),
+                    trade_id: 1001,
+                },
+                Fill {
+                    price: "34000.00".to_string(),
+                    qty: "0.5".to_string(),
+                    commission: "0.0005".to_string(),
+                    commission_asset: "BTC".to_string(),
+                    trade_id: 1002,
+                },
+            ],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        let deserialized: OrderResponse = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.fills.len(), 2);
+        assert_eq!(deserialized.fills[0].trade_id, 1001);
+        assert_eq!(deserialized.fills[1].trade_id, 1002);
+    }
+
+    #[test]
+    fn test_chart_candle_roundtrip() {
+        let candle = ChartCandle {
+            timestamp: 1625097600000,
+            open: 34567.89,
+            high: 35678.90,
+            low: 33456.78,
+            close: 34890.12,
+            volume: 1234.5678,
+            is_closed: true,
+        };
+
+        let json = serde_json::to_string(&candle).unwrap();
+        let deserialized: ChartCandle = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(candle.timestamp, deserialized.timestamp);
+        assert_eq!(candle.open, deserialized.open);
+        assert_eq!(candle.is_closed, deserialized.is_closed);
+    }
+
+    #[test]
+    fn test_kline_data_with_negative_trades() {
+        let kline_data = KlineData {
+            kline_start_time: 1625097600000,
+            kline_close_time: 1625097659999,
+            symbol: "BTCUSDT".to_string(),
+            interval: "1m".to_string(),
+            first_trade_id: -100,
+            last_trade_id: -50,
+            open_price: "34000.00".to_string(),
+            close_price: "34500.00".to_string(),
+            high_price: "35000.00".to_string(),
+            low_price: "33000.00".to_string(),
+            base_asset_volume: "100.5".to_string(),
+            number_of_trades: -10,
+            is_this_kline_closed: false,
+            quote_asset_volume: "3450000.00".to_string(),
+            taker_buy_base_asset_volume: "50.25".to_string(),
+            taker_buy_quote_asset_volume: "1725000.00".to_string(),
+        };
+
+        let json = serde_json::to_string(&kline_data).unwrap();
+        let deserialized: KlineData = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.first_trade_id, -100);
+        assert_eq!(deserialized.number_of_trades, -10);
+    }
+
+    #[test]
+    fn test_futures_position_roundtrip() {
+        let position = FuturesPosition {
+            symbol: "SOLUSDT".to_string(),
+            position_amt: "50.0".to_string(),
+            entry_price: "100.50".to_string(),
+            mark_price: "105.75".to_string(),
+            unrealized_pnl: "262.50".to_string(),
+            liquidation_price: "75.00".to_string(),
+            leverage: "20".to_string(),
+            max_notional_value: "200000.00".to_string(),
+            margin_type: "isolated".to_string(),
+            isolated_margin: "250.00".to_string(),
+            is_auto_add_margin: true,
+            position_side: "BOTH".to_string(),
+            notional: "5287.50".to_string(),
+            isolated_wallet: "250.00".to_string(),
+            update_time: 1625097600000,
+        };
+
+        let json = serde_json::to_string(&position).unwrap();
+        let deserialized: FuturesPosition = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(position.symbol, deserialized.symbol);
+        assert_eq!(position.leverage, deserialized.leverage);
+        assert_eq!(position.is_auto_add_margin, deserialized.is_auto_add_margin);
+    }
+}

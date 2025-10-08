@@ -360,3 +360,466 @@ pub struct CacheStats {
     pub timeframe_counts: BTreeMap<String, usize>,
     pub cached_symbols: usize,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::binance::types::{Kline, KlineData};
+
+    fn create_test_kline(open_time: i64, close: f64) -> Kline {
+        Kline {
+            open_time,
+            close_time: open_time + 60000,
+            open: close.to_string(),
+            high: (close * 1.01).to_string(),
+            low: (close * 0.99).to_string(),
+            close: close.to_string(),
+            volume: "1000.0".to_string(),
+            quote_asset_volume: format!("{}", 1000.0 * close),
+            number_of_trades: 100,
+            ignore: "0".to_string(),
+            taker_buy_base_asset_volume: "500.0".to_string(),
+            taker_buy_quote_asset_volume: format!("{}", 500.0 * close),
+        }
+    }
+
+    fn create_test_kline_data(open_time: i64, close: f64, is_closed: bool) -> KlineData {
+        KlineData {
+            kline_start_time: open_time,
+            kline_close_time: open_time + 60000,
+            symbol: "BTCUSDT".to_string(),
+            interval: "1m".to_string(),
+            first_trade_id: 1,
+            last_trade_id: 100,
+            open_price: close.to_string(),
+            high_price: (close * 1.01).to_string(),
+            low_price: (close * 0.99).to_string(),
+            close_price: close.to_string(),
+            base_asset_volume: "1000.0".to_string(),
+            number_of_trades: 100,
+            is_this_kline_closed: is_closed,
+            quote_asset_volume: format!("{}", 1000.0 * close),
+            taker_buy_base_asset_volume: "500.0".to_string(),
+            taker_buy_quote_asset_volume: format!("{}", 500.0 * close),
+        }
+    }
+
+    #[test]
+    fn test_candle_data_from_kline() {
+        let kline = create_test_kline(1609459200000, 50000.0);
+        let candle = CandleData::from(&kline);
+
+        assert_eq!(candle.open_time, 1609459200000);
+        assert_eq!(candle.close, 50000.0);
+        assert_eq!(candle.volume, 1000.0);
+        assert!(candle.is_closed);
+    }
+
+    #[test]
+    fn test_candle_data_from_kline_data() {
+        let kline_data = create_test_kline_data(1609459200000, 50000.0, true);
+        let candle = CandleData::from(&kline_data);
+
+        assert_eq!(candle.open_time, 1609459200000);
+        assert_eq!(candle.close, 50000.0);
+        assert_eq!(candle.volume, 1000.0);
+        assert!(candle.is_closed);
+    }
+
+    #[test]
+    fn test_candle_data_from_invalid_strings() {
+        let mut kline = create_test_kline(1609459200000, 50000.0);
+        kline.close = "invalid".to_string();
+        kline.volume = "not_a_number".to_string();
+
+        let candle = CandleData::from(&kline);
+
+        // Should default to 0.0 for invalid values
+        assert_eq!(candle.close, 0.0);
+        assert_eq!(candle.volume, 0.0);
+    }
+
+    #[test]
+    fn test_timeframe_data_new() {
+        let tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 100);
+
+        assert_eq!(tf_data.symbol, "BTCUSDT");
+        assert_eq!(tf_data.timeframe, "1m");
+        assert_eq!(tf_data.max_size, 100);
+        assert!(tf_data.is_empty());
+        assert_eq!(tf_data.len(), 0);
+    }
+
+    #[test]
+    fn test_timeframe_data_add_candle() {
+        let mut tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 3);
+        let kline = create_test_kline(1609459200000, 50000.0);
+        let candle = CandleData::from(&kline);
+
+        tf_data.add_candle(candle);
+
+        assert_eq!(tf_data.len(), 1);
+        assert!(!tf_data.is_empty());
+        assert_eq!(tf_data.get_latest_candle().unwrap().close, 50000.0);
+    }
+
+    #[test]
+    fn test_timeframe_data_update_same_candle() {
+        let mut tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 100);
+        let open_time = 1609459200000;
+
+        // Add initial candle
+        let kline1 = create_test_kline(open_time, 50000.0);
+        tf_data.add_candle(CandleData::from(&kline1));
+        assert_eq!(tf_data.len(), 1);
+
+        // Update same candle (same open_time)
+        let kline2 = create_test_kline(open_time, 50100.0);
+        tf_data.add_candle(CandleData::from(&kline2));
+
+        // Should still have 1 candle, but updated
+        assert_eq!(tf_data.len(), 1);
+        assert_eq!(tf_data.get_latest_candle().unwrap().close, 50100.0);
+    }
+
+    #[test]
+    fn test_timeframe_data_max_size_limit() {
+        let mut tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 3);
+
+        // Add 5 candles to a max_size of 3
+        for i in 0..5 {
+            let kline = create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64);
+            tf_data.add_candle(CandleData::from(&kline));
+        }
+
+        // Should only keep last 3 candles
+        assert_eq!(tf_data.len(), 3);
+        assert_eq!(tf_data.get_latest_candle().unwrap().close, 50004.0);
+    }
+
+    #[test]
+    fn test_timeframe_data_get_candles() {
+        let mut tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 100);
+
+        // Add 5 candles
+        for i in 0..5 {
+            let kline = create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64);
+            tf_data.add_candle(CandleData::from(&kline));
+        }
+
+        // Get last 3 candles
+        let candles = tf_data.get_candles(Some(3));
+        assert_eq!(candles.len(), 3);
+        // Should be in reverse order (latest first)
+        assert_eq!(candles[0].close, 50004.0);
+        assert_eq!(candles[1].close, 50003.0);
+        assert_eq!(candles[2].close, 50002.0);
+    }
+
+    #[test]
+    fn test_timeframe_data_get_all_candles() {
+        let mut tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 100);
+
+        // Add 3 candles
+        for i in 0..3 {
+            let kline = create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64);
+            tf_data.add_candle(CandleData::from(&kline));
+        }
+
+        let all_candles = tf_data.get_all_candles();
+        assert_eq!(all_candles.len(), 3);
+        // Should be in order from oldest to newest
+        assert_eq!(all_candles[0].close, 50000.0);
+        assert_eq!(all_candles[2].close, 50002.0);
+    }
+
+    #[test]
+    fn test_timeframe_data_add_historical_candles() {
+        let mut tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 10);
+
+        let candles: Vec<CandleData> = (0..5)
+            .map(|i| {
+                let kline = create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64);
+                CandleData::from(&kline)
+            })
+            .collect();
+
+        tf_data.add_historical_candles(candles);
+
+        assert_eq!(tf_data.len(), 5);
+        assert_eq!(tf_data.get_latest_candle().unwrap().close, 50004.0);
+    }
+
+    #[test]
+    fn test_timeframe_data_add_historical_candles_exceeds_max() {
+        let mut tf_data = TimeframeData::new("BTCUSDT".to_string(), "1m".to_string(), 3);
+
+        let candles: Vec<CandleData> = (0..10)
+            .map(|i| {
+                let kline = create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64);
+                CandleData::from(&kline)
+            })
+            .collect();
+
+        tf_data.add_historical_candles(candles);
+
+        // Should only keep last 3
+        assert_eq!(tf_data.len(), 3);
+        assert_eq!(tf_data.get_latest_candle().unwrap().close, 50009.0);
+    }
+
+    #[test]
+    fn test_market_data_cache_new() {
+        let cache = MarketDataCache::new(100);
+        assert_eq!(cache.max_candles_per_timeframe, 100);
+        assert!(cache.get_supported_symbols().is_empty());
+    }
+
+    #[test]
+    fn test_market_data_cache_get_key() {
+        let key1 = MarketDataCache::get_key("btcusdt", "1m");
+        let key2 = MarketDataCache::get_key("BTCUSDT", "1m");
+
+        // Should be case-insensitive for symbol
+        assert_eq!(key1, key2);
+        assert_eq!(key1, "BTCUSDT:1m");
+    }
+
+    #[test]
+    fn test_market_data_cache_update_kline() {
+        let cache = MarketDataCache::new(100);
+        let kline_data = create_test_kline_data(1609459200000, 50000.0, false);
+
+        cache.update_kline("BTCUSDT", "1m", &kline_data);
+
+        // Check price cache
+        let price = cache.get_latest_price("BTCUSDT").unwrap();
+        assert_eq!(price, 50000.0);
+
+        // Check candles
+        let candles = cache.get_candles("BTCUSDT", "1m", None);
+        assert_eq!(candles.len(), 1);
+    }
+
+    #[test]
+    fn test_market_data_cache_update_kline_case_insensitive() {
+        let cache = MarketDataCache::new(100);
+        let kline_data = create_test_kline_data(1609459200000, 50000.0, true);
+
+        cache.update_kline("btcusdt", "1m", &kline_data);
+
+        // Should work with uppercase
+        let price = cache.get_latest_price("BTCUSDT").unwrap();
+        assert_eq!(price, 50000.0);
+
+        // Should work with lowercase
+        let price_lower = cache.get_latest_price("btcusdt").unwrap();
+        assert_eq!(price_lower, 50000.0);
+    }
+
+    #[test]
+    fn test_market_data_cache_add_historical_klines() {
+        let cache = MarketDataCache::new(100);
+        let klines: Vec<Kline> = (0..5)
+            .map(|i| create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64))
+            .collect();
+
+        cache.add_historical_klines("BTCUSDT", "1m", klines);
+
+        let candles = cache.get_all_candles("BTCUSDT", "1m");
+        assert_eq!(candles.len(), 5);
+
+        let latest_price = cache.get_latest_price("BTCUSDT").unwrap();
+        assert_eq!(latest_price, 50004.0);
+    }
+
+    #[test]
+    fn test_market_data_cache_get_latest_candle() {
+        let cache = MarketDataCache::new(100);
+
+        // No candles yet
+        assert!(cache.get_latest_candle("BTCUSDT", "1m").is_none());
+
+        // Add candles
+        let klines: Vec<Kline> = (0..3)
+            .map(|i| create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64))
+            .collect();
+        cache.add_historical_klines("BTCUSDT", "1m", klines);
+
+        let latest = cache.get_latest_candle("BTCUSDT", "1m").unwrap();
+        assert_eq!(latest.close, 50002.0);
+    }
+
+    #[test]
+    fn test_market_data_cache_get_candles_with_limit() {
+        let cache = MarketDataCache::new(100);
+        let klines: Vec<Kline> = (0..10)
+            .map(|i| create_test_kline(1609459200000 + i * 60000, 50000.0 + i as f64))
+            .collect();
+
+        cache.add_historical_klines("BTCUSDT", "1m", klines);
+
+        let candles = cache.get_candles("BTCUSDT", "1m", Some(5));
+        assert_eq!(candles.len(), 5);
+
+        // Should return most recent 5 candles
+        assert_eq!(candles[0].close, 50009.0);
+    }
+
+    #[test]
+    fn test_market_data_cache_get_candles_empty() {
+        let cache = MarketDataCache::new(100);
+
+        let candles = cache.get_candles("NONEXISTENT", "1m", None);
+        assert!(candles.is_empty());
+    }
+
+    #[test]
+    fn test_market_data_cache_get_supported_symbols() {
+        let cache = MarketDataCache::new(100);
+
+        // Add data for multiple symbols
+        let kline = create_test_kline(1609459200000, 50000.0);
+        cache.add_historical_klines("BTCUSDT", "1m", vec![kline.clone()]);
+        cache.add_historical_klines("ETHUSDT", "1m", vec![kline.clone()]);
+        cache.add_historical_klines("BTCUSDT", "5m", vec![kline]);
+
+        let symbols = cache.get_supported_symbols();
+        assert_eq!(symbols.len(), 2);
+        assert!(symbols.contains(&"BTCUSDT".to_string()));
+        assert!(symbols.contains(&"ETHUSDT".to_string()));
+    }
+
+    #[test]
+    fn test_market_data_cache_get_timeframes_for_symbol() {
+        let cache = MarketDataCache::new(100);
+        let kline = create_test_kline(1609459200000, 50000.0);
+
+        cache.add_historical_klines("BTCUSDT", "1m", vec![kline.clone()]);
+        cache.add_historical_klines("BTCUSDT", "5m", vec![kline.clone()]);
+        cache.add_historical_klines("BTCUSDT", "1h", vec![kline]);
+
+        let timeframes = cache.get_timeframes_for_symbol("BTCUSDT");
+        assert_eq!(timeframes.len(), 3);
+        assert!(timeframes.contains(&"1m".to_string()));
+        assert!(timeframes.contains(&"5m".to_string()));
+        assert!(timeframes.contains(&"1h".to_string()));
+    }
+
+    #[test]
+    fn test_market_data_cache_get_cache_stats() {
+        let cache = MarketDataCache::new(100);
+        let kline = create_test_kline(1609459200000, 50000.0);
+
+        cache.add_historical_klines("BTCUSDT", "1m", vec![kline.clone(), kline.clone()]);
+        cache.add_historical_klines("BTCUSDT", "5m", vec![kline.clone()]);
+        cache.add_historical_klines("ETHUSDT", "1m", vec![kline.clone(), kline.clone(), kline]);
+
+        let stats = cache.get_cache_stats();
+
+        assert_eq!(stats.cached_symbols, 2);
+        assert_eq!(stats.total_timeframes, 3);
+        assert_eq!(stats.total_candles, 6);
+        assert_eq!(stats.timeframe_counts.get("1m"), Some(&5));
+        assert_eq!(stats.timeframe_counts.get("5m"), Some(&1));
+    }
+
+    #[test]
+    fn test_market_data_cache_remove_symbol() {
+        let cache = MarketDataCache::new(100);
+        let kline = create_test_kline(1609459200000, 50000.0);
+
+        cache.add_historical_klines("BTCUSDT", "1m", vec![kline.clone()]);
+        cache.add_historical_klines("BTCUSDT", "5m", vec![kline.clone()]);
+        cache.add_historical_klines("ETHUSDT", "1m", vec![kline]);
+
+        // Verify data exists
+        assert!(cache.get_latest_price("BTCUSDT").is_some());
+        assert_eq!(cache.get_supported_symbols().len(), 2);
+
+        // Remove BTCUSDT
+        cache.remove_symbol("BTCUSDT");
+
+        // Verify removal
+        assert!(cache.get_latest_price("BTCUSDT").is_none());
+        assert!(cache.get_candles("BTCUSDT", "1m", None).is_empty());
+        assert!(cache.get_candles("BTCUSDT", "5m", None).is_empty());
+
+        // ETHUSDT should still exist
+        assert!(cache.get_latest_price("ETHUSDT").is_some());
+        let symbols = cache.get_supported_symbols();
+        assert_eq!(symbols.len(), 1);
+        assert!(symbols.contains(&"ETHUSDT".to_string()));
+    }
+
+    #[test]
+    fn test_market_data_cache_remove_symbol_case_insensitive() {
+        let cache = MarketDataCache::new(100);
+        let kline = create_test_kline(1609459200000, 50000.0);
+
+        cache.add_historical_klines("BTCUSDT", "1m", vec![kline]);
+
+        // Remove with lowercase
+        cache.remove_symbol("btcusdt");
+
+        // Should be removed
+        assert!(cache.get_latest_price("BTCUSDT").is_none());
+        assert!(cache.get_latest_price("btcusdt").is_none());
+    }
+
+    #[test]
+    fn test_market_data_cache_clone() {
+        let cache1 = MarketDataCache::new(100);
+        let kline = create_test_kline(1609459200000, 50000.0);
+        cache1.add_historical_klines("BTCUSDT", "1m", vec![kline]);
+
+        // Clone the cache
+        let cache2 = cache1.clone();
+
+        // Both should have access to the same data (Arc cloning)
+        assert_eq!(
+            cache1.get_latest_price("BTCUSDT"),
+            cache2.get_latest_price("BTCUSDT")
+        );
+        assert_eq!(cache1.get_latest_price("BTCUSDT"), Some(50000.0));
+    }
+
+    #[test]
+    fn test_edge_case_empty_candles() {
+        let cache = MarketDataCache::new(100);
+
+        // Add empty klines
+        cache.add_historical_klines("BTCUSDT", "1m", vec![]);
+
+        // Should handle gracefully
+        assert!(cache.get_latest_candle("BTCUSDT", "1m").is_none());
+        assert!(cache.get_latest_price("BTCUSDT").is_none());
+    }
+
+    #[test]
+    fn test_edge_case_extreme_values() {
+        let cache = MarketDataCache::new(100);
+
+        // Test with very large and very small values
+        let mut kline = create_test_kline(1609459200000, f64::MAX / 2.0);
+        kline.volume = "0.0000001".to_string();
+
+        cache.add_historical_klines("BTCUSDT", "1m", vec![kline]);
+
+        let price = cache.get_latest_price("BTCUSDT").unwrap();
+        assert!(price > 0.0);
+        assert!(price.is_finite());
+    }
+
+    #[test]
+    fn test_edge_case_zero_max_size() {
+        let cache = MarketDataCache::new(0);
+        let kline = create_test_kline(1609459200000, 50000.0);
+
+        cache.add_historical_klines("BTCUSDT", "1m", vec![kline]);
+
+        // Should not store any candles
+        let candles = cache.get_candles("BTCUSDT", "1m", None);
+        assert_eq!(candles.len(), 0);
+    }
+}

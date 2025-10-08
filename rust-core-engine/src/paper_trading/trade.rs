@@ -471,3 +471,1231 @@ impl TradeStatus {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_trade_creation() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            Some("signal123".to_string()),
+            Some(0.85),
+            Some("Test reasoning".to_string()),
+        );
+
+        assert_eq!(trade.symbol, "BTCUSDT");
+        assert_eq!(trade.trade_type, TradeType::Long);
+        assert_eq!(trade.entry_price, 50000.0);
+        assert_eq!(trade.quantity, 0.1);
+        assert_eq!(trade.leverage, 10);
+        assert_eq!(trade.status, TradeStatus::Open);
+        assert_eq!(trade.initial_margin, 500.0); // (0.1 * 50000) / 10
+        assert_eq!(trade.trading_fees, 2.0); // 0.1 * 50000 * 0.0004
+    }
+
+    #[test]
+    fn test_long_pnl_calculation_profit() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price goes up 10%
+        trade.update_with_price(55000.0, None);
+
+        // Expected: (55000 - 50000) * 0.1 - fees = 500 - 2 = 498
+        assert!((trade.unrealized_pnl - 498.0).abs() < 0.01);
+        assert!((trade.pnl_percentage - 99.6).abs() < 0.1); // 498/500 * 100
+    }
+
+    #[test]
+    fn test_long_pnl_calculation_loss() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price goes down 5%
+        trade.update_with_price(47500.0, None);
+
+        // Expected: (47500 - 50000) * 0.1 - fees = -250 - 2 = -252
+        assert!((trade.unrealized_pnl - (-252.0)).abs() < 0.01);
+        assert!((trade.pnl_percentage - (-50.4)).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_short_pnl_calculation_profit() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price goes down 10%
+        trade.update_with_price(45000.0, None);
+
+        // Expected: (50000 - 45000) * 0.1 - fees = 500 - 2 = 498
+        assert!((trade.unrealized_pnl - 498.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_short_pnl_calculation_loss() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price goes up 5%
+        trade.update_with_price(52500.0, None);
+
+        // Expected: (50000 - 52500) * 0.1 - fees = -250 - 2 = -252
+        assert!((trade.unrealized_pnl - (-252.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_stop_loss_long_triggered() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.set_stop_loss(48000.0).unwrap();
+
+        // Price at stop loss
+        assert!(trade.should_stop_loss(48000.0));
+        // Price below stop loss
+        assert!(trade.should_stop_loss(47000.0));
+        // Price above stop loss
+        assert!(!trade.should_stop_loss(49000.0));
+    }
+
+    #[test]
+    fn test_stop_loss_short_triggered() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.set_stop_loss(52000.0).unwrap();
+
+        // Price at stop loss
+        assert!(trade.should_stop_loss(52000.0));
+        // Price above stop loss
+        assert!(trade.should_stop_loss(53000.0));
+        // Price below stop loss
+        assert!(!trade.should_stop_loss(51000.0));
+    }
+
+    #[test]
+    fn test_take_profit_long_triggered() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.set_take_profit(55000.0).unwrap();
+
+        // Price at take profit
+        assert!(trade.should_take_profit(55000.0));
+        // Price above take profit
+        assert!(trade.should_take_profit(56000.0));
+        // Price below take profit
+        assert!(!trade.should_take_profit(54000.0));
+    }
+
+    #[test]
+    fn test_take_profit_short_triggered() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.set_take_profit(45000.0).unwrap();
+
+        // Price at take profit
+        assert!(trade.should_take_profit(45000.0));
+        // Price below take profit
+        assert!(trade.should_take_profit(44000.0));
+        // Price above take profit
+        assert!(!trade.should_take_profit(46000.0));
+    }
+
+    #[test]
+    fn test_invalid_stop_loss_long() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Stop loss above entry for long should fail
+        assert!(trade.set_stop_loss(51000.0).is_err());
+        // Stop loss equal to entry should fail
+        assert!(trade.set_stop_loss(50000.0).is_err());
+        // Stop loss below entry should succeed
+        assert!(trade.set_stop_loss(48000.0).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_stop_loss_short() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Stop loss below entry for short should fail
+        assert!(trade.set_stop_loss(49000.0).is_err());
+        // Stop loss equal to entry should fail
+        assert!(trade.set_stop_loss(50000.0).is_err());
+        // Stop loss above entry should succeed
+        assert!(trade.set_stop_loss(52000.0).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_take_profit_long() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Take profit below entry for long should fail
+        assert!(trade.set_take_profit(49000.0).is_err());
+        // Take profit equal to entry should fail
+        assert!(trade.set_take_profit(50000.0).is_err());
+        // Take profit above entry should succeed
+        assert!(trade.set_take_profit(55000.0).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_take_profit_short() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Take profit above entry for short should fail
+        assert!(trade.set_take_profit(51000.0).is_err());
+        // Take profit equal to entry should fail
+        assert!(trade.set_take_profit(50000.0).is_err());
+        // Take profit below entry should succeed
+        assert!(trade.set_take_profit(45000.0).is_ok());
+    }
+
+    #[test]
+    fn test_close_trade() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        let exit_price = 55000.0;
+        let exit_fees = 2.2;
+
+        let result = trade.close(exit_price, CloseReason::TakeProfit, exit_fees);
+        assert!(result.is_ok());
+
+        assert_eq!(trade.status, TradeStatus::Closed);
+        assert_eq!(trade.exit_price, Some(55000.0));
+        assert_eq!(trade.close_reason, Some(CloseReason::TakeProfit));
+        assert!(trade.close_time.is_some());
+        assert!(trade.duration_ms.is_some());
+
+        // PnL: (55000 - 50000) * 0.1 - entry_fees - exit_fees = 500 - 2 - 2.2 = 495.8
+        let expected_pnl = 495.8;
+        assert!((trade.realized_pnl.unwrap() - expected_pnl).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_close_already_closed_trade() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Close the trade
+        trade.close(55000.0, CloseReason::Manual, 2.0).unwrap();
+
+        // Try to close again
+        let result = trade.close(56000.0, CloseReason::Manual, 2.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_liquidation_risk_long() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Bankruptcy price for long at 10x: 50000 * (1 - 1/10) = 45000
+        // Liquidation risk at 45000 * 1.05 = 47250
+        assert!(trade.is_at_liquidation_risk(47000.0));
+        assert!(trade.is_at_liquidation_risk(45000.0));
+        assert!(!trade.is_at_liquidation_risk(48000.0));
+    }
+
+    #[test]
+    fn test_liquidation_risk_short() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Bankruptcy price for short at 10x: 50000 * (1 + 1/10) = 55000
+        // Liquidation risk at 55000 * 0.95 = 52250
+        assert!(trade.is_at_liquidation_risk(53000.0));
+        assert!(trade.is_at_liquidation_risk(55000.0));
+        assert!(!trade.is_at_liquidation_risk(52000.0));
+    }
+
+    #[test]
+    fn test_extreme_leverage() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            125,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Initial margin at 125x: (0.1 * 50000) / 125 = 40
+        assert!((trade.initial_margin - 40.0).abs() < 0.01);
+        assert_eq!(trade.maintenance_margin, 750.0); // 5000 * 0.15
+    }
+
+    #[test]
+    fn test_funding_fees_long() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Positive funding rate (longs pay shorts)
+        trade.update_with_price(50000.0, Some(0.0001));
+
+        // Funding fee: 0.1 * 50000 * 0.0001 = 0.5
+        assert!((trade.funding_fees - 0.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_funding_fees_short() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Positive funding rate (shorts receive from longs)
+        trade.update_with_price(50000.0, Some(0.0001));
+
+        // Funding fee: -(0.1 * 50000 * 0.0001) = -0.5 (negative means we receive)
+        assert!((trade.funding_fees - (-0.5)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_max_favorable_excursion() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.update_with_price(55000.0, None);
+        assert!((trade.max_favorable_excursion - 500.0).abs() < 0.01);
+
+        trade.update_with_price(52000.0, None);
+        // MFE should remain at peak
+        assert!((trade.max_favorable_excursion - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_max_adverse_excursion() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.update_with_price(48000.0, None);
+        assert!((trade.max_adverse_excursion - (-200.0)).abs() < 0.01);
+
+        trade.update_with_price(49000.0, None);
+        // MAE should remain at worst
+        assert!((trade.max_adverse_excursion - (-200.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_zero_quantity() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.0,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        assert_eq!(trade.initial_margin, 0.0);
+        assert_eq!(trade.trading_fees, 0.0);
+    }
+
+    #[test]
+    fn test_cancel_trade() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        let result = trade.cancel("User requested cancellation".to_string());
+        assert!(result.is_ok());
+        assert_eq!(trade.status, TradeStatus::Cancelled);
+        assert!(trade.close_time.is_some());
+    }
+
+    #[test]
+    fn test_trade_type_conversion() {
+        assert_eq!(TradeType::Long.as_str(), "Long");
+        assert_eq!(TradeType::Short.as_str(), "Short");
+
+        assert_eq!(TradeType::from_string("long"), Some(TradeType::Long));
+        assert_eq!(TradeType::from_string("buy"), Some(TradeType::Long));
+        assert_eq!(TradeType::from_string("short"), Some(TradeType::Short));
+        assert_eq!(TradeType::from_string("sell"), Some(TradeType::Short));
+        assert_eq!(TradeType::from_string("invalid"), None);
+    }
+
+    #[test]
+    fn test_margin_ratio_calculation() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Initial margin ratio should be 1.0
+        assert!((trade.margin_ratio - 1.0).abs() < 0.01);
+
+        // Update with profit
+        trade.update_with_price(55000.0, None);
+        // Equity: 500 + 498 (PnL) = 998
+        // Margin ratio: 998 / 500 ≈ 1.996
+        assert!(trade.margin_ratio > 1.5);
+
+        // Update with loss
+        trade.update_with_price(45000.0, None);
+        // Should have lower margin ratio
+        assert!(trade.margin_ratio < 1.0);
+    }
+
+    #[test]
+    fn test_trade_summary_open_trade() {
+        let mut trade = PaperTrade::new(
+            "ETHUSDT".to_string(),
+            TradeType::Long,
+            3000.0,
+            1.0,
+            5,
+            0.0004,
+            Some("signal456".to_string()),
+            Some(0.75),
+            Some("AI prediction".to_string()),
+        );
+
+        trade.update_with_price(3100.0, None);
+        let summary = trade.get_summary();
+
+        assert_eq!(summary.symbol, "ETHUSDT");
+        assert_eq!(summary.trade_type, TradeType::Long);
+        assert_eq!(summary.status, TradeStatus::Open);
+        assert_eq!(summary.entry_price, 3000.0);
+        assert!(summary.exit_price.is_none());
+        assert!(summary.pnl.is_some());
+        assert!(summary.close_time.is_none());
+    }
+
+    #[test]
+    fn test_trade_summary_closed_trade() {
+        let mut trade = PaperTrade::new(
+            "ETHUSDT".to_string(),
+            TradeType::Long,
+            3000.0,
+            1.0,
+            5,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.close(3200.0, CloseReason::TakeProfit, 1.2).unwrap();
+        let summary = trade.get_summary();
+
+        assert_eq!(summary.status, TradeStatus::Closed);
+        assert_eq!(summary.exit_price, Some(3200.0));
+        assert!(summary.pnl.is_some());
+        assert!(summary.close_time.is_some());
+        assert!(summary.duration_ms.is_some());
+    }
+
+    #[test]
+    fn test_maintenance_margin_rates() {
+        // Test different leverage tiers for maintenance margin calculation
+        let trade_1x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 1, 0.0004, None, None, None);
+        assert_eq!(trade_1x.maintenance_margin, 5000.0 * 0.01); // 1%
+
+        let trade_5x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 5, 0.0004, None, None, None);
+        assert_eq!(trade_5x.maintenance_margin, 5000.0 * 0.01); // 1%
+
+        let trade_10x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 10, 0.0004, None, None, None);
+        assert_eq!(trade_10x.maintenance_margin, 5000.0 * 0.025); // 2.5%
+
+        let trade_20x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 20, 0.0004, None, None, None);
+        assert_eq!(trade_20x.maintenance_margin, 5000.0 * 0.05); // 5%
+
+        let trade_50x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 50, 0.0004, None, None, None);
+        assert_eq!(trade_50x.maintenance_margin, 5000.0 * 0.1); // 10%
+
+        let trade_100x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 100, 0.0004, None, None, None);
+        assert_eq!(trade_100x.maintenance_margin, 5000.0 * 0.125); // 12.5%
+
+        let trade_125x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 125, 0.0004, None, None, None);
+        assert_eq!(trade_125x.maintenance_margin, 5000.0 * 0.15); // 15%
+    }
+
+    #[test]
+    fn test_update_closed_trade_has_no_effect() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.close(55000.0, CloseReason::TakeProfit, 2.0).unwrap();
+        let pnl_after_close = trade.realized_pnl;
+
+        // Update should have no effect on closed trade
+        trade.update_with_price(60000.0, None);
+        assert_eq!(trade.realized_pnl, pnl_after_close);
+        assert_eq!(trade.unrealized_pnl, 0.0);
+    }
+
+    #[test]
+    fn test_update_cancelled_trade_has_no_effect() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.cancel("Test cancellation".to_string()).unwrap();
+
+        // Update should have no effect on cancelled trade
+        trade.update_with_price(60000.0, None);
+        assert_eq!(trade.unrealized_pnl, 0.0);
+    }
+
+    #[test]
+    fn test_cancel_already_cancelled_trade() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.cancel("First cancellation".to_string()).unwrap();
+        let result = trade.cancel("Second cancellation".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cancel_already_closed_trade() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.close(55000.0, CloseReason::Manual, 2.0).unwrap();
+        let result = trade.cancel("Trying to cancel".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_extreme_price_long_massive_profit() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price doubles (100% increase)
+        trade.update_with_price(100000.0, None);
+
+        // PnL: (100000 - 50000) * 0.1 - fees = 5000 - 2 = 4998
+        assert!((trade.unrealized_pnl - 4998.0).abs() < 0.01);
+        // 4998 / 500 * 100 = 999.6%
+        assert!(trade.pnl_percentage > 900.0);
+    }
+
+    #[test]
+    fn test_extreme_price_short_massive_profit() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price halves (50% decrease)
+        trade.update_with_price(25000.0, None);
+
+        // PnL: (50000 - 25000) * 0.1 - fees = 2500 - 2 = 2498
+        assert!((trade.unrealized_pnl - 2498.0).abs() < 0.01);
+        assert!(trade.pnl_percentage > 400.0);
+    }
+
+    #[test]
+    fn test_extreme_price_near_zero() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price crashes near zero
+        trade.update_with_price(0.01, None);
+
+        // Massive loss
+        assert!(trade.unrealized_pnl < -4999.0);
+        assert!(trade.is_at_liquidation_risk(0.01));
+    }
+
+    #[test]
+    fn test_negative_funding_rate_long() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Negative funding rate (longs receive from shorts)
+        trade.update_with_price(50000.0, Some(-0.0001));
+
+        // Funding fee: 0.1 * 50000 * (-0.0001) = -0.5
+        assert!((trade.funding_fees - (-0.5)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_negative_funding_rate_short() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Negative funding rate (shorts pay longs)
+        trade.update_with_price(50000.0, Some(-0.0001));
+
+        // Funding fee: -(0.1 * 50000 * (-0.0001)) = 0.5
+        assert!((trade.funding_fees - 0.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_accumulated_funding_fees() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Multiple funding periods
+        trade.update_with_price(50000.0, Some(0.0001));
+        trade.update_with_price(51000.0, Some(0.0001));
+        trade.update_with_price(52000.0, Some(0.0001));
+
+        // First: 5000 * 0.0001 = 0.5
+        // Second: 5100 * 0.0001 = 0.51
+        // Third: 5200 * 0.0001 = 0.52
+        // Total ≈ 1.53
+        assert!((trade.funding_fees - 1.53).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_margin_ratio_with_zero_margin_used() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Set margin_used to 0 to test edge case
+        trade.margin_used = 0.0;
+        trade.update_with_price(55000.0, None);
+
+        // Should default to 1.0 when margin_used is 0
+        assert!((trade.margin_ratio - 1.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_close_with_different_reasons() {
+        let reasons = vec![
+            CloseReason::TakeProfit,
+            CloseReason::StopLoss,
+            CloseReason::Manual,
+            CloseReason::AISignal,
+            CloseReason::RiskManagement,
+            CloseReason::MarginCall,
+            CloseReason::TimeBasedExit,
+        ];
+
+        for reason in reasons {
+            let mut trade = PaperTrade::new(
+                "BTCUSDT".to_string(),
+                TradeType::Long,
+                50000.0,
+                0.1,
+                10,
+                0.0004,
+                None,
+                None,
+                None,
+            );
+
+            trade.close(55000.0, reason.clone(), 2.0).unwrap();
+            assert_eq!(trade.close_reason, Some(reason));
+        }
+    }
+
+    #[test]
+    fn test_trade_type_display() {
+        let long = TradeType::Long;
+        let short = TradeType::Short;
+
+        assert_eq!(format!("{}", long), "Long");
+        assert_eq!(format!("{}", short), "Short");
+    }
+
+    #[test]
+    fn test_trade_type_case_insensitive_parsing() {
+        assert_eq!(TradeType::from_string("LONG"), Some(TradeType::Long));
+        assert_eq!(TradeType::from_string("Long"), Some(TradeType::Long));
+        assert_eq!(TradeType::from_string("BUY"), Some(TradeType::Long));
+        assert_eq!(TradeType::from_string("Buy"), Some(TradeType::Long));
+        assert_eq!(TradeType::from_string("SHORT"), Some(TradeType::Short));
+        assert_eq!(TradeType::from_string("Short"), Some(TradeType::Short));
+        assert_eq!(TradeType::from_string("SELL"), Some(TradeType::Short));
+        assert_eq!(TradeType::from_string("Sell"), Some(TradeType::Short));
+    }
+
+    #[test]
+    fn test_trade_status_as_str() {
+        assert_eq!(TradeStatus::Open.as_str(), "Open");
+        assert_eq!(TradeStatus::Closed.as_str(), "Closed");
+        assert_eq!(TradeStatus::Cancelled.as_str(), "Cancelled");
+    }
+
+    #[test]
+    fn test_serialization_deserialization() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            Some("signal789".to_string()),
+            Some(0.9),
+            Some("Strong buy signal".to_string()),
+        );
+
+        let serialized = serde_json::to_string(&trade).unwrap();
+        let deserialized: PaperTrade = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(trade.id, deserialized.id);
+        assert_eq!(trade.symbol, deserialized.symbol);
+        assert_eq!(trade.trade_type, deserialized.trade_type);
+        assert_eq!(trade.entry_price, deserialized.entry_price);
+        assert_eq!(trade.quantity, deserialized.quantity);
+        assert_eq!(trade.leverage, deserialized.leverage);
+    }
+
+    #[test]
+    fn test_trade_summary_serialization() {
+        let trade = PaperTrade::new(
+            "ETHUSDT".to_string(),
+            TradeType::Short,
+            3000.0,
+            1.0,
+            5,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        let summary = trade.get_summary();
+        let serialized = serde_json::to_string(&summary).unwrap();
+        let deserialized: TradeSummary = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(summary.symbol, deserialized.symbol);
+        assert_eq!(summary.trade_type, deserialized.trade_type);
+        assert_eq!(summary.status, deserialized.status);
+    }
+
+    #[test]
+    fn test_very_high_leverage_liquidation() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            100,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // At 100x, bankruptcy price: 50000 * (1 - 1/100) = 49500
+        // Liquidation risk at 49500 * 1.05 = 51975
+        assert!(trade.is_at_liquidation_risk(51000.0));
+        assert!(trade.is_at_liquidation_risk(49500.0));
+    }
+
+    #[test]
+    fn test_low_leverage_liquidation_resistance() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            2,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // At 2x, bankruptcy price: 50000 * (1 - 1/2) = 25000
+        // Liquidation risk at 25000 * 1.05 = 26250
+        assert!(!trade.is_at_liquidation_risk(30000.0));
+        assert!(trade.is_at_liquidation_risk(26000.0));
+    }
+
+    #[test]
+    fn test_stop_loss_and_take_profit_both_set() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.set_stop_loss(48000.0).unwrap();
+        trade.set_take_profit(55000.0).unwrap();
+
+        assert_eq!(trade.stop_loss, Some(48000.0));
+        assert_eq!(trade.take_profit, Some(55000.0));
+
+        // Test both conditions
+        assert!(trade.should_stop_loss(47500.0));
+        assert!(!trade.should_take_profit(47500.0));
+
+        assert!(!trade.should_stop_loss(56000.0));
+        assert!(trade.should_take_profit(56000.0));
+    }
+
+    #[test]
+    fn test_close_with_funding_fees() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Accumulate funding fees
+        trade.update_with_price(50000.0, Some(0.0001));
+        trade.update_with_price(51000.0, Some(0.0001));
+
+        let exit_price = 52000.0;
+        let exit_fees = 2.08; // 52000 * 0.1 * 0.0004
+
+        trade.close(exit_price, CloseReason::TakeProfit, exit_fees).unwrap();
+
+        // PnL: (52000 - 50000) * 0.1 - entry_fees - funding_fees - exit_fees
+        // = 200 - 2 - ~1.01 - 2.08 ≈ 194.91
+        assert!(trade.realized_pnl.unwrap() < 195.0);
+        assert!(trade.realized_pnl.unwrap() > 194.0);
+    }
+
+    #[test]
+    fn test_metadata_on_cancel() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        let cancel_reason = "Risk limit exceeded".to_string();
+        trade.cancel(cancel_reason.clone()).unwrap();
+
+        assert!(trade.metadata.contains_key("cancel_reason"));
+        assert_eq!(
+            trade.metadata.get("cancel_reason").unwrap().as_str().unwrap(),
+            cancel_reason
+        );
+    }
+
+    #[test]
+    fn test_no_stop_loss_never_triggers() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // No stop loss set, should never trigger
+        assert!(!trade.should_stop_loss(0.0));
+        assert!(!trade.should_stop_loss(1000000.0));
+    }
+
+    #[test]
+    fn test_no_take_profit_never_triggers() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // No take profit set, should never trigger
+        assert!(!trade.should_take_profit(0.0));
+        assert!(!trade.should_take_profit(1000000.0));
+    }
+
+    #[test]
+    fn test_ai_fields_preservation() {
+        let ai_signal_id = "ai_signal_12345".to_string();
+        let ai_confidence = 0.95;
+        let ai_reasoning = "Strong bullish momentum detected".to_string();
+
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            Some(ai_signal_id.clone()),
+            Some(ai_confidence),
+            Some(ai_reasoning.clone()),
+        );
+
+        assert_eq!(trade.ai_signal_id, Some(ai_signal_id));
+        assert_eq!(trade.ai_confidence, Some(ai_confidence));
+        assert_eq!(trade.ai_reasoning, Some(ai_reasoning));
+    }
+
+    #[test]
+    fn test_uuid_uniqueness() {
+        let trade1 = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 10, 0.0004, None, None, None);
+        let trade2 = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 10, 0.0004, None, None, None);
+
+        assert_ne!(trade1.id, trade2.id);
+    }
+
+    #[test]
+    fn test_extreme_small_quantity() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.00001, // Very small quantity
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Notional: 50000 * 0.00001 = 0.5
+        // Initial margin: 0.5 / 10 = 0.05
+        assert!((trade.initial_margin - 0.05).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_price_at_entry_no_pnl_change() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Update with same price as entry
+        trade.update_with_price(50000.0, None);
+
+        // PnL should be negative only due to fees
+        assert_eq!(trade.unrealized_pnl, -2.0); // Only trading fees
+    }
+}

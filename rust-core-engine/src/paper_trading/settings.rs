@@ -600,3 +600,1219 @@ pub struct EffectiveSymbolSettings {
     pub take_profit_pct: f64,
     pub max_positions: u32,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_basic_settings() {
+        let settings = BasicSettings::default();
+
+        assert_eq!(settings.initial_balance, 10000.0);
+        assert_eq!(settings.max_positions, 10);
+        assert_eq!(settings.default_position_size_pct, 5.0);
+        assert_eq!(settings.default_leverage, 10);
+        assert_eq!(settings.trading_fee_rate, 0.0004);
+        assert!(settings.enabled);
+    }
+
+    #[test]
+    fn test_default_risk_settings() {
+        let settings = RiskSettings::default();
+
+        assert_eq!(settings.max_risk_per_trade_pct, 2.0);
+        assert_eq!(settings.max_portfolio_risk_pct, 20.0);
+        assert_eq!(settings.default_stop_loss_pct, 2.0);
+        assert_eq!(settings.default_take_profit_pct, 4.0);
+        assert_eq!(settings.max_leverage, 50);
+        assert_eq!(settings.min_margin_level, 200.0);
+        assert_eq!(settings.max_consecutive_losses, 5);
+    }
+
+    #[test]
+    fn test_default_strategy_settings() {
+        let settings = StrategySettings::default();
+
+        assert_eq!(settings.min_ai_confidence, 0.7);
+        assert!(settings.enable_optimization);
+        assert_eq!(settings.optimization_period_days, 30);
+        assert_eq!(settings.min_trades_for_optimization, 50);
+    }
+
+    #[test]
+    fn test_default_ai_settings() {
+        let settings = AISettings::default();
+
+        assert_eq!(settings.service_url, "http://python-ai-service:8000");
+        assert_eq!(settings.request_timeout_seconds, 30);
+        assert_eq!(settings.signal_refresh_interval_minutes, 5);
+        assert!(settings.enable_realtime_signals);
+        assert!(settings.enable_feedback_learning);
+    }
+
+    #[test]
+    fn test_default_execution_settings() {
+        let settings = ExecutionSettings::default();
+
+        assert!(settings.auto_execution);
+        assert_eq!(settings.execution_delay_ms, 100);
+        assert!(settings.simulate_slippage);
+        assert!(!settings.simulate_partial_fills);
+    }
+
+    #[test]
+    fn test_validate_basic_settings() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Valid settings should pass
+        assert!(settings.validate().is_ok());
+
+        // Invalid balance
+        settings.basic.initial_balance = -100.0;
+        assert!(settings.validate().is_err());
+
+        settings.basic.initial_balance = 10000.0;
+
+        // Invalid leverage
+        settings.basic.default_leverage = 0;
+        assert!(settings.validate().is_err());
+
+        settings.basic.default_leverage = 150;
+        assert!(settings.validate().is_err());
+
+        settings.basic.default_leverage = 10;
+
+        // Invalid fee rate
+        settings.basic.trading_fee_rate = -0.01;
+        assert!(settings.validate().is_err());
+
+        settings.basic.trading_fee_rate = 0.02;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_validate_risk_settings() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Invalid max risk per trade
+        settings.risk.max_risk_per_trade_pct = 0.0;
+        assert!(settings.validate().is_err());
+
+        settings.risk.max_risk_per_trade_pct = 60.0;
+        assert!(settings.validate().is_err());
+
+        settings.risk.max_risk_per_trade_pct = 2.0;
+
+        // Invalid max portfolio risk
+        settings.risk.max_portfolio_risk_pct = 0.0;
+        assert!(settings.validate().is_err());
+
+        settings.risk.max_portfolio_risk_pct = 150.0;
+        assert!(settings.validate().is_err());
+
+        settings.risk.max_portfolio_risk_pct = 20.0;
+
+        // Invalid max leverage
+        settings.risk.max_leverage = 130;
+        assert!(settings.validate().is_err());
+
+        settings.risk.max_leverage = 50;
+
+        // Invalid min margin level
+        settings.risk.min_margin_level = 50.0;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_validate_strategy_settings() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Invalid AI confidence
+        settings.strategy.min_ai_confidence = -0.1;
+        assert!(settings.validate().is_err());
+
+        settings.strategy.min_ai_confidence = 1.5;
+        assert!(settings.validate().is_err());
+
+        settings.strategy.min_ai_confidence = 0.7;
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_ai_settings() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Invalid timeout
+        settings.ai.request_timeout_seconds = 0;
+        assert!(settings.validate().is_err());
+
+        settings.ai.request_timeout_seconds = 30;
+
+        // Invalid refresh interval
+        settings.ai.signal_refresh_interval_minutes = 0;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_get_symbol_settings_default() {
+        let settings = PaperTradingSettings::default();
+
+        let effective = settings.get_symbol_settings("BTCUSDT");
+
+        assert!(effective.enabled);
+        assert_eq!(effective.leverage, settings.basic.default_leverage);
+        assert_eq!(effective.position_size_pct, settings.basic.default_position_size_pct);
+        assert_eq!(effective.stop_loss_pct, settings.risk.default_stop_loss_pct);
+        assert_eq!(effective.take_profit_pct, settings.risk.default_take_profit_pct);
+    }
+
+    #[test]
+    fn test_get_symbol_settings_custom() {
+        let mut settings = PaperTradingSettings::default();
+
+        let symbol_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(20),
+            position_size_pct: Some(10.0),
+            stop_loss_pct: Some(3.0),
+            take_profit_pct: Some(6.0),
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: Some(2),
+            custom_params: HashMap::new(),
+        };
+
+        settings.set_symbol_settings("BTCUSDT".to_string(), symbol_settings);
+
+        let effective = settings.get_symbol_settings("BTCUSDT");
+
+        assert!(effective.enabled);
+        assert_eq!(effective.leverage, 20);
+        assert_eq!(effective.position_size_pct, 10.0);
+        assert_eq!(effective.stop_loss_pct, 3.0);
+        assert_eq!(effective.take_profit_pct, 6.0);
+        assert_eq!(effective.max_positions, 2);
+    }
+
+    #[test]
+    fn test_set_and_remove_symbol_settings() {
+        let mut settings = PaperTradingSettings::default();
+
+        let symbol_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(15),
+            position_size_pct: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: None,
+            custom_params: HashMap::new(),
+        };
+
+        settings.set_symbol_settings("ETHUSDT".to_string(), symbol_settings);
+
+        assert_eq!(settings.get_configured_symbols().len(), 1);
+
+        settings.remove_symbol_settings("ETHUSDT");
+
+        assert_eq!(settings.get_configured_symbols().len(), 0);
+    }
+
+    #[test]
+    fn test_update_basic_settings() {
+        let mut settings = PaperTradingSettings::default();
+
+        let new_basic = BasicSettings {
+            initial_balance: 20000.0,
+            max_positions: 5,
+            default_position_size_pct: 3.0,
+            default_leverage: 5,
+            trading_fee_rate: 0.0002,
+            funding_fee_rate: 0.0001,
+            slippage_pct: 0.01,
+            enabled: true,
+            auto_restart: false,
+        };
+
+        let result = settings.update_basic(new_basic.clone());
+        assert!(result.is_ok());
+        assert_eq!(settings.basic.initial_balance, 20000.0);
+        assert_eq!(settings.basic.max_positions, 5);
+    }
+
+    #[test]
+    fn test_update_basic_settings_invalid() {
+        let mut settings = PaperTradingSettings::default();
+
+        let invalid_basic = BasicSettings {
+            initial_balance: -1000.0,
+            max_positions: 5,
+            default_position_size_pct: 3.0,
+            default_leverage: 5,
+            trading_fee_rate: 0.0002,
+            funding_fee_rate: 0.0001,
+            slippage_pct: 0.01,
+            enabled: true,
+            auto_restart: false,
+        };
+
+        let result = settings.update_basic(invalid_basic);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_update_risk_settings() {
+        let mut settings = PaperTradingSettings::default();
+
+        let new_risk = RiskSettings {
+            max_risk_per_trade_pct: 1.0,
+            max_portfolio_risk_pct: 10.0,
+            default_stop_loss_pct: 1.5,
+            default_take_profit_pct: 3.0,
+            max_leverage: 25,
+            min_margin_level: 150.0,
+            max_drawdown_pct: 10.0,
+            daily_loss_limit_pct: 3.0,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 30,
+            position_sizing_method: PositionSizingMethod::FixedPercentage,
+            min_risk_reward_ratio: 2.0,
+            correlation_limit: 0.8,
+            dynamic_sizing: false,
+            volatility_lookback_hours: 12,
+        };
+
+        let result = settings.update_risk(new_risk.clone());
+        assert!(result.is_ok());
+        assert_eq!(settings.risk.max_risk_per_trade_pct, 1.0);
+    }
+
+    #[test]
+    fn test_update_risk_settings_invalid() {
+        let mut settings = PaperTradingSettings::default();
+
+        let mut invalid_risk = RiskSettings::default();
+        invalid_risk.max_risk_per_trade_pct = 60.0;
+
+        let result = settings.update_risk(invalid_risk);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_position_sizing_method_variants() {
+        let methods = vec![
+            PositionSizingMethod::FixedPercentage,
+            PositionSizingMethod::RiskBased,
+            PositionSizingMethod::VolatilityAdjusted,
+            PositionSizingMethod::ConfidenceWeighted,
+            PositionSizingMethod::Composite,
+        ];
+
+        for method in methods {
+            let mut settings = RiskSettings::default();
+            settings.position_sizing_method = method;
+            // Should be able to set any variant
+        }
+    }
+
+    #[test]
+    fn test_strategy_combination_method_variants() {
+        let methods = vec![
+            StrategyCombinationMethod::WeightedAverage,
+            StrategyCombinationMethod::MajorityVoting,
+            StrategyCombinationMethod::Unanimous,
+            StrategyCombinationMethod::HighestConfidence,
+            StrategyCombinationMethod::AIEnsemble,
+        ];
+
+        for method in methods {
+            let mut settings = StrategySettings::default();
+            settings.combination_method = method;
+            // Should be able to set any variant
+        }
+    }
+
+    #[test]
+    fn test_notification_channel_variants() {
+        let channels = vec![
+            NotificationChannel::WebSocket,
+            NotificationChannel::Email("test@example.com".to_string()),
+            NotificationChannel::Telegram("@testuser".to_string()),
+            NotificationChannel::Discord("webhook_url".to_string()),
+            NotificationChannel::Webhook("https://example.com/hook".to_string()),
+        ];
+
+        let mut settings = NotificationSettings::default();
+        settings.channels = channels;
+
+        assert_eq!(settings.channels.len(), 5);
+    }
+
+    #[test]
+    fn test_backtesting_settings_default() {
+        let settings = BacktestingSettings::default();
+
+        assert!(settings.enabled);
+        assert_eq!(settings.period_days, 90);
+        assert_eq!(settings.data_resolution, "1h");
+        assert_eq!(settings.min_trades, 20);
+        assert!(!settings.walk_forward_optimization);
+        assert_eq!(settings.out_of_sample_pct, 20.0);
+    }
+
+    #[test]
+    fn test_trading_hours() {
+        let hours = TradingHours {
+            start_hour: 9,
+            start_minute: 30,
+            end_hour: 16,
+            end_minute: 0,
+            timezone: "UTC".to_string(),
+        };
+
+        assert_eq!(hours.start_hour, 9);
+        assert_eq!(hours.end_hour, 16);
+    }
+
+    #[test]
+    fn test_symbol_settings_disabled() {
+        let mut settings = PaperTradingSettings::default();
+
+        let symbol_settings = SymbolSettings {
+            enabled: false,
+            leverage: None,
+            position_size_pct: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: None,
+            custom_params: HashMap::new(),
+        };
+
+        settings.set_symbol_settings("BTCUSDT".to_string(), symbol_settings);
+
+        let effective = settings.get_symbol_settings("BTCUSDT");
+        assert!(!effective.enabled);
+    }
+
+    #[test]
+    fn test_get_configured_symbols() {
+        let mut settings = PaperTradingSettings::default();
+
+        let symbol_settings = SymbolSettings {
+            enabled: true,
+            leverage: None,
+            position_size_pct: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: None,
+            custom_params: HashMap::new(),
+        };
+
+        settings.set_symbol_settings("BTCUSDT".to_string(), symbol_settings.clone());
+        settings.set_symbol_settings("ETHUSDT".to_string(), symbol_settings.clone());
+        settings.set_symbol_settings("BNBUSDT".to_string(), symbol_settings);
+
+        let configured = settings.get_configured_symbols();
+        assert_eq!(configured.len(), 3);
+        assert!(configured.contains(&"BTCUSDT".to_string()));
+        assert!(configured.contains(&"ETHUSDT".to_string()));
+        assert!(configured.contains(&"BNBUSDT".to_string()));
+    }
+
+    #[test]
+    fn test_extreme_leverage_validation() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Test edge cases for leverage
+        settings.basic.default_leverage = 1;
+        assert!(settings.validate().is_ok());
+
+        settings.basic.default_leverage = 125;
+        assert!(settings.validate().is_ok());
+
+        settings.basic.default_leverage = 126;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_zero_values() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Zero initial balance should fail
+        settings.basic.initial_balance = 0.0;
+        assert!(settings.validate().is_err());
+
+        settings.basic.initial_balance = 10000.0;
+
+        // Zero risk per trade should fail
+        settings.risk.max_risk_per_trade_pct = 0.0;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_default_notification_settings() {
+        let settings = NotificationSettings::default();
+
+        assert!(settings.enable_trade_notifications);
+        assert!(settings.enable_performance_notifications);
+        assert!(settings.enable_risk_warnings);
+        assert!(settings.daily_summary);
+        assert!(settings.weekly_report);
+        assert_eq!(settings.min_pnl_notification, 10.0);
+        assert_eq!(settings.max_notifications_per_hour, 20);
+        assert_eq!(settings.channels.len(), 1);
+    }
+
+    #[test]
+    fn test_default_paper_trading_settings() {
+        let settings = PaperTradingSettings::default();
+
+        assert!(settings.basic.enabled);
+        assert_eq!(settings.basic.initial_balance, 10000.0);
+        assert_eq!(settings.risk.max_leverage, 50);
+        assert_eq!(settings.strategy.min_ai_confidence, 0.7);
+        assert!(settings.ai.enable_realtime_signals);
+        assert!(settings.execution.auto_execution);
+        assert!(settings.notifications.enable_trade_notifications);
+        assert!(settings.symbols.is_empty());
+    }
+
+    #[test]
+    fn test_serialization_basic_settings() {
+        let settings = BasicSettings::default();
+        let serialized = serde_json::to_string(&settings).unwrap();
+        let deserialized: BasicSettings = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(settings.initial_balance, deserialized.initial_balance);
+        assert_eq!(settings.max_positions, deserialized.max_positions);
+        assert_eq!(settings.default_leverage, deserialized.default_leverage);
+    }
+
+    #[test]
+    fn test_serialization_risk_settings() {
+        let settings = RiskSettings::default();
+        let serialized = serde_json::to_string(&settings).unwrap();
+        let deserialized: RiskSettings = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(settings.max_risk_per_trade_pct, deserialized.max_risk_per_trade_pct);
+        assert_eq!(settings.max_leverage, deserialized.max_leverage);
+        assert_eq!(settings.min_margin_level, deserialized.min_margin_level);
+    }
+
+    #[test]
+    fn test_serialization_strategy_settings() {
+        let settings = StrategySettings::default();
+        let serialized = serde_json::to_string(&settings).unwrap();
+        let deserialized: StrategySettings = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(settings.min_ai_confidence, deserialized.min_ai_confidence);
+        assert_eq!(settings.optimization_period_days, deserialized.optimization_period_days);
+    }
+
+    #[test]
+    fn test_serialization_notification_channel() {
+        let channels = vec![
+            NotificationChannel::WebSocket,
+            NotificationChannel::Email("test@test.com".to_string()),
+            NotificationChannel::Telegram("@user".to_string()),
+        ];
+
+        let serialized = serde_json::to_string(&channels).unwrap();
+        let deserialized: Vec<NotificationChannel> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(channels.len(), deserialized.len());
+    }
+
+    #[test]
+    fn test_boundary_max_risk_per_trade() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Test lower boundary
+        settings.risk.max_risk_per_trade_pct = 0.01;
+        assert!(settings.validate().is_ok());
+
+        // Test upper boundary
+        settings.risk.max_risk_per_trade_pct = 50.0;
+        assert!(settings.validate().is_ok());
+
+        // Test just beyond upper boundary
+        settings.risk.max_risk_per_trade_pct = 50.01;
+        assert!(settings.validate().is_err());
+
+        // Test negative value
+        settings.risk.max_risk_per_trade_pct = -1.0;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_boundary_max_portfolio_risk() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Test lower boundary
+        settings.risk.max_portfolio_risk_pct = 0.01;
+        assert!(settings.validate().is_ok());
+
+        // Test upper boundary
+        settings.risk.max_portfolio_risk_pct = 100.0;
+        assert!(settings.validate().is_ok());
+
+        // Test just beyond upper boundary
+        settings.risk.max_portfolio_risk_pct = 100.01;
+        assert!(settings.validate().is_err());
+
+        // Test zero
+        settings.risk.max_portfolio_risk_pct = 0.0;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_boundary_trading_fee_rate() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Test zero (valid)
+        settings.basic.trading_fee_rate = 0.0;
+        assert!(settings.validate().is_ok());
+
+        // Test upper boundary
+        settings.basic.trading_fee_rate = 0.01;
+        assert!(settings.validate().is_ok());
+
+        // Test just beyond upper boundary
+        settings.basic.trading_fee_rate = 0.0101;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_boundary_ai_confidence() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Test lower boundary
+        settings.strategy.min_ai_confidence = 0.0;
+        assert!(settings.validate().is_ok());
+
+        // Test upper boundary
+        settings.strategy.min_ai_confidence = 1.0;
+        assert!(settings.validate().is_ok());
+
+        // Test just beyond upper boundary
+        settings.strategy.min_ai_confidence = 1.01;
+        assert!(settings.validate().is_err());
+
+        // Test negative
+        settings.strategy.min_ai_confidence = -0.1;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_boundary_min_margin_level() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Test exactly at minimum
+        settings.risk.min_margin_level = 100.0;
+        assert!(settings.validate().is_ok());
+
+        // Test above minimum
+        settings.risk.min_margin_level = 150.0;
+        assert!(settings.validate().is_ok());
+
+        // Test below minimum
+        settings.risk.min_margin_level = 99.9;
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_symbol_settings_partial_override() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Only override leverage, rest should use defaults
+        let symbol_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(15),
+            position_size_pct: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: None,
+            custom_params: HashMap::new(),
+        };
+
+        settings.set_symbol_settings("BTCUSDT".to_string(), symbol_settings);
+
+        let effective = settings.get_symbol_settings("BTCUSDT");
+
+        assert_eq!(effective.leverage, 15);
+        assert_eq!(effective.position_size_pct, settings.basic.default_position_size_pct);
+        assert_eq!(effective.stop_loss_pct, settings.risk.default_stop_loss_pct);
+        assert_eq!(effective.take_profit_pct, settings.risk.default_take_profit_pct);
+    }
+
+    #[test]
+    fn test_symbol_settings_with_trading_hours() {
+        let trading_hours = TradingHours {
+            start_hour: 8,
+            start_minute: 30,
+            end_hour: 17,
+            end_minute: 0,
+            timezone: "EST".to_string(),
+        };
+
+        let symbol_settings = SymbolSettings {
+            enabled: true,
+            leverage: None,
+            position_size_pct: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            trading_hours: Some(trading_hours.clone()),
+            min_price_movement_pct: Some(0.5),
+            max_positions: None,
+            custom_params: HashMap::new(),
+        };
+
+        assert_eq!(symbol_settings.trading_hours.unwrap().start_hour, 8);
+    }
+
+    #[test]
+    fn test_symbol_settings_custom_params() {
+        let mut custom_params = HashMap::new();
+        custom_params.insert("custom_param1".to_string(), serde_json::json!("value1"));
+        custom_params.insert("custom_param2".to_string(), serde_json::json!(42));
+
+        let symbol_settings = SymbolSettings {
+            enabled: true,
+            leverage: None,
+            position_size_pct: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: None,
+            custom_params: custom_params.clone(),
+        };
+
+        assert_eq!(symbol_settings.custom_params.len(), 2);
+    }
+
+    #[test]
+    fn test_ai_settings_confidence_thresholds() {
+        let settings = AISettings::default();
+
+        assert_eq!(settings.confidence_thresholds.get("trending"), Some(&0.65));
+        assert_eq!(settings.confidence_thresholds.get("ranging"), Some(&0.75));
+        assert_eq!(settings.confidence_thresholds.get("volatile"), Some(&0.80));
+    }
+
+    #[test]
+    fn test_ai_settings_custom_confidence_thresholds() {
+        let mut settings = AISettings::default();
+
+        settings.confidence_thresholds.insert("custom_regime".to_string(), 0.85);
+
+        assert_eq!(settings.confidence_thresholds.len(), 4);
+        assert_eq!(settings.confidence_thresholds.get("custom_regime"), Some(&0.85));
+    }
+
+    #[test]
+    fn test_execution_settings_boundaries() {
+        let mut settings = ExecutionSettings::default();
+
+        settings.partial_fill_probability = 0.0;
+        assert!(settings.partial_fill_probability >= 0.0);
+
+        settings.partial_fill_probability = 1.0;
+        assert!(settings.partial_fill_probability <= 1.0);
+
+        settings.max_slippage_pct = 0.0;
+        assert!(settings.max_slippage_pct >= 0.0);
+    }
+
+    #[test]
+    fn test_strategy_settings_enabled_strategies() {
+        let settings = StrategySettings::default();
+
+        assert_eq!(settings.enabled_strategies.len(), 1);
+        assert_eq!(settings.enabled_strategies.get("ai_ensemble"), Some(&1.0));
+    }
+
+    #[test]
+    fn test_strategy_settings_multiple_strategies() {
+        let mut settings = StrategySettings::default();
+
+        settings.enabled_strategies.insert("momentum".to_string(), 0.3);
+        settings.enabled_strategies.insert("mean_reversion".to_string(), 0.4);
+        settings.enabled_strategies.insert("breakout".to_string(), 0.3);
+
+        assert_eq!(settings.enabled_strategies.len(), 4);
+
+        // Sum of weights should equal 1.0 (approximately)
+        let total_weight: f64 = settings.enabled_strategies.values().sum();
+        assert!((total_weight - 2.0).abs() < 0.001); // ai_ensemble is 1.0 + 3 new ones
+    }
+
+    #[test]
+    fn test_strategy_regime_specific_params() {
+        let mut settings = StrategySettings::default();
+
+        let mut trending_params = HashMap::new();
+        trending_params.insert("threshold".to_string(), serde_json::json!(0.6));
+        trending_params.insert("period".to_string(), serde_json::json!(20));
+
+        settings.regime_specific_params.insert("trending".to_string(), trending_params);
+
+        assert_eq!(settings.regime_specific_params.len(), 1);
+    }
+
+    #[test]
+    fn test_update_basic_settings_valid() {
+        let mut settings = PaperTradingSettings::default();
+
+        let new_basic = BasicSettings {
+            initial_balance: 50000.0,
+            max_positions: 15,
+            default_position_size_pct: 10.0,
+            default_leverage: 20,
+            trading_fee_rate: 0.0003,
+            funding_fee_rate: 0.00015,
+            slippage_pct: 0.02,
+            enabled: false,
+            auto_restart: true,
+        };
+
+        let result = settings.update_basic(new_basic.clone());
+        assert!(result.is_ok());
+        assert_eq!(settings.basic.initial_balance, 50000.0);
+        assert_eq!(settings.basic.max_positions, 15);
+        assert!(!settings.basic.enabled);
+        assert!(settings.basic.auto_restart);
+    }
+
+    #[test]
+    fn test_update_risk_settings_valid() {
+        let mut settings = PaperTradingSettings::default();
+
+        let new_risk = RiskSettings {
+            max_risk_per_trade_pct: 3.0,
+            max_portfolio_risk_pct: 25.0,
+            default_stop_loss_pct: 2.5,
+            default_take_profit_pct: 5.0,
+            max_leverage: 75,
+            min_margin_level: 180.0,
+            max_drawdown_pct: 20.0,
+            daily_loss_limit_pct: 8.0,
+            max_consecutive_losses: 7,
+            cool_down_minutes: 90,
+            position_sizing_method: PositionSizingMethod::VolatilityAdjusted,
+            min_risk_reward_ratio: 2.5,
+            correlation_limit: 0.6,
+            dynamic_sizing: false,
+            volatility_lookback_hours: 48,
+        };
+
+        let result = settings.update_risk(new_risk.clone());
+        assert!(result.is_ok());
+        assert_eq!(settings.risk.max_risk_per_trade_pct, 3.0);
+        assert_eq!(settings.risk.max_consecutive_losses, 7);
+        assert!(!settings.risk.dynamic_sizing);
+    }
+
+    #[test]
+    fn test_update_risk_settings_boundary_values() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Test at exact boundary (50%)
+        let mut boundary_risk = RiskSettings::default();
+        boundary_risk.max_risk_per_trade_pct = 50.0;
+        assert!(settings.update_risk(boundary_risk).is_ok());
+
+        // Test just over boundary
+        let mut over_boundary_risk = RiskSettings::default();
+        over_boundary_risk.max_risk_per_trade_pct = 50.1;
+        assert!(settings.update_risk(over_boundary_risk).is_err());
+
+        // Test at zero boundary
+        let mut zero_risk = RiskSettings::default();
+        zero_risk.max_risk_per_trade_pct = 0.0;
+        assert!(settings.update_risk(zero_risk).is_err());
+    }
+
+    #[test]
+    fn test_multiple_symbol_configurations() {
+        let mut settings = PaperTradingSettings::default();
+
+        let btc_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(10),
+            position_size_pct: Some(8.0),
+            stop_loss_pct: Some(2.5),
+            take_profit_pct: Some(5.0),
+            trading_hours: None,
+            min_price_movement_pct: Some(0.3),
+            max_positions: Some(3),
+            custom_params: HashMap::new(),
+        };
+
+        let eth_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(15),
+            position_size_pct: Some(6.0),
+            stop_loss_pct: Some(3.0),
+            take_profit_pct: Some(6.0),
+            trading_hours: None,
+            min_price_movement_pct: Some(0.4),
+            max_positions: Some(2),
+            custom_params: HashMap::new(),
+        };
+
+        let bnb_settings = SymbolSettings {
+            enabled: false,
+            leverage: None,
+            position_size_pct: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: None,
+            custom_params: HashMap::new(),
+        };
+
+        settings.set_symbol_settings("BTCUSDT".to_string(), btc_settings);
+        settings.set_symbol_settings("ETHUSDT".to_string(), eth_settings);
+        settings.set_symbol_settings("BNBUSDT".to_string(), bnb_settings);
+
+        assert_eq!(settings.get_configured_symbols().len(), 3);
+
+        let btc_effective = settings.get_symbol_settings("BTCUSDT");
+        assert!(btc_effective.enabled);
+        assert_eq!(btc_effective.leverage, 10);
+        assert_eq!(btc_effective.position_size_pct, 8.0);
+        assert_eq!(btc_effective.max_positions, 3);
+
+        let eth_effective = settings.get_symbol_settings("ETHUSDT");
+        assert_eq!(eth_effective.leverage, 15);
+        assert_eq!(eth_effective.position_size_pct, 6.0);
+
+        let bnb_effective = settings.get_symbol_settings("BNBUSDT");
+        assert!(!bnb_effective.enabled);
+    }
+
+    #[test]
+    fn test_get_symbol_settings_nonexistent() {
+        let settings = PaperTradingSettings::default();
+
+        // Get settings for a symbol that doesn't exist
+        let effective = settings.get_symbol_settings("XRPUSDT");
+
+        // Should return defaults
+        assert!(effective.enabled);
+        assert_eq!(effective.leverage, settings.basic.default_leverage);
+        assert_eq!(effective.position_size_pct, settings.basic.default_position_size_pct);
+    }
+
+    #[test]
+    fn test_remove_nonexistent_symbol() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Remove a symbol that doesn't exist (should not panic)
+        settings.remove_symbol_settings("NONEXISTENT");
+
+        assert_eq!(settings.get_configured_symbols().len(), 0);
+    }
+
+    #[test]
+    fn test_backtesting_settings_custom() {
+        let backtesting = BacktestingSettings {
+            enabled: false,
+            period_days: 180,
+            data_resolution: "15m".to_string(),
+            min_trades: 100,
+            walk_forward_optimization: true,
+            out_of_sample_pct: 30.0,
+        };
+
+        assert!(!backtesting.enabled);
+        assert_eq!(backtesting.period_days, 180);
+        assert_eq!(backtesting.data_resolution, "15m");
+        assert!(backtesting.walk_forward_optimization);
+        assert_eq!(backtesting.out_of_sample_pct, 30.0);
+    }
+
+    #[test]
+    fn test_notification_settings_custom_channels() {
+        let mut settings = NotificationSettings::default();
+
+        settings.channels = vec![
+            NotificationChannel::WebSocket,
+            NotificationChannel::Email("trader@example.com".to_string()),
+            NotificationChannel::Telegram("@trader_bot".to_string()),
+            NotificationChannel::Discord("https://discord.com/webhook/123".to_string()),
+            NotificationChannel::Webhook("https://api.example.com/notifications".to_string()),
+        ];
+
+        settings.min_pnl_notification = 50.0;
+        settings.max_notifications_per_hour = 10;
+
+        assert_eq!(settings.channels.len(), 5);
+        assert_eq!(settings.min_pnl_notification, 50.0);
+        assert_eq!(settings.max_notifications_per_hour, 10);
+    }
+
+    #[test]
+    fn test_effective_symbol_settings_all_fields() {
+        let mut settings = PaperTradingSettings::default();
+
+        let symbol_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(25),
+            position_size_pct: Some(7.5),
+            stop_loss_pct: Some(1.8),
+            take_profit_pct: Some(3.6),
+            trading_hours: None,
+            min_price_movement_pct: Some(0.25),
+            max_positions: Some(5),
+            custom_params: HashMap::new(),
+        };
+
+        settings.set_symbol_settings("ADAUSDT".to_string(), symbol_settings);
+
+        let effective = settings.get_symbol_settings("ADAUSDT");
+
+        assert!(effective.enabled);
+        assert_eq!(effective.leverage, 25);
+        assert_eq!(effective.position_size_pct, 7.5);
+        assert_eq!(effective.stop_loss_pct, 1.8);
+        assert_eq!(effective.take_profit_pct, 3.6);
+        assert_eq!(effective.max_positions, 5);
+    }
+
+    #[test]
+    fn test_file_io_operations() {
+        use std::fs;
+
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_paper_trading_settings.toml");
+
+        let settings = PaperTradingSettings::default();
+
+        // Test saving to file
+        let save_result = settings.to_file(test_file.to_str().unwrap());
+        assert!(save_result.is_ok());
+
+        // Test loading from file
+        let load_result = PaperTradingSettings::from_file(test_file.to_str().unwrap());
+        assert!(load_result.is_ok());
+
+        let loaded_settings = load_result.unwrap();
+        assert_eq!(loaded_settings.basic.initial_balance, settings.basic.initial_balance);
+        assert_eq!(loaded_settings.risk.max_leverage, settings.risk.max_leverage);
+
+        // Cleanup
+        let _ = fs::remove_file(test_file);
+    }
+
+    #[test]
+    fn test_file_io_nonexistent_file() {
+        let result = PaperTradingSettings::from_file("/nonexistent/path/settings.toml");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_file_io_invalid_toml() {
+        use std::fs;
+
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("invalid_settings.toml");
+
+        // Write invalid TOML
+        let _ = fs::write(&test_file, "this is not valid toml {[}]");
+
+        let result = PaperTradingSettings::from_file(test_file.to_str().unwrap());
+        assert!(result.is_err());
+
+        // Cleanup
+        let _ = fs::remove_file(test_file);
+    }
+
+    #[test]
+    fn test_complete_validation_pass() {
+        let settings = PaperTradingSettings::default();
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validation_multiple_failures() {
+        let mut settings = PaperTradingSettings::default();
+
+        // Set multiple invalid values
+        settings.basic.initial_balance = -100.0;
+
+        // Should fail on first error
+        let result = settings.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("balance"));
+    }
+
+    #[test]
+    fn test_position_sizing_method_serialization() {
+        let methods = vec![
+            PositionSizingMethod::FixedPercentage,
+            PositionSizingMethod::RiskBased,
+            PositionSizingMethod::VolatilityAdjusted,
+            PositionSizingMethod::ConfidenceWeighted,
+            PositionSizingMethod::Composite,
+        ];
+
+        for method in methods {
+            let serialized = serde_json::to_string(&method).unwrap();
+            let deserialized: PositionSizingMethod = serde_json::from_str(&serialized).unwrap();
+
+            // Both should serialize/deserialize successfully
+            let _ = serde_json::to_string(&deserialized).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_strategy_combination_method_serialization() {
+        let methods = vec![
+            StrategyCombinationMethod::WeightedAverage,
+            StrategyCombinationMethod::MajorityVoting,
+            StrategyCombinationMethod::Unanimous,
+            StrategyCombinationMethod::HighestConfidence,
+            StrategyCombinationMethod::AIEnsemble,
+        ];
+
+        for method in methods {
+            let serialized = serde_json::to_string(&method).unwrap();
+            let deserialized: StrategyCombinationMethod = serde_json::from_str(&serialized).unwrap();
+
+            // Both should serialize/deserialize successfully
+            let _ = serde_json::to_string(&deserialized).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_trading_hours_edge_cases() {
+        // 24-hour trading
+        let hours_24 = TradingHours {
+            start_hour: 0,
+            start_minute: 0,
+            end_hour: 23,
+            end_minute: 59,
+            timezone: "UTC".to_string(),
+        };
+
+        assert_eq!(hours_24.start_hour, 0);
+        assert_eq!(hours_24.end_hour, 23);
+
+        // Same start and end (no trading window)
+        let hours_same = TradingHours {
+            start_hour: 10,
+            start_minute: 0,
+            end_hour: 10,
+            end_minute: 0,
+            timezone: "UTC".to_string(),
+        };
+
+        assert_eq!(hours_same.start_hour, hours_same.end_hour);
+    }
+
+    #[test]
+    fn test_ai_settings_all_fields() {
+        let mut settings = AISettings::default();
+
+        settings.service_url = "http://custom-ai:9000".to_string();
+        settings.request_timeout_seconds = 60;
+        settings.signal_refresh_interval_minutes = 10;
+        settings.enable_realtime_signals = false;
+        settings.enable_feedback_learning = false;
+        settings.feedback_delay_hours = 8;
+        settings.enable_strategy_recommendations = false;
+        settings.track_model_performance = false;
+
+        assert_eq!(settings.service_url, "http://custom-ai:9000");
+        assert_eq!(settings.request_timeout_seconds, 60);
+        assert!(!settings.enable_realtime_signals);
+        assert!(!settings.enable_feedback_learning);
+    }
+
+    #[test]
+    fn test_execution_settings_all_combinations() {
+        let mut settings = ExecutionSettings::default();
+
+        settings.auto_execution = false;
+        settings.simulate_partial_fills = true;
+        settings.partial_fill_probability = 0.5;
+        settings.simulate_slippage = false;
+        settings.simulate_market_impact = true;
+        settings.market_impact_factor = 0.002;
+
+        assert!(!settings.auto_execution);
+        assert!(settings.simulate_partial_fills);
+        assert_eq!(settings.partial_fill_probability, 0.5);
+        assert!(!settings.simulate_slippage);
+        assert!(settings.simulate_market_impact);
+    }
+
+    #[test]
+    fn test_risk_settings_all_fields_custom() {
+        let settings = RiskSettings {
+            max_risk_per_trade_pct: 1.5,
+            max_portfolio_risk_pct: 15.0,
+            default_stop_loss_pct: 1.8,
+            default_take_profit_pct: 3.6,
+            max_leverage: 30,
+            min_margin_level: 175.0,
+            max_drawdown_pct: 12.0,
+            daily_loss_limit_pct: 4.0,
+            max_consecutive_losses: 4,
+            cool_down_minutes: 45,
+            position_sizing_method: PositionSizingMethod::ConfidenceWeighted,
+            min_risk_reward_ratio: 2.0,
+            correlation_limit: 0.75,
+            dynamic_sizing: true,
+            volatility_lookback_hours: 36,
+        };
+
+        assert_eq!(settings.max_risk_per_trade_pct, 1.5);
+        assert_eq!(settings.max_portfolio_risk_pct, 15.0);
+        assert_eq!(settings.max_consecutive_losses, 4);
+        assert_eq!(settings.cool_down_minutes, 45);
+        assert_eq!(settings.volatility_lookback_hours, 36);
+    }
+
+    #[test]
+    fn test_basic_settings_all_fields_custom() {
+        let settings = BasicSettings {
+            initial_balance: 25000.0,
+            max_positions: 8,
+            default_position_size_pct: 4.5,
+            default_leverage: 15,
+            trading_fee_rate: 0.0005,
+            funding_fee_rate: 0.00012,
+            slippage_pct: 0.015,
+            enabled: false,
+            auto_restart: true,
+        };
+
+        assert_eq!(settings.initial_balance, 25000.0);
+        assert_eq!(settings.max_positions, 8);
+        assert_eq!(settings.trading_fee_rate, 0.0005);
+        assert!(!settings.enabled);
+        assert!(settings.auto_restart);
+    }
+
+    #[test]
+    fn test_clone_all_settings() {
+        let settings = PaperTradingSettings::default();
+        let cloned = settings.clone();
+
+        assert_eq!(settings.basic.initial_balance, cloned.basic.initial_balance);
+        assert_eq!(settings.risk.max_leverage, cloned.risk.max_leverage);
+        assert_eq!(settings.strategy.min_ai_confidence, cloned.strategy.min_ai_confidence);
+    }
+}

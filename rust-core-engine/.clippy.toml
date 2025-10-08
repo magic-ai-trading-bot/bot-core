@@ -1,0 +1,29 @@
+# Clippy Configuration
+# Linting rules for Rust code quality
+
+# Allow certain lints
+# (These are usually false positives or too strict for this project)
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Too many arguments threshold
+too-many-arguments-threshold = 8
+
+# Too many lines threshold
+too-many-lines-threshold = 150
+
+# Disallowed methods (methods that should never be used)
+disallowed-methods = [
+    # Example: Prevent use of unwrap in production code
+    # { path = "std::option::Option::unwrap", reason = "use expect() instead" },
+]
+
+# Disallowed types (types that should never be used)
+disallowed-types = [
+    # Example: Prevent use of certain types
+    # { path = "std::collections::HashMap", reason = "use IndexMap for deterministic ordering" },
+]

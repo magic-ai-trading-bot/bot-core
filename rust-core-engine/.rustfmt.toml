@@ -1,0 +1,70 @@
+# Rustfmt Configuration
+# Auto-formatting rules for consistent Rust code style
+
+# Edition
+edition = "2021"
+
+# Line width
+max_width = 100
+
+# Tab spaces
+tab_spaces = 4
+
+# Imports
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+
+# Use field init shorthand if possible
+use_field_init_shorthand = true
+
+# Use try shorthand
+use_try_shorthand = true
+
+# Format strings
+format_strings = true
+
+# Merge derives
+merge_derives = true
+
+# Remove nested parens
+remove_nested_parens = true
+
+# Reorder impl items
+reorder_impl_items = true
+
+# Normalize comments
+normalize_comments = true
+wrap_comments = true
+comment_width = 80
+
+# Match block trailing comma
+match_block_trailing_comma = true
+
+# Struct field align threshold
+struct_field_align_threshold = 20
+
+# Enum variant width threshold
+enum_discrim_align_threshold = 20
+
+# Chain width
+chain_width = 60
+
+# Function definition return type indent
+fn_params_layout = "Tall"
+
+# Brace style
+brace_style = "SameLineWhere"
+
+
+# Indent style
+indent_style = "Block"
+
+# Where clause formatting
+where_single_line = false
+
+
+# Unstable features (require nightly, commented out for stable)
+# unstable_features = true
+# format_code_in_doc_comments = true
+# normalize_doc_attributes = true
