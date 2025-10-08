@@ -82,3 +82,414 @@ impl RiskManager {
         self.config.risk_percentage
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::market_data::analyzer::{MultiTimeframeAnalysis, TradingSignal};
+
+    fn create_test_config() -> TradingConfig {
+        TradingConfig {
+            enabled: true,
+            max_positions: 5,
+            default_quantity: 0.01,
+            leverage: 10,
+            margin_type: "ISOLATED".to_string(),
+            risk_percentage: 2.0,
+            stop_loss_percentage: 2.0,
+            take_profit_percentage: 4.0,
+            order_timeout_seconds: 30,
+            position_check_interval_seconds: 30,
+        }
+    }
+
+    fn create_test_analysis(signal: TradingSignal, confidence: f64) -> MultiTimeframeAnalysis {
+        use std::collections::HashMap;
+
+        MultiTimeframeAnalysis {
+            symbol: "BTCUSDT".to_string(),
+            timestamp: chrono::Utc::now().timestamp_millis(),
+            timeframe_signals: HashMap::new(),
+            overall_signal: signal,
+            overall_confidence: confidence,
+            entry_price: Some(50000.0),
+            stop_loss: Some(48000.0),
+            take_profit: Some(55000.0),
+            risk_reward_ratio: Some(2.5),
+        }
+    }
+
+    #[test]
+    fn test_new_risk_manager() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config.clone());
+
+        assert_eq!(risk_manager.get_max_positions(), config.max_positions);
+        assert_eq!(risk_manager.get_risk_percentage(), config.risk_percentage);
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_trading_disabled() {
+        let mut config = create_test_config();
+        config.enabled = false;
+
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::StrongBuy, 0.9);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should not allow position when trading is disabled");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_strong_buy_high_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::StrongBuy, 0.8);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow StrongBuy with 0.8 confidence");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_strong_buy_threshold_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::StrongBuy, 0.7);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow StrongBuy with 0.7 confidence (threshold)");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_strong_buy_low_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::StrongBuy, 0.65);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should reject StrongBuy with 0.65 confidence (below 0.7)");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_strong_sell_high_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::StrongSell, 0.75);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow StrongSell with 0.75 confidence");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_buy_high_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::Buy, 0.85);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow Buy with 0.85 confidence");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_buy_threshold_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::Buy, 0.8);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow Buy with 0.8 confidence (threshold)");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_buy_low_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::Buy, 0.75);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should reject Buy with 0.75 confidence (below 0.8)");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_sell_high_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::Sell, 0.9);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow Sell with 0.9 confidence");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_hold_signal() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::Hold, 0.95);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should reject Hold signal regardless of confidence");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_low_risk_reward_ratio() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let mut analysis = create_test_analysis(TradingSignal::StrongBuy, 0.8);
+        analysis.risk_reward_ratio = Some(1.2);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should reject position with risk-reward ratio 1.2 (below 1.5)");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_threshold_risk_reward_ratio() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let mut analysis = create_test_analysis(TradingSignal::StrongBuy, 0.8);
+        analysis.risk_reward_ratio = Some(1.5);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow position with risk-reward ratio 1.5 (threshold)");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_high_risk_reward_ratio() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let mut analysis = create_test_analysis(TradingSignal::StrongBuy, 0.8);
+        analysis.risk_reward_ratio = Some(3.0);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow position with risk-reward ratio 3.0");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_no_risk_reward_ratio() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let mut analysis = create_test_analysis(TradingSignal::StrongBuy, 0.8);
+        analysis.risk_reward_ratio = None;
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow position when risk-reward ratio is not available");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_zero_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::StrongBuy, 0.0);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should reject position with 0.0 confidence");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_max_confidence() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let analysis = create_test_analysis(TradingSignal::StrongBuy, 1.0);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(result, "Should allow position with 1.0 confidence");
+    }
+
+    #[test]
+    fn test_calculate_position_size() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config.clone());
+
+        let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 10000.0);
+
+        assert_eq!(size, config.default_quantity, "Should return default quantity");
+    }
+
+    #[test]
+    fn test_calculate_position_size_no_stop_loss() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config.clone());
+
+        let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, None, 10000.0);
+
+        assert_eq!(size, config.default_quantity, "Should return default quantity without stop loss");
+    }
+
+    #[test]
+    fn test_calculate_position_size_zero_account_balance() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config.clone());
+
+        let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 0.0);
+
+        assert_eq!(size, config.default_quantity, "Should return default quantity even with zero balance");
+    }
+
+    #[test]
+    fn test_calculate_position_size_large_account_balance() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config.clone());
+
+        let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 1000000.0);
+
+        assert_eq!(size, config.default_quantity, "Should return default quantity regardless of balance");
+    }
+
+    #[test]
+    fn test_get_max_positions() {
+        let mut config = create_test_config();
+        config.max_positions = 10;
+
+        let risk_manager = RiskManager::new(config);
+
+        assert_eq!(risk_manager.get_max_positions(), 10);
+    }
+
+    #[test]
+    fn test_get_max_positions_zero() {
+        let mut config = create_test_config();
+        config.max_positions = 0;
+
+        let risk_manager = RiskManager::new(config);
+
+        assert_eq!(risk_manager.get_max_positions(), 0);
+    }
+
+    #[test]
+    fn test_get_risk_percentage() {
+        let mut config = create_test_config();
+        config.risk_percentage = 5.0;
+
+        let risk_manager = RiskManager::new(config);
+
+        assert_eq!(risk_manager.get_risk_percentage(), 5.0);
+    }
+
+    #[test]
+    fn test_get_risk_percentage_zero() {
+        let mut config = create_test_config();
+        config.risk_percentage = 0.0;
+
+        let risk_manager = RiskManager::new(config);
+
+        assert_eq!(risk_manager.get_risk_percentage(), 0.0);
+    }
+
+    #[test]
+    fn test_risk_manager_clone() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+
+        let cloned = risk_manager.clone();
+
+        assert_eq!(cloned.get_max_positions(), risk_manager.get_max_positions());
+        assert_eq!(cloned.get_risk_percentage(), risk_manager.get_risk_percentage());
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_extreme_confidence_values() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+
+        // Test with extremely high confidence (edge case)
+        let analysis = create_test_analysis(TradingSignal::StrongBuy, 0.9999);
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+        assert!(result, "Should allow position with 0.9999 confidence");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_negative_risk_reward() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let mut analysis = create_test_analysis(TradingSignal::StrongBuy, 0.8);
+        analysis.risk_reward_ratio = Some(-1.0);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should reject position with negative risk-reward ratio");
+    }
+
+    #[tokio::test]
+    async fn test_can_open_position_zero_risk_reward() {
+        let config = create_test_config();
+        let risk_manager = RiskManager::new(config);
+        let mut analysis = create_test_analysis(TradingSignal::StrongBuy, 0.8);
+        analysis.risk_reward_ratio = Some(0.0);
+
+        let result = risk_manager
+            .can_open_position("BTCUSDT", &analysis)
+            .await
+            .unwrap();
+
+        assert!(!result, "Should reject position with zero risk-reward ratio");
+    }
+}

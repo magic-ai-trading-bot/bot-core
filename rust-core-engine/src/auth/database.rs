@@ -157,3 +157,142 @@ impl UserRepository {
         Ok(count > 0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_user_repository_new_dummy() {
+        let repo = UserRepository::new_dummy();
+        assert!(repo.collection.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_create_user_fails() {
+        let repo = UserRepository::new_dummy();
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            None,
+        );
+
+        let result = repo.create_user(user).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_find_by_email_fails() {
+        let repo = UserRepository::new_dummy();
+        let result = repo.find_by_email("test@example.com").await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_find_by_id_fails() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.find_by_id(&id).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_update_user_fails() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            None,
+        );
+
+        let result = repo.update_user(&id, user).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_update_last_login_fails() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.update_last_login(&id).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_deactivate_user_fails() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.deactivate_user(&id).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_count_users_fails() {
+        let repo = UserRepository::new_dummy();
+        let result = repo.count_users().await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_dummy_repository_email_exists_fails() {
+        let repo = UserRepository::new_dummy();
+        let result = repo.email_exists("test@example.com").await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[test]
+    fn test_user_repository_clone() {
+        let repo1 = UserRepository::new_dummy();
+        let repo2 = repo1.clone();
+
+        assert!(repo1.collection.is_none());
+        assert!(repo2.collection.is_none());
+    }
+
+    #[test]
+    fn test_object_id_generation() {
+        let id1 = ObjectId::new();
+        let id2 = ObjectId::new();
+
+        // ObjectIds should be unique
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn test_object_id_to_hex() {
+        let id = ObjectId::new();
+        let hex_string = id.to_hex();
+
+        // MongoDB ObjectId hex representation is 24 characters
+        assert_eq!(hex_string.len(), 24);
+    }
+
+    #[test]
+    fn test_object_id_parse_str_valid() {
+        let id = ObjectId::new();
+        let hex_string = id.to_hex();
+
+        let parsed_id = ObjectId::parse_str(&hex_string).unwrap();
+        assert_eq!(id, parsed_id);
+    }
+
+    #[test]
+    fn test_object_id_parse_str_invalid() {
+        let result = ObjectId::parse_str("invalid_id");
+        assert!(result.is_err());
+    }
+}

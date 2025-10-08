@@ -433,3 +433,699 @@ async fn handle_profile(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_auth_service_new() {
+        let user_repo = UserRepository::new_dummy();
+        let auth_service = AuthService::new(user_repo, "test_secret".to_string());
+
+        // Verify the service was created (can't check internals directly, but we can clone it)
+        let _ = auth_service.clone();
+    }
+
+    #[test]
+    fn test_auth_service_new_dummy() {
+        let auth_service = AuthService::new_dummy();
+
+        // Verify the service was created
+        let _ = auth_service.clone();
+    }
+
+    #[test]
+    fn test_auth_service_clone() {
+        let auth_service1 = AuthService::new_dummy();
+        let auth_service2 = auth_service1.clone();
+
+        // Both should be usable
+        let _ = auth_service1;
+        let _ = auth_service2;
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_with_invalid_email() {
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "invalid-email".to_string(),
+            password: "password123".to_string(),
+            full_name: None,
+        };
+
+        let response = handle_register(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_with_short_password() {
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "test@example.com".to_string(),
+            password: "12345".to_string(), // Too short
+            full_name: None,
+        };
+
+        let response = handle_register(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_with_valid_request() {
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+            full_name: Some("Test User".to_string()),
+        };
+
+        let response = handle_register(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_login_with_invalid_email() {
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "invalid-email".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let response = handle_login(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_login_with_empty_password() {
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "".to_string(),
+        };
+
+        let response = handle_login(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_login_with_valid_request() {
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let response = handle_login(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_with_invalid_header() {
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "InvalidHeader".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_with_valid_header_but_invalid_token() {
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "Bearer invalid.token.here".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_with_valid_token() {
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "test_secret".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        // Generate a valid token
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let token = jwt_service
+            .generate_token("user123", "test@example.com", false)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_verify(auth_header, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_with_invalid_header() {
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "InvalidHeader".to_string();
+
+        let response = handle_profile(auth_header, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_with_invalid_token() {
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "Bearer invalid.token.here".to_string();
+
+        let response = handle_profile(auth_header, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_with_valid_token_but_invalid_user_id() {
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "test_secret".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        // Generate a valid token with invalid user ID format
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let token = jwt_service
+            .generate_token("invalid_id_format", "test@example.com", false)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_profile(auth_header, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_with_valid_token_and_valid_user_id() {
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "test_secret".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        // Generate a valid token with a valid ObjectId
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_profile(auth_header, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[test]
+    fn test_register_request_clone() {
+        let request1 = RegisterRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+            full_name: Some("Test User".to_string()),
+        };
+
+        let request2 = request1.clone();
+        assert_eq!(request1.email, request2.email);
+        assert_eq!(request1.password, request2.password);
+        assert_eq!(request1.full_name, request2.full_name);
+    }
+
+    #[test]
+    fn test_login_request_clone() {
+        let request1 = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let request2 = request1.clone();
+        assert_eq!(request1.email, request2.email);
+        assert_eq!(request1.password, request2.password);
+    }
+
+    #[test]
+    fn test_login_response_clone() {
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            Some("Test User".to_string()),
+        );
+
+        let response1 = LoginResponse {
+            token: "test_token".to_string(),
+            user: user.to_profile(),
+        };
+
+        let response2 = response1.clone();
+        assert_eq!(response1.token, response2.token);
+        assert_eq!(response1.user.email, response2.user.email);
+    }
+
+    // Additional comprehensive tests for handle_register
+
+    #[tokio::test]
+    async fn test_handle_register_validation_error_response_structure() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "invalid-email".to_string(),
+            password: "password123".to_string(),
+            full_name: None,
+        };
+
+        let response = handle_register(request, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_short_password_returns_bad_request() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "test@example.com".to_string(),
+            password: "123".to_string(),
+            full_name: None,
+        };
+
+        let response = handle_register(request, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_with_full_name_included() {
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "newuser@example.com".to_string(),
+            password: "securepassword123".to_string(),
+            full_name: Some("John Doe".to_string()),
+        };
+
+        let response = handle_register(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    // Additional comprehensive tests for handle_login
+
+    #[tokio::test]
+    async fn test_handle_login_validation_error_response() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "not-an-email".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let response = handle_login(request, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_login_empty_password_validation() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "".to_string(),
+        };
+
+        let response = handle_login(request, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_login_database_error_path() {
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "validpassword123".to_string(),
+        };
+
+        let response = handle_login(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    // Additional comprehensive tests for handle_verify
+
+    #[tokio::test]
+    async fn test_handle_verify_missing_bearer_prefix() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "NotBearerToken".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_empty_header() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_bearer_with_no_token() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "Bearer ".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_malformed_token() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "Bearer malformed.token".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_valid_token_returns_ok() {
+        use warp::Reply;
+
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "test_secret_key_for_verification".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let token = jwt_service
+            .generate_token("user_123", "verified@example.com", false)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_admin_user_token() {
+        use warp::Reply;
+
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "test_admin_secret".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let token = jwt_service
+            .generate_token("admin_456", "admin@example.com", true)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::OK);
+    }
+
+    // Additional comprehensive tests for handle_profile
+
+    #[tokio::test]
+    async fn test_handle_profile_missing_bearer_prefix() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "JustAToken".to_string();
+
+        let response = handle_profile(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_empty_token() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "Bearer ".to_string();
+
+        let response = handle_profile(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_malformed_token_format() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "Bearer not.a.valid.jwt".to_string();
+
+        let response = handle_profile(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_invalid_user_id_format_in_token() {
+        use warp::Reply;
+
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "test_profile_secret".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let token = jwt_service
+            .generate_token("not_a_valid_objectid", "user@example.com", false)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_profile(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_valid_objectid_but_user_not_found() {
+        use warp::Reply;
+
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "test_secret_profile".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "notfound@example.com", false)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_profile(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_token_with_expired_claims() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+
+        let jwt_service = JwtService::new("secret".to_string(), Some(0));
+        let token = jwt_service
+            .generate_token("user123", "test@example.com", false)
+            .unwrap();
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_profile(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_auth_service_routes_created() {
+        let auth_service = AuthService::new_dummy();
+        let routes = auth_service.routes();
+        let _ = routes;
+    }
+
+    #[test]
+    fn test_auth_service_register_route_exists() {
+        let auth_service = AuthService::new_dummy();
+        let route = auth_service.register_route();
+        let _ = route;
+    }
+
+    #[test]
+    fn test_auth_service_login_route_exists() {
+        let auth_service = AuthService::new_dummy();
+        let route = auth_service.login_route();
+        let _ = route;
+    }
+
+    #[test]
+    fn test_auth_service_verify_route_exists() {
+        let auth_service = AuthService::new_dummy();
+        let route = auth_service.verify_route();
+        let _ = route;
+    }
+
+    #[test]
+    fn test_auth_service_profile_route_exists() {
+        let auth_service = AuthService::new_dummy();
+        let route = auth_service.profile_route();
+        let _ = route;
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_with_very_long_email() {
+        let auth_service = AuthService::new_dummy();
+        let long_email = format!("{}@example.com", "a".repeat(100));
+        let request = RegisterRequest {
+            email: long_email,
+            password: "password123".to_string(),
+            full_name: None,
+        };
+
+        let response = handle_register(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_with_very_long_password() {
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "test@example.com".to_string(),
+            password: "a".repeat(200),
+            full_name: None,
+        };
+
+        let response = handle_register(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_register_with_special_characters_in_name() {
+        let auth_service = AuthService::new_dummy();
+        let request = RegisterRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+            full_name: Some("Test User !@#$%^&*()".to_string()),
+        };
+
+        let response = handle_register(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_login_with_very_long_password() {
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "a".repeat(500),
+        };
+
+        let response = handle_login(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_login_with_uppercase_email() {
+        let auth_service = AuthService::new_dummy();
+        let request = LoginRequest {
+            email: "TEST@EXAMPLE.COM".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let response = handle_login(request, auth_service).await;
+        assert!(response.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_with_token_containing_special_chars() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "Bearer abc.def.ghi!@#$%".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_verify_case_sensitive_bearer() {
+        use warp::Reply;
+
+        let auth_service = AuthService::new_dummy();
+        let auth_header = "bearer valid.token.here".to_string();
+
+        let response = handle_verify(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_handle_profile_with_admin_user_token() {
+        use warp::Reply;
+
+        let user_repo = UserRepository::new_dummy();
+        let jwt_secret = "admin_test_secret".to_string();
+        let auth_service = AuthService::new(user_repo, jwt_secret.clone());
+
+        let jwt_service = JwtService::new(jwt_secret, Some(24));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "admin@example.com", true)
+            .unwrap();
+
+        let auth_header = format!("Bearer {}", token);
+        let response = handle_profile(auth_header, auth_service).await.unwrap();
+        let reply = response.into_response();
+
+        assert_eq!(reply.status(), warp::http::StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_auth_service_new_with_custom_secret() {
+        let user_repo = UserRepository::new_dummy();
+        let custom_secret = "my_very_secure_secret_key_123".to_string();
+        let auth_service = AuthService::new(user_repo, custom_secret);
+
+        let _ = auth_service.clone();
+    }
+
+    #[test]
+    fn test_auth_service_multiple_clones() {
+        let auth_service1 = AuthService::new_dummy();
+        let auth_service2 = auth_service1.clone();
+        let auth_service3 = auth_service2.clone();
+
+        let _ = auth_service1;
+        let _ = auth_service2;
+        let _ = auth_service3;
+    }
+}

@@ -441,3 +441,558 @@ pub struct AIModelPerformance {
 pub struct SupportedStrategiesResponse {
     pub strategies: Vec<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::market_data::cache::CandleData;
+    use std::collections::HashMap;
+
+    fn create_test_candle() -> CandleData {
+        CandleData {
+            open_time: 1234567890,
+            open: 50000.0,
+            high: 51000.0,
+            low: 49000.0,
+            close: 50500.0,
+            volume: 100.0,
+            close_time: 1234567950,
+            quote_volume: 5000000.0,
+            trades: 100,
+            is_closed: true,
+        }
+    }
+
+    #[test]
+    fn test_python_candle_data_from_candle_data() {
+        let candle = create_test_candle();
+        let python_candle = PythonCandleData::from(&candle);
+
+        assert_eq!(python_candle.timestamp, candle.open_time);
+        assert_eq!(python_candle.open, candle.open);
+        assert_eq!(python_candle.high, candle.high);
+        assert_eq!(python_candle.low, candle.low);
+        assert_eq!(python_candle.close, candle.close);
+        assert_eq!(python_candle.volume, candle.volume);
+    }
+
+    #[test]
+    fn test_ai_client_new() {
+        let client = AIClient::new("http://localhost:8000", 30);
+
+        assert_eq!(client.base_url, "http://localhost:8000");
+        assert_eq!(client.timeout, Duration::from_secs(30));
+    }
+
+    #[test]
+    fn test_ai_client_new_trims_trailing_slash() {
+        let client = AIClient::new("http://localhost:8000/", 30);
+
+        assert_eq!(client.base_url, "http://localhost:8000");
+    }
+
+    #[test]
+    fn test_ai_client_new_multiple_trailing_slashes() {
+        let client = AIClient::new("http://localhost:8000///", 30);
+
+        assert_eq!(client.base_url, "http://localhost:8000");
+    }
+
+    #[test]
+    fn test_python_ai_analysis_request_conversion() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let python_request = PythonAIAnalysisRequest::from(&request);
+
+        assert_eq!(python_request.symbol, "BTCUSDT");
+        assert_eq!(python_request.current_price, 50500.0);
+        assert_eq!(python_request.volume_24h, 10000.0);
+        assert_eq!(python_request.timestamp, 1234567890);
+        assert_eq!(python_request.timeframe_data.len(), 1);
+        assert!(python_request.timeframe_data.contains_key("1h"));
+    }
+
+    #[test]
+    fn test_python_strategy_recommendation_request_conversion() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframe_data,
+            current_price: 3000.0,
+            available_strategies: vec!["RSI".to_string(), "MACD".to_string()],
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonStrategyRecommendationRequest::from(&request);
+
+        assert_eq!(python_request.symbol, "ETHUSDT");
+        assert_eq!(python_request.current_price, 3000.0);
+        assert_eq!(python_request.available_strategies.len(), 2);
+        assert_eq!(python_request.timestamp, 1234567890);
+    }
+
+    #[test]
+    fn test_python_market_condition_request_conversion() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("4h".to_string(), vec![candle]);
+
+        let request = MarketConditionRequest {
+            symbol: "BNBUSDT".to_string(),
+            timeframe_data,
+            current_price: 400.0,
+            volume_24h: 50000.0,
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonMarketConditionRequest::from(&request);
+
+        assert_eq!(python_request.symbol, "BNBUSDT");
+        assert_eq!(python_request.current_price, 400.0);
+        assert_eq!(python_request.volume_24h, 50000.0);
+        assert_eq!(python_request.timestamp, 1234567890);
+        assert_eq!(python_request.timeframe_data.len(), 1);
+    }
+
+    #[test]
+    fn test_ai_service_info_serialization() {
+        let info = AIServiceInfo {
+            service_name: "AI Trading Service".to_string(),
+            version: "1.0.0".to_string(),
+            model_version: "2.5.0".to_string(),
+            supported_timeframes: vec!["1h".to_string(), "4h".to_string()],
+            supported_symbols: vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()],
+            capabilities: vec!["signal_analysis".to_string(), "market_condition".to_string()],
+            last_trained: Some("2024-01-01".to_string()),
+        };
+
+        let json = serde_json::to_string(&info).unwrap();
+        let deserialized: AIServiceInfo = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.service_name, "AI Trading Service");
+        assert_eq!(deserialized.version, "1.0.0");
+        assert_eq!(deserialized.model_version, "2.5.0");
+        assert_eq!(deserialized.supported_timeframes.len(), 2);
+        assert_eq!(deserialized.supported_symbols.len(), 2);
+        assert_eq!(deserialized.capabilities.len(), 2);
+    }
+
+    #[test]
+    fn test_ai_model_performance_serialization() {
+        let performance = AIModelPerformance {
+            overall_accuracy: 0.85,
+            precision: 0.82,
+            recall: 0.88,
+            f1_score: 0.85,
+            predictions_made: 10000,
+            successful_predictions: 8500,
+            average_confidence: 0.75,
+            model_uptime: "100 hours".to_string(),
+            last_updated: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&performance).unwrap();
+        let deserialized: AIModelPerformance = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.overall_accuracy, 0.85);
+        assert_eq!(deserialized.precision, 0.82);
+        assert_eq!(deserialized.predictions_made, 10000);
+        assert_eq!(deserialized.successful_predictions, 8500);
+    }
+
+    #[test]
+    fn test_supported_strategies_response_serialization() {
+        let response = SupportedStrategiesResponse {
+            strategies: vec!["RSI".to_string(), "MACD".to_string(), "Bollinger".to_string()],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        let deserialized: SupportedStrategiesResponse = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.strategies.len(), 3);
+        assert!(deserialized.strategies.contains(&"RSI".to_string()));
+    }
+
+    #[test]
+    fn test_python_candle_data_serialization() {
+        let candle = PythonCandleData {
+            timestamp: 1234567890,
+            open: 50000.0,
+            high: 51000.0,
+            low: 49000.0,
+            close: 50500.0,
+            volume: 100.0,
+        };
+
+        let json = serde_json::to_string(&candle).unwrap();
+        let deserialized: PythonCandleData = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.timestamp, 1234567890);
+        assert_eq!(deserialized.open, 50000.0);
+        assert_eq!(deserialized.high, 51000.0);
+        assert_eq!(deserialized.low, 49000.0);
+        assert_eq!(deserialized.close, 50500.0);
+        assert_eq!(deserialized.volume, 100.0);
+    }
+
+    #[test]
+    fn test_multiple_candles_conversion() {
+        let candle1 = create_test_candle();
+        let mut candle2 = candle1.clone();
+        candle2.open_time = 1234567950;
+
+        let candles = vec![candle1, candle2];
+        let python_candles: Vec<PythonCandleData> = candles.iter().map(PythonCandleData::from).collect();
+
+        assert_eq!(python_candles.len(), 2);
+        assert_eq!(python_candles[0].timestamp, 1234567890);
+        assert_eq!(python_candles[1].timestamp, 1234567950);
+    }
+
+    #[test]
+    fn test_ai_client_multiple_timeout_values() {
+        let client1 = AIClient::new("http://localhost:8000", 5);
+        assert_eq!(client1.timeout, Duration::from_secs(5));
+
+        let client2 = AIClient::new("http://localhost:8000", 120);
+        assert_eq!(client2.timeout, Duration::from_secs(120));
+
+        let client3 = AIClient::new("http://localhost:8000", 1);
+        assert_eq!(client3.timeout, Duration::from_secs(1));
+    }
+
+    #[test]
+    fn test_ai_client_url_with_port() {
+        let client = AIClient::new("http://localhost:8000", 30);
+        assert_eq!(client.base_url, "http://localhost:8000");
+
+        let client2 = AIClient::new("http://192.168.1.100:9000", 30);
+        assert_eq!(client2.base_url, "http://192.168.1.100:9000");
+    }
+
+    #[test]
+    fn test_ai_client_url_with_path() {
+        let client = AIClient::new("http://localhost:8000/api/v1/", 30);
+        assert_eq!(client.base_url, "http://localhost:8000/api/v1");
+    }
+
+    #[test]
+    fn test_python_candle_data_edge_values() {
+        let candle = PythonCandleData {
+            timestamp: 0,
+            open: 0.0,
+            high: 0.0,
+            low: 0.0,
+            close: 0.0,
+            volume: 0.0,
+        };
+
+        let json = serde_json::to_string(&candle).unwrap();
+        let deserialized: PythonCandleData = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.timestamp, 0);
+        assert_eq!(deserialized.volume, 0.0);
+    }
+
+    #[test]
+    fn test_python_candle_data_large_values() {
+        let candle = PythonCandleData {
+            timestamp: i64::MAX,
+            open: f64::MAX / 2.0,
+            high: f64::MAX / 2.0,
+            low: f64::MAX / 4.0,
+            close: f64::MAX / 2.0,
+            volume: f64::MAX / 10.0,
+        };
+
+        let json = serde_json::to_string(&candle).unwrap();
+        let deserialized: PythonCandleData = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.timestamp, i64::MAX);
+        assert!(deserialized.open > 0.0);
+    }
+
+    #[test]
+    fn test_python_candle_data_negative_values() {
+        let mut candle = create_test_candle();
+        candle.close = -100.0; // Invalid but should serialize
+
+        let python_candle = PythonCandleData::from(&candle);
+        assert_eq!(python_candle.close, -100.0);
+    }
+
+    #[test]
+    fn test_ai_analysis_request_empty_timeframe_data() {
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data: HashMap::new(),
+            current_price: 50000.0,
+            volume_24h: 1000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let python_request = PythonAIAnalysisRequest::from(&request);
+        assert_eq!(python_request.timeframe_data.len(), 0);
+    }
+
+    #[test]
+    fn test_ai_analysis_request_multiple_symbols_worth() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1m".to_string(), vec![candle.clone()]);
+        timeframe_data.insert("5m".to_string(), vec![candle.clone()]);
+        timeframe_data.insert("15m".to_string(), vec![candle.clone()]);
+        timeframe_data.insert("1h".to_string(), vec![candle.clone()]);
+        timeframe_data.insert("4h".to_string(), vec![candle]);
+
+        let request = AIAnalysisRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframe_data,
+            current_price: 3000.0,
+            volume_24h: 50000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let python_request = PythonAIAnalysisRequest::from(&request);
+        assert_eq!(python_request.timeframe_data.len(), 5);
+        assert!(python_request.timeframe_data.contains_key("1m"));
+        assert!(python_request.timeframe_data.contains_key("5m"));
+        assert!(python_request.timeframe_data.contains_key("15m"));
+        assert!(python_request.timeframe_data.contains_key("1h"));
+        assert!(python_request.timeframe_data.contains_key("4h"));
+    }
+
+    #[test]
+    fn test_strategy_recommendation_request_empty_strategies() {
+        let request = StrategyRecommendationRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data: HashMap::new(),
+            current_price: 50000.0,
+            available_strategies: vec![],
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonStrategyRecommendationRequest::from(&request);
+        assert_eq!(python_request.available_strategies.len(), 0);
+    }
+
+    #[test]
+    fn test_strategy_recommendation_request_many_strategies() {
+        let request = StrategyRecommendationRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data: HashMap::new(),
+            current_price: 50000.0,
+            available_strategies: vec![
+                "RSI".to_string(),
+                "MACD".to_string(),
+                "Bollinger".to_string(),
+                "Volume".to_string(),
+                "EMA".to_string(),
+                "SMA".to_string(),
+            ],
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonStrategyRecommendationRequest::from(&request);
+        assert_eq!(python_request.available_strategies.len(), 6);
+    }
+
+    #[test]
+    fn test_market_condition_request_with_high_volume() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = MarketConditionRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50000.0,
+            volume_24h: 1000000000.0, // 1 billion
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonMarketConditionRequest::from(&request);
+        assert_eq!(python_request.volume_24h, 1000000000.0);
+    }
+
+    #[test]
+    fn test_ai_service_info_with_empty_capabilities() {
+        let info = AIServiceInfo {
+            service_name: "Test Service".to_string(),
+            version: "1.0.0".to_string(),
+            model_version: "1.0.0".to_string(),
+            supported_timeframes: vec![],
+            supported_symbols: vec![],
+            capabilities: vec![],
+            last_trained: None,
+        };
+
+        let json = serde_json::to_string(&info).unwrap();
+        let deserialized: AIServiceInfo = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.supported_timeframes.len(), 0);
+        assert_eq!(deserialized.capabilities.len(), 0);
+        assert_eq!(deserialized.last_trained, None);
+    }
+
+    #[test]
+    fn test_ai_model_performance_all_zeros() {
+        let performance = AIModelPerformance {
+            overall_accuracy: 0.0,
+            precision: 0.0,
+            recall: 0.0,
+            f1_score: 0.0,
+            predictions_made: 0,
+            successful_predictions: 0,
+            average_confidence: 0.0,
+            model_uptime: "0 hours".to_string(),
+            last_updated: "Never".to_string(),
+        };
+
+        let json = serde_json::to_string(&performance).unwrap();
+        let deserialized: AIModelPerformance = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.predictions_made, 0);
+        assert_eq!(deserialized.successful_predictions, 0);
+    }
+
+    #[test]
+    fn test_ai_model_performance_perfect_scores() {
+        let performance = AIModelPerformance {
+            overall_accuracy: 1.0,
+            precision: 1.0,
+            recall: 1.0,
+            f1_score: 1.0,
+            predictions_made: 1000,
+            successful_predictions: 1000,
+            average_confidence: 1.0,
+            model_uptime: "1000 hours".to_string(),
+            last_updated: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&performance).unwrap();
+        let deserialized: AIModelPerformance = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.overall_accuracy, 1.0);
+        assert_eq!(deserialized.predictions_made, 1000);
+        assert_eq!(deserialized.successful_predictions, 1000);
+    }
+
+    #[test]
+    fn test_supported_strategies_response_single_strategy() {
+        let response = SupportedStrategiesResponse {
+            strategies: vec!["RSI".to_string()],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        let deserialized: SupportedStrategiesResponse = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.strategies.len(), 1);
+    }
+
+    #[test]
+    fn test_supported_strategies_response_empty() {
+        let response = SupportedStrategiesResponse {
+            strategies: vec![],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        let deserialized: SupportedStrategiesResponse = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.strategies.len(), 0);
+    }
+
+    #[test]
+    fn test_candle_data_clone() {
+        let candle1 = create_test_candle();
+        let candle2 = candle1.clone();
+
+        assert_eq!(candle1.open_time, candle2.open_time);
+        assert_eq!(candle1.close, candle2.close);
+        assert_eq!(candle1.volume, candle2.volume);
+    }
+
+    #[test]
+    fn test_python_candle_data_conversion_preserves_all_fields() {
+        let candle = CandleData {
+            open_time: 1234567890,
+            open: 100.0,
+            high: 105.0,
+            low: 95.0,
+            close: 102.0,
+            volume: 1000.0,
+            close_time: 1234567950,
+            quote_volume: 102000.0,
+            trades: 250,
+            is_closed: true,
+        };
+
+        let python_candle = PythonCandleData::from(&candle);
+
+        assert_eq!(python_candle.timestamp, candle.open_time);
+        assert_eq!(python_candle.open, candle.open);
+        assert_eq!(python_candle.high, candle.high);
+        assert_eq!(python_candle.low, candle.low);
+        assert_eq!(python_candle.close, candle.close);
+        assert_eq!(python_candle.volume, candle.volume);
+    }
+
+    #[test]
+    fn test_ai_client_base_url_https() {
+        let client = AIClient::new("https://api.example.com", 30);
+        assert_eq!(client.base_url, "https://api.example.com");
+    }
+
+    #[test]
+    fn test_ai_analysis_request_with_multiple_timeframes() {
+        let candle1h = create_test_candle();
+        let mut candle4h = candle1h.clone();
+        candle4h.volume = 400.0;
+
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle1h]);
+        timeframe_data.insert("4h".to_string(), vec![candle4h]);
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let python_request = PythonAIAnalysisRequest::from(&request);
+
+        assert_eq!(python_request.timeframe_data.len(), 2);
+        assert!(python_request.timeframe_data.contains_key("1h"));
+        assert!(python_request.timeframe_data.contains_key("4h"));
+        assert_eq!(python_request.timeframe_data.get("1h").unwrap()[0].volume, 100.0);
+        assert_eq!(python_request.timeframe_data.get("4h").unwrap()[0].volume, 400.0);
+    }
+
+    #[test]
+    fn test_ai_client_timeout_configuration() {
+        let client1 = AIClient::new("http://localhost:8000", 10);
+        assert_eq!(client1.timeout, Duration::from_secs(10));
+
+        let client2 = AIClient::new("http://localhost:8000", 60);
+        assert_eq!(client2.timeout, Duration::from_secs(60));
+    }
+}

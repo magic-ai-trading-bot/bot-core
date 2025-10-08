@@ -202,3 +202,246 @@ impl Config {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_default() {
+        let config = Config::default();
+        assert_eq!(config.binance.testnet, true);
+        assert_eq!(config.trading.enabled, false);
+        assert!(!config.market_data.symbols.is_empty());
+    }
+
+    #[test]
+    fn test_config_validate_trading_enabled_with_keys() {
+        let mut config = Config::default();
+        config.trading.enabled = true;
+        config.binance.api_key = "test_key".to_string();
+        config.binance.secret_key = "test_secret".to_string();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_trading_enabled_missing_api_key() {
+        let mut config = Config::default();
+        config.trading.enabled = true;
+        config.binance.api_key = "".to_string();
+        config.binance.secret_key = "test_secret".to_string();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_trading_disabled_no_keys() {
+        let mut config = Config::default();
+        config.trading.enabled = false;
+        config.binance.api_key = "".to_string();
+        config.binance.secret_key = "".to_string();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_empty_symbols() {
+        let mut config = Config::default();
+        config.market_data.symbols = vec![];
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_empty_timeframes() {
+        let mut config = Config::default();
+        config.market_data.timeframes = vec![];
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_risk_percentage_negative() {
+        let mut config = Config::default();
+        config.trading.risk_percentage = -1.0;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_risk_percentage_over_100() {
+        let mut config = Config::default();
+        config.trading.risk_percentage = 101.0;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_risk_percentage_valid_boundary() {
+        let mut config = Config::default();
+        config.trading.risk_percentage = 100.0;
+        assert!(config.validate().is_ok());
+
+        config.trading.risk_percentage = 0.1;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_trading_enabled_missing_secret_key() {
+        let mut config = Config::default();
+        config.trading.enabled = true;
+        config.binance.api_key = "test_key".to_string();
+        config.binance.secret_key = "".to_string();
+        assert!(config.validate().is_err());
+        assert!(config.validate().unwrap_err().to_string().contains("secret"));
+    }
+
+    #[test]
+    fn test_config_from_file_creates_default_if_missing() {
+        use std::env;
+
+        // Clear env vars to prevent interference
+        env::remove_var("BINANCE_API_KEY");
+        env::remove_var("BINANCE_SECRET_KEY");
+        env::remove_var("DATABASE_URL");
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("PYTHON_AI_SERVICE_URL");
+
+        let temp_path = env::temp_dir().join("test_config_missing.toml");
+
+        // Ensure file doesn't exist
+        let _ = std::fs::remove_file(&temp_path);
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.testnet, true);
+        assert_eq!(config.trading.enabled, false);
+
+        // Cleanup
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_from_file_loads_existing() {
+        use std::env;
+
+        let temp_path = env::temp_dir().join("test_config_existing_unique.toml");
+
+        // Create a test config file
+        let test_config = Config::default();
+        test_config.save_to_file(&temp_path).unwrap();
+
+        // Load it back using toml parsing directly to avoid env var interference
+        let content = std::fs::read_to_string(&temp_path).unwrap();
+        let loaded_config: Config = toml::from_str(&content).unwrap();
+        assert_eq!(loaded_config.binance.testnet, test_config.binance.testnet);
+        assert_eq!(loaded_config.trading.enabled, test_config.trading.enabled);
+
+        // Cleanup
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_save_to_file() {
+        use std::env;
+
+        let temp_path = env::temp_dir().join("test_config_save_unique.toml");
+
+        let mut config = Config::default();
+        config.trading.max_positions = 10;
+        config.binance.api_key = "custom_key".to_string();
+
+        config.save_to_file(&temp_path).unwrap();
+
+        // Verify file was created
+        assert!(temp_path.exists());
+
+        // Read and parse the TOML directly to avoid env var interference
+        let content = std::fs::read_to_string(&temp_path).unwrap();
+        let loaded: Config = toml::from_str(&content).unwrap();
+        assert_eq!(loaded.trading.max_positions, 10);
+        assert_eq!(loaded.binance.api_key, "custom_key");
+
+        // Cleanup
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_override_database_url() {
+        use std::env;
+        let temp_path = env::temp_dir().join("test_config_env_db.toml");
+
+        // Create test config
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        // Set env var
+        env::set_var("DATABASE_URL", "mongodb://custom:url@localhost/test");
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.database.url, "mongodb://custom:url@localhost/test");
+
+        // Cleanup
+        env::remove_var("DATABASE_URL");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_override_binance_keys() {
+        use std::env;
+        let temp_path = env::temp_dir().join("test_config_env_binance.toml");
+
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("BINANCE_API_KEY", "env_api_key");
+        env::set_var("BINANCE_SECRET_KEY", "env_secret_key");
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.api_key, "env_api_key");
+        assert_eq!(config.binance.secret_key, "env_secret_key");
+
+        // Cleanup
+        env::remove_var("BINANCE_API_KEY");
+        env::remove_var("BINANCE_SECRET_KEY");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_override_testnet() {
+        use std::env;
+        let temp_path = env::temp_dir().join("test_config_env_testnet.toml");
+
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("BINANCE_TESTNET", "false");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.testnet, false);
+
+        env::set_var("BINANCE_TESTNET", "true");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.testnet, true);
+
+        // Cleanup
+        env::remove_var("BINANCE_TESTNET");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_override_python_url() {
+        use std::env;
+        let temp_path = env::temp_dir().join("test_config_env_python.toml");
+
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("PYTHON_AI_SERVICE_URL", "http://custom:9000");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.market_data.python_ai_service_url, "http://custom:9000");
+
+        // Cleanup
+        env::remove_var("PYTHON_AI_SERVICE_URL");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_serialization_roundtrip() {
+        let config = Config::default();
+        let serialized = toml::to_string_pretty(&config).unwrap();
+        let deserialized: Config = toml::from_str(&serialized).unwrap();
+
+        assert_eq!(config.binance.testnet, deserialized.binance.testnet);
+        assert_eq!(config.trading.enabled, deserialized.trading.enabled);
+        assert_eq!(config.market_data.symbols, deserialized.market_data.symbols);
+    }
+}

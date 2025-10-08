@@ -32,7 +32,7 @@ pub struct ApiServer {
     ai_service: AIService,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct ApiResponse<T> {
     success: bool,
     data: Option<T>,
@@ -696,17 +696,17 @@ impl ApiServer {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct CandelQuery {
     limit: Option<usize>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct ChartQuery {
     limit: Option<usize>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct MultiChartQuery {
     symbols: String,    // comma-separated symbols: "BTCUSDT,ETHUSDT,BNBUSDT"
     timeframes: String, // comma-separated timeframes: "1m,5m,15m,1h"
@@ -747,5 +747,903 @@ impl From<crate::ai::MarketConditionRequest> for crate::strategies::StrategyInpu
             volume_24h: request.volume_24h,
             timestamp: request.timestamp,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ============================================================================
+    // ApiResponse Tests
+    // ============================================================================
+
+    #[test]
+    fn test_api_response_success_creation() {
+        let data = "test data";
+        let response = ApiResponse::success(data);
+
+        assert!(response.success);
+        assert_eq!(response.data, Some("test data"));
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn test_api_response_error_creation() {
+        let error_msg = "Something went wrong".to_string();
+        let response: ApiResponse<String> = ApiResponse::error(error_msg.clone());
+
+        assert!(!response.success);
+        assert!(response.data.is_none());
+        assert_eq!(response.error, Some(error_msg));
+    }
+
+    #[test]
+    fn test_api_response_success_serialization() {
+        let data = vec!["item1", "item2", "item3"];
+        let response = ApiResponse::success(data);
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"success\":true"));
+        assert!(json.contains("\"data\""));
+        assert!(json.contains("item1"));
+    }
+
+    #[test]
+    fn test_api_response_error_serialization() {
+        let response: ApiResponse<()> = ApiResponse::error("Test error".to_string());
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"success\":false"));
+        assert!(json.contains("\"error\":\"Test error\""));
+        assert!(json.contains("\"data\":null"));
+    }
+
+    #[test]
+    fn test_api_response_with_complex_data() {
+        #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+        struct ComplexData {
+            id: u64,
+            name: String,
+            values: Vec<f64>,
+        }
+
+        let data = ComplexData {
+            id: 123,
+            name: "test".to_string(),
+            values: vec![1.1, 2.2, 3.3],
+        };
+
+        let response = ApiResponse::success(data.clone());
+
+        let json = serde_json::to_string(&response).unwrap();
+        // ApiResponse doesn't implement Deserialize, just verify serialization
+        assert!(json.contains("\"id\":123"));
+        assert!(json.contains("\"name\":\"test\""));
+        assert!(json.contains("1.1"));
+    }
+
+    #[test]
+    fn test_add_symbol_request_serialization() {
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec!["1m".to_string(), "5m".to_string(), "1h".to_string()],
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("1m"));
+        assert!(json.contains("5m"));
+        assert!(json.contains("1h"));
+    }
+
+    #[test]
+    fn test_add_symbol_request_deserialization() {
+        let json = r#"{
+            "symbol": "ETHUSDT",
+            "timeframes": ["15m", "1h", "4h"]
+        }"#;
+
+        let request: AddSymbolRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(request.symbol, "ETHUSDT");
+        assert_eq!(request.timeframes.len(), 3);
+        assert_eq!(request.timeframes[0], "15m");
+    }
+
+    #[test]
+    fn test_supported_symbols_serialization() {
+        let supported = SupportedSymbols {
+            symbols: vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()],
+            available_timeframes: vec!["1m".to_string(), "5m".to_string(), "1h".to_string()],
+        };
+
+        let json = serde_json::to_string(&supported).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("ETHUSDT"));
+        assert!(json.contains("1m"));
+    }
+
+    #[test]
+    fn test_supported_symbols_deserialization() {
+        let json = r#"{
+            "symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT"],
+            "available_timeframes": ["1m", "5m", "15m", "1h", "4h"]
+        }"#;
+
+        let supported: SupportedSymbols = serde_json::from_str(json).unwrap();
+        assert_eq!(supported.symbols.len(), 3);
+        assert_eq!(supported.available_timeframes.len(), 5);
+        assert_eq!(supported.symbols[2], "BNBUSDT");
+    }
+
+    #[test]
+    fn test_candle_query_with_limit() {
+        let json = r#"{"limit": 100}"#;
+        let query: CandelQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.limit, Some(100));
+    }
+
+    #[test]
+    fn test_candle_query_without_limit() {
+        let json = r#"{}"#;
+        let query: CandelQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.limit, None);
+    }
+
+    #[test]
+    fn test_chart_query_serialization() {
+        let query = ChartQuery { limit: Some(200) };
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("200"));
+    }
+
+    #[test]
+    fn test_chart_query_deserialization() {
+        let json = r#"{"limit": 500}"#;
+        let query: ChartQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.limit, Some(500));
+    }
+
+    #[test]
+    fn test_multi_chart_query_deserialization() {
+        let json = r#"{
+            "symbols": "BTCUSDT,ETHUSDT,BNBUSDT",
+            "timeframes": "1m,5m,15m,1h",
+            "limit": 100
+        }"#;
+
+        let query: MultiChartQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.symbols, "BTCUSDT,ETHUSDT,BNBUSDT");
+        assert_eq!(query.timeframes, "1m,5m,15m,1h");
+        assert_eq!(query.limit, Some(100));
+    }
+
+    #[test]
+    fn test_multi_chart_query_without_limit() {
+        let json = r#"{
+            "symbols": "BTCUSDT",
+            "timeframes": "1h"
+        }"#;
+
+        let query: MultiChartQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.symbols, "BTCUSDT");
+        assert_eq!(query.timeframes, "1h");
+        assert_eq!(query.limit, None);
+    }
+
+    #[test]
+    fn test_multi_chart_query_parsing_symbols() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT,ETHUSDT,BNBUSDT".to_string(),
+            timeframes: "1m,5m".to_string(),
+            limit: None,
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(symbols.len(), 3);
+        assert_eq!(symbols[0], "BTCUSDT");
+        assert_eq!(symbols[1], "ETHUSDT");
+        assert_eq!(symbols[2], "BNBUSDT");
+    }
+
+    #[test]
+    fn test_multi_chart_query_parsing_timeframes() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT".to_string(),
+            timeframes: "1m,5m,15m,1h,4h".to_string(),
+            limit: None,
+        };
+
+        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(timeframes.len(), 5);
+        assert_eq!(timeframes[0], "1m");
+        assert_eq!(timeframes[4], "4h");
+    }
+
+    #[test]
+    fn test_api_response_success_with_numbers() {
+        let response = ApiResponse::success(42);
+        assert!(response.success);
+        assert_eq!(response.data, Some(42));
+    }
+
+    #[test]
+    fn test_api_response_success_with_float() {
+        let response = ApiResponse::success(3.14159);
+        assert!(response.success);
+        assert_eq!(response.data, Some(3.14159));
+    }
+
+    #[test]
+    fn test_api_response_success_with_boolean() {
+        let response = ApiResponse::success(true);
+        assert!(response.success);
+        assert_eq!(response.data, Some(true));
+    }
+
+    #[test]
+    fn test_api_response_error_with_empty_string() {
+        let response: ApiResponse<String> = ApiResponse::error("".to_string());
+        assert!(!response.success);
+        assert_eq!(response.error, Some("".to_string()));
+    }
+
+    #[test]
+    fn test_api_response_roundtrip_serialization() {
+        let original = ApiResponse::success("test_value");
+        let json = serde_json::to_string(&original).unwrap();
+
+        // Verify JSON structure
+        assert!(json.contains("\"success\":true"));
+        assert!(json.contains("\"data\":\"test_value\""));
+        assert!(json.contains("\"error\":null"));
+    }
+
+    #[test]
+    fn test_add_symbol_request_empty_timeframes() {
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec![],
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let deserialized: AddSymbolRequest = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.symbol, "BTCUSDT");
+        assert!(deserialized.timeframes.is_empty());
+    }
+
+    #[test]
+    fn test_supported_symbols_empty() {
+        let supported = SupportedSymbols {
+            symbols: vec![],
+            available_timeframes: vec![],
+        };
+
+        let json = serde_json::to_string(&supported).unwrap();
+        let deserialized: SupportedSymbols = serde_json::from_str(&json).unwrap();
+
+        assert!(deserialized.symbols.is_empty());
+        assert!(deserialized.available_timeframes.is_empty());
+    }
+
+    #[test]
+    fn test_candle_query_large_limit() {
+        let query = CandelQuery { limit: Some(10000) };
+        let json = serde_json::to_string(&query).unwrap();
+        let deserialized: CandelQuery = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.limit, Some(10000));
+    }
+
+    #[test]
+    fn test_multi_chart_query_single_symbol() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT".to_string(),
+            timeframes: "1h".to_string(),
+            limit: Some(50),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0], "BTCUSDT");
+    }
+
+    #[test]
+    fn test_api_response_nested_structure() {
+        #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+        struct Nested {
+            inner: Vec<i32>,
+        }
+
+        let data = Nested { inner: vec![1, 2, 3, 4, 5] };
+        let response = ApiResponse::success(data.clone());
+
+        let json = serde_json::to_string(&response).unwrap();
+
+        // Verify serialization
+        assert!(json.contains("\"success\":true"));
+        assert!(json.contains("\"inner\":[1,2,3,4,5]"));
+    }
+
+    // ============================================================================
+    // Conversion Implementation Tests (AIAnalysisRequest -> StrategyInput)
+    // ============================================================================
+
+    #[test]
+    fn test_ai_analysis_request_to_strategy_input_conversion() {
+        use crate::ai::{AIAnalysisRequest, AIStrategyContext};
+        use std::collections::HashMap;
+
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![]);
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data: timeframe_data.clone(),
+            current_price: 50000.0,
+            volume_24h: 1000000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let strategy_input: crate::strategies::StrategyInput = request.into();
+
+        assert_eq!(strategy_input.symbol, "BTCUSDT");
+        assert_eq!(strategy_input.current_price, 50000.0);
+        assert_eq!(strategy_input.volume_24h, 1000000.0);
+        assert_eq!(strategy_input.timestamp, 1234567890);
+    }
+
+    #[test]
+    fn test_strategy_recommendation_request_to_strategy_input_conversion() {
+        use crate::ai::StrategyRecommendationRequest;
+        use std::collections::HashMap;
+
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("5m".to_string(), vec![]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframe_data: timeframe_data.clone(),
+            current_price: 3000.0,
+            timestamp: 9876543210,
+            available_strategies: vec!["momentum".to_string()],
+        };
+
+        let strategy_input: crate::strategies::StrategyInput = request.into();
+
+        assert_eq!(strategy_input.symbol, "ETHUSDT");
+        assert_eq!(strategy_input.current_price, 3000.0);
+        assert_eq!(strategy_input.volume_24h, 0.0); // Should default to 0.0
+        assert_eq!(strategy_input.timestamp, 9876543210);
+    }
+
+    #[test]
+    fn test_market_condition_request_to_strategy_input_conversion() {
+        use crate::ai::MarketConditionRequest;
+        use std::collections::HashMap;
+
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("15m".to_string(), vec![]);
+
+        let request = MarketConditionRequest {
+            symbol: "BNBUSDT".to_string(),
+            timeframe_data: timeframe_data.clone(),
+            current_price: 400.0,
+            volume_24h: 500000.0,
+            timestamp: 1111111111,
+        };
+
+        let strategy_input: crate::strategies::StrategyInput = request.into();
+
+        assert_eq!(strategy_input.symbol, "BNBUSDT");
+        assert_eq!(strategy_input.current_price, 400.0);
+        assert_eq!(strategy_input.volume_24h, 500000.0);
+        assert_eq!(strategy_input.timestamp, 1111111111);
+    }
+
+    // ============================================================================
+    // Query Parameter Deserialization Tests
+    // ============================================================================
+
+    #[test]
+    fn test_candle_query_zero_limit() {
+        let json = r#"{"limit": 0}"#;
+        let query: CandelQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.limit, Some(0));
+    }
+
+    #[test]
+    fn test_chart_query_none_limit() {
+        let query = ChartQuery { limit: None };
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("\"limit\":null"));
+    }
+
+    #[test]
+    fn test_multi_chart_query_serialization() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT,ETHUSDT".to_string(),
+            timeframes: "1m,5m".to_string(),
+            limit: Some(150),
+        };
+
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("BTCUSDT,ETHUSDT"));
+        assert!(json.contains("1m,5m"));
+        assert!(json.contains("150"));
+    }
+
+    #[test]
+    fn test_multi_chart_query_with_special_characters() {
+        let query = MultiChartQuery {
+            symbols: "BTC-USDT,ETH_USD".to_string(),
+            timeframes: "1h,4h".to_string(),
+            limit: Some(100),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(symbols[0], "BTC-USDT");
+        assert_eq!(symbols[1], "ETH_USD");
+    }
+
+    #[test]
+    fn test_multi_chart_query_empty_symbols() {
+        let query = MultiChartQuery {
+            symbols: "".to_string(),
+            timeframes: "1h".to_string(),
+            limit: None,
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0], "");
+    }
+
+    #[test]
+    fn test_add_symbol_request_validation() {
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec!["1m".to_string(), "5m".to_string()],
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let deserialized: AddSymbolRequest = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.symbol, request.symbol);
+        assert_eq!(deserialized.timeframes.len(), request.timeframes.len());
+    }
+
+    #[test]
+    fn test_add_symbol_request_with_many_timeframes() {
+        let timeframes = vec![
+            "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d",
+        ]
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect();
+
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes,
+        };
+
+        assert_eq!(request.timeframes.len(), 12);
+    }
+
+    #[test]
+    fn test_supported_symbols_with_many_symbols() {
+        let symbols: Vec<String> = (0..100).map(|i| format!("SYMBOL{}", i)).collect();
+        let timeframes = vec!["1m".to_string(), "5m".to_string()];
+
+        let supported = SupportedSymbols {
+            symbols: symbols.clone(),
+            available_timeframes: timeframes,
+        };
+
+        assert_eq!(supported.symbols.len(), 100);
+        assert_eq!(supported.symbols[99], "SYMBOL99");
+    }
+
+    #[test]
+    fn test_supported_symbols_roundtrip() {
+        let original = SupportedSymbols {
+            symbols: vec!["BTC".to_string(), "ETH".to_string()],
+            available_timeframes: vec!["1h".to_string()],
+        };
+
+        let json = serde_json::to_string(&original).unwrap();
+        let deserialized: SupportedSymbols = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.symbols, original.symbols);
+        assert_eq!(deserialized.available_timeframes, original.available_timeframes);
+    }
+
+    // ============================================================================
+    // ApiResponse Edge Cases and Validation
+    // ============================================================================
+
+    #[test]
+    fn test_api_response_with_option_data() {
+        let response = ApiResponse::success(Some("optional_value"));
+        assert!(response.success);
+        assert_eq!(response.data, Some(Some("optional_value")));
+    }
+
+    #[test]
+    fn test_api_response_with_none_data() {
+        let response: ApiResponse<Option<String>> = ApiResponse::success(None);
+        assert!(response.success);
+        assert_eq!(response.data, Some(None));
+    }
+
+    #[test]
+    fn test_api_response_error_with_long_message() {
+        let long_error = "e".repeat(5000);
+        let response: ApiResponse<String> = ApiResponse::error(long_error.clone());
+        assert!(!response.success);
+        assert_eq!(response.error, Some(long_error));
+    }
+
+    #[test]
+    fn test_api_response_with_vector_data() {
+        let data = vec![1, 2, 3, 4, 5];
+        let response = ApiResponse::success(data.clone());
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("[1,2,3,4,5]"));
+    }
+
+    #[test]
+    fn test_api_response_with_hashmap_data() {
+        use std::collections::HashMap;
+        let mut data = HashMap::new();
+        data.insert("key1", "value1");
+        data.insert("key2", "value2");
+
+        let response = ApiResponse::success(data);
+        assert!(response.success);
+    }
+
+    #[test]
+    fn test_api_response_error_with_special_chars() {
+        let error_msg = "Error: \n\t\"quoted\" & <special>".to_string();
+        let response: ApiResponse<()> = ApiResponse::error(error_msg.clone());
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("Error"));
+    }
+
+    #[test]
+    fn test_api_response_success_with_unit_type() {
+        let response = ApiResponse::success(());
+        assert!(response.success);
+        assert_eq!(response.data, Some(()));
+    }
+
+    #[test]
+    fn test_api_response_success_with_tuple() {
+        let response = ApiResponse::success(("status", 200));
+        assert!(response.success);
+        assert_eq!(response.data, Some(("status", 200)));
+    }
+
+    #[test]
+    fn test_api_response_serialization_formatting() {
+        let response = ApiResponse::success("test");
+        let json = serde_json::to_string(&response).unwrap();
+
+        // Should not have extra whitespace
+        assert!(!json.contains('\n'));
+        assert!(!json.contains("  "));
+    }
+
+    // ============================================================================
+    // Request/Response Struct Field Validation
+    // ============================================================================
+
+    #[test]
+    fn test_add_symbol_request_case_sensitivity() {
+        let request1 = AddSymbolRequest {
+            symbol: "btcusdt".to_string(),
+            timeframes: vec![],
+        };
+        let request2 = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec![],
+        };
+
+        assert_ne!(request1.symbol, request2.symbol);
+    }
+
+    #[test]
+    fn test_candle_query_max_value_limit() {
+        let query = CandelQuery {
+            limit: Some(usize::MAX),
+        };
+        let json = serde_json::to_string(&query).unwrap();
+        let deserialized: CandelQuery = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.limit, Some(usize::MAX));
+    }
+
+    #[test]
+    fn test_chart_query_with_zero() {
+        let query = ChartQuery { limit: Some(0) };
+        assert_eq!(query.limit, Some(0));
+    }
+
+    #[test]
+    fn test_multi_chart_query_whitespace_handling() {
+        let query = MultiChartQuery {
+            symbols: " BTCUSDT , ETHUSDT ".to_string(),
+            timeframes: " 1m , 5m ".to_string(),
+            limit: Some(50),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        // Note: split doesn't trim, so spaces are preserved
+        assert_eq!(symbols[0], " BTCUSDT ");
+        assert_eq!(symbols[1], " ETHUSDT ");
+    }
+
+    #[test]
+    fn test_multi_chart_query_single_item_no_comma() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT".to_string(),
+            timeframes: "1h".to_string(),
+            limit: None,
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0], "BTCUSDT");
+    }
+
+    // ============================================================================
+    // ApiResponse Type Compatibility Tests
+    // ============================================================================
+
+    #[test]
+    fn test_api_response_with_f64() {
+        let response = ApiResponse::success(123.456);
+        assert_eq!(response.data, Some(123.456));
+    }
+
+    #[test]
+    fn test_api_response_with_i64() {
+        let response = ApiResponse::success(9876543210i64);
+        assert_eq!(response.data, Some(9876543210i64));
+    }
+
+    #[test]
+    fn test_api_response_with_u64() {
+        let response = ApiResponse::success(18446744073709551615u64);
+        assert_eq!(response.data, Some(18446744073709551615u64));
+    }
+
+    #[test]
+    fn test_api_response_error_with_unicode() {
+        let error = "エラー: 取引失敗 🚫".to_string();
+        let response: ApiResponse<()> = ApiResponse::error(error.clone());
+        assert_eq!(response.error, Some(error));
+    }
+
+    // ============================================================================
+    // Serialization Edge Cases
+    // ============================================================================
+
+    #[test]
+    fn test_add_symbol_request_special_symbol_names() {
+        let symbols = vec!["BTC-USDT", "ETH_USDT", "BNB/USDT", "SOL.USDT"];
+        for symbol in symbols {
+            let request = AddSymbolRequest {
+                symbol: symbol.to_string(),
+                timeframes: vec!["1h".to_string()],
+            };
+            let json = serde_json::to_string(&request).unwrap();
+            assert!(json.contains(symbol));
+        }
+    }
+
+    #[test]
+    fn test_supported_symbols_duplicate_handling() {
+        let supported = SupportedSymbols {
+            symbols: vec!["BTCUSDT".to_string(), "BTCUSDT".to_string()],
+            available_timeframes: vec!["1m".to_string(), "1m".to_string()],
+        };
+
+        assert_eq!(supported.symbols.len(), 2);
+        assert_eq!(supported.available_timeframes.len(), 2);
+    }
+
+    #[test]
+    fn test_candle_query_deserialization_with_null() {
+        let json = r#"{"limit": null}"#;
+        let query: CandelQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.limit, None);
+    }
+
+    #[test]
+    fn test_chart_query_deserialization_with_string_number() {
+        // This should fail since limit is not a string
+        let json = r#"{"limit": "100"}"#;
+        let result = serde_json::from_str::<ChartQuery>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_multi_chart_query_with_numbers_in_symbols() {
+        let query = MultiChartQuery {
+            symbols: "BTC2USDT,ETH3USDT".to_string(),
+            timeframes: "1m,5m".to_string(),
+            limit: Some(10),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(symbols[0], "BTC2USDT");
+        assert_eq!(symbols[1], "ETH3USDT");
+    }
+
+    // ============================================================================
+    // JSON Serialization Format Tests
+    // ============================================================================
+
+    #[test]
+    fn test_api_response_json_field_order() {
+        let response = ApiResponse::success("data");
+        let json = serde_json::to_string(&response).unwrap();
+        // JSON should contain all three fields
+        assert!(json.contains("success"));
+        assert!(json.contains("data"));
+        assert!(json.contains("error"));
+    }
+
+    #[test]
+    fn test_add_symbol_request_json_structure() {
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec!["1m".to_string()],
+        };
+
+        let json = serde_json::to_value(&request).unwrap();
+        assert!(json.get("symbol").is_some());
+        assert!(json.get("timeframes").is_some());
+        assert!(json.get("timeframes").unwrap().is_array());
+    }
+
+    #[test]
+    fn test_supported_symbols_json_structure() {
+        let supported = SupportedSymbols {
+            symbols: vec!["BTC".to_string()],
+            available_timeframes: vec!["1h".to_string()],
+        };
+
+        let json = serde_json::to_value(&supported).unwrap();
+        assert!(json.get("symbols").is_some());
+        assert!(json.get("available_timeframes").is_some());
+    }
+
+    // ============================================================================
+    // Type Constraint Tests
+    // ============================================================================
+
+    #[test]
+    fn test_api_response_implements_clone() {
+        let response = ApiResponse::success("test");
+        let _cloned = response.clone();
+        // If this compiles, Clone is implemented
+    }
+
+    #[test]
+    fn test_query_types_implement_serialize() {
+        let candle_query = CandelQuery { limit: Some(100) };
+        let _json = serde_json::to_string(&candle_query).unwrap();
+
+        let chart_query = ChartQuery { limit: Some(200) };
+        let _json = serde_json::to_string(&chart_query).unwrap();
+
+        let multi_query = MultiChartQuery {
+            symbols: "BTC".to_string(),
+            timeframes: "1h".to_string(),
+            limit: Some(50),
+        };
+        let _json = serde_json::to_string(&multi_query).unwrap();
+    }
+
+    #[test]
+    fn test_query_types_implement_deserialize() {
+        let candle_json = r#"{"limit": 100}"#;
+        let _candle: CandelQuery = serde_json::from_str(candle_json).unwrap();
+
+        let chart_json = r#"{"limit": 200}"#;
+        let _chart: ChartQuery = serde_json::from_str(chart_json).unwrap();
+
+        let multi_json = r#"{"symbols": "BTC", "timeframes": "1h", "limit": 50}"#;
+        let _multi: MultiChartQuery = serde_json::from_str(multi_json).unwrap();
+    }
+
+    // ============================================================================
+    // Boundary Value Tests
+    // ============================================================================
+
+    #[test]
+    fn test_candle_query_boundary_values() {
+        let queries = vec![
+            CandelQuery { limit: Some(0) },
+            CandelQuery { limit: Some(1) },
+            CandelQuery { limit: Some(1000) },
+            CandelQuery { limit: Some(usize::MAX) },
+            CandelQuery { limit: None },
+        ];
+
+        for query in queries {
+            let json = serde_json::to_string(&query).unwrap();
+            let deserialized: CandelQuery = serde_json::from_str(&json).unwrap();
+            assert_eq!(deserialized.limit, query.limit);
+        }
+    }
+
+    #[test]
+    fn test_multi_chart_query_many_symbols() {
+        let symbols: Vec<String> = (0..50).map(|i| format!("SYM{}", i)).collect();
+        let symbols_str = symbols.join(",");
+
+        let query = MultiChartQuery {
+            symbols: symbols_str,
+            timeframes: "1m".to_string(),
+            limit: Some(100),
+        };
+
+        let parsed: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(parsed.len(), 50);
+    }
+
+    #[test]
+    fn test_add_symbol_request_long_symbol_name() {
+        let long_symbol = "A".repeat(100);
+        let request = AddSymbolRequest {
+            symbol: long_symbol.clone(),
+            timeframes: vec!["1h".to_string()],
+        };
+
+        assert_eq!(request.symbol, long_symbol);
+    }
+
+    // ============================================================================
+    // Error Handling in Serialization
+    // ============================================================================
+
+    #[test]
+    fn test_api_response_error_null_handling() {
+        let response = ApiResponse::<String>::error("null".to_string());
+        let json = serde_json::to_string(&response).unwrap();
+        // Should contain the string "null", not the null value
+        assert!(json.contains("\"null\""));
+    }
+
+    #[test]
+    fn test_multi_chart_query_invalid_json_handling() {
+        let invalid_json = r#"{"symbols": "BTC", "timeframes": 123}"#; // timeframes should be string
+        let result = serde_json::from_str::<MultiChartQuery>(invalid_json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_add_symbol_request_missing_field() {
+        let json = r#"{"symbol": "BTCUSDT"}"#; // missing timeframes
+        let result = serde_json::from_str::<AddSymbolRequest>(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_supported_symbols_extra_fields_ignored() {
+        let json = r#"{
+            "symbols": ["BTC"],
+            "available_timeframes": ["1h"],
+            "extra_field": "ignored"
+        }"#;
+        let result: SupportedSymbols = serde_json::from_str(json).unwrap();
+        assert_eq!(result.symbols.len(), 1);
     }
 }

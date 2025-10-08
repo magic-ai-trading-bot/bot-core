@@ -319,3 +319,867 @@ impl BinanceClient {
             .await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::BinanceConfig;
+
+    fn create_test_config() -> BinanceConfig {
+        BinanceConfig {
+            api_key: "test_api_key".to_string(),
+            secret_key: "test_secret_key".to_string(),
+            base_url: "https://api.binance.com".to_string(),
+            ws_url: "wss://stream.binance.com:9443/ws".to_string(),
+            futures_base_url: "https://fapi.binance.com".to_string(),
+            futures_ws_url: "wss://fstream.binance.com".to_string(),
+            testnet: false,
+        }
+    }
+
+    #[test]
+    fn test_client_creation() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config.clone());
+        assert_eq!(client.config.api_key, "test_api_key");
+        assert_eq!(client.config.secret_key, "test_secret_key");
+    }
+
+    #[test]
+    fn test_sign_request() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query_string = "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1&price=9000&timestamp=1499827319559";
+        let signature = client.sign_request(query_string);
+
+        // Signature should be a 64-character hex string (SHA256 produces 32 bytes = 64 hex chars)
+        assert_eq!(signature.len(), 64);
+        assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_sign_request_consistency() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query_string = "symbol=BTCUSDT&timestamp=1499827319559";
+        let signature1 = client.sign_request(query_string);
+        let signature2 = client.sign_request(query_string);
+
+        // Same input should produce same signature
+        assert_eq!(signature1, signature2);
+    }
+
+    #[test]
+    fn test_sign_request_different_inputs() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query_string1 = "symbol=BTCUSDT&timestamp=1499827319559";
+        let query_string2 = "symbol=ETHUSDT&timestamp=1499827319559";
+        let signature1 = client.sign_request(query_string1);
+        let signature2 = client.sign_request(query_string2);
+
+        // Different inputs should produce different signatures
+        assert_ne!(signature1, signature2);
+    }
+
+    #[test]
+    fn test_get_timestamp() {
+        let timestamp1 = BinanceClient::get_timestamp();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let timestamp2 = BinanceClient::get_timestamp();
+
+        // Timestamps should be different and in milliseconds
+        assert!(timestamp2 > timestamp1);
+        assert!(timestamp1 > 0);
+        // Check that timestamp is reasonable (after 2020 and before 2100)
+        assert!(timestamp1 > 1577836800000); // Jan 1, 2020
+        assert!(timestamp1 < 4102444800000); // Jan 1, 2100
+    }
+
+    #[test]
+    fn test_clone() {
+        let config = create_test_config();
+        let client1 = BinanceClient::new(config);
+        let client2 = client1.clone();
+
+        assert_eq!(client1.config.api_key, client2.config.api_key);
+        assert_eq!(client1.config.secret_key, client2.config.secret_key);
+    }
+
+    #[test]
+    fn test_sign_empty_string() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("");
+        assert_eq!(signature.len(), 64);
+        assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_sign_special_characters() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query_string = "symbol=BTC%2FUSDT&quantity=1.5&price=50000.00";
+        let signature = client.sign_request(query_string);
+
+        assert_eq!(signature.len(), 64);
+        assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_config_clone() {
+        let config = create_test_config();
+        let cloned = config.clone();
+
+        assert_eq!(config.api_key, cloned.api_key);
+        assert_eq!(config.base_url, cloned.base_url);
+        assert_eq!(config.testnet, cloned.testnet);
+    }
+
+    #[test]
+    fn test_timestamp_is_millis() {
+        let timestamp = BinanceClient::get_timestamp();
+        let timestamp_str = timestamp.to_string();
+
+        // Timestamp in milliseconds should be 13 digits
+        assert_eq!(timestamp_str.len(), 13);
+    }
+
+    #[test]
+    fn test_client_with_testnet_config() {
+        let mut config = create_test_config();
+        config.testnet = true;
+        config.base_url = "https://testnet.binance.vision".to_string();
+
+        let client = BinanceClient::new(config.clone());
+        assert_eq!(client.config.base_url, "https://testnet.binance.vision");
+        assert_eq!(client.config.testnet, true);
+    }
+
+    #[test]
+    fn test_signature_with_different_keys() {
+        let mut config1 = create_test_config();
+        config1.secret_key = "secret_key_1".to_string();
+        let client1 = BinanceClient::new(config1);
+
+        let mut config2 = create_test_config();
+        config2.secret_key = "secret_key_2".to_string();
+        let client2 = BinanceClient::new(config2);
+
+        let query_string = "symbol=BTCUSDT&timestamp=1499827319559";
+        let signature1 = client1.sign_request(query_string);
+        let signature2 = client2.sign_request(query_string);
+
+        // Different keys should produce different signatures
+        assert_ne!(signature1, signature2);
+    }
+
+    #[test]
+    fn test_sign_request_with_unicode() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        // Test that signature works with various strings
+        let query_string = "symbol=BTCUSDT&note=test";
+        let signature = client.sign_request(query_string);
+
+        assert_eq!(signature.len(), 64);
+        assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_timestamp_monotonic() {
+        let mut timestamps = Vec::new();
+        for _ in 0..5 {
+            timestamps.push(BinanceClient::get_timestamp());
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+
+        // Timestamps should be monotonically increasing
+        for i in 1..timestamps.len() {
+            assert!(timestamps[i] >= timestamps[i - 1]);
+        }
+    }
+
+    #[test]
+    fn test_client_with_empty_api_key() {
+        let mut config = create_test_config();
+        config.api_key = "".to_string();
+
+        let client = BinanceClient::new(config);
+        assert_eq!(client.config.api_key, "");
+    }
+
+    #[test]
+    fn test_sign_long_query_string() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let mut long_query = String::new();
+        for i in 0..100 {
+            long_query.push_str(&format!("param{i}=value{i}&"));
+        }
+
+        let signature = client.sign_request(&long_query);
+        assert_eq!(signature.len(), 64);
+        assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_hex_encoding_lowercase() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("test");
+        // Hex encoding should be lowercase
+        assert!(signature.chars().all(|c| !c.is_ascii_uppercase() || !c.is_alphabetic()));
+    }
+
+    #[test]
+    fn test_config_urls() {
+        let config = create_test_config();
+
+        assert!(config.base_url.starts_with("https://"));
+        assert!(config.ws_url.starts_with("wss://"));
+        assert!(config.futures_base_url.starts_with("https://"));
+        assert!(config.futures_ws_url.starts_with("wss://"));
+    }
+
+    // === Additional Comprehensive Tests ===
+
+    // Test BinanceClient::new() variants
+    #[test]
+    fn test_client_new_with_production_config() {
+        let config = BinanceConfig {
+            api_key: "prod_api_key".to_string(),
+            secret_key: "prod_secret_key".to_string(),
+            base_url: "https://api.binance.com".to_string(),
+            ws_url: "wss://stream.binance.com:9443/ws".to_string(),
+            futures_base_url: "https://fapi.binance.com".to_string(),
+            futures_ws_url: "wss://fstream.binance.com".to_string(),
+            testnet: false,
+        };
+
+        let client = BinanceClient::new(config.clone());
+        assert_eq!(client.config.api_key, "prod_api_key");
+        assert_eq!(client.config.testnet, false);
+        assert_eq!(client.config.base_url, "https://api.binance.com");
+    }
+
+    #[test]
+    fn test_client_new_with_testnet_config() {
+        let config = BinanceConfig {
+            api_key: "test_api_key".to_string(),
+            secret_key: "test_secret_key".to_string(),
+            base_url: "https://testnet.binance.vision".to_string(),
+            ws_url: "wss://testnet.binance.vision/ws".to_string(),
+            futures_base_url: "https://testnet.binancefuture.com".to_string(),
+            futures_ws_url: "wss://stream.binancefuture.com".to_string(),
+            testnet: true,
+        };
+
+        let client = BinanceClient::new(config.clone());
+        assert_eq!(client.config.testnet, true);
+        assert!(client.config.base_url.contains("testnet"));
+    }
+
+    #[test]
+    fn test_client_new_with_empty_credentials() {
+        let config = BinanceConfig {
+            api_key: "".to_string(),
+            secret_key: "".to_string(),
+            base_url: "https://api.binance.com".to_string(),
+            ws_url: "wss://stream.binance.com:9443/ws".to_string(),
+            futures_base_url: "https://fapi.binance.com".to_string(),
+            futures_ws_url: "wss://fstream.binance.com".to_string(),
+            testnet: false,
+        };
+
+        let client = BinanceClient::new(config);
+        assert_eq!(client.config.api_key, "");
+        assert_eq!(client.config.secret_key, "");
+    }
+
+    #[test]
+    fn test_client_new_with_long_api_keys() {
+        let long_key = "a".repeat(1000);
+        let config = BinanceConfig {
+            api_key: long_key.clone(),
+            secret_key: long_key.clone(),
+            base_url: "https://api.binance.com".to_string(),
+            ws_url: "wss://stream.binance.com:9443/ws".to_string(),
+            futures_base_url: "https://fapi.binance.com".to_string(),
+            futures_ws_url: "wss://fstream.binance.com".to_string(),
+            testnet: false,
+        };
+
+        let client = BinanceClient::new(config);
+        assert_eq!(client.config.api_key.len(), 1000);
+        assert_eq!(client.config.secret_key.len(), 1000);
+    }
+
+    #[test]
+    fn test_client_new_with_special_chars_in_keys() {
+        let config = BinanceConfig {
+            api_key: "key!@#$%^&*()".to_string(),
+            secret_key: "secret+=-_{}[]|:;<>,.?/~`".to_string(),
+            base_url: "https://api.binance.com".to_string(),
+            ws_url: "wss://stream.binance.com:9443/ws".to_string(),
+            futures_base_url: "https://fapi.binance.com".to_string(),
+            futures_ws_url: "wss://fstream.binance.com".to_string(),
+            testnet: false,
+        };
+
+        let client = BinanceClient::new(config.clone());
+        assert_eq!(client.config.api_key, "key!@#$%^&*()");
+        assert!(client.config.secret_key.contains("+=-_"));
+    }
+
+    // Test sign_request() edge cases
+    #[test]
+    fn test_sign_request_empty_query() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("");
+
+        // Should still produce valid signature for empty string
+        assert_eq!(signature.len(), 64);
+        assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_sign_request_single_param() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("symbol=BTCUSDT");
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_multiple_params() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query = "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1&price=50000";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_with_encoded_params() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query = "symbol=BTCUSDT&note=Hello%20World&tag=test%26tag";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_with_numbers() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query = "timestamp=1234567890123&recvWindow=5000";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_with_decimals() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query = "price=50000.50&quantity=0.001&stopPrice=49999.99";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_deterministic() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query = "symbol=ETHUSDT&interval=1h&limit=100";
+        let sig1 = client.sign_request(query);
+        let sig2 = client.sign_request(query);
+        let sig3 = client.sign_request(query);
+
+        assert_eq!(sig1, sig2);
+        assert_eq!(sig2, sig3);
+    }
+
+    #[test]
+    fn test_sign_request_order_matters() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query1 = "symbol=BTCUSDT&side=BUY";
+        let query2 = "side=BUY&symbol=BTCUSDT";
+        let sig1 = client.sign_request(query1);
+        let sig2 = client.sign_request(query2);
+
+        // Different order should produce different signatures
+        assert_ne!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_sign_request_case_sensitive() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query1 = "symbol=BTCUSDT";
+        let query2 = "symbol=btcusdt";
+        let sig1 = client.sign_request(query1);
+        let sig2 = client.sign_request(query2);
+
+        // Case difference should produce different signatures
+        assert_ne!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_sign_request_with_whitespace() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query1 = "symbol=BTCUSDT&side=BUY";
+        let query2 = "symbol=BTCUSDT&side=BUY ";
+        let sig1 = client.sign_request(query1);
+        let sig2 = client.sign_request(query2);
+
+        // Trailing space should produce different signature
+        assert_ne!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_sign_request_very_long_query() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let mut query = String::from("symbol=BTCUSDT");
+        for i in 0..500 {
+            query.push_str(&format!("&param{i}=value{i}"));
+        }
+
+        let signature = client.sign_request(&query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_with_equals_in_value() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query = "symbol=BTCUSDT&note=test=value";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_with_ampersand_encoded() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query = "symbol=BTCUSDT&tag=test%26encoded";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    // Test signature with different secret keys
+    #[test]
+    fn test_different_secrets_produce_different_signatures() {
+        let mut config1 = create_test_config();
+        config1.secret_key = "secret1".to_string();
+        let client1 = BinanceClient::new(config1);
+
+        let mut config2 = create_test_config();
+        config2.secret_key = "secret2".to_string();
+        let client2 = BinanceClient::new(config2);
+
+        let mut config3 = create_test_config();
+        config3.secret_key = "secret3".to_string();
+        let client3 = BinanceClient::new(config3);
+
+        let query = "symbol=BTCUSDT&timestamp=1234567890";
+        let sig1 = client1.sign_request(query);
+        let sig2 = client2.sign_request(query);
+        let sig3 = client3.sign_request(query);
+
+        assert_ne!(sig1, sig2);
+        assert_ne!(sig2, sig3);
+        assert_ne!(sig1, sig3);
+    }
+
+    #[test]
+    fn test_signature_hex_format() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("test_query");
+
+        // Should be all lowercase hex
+        for c in signature.chars() {
+            assert!(c.is_ascii_hexdigit());
+            if c.is_alphabetic() {
+                assert!(c.is_lowercase());
+            }
+        }
+    }
+
+    #[test]
+    fn test_signature_with_numeric_only_query() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("1234567890");
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_signature_with_newlines() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query1 = "symbol=BTCUSDT&side=BUY";
+        let query2 = "symbol=BTCUSDT\n&side=BUY";
+        let sig1 = client.sign_request(query1);
+        let sig2 = client.sign_request(query2);
+
+        // Newline should produce different signature
+        assert_ne!(sig1, sig2);
+    }
+
+    // Test get_timestamp()
+    #[test]
+    fn test_timestamp_positive() {
+        let timestamp = BinanceClient::get_timestamp();
+        assert!(timestamp > 0);
+    }
+
+    #[test]
+    fn test_timestamp_reasonable_range() {
+        let timestamp = BinanceClient::get_timestamp();
+
+        // After Jan 1, 2024 and before Jan 1, 2100
+        assert!(timestamp > 1704067200000); // Jan 1, 2024
+        assert!(timestamp < 4102444800000); // Jan 1, 2100
+    }
+
+    #[test]
+    fn test_timestamp_millisecond_precision() {
+        let timestamp = BinanceClient::get_timestamp();
+        let timestamp_str = timestamp.to_string();
+
+        // Should be 13 digits (milliseconds since epoch)
+        assert_eq!(timestamp_str.len(), 13);
+    }
+
+    #[test]
+    fn test_timestamp_sequential_calls() {
+        let timestamps: Vec<i64> = (0..10)
+            .map(|_| {
+                let ts = BinanceClient::get_timestamp();
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                ts
+            })
+            .collect();
+
+        // Check all timestamps are unique and increasing
+        for i in 1..timestamps.len() {
+            assert!(timestamps[i] >= timestamps[i - 1]);
+        }
+    }
+
+    #[test]
+    fn test_timestamp_multiple_rapid_calls() {
+        let ts1 = BinanceClient::get_timestamp();
+        let ts2 = BinanceClient::get_timestamp();
+        let ts3 = BinanceClient::get_timestamp();
+
+        // Should be close to each other (within 100ms)
+        assert!((ts3 - ts1).abs() < 100);
+
+        // Should be non-decreasing
+        assert!(ts2 >= ts1);
+        assert!(ts3 >= ts2);
+    }
+
+    // Test client cloning
+    #[test]
+    fn test_client_clone_preserves_config() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+        let cloned = client.clone();
+
+        assert_eq!(client.config.api_key, cloned.config.api_key);
+        assert_eq!(client.config.secret_key, cloned.config.secret_key);
+        assert_eq!(client.config.base_url, cloned.config.base_url);
+        assert_eq!(client.config.ws_url, cloned.config.ws_url);
+        assert_eq!(client.config.futures_base_url, cloned.config.futures_base_url);
+        assert_eq!(client.config.futures_ws_url, cloned.config.futures_ws_url);
+        assert_eq!(client.config.testnet, cloned.config.testnet);
+    }
+
+    #[test]
+    fn test_client_clone_independent_signatures() {
+        let config = create_test_config();
+        let client1 = BinanceClient::new(config);
+        let client2 = client1.clone();
+
+        let query = "symbol=BTCUSDT&timestamp=1234567890";
+        let sig1 = client1.sign_request(query);
+        let sig2 = client2.sign_request(query);
+
+        // Should produce same signature
+        assert_eq!(sig1, sig2);
+    }
+
+    // Test config variations
+    #[test]
+    fn test_config_with_custom_urls() {
+        let config = BinanceConfig {
+            api_key: "test_key".to_string(),
+            secret_key: "test_secret".to_string(),
+            base_url: "https://custom.binance.com".to_string(),
+            ws_url: "wss://custom.binance.com/ws".to_string(),
+            futures_base_url: "https://custom-futures.binance.com".to_string(),
+            futures_ws_url: "wss://custom-futures.binance.com/ws".to_string(),
+            testnet: false,
+        };
+
+        let client = BinanceClient::new(config.clone());
+        assert_eq!(client.config.base_url, "https://custom.binance.com");
+        assert_eq!(client.config.futures_base_url, "https://custom-futures.binance.com");
+    }
+
+    #[test]
+    fn test_config_urls_protocol() {
+        let config = create_test_config();
+
+        // HTTP URLs should use https
+        assert!(config.base_url.starts_with("https://"));
+        assert!(config.futures_base_url.starts_with("https://"));
+
+        // WebSocket URLs should use wss
+        assert!(config.ws_url.starts_with("wss://"));
+        assert!(config.futures_ws_url.starts_with("wss://"));
+    }
+
+    #[test]
+    fn test_config_testnet_flag() {
+        let mut config = create_test_config();
+        assert_eq!(config.testnet, false);
+
+        config.testnet = true;
+        let client = BinanceClient::new(config.clone());
+        assert_eq!(client.config.testnet, true);
+    }
+
+    // Test signature consistency across instances
+    #[test]
+    fn test_signature_consistency_across_instances() {
+        let config = create_test_config();
+        let client1 = BinanceClient::new(config.clone());
+        let client2 = BinanceClient::new(config.clone());
+
+        let query = "symbol=BTCUSDT&side=BUY&type=MARKET";
+        let sig1 = client1.sign_request(query);
+        let sig2 = client2.sign_request(query);
+
+        assert_eq!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_signature_with_all_printable_ascii() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        // Test with various ASCII characters
+        let query = "data=!@#$%^&*()_+-=[]{}|;':\",./<>?`~";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_client_multiple_clones() {
+        let config = create_test_config();
+        let client1 = BinanceClient::new(config);
+        let client2 = client1.clone();
+        let client3 = client2.clone();
+        let client4 = client3.clone();
+
+        assert_eq!(client1.config.api_key, client4.config.api_key);
+
+        let query = "test=query";
+        assert_eq!(
+            client1.sign_request(query),
+            client4.sign_request(query)
+        );
+    }
+
+    // Test edge cases for query strings
+    #[test]
+    fn test_sign_request_query_with_only_ampersands() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("&&&");
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_query_with_only_equals() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("===");
+        assert_eq!(signature.len(), 64);
+    }
+
+    #[test]
+    fn test_sign_request_mixed_case_params() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query1 = "Symbol=BTCUSDT&Side=BUY";
+        let query2 = "symbol=BTCUSDT&side=BUY";
+        let sig1 = client.sign_request(query1);
+        let sig2 = client.sign_request(query2);
+
+        // Case should matter
+        assert_ne!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_timestamp_format() {
+        let timestamp = BinanceClient::get_timestamp();
+
+        // Should be able to convert to string
+        let _timestamp_str = timestamp.to_string();
+
+        // Should be i64
+        assert!(timestamp.is_positive());
+    }
+
+    #[test]
+    fn test_client_config_immutability() {
+        let config = BinanceConfig {
+            api_key: "original_key".to_string(),
+            secret_key: "original_secret".to_string(),
+            base_url: "https://api.binance.com".to_string(),
+            ws_url: "wss://stream.binance.com:9443/ws".to_string(),
+            futures_base_url: "https://fapi.binance.com".to_string(),
+            futures_ws_url: "wss://fstream.binance.com".to_string(),
+            testnet: false,
+        };
+
+        let client = BinanceClient::new(config.clone());
+
+        // Original config should be unchanged
+        assert_eq!(config.api_key, "original_key");
+        assert_eq!(client.config.api_key, "original_key");
+    }
+
+    #[test]
+    fn test_signature_length_always_64() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let long_string = "x".repeat(10000);
+        let test_queries = vec![
+            "",
+            "a",
+            "short",
+            "symbol=BTCUSDT",
+            "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1&price=50000",
+            &long_string,
+        ];
+
+        for query in test_queries {
+            let signature = client.sign_request(query);
+            assert_eq!(signature.len(), 64, "Failed for query: {}", query);
+        }
+    }
+
+    #[test]
+    fn test_signature_alphanumeric_only() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let signature = client.sign_request("test");
+
+        // Should only contain 0-9 and a-f (hex)
+        for c in signature.chars() {
+            assert!(
+                ('0'..='9').contains(&c) || ('a'..='f').contains(&c),
+                "Invalid character in signature: {c}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_client_creation_multiple_times() {
+        let config = create_test_config();
+
+        // Create multiple clients
+        let _client1 = BinanceClient::new(config.clone());
+        let _client2 = BinanceClient::new(config.clone());
+        let _client3 = BinanceClient::new(config.clone());
+
+        // Should not panic
+        assert!(true);
+    }
+
+    #[test]
+    fn test_timestamp_never_negative() {
+        for _ in 0..100 {
+            let timestamp = BinanceClient::get_timestamp();
+            assert!(timestamp > 0, "Timestamp should never be negative");
+        }
+    }
+
+    #[test]
+    fn test_config_all_fields_present() {
+        let config = create_test_config();
+
+        // All fields should be non-empty
+        assert!(!config.api_key.is_empty());
+        assert!(!config.secret_key.is_empty());
+        assert!(!config.base_url.is_empty());
+        assert!(!config.ws_url.is_empty());
+        assert!(!config.futures_base_url.is_empty());
+        assert!(!config.futures_ws_url.is_empty());
+    }
+
+    #[test]
+    fn test_signature_with_tab_character() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        let query1 = "symbol=BTCUSDT&side=BUY";
+        let query2 = "symbol=BTCUSDT\t&side=BUY";
+        let sig1 = client.sign_request(query1);
+        let sig2 = client.sign_request(query2);
+
+        // Tab should produce different signature
+        assert_ne!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_signature_with_null_byte_string() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config);
+
+        // This should still work, as it's just a string
+        let query = "symbol=BTCUSDT\0&side=BUY";
+        let signature = client.sign_request(query);
+        assert_eq!(signature.len(), 64);
+    }
+}
