@@ -65,7 +65,7 @@ impl AIService {
                     tokio::time::sleep(delay).await;
 
                     log::warn!("AI analysis attempt {attempts} failed, retrying: {e}");
-                }
+                },
             }
         }
 
@@ -299,7 +299,10 @@ mod tests {
         let service = AIService::new(config.clone());
 
         assert_eq!(service.config.python_service_url, config.python_service_url);
-        assert_eq!(service.config.request_timeout_seconds, config.request_timeout_seconds);
+        assert_eq!(
+            service.config.request_timeout_seconds,
+            config.request_timeout_seconds
+        );
         assert_eq!(service.config.max_retries, config.max_retries);
     }
 

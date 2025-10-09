@@ -331,28 +331,17 @@ class BaseApiClient {
 
     // Request interceptor
     this.client.interceptors.request.use(
-      (config) => {
-        console.log(
-          `🚀 [${serviceName}] ${config.method?.toUpperCase()} ${config.url}`
-        );
-        return config;
-      },
+      (config) => config,
       (error) => Promise.reject(error)
     );
 
     // Response interceptor
     this.client.interceptors.response.use(
-      (response) => {
-        console.log(
-          `✅ [${serviceName}] ${response.status} ${response.config.url}`
-        );
-        return response;
-      },
+      (response) => response,
       (error) => {
         console.error(
-          `❌ [${serviceName}] ${error.response?.status || "Network Error"} ${
-            error.config?.url
-          }:`,
+          `API Error [${serviceName}]:`,
+          error.response?.status || "Network Error",
           error.message
         );
         return Promise.reject(error);
@@ -375,9 +364,6 @@ class BaseApiClient {
 
         // Exponential backoff
         const delay = backoffMs * Math.pow(2, attempt - 1);
-        console.warn(
-          `🔄 Retry attempt ${attempt}/${maxRetries} in ${delay}ms...`
-        );
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }

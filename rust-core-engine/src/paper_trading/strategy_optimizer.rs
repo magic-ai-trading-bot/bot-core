@@ -405,14 +405,14 @@ impl StrategyOptimizer {
         match current_regime {
             MarketRegime::HighVolatility => {
                 self.adjust_for_high_volatility(&mut optimized_parameters);
-            }
+            },
             MarketRegime::Sideways => {
                 self.adjust_for_sideways_market(&mut optimized_parameters);
-            }
+            },
             MarketRegime::BullTrending | MarketRegime::BearTrending => {
                 self.adjust_for_trending_market(&mut optimized_parameters);
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         Ok(optimized_parameters)
@@ -1387,7 +1387,10 @@ mod tests {
         config.genetic_mutation_rate = 0.15;
 
         let optimizer = StrategyOptimizer::new(config.clone());
-        assert_eq!(optimizer.optimization_config.min_trades_for_optimization, 100);
+        assert_eq!(
+            optimizer.optimization_config.min_trades_for_optimization,
+            100
+        );
         assert_eq!(optimizer.optimization_config.optimization_period_days, 60);
         assert!(optimizer.optimization_config.enable_genetic_algorithm);
     }
@@ -1727,7 +1730,11 @@ mod tests {
         );
 
         assert!(!reasoning.is_empty());
-        assert!(reasoning.contains("win rate") || reasoning.contains("risk/reward") || reasoning.contains("drawdown"));
+        assert!(
+            reasoning.contains("win rate")
+                || reasoning.contains("risk/reward")
+                || reasoning.contains("drawdown")
+        );
     }
 
     #[test]
@@ -2224,8 +2231,12 @@ mod tests {
     fn test_secondary_metrics_in_config() {
         let config = OptimizationConfig::default();
         assert!(config.secondary_metrics.len() > 0);
-        assert!(config.secondary_metrics.contains_key(&OptimizationMetric::MaxDrawdown));
-        assert!(config.secondary_metrics.contains_key(&OptimizationMetric::ProfitFactor));
+        assert!(config
+            .secondary_metrics
+            .contains_key(&OptimizationMetric::MaxDrawdown));
+        assert!(config
+            .secondary_metrics
+            .contains_key(&OptimizationMetric::ProfitFactor));
     }
 
     #[test]
@@ -2237,9 +2248,18 @@ mod tests {
 
     #[test]
     fn test_all_optimization_metrics_enum_equality() {
-        assert_eq!(OptimizationMetric::SharpeRatio, OptimizationMetric::SharpeRatio);
-        assert_ne!(OptimizationMetric::SharpeRatio, OptimizationMetric::TotalReturn);
-        assert_ne!(OptimizationMetric::WinRate, OptimizationMetric::ProfitFactor);
+        assert_eq!(
+            OptimizationMetric::SharpeRatio,
+            OptimizationMetric::SharpeRatio
+        );
+        assert_ne!(
+            OptimizationMetric::SharpeRatio,
+            OptimizationMetric::TotalReturn
+        );
+        assert_ne!(
+            OptimizationMetric::WinRate,
+            OptimizationMetric::ProfitFactor
+        );
     }
 
     #[test]
@@ -2283,11 +2303,7 @@ mod tests {
             regime_performance: HashMap::new(),
         };
 
-        let result = optimizer.generate_parameter_variations(
-            "test_strategy",
-            &params,
-            &analysis,
-        );
+        let result = optimizer.generate_parameter_variations("test_strategy", &params, &analysis);
         assert!(result.is_ok());
     }
 
@@ -2313,11 +2329,7 @@ mod tests {
             regime_performance: HashMap::new(),
         };
 
-        let result = optimizer.generate_parameter_variations(
-            "test_strategy",
-            &params,
-            &analysis,
-        );
+        let result = optimizer.generate_parameter_variations("test_strategy", &params, &analysis);
         assert!(result.is_ok());
     }
 
@@ -2329,13 +2341,16 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("min_confidence".to_string(), serde_json::json!(0.5));
         params.insert("take_profit_ratio".to_string(), serde_json::json!(2.0));
-        params.insert("position_size_multiplier".to_string(), serde_json::json!(1.0));
+        params.insert(
+            "position_size_multiplier".to_string(),
+            serde_json::json!(1.0),
+        );
 
         let analysis = StrategyAnalysis {
             total_trades: 100,
-            avg_win_rate: 0.4, // Triggers selectivity adjustment
+            avg_win_rate: 0.4,      // Triggers selectivity adjustment
             avg_profit_factor: 1.3, // Triggers risk/reward adjustment
-            max_drawdown: 0.18, // Triggers risk adjustment
+            max_drawdown: 0.18,     // Triggers risk adjustment
             performance_percentile: 0.3,
             recent_performance_decline: 0.0,
             regime_adaptation_score: 0.5,
@@ -2345,11 +2360,7 @@ mod tests {
             regime_performance: HashMap::new(),
         };
 
-        let result = optimizer.generate_parameter_variations(
-            "test_strategy",
-            &params,
-            &analysis,
-        );
+        let result = optimizer.generate_parameter_variations("test_strategy", &params, &analysis);
         assert!(result.is_ok());
         let optimized = result.unwrap();
         assert!(optimized.len() >= 3);

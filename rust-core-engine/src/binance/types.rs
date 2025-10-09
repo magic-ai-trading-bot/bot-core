@@ -833,7 +833,7 @@ mod tests {
             WebSocketEvent::ChartUpdate(update) => {
                 assert_eq!(update.symbol, "BTCUSDT");
                 assert_eq!(update.candle.is_closed, true);
-            }
+            },
             _ => panic!("Expected ChartUpdate variant"),
         }
     }
@@ -849,7 +849,7 @@ mod tests {
         match event {
             WebSocketEvent::Error { message } => {
                 assert_eq!(message, "Connection failed");
-            }
+            },
             _ => panic!("Expected Error variant"),
         }
     }
@@ -1456,13 +1456,11 @@ mod tests {
             can_deposit: true,
             update_time: 1625097600000,
             account_type: "MARGIN".to_string(),
-            balances: vec![
-                Balance {
-                    asset: "ETH".to_string(),
-                    free: "5.0".to_string(),
-                    locked: "1.0".to_string(),
-                },
-            ],
+            balances: vec![Balance {
+                asset: "ETH".to_string(),
+                free: "5.0".to_string(),
+                locked: "1.0".to_string(),
+            }],
             permissions: vec!["SPOT".to_string(), "MARGIN".to_string()],
         };
 
@@ -1944,7 +1942,7 @@ mod tests {
         match event {
             WebSocketEvent::Kline(kline_event) => {
                 assert_eq!(kline_event.symbol, "BTCUSDT");
-            }
+            },
             _ => panic!("Expected Kline variant"),
         }
     }
@@ -1982,7 +1980,7 @@ mod tests {
         match event {
             WebSocketEvent::Ticker(ticker_event) => {
                 assert_eq!(ticker_event.symbol, "ETHUSDT");
-            }
+            },
             _ => panic!("Expected Ticker variant"),
         }
     }
@@ -2004,7 +2002,7 @@ mod tests {
         match event {
             WebSocketEvent::OrderBook(orderbook_event) => {
                 assert_eq!(orderbook_event.symbol, "BTCUSDT");
-            }
+            },
             _ => panic!("Expected OrderBook variant"),
         }
     }
@@ -2026,7 +2024,7 @@ mod tests {
             WebSocketEvent::MarketData(market_data) => {
                 assert_eq!(market_data.symbol, "BTCUSDT");
                 assert_eq!(market_data.price, 34500.0);
-            }
+            },
             _ => panic!("Expected MarketData variant"),
         }
     }

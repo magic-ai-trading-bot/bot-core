@@ -258,19 +258,52 @@ mod tests {
 
     #[test]
     fn test_ai_confidence_level_from_score() {
-        assert!(matches!(AIConfidenceLevel::from_score(0.1), AIConfidenceLevel::VeryLow));
-        assert!(matches!(AIConfidenceLevel::from_score(0.3), AIConfidenceLevel::Low));
-        assert!(matches!(AIConfidenceLevel::from_score(0.5), AIConfidenceLevel::Medium));
-        assert!(matches!(AIConfidenceLevel::from_score(0.7), AIConfidenceLevel::High));
-        assert!(matches!(AIConfidenceLevel::from_score(0.9), AIConfidenceLevel::VeryHigh));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.1),
+            AIConfidenceLevel::VeryLow
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.3),
+            AIConfidenceLevel::Low
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.5),
+            AIConfidenceLevel::Medium
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.7),
+            AIConfidenceLevel::High
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.9),
+            AIConfidenceLevel::VeryHigh
+        ));
 
         // Edge cases
-        assert!(matches!(AIConfidenceLevel::from_score(0.0), AIConfidenceLevel::VeryLow));
-        assert!(matches!(AIConfidenceLevel::from_score(0.2), AIConfidenceLevel::Low));
-        assert!(matches!(AIConfidenceLevel::from_score(0.4), AIConfidenceLevel::Medium));
-        assert!(matches!(AIConfidenceLevel::from_score(0.6), AIConfidenceLevel::High));
-        assert!(matches!(AIConfidenceLevel::from_score(0.8), AIConfidenceLevel::VeryHigh));
-        assert!(matches!(AIConfidenceLevel::from_score(1.0), AIConfidenceLevel::VeryHigh));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.0),
+            AIConfidenceLevel::VeryLow
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.2),
+            AIConfidenceLevel::Low
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.4),
+            AIConfidenceLevel::Medium
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.6),
+            AIConfidenceLevel::High
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(0.8),
+            AIConfidenceLevel::VeryHigh
+        ));
+        assert!(matches!(
+            AIConfidenceLevel::from_score(1.0),
+            AIConfidenceLevel::VeryHigh
+        ));
     }
 
     #[test]
@@ -294,10 +327,16 @@ mod tests {
     #[test]
     fn test_ai_error_display() {
         let network_error = AIError::Network("connection failed".to_string());
-        assert_eq!(format!("{}", network_error), "Network error: connection failed");
+        assert_eq!(
+            format!("{}", network_error),
+            "Network error: connection failed"
+        );
 
         let service_error = AIError::ServiceUnavailable("service down".to_string());
-        assert_eq!(format!("{}", service_error), "Service unavailable: service down");
+        assert_eq!(
+            format!("{}", service_error),
+            "Service unavailable: service down"
+        );
 
         let invalid_error = AIError::InvalidRequest("bad params".to_string());
         assert_eq!(format!("{}", invalid_error), "Invalid request: bad params");

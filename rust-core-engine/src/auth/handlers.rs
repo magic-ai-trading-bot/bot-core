@@ -115,7 +115,7 @@ async fn handle_register(
                 })),
                 warp::http::StatusCode::CONFLICT,
             ));
-        }
+        },
         Err(e) => {
             error!("Database error checking email: {}", e);
             return Ok(warp::reply::with_status(
@@ -125,8 +125,8 @@ async fn handle_register(
                 })),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     // Hash password
@@ -141,7 +141,7 @@ async fn handle_register(
                 })),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     // Create user
@@ -170,7 +170,7 @@ async fn handle_register(
                         })),
                         warp::http::StatusCode::INTERNAL_SERVER_ERROR,
                     ));
-                }
+                },
             };
 
             let response = LoginResponse {
@@ -185,7 +185,7 @@ async fn handle_register(
                 })),
                 warp::http::StatusCode::CREATED,
             ))
-        }
+        },
         Err(e) => {
             error!("User creation failed: {}", e);
             Ok(warp::reply::with_status(
@@ -195,7 +195,7 @@ async fn handle_register(
                 })),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ))
-        }
+        },
     }
 }
 
@@ -230,7 +230,7 @@ async fn handle_login(
                 })),
                 warp::http::StatusCode::UNAUTHORIZED,
             ));
-        }
+        },
         Err(e) => {
             error!("Database error finding user: {}", e);
             return Ok(warp::reply::with_status(
@@ -240,7 +240,7 @@ async fn handle_login(
                 })),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     // Check if user is active
@@ -284,7 +284,7 @@ async fn handle_login(
                             })),
                             warp::http::StatusCode::INTERNAL_SERVER_ERROR,
                         ));
-                    }
+                    },
                 };
 
             let response = LoginResponse {
@@ -299,7 +299,7 @@ async fn handle_login(
                 })),
                 warp::http::StatusCode::OK,
             ))
-        }
+        },
         Ok(false) => {
             warn!("Login failed: invalid password for user: {}", request.email);
             Ok(warp::reply::with_status(
@@ -309,7 +309,7 @@ async fn handle_login(
                 })),
                 warp::http::StatusCode::UNAUTHORIZED,
             ))
-        }
+        },
         Err(e) => {
             error!("Password verification failed: {}", e);
             Ok(warp::reply::with_status(
@@ -319,7 +319,7 @@ async fn handle_login(
                 })),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ))
-        }
+        },
     }
 }
 
@@ -337,7 +337,7 @@ async fn handle_verify(
                 })),
                 warp::http::StatusCode::UNAUTHORIZED,
             ));
-        }
+        },
     };
 
     match auth_service.jwt_service.verify_token(token) {
@@ -377,7 +377,7 @@ async fn handle_profile(
                 })),
                 warp::http::StatusCode::UNAUTHORIZED,
             ));
-        }
+        },
     };
 
     let claims = match auth_service.jwt_service.verify_token(token) {
@@ -390,7 +390,7 @@ async fn handle_profile(
                 })),
                 warp::http::StatusCode::UNAUTHORIZED,
             ));
-        }
+        },
     };
 
     let user_id = match bson::oid::ObjectId::parse_str(&claims.sub) {
@@ -403,7 +403,7 @@ async fn handle_profile(
                 })),
                 warp::http::StatusCode::BAD_REQUEST,
             ));
-        }
+        },
     };
 
     match auth_service.user_repo.find_by_id(&user_id).await {
@@ -430,7 +430,7 @@ async fn handle_profile(
                 })),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ))
-        }
+        },
     }
 }
 
@@ -940,7 +940,10 @@ mod tests {
         let response = handle_profile(auth_header, auth_service).await.unwrap();
         let reply = response.into_response();
 
-        assert_eq!(reply.status(), warp::http::StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            reply.status(),
+            warp::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -1106,7 +1109,10 @@ mod tests {
         let response = handle_profile(auth_header, auth_service).await.unwrap();
         let reply = response.into_response();
 
-        assert_eq!(reply.status(), warp::http::StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            reply.status(),
+            warp::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[test]

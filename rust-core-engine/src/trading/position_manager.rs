@@ -166,9 +166,15 @@ mod tests {
     fn test_add_multiple_positions() {
         let manager = PositionManager::new();
 
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
-        manager.add_position(create_test_position("pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0));
-        manager.add_position(create_test_position("pos3", "BNBUSDT", "BUY", 5.0, 300.0, 310.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
+        manager.add_position(create_test_position(
+            "pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0,
+        ));
+        manager.add_position(create_test_position(
+            "pos3", "BNBUSDT", "BUY", 5.0, 300.0, 310.0,
+        ));
 
         assert_eq!(manager.get_position_count(), 3);
     }
@@ -214,7 +220,9 @@ mod tests {
     #[test]
     fn test_get_position() {
         let manager = PositionManager::new();
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
 
         let position = manager.get_position("BTCUSDT");
         assert!(position.is_some());
@@ -229,7 +237,9 @@ mod tests {
         let manager = PositionManager::new();
         assert!(!manager.has_position("BTCUSDT"));
 
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
         assert!(manager.has_position("BTCUSDT"));
         assert!(!manager.has_position("ETHUSDT"));
     }
@@ -238,8 +248,12 @@ mod tests {
     fn test_get_all_positions() {
         let manager = PositionManager::new();
 
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
-        manager.add_position(create_test_position("pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
+        manager.add_position(create_test_position(
+            "pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0,
+        ));
 
         let all_positions = manager.get_all_positions();
         assert_eq!(all_positions.len(), 2);
@@ -292,10 +306,14 @@ mod tests {
         let manager = PositionManager::new();
         assert_eq!(manager.get_position_count(), 0);
 
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
         assert_eq!(manager.get_position_count(), 1);
 
-        manager.add_position(create_test_position("pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0));
+        manager.add_position(create_test_position(
+            "pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0,
+        ));
         assert_eq!(manager.get_position_count(), 2);
 
         manager.remove_position("pos1");
@@ -306,9 +324,15 @@ mod tests {
     fn test_get_positions_by_side_buy() {
         let manager = PositionManager::new();
 
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
-        manager.add_position(create_test_position("pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0));
-        manager.add_position(create_test_position("pos3", "BNBUSDT", "BUY", 5.0, 300.0, 310.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
+        manager.add_position(create_test_position(
+            "pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0,
+        ));
+        manager.add_position(create_test_position(
+            "pos3", "BNBUSDT", "BUY", 5.0, 300.0, 310.0,
+        ));
 
         let buy_positions = manager.get_positions_by_side("BUY");
         assert_eq!(buy_positions.len(), 2);
@@ -322,9 +346,15 @@ mod tests {
     fn test_get_positions_by_side_sell() {
         let manager = PositionManager::new();
 
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
-        manager.add_position(create_test_position("pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0));
-        manager.add_position(create_test_position("pos3", "BNBUSDT", "SELL", 5.0, 300.0, 290.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
+        manager.add_position(create_test_position(
+            "pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0,
+        ));
+        manager.add_position(create_test_position(
+            "pos3", "BNBUSDT", "SELL", 5.0, 300.0, 290.0,
+        ));
 
         let sell_positions = manager.get_positions_by_side("SELL");
         assert_eq!(sell_positions.len(), 2);
@@ -338,7 +368,9 @@ mod tests {
     fn test_get_positions_by_side_empty() {
         let manager = PositionManager::new();
 
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
 
         let sell_positions = manager.get_positions_by_side("SELL");
         assert_eq!(sell_positions.len(), 0);
@@ -379,13 +411,19 @@ mod tests {
         let manager = PositionManager::new();
 
         // BTC: 0.1 * 51000 = 5100
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
 
         // ETH: 1.0 * 2900 = 2900
-        manager.add_position(create_test_position("pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0));
+        manager.add_position(create_test_position(
+            "pos2", "ETHUSDT", "SELL", 1.0, 3000.0, 2900.0,
+        ));
 
         // BNB: 5.0 * 310 = 1550
-        manager.add_position(create_test_position("pos3", "BNBUSDT", "BUY", 5.0, 300.0, 310.0));
+        manager.add_position(create_test_position(
+            "pos3", "BNBUSDT", "BUY", 5.0, 300.0, 310.0,
+        ));
 
         let total_exposure = manager.get_total_exposure();
         assert_eq!(total_exposure, 9550.0);
@@ -425,7 +463,9 @@ mod tests {
     #[test]
     fn test_position_manager_clone() {
         let manager = PositionManager::new();
-        manager.add_position(create_test_position("pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0));
+        manager.add_position(create_test_position(
+            "pos1", "BTCUSDT", "BUY", 0.1, 50000.0, 51000.0,
+        ));
 
         let cloned_manager = manager.clone();
         assert_eq!(cloned_manager.get_position_count(), 1);
@@ -437,7 +477,8 @@ mod tests {
         let manager = PositionManager::new();
 
         // Test with very large values
-        let large_position = create_test_position("pos1", "BTCUSDT", "BUY", 1000.0, 100000.0, 100000.0);
+        let large_position =
+            create_test_position("pos1", "BTCUSDT", "BUY", 1000.0, 100000.0, 100000.0);
         manager.add_position(large_position);
 
         let exposure = manager.get_exposure_for_symbol("BTCUSDT");
@@ -449,7 +490,8 @@ mod tests {
         let manager = PositionManager::new();
 
         // Test with very small values
-        let small_position = create_test_position("pos1", "BTCUSDT", "BUY", 0.00001, 50000.0, 50001.0);
+        let small_position =
+            create_test_position("pos1", "BTCUSDT", "BUY", 0.00001, 50000.0, 50001.0);
         manager.add_position(small_position);
 
         let exposure = manager.get_exposure_for_symbol("BTCUSDT");

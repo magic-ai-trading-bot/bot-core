@@ -177,11 +177,11 @@ impl MarketDataAnalyzer {
             {
                 Ok(analysis) => {
                     timeframe_signals.insert(timeframe.clone(), analysis);
-                }
+                },
                 Err(e) => {
                     warn!("Failed to analyze {} {}: {}", symbol, timeframe, e);
                     failed_analyses.push(timeframe.clone());
-                }
+                },
             }
         }
 
@@ -308,12 +308,12 @@ impl MarketDataAnalyzer {
                     let stop_loss = current_price * 0.98; // 2% stop loss
                     let take_profit = current_price * 1.04; // 4% take profit
                     (Some(stop_loss), Some(take_profit))
-                }
+                },
                 TradingSignal::Sell | TradingSignal::StrongSell => {
                     let stop_loss = current_price * 1.02; // 2% stop loss (price goes up)
                     let take_profit = current_price * 0.96; // 4% take profit (price goes down)
                     (Some(stop_loss), Some(take_profit))
-                }
+                },
                 TradingSignal::Hold => (None, None),
             };
 
@@ -958,7 +958,10 @@ mod tests {
         let (signal, confidence) = analyzer.combine_signals(&signals);
 
         // All buy signals should result in Buy or StrongBuy
-        assert!(matches!(signal, TradingSignal::Buy | TradingSignal::StrongBuy));
+        assert!(matches!(
+            signal,
+            TradingSignal::Buy | TradingSignal::StrongBuy
+        ));
         assert!((confidence - 0.8).abs() < 0.001);
     }
 
@@ -1022,7 +1025,10 @@ mod tests {
 
         let (signal, confidence) = analyzer.combine_signals(&signals);
 
-        assert!(matches!(signal, TradingSignal::Sell | TradingSignal::StrongSell));
+        assert!(matches!(
+            signal,
+            TradingSignal::Sell | TradingSignal::StrongSell
+        ));
         assert_eq!(confidence, 0.85);
     }
 
@@ -1367,7 +1373,10 @@ mod tests {
         };
 
         assert_eq!(request.parameters.len(), 2);
-        assert_eq!(request.parameters.get("rsi_period"), Some(&serde_json::json!(14)));
+        assert_eq!(
+            request.parameters.get("rsi_period"),
+            Some(&serde_json::json!(14))
+        );
     }
 
     #[test]

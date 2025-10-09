@@ -141,7 +141,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result, "Should not allow position when trading is disabled");
+        assert!(
+            !result,
+            "Should not allow position when trading is disabled"
+        );
     }
 
     #[tokio::test]
@@ -169,7 +172,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(result, "Should allow StrongBuy with 0.7 confidence (threshold)");
+        assert!(
+            result,
+            "Should allow StrongBuy with 0.7 confidence (threshold)"
+        );
     }
 
     #[tokio::test]
@@ -183,7 +189,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result, "Should reject StrongBuy with 0.65 confidence (below 0.7)");
+        assert!(
+            !result,
+            "Should reject StrongBuy with 0.65 confidence (below 0.7)"
+        );
     }
 
     #[tokio::test]
@@ -239,7 +248,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result, "Should reject Buy with 0.75 confidence (below 0.8)");
+        assert!(
+            !result,
+            "Should reject Buy with 0.75 confidence (below 0.8)"
+        );
     }
 
     #[tokio::test]
@@ -267,7 +279,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result, "Should reject Hold signal regardless of confidence");
+        assert!(
+            !result,
+            "Should reject Hold signal regardless of confidence"
+        );
     }
 
     #[tokio::test]
@@ -282,7 +297,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result, "Should reject position with risk-reward ratio 1.2 (below 1.5)");
+        assert!(
+            !result,
+            "Should reject position with risk-reward ratio 1.2 (below 1.5)"
+        );
     }
 
     #[tokio::test]
@@ -297,7 +315,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(result, "Should allow position with risk-reward ratio 1.5 (threshold)");
+        assert!(
+            result,
+            "Should allow position with risk-reward ratio 1.5 (threshold)"
+        );
     }
 
     #[tokio::test]
@@ -327,7 +348,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(result, "Should allow position when risk-reward ratio is not available");
+        assert!(
+            result,
+            "Should allow position when risk-reward ratio is not available"
+        );
     }
 
     #[tokio::test]
@@ -365,7 +389,10 @@ mod tests {
 
         let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 10000.0);
 
-        assert_eq!(size, config.default_quantity, "Should return default quantity");
+        assert_eq!(
+            size, config.default_quantity,
+            "Should return default quantity"
+        );
     }
 
     #[test]
@@ -375,7 +402,10 @@ mod tests {
 
         let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, None, 10000.0);
 
-        assert_eq!(size, config.default_quantity, "Should return default quantity without stop loss");
+        assert_eq!(
+            size, config.default_quantity,
+            "Should return default quantity without stop loss"
+        );
     }
 
     #[test]
@@ -385,7 +415,10 @@ mod tests {
 
         let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 0.0);
 
-        assert_eq!(size, config.default_quantity, "Should return default quantity even with zero balance");
+        assert_eq!(
+            size, config.default_quantity,
+            "Should return default quantity even with zero balance"
+        );
     }
 
     #[test]
@@ -393,9 +426,13 @@ mod tests {
         let config = create_test_config();
         let risk_manager = RiskManager::new(config.clone());
 
-        let size = risk_manager.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 1000000.0);
+        let size =
+            risk_manager.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 1000000.0);
 
-        assert_eq!(size, config.default_quantity, "Should return default quantity regardless of balance");
+        assert_eq!(
+            size, config.default_quantity,
+            "Should return default quantity regardless of balance"
+        );
     }
 
     #[test]
@@ -446,7 +483,10 @@ mod tests {
         let cloned = risk_manager.clone();
 
         assert_eq!(cloned.get_max_positions(), risk_manager.get_max_positions());
-        assert_eq!(cloned.get_risk_percentage(), risk_manager.get_risk_percentage());
+        assert_eq!(
+            cloned.get_risk_percentage(),
+            risk_manager.get_risk_percentage()
+        );
     }
 
     #[tokio::test]
@@ -475,7 +515,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result, "Should reject position with negative risk-reward ratio");
+        assert!(
+            !result,
+            "Should reject position with negative risk-reward ratio"
+        );
     }
 
     #[tokio::test]
@@ -490,6 +533,9 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(!result, "Should reject position with zero risk-reward ratio");
+        assert!(
+            !result,
+            "Should reject position with zero risk-reward ratio"
+        );
     }
 }

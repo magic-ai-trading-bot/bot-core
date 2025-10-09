@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_API_TIMEOUT: string;
   readonly VITE_REFRESH_INTERVAL: string;
   readonly VITE_ENABLE_REALTIME: string;
+  readonly VITE_HF_API_KEY: string;
 }
 
 interface ImportMeta {

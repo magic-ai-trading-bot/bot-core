@@ -29,7 +29,7 @@ mod date_time_serde {
             // BSON DateTime (from MongoDB)
             bson::Bson::DateTime(dt) => {
                 Ok(DateTime::from_timestamp_millis(dt.timestamp_millis()).unwrap_or_else(Utc::now))
-            }
+            },
             // String format (RFC 3339)
             bson::Bson::String(s) => s.parse().map_err(D::Error::custom),
             _ => Err(D::Error::custom("Expected DateTime or String")),
@@ -489,11 +489,7 @@ mod tests {
 
     #[test]
     fn test_date_time_serde_serialize() {
-        let user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let user = User::new("test@example.com".to_string(), "hash".to_string(), None);
 
         // Test that created_at and updated_at are serialized
         let json = serde_json::to_string(&user).unwrap();
@@ -533,11 +529,7 @@ mod tests {
 
     #[test]
     fn test_optional_date_time_serde_serialize_some() {
-        let mut user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let mut user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         user.update_last_login();
 
         let json = serde_json::to_string(&user).unwrap();
@@ -546,11 +538,7 @@ mod tests {
 
     #[test]
     fn test_optional_date_time_serde_serialize_none() {
-        let user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let user = User::new("test@example.com".to_string(), "hash".to_string(), None);
 
         let json = serde_json::to_string(&user).unwrap();
         // last_login should be present but null
@@ -632,11 +620,7 @@ mod tests {
 
     #[test]
     fn test_user_profile_debug_trait() {
-        let user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         let profile = user.to_profile();
 
         let debug_str = format!("{:?}", profile);
@@ -693,11 +677,7 @@ mod tests {
 
     #[test]
     fn test_login_response_debug_trait() {
-        let user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         let response = LoginResponse {
             token: "token".to_string(),
             user: user.to_profile(),
@@ -749,11 +729,7 @@ mod tests {
 
     #[test]
     fn test_login_response_clone() {
-        let user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         let resp1 = LoginResponse {
             token: "token".to_string(),
             user: user.to_profile(),
@@ -792,11 +768,7 @@ mod tests {
 
     #[test]
     fn test_user_profile_with_last_login() {
-        let mut user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let mut user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         user.update_last_login();
 
         let profile = user.to_profile();
@@ -805,11 +777,7 @@ mod tests {
 
     #[test]
     fn test_user_multiple_last_login_updates() {
-        let mut user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let mut user = User::new("test@example.com".to_string(), "hash".to_string(), None);
 
         user.update_last_login();
         let first_login = user.last_login;
@@ -827,11 +795,7 @@ mod tests {
 
     #[test]
     fn test_user_with_id_serialization() {
-        let mut user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let mut user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         user.id = Some(ObjectId::new());
 
         let json = serde_json::to_string(&user).unwrap();
@@ -840,11 +804,7 @@ mod tests {
 
     #[test]
     fn test_user_without_id_serialization() {
-        let user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let user = User::new("test@example.com".to_string(), "hash".to_string(), None);
 
         let json = serde_json::to_string(&user).unwrap();
         // When id is None, it should be skipped in serialization
@@ -873,11 +833,7 @@ mod tests {
 
     #[test]
     fn test_user_inactive_state() {
-        let mut user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let mut user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         user.is_active = false;
 
         let profile = user.to_profile();
@@ -886,11 +842,7 @@ mod tests {
 
     #[test]
     fn test_user_admin_state() {
-        let mut user = User::new(
-            "test@example.com".to_string(),
-            "hash".to_string(),
-            None,
-        );
+        let mut user = User::new("test@example.com".to_string(), "hash".to_string(), None);
         user.is_admin = true;
 
         let profile = user.to_profile();

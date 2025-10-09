@@ -316,4 +316,143 @@ describe('useWebSocket', () => {
 
     expect(closeSpy).toHaveBeenCalled()
   })
+
+  describe('Infinite Loop Prevention', () => {
+    it('should not reconnect infinitely on mount', async () => {
+      // This test verifies the fix for the infinite loop issue
+      let connectionAttempts = 0
+      const originalWebSocket = global.WebSocket
+
+      // Create a custom mock that counts connection attempts
+      class CountingWebSocketMock {
+        static CONNECTING = 0
+        static OPEN = 1
+        static CLOSING = 2
+        static CLOSED = 3
+
+        constructor(url: string) {
+          connectionAttempts++
+          mockWs = new MockWebSocket()
+          return mockWs as any
+        }
+      }
+
+      vi.stubGlobal('WebSocket', CountingWebSocketMock)
+
+      const { result } = renderHook(() => useWebSocket())
+
+      // Wait for initial connection attempt
+      await waitFor(() => expect(connectionAttempts).toBe(1), { timeout: 1000 })
+
+      // Trigger open
+      act(() => {
+        mockWs?.triggerOpen()
+      })
+
+      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 1000 })
+
+      // Wait a bit to ensure no additional connection attempts
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Should only have 1 connection attempt (not infinite)
+      expect(connectionAttempts).toBe(1)
+
+      vi.stubGlobal('WebSocket', originalWebSocket)
+    })
+
+    it('should not re-render infinitely when connect function changes', async () => {
+      let renderCount = 0
+      const CustomHook = () => {
+        renderCount++
+        return useWebSocket()
+      }
+
+      const { result } = renderHook(() => CustomHook())
+
+      // Initial render
+      expect(renderCount).toBe(1)
+
+      // Connect
+      act(() => {
+        result.current.connect()
+      })
+
+      await waitFor(() => expect(mockWs).toBeDefined())
+
+      act(() => {
+        mockWs.triggerOpen()
+      })
+
+      await waitFor(() => expect(result.current.state.isConnected).toBe(true))
+
+      // Should not have excessive re-renders (allow some for state updates)
+      expect(renderCount).toBeLessThan(10)
+    })
+
+    it('should have stable connect function reference', () => {
+      const { result, rerender } = renderHook(() => useWebSocket())
+
+      const firstConnect = result.current.connect
+      rerender()
+      const secondConnect = result.current.connect
+
+      // connect function should be stable across re-renders
+      expect(firstConnect).toBe(secondConnect)
+    })
+
+    it('should have stable disconnect function reference', () => {
+      const { result, rerender } = renderHook(() => useWebSocket())
+
+      const firstDisconnect = result.current.disconnect
+      rerender()
+      const secondDisconnect = result.current.disconnect
+
+      // disconnect function should be stable across re-renders
+      expect(firstDisconnect).toBe(secondDisconnect)
+    })
+
+    it('should have stable sendMessage function reference', () => {
+      const { result, rerender } = renderHook(() => useWebSocket())
+
+      const firstSendMessage = result.current.sendMessage
+      rerender()
+      const secondSendMessage = result.current.sendMessage
+
+      // sendMessage function should be stable across re-renders
+      expect(firstSendMessage).toBe(secondSendMessage)
+    })
+
+    it('should only auto-connect once on mount', async () => {
+      let connectionAttempts = 0
+
+      class CountingWebSocketMock2 {
+        static CONNECTING = 0
+        static OPEN = 1
+        static CLOSING = 2
+        static CLOSED = 3
+
+        constructor(url: string) {
+          connectionAttempts++
+          mockWs = new MockWebSocket()
+          return mockWs as any
+        }
+      }
+
+      vi.stubGlobal('WebSocket', CountingWebSocketMock2)
+
+      // Mount the hook
+      const { result } = renderHook(() => useWebSocket())
+
+      // Wait for auto-connect
+      await waitFor(() => expect(connectionAttempts).toBeGreaterThan(0), { timeout: 1000 })
+
+      const initialAttempts = connectionAttempts
+
+      // Wait a bit more to ensure no additional connections
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Should not have additional connection attempts
+      expect(connectionAttempts).toBe(initialAttempts)
+    })
+  })
 })

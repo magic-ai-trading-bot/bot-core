@@ -238,9 +238,13 @@ impl PaperPortfolio {
             return Err(anyhow::anyhow!("Trade is not open"));
         }
 
-        // Calculate exit fees (same rate as entry)
-        let exit_fees = (trade.quantity * exit_price)
-            * (trade.trading_fees / (trade.quantity * trade.entry_price));
+        // Calculate exit fees (same rate as entry) with division-by-zero protection
+        let notional_entry = trade.quantity * trade.entry_price;
+        let exit_fees = if notional_entry > 0.0 {
+            (trade.quantity * exit_price) * (trade.trading_fees / notional_entry)
+        } else {
+            0.0
+        };
 
         // Close the trade
         trade.close(exit_price, close_reason, exit_fees)?;
@@ -402,8 +406,12 @@ impl PaperPortfolio {
                     // Track positions by symbol
                     *positions_by_symbol.entry(trade.symbol.clone()).or_insert(0) += 1;
 
-                    // Calculate return percentage
-                    let return_pct = (pnl / trade.initial_margin) * 100.0;
+                    // Calculate return percentage (with division-by-zero protection)
+                    let return_pct = if trade.initial_margin > 0.0 {
+                        (pnl / trade.initial_margin) * 100.0
+                    } else {
+                        0.0
+                    };
                     all_returns.push(return_pct);
 
                     // Track duration
@@ -542,8 +550,12 @@ impl PaperPortfolio {
             metrics.total_funding_fees = total_funding_fees;
             metrics.positions_by_symbol = positions_by_symbol;
 
-            // Risk-adjusted metrics
-            let total_return_pct = (realized_pnl / self.initial_balance) * 100.0;
+            // Risk-adjusted metrics (with division-by-zero protection)
+            let total_return_pct = if self.initial_balance > 0.0 {
+                (realized_pnl / self.initial_balance) * 100.0
+            } else {
+                0.0
+            };
             metrics.risk_adjusted_return = if metrics.return_std_deviation > 0.0 {
                 total_return_pct / metrics.return_std_deviation
             } else {
@@ -571,7 +583,11 @@ impl PaperPortfolio {
         }
 
         metrics.total_pnl = metrics.realized_pnl + metrics.unrealized_pnl;
-        metrics.total_pnl_percentage = (metrics.total_pnl / self.initial_balance) * 100.0;
+        metrics.total_pnl_percentage = if self.initial_balance > 0.0 {
+            (metrics.total_pnl / self.initial_balance) * 100.0
+        } else {
+            0.0
+        };
 
         // Current drawdown
         let current_equity = self.initial_balance + metrics.total_pnl;
@@ -751,7 +767,7 @@ impl Default for PortfolioMetrics {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::paper_trading::trade::{TradeType, PaperTrade};
+    use crate::paper_trading::trade::{PaperTrade, TradeType};
 
     fn create_test_trade(
         symbol: &str,
@@ -911,13 +927,17 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Add and close losing trade
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 2900.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id2, 2900.0, CloseReason::StopLoss)
+            .unwrap();
 
         assert_eq!(portfolio.metrics.winning_trades, 1);
         assert_eq!(portfolio.metrics.losing_trades, 1);
@@ -932,13 +952,17 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Add losing trade
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 2900.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id2, 2900.0, CloseReason::StopLoss)
+            .unwrap();
 
         assert!(portfolio.metrics.profit_factor > 0.0);
     }
@@ -949,10 +973,18 @@ mod tests {
 
         // Add 3 winning trades
         for i in 0..3 {
-            let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0 + i as f64 * 100.0, 0.1, 10);
+            let trade = create_test_trade(
+                "BTCUSDT",
+                TradeType::Long,
+                50000.0 + i as f64 * 100.0,
+                0.1,
+                10,
+            );
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 55000.0 + i as f64 * 100.0, CloseReason::TakeProfit).unwrap();
+            portfolio
+                .close_trade(&id, 55000.0 + i as f64 * 100.0, CloseReason::TakeProfit)
+                .unwrap();
         }
 
         assert_eq!(portfolio.metrics.max_consecutive_wins, 3);
@@ -965,10 +997,18 @@ mod tests {
 
         // Add 3 losing trades
         for i in 0..3 {
-            let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0 + i as f64 * 100.0, 0.1, 10);
+            let trade = create_test_trade(
+                "BTCUSDT",
+                TradeType::Long,
+                50000.0 + i as f64 * 100.0,
+                0.1,
+                10,
+            );
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 45000.0 + i as f64 * 100.0, CloseReason::StopLoss).unwrap();
+            portfolio
+                .close_trade(&id, 45000.0 + i as f64 * 100.0, CloseReason::StopLoss)
+                .unwrap();
         }
 
         assert_eq!(portfolio.metrics.max_consecutive_losses, 3);
@@ -990,10 +1030,10 @@ mod tests {
         let portfolio = PaperPortfolio::new(10000.0);
 
         let position_size = portfolio.calculate_position_size(
-            2.0,      // 2% risk
-            50000.0,  // entry price
-            48000.0,  // stop loss
-            10,       // leverage
+            2.0,     // 2% risk
+            50000.0, // entry price
+            48000.0, // stop loss
+            10,      // leverage
         );
 
         assert!(position_size > 0.0);
@@ -1008,10 +1048,10 @@ mod tests {
         let portfolio = PaperPortfolio::new(1000.0);
 
         let position_size = portfolio.calculate_position_size(
-            10.0,     // 10% risk
-            50000.0,  // entry price
-            45000.0,  // stop loss
-            10,       // leverage
+            10.0,    // 10% risk
+            50000.0, // entry price
+            45000.0, // stop loss
+            10,      // leverage
         );
 
         // Should be limited by available margin
@@ -1055,7 +1095,9 @@ mod tests {
         let trade_id = trade.id.clone();
 
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&trade_id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&trade_id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         assert!(portfolio.metrics.realized_pnl > 0.0);
         assert_eq!(portfolio.metrics.unrealized_pnl, 0.0);
@@ -1098,7 +1140,9 @@ mod tests {
         let trade_id = trade.id.clone();
 
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&trade_id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&trade_id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         let closed_trades = portfolio.get_closed_trades();
         assert_eq!(closed_trades.len(), 1);
@@ -1120,13 +1164,17 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.2, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Big loss
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 3.0, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 2500.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id2, 2500.0, CloseReason::StopLoss)
+            .unwrap();
 
         assert!(portfolio.metrics.max_drawdown > 0.0);
         assert!(portfolio.metrics.max_drawdown_percentage > 0.0);
@@ -1142,7 +1190,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, exit_price, CloseReason::Manual).unwrap();
+            portfolio
+                .close_trade(&id, exit_price, CloseReason::Manual)
+                .unwrap();
         }
 
         // Sharpe ratio should be calculated (can be positive or negative)
@@ -1158,16 +1208,26 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+            portfolio
+                .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+                .unwrap();
         }
 
         let trade = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 0.5, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 3100.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 3100.0, CloseReason::TakeProfit)
+            .unwrap();
 
-        assert_eq!(portfolio.metrics.positions_by_symbol.get("BTCUSDT"), Some(&2));
-        assert_eq!(portfolio.metrics.positions_by_symbol.get("ETHUSDT"), Some(&1));
+        assert_eq!(
+            portfolio.metrics.positions_by_symbol.get("BTCUSDT"),
+            Some(&2)
+        );
+        assert_eq!(
+            portfolio.metrics.positions_by_symbol.get("ETHUSDT"),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -1274,10 +1334,8 @@ mod tests {
         let portfolio = PaperPortfolio::new(10000.0);
 
         let position_size = portfolio.calculate_position_size(
-            0.0,      // 0% risk
-            50000.0,
-            48000.0,
-            10,
+            0.0, // 0% risk
+            50000.0, 48000.0, 10,
         );
 
         assert_eq!(position_size, 0.0);
@@ -1288,9 +1346,7 @@ mod tests {
         let portfolio = PaperPortfolio::new(10000.0);
 
         let position_size = portfolio.calculate_position_size(
-            2.0,
-            50000.0,
-            50000.0, // Same as entry price
+            2.0, 50000.0, 50000.0, // Same as entry price
             10,
         );
 
@@ -1303,10 +1359,7 @@ mod tests {
         let portfolio = PaperPortfolio::new(10000.0);
 
         let position_size = portfolio.calculate_position_size(
-            2.0,
-            50000.0,
-            48000.0,
-            100, // Very high leverage
+            2.0, 50000.0, 48000.0, 100, // Very high leverage
         );
 
         assert!(position_size > 0.0);
@@ -1343,7 +1396,9 @@ mod tests {
         portfolio.add_trade(trade).unwrap();
 
         // Close at same price (breakeven, but fees make it a loss)
-        portfolio.close_trade(&id, 50000.0, CloseReason::Manual).unwrap();
+        portfolio
+            .close_trade(&id, 50000.0, CloseReason::Manual)
+            .unwrap();
 
         assert_eq!(portfolio.metrics.total_trades, 1);
         // Due to fees, this will be a losing trade
@@ -1356,10 +1411,26 @@ mod tests {
 
         assert_eq!(portfolio.get_open_trades().len(), 0);
 
-        portfolio.add_trade(create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10)).unwrap();
+        portfolio
+            .add_trade(create_test_trade(
+                "BTCUSDT",
+                TradeType::Long,
+                50000.0,
+                0.1,
+                10,
+            ))
+            .unwrap();
         assert_eq!(portfolio.get_open_trades().len(), 1);
 
-        portfolio.add_trade(create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 10)).unwrap();
+        portfolio
+            .add_trade(create_test_trade(
+                "ETHUSDT",
+                TradeType::Long,
+                3000.0,
+                1.0,
+                10,
+            ))
+            .unwrap();
         assert_eq!(portfolio.get_open_trades().len(), 2);
     }
 
@@ -1370,7 +1441,9 @@ mod tests {
         let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         assert_eq!(portfolio.get_closed_trades().len(), 1);
         assert_eq!(portfolio.get_open_trades().len(), 0);
@@ -1408,7 +1481,9 @@ mod tests {
         portfolio.add_trade(trade).unwrap();
 
         // 10x price increase
-        portfolio.close_trade(&id, 100000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 100000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         assert!(portfolio.metrics.realized_pnl > 0.0);
         assert!(portfolio.metrics.total_pnl > 0.0);
@@ -1424,7 +1499,9 @@ mod tests {
         portfolio.add_trade(trade).unwrap();
 
         // 90% price drop
-        portfolio.close_trade(&id, 10000.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id, 10000.0, CloseReason::StopLoss)
+            .unwrap();
 
         assert!(portfolio.metrics.realized_pnl < 0.0);
         assert!(portfolio.metrics.total_pnl < 0.0);
@@ -1453,7 +1530,9 @@ mod tests {
             let trade = create_test_trade(symbol, TradeType::Long, 1000.0, 0.01, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 1100.0, CloseReason::TakeProfit).unwrap();
+            portfolio
+                .close_trade(&id, 1100.0, CloseReason::TakeProfit)
+                .unwrap();
         }
 
         assert_eq!(portfolio.metrics.positions_by_symbol.len(), 4);
@@ -1471,7 +1550,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+            portfolio
+                .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+                .unwrap();
         }
 
         assert_eq!(portfolio.metrics.current_streak, 2);
@@ -1480,7 +1561,9 @@ mod tests {
         let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 45000.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id, 45000.0, CloseReason::StopLoss)
+            .unwrap();
 
         assert_eq!(portfolio.metrics.current_streak, -1);
     }
@@ -1568,7 +1651,10 @@ mod tests {
         portfolio.add_daily_performance();
 
         assert_eq!(portfolio.daily_performance.len(), 1);
-        assert_eq!(portfolio.daily_performance[0].balance, portfolio.cash_balance);
+        assert_eq!(
+            portfolio.daily_performance[0].balance,
+            portfolio.cash_balance
+        );
         assert_eq!(portfolio.daily_performance[0].equity, portfolio.equity);
     }
 
@@ -1594,7 +1680,9 @@ mod tests {
         let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Manually simulate next day (in reality this would be called on next day)
         portfolio.daily_performance.clear();
@@ -1640,13 +1728,17 @@ mod tests {
         let id1 = trade1.id.clone();
         let fees1 = trade1.trading_fees;
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 10);
         let id2 = trade2.id.clone();
         let fees2 = trade2.trading_fees;
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 3100.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id2, 3100.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Total fees should include both trades
         assert!(portfolio.metrics.total_fees_paid >= fees1 + fees2);
@@ -1659,12 +1751,16 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 5);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 15);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 3100.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id2, 3100.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Average leverage should be (5 + 15) / 2 = 10
         assert!((portfolio.metrics.average_leverage - 10.0).abs() < 0.1);
@@ -1678,13 +1774,17 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.2, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Loss to create drawdown
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 2800.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id2, 2800.0, CloseReason::StopLoss)
+            .unwrap();
 
         // Calmar ratio should be calculated
         if portfolio.metrics.max_drawdown_percentage > 0.0 {
@@ -1700,12 +1800,16 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.2, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 45000.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id1, 45000.0, CloseReason::StopLoss)
+            .unwrap();
 
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 2.0, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 3200.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id2, 3200.0, CloseReason::TakeProfit)
+            .unwrap();
 
         if portfolio.metrics.max_drawdown > 0.0 {
             assert!(portfolio.metrics.recovery_factor != 0.0);
@@ -1722,7 +1826,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, exit_price, CloseReason::Manual).unwrap();
+            portfolio
+                .close_trade(&id, exit_price, CloseReason::Manual)
+                .unwrap();
         }
 
         if portfolio.metrics.return_std_deviation > 0.0 {
@@ -1739,7 +1845,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+            portfolio
+                .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+                .unwrap();
         }
 
         // Sortino ratio should be 0 when there are no downside returns
@@ -1756,7 +1864,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, exit_price, CloseReason::Manual).unwrap();
+            portfolio
+                .close_trade(&id, exit_price, CloseReason::Manual)
+                .unwrap();
         }
 
         // Should have downside deviation and sortino ratio
@@ -1771,19 +1881,25 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 51000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 51000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Large win
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 2.0, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 3500.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id2, 3500.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Large loss
         let trade3 = create_test_trade("BNBUSDT", TradeType::Long, 500.0, 5.0, 10);
         let id3 = trade3.id.clone();
         portfolio.add_trade(trade3).unwrap();
-        portfolio.close_trade(&id3, 400.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id3, 400.0, CloseReason::StopLoss)
+            .unwrap();
 
         assert!(portfolio.metrics.largest_win > 0.0);
         assert!(portfolio.metrics.largest_loss > 0.0);
@@ -1800,7 +1916,9 @@ mod tests {
         // Small delay to create duration
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         assert!(portfolio.metrics.average_trade_duration_minutes >= 0.0);
     }
@@ -1912,7 +2030,9 @@ mod tests {
         assert_eq!(portfolio.open_trade_ids.len(), 1);
 
         // Short profits from price decrease
-        portfolio.close_trade(&id, 48000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 48000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         assert!(portfolio.metrics.realized_pnl > 0.0);
         assert_eq!(portfolio.metrics.winning_trades, 1);
@@ -1928,7 +2048,9 @@ mod tests {
         portfolio.add_trade(trade).unwrap();
 
         // Short loses from price increase
-        portfolio.close_trade(&id, 52000.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id, 52000.0, CloseReason::StopLoss)
+            .unwrap();
 
         assert!(portfolio.metrics.realized_pnl < 0.0);
         assert_eq!(portfolio.metrics.losing_trades, 1);
@@ -1972,7 +2094,9 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Open losing position
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 10);
@@ -1994,7 +2118,9 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         let realized_pnl = portfolio.metrics.realized_pnl;
 
@@ -2022,7 +2148,9 @@ mod tests {
         let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.2, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         let expected_percentage = (portfolio.metrics.total_pnl / 10000.0) * 100.0;
         assert!((portfolio.metrics.total_pnl_percentage - expected_percentage).abs() < 0.01);
@@ -2071,7 +2199,9 @@ mod tests {
         let id = trade.id.clone();
 
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Try to close again
         let result = portfolio.close_trade(&id, 56000.0, CloseReason::Manual);
@@ -2111,7 +2241,9 @@ mod tests {
 
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         assert!(portfolio.metrics.calculated_at > metrics_time_before);
     }
@@ -2181,7 +2313,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+            portfolio
+                .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+                .unwrap();
         }
 
         assert!((portfolio.metrics.win_rate - 100.0).abs() < 0.1);
@@ -2196,7 +2330,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, 45000.0, CloseReason::StopLoss).unwrap();
+            portfolio
+                .close_trade(&id, 45000.0, CloseReason::StopLoss)
+                .unwrap();
         }
 
         assert!((portfolio.metrics.win_rate - 0.0).abs() < 0.1);
@@ -2210,13 +2346,17 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 60000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 60000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // One small loss
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 0.5, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 2900.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id2, 2900.0, CloseReason::StopLoss)
+            .unwrap();
 
         // Profit factor should be > 1
         assert!(portfolio.metrics.profit_factor > 1.0);
@@ -2230,7 +2370,9 @@ mod tests {
         let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Profit factor should be 0 when average_loss is 0
         assert_eq!(portfolio.metrics.profit_factor, 0.0);
@@ -2244,12 +2386,16 @@ mod tests {
         let trade1 = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id1 = trade1.id.clone();
         portfolio.add_trade(trade1).unwrap();
-        portfolio.close_trade(&id1, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id1, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         let trade2 = create_test_trade("ETHUSDT", TradeType::Long, 3000.0, 1.0, 10);
         let id2 = trade2.id.clone();
         portfolio.add_trade(trade2).unwrap();
-        portfolio.close_trade(&id2, 2900.0, CloseReason::StopLoss).unwrap();
+        portfolio
+            .close_trade(&id2, 2900.0, CloseReason::StopLoss)
+            .unwrap();
 
         // Average should be calculated
         assert!(portfolio.metrics.average_trade_return != 0.0);
@@ -2262,7 +2408,9 @@ mod tests {
         let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Standard deviation requires at least 2 trades
         assert_eq!(portfolio.metrics.return_std_deviation, 0.0);
@@ -2277,7 +2425,9 @@ mod tests {
             let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.05, 10);
             let id = trade.id.clone();
             portfolio.add_trade(trade).unwrap();
-            portfolio.close_trade(&id, exit_price, CloseReason::Manual).unwrap();
+            portfolio
+                .close_trade(&id, exit_price, CloseReason::Manual)
+                .unwrap();
         }
 
         assert!(portfolio.metrics.return_std_deviation > 0.0);
@@ -2291,7 +2441,9 @@ mod tests {
         let trade = create_test_trade("BTCUSDT", TradeType::Long, 50000.0, 0.1, 10);
         let id = trade.id.clone();
         portfolio.add_trade(trade).unwrap();
-        portfolio.close_trade(&id, 55000.0, CloseReason::TakeProfit).unwrap();
+        portfolio
+            .close_trade(&id, 55000.0, CloseReason::TakeProfit)
+            .unwrap();
 
         // Sharpe ratio should be 0 when std dev is 0
         assert_eq!(portfolio.metrics.sharpe_ratio, 0.0);

@@ -639,13 +639,10 @@ export const usePaperTrading = () => {
     let heartbeatInterval: NodeJS.Timeout | null = null;
 
     ws.onopen = () => {
-      console.log("📡 Paper Trading WebSocket connected");
-
       // Start heartbeat to keep connection alive
       heartbeatInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: "ping" }));
-          console.log("💓 Paper Trading WebSocket heartbeat sent");
         }
       }, 30000); // Send heartbeat every 30 seconds
     };
@@ -653,10 +650,6 @@ export const usePaperTrading = () => {
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        console.log(
-          "📡 WebSocket message received:",
-          message.event_type || message.type
-        );
 
         // Handle new format from Rust backend
         const eventType = message.event_type || message.type;
@@ -666,9 +659,6 @@ export const usePaperTrading = () => {
           case "MarketData":
             // Handle real-time price updates from WebSocket (same as Dashboard)
             if (data && data.symbol && data.price) {
-              console.log(
-                `🚀 Real-time price update: ${data.symbol} = $${data.price}`
-              );
 
               // Update portfolio with new price information
               setState((prev) => {
@@ -727,7 +717,6 @@ export const usePaperTrading = () => {
 
           case "price_update":
             // Legacy price update format
-            console.log("💰 Real-time price update:", data);
             // Trigger refresh of portfolio data to update P&L
             if (data && Object.keys(data).length > 0) {
               fetchPortfolioStatus();
@@ -737,7 +726,6 @@ export const usePaperTrading = () => {
           case "performance_update":
             // Real-time portfolio metrics update
             if (data) {
-              console.log("📊 Performance update:", data);
               setState((prev) => ({
                 ...prev,
                 portfolio: { ...prev.portfolio, ...data },
@@ -747,14 +735,12 @@ export const usePaperTrading = () => {
             break;
 
           case "trade_executed":
-            console.log("🎯 New trade executed:", data);
             // Refresh both portfolio and trades
             fetchPortfolioStatus();
             fetchOpenTrades();
             break;
 
           case "trade_closed":
-            console.log("🔒 Trade closed:", data);
             // Refresh everything when a trade is closed
             fetchPortfolioStatus();
             fetchOpenTrades();
@@ -764,7 +750,6 @@ export const usePaperTrading = () => {
           case "AISignalReceived":
             // Real-time AI signals
             if (data) {
-              console.log("🤖 New AI Signal:", data);
               setState((prev) => {
                 // Add new signal and deduplicate all signals
                 const allSignals = [data, ...prev.recentSignals];
@@ -780,10 +765,6 @@ export const usePaperTrading = () => {
             break;
 
           case "Connected":
-            console.log(
-              "📡 Paper Trading WebSocket connected:",
-              message.message
-            );
             setState((prev) => ({
               ...prev,
               lastUpdated: new Date(),
@@ -792,7 +773,6 @@ export const usePaperTrading = () => {
 
           case "Pong":
             // Keep-alive response, no action needed
-            console.log("💓 Paper Trading WebSocket pong received");
             break;
 
           default:
@@ -805,7 +785,6 @@ export const usePaperTrading = () => {
     };
 
     ws.onclose = () => {
-      console.log("📡 Paper Trading WebSocket disconnected");
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
       }

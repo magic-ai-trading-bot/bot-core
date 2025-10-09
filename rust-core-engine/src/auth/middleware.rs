@@ -33,7 +33,7 @@ async fn authorize(auth_header: String, jwt_service: JwtService) -> Result<Claim
         Some(token) => token,
         None => {
             return Err(warp::reject::custom(AuthError::InvalidHeader));
-        }
+        },
     };
 
     match jwt_service.verify_token(token) {
@@ -57,7 +57,7 @@ async fn optional_authorize(
                 Ok(claims) => Ok(Some(claims)),
                 Err(_) => Ok(None), // Invalid token is treated as no token
             }
-        }
+        },
         None => Ok(None),
     }
 }
@@ -543,9 +543,7 @@ mod tests {
         let user_id = "admin_99";
         let email = "superadmin@example.com";
 
-        let token = jwt_service
-            .generate_token(user_id, email, true)
-            .unwrap();
+        let token = jwt_service.generate_token(user_id, email, true).unwrap();
 
         let auth_header = format!("Bearer {}", token);
         let result = admin_authorize(auth_header, jwt_service).await;

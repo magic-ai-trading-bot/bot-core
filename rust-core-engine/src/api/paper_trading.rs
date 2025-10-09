@@ -436,7 +436,7 @@ async fn close_trade(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::BAD_REQUEST,
@@ -459,7 +459,7 @@ async fn update_settings(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::BAD_REQUEST,
@@ -479,7 +479,7 @@ async fn reset_portfolio(api: Arc<PaperTradingApi>) -> Result<impl Reply, Reject
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -500,7 +500,7 @@ async fn start_engine(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -520,7 +520,7 @@ async fn stop_engine(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection>
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -631,7 +631,7 @@ async fn update_strategy_settings(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => {
             log::error!("❌ Failed to update confidence threshold: {e}");
 
@@ -641,7 +641,7 @@ async fn update_strategy_settings(
                 ))),
                 StatusCode::INTERNAL_SERVER_ERROR,
             ))
-        }
+        },
     }
 }
 
@@ -754,7 +754,7 @@ async fn update_basic_settings(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::BAD_REQUEST,
@@ -846,7 +846,7 @@ async fn update_symbol_settings(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::BAD_REQUEST,
@@ -866,7 +866,7 @@ async fn trigger_manual_analysis(api: Arc<PaperTradingApi>) -> Result<impl Reply
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -899,7 +899,7 @@ async fn update_signal_refresh_interval(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => Ok(warp::reply::with_status(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::BAD_REQUEST,
@@ -910,9 +910,9 @@ async fn update_signal_refresh_interval(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::paper_trading::{PaperTradingEngine, PaperTradingSettings};
     use crate::ai::AIService;
     use crate::binance::BinanceClient;
+    use crate::paper_trading::{PaperTradingEngine, PaperTradingSettings};
     use crate::storage::Storage;
     use tokio::sync::broadcast;
     use warp::http::StatusCode;
@@ -955,15 +955,9 @@ mod tests {
 
         let settings = PaperTradingSettings::default();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            tx,
-        )
-        .await
-        .expect("Failed to create engine");
+        let engine = PaperTradingEngine::new(settings, binance_client, ai_service, storage, tx)
+            .await
+            .expect("Failed to create engine");
 
         Arc::new(engine)
     }
@@ -1787,7 +1781,8 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(response.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(response.body()).unwrap();
         assert!(body.success);
         assert!(body.data.is_some());
     }
@@ -1806,7 +1801,8 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(response.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(response.body()).unwrap();
         assert!(body.success);
         assert!(body.data.is_some());
     }
@@ -2288,7 +2284,10 @@ mod tests {
             .await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        assert!(response.headers().get("access-control-allow-origin").is_some());
+        assert!(response
+            .headers()
+            .get("access-control-allow-origin")
+            .is_some());
     }
 
     #[tokio::test]
@@ -2531,8 +2530,13 @@ mod tests {
         };
 
         // RSI validation
-        assert!(settings.strategies.rsi.oversold_threshold < settings.strategies.rsi.overbought_threshold);
-        assert!(settings.strategies.rsi.extreme_oversold < settings.strategies.rsi.oversold_threshold);
+        assert!(
+            settings.strategies.rsi.oversold_threshold
+                < settings.strategies.rsi.overbought_threshold
+        );
+        assert!(
+            settings.strategies.rsi.extreme_oversold < settings.strategies.rsi.oversold_threshold
+        );
 
         // MACD validation
         assert!(settings.strategies.macd.fast_period < settings.strategies.macd.slow_period);

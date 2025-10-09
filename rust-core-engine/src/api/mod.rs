@@ -209,7 +209,7 @@ impl ApiServer {
                 match market_data.get_market_overview().await {
                     Ok(overview) => {
                         Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(overview)))
-                    }
+                    },
                     Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
                         &ApiResponse::<()>::error(e.to_string()),
                     )),
@@ -386,7 +386,7 @@ impl ApiServer {
                 match trading_engine.get_account_info().await {
                     Ok(account) => {
                         Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(account)))
-                    }
+                    },
                     Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
                         &ApiResponse::<()>::error(e.to_string()),
                     )),
@@ -420,7 +420,7 @@ impl ApiServer {
                 match trading_engine.get_performance_stats().await {
                     Ok(stats) => {
                         Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(stats)))
-                    }
+                    },
                     Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
                         &ApiResponse::<()>::error(e.to_string()),
                     )),
@@ -504,11 +504,11 @@ impl ApiServer {
                             debug!("WebSocket connection closed by client");
                             break;
                         }
-                    }
+                    },
                     Err(e) => {
                         error!("WebSocket error: {}", e);
                         break;
-                    }
+                    },
                 }
             }
         });
@@ -662,7 +662,7 @@ impl ApiServer {
                 match ai_service.get_service_info().await {
                     Ok(info) => {
                         Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(info)))
-                    }
+                    },
                     Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
                         &ApiResponse::<()>::error(e.to_string()),
                     )),
@@ -1056,7 +1056,9 @@ mod tests {
             inner: Vec<i32>,
         }
 
-        let data = Nested { inner: vec![1, 2, 3, 4, 5] };
+        let data = Nested {
+            inner: vec![1, 2, 3, 4, 5],
+        };
         let response = ApiResponse::success(data.clone());
 
         let json = serde_json::to_string(&response).unwrap();
@@ -1257,7 +1259,10 @@ mod tests {
         let deserialized: SupportedSymbols = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.symbols, original.symbols);
-        assert_eq!(deserialized.available_timeframes, original.available_timeframes);
+        assert_eq!(
+            deserialized.available_timeframes,
+            original.available_timeframes
+        );
     }
 
     // ============================================================================
@@ -1573,7 +1578,9 @@ mod tests {
             CandelQuery { limit: Some(0) },
             CandelQuery { limit: Some(1) },
             CandelQuery { limit: Some(1000) },
-            CandelQuery { limit: Some(usize::MAX) },
+            CandelQuery {
+                limit: Some(usize::MAX),
+            },
             CandelQuery { limit: None },
         ];
 

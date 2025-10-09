@@ -181,8 +181,6 @@ export const useWebSocket = (): WebSocketHook => {
   }, []);
 
   const addAISignal = useCallback((signalData: AISignalReceivedData) => {
-    console.log("🤖 Received AI Signal via WebSocket:", signalData);
-
     const newSignal: AISignal = {
       signal: signalData.signal as "long" | "short" | "neutral",
       confidence: signalData.confidence,
@@ -227,7 +225,7 @@ export const useWebSocket = (): WebSocketHook => {
 
         switch (message.type) {
           case "Connected":
-            console.log("🔗 WebSocket connected:", message.message);
+            // WebSocket connected successfully
             break;
           case "Pong":
             // Keep-alive response
@@ -277,7 +275,6 @@ export const useWebSocket = (): WebSocketHook => {
   );
 
   const handleOpen = useCallback(() => {
-    console.log("🔗 WebSocket connected to Rust backend");
     reconnectAttemptsRef.current = 0;
     setState((prev) => ({
       ...prev,
@@ -288,7 +285,6 @@ export const useWebSocket = (): WebSocketHook => {
   }, []);
 
   const handleClose = useCallback((event: CloseEvent) => {
-    console.log("🔌 WebSocket disconnected:", event.reason);
     setState((prev) => ({
       ...prev,
       isConnected: false,
@@ -302,11 +298,6 @@ export const useWebSocket = (): WebSocketHook => {
       const delay = Math.min(
         RECONNECT_INTERVAL * Math.pow(2, reconnectAttemptsRef.current),
         30000
-      );
-      console.log(
-        `🔄 Attempting WebSocket reconnection in ${delay}ms (attempt ${
-          reconnectAttemptsRef.current + 1
-        }/${MAX_RECONNECT_ATTEMPTS})`
       );
 
       reconnectTimeoutRef.current = setTimeout(() => {
@@ -325,6 +316,7 @@ export const useWebSocket = (): WebSocketHook => {
     }));
   }, []);
 
+  // Remove from useCallback dependencies to prevent infinite loop
   const connectWebSocket = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return; // Already connected
@@ -350,7 +342,8 @@ export const useWebSocket = (): WebSocketHook => {
         error: "Failed to create WebSocket connection",
       }));
     }
-  }, [handleOpen, handleClose, handleError, handleMessage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const connect = useCallback(() => {
     setState((prev) => ({
@@ -360,7 +353,8 @@ export const useWebSocket = (): WebSocketHook => {
     }));
 
     connectWebSocket();
-  }, [connectWebSocket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const disconnect = useCallback(() => {
     shouldReconnectRef.current = false;
@@ -405,12 +399,13 @@ export const useWebSocket = (): WebSocketHook => {
     };
   }, []);
 
-  // Auto-connect on mount
+  // Auto-connect on mount (only once)
   useEffect(() => {
     if (import.meta.env.VITE_ENABLE_REALTIME !== "false") {
       connect();
     }
-  }, [connect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty array: run only once on mount
 
   return {
     state,

@@ -125,13 +125,13 @@ impl MarketDataProcessor {
                             "Loaded {} historical candles for {} {}",
                             count, symbol, timeframe
                         );
-                    }
+                    },
                     Err(e) => {
                         warn!(
                             "Failed to load historical data for {} {}: {}",
                             symbol, timeframe, e
                         );
-                    }
+                    },
                 }
 
                 // Add small delay to avoid rate limiting
@@ -177,7 +177,7 @@ impl MarketDataProcessor {
                     }
                     self.cache
                         .add_historical_klines(symbol, timeframe, latest_klines);
-                }
+                },
                 Err(e) => warn!(
                     "Failed to fetch latest data for {} {}: {}",
                     symbol, timeframe, e
@@ -247,11 +247,11 @@ impl MarketDataProcessor {
                     {
                         error!("Error handling stream event: {}", e);
                     }
-                }
+                },
                 None => {
                     error!("WebSocket message channel closed");
                     break;
-                }
+                },
             }
         }
 
@@ -336,13 +336,13 @@ impl MarketDataProcessor {
                         }
                     }
                 }
-            }
+            },
             StreamEvent::Ticker(ticker_event) => {
                 debug!(
                     "Received ticker update for {}: {}",
                     ticker_event.symbol, ticker_event.last_price
                 );
-            }
+            },
             StreamEvent::OrderBook(orderbook_event) => {
                 debug!(
                     "Received order book update for {} (bids: {}, asks: {})",
@@ -350,7 +350,7 @@ impl MarketDataProcessor {
                     orderbook_event.bids.len(),
                     orderbook_event.asks.len()
                 );
-            }
+            },
         }
 
         Ok(())
@@ -443,10 +443,10 @@ impl MarketDataProcessor {
                             if let Err(e) = storage.store_analysis(&analysis).await {
                                 error!("Failed to store analysis for {}: {}", symbol, e);
                             }
-                        }
+                        },
                         Err(e) => {
                             warn!("Analysis failed for {}: {}", symbol, e);
-                        }
+                        },
                     }
 
                     // Small delay between symbols
@@ -581,7 +581,7 @@ impl MarketDataProcessor {
                             "Failed to get chart data for {} {}: {}",
                             symbol, timeframe, e
                         );
-                    }
+                    },
                 }
             }
         }
@@ -611,13 +611,13 @@ impl MarketDataProcessor {
                         "Loaded {} historical candles for {} {}",
                         count, symbol, timeframe
                     );
-                }
+                },
                 Err(e) => {
                     warn!(
                         "Failed to load historical data for {} {}: {}",
                         symbol, timeframe, e
                     );
-                }
+                },
             }
 
             // Add small delay to avoid rate limiting
@@ -806,7 +806,9 @@ mod tests {
             .unwrap();
 
         let cache = processor.get_cache();
-        assert!(cache.get_supported_symbols().is_empty() || !cache.get_supported_symbols().is_empty());
+        assert!(
+            cache.get_supported_symbols().is_empty() || !cache.get_supported_symbols().is_empty()
+        );
     }
 
     #[tokio::test]
@@ -989,7 +991,8 @@ mod tests {
         let cache = MarketDataCache::new(100);
 
         // Note: This will fail without real API access, which is expected in unit tests
-        let result = MarketDataProcessor::refresh_timeframe_data(&client, &cache, "BTCUSDT", "1m").await;
+        let result =
+            MarketDataProcessor::refresh_timeframe_data(&client, &cache, "BTCUSDT", "1m").await;
 
         // We accept both success and failure here as this requires external API
         assert!(result.is_ok() || result.is_err());
@@ -1050,7 +1053,10 @@ mod tests {
 
         let (volume_24h, price_change_24h, price_change_percent_24h) = if candles.len() >= 24 {
             let latest_price = candles.last().map(|c| c.close).unwrap_or(0.0);
-            let price_24h_ago = candles.get(candles.len() - 24).map(|c| c.close).unwrap_or(latest_price);
+            let price_24h_ago = candles
+                .get(candles.len() - 24)
+                .map(|c| c.close)
+                .unwrap_or(latest_price);
             let volume_24h: f64 = candles.iter().rev().take(24).map(|c| c.volume).sum();
 
             let price_change = latest_price - price_24h_ago;
@@ -1086,7 +1092,10 @@ mod tests {
         let (volume_24h, price_change_24h, price_change_percent_24h) = if candles.len() >= 24 {
             // Has 24+ candles
             let latest_price = candles.last().map(|c| c.close).unwrap_or(0.0);
-            let price_24h_ago = candles.get(candles.len() - 24).map(|c| c.close).unwrap_or(latest_price);
+            let price_24h_ago = candles
+                .get(candles.len() - 24)
+                .map(|c| c.close)
+                .unwrap_or(latest_price);
             let volume_24h: f64 = candles.iter().rev().take(24).map(|c| c.volume).sum();
             let price_change = latest_price - price_24h_ago;
             let price_change_percent = if price_24h_ago > 0.0 {
@@ -1120,8 +1129,14 @@ mod tests {
         let processor2 = processor1.clone();
 
         // Both should have access to the same configuration
-        assert_eq!(processor1.config.symbols.len(), processor2.config.symbols.len());
-        assert_eq!(processor1.config.timeframes.len(), processor2.config.timeframes.len());
+        assert_eq!(
+            processor1.config.symbols.len(),
+            processor2.config.symbols.len()
+        );
+        assert_eq!(
+            processor1.config.timeframes.len(),
+            processor2.config.timeframes.len()
+        );
     }
 
     #[test]
@@ -1370,7 +1385,11 @@ mod tests {
     #[test]
     fn test_market_data_config_with_custom_symbols() {
         let mut config = create_test_market_data_config();
-        config.symbols = vec!["BTCUSDT".to_string(), "ETHUSDT".to_string(), "BNBUSDT".to_string()];
+        config.symbols = vec![
+            "BTCUSDT".to_string(),
+            "ETHUSDT".to_string(),
+            "BNBUSDT".to_string(),
+        ];
 
         assert_eq!(config.symbols.len(), 3);
         assert!(config.symbols.contains(&"BNBUSDT".to_string()));
@@ -1379,7 +1398,12 @@ mod tests {
     #[test]
     fn test_market_data_config_with_custom_timeframes() {
         let mut config = create_test_market_data_config();
-        config.timeframes = vec!["1m".to_string(), "5m".to_string(), "15m".to_string(), "1h".to_string()];
+        config.timeframes = vec![
+            "1m".to_string(),
+            "5m".to_string(),
+            "15m".to_string(),
+            "1h".to_string(),
+        ];
 
         assert_eq!(config.timeframes.len(), 4);
         assert!(config.timeframes.contains(&"15m".to_string()));
@@ -1726,7 +1750,10 @@ mod tests {
 
         assert_eq!(kline_data1.kline_start_time, kline_data2.kline_start_time);
         assert_eq!(kline_data1.close_price, kline_data2.close_price);
-        assert_eq!(kline_data1.is_this_kline_closed, kline_data2.is_this_kline_closed);
+        assert_eq!(
+            kline_data1.is_this_kline_closed,
+            kline_data2.is_this_kline_closed
+        );
     }
 
     // Test Group 9: JSON Broadcasting Format Tests
@@ -1800,7 +1827,10 @@ mod tests {
         assert_eq!(candles.len(), 24);
 
         let latest_price = candles.last().map(|c| c.close).unwrap_or(0.0);
-        let price_24h_ago = candles.get(candles.len() - 24).map(|c| c.close).unwrap_or(latest_price);
+        let price_24h_ago = candles
+            .get(candles.len() - 24)
+            .map(|c| c.close)
+            .unwrap_or(latest_price);
 
         assert_eq!(latest_price, 50230.0);
         assert_eq!(price_24h_ago, 50000.0);
@@ -1823,7 +1853,10 @@ mod tests {
 
         // Calculate 24h stats from the last 24 candles
         let latest_price = candles.last().map(|c| c.close).unwrap_or(0.0);
-        let price_24h_ago = candles.get(candles.len() - 24).map(|c| c.close).unwrap_or(latest_price);
+        let price_24h_ago = candles
+            .get(candles.len() - 24)
+            .map(|c| c.close)
+            .unwrap_or(latest_price);
         let volume_24h: f64 = candles.iter().rev().take(24).map(|c| c.volume).sum();
 
         assert_eq!(latest_price, 50470.0);

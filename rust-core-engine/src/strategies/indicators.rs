@@ -356,8 +356,8 @@ mod tests {
     #[test]
     fn test_calculate_rsi_normal_case() {
         let prices = vec![
-            44.0, 44.25, 44.5, 43.75, 44.0, 44.5, 45.0, 45.25, 45.5, 45.0, 45.5, 46.0, 46.5,
-            46.25, 46.0,
+            44.0, 44.25, 44.5, 43.75, 44.0, 44.5, 45.0, 45.25, 45.5, 45.0, 45.5, 46.0, 46.5, 46.25,
+            46.0,
         ];
         let candles = create_test_candles(prices);
         let result = calculate_rsi(&candles, 14);
@@ -552,7 +552,7 @@ mod tests {
         assert!(result.is_ok());
         let ema = result.unwrap();
         assert_eq!(ema.len(), 6); // 10 - 5 + 1
-        // First EMA should equal SMA
+                                  // First EMA should equal SMA
         let first_sma: f64 = prices[0..5].iter().sum::<f64>() / 5.0;
         assert!((ema[0] - first_sma).abs() < 0.0001);
         // EMA should react to price changes
@@ -583,8 +583,8 @@ mod tests {
     #[test]
     fn test_calculate_atr_normal_case() {
         let closes = vec![
-            48.7, 48.72, 48.9, 48.87, 48.82, 49.05, 49.2, 49.35, 49.92, 50.19, 50.12, 49.66,
-            49.88, 50.19, 50.36,
+            48.7, 48.72, 48.9, 48.87, 48.82, 49.05, 49.2, 49.35, 49.92, 50.19, 50.12, 49.66, 49.88,
+            50.19, 50.36,
         ];
         let highs = vec![
             48.7, 48.85, 49.2, 49.05, 48.94, 49.25, 49.4, 49.55, 50.0, 50.28, 50.2, 49.75, 50.0,
@@ -608,9 +608,15 @@ mod tests {
 
     #[test]
     fn test_calculate_atr_high_volatility() {
-        let closes = vec![100.0, 110.0, 90.0, 105.0, 95.0, 115.0, 85.0, 100.0, 120.0, 80.0];
-        let highs = vec![105.0, 115.0, 100.0, 110.0, 100.0, 120.0, 95.0, 110.0, 125.0, 100.0];
-        let lows = vec![95.0, 105.0, 85.0, 95.0, 90.0, 110.0, 80.0, 95.0, 115.0, 75.0];
+        let closes = vec![
+            100.0, 110.0, 90.0, 105.0, 95.0, 115.0, 85.0, 100.0, 120.0, 80.0,
+        ];
+        let highs = vec![
+            105.0, 115.0, 100.0, 110.0, 100.0, 120.0, 95.0, 110.0, 125.0, 100.0,
+        ];
+        let lows = vec![
+            95.0, 105.0, 85.0, 95.0, 90.0, 110.0, 80.0, 95.0, 115.0, 75.0,
+        ];
         let candles = create_test_candles_with_range(closes, highs, lows);
         let result = calculate_atr(&candles, 3);
 
@@ -632,16 +638,16 @@ mod tests {
     #[ignore] // Business logic test - needs tuning
     fn test_calculate_stochastic_normal_case() {
         let closes = vec![
-            44.0, 44.25, 44.5, 43.75, 44.0, 44.5, 45.0, 45.25, 45.5, 45.0, 45.5, 46.0, 46.5,
-            46.25, 46.0,
+            44.0, 44.25, 44.5, 43.75, 44.0, 44.5, 45.0, 45.25, 45.5, 45.0, 45.5, 46.0, 46.5, 46.25,
+            46.0,
         ];
         let highs = vec![
-            44.5, 44.75, 45.0, 44.25, 44.5, 45.0, 45.5, 45.75, 46.0, 45.5, 46.0, 46.5, 47.0,
-            46.75, 46.5,
+            44.5, 44.75, 45.0, 44.25, 44.5, 45.0, 45.5, 45.75, 46.0, 45.5, 46.0, 46.5, 47.0, 46.75,
+            46.5,
         ];
         let lows = vec![
-            43.5, 43.75, 44.0, 43.25, 43.5, 44.0, 44.5, 44.75, 45.0, 44.5, 45.0, 45.5, 46.0,
-            45.75, 45.5,
+            43.5, 43.75, 44.0, 43.25, 43.5, 44.0, 44.5, 44.75, 45.0, 44.5, 45.0, 45.5, 46.0, 45.75,
+            45.5,
         ];
         let candles = create_test_candles_with_range(closes, highs, lows);
         let result = calculate_stochastic(&candles, 5, 3);
@@ -662,9 +668,15 @@ mod tests {
     #[test]
     #[ignore] // Business logic test - needs tuning
     fn test_calculate_stochastic_overbought() {
-        let closes = vec![100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0];
-        let highs = vec![101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0, 110.0];
-        let lows = vec![99.0, 100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0];
+        let closes = vec![
+            100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0,
+        ];
+        let highs = vec![
+            101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0, 110.0,
+        ];
+        let lows = vec![
+            99.0, 100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0,
+        ];
         let candles = create_test_candles_with_range(closes, highs, lows);
         let result = calculate_stochastic(&candles, 5, 3);
 
@@ -677,9 +689,15 @@ mod tests {
     #[test]
     #[ignore] // Business logic test - needs tuning
     fn test_calculate_stochastic_oversold() {
-        let closes = vec![109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0, 100.0];
-        let highs = vec![110.0, 109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0];
-        let lows = vec![108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0, 100.0, 99.0];
+        let closes = vec![
+            109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0, 100.0,
+        ];
+        let highs = vec![
+            110.0, 109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0,
+        ];
+        let lows = vec![
+            108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0, 100.0, 99.0,
+        ];
         let candles = create_test_candles_with_range(closes, highs, lows);
         let result = calculate_stochastic(&candles, 5, 3);
 
@@ -907,8 +925,8 @@ mod tests {
     #[test]
     fn test_bollinger_bands_high_volatility() {
         let prices = vec![
-            100.0, 110.0, 95.0, 115.0, 90.0, 120.0, 85.0, 125.0, 80.0, 130.0, 100.0, 105.0,
-            95.0, 110.0, 90.0, 115.0, 85.0, 120.0, 80.0, 125.0, 100.0,
+            100.0, 110.0, 95.0, 115.0, 90.0, 120.0, 85.0, 125.0, 80.0, 130.0, 100.0, 105.0, 95.0,
+            110.0, 90.0, 115.0, 85.0, 120.0, 80.0, 125.0, 100.0,
         ];
         let candles = create_test_candles(prices);
         let result = calculate_bollinger_bands(&candles, 20, 2.0);
@@ -1088,7 +1106,9 @@ mod tests {
     #[test]
     fn test_atr_low_volatility() {
         let closes = vec![100.0, 100.1, 100.2, 100.1, 100.2, 100.3, 100.2, 100.3];
-        let highs = vec![100.15, 100.25, 100.35, 100.25, 100.35, 100.45, 100.35, 100.45];
+        let highs = vec![
+            100.15, 100.25, 100.35, 100.25, 100.35, 100.45, 100.35, 100.45,
+        ];
         let lows = vec![99.85, 99.95, 100.05, 99.95, 100.05, 100.15, 100.05, 100.15];
         let candles = create_test_candles_with_range(closes, highs, lows);
         let result = calculate_atr(&candles, 3);

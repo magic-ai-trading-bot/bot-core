@@ -229,10 +229,14 @@ impl PaperTrade {
 
         self.unrealized_pnl = price_diff * self.quantity - self.trading_fees - self.funding_fees;
 
-        // Calculate PnL percentage based on margin
-        self.pnl_percentage = (self.unrealized_pnl / self.initial_margin) * 100.0;
+        // Calculate PnL percentage based on margin (with division-by-zero protection)
+        self.pnl_percentage = if self.initial_margin > 0.0 {
+            (self.unrealized_pnl / self.initial_margin) * 100.0
+        } else {
+            0.0
+        };
 
-        // Update margin ratio
+        // Update margin ratio (with division-by-zero protection)
         let equity = self.initial_margin + self.unrealized_pnl;
         self.margin_ratio = if self.margin_used > 0.0 {
             equity / self.margin_used
@@ -361,14 +365,14 @@ impl PaperTrade {
                         "Stop loss must be below entry price for long trades"
                     ));
                 }
-            }
+            },
             TradeType::Short => {
                 if stop_loss <= self.entry_price {
                     return Err(anyhow::anyhow!(
                         "Stop loss must be above entry price for short trades"
                     ));
                 }
-            }
+            },
         }
 
         self.stop_loss = Some(stop_loss);
@@ -385,14 +389,14 @@ impl PaperTrade {
                         "Take profit must be above entry price for long trades"
                     ));
                 }
-            }
+            },
             TradeType::Short => {
                 if take_profit >= self.entry_price {
                     return Err(anyhow::anyhow!(
                         "Take profit must be below entry price for short trades"
                     ));
                 }
-            }
+            },
         }
 
         self.take_profit = Some(take_profit);
@@ -1102,25 +1106,95 @@ mod tests {
     #[test]
     fn test_maintenance_margin_rates() {
         // Test different leverage tiers for maintenance margin calculation
-        let trade_1x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 1, 0.0004, None, None, None);
+        let trade_1x = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            1,
+            0.0004,
+            None,
+            None,
+            None,
+        );
         assert_eq!(trade_1x.maintenance_margin, 5000.0 * 0.01); // 1%
 
-        let trade_5x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 5, 0.0004, None, None, None);
+        let trade_5x = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            5,
+            0.0004,
+            None,
+            None,
+            None,
+        );
         assert_eq!(trade_5x.maintenance_margin, 5000.0 * 0.01); // 1%
 
-        let trade_10x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 10, 0.0004, None, None, None);
+        let trade_10x = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
         assert_eq!(trade_10x.maintenance_margin, 5000.0 * 0.025); // 2.5%
 
-        let trade_20x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 20, 0.0004, None, None, None);
+        let trade_20x = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            20,
+            0.0004,
+            None,
+            None,
+            None,
+        );
         assert_eq!(trade_20x.maintenance_margin, 5000.0 * 0.05); // 5%
 
-        let trade_50x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 50, 0.0004, None, None, None);
+        let trade_50x = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            50,
+            0.0004,
+            None,
+            None,
+            None,
+        );
         assert_eq!(trade_50x.maintenance_margin, 5000.0 * 0.1); // 10%
 
-        let trade_100x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 100, 0.0004, None, None, None);
+        let trade_100x = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            100,
+            0.0004,
+            None,
+            None,
+            None,
+        );
         assert_eq!(trade_100x.maintenance_margin, 5000.0 * 0.125); // 12.5%
 
-        let trade_125x = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 125, 0.0004, None, None, None);
+        let trade_125x = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            125,
+            0.0004,
+            None,
+            None,
+            None,
+        );
         assert_eq!(trade_125x.maintenance_margin, 5000.0 * 0.15); // 15%
     }
 
@@ -1558,7 +1632,9 @@ mod tests {
         let exit_price = 52000.0;
         let exit_fees = 2.08; // 52000 * 0.1 * 0.0004
 
-        trade.close(exit_price, CloseReason::TakeProfit, exit_fees).unwrap();
+        trade
+            .close(exit_price, CloseReason::TakeProfit, exit_fees)
+            .unwrap();
 
         // PnL: (52000 - 50000) * 0.1 - entry_fees - funding_fees - exit_fees
         // = 200 - 2 - ~1.01 - 2.08 ≈ 194.91
@@ -1585,7 +1661,12 @@ mod tests {
 
         assert!(trade.metadata.contains_key("cancel_reason"));
         assert_eq!(
-            trade.metadata.get("cancel_reason").unwrap().as_str().unwrap(),
+            trade
+                .metadata
+                .get("cancel_reason")
+                .unwrap()
+                .as_str()
+                .unwrap(),
             cancel_reason
         );
     }
@@ -1653,8 +1734,28 @@ mod tests {
 
     #[test]
     fn test_uuid_uniqueness() {
-        let trade1 = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 10, 0.0004, None, None, None);
-        let trade2 = PaperTrade::new("BTCUSDT".to_string(), TradeType::Long, 50000.0, 0.1, 10, 0.0004, None, None, None);
+        let trade1 = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+        let trade2 = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
 
         assert_ne!(trade1.id, trade2.id);
     }
@@ -1697,5 +1798,274 @@ mod tests {
 
         // PnL should be negative only due to fees
         assert_eq!(trade.unrealized_pnl, -2.0); // Only trading fees
+    }
+
+    // ===== Division-by-Zero Protection Tests =====
+
+    #[test]
+    fn test_division_by_zero_protection_zero_initial_margin() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.0, // Zero quantity leads to zero initial margin
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Update with price - should not panic with division by zero
+        trade.update_with_price(55000.0, None);
+
+        // PnL percentage should be 0.0 when initial margin is zero
+        assert_eq!(trade.pnl_percentage, 0.0);
+        assert_eq!(trade.unrealized_pnl, 0.0);
+    }
+
+    #[test]
+    fn test_division_by_zero_protection_zero_margin_used() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Manually set margin_used to 0 to test protection
+        trade.margin_used = 0.0;
+
+        // Update with price - should not panic
+        trade.update_with_price(55000.0, None);
+
+        // Margin ratio should default to 1.0 when margin_used is 0
+        assert_eq!(trade.margin_ratio, 1.0);
+    }
+
+    #[test]
+    fn test_division_by_zero_protection_negative_margin_scenario() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Massive loss scenario
+        trade.update_with_price(10000.0, None);
+
+        // Even with extreme losses, should not panic
+        assert!(trade.margin_ratio < 1.0);
+        assert!(trade.pnl_percentage < -100.0);
+    }
+
+    #[test]
+    fn test_pnl_percentage_calculation_with_small_margin() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.00001, // Very small quantity
+            125,     // High leverage
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Small initial margin: 0.5 / 125 = 0.004
+        assert!(trade.initial_margin > 0.0);
+        assert!(trade.initial_margin < 0.01);
+
+        // Price increases by 10%
+        trade.update_with_price(55000.0, None);
+
+        // Should calculate PnL percentage without issues
+        assert!(trade.pnl_percentage != 0.0);
+        assert!(trade.pnl_percentage.is_finite());
+    }
+
+    #[test]
+    fn test_margin_ratio_calculation_extreme_profit() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price increases 500%
+        trade.update_with_price(250000.0, None);
+
+        // Margin ratio should be very high (profitable)
+        assert!(trade.margin_ratio > 10.0);
+        assert!(trade.margin_ratio.is_finite());
+        assert!(!trade.margin_ratio.is_nan());
+    }
+
+    #[test]
+    fn test_margin_ratio_calculation_extreme_loss() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price drops 80%
+        trade.update_with_price(10000.0, None);
+
+        // Margin ratio should be very low (near liquidation)
+        assert!(trade.margin_ratio < 1.0);
+        assert!(trade.margin_ratio.is_finite());
+        assert!(!trade.margin_ratio.is_nan());
+    }
+
+    #[test]
+    fn test_pnl_calculation_precision_no_rounding_errors() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Repeated updates should maintain consistency
+        for _ in 0..100 {
+            trade.update_with_price(51000.0, None);
+        }
+
+        // Values should remain consistent (not accumulate rounding errors)
+        assert!((trade.unrealized_pnl - 98.0).abs() < 0.01);
+        assert!(trade.pnl_percentage.is_finite());
+    }
+
+    #[test]
+    fn test_funding_fees_with_zero_quantity() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.0, // Zero quantity
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Update with funding rate
+        trade.update_with_price(50000.0, Some(0.0001));
+
+        // Funding fees should be zero for zero quantity
+        assert_eq!(trade.funding_fees, 0.0);
+    }
+
+    #[test]
+    fn test_liquidation_calculation_no_overflow() {
+        let trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10, // 10x leverage for safer testing
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Should calculate liquidation risk without overflow
+        // At entry price, should not be at liquidation risk
+        assert!(!trade.is_at_liquidation_risk(50000.0));
+
+        // At bankruptcy price calculation: 50000 * (1 - 1/10) = 45000
+        // Risk threshold: 45000 * 1.05 = 47250
+        assert!(trade.is_at_liquidation_risk(47000.0));
+        assert!(trade.is_at_liquidation_risk(45000.0));
+
+        // Test with maximum leverage separately
+        let high_leverage_trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            125,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // At 125x, bankruptcy: 50000 * (1 - 1/125) = 49600
+        // Risk threshold: 49600 * 1.05 = 52080
+        // At entry price with 125x, close to liquidation
+        assert!(high_leverage_trade.is_at_liquidation_risk(49800.0));
+    }
+
+    #[test]
+    fn test_concurrent_updates_thread_safety() {
+        use std::sync::{Arc, Mutex};
+        use std::thread;
+
+        let trade = Arc::new(Mutex::new(PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        )));
+
+        let mut handles = vec![];
+
+        // Spawn multiple threads updating the trade
+        for i in 0..10 {
+            let trade_clone = Arc::clone(&trade);
+            let handle = thread::spawn(move || {
+                let mut t = trade_clone.lock().unwrap();
+                t.update_with_price(50000.0 + (i as f64 * 100.0), None);
+            });
+            handles.push(handle);
+        }
+
+        // Wait for all threads
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        // Trade should be in valid state
+        let final_trade = trade.lock().unwrap();
+        assert!(final_trade.margin_ratio.is_finite());
+        assert!(final_trade.pnl_percentage.is_finite());
     }
 }

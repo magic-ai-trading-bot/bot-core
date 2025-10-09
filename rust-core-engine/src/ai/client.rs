@@ -576,7 +576,10 @@ mod tests {
             model_version: "2.5.0".to_string(),
             supported_timeframes: vec!["1h".to_string(), "4h".to_string()],
             supported_symbols: vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()],
-            capabilities: vec!["signal_analysis".to_string(), "market_condition".to_string()],
+            capabilities: vec![
+                "signal_analysis".to_string(),
+                "market_condition".to_string(),
+            ],
             last_trained: Some("2024-01-01".to_string()),
         };
 
@@ -617,7 +620,11 @@ mod tests {
     #[test]
     fn test_supported_strategies_response_serialization() {
         let response = SupportedStrategiesResponse {
-            strategies: vec!["RSI".to_string(), "MACD".to_string(), "Bollinger".to_string()],
+            strategies: vec![
+                "RSI".to_string(),
+                "MACD".to_string(),
+                "Bollinger".to_string(),
+            ],
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -656,7 +663,8 @@ mod tests {
         candle2.open_time = 1234567950;
 
         let candles = vec![candle1, candle2];
-        let python_candles: Vec<PythonCandleData> = candles.iter().map(PythonCandleData::from).collect();
+        let python_candles: Vec<PythonCandleData> =
+            candles.iter().map(PythonCandleData::from).collect();
 
         assert_eq!(python_candles.len(), 2);
         assert_eq!(python_candles[0].timestamp, 1234567890);
@@ -908,9 +916,7 @@ mod tests {
 
     #[test]
     fn test_supported_strategies_response_empty() {
-        let response = SupportedStrategiesResponse {
-            strategies: vec![],
-        };
+        let response = SupportedStrategiesResponse { strategies: vec![] };
 
         let json = serde_json::to_string(&response).unwrap();
         let deserialized: SupportedStrategiesResponse = serde_json::from_str(&json).unwrap();
@@ -983,8 +989,14 @@ mod tests {
         assert_eq!(python_request.timeframe_data.len(), 2);
         assert!(python_request.timeframe_data.contains_key("1h"));
         assert!(python_request.timeframe_data.contains_key("4h"));
-        assert_eq!(python_request.timeframe_data.get("1h").unwrap()[0].volume, 100.0);
-        assert_eq!(python_request.timeframe_data.get("4h").unwrap()[0].volume, 400.0);
+        assert_eq!(
+            python_request.timeframe_data.get("1h").unwrap()[0].volume,
+            100.0
+        );
+        assert_eq!(
+            python_request.timeframe_data.get("4h").unwrap()[0].volume,
+            400.0
+        );
     }
 
     #[test]

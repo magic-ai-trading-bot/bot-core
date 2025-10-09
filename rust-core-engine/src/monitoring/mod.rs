@@ -99,7 +99,8 @@ impl MonitoringService {
     }
 
     pub fn record_reconnect(&mut self) {
-        self.connection_status.reconnect_count = self.connection_status.reconnect_count.saturating_add(1);
+        self.connection_status.reconnect_count =
+            self.connection_status.reconnect_count.saturating_add(1);
         warn!(
             "Connection reconnect #{}",
             self.connection_status.reconnect_count
@@ -1112,10 +1113,7 @@ mod tests {
 
         // Only reconnect count should change
         assert_eq!(service.connection_status.reconnect_count, 1);
-        assert_eq!(
-            service.connection_status.last_data_update,
-            timestamp_before
-        );
+        assert_eq!(service.connection_status.last_data_update, timestamp_before);
         assert_eq!(
             service.connection_status.websocket_connected,
             ws_status_before
