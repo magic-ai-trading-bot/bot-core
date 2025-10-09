@@ -9,7 +9,7 @@ from utils.logger import setup_logger, get_logger
 class TestSetupLogger:
     """Test setup_logger function"""
 
-    @patch('utils.logger.config')
+    @patch("utils.logger.config")
     def test_setup_logger_with_defaults(self, mock_config):
         """Test logger setup with default configuration"""
         mock_config.get_logging_config.return_value = {
@@ -17,7 +17,7 @@ class TestSetupLogger:
             "format": "{time} | {level} | {message}",
             "level": "INFO",
             "rotation": "10 MB",
-            "retention": "7 days"
+            "retention": "7 days",
         }
 
         # Reset logger state
@@ -28,7 +28,7 @@ class TestSetupLogger:
         # Verify config was called
         mock_config.get_logging_config.assert_called_once()
 
-    @patch('utils.logger.config')
+    @patch("utils.logger.config")
     def test_setup_logger_creates_log_directory(self, mock_config):
         """Test that log directory is created"""
         import tempfile
@@ -41,7 +41,7 @@ class TestSetupLogger:
                 "format": "{time} | {level} | {message}",
                 "level": "DEBUG",
                 "rotation": "10 MB",
-                "retention": "7 days"
+                "retention": "7 days",
             }
 
             # Reset logger state
@@ -52,7 +52,7 @@ class TestSetupLogger:
             # Check that directory was created
             assert Path(log_file).parent.exists()
 
-    @patch('utils.logger.config')
+    @patch("utils.logger.config")
     def test_setup_logger_with_different_levels(self, mock_config):
         """Test logger setup with different log levels"""
         for level in ["DEBUG", "INFO", "WARNING", "ERROR"]:
@@ -61,7 +61,7 @@ class TestSetupLogger:
                 "format": "{time} | {level} | {message}",
                 "level": level,
                 "rotation": "10 MB",
-                "retention": "7 days"
+                "retention": "7 days",
             }
 
             logger.remove()
@@ -88,10 +88,10 @@ class TestGetLogger:
         """Test that get_logger returns a logger instance"""
         log = get_logger("TestModule")
         # Should have logger methods
-        assert hasattr(log, 'info')
-        assert hasattr(log, 'debug')
-        assert hasattr(log, 'warning')
-        assert hasattr(log, 'error')
+        assert hasattr(log, "info")
+        assert hasattr(log, "debug")
+        assert hasattr(log, "warning")
+        assert hasattr(log, "error")
 
     def test_get_logger_with_different_names(self):
         """Test getting loggers with different names"""

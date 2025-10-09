@@ -11,7 +11,7 @@ from features.feature_engineering import FeatureEngineer
 @pytest.fixture
 def sample_df():
     """Create sample DataFrame with OHLCV data"""
-    dates = pd.date_range(start='2024-01-01', periods=100, freq='1h')
+    dates = pd.date_range(start="2024-01-01", periods=100, freq="1h")
     np.random.seed(42)
 
     # Generate realistic price data
@@ -20,13 +20,16 @@ def sample_df():
     low_prices = close_prices - np.abs(np.random.randn(100) * 50)
     open_prices = close_prices + np.random.randn(100) * 30
 
-    df = pd.DataFrame({
-        'open': open_prices,
-        'high': high_prices,
-        'low': low_prices,
-        'close': close_prices,
-        'volume': np.random.rand(100) * 1000 + 500
-    }, index=dates)
+    df = pd.DataFrame(
+        {
+            "open": open_prices,
+            "high": high_prices,
+            "low": low_prices,
+            "close": close_prices,
+            "volume": np.random.rand(100) * 1000 + 500,
+        },
+        index=dates,
+    )
 
     return df
 
@@ -59,41 +62,49 @@ class TestPrepareFeatures:
         # Should have more columns than original
         assert len(result.columns) > len(sample_df.columns)
         # Original columns should be present
-        assert all(col in result.columns for col in ['open', 'high', 'low', 'close', 'volume'])
+        assert all(
+            col in result.columns for col in ["open", "high", "low", "close", "volume"]
+        )
 
-    def test_prepare_features_includes_technical_indicators(self, feature_engineer, sample_df):
+    def test_prepare_features_includes_technical_indicators(
+        self, feature_engineer, sample_df
+    ):
         """Test that technical indicators are included"""
         result = feature_engineer.prepare_features(sample_df)
         # Check for some key technical indicators
-        indicator_cols = ['rsi', 'macd', 'ema_9', 'bb_upper']
+        indicator_cols = ["rsi", "macd", "ema_9", "bb_upper"]
         for col in indicator_cols:
             assert col in result.columns
 
-    def test_prepare_features_includes_price_features(self, feature_engineer, sample_df):
+    def test_prepare_features_includes_price_features(
+        self, feature_engineer, sample_df
+    ):
         """Test that price features are included"""
         result = feature_engineer.prepare_features(sample_df)
-        price_feature_cols = ['price_return_1', 'price_position', 'hl_spread']
+        price_feature_cols = ["price_return_1", "price_position", "hl_spread"]
         for col in price_feature_cols:
             assert col in result.columns
 
     def test_prepare_features_includes_time_features(self, feature_engineer, sample_df):
         """Test that time features are included"""
         result = feature_engineer.prepare_features(sample_df)
-        time_feature_cols = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos']
+        time_feature_cols = ["hour_sin", "hour_cos", "day_sin", "day_cos"]
         for col in time_feature_cols:
             assert col in result.columns
 
     def test_prepare_features_includes_lag_features(self, feature_engineer, sample_df):
         """Test that lag features are included"""
         result = feature_engineer.prepare_features(sample_df)
-        lag_feature_cols = ['close_lag_1', 'volume_lag_1', 'rsi_lag_1']
+        lag_feature_cols = ["close_lag_1", "volume_lag_1", "rsi_lag_1"]
         for col in lag_feature_cols:
             assert col in result.columns
 
-    def test_prepare_features_includes_volatility_features(self, feature_engineer, sample_df):
+    def test_prepare_features_includes_volatility_features(
+        self, feature_engineer, sample_df
+    ):
         """Test that volatility features are included"""
         result = feature_engineer.prepare_features(sample_df)
-        volatility_cols = ['volatility_5', 'volatility_10', 'price_dispersion']
+        volatility_cols = ["volatility_5", "volatility_10", "price_dispersion"]
         for col in volatility_cols:
             assert col in result.columns
 
@@ -112,28 +123,30 @@ class TestAddPriceFeatures:
     def test_add_price_features(self, feature_engineer, sample_df):
         """Test price feature addition"""
         result = feature_engineer._add_price_features(sample_df.copy())
-        assert 'price_return_1' in result.columns
-        assert 'price_return_5' in result.columns
-        assert 'price_return_10' in result.columns
-        assert 'price_position' in result.columns
-        assert 'hl_spread' in result.columns
-        assert 'oc_spread' in result.columns
-        assert 'vpt' in result.columns
-        assert 'price_momentum_5' in result.columns
-        assert 'price_momentum_10' in result.columns
+        assert "price_return_1" in result.columns
+        assert "price_return_5" in result.columns
+        assert "price_return_10" in result.columns
+        assert "price_position" in result.columns
+        assert "hl_spread" in result.columns
+        assert "oc_spread" in result.columns
+        assert "vpt" in result.columns
+        assert "price_momentum_5" in result.columns
+        assert "price_momentum_10" in result.columns
 
     def test_add_price_features_calculations(self, feature_engineer, sample_df):
         """Test price feature calculations are correct"""
         result = feature_engineer._add_price_features(sample_df.copy())
         # Price return should be percentage change
-        expected_return = sample_df['close'].pct_change(1)
-        pd.testing.assert_series_equal(result['price_return_1'], expected_return, check_names=False)
+        expected_return = sample_df["close"].pct_change(1)
+        pd.testing.assert_series_equal(
+            result["price_return_1"], expected_return, check_names=False
+        )
 
     def test_add_price_features_position_range(self, feature_engineer, sample_df):
         """Test price position is within valid range"""
         result = feature_engineer._add_price_features(sample_df.copy())
         # Price position should be between 0 and 1 (where not NaN or inf)
-        valid_positions = result['price_position'].dropna()
+        valid_positions = result["price_position"].dropna()
         valid_positions = valid_positions[np.isfinite(valid_positions)]
         assert (valid_positions >= 0).all()
         assert (valid_positions <= 1).all()
@@ -141,7 +154,7 @@ class TestAddPriceFeatures:
     def test_add_price_features_exception_handling(self, feature_engineer):
         """Test price features exception handling"""
         # Create invalid DataFrame
-        df = pd.DataFrame({'close': []})
+        df = pd.DataFrame({"close": []})
         result = feature_engineer._add_price_features(df)
         assert isinstance(result, pd.DataFrame)
 
@@ -153,33 +166,40 @@ class TestAddTimeFeatures:
         """Test time feature addition"""
         result = feature_engineer._add_time_features(sample_df.copy())
         # Check cyclical encodings are present
-        assert 'hour_sin' in result.columns
-        assert 'hour_cos' in result.columns
-        assert 'day_sin' in result.columns
-        assert 'day_cos' in result.columns
-        assert 'month_sin' in result.columns
-        assert 'month_cos' in result.columns
+        assert "hour_sin" in result.columns
+        assert "hour_cos" in result.columns
+        assert "day_sin" in result.columns
+        assert "day_cos" in result.columns
+        assert "month_sin" in result.columns
+        assert "month_cos" in result.columns
 
     def test_add_time_features_drops_originals(self, feature_engineer, sample_df):
         """Test that original time features are dropped"""
         result = feature_engineer._add_time_features(sample_df.copy())
         # Original time features should be dropped
-        assert 'hour' not in result.columns
-        assert 'day_of_week' not in result.columns
-        assert 'day_of_month' not in result.columns
-        assert 'month' not in result.columns
+        assert "hour" not in result.columns
+        assert "day_of_week" not in result.columns
+        assert "day_of_month" not in result.columns
+        assert "month" not in result.columns
 
     def test_add_time_features_cyclical_range(self, feature_engineer, sample_df):
         """Test cyclical features are in valid range [-1, 1]"""
         result = feature_engineer._add_time_features(sample_df.copy())
-        cyclical_cols = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos']
+        cyclical_cols = [
+            "hour_sin",
+            "hour_cos",
+            "day_sin",
+            "day_cos",
+            "month_sin",
+            "month_cos",
+        ]
         for col in cyclical_cols:
             assert result[col].min() >= -1
             assert result[col].max() <= 1
 
     def test_add_time_features_exception_handling(self, feature_engineer):
         """Test time features exception handling"""
-        df = pd.DataFrame({'close': [1, 2, 3]})
+        df = pd.DataFrame({"close": [1, 2, 3]})
         result = feature_engineer._add_time_features(df)
         assert isinstance(result, pd.DataFrame)
 
@@ -191,24 +211,24 @@ class TestAddLagFeatures:
         """Test lag feature addition with default lags"""
         # Add required columns for lag features
         df = sample_df.copy()
-        df['rsi'] = 50
-        df['macd'] = 0
+        df["rsi"] = 50
+        df["macd"] = 0
         result = feature_engineer._add_lag_features(df)
 
         # Check lag features exist
-        assert 'close_lag_1' in result.columns
-        assert 'volume_lag_1' in result.columns
-        assert 'rsi_lag_1' in result.columns
+        assert "close_lag_1" in result.columns
+        assert "volume_lag_1" in result.columns
+        assert "rsi_lag_1" in result.columns
 
     def test_add_lag_features_custom_lags(self, feature_engineer, sample_df):
         """Test lag feature addition with custom lags"""
         df = sample_df.copy()
-        df['rsi'] = 50
-        df['macd'] = 0
+        df["rsi"] = 50
+        df["macd"] = 0
         result = feature_engineer._add_lag_features(df, lags=[2, 5])
 
-        assert 'close_lag_2' in result.columns
-        assert 'close_lag_5' in result.columns
+        assert "close_lag_2" in result.columns
+        assert "close_lag_5" in result.columns
 
     def test_add_lag_features_values_correct(self, feature_engineer, sample_df):
         """Test lag feature values are correctly shifted"""
@@ -217,31 +237,31 @@ class TestAddLagFeatures:
 
         # Check that lag_1 values are shifted by 1
         pd.testing.assert_series_equal(
-            result['close_lag_1'].dropna(),
-            df['close'].shift(1).dropna(),
-            check_names=False
+            result["close_lag_1"].dropna(),
+            df["close"].shift(1).dropna(),
+            check_names=False,
         )
 
     def test_add_lag_features_missing_columns(self, feature_engineer, sample_df):
         """Test lag features handles missing columns gracefully"""
-        df = sample_df[['close']].copy()
+        df = sample_df[["close"]].copy()
         result = feature_engineer._add_lag_features(df)
         # Should only create lags for close
-        assert 'close_lag_1' in result.columns
-        assert 'volume_lag_1' not in result.columns
+        assert "close_lag_1" in result.columns
+        assert "volume_lag_1" not in result.columns
 
     def test_add_lag_features_exception_handling(self, feature_engineer):
         """Test lag features exception handling"""
-        df = pd.DataFrame({'close': []})
+        df = pd.DataFrame({"close": []})
         result = feature_engineer._add_lag_features(df)
         assert isinstance(result, pd.DataFrame)
 
     def test_add_lag_features_covers_exception_path(self, feature_engineer):
         """Test lag features exception path (lines 111-113)"""
         # Create a DataFrame that will cause an exception in the lag feature loop
-        df = pd.DataFrame({'close': [1, 2, 3]})
+        df = pd.DataFrame({"close": [1, 2, 3]})
         # Mock to force exception
-        with patch.object(df, '__getitem__', side_effect=Exception("Test error")):
+        with patch.object(df, "__getitem__", side_effect=Exception("Test error")):
             try:
                 result = feature_engineer._add_lag_features(df)
                 # Should return DataFrame even with error
@@ -257,29 +277,29 @@ class TestAddVolatilityFeatures:
         """Test volatility feature addition"""
         # Add price_return_1 which is needed
         df = sample_df.copy()
-        df['price_return_1'] = df['close'].pct_change(1)
+        df["price_return_1"] = df["close"].pct_change(1)
 
         result = feature_engineer._add_volatility_features(df)
-        assert 'volatility_5' in result.columns
-        assert 'volatility_10' in result.columns
-        assert 'volatility_20' in result.columns
-        assert 'volatility_ratio_5_10' in result.columns
-        assert 'volatility_ratio_10_20' in result.columns
-        assert 'price_dispersion' in result.columns
+        assert "volatility_5" in result.columns
+        assert "volatility_10" in result.columns
+        assert "volatility_20" in result.columns
+        assert "volatility_ratio_5_10" in result.columns
+        assert "volatility_ratio_10_20" in result.columns
+        assert "price_dispersion" in result.columns
 
     def test_add_volatility_features_positive_values(self, feature_engineer, sample_df):
         """Test volatility features are positive"""
         df = sample_df.copy()
-        df['price_return_1'] = df['close'].pct_change(1)
+        df["price_return_1"] = df["close"].pct_change(1)
         result = feature_engineer._add_volatility_features(df)
 
         # Volatility should be non-negative
-        assert (result['volatility_5'].dropna() >= 0).all()
-        assert (result['volatility_10'].dropna() >= 0).all()
+        assert (result["volatility_5"].dropna() >= 0).all()
+        assert (result["volatility_10"].dropna() >= 0).all()
 
     def test_add_volatility_features_exception_handling(self, feature_engineer):
         """Test volatility features exception handling"""
-        df = pd.DataFrame({'close': [], 'high': [], 'low': []})
+        df = pd.DataFrame({"close": [], "high": [], "low": []})
         result = feature_engineer._add_volatility_features(df)
         assert isinstance(result, pd.DataFrame)
 
@@ -290,8 +310,8 @@ class TestCleanData:
     def test_clean_data_removes_inf(self, feature_engineer, sample_df):
         """Test that infinite values are removed"""
         df = sample_df.copy()
-        df.loc[10, 'close'] = np.inf
-        df.loc[20, 'volume'] = -np.inf
+        df.loc[10, "close"] = np.inf
+        df.loc[20, "volume"] = -np.inf
 
         result = feature_engineer._clean_data(df)
         assert not np.isinf(result.select_dtypes(include=[np.number])).any().any()
@@ -299,7 +319,7 @@ class TestCleanData:
     def test_clean_data_handles_nan(self, feature_engineer, sample_df):
         """Test NaN handling"""
         df = sample_df.copy()
-        df.iloc[10:15, df.columns.get_loc('close')] = np.nan
+        df.iloc[10:15, df.columns.get_loc("close")] = np.nan
 
         # Clean data should handle NaN with ffill then dropna
         result = feature_engineer._clean_data(df)
@@ -309,7 +329,7 @@ class TestCleanData:
     def test_clean_data_forward_fill(self, feature_engineer, sample_df):
         """Test forward fill is applied"""
         df = sample_df.copy()
-        df.loc[50, 'volume'] = np.nan
+        df.loc[50, "volume"] = np.nan
 
         result = feature_engineer._clean_data(df)
         # After forward fill and dropna, should not have NaN
@@ -323,9 +343,9 @@ class TestCleanData:
 
     def test_clean_data_covers_exception_path(self, feature_engineer):
         """Test clean data exception path (lines 148-150)"""
-        df = pd.DataFrame({'close': [1, 2, 3]})
+        df = pd.DataFrame({"close": [1, 2, 3]})
         # Force an exception by mocking replace
-        with patch.object(df, 'replace', side_effect=Exception("Test error")):
+        with patch.object(df, "replace", side_effect=Exception("Test error")):
             try:
                 result = feature_engineer._clean_data(df)
                 # Should return DataFrame even with error
@@ -340,15 +360,18 @@ class TestCreateSequences:
     def test_create_sequences_basic(self, feature_engineer):
         """Test basic sequence creation"""
         # Use a larger dataset to ensure enough data after cleaning
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         # Prepare features first
         prepared_df = feature_engineer.prepare_features(df)
@@ -363,15 +386,18 @@ class TestCreateSequences:
 
     def test_create_sequences_custom_length(self, feature_engineer):
         """Test sequence creation with custom length"""
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         prepared_df = feature_engineer.prepare_features(df)
         if len(prepared_df) >= 30:
@@ -380,15 +406,18 @@ class TestCreateSequences:
 
     def test_create_sequences_feature_columns_set(self, feature_engineer):
         """Test that feature columns are set"""
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         prepared_df = feature_engineer.prepare_features(df)
         if len(prepared_df) >= 60:
@@ -399,40 +428,48 @@ class TestCreateSequences:
 
     def test_create_sequences_excludes_target(self, feature_engineer):
         """Test that target column is excluded from features"""
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         prepared_df = feature_engineer.prepare_features(df)
-        prepared_df['target'] = 0.5
+        prepared_df["target"] = 0.5
         if len(prepared_df) >= 60:
             X, y = feature_engineer.create_sequences(prepared_df)
 
-            assert 'target' not in feature_engineer.feature_columns
-            assert 'signal' not in feature_engineer.feature_columns
+            assert "target" not in feature_engineer.feature_columns
+            assert "signal" not in feature_engineer.feature_columns
 
     def test_create_sequences_correct_length(self, feature_engineer):
         """Test sequence array has correct length"""
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         prepared_df = feature_engineer.prepare_features(df)
         sequence_length = 20
         if len(prepared_df) >= sequence_length:
-            X, y = feature_engineer.create_sequences(prepared_df, sequence_length=sequence_length)
+            X, y = feature_engineer.create_sequences(
+                prepared_df, sequence_length=sequence_length
+            )
 
             expected_samples = len(prepared_df) - sequence_length
             assert X.shape[0] == expected_samples
@@ -461,11 +498,11 @@ class TestCreateTarget:
 
     def test_create_target_strong_signals(self, feature_engineer):
         """Test strong buy/sell signals"""
-        dates = pd.date_range(start='2024-01-01', periods=10, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=10, freq="1h")
         # Create data with strong upward movement
-        df = pd.DataFrame({
-            'close': [100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
-        }, index=dates)
+        df = pd.DataFrame(
+            {"close": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109]}, index=dates
+        )
 
         target = feature_engineer._create_target(df)
         # Should have some strong buy signals (1.0) for large movements
@@ -473,16 +510,16 @@ class TestCreateTarget:
 
     def test_create_target_exception_handling(self, feature_engineer):
         """Test target creation exception handling"""
-        df = pd.DataFrame({'close': []})
+        df = pd.DataFrame({"close": []})
         target = feature_engineer._create_target(df)
         assert isinstance(target, np.ndarray)
         assert len(target) == 0
 
     def test_create_target_covers_exception_path(self, feature_engineer):
         """Test target creation exception path (lines 199-201)"""
-        df = pd.DataFrame({'close': [1, 2, 3]})
+        df = pd.DataFrame({"close": [1, 2, 3]})
         # Mock shift to force exception
-        with patch.object(pd.Series, 'shift', side_effect=Exception("Test error")):
+        with patch.object(pd.Series, "shift", side_effect=Exception("Test error")):
             target = feature_engineer._create_target(df)
             # Should return zeros on error
             assert isinstance(target, np.ndarray)
@@ -535,7 +572,7 @@ class TestScaleFeatures:
         # Create invalid data
         X = np.array([])
 
-        with patch('features.feature_engineering.StandardScaler') as mock_scaler:
+        with patch("features.feature_engineering.StandardScaler") as mock_scaler:
             mock_scaler.side_effect = Exception("Test error")
             X_result = feature_engineer.scale_features(X, fit_scaler=True)
             # Should return original on error
@@ -548,15 +585,18 @@ class TestPrepareForInference:
     def test_prepare_for_inference_basic(self, feature_engineer):
         """Test basic inference preparation"""
         # Use larger dataset
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         # First prepare features to set feature columns
         prepared_df = feature_engineer.prepare_features(df)
@@ -574,14 +614,17 @@ class TestPrepareForInference:
     def test_prepare_for_inference_insufficient_data(self, feature_engineer):
         """Test inference with insufficient data"""
         # Create small DataFrame
-        dates = pd.date_range(start='2024-01-01', periods=10, freq='1h')
-        df = pd.DataFrame({
-            'open': [50000] * 10,
-            'high': [50100] * 10,
-            'low': [49900] * 10,
-            'close': [50000] * 10,
-            'volume': [1000] * 10
-        }, index=dates)
+        dates = pd.date_range(start="2024-01-01", periods=10, freq="1h")
+        df = pd.DataFrame(
+            {
+                "open": [50000] * 10,
+                "high": [50100] * 10,
+                "low": [49900] * 10,
+                "close": [50000] * 10,
+                "volume": [1000] * 10,
+            },
+            index=dates,
+        )
 
         X_inference = feature_engineer.prepare_for_inference(df)
         # Should return None for insufficient data
@@ -589,15 +632,18 @@ class TestPrepareForInference:
 
     def test_prepare_for_inference_with_scaler(self, feature_engineer):
         """Test inference with fitted scaler"""
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         # Fit scaler first
         prepared_df = feature_engineer.prepare_features(df)
@@ -613,17 +659,21 @@ class TestPrepareForInference:
 
     def test_prepare_for_inference_feature_columns_not_set(self, feature_engineer):
         """Test inference when feature columns not set"""
-        dates = pd.date_range(start='2024-01-01', periods=300, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=300, freq="1h")
         np.random.seed(42)
         # Generate more stable data to avoid cleaning issues
         close_prices = 50000 + np.cumsum(np.random.randn(300) * 50)  # Less volatile
-        df = pd.DataFrame({
-            'open': close_prices + np.random.randn(300) * 10,
-            'high': close_prices + np.abs(np.random.randn(300) * 20),
-            'low': close_prices - np.abs(np.random.randn(300) * 20),
-            'close': close_prices,
-            'volume': np.abs(np.random.randn(300) * 500) + 1000  # More stable volume
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": close_prices + np.random.randn(300) * 10,
+                "high": close_prices + np.abs(np.random.randn(300) * 20),
+                "low": close_prices - np.abs(np.random.randn(300) * 20),
+                "close": close_prices,
+                "volume": np.abs(np.random.randn(300) * 500)
+                + 1000,  # More stable volume
+            },
+            index=dates,
+        )
 
         X_inference = feature_engineer.prepare_for_inference(df)
         # Should work, using all columns except target (or None if data too small after cleaning)
@@ -632,23 +682,26 @@ class TestPrepareForInference:
 
     def test_prepare_for_inference_exception_handling(self, feature_engineer):
         """Test inference exception handling"""
-        df = pd.DataFrame({'close': []})
+        df = pd.DataFrame({"close": []})
         X_inference = feature_engineer.prepare_for_inference(df)
         assert X_inference is None
 
     def test_prepare_for_inference_covers_all_paths(self, feature_engineer):
         """Test inference preparation covers lines 242-261"""
-        dates = pd.date_range(start='2024-01-01', periods=300, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=300, freq="1h")
         np.random.seed(42)
         # Generate more stable data
         close_prices = 50000 + np.cumsum(np.random.randn(300) * 50)
-        df = pd.DataFrame({
-            'open': close_prices + np.random.randn(300) * 10,
-            'high': close_prices + np.abs(np.random.randn(300) * 20),
-            'low': close_prices - np.abs(np.random.randn(300) * 20),
-            'close': close_prices,
-            'volume': np.abs(np.random.randn(300) * 500) + 1000
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": close_prices + np.random.randn(300) * 10,
+                "high": close_prices + np.abs(np.random.randn(300) * 20),
+                "low": close_prices - np.abs(np.random.randn(300) * 20),
+                "close": close_prices,
+                "volume": np.abs(np.random.randn(300) * 500) + 1000,
+            },
+            index=dates,
+        )
 
         # Test with feature_columns not set (line 242-246)
         feature_engineer.feature_columns = []
@@ -666,9 +719,11 @@ class TestPrepareForInference:
 
     def test_prepare_for_inference_with_exception(self, feature_engineer):
         """Test inference exception handling path (lines 259-261)"""
-        df = pd.DataFrame({'close': [1, 2, 3]})
+        df = pd.DataFrame({"close": [1, 2, 3]})
         # Force exception by mocking prepare_features
-        with patch.object(feature_engineer, 'prepare_features', side_effect=Exception("Test error")):
+        with patch.object(
+            feature_engineer, "prepare_features", side_effect=Exception("Test error")
+        ):
             X_inference = feature_engineer.prepare_for_inference(df)
             assert X_inference is None
 
@@ -695,19 +750,23 @@ class TestGetFeatureImportance:
     def test_get_feature_importance_excludes_target(self, feature_engineer, sample_df):
         """Test that target is excluded from importance dict"""
         importance = feature_engineer.get_feature_importance(sample_df)
-        assert 'target' not in importance
+        assert "target" not in importance
 
     def test_get_feature_importance_exception_handling(self, feature_engineer):
         """Test feature importance exception handling"""
-        df = pd.DataFrame({'close': []})
+        df = pd.DataFrame({"close": []})
         importance = feature_engineer.get_feature_importance(df)
         assert isinstance(importance, dict)
 
     def test_get_feature_importance_with_exceptions(self, feature_engineer):
         """Test feature importance when exceptions occur"""
         # Mock prepare_features to raise an exception
-        with patch.object(feature_engineer, 'prepare_features', side_effect=Exception("Test error")):
-            importance = feature_engineer.get_feature_importance(pd.DataFrame({'close': [1, 2, 3]}))
+        with patch.object(
+            feature_engineer, "prepare_features", side_effect=Exception("Test error")
+        ):
+            importance = feature_engineer.get_feature_importance(
+                pd.DataFrame({"close": [1, 2, 3]})
+            )
             assert isinstance(importance, dict)
             assert len(importance) == 0
 
@@ -721,7 +780,9 @@ class TestGetFeatureColumns:
         assert isinstance(columns, list)
         assert len(columns) == 0
 
-    def test_get_feature_columns_after_sequence_creation(self, feature_engineer, sample_df):
+    def test_get_feature_columns_after_sequence_creation(
+        self, feature_engineer, sample_df
+    ):
         """Test feature columns after creating sequences"""
         prepared_df = feature_engineer.prepare_features(sample_df)
         X, y = feature_engineer.create_sequences(prepared_df)
@@ -739,7 +800,9 @@ class TestGetFeaturesCount:
         count = feature_engineer.get_features_count()
         assert count == 0
 
-    def test_get_features_count_after_sequence_creation(self, feature_engineer, sample_df):
+    def test_get_features_count_after_sequence_creation(
+        self, feature_engineer, sample_df
+    ):
         """Test feature count after creating sequences"""
         prepared_df = feature_engineer.prepare_features(sample_df)
         X, y = feature_engineer.create_sequences(prepared_df)
@@ -754,20 +817,23 @@ class TestEdgeCases:
 
     def test_empty_dataframe(self, feature_engineer):
         """Test with empty DataFrame"""
-        df = pd.DataFrame(columns=['open', 'high', 'low', 'close', 'volume'])
+        df = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
         result = feature_engineer.prepare_features(df)
         assert isinstance(result, pd.DataFrame)
 
     def test_single_row_dataframe(self, feature_engineer):
         """Test with single row DataFrame"""
-        dates = pd.date_range(start='2024-01-01', periods=1, freq='1h')
-        df = pd.DataFrame({
-            'open': [50000],
-            'high': [50100],
-            'low': [49900],
-            'close': [50000],
-            'volume': [1000]
-        }, index=dates)
+        dates = pd.date_range(start="2024-01-01", periods=1, freq="1h")
+        df = pd.DataFrame(
+            {
+                "open": [50000],
+                "high": [50100],
+                "low": [49900],
+                "close": [50000],
+                "volume": [1000],
+            },
+            index=dates,
+        )
 
         result = feature_engineer.prepare_features(df)
         assert isinstance(result, pd.DataFrame)
@@ -775,7 +841,7 @@ class TestEdgeCases:
     def test_nan_in_data(self, feature_engineer, sample_df):
         """Test with NaN values in data"""
         df = sample_df.copy()
-        df.iloc[10:20, df.columns.get_loc('close')] = np.nan
+        df.iloc[10:20, df.columns.get_loc("close")] = np.nan
 
         result = feature_engineer.prepare_features(df)
         # Should clean NaN values - after forward fill and dropna
@@ -784,8 +850,8 @@ class TestEdgeCases:
     def test_inf_in_data(self, feature_engineer, sample_df):
         """Test with infinite values in data"""
         df = sample_df.copy()
-        df.loc[30, 'high'] = np.inf
-        df.loc[40, 'low'] = -np.inf
+        df.loc[30, "high"] = np.inf
+        df.loc[40, "low"] = -np.inf
 
         result = feature_engineer.prepare_features(df)
         # Should clean inf values
@@ -794,51 +860,60 @@ class TestEdgeCases:
     def test_zero_volume(self, feature_engineer, sample_df):
         """Test with zero volume"""
         df = sample_df.copy()
-        df['volume'] = 0
+        df["volume"] = 0
 
         result = feature_engineer.prepare_features(df)
         assert isinstance(result, pd.DataFrame)
 
     def test_flat_prices(self, feature_engineer):
         """Test with flat prices (no movement)"""
-        dates = pd.date_range(start='2024-01-01', periods=100, freq='1h')
-        df = pd.DataFrame({
-            'open': [50000] * 100,
-            'high': [50000] * 100,
-            'low': [50000] * 100,
-            'close': [50000] * 100,
-            'volume': [1000] * 100
-        }, index=dates)
+        dates = pd.date_range(start="2024-01-01", periods=100, freq="1h")
+        df = pd.DataFrame(
+            {
+                "open": [50000] * 100,
+                "high": [50000] * 100,
+                "low": [50000] * 100,
+                "close": [50000] * 100,
+                "volume": [1000] * 100,
+            },
+            index=dates,
+        )
 
         result = feature_engineer.prepare_features(df)
         assert isinstance(result, pd.DataFrame)
 
     def test_extreme_volatility(self, feature_engineer):
         """Test with extremely volatile data"""
-        dates = pd.date_range(start='2024-01-01', periods=100, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=100, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': np.random.rand(100) * 100000,
-            'high': np.random.rand(100) * 120000,
-            'low': np.random.rand(100) * 80000,
-            'close': np.random.rand(100) * 100000,
-            'volume': np.random.rand(100) * 10000
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": np.random.rand(100) * 100000,
+                "high": np.random.rand(100) * 120000,
+                "low": np.random.rand(100) * 80000,
+                "close": np.random.rand(100) * 100000,
+                "volume": np.random.rand(100) * 10000,
+            },
+            index=dates,
+        )
 
         result = feature_engineer.prepare_features(df)
         assert isinstance(result, pd.DataFrame)
 
     def test_sequence_creation_minimal_data(self, feature_engineer):
         """Test sequence creation with minimal data"""
-        dates = pd.date_range(start='2024-01-01', periods=70, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=70, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': np.random.rand(70) * 100 + 50000,
-            'high': np.random.rand(70) * 100 + 50050,
-            'low': np.random.rand(70) * 100 + 49950,
-            'close': np.random.rand(70) * 100 + 50000,
-            'volume': np.random.rand(70) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": np.random.rand(70) * 100 + 50000,
+                "high": np.random.rand(70) * 100 + 50050,
+                "low": np.random.rand(70) * 100 + 49950,
+                "close": np.random.rand(70) * 100 + 50000,
+                "volume": np.random.rand(70) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         prepared_df = feature_engineer.prepare_features(df)
         # May fail with minimal data after cleaning
@@ -860,13 +935,15 @@ class TestEdgeCases:
 
     def test_prepare_for_inference_no_index(self, feature_engineer):
         """Test inference preparation with DataFrame without datetime index"""
-        df = pd.DataFrame({
-            'open': [50000] * 100,
-            'high': [50100] * 100,
-            'low': [49900] * 100,
-            'close': [50000] * 100,
-            'volume': [1000] * 100
-        })
+        df = pd.DataFrame(
+            {
+                "open": [50000] * 100,
+                "high": [50100] * 100,
+                "low": [49900] * 100,
+                "close": [50000] * 100,
+                "volume": [1000] * 100,
+            }
+        )
 
         # Should handle missing datetime index
         try:
@@ -881,17 +958,20 @@ class TestIntegration:
 
     def test_full_training_pipeline(self, feature_engineer):
         """Test complete training data pipeline"""
-        dates = pd.date_range(start='2024-01-01', periods=300, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=300, freq="1h")
         np.random.seed(42)
         # Generate more stable data
         close_prices = 50000 + np.cumsum(np.random.randn(300) * 50)
-        df = pd.DataFrame({
-            'open': close_prices + np.random.randn(300) * 10,
-            'high': close_prices + np.abs(np.random.randn(300) * 20),
-            'low': close_prices - np.abs(np.random.randn(300) * 20),
-            'close': close_prices,
-            'volume': np.abs(np.random.randn(300) * 500) + 1000
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": close_prices + np.random.randn(300) * 10,
+                "high": close_prices + np.abs(np.random.randn(300) * 20),
+                "low": close_prices - np.abs(np.random.randn(300) * 20),
+                "close": close_prices,
+                "volume": np.abs(np.random.randn(300) * 500) + 1000,
+            },
+            index=dates,
+        )
 
         # Prepare features
         prepared_df = feature_engineer.prepare_features(df)
@@ -913,15 +993,18 @@ class TestIntegration:
 
     def test_full_inference_pipeline(self, feature_engineer):
         """Test complete inference pipeline"""
-        dates = pd.date_range(start='2024-01-01', periods=200, freq='1h')
+        dates = pd.date_range(start="2024-01-01", periods=200, freq="1h")
         np.random.seed(42)
-        df = pd.DataFrame({
-            'open': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'high': 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
-            'low': 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
-            'close': 50000 + np.cumsum(np.random.randn(200) * 100),
-            'volume': np.random.rand(200) * 1000 + 500
-        }, index=dates)
+        df = pd.DataFrame(
+            {
+                "open": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "high": 50000 + np.cumsum(np.random.randn(200) * 100) + 50,
+                "low": 50000 + np.cumsum(np.random.randn(200) * 100) - 50,
+                "close": 50000 + np.cumsum(np.random.randn(200) * 100),
+                "volume": np.random.rand(200) * 1000 + 500,
+            },
+            index=dates,
+        )
 
         # First train
         prepared_df = feature_engineer.prepare_features(df)

@@ -12,7 +12,7 @@ from utils.helpers import (
     create_dataframe_from_ohlcv,
     get_current_timestamp,
     calculate_percentage_change,
-    format_confidence_score
+    format_confidence_score,
 )
 
 
@@ -41,110 +41,106 @@ class TestValidateOHLCVData:
     def test_valid_data(self):
         """Test with valid OHLCV data"""
         valid_data = {
-            'open': 100,
-            'high': 110,
-            'low': 90,
-            'close': 105,
-            'volume': 1000,
-            'timestamp': 1234567890,
-            'candles': [
+            "open": 100,
+            "high": 110,
+            "low": 90,
+            "close": 105,
+            "volume": 1000,
+            "timestamp": 1234567890,
+            "candles": [
                 {
-                    'open': 100,
-                    'high': 110,
-                    'low': 90,
-                    'close': 105,
-                    'volume': 1000,
-                    'timestamp': 1234567890
+                    "open": 100,
+                    "high": 110,
+                    "low": 90,
+                    "close": 105,
+                    "volume": 1000,
+                    "timestamp": 1234567890,
                 }
-            ]
+            ],
         }
         assert validate_ohlcv_data(valid_data) == True
 
     def test_missing_required_fields(self):
         """Test with missing required fields"""
-        invalid_data = {
-            'open': 100,
-            'high': 110,
-            'candles': []
-        }
+        invalid_data = {"open": 100, "high": 110, "candles": []}
         assert validate_ohlcv_data(invalid_data) == False
 
     def test_invalid_candles_structure(self):
         """Test with invalid candles structure"""
         invalid_data = {
-            'open': 100,
-            'high': 110,
-            'low': 90,
-            'close': 105,
-            'volume': 1000,
-            'timestamp': 1234567890,
-            'candles': 'not_a_list'
+            "open": 100,
+            "high": 110,
+            "low": 90,
+            "close": 105,
+            "volume": 1000,
+            "timestamp": 1234567890,
+            "candles": "not_a_list",
         }
         assert validate_ohlcv_data(invalid_data) == False
 
     def test_invalid_price_range(self):
         """Test with invalid price range (high < low)"""
         invalid_data = {
-            'open': 100,
-            'high': 110,
-            'low': 90,
-            'close': 105,
-            'volume': 1000,
-            'timestamp': 1234567890,
-            'candles': [
+            "open": 100,
+            "high": 110,
+            "low": 90,
+            "close": 105,
+            "volume": 1000,
+            "timestamp": 1234567890,
+            "candles": [
                 {
-                    'open': 100,
-                    'high': 80,  # High less than low
-                    'low': 90,
-                    'close': 105,
-                    'volume': 1000,
-                    'timestamp': 1234567890
+                    "open": 100,
+                    "high": 80,  # High less than low
+                    "low": 90,
+                    "close": 105,
+                    "volume": 1000,
+                    "timestamp": 1234567890,
                 }
-            ]
+            ],
         }
         assert validate_ohlcv_data(invalid_data) == False
 
     def test_negative_volume(self):
         """Test with negative volume"""
         invalid_data = {
-            'open': 100,
-            'high': 110,
-            'low': 90,
-            'close': 105,
-            'volume': 1000,
-            'timestamp': 1234567890,
-            'candles': [
+            "open": 100,
+            "high": 110,
+            "low": 90,
+            "close": 105,
+            "volume": 1000,
+            "timestamp": 1234567890,
+            "candles": [
                 {
-                    'open': 100,
-                    'high': 110,
-                    'low': 90,
-                    'close': 105,
-                    'volume': -1000,  # Negative volume
-                    'timestamp': 1234567890
+                    "open": 100,
+                    "high": 110,
+                    "low": 90,
+                    "close": 105,
+                    "volume": -1000,  # Negative volume
+                    "timestamp": 1234567890,
                 }
-            ]
+            ],
         }
         assert validate_ohlcv_data(invalid_data) == False
 
     def test_invalid_data_types(self):
         """Test with invalid data types"""
         invalid_data = {
-            'open': 100,
-            'high': 110,
-            'low': 90,
-            'close': 105,
-            'volume': 1000,
-            'timestamp': 1234567890,
-            'candles': [
+            "open": 100,
+            "high": 110,
+            "low": 90,
+            "close": 105,
+            "volume": 1000,
+            "timestamp": 1234567890,
+            "candles": [
                 {
-                    'open': 'not_a_number',
-                    'high': 110,
-                    'low': 90,
-                    'close': 105,
-                    'volume': 1000,
-                    'timestamp': 1234567890
+                    "open": "not_a_number",
+                    "high": 110,
+                    "low": 90,
+                    "close": 105,
+                    "volume": 1000,
+                    "timestamp": 1234567890,
                 }
-            ]
+            ],
         }
         assert validate_ohlcv_data(invalid_data) == False
 
@@ -152,22 +148,25 @@ class TestValidateOHLCVData:
 class TestConvertTimeframeToMinutes:
     """Test convert_timeframe_to_minutes function"""
 
-    @pytest.mark.parametrize("timeframe,expected", [
-        ('1m', 1),
-        ('5m', 5),
-        ('15m', 15),
-        ('30m', 30),
-        ('1h', 60),
-        ('4h', 240),
-        ('1d', 1440),
-    ])
+    @pytest.mark.parametrize(
+        "timeframe,expected",
+        [
+            ("1m", 1),
+            ("5m", 5),
+            ("15m", 15),
+            ("30m", 30),
+            ("1h", 60),
+            ("4h", 240),
+            ("1d", 1440),
+        ],
+    )
     def test_valid_timeframes(self, timeframe, expected):
         """Test conversion of valid timeframes"""
         assert convert_timeframe_to_minutes(timeframe) == expected
 
     def test_invalid_timeframe(self):
         """Test conversion of invalid timeframe returns default"""
-        assert convert_timeframe_to_minutes('invalid') == 1
+        assert convert_timeframe_to_minutes("invalid") == 1
 
 
 class TestCreateDataframeFromOHLCV:
@@ -176,23 +175,23 @@ class TestCreateDataframeFromOHLCV:
     def test_valid_conversion(self):
         """Test successful conversion of OHLCV data to DataFrame"""
         data = {
-            'candles': [
+            "candles": [
                 {
-                    'timestamp': 1609459200000,  # 2021-01-01
-                    'open': 100.0,
-                    'high': 110.0,
-                    'low': 90.0,
-                    'close': 105.0,
-                    'volume': 1000.0
+                    "timestamp": 1609459200000,  # 2021-01-01
+                    "open": 100.0,
+                    "high": 110.0,
+                    "low": 90.0,
+                    "close": 105.0,
+                    "volume": 1000.0,
                 },
                 {
-                    'timestamp': 1609545600000,  # 2021-01-02
-                    'open': 105.0,
-                    'high': 115.0,
-                    'low': 95.0,
-                    'close': 110.0,
-                    'volume': 1500.0
-                }
+                    "timestamp": 1609545600000,  # 2021-01-02
+                    "open": 105.0,
+                    "high": 115.0,
+                    "low": 95.0,
+                    "close": 110.0,
+                    "volume": 1500.0,
+                },
             ]
         }
 
@@ -201,13 +200,13 @@ class TestCreateDataframeFromOHLCV:
         assert df is not None
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 2
-        assert list(df.columns) == ['open', 'high', 'low', 'close', 'volume']
-        assert df['open'].iloc[0] == 100.0
-        assert df['close'].iloc[1] == 110.0
+        assert list(df.columns) == ["open", "high", "low", "close", "volume"]
+        assert df["open"].iloc[0] == 100.0
+        assert df["close"].iloc[1] == 110.0
 
     def test_empty_candles(self):
         """Test with empty candles list"""
-        data = {'candles': []}
+        data = {"candles": []}
         df = create_dataframe_from_ohlcv(data)
         assert df is None
 
@@ -220,14 +219,14 @@ class TestCreateDataframeFromOHLCV:
     def test_invalid_data_format(self):
         """Test with invalid data format"""
         data = {
-            'candles': [
+            "candles": [
                 {
-                    'timestamp': 'invalid',
-                    'open': 'not_a_number',
-                    'high': 110.0,
-                    'low': 90.0,
-                    'close': 105.0,
-                    'volume': 1000.0
+                    "timestamp": "invalid",
+                    "open": "not_a_number",
+                    "high": 110.0,
+                    "low": 90.0,
+                    "close": 105.0,
+                    "volume": 1000.0,
                 }
             ]
         }
@@ -243,14 +242,14 @@ class TestGetCurrentTimestamp:
         timestamp = get_current_timestamp()
         assert isinstance(timestamp, str)
         # Should be parseable as datetime
-        parsed = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         assert isinstance(parsed, datetime)
 
     def test_returns_utc_timezone(self):
         """Test that timestamp is in UTC timezone"""
         timestamp = get_current_timestamp()
         # ISO format should contain timezone info
-        assert '+' in timestamp or 'Z' in timestamp or timestamp.endswith('+00:00')
+        assert "+" in timestamp or "Z" in timestamp or timestamp.endswith("+00:00")
 
 
 class TestCalculatePercentageChange:
