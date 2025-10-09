@@ -1,0 +1,52 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# Cargo lock file (keep for binaries, ignore for libraries)
+# Cargo.lock is committed for this binary project - correct!
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python (from cross-service testing)
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+logs/*.log
+
+# Configuration files with secrets
+config.toml
+.env
+*.key
+*.pem
+
+# Coverage reports
+tarpaulin-report.html
+cobertura.xml
+/target/tarpaulin/
+
+# Local data
+/data/*
+!/data/.gitkeep
+
+# Runtime files
+*.pid
+*.sock
+
+# Temporary files
+*.tmp
+*.temp
