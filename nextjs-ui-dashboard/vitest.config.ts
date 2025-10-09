@@ -27,13 +27,16 @@ export default defineConfig({
     poolOptions: {
       forks: {
         singleFork: true,
-        isolate: false,
+        isolate: true,
       },
     },
     maxConcurrency: 1,
     fileParallelism: false,
     maxWorkers: 1,
     minWorkers: 1,
+    sequence: {
+      shuffle: false,
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
