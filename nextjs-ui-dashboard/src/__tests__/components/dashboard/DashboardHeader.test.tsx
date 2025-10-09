@@ -22,6 +22,7 @@ const mockUseAuth = vi.fn()
 
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
 describe('DashboardHeader', () => {
@@ -271,21 +272,27 @@ describe('DashboardHeader', () => {
       render(<DashboardHeader />)
 
       const dashboardButton = screen.getByRole('button', { name: /^dashboard$/i })
-      expect(dashboardButton.className).toContain('ghost')
+      // Ghost variant applies hover effects and muted text color
+      expect(dashboardButton.className).toContain('text-muted-foreground')
+      expect(dashboardButton.className).toContain('hover:text-foreground')
     })
 
     it('renders trading paper button with ghost variant', () => {
       render(<DashboardHeader />)
 
       const tradingButton = screen.getByRole('button', { name: /trading paper/i })
-      expect(tradingButton.className).toContain('ghost')
+      // Ghost variant applies hover effects and muted text color
+      expect(tradingButton.className).toContain('text-muted-foreground')
+      expect(tradingButton.className).toContain('hover:text-foreground')
     })
 
     it('renders settings button with ghost variant', () => {
       render(<DashboardHeader />)
 
       const settingsButton = screen.getByRole('button', { name: /^settings$/i })
-      expect(settingsButton.className).toContain('ghost')
+      // Ghost variant applies hover effects and muted text color
+      expect(settingsButton.className).toContain('text-muted-foreground')
+      expect(settingsButton.className).toContain('hover:text-foreground')
     })
 
     it('applies hover styles to navigation buttons', () => {

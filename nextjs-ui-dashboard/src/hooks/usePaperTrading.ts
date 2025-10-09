@@ -672,6 +672,11 @@ export const usePaperTrading = () => {
 
               // Update portfolio with new price information
               setState((prev) => {
+                // Guard against undefined portfolio (during initialization)
+                if (!prev.portfolio || !prev.portfolio.current_balance) {
+                  return { ...prev, lastUpdated: new Date() };
+                }
+
                 // Calculate approximate unrealized P&L for open trades
                 let totalUnrealizedPnl = 0;
 
