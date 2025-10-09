@@ -42,5 +42,4 @@ plotly==5.15.0
 # Database tools for development (MongoDB) - versions match requirements.txt
 # pymongo and motor are included from requirements.txt
 
-# Environment management
-python-dotenv==1.0.0 
+# Environment management (python-dotenv is included from requirements.txt) 
