@@ -244,8 +244,10 @@ mod tests {
         assert!(analysis.resistance_levels.len() >= 2);
 
         // Support levels should be below resistance levels
-        if let (Some(highest_support), Some(lowest_resistance)) =
-            (analysis.support_levels.first(), analysis.resistance_levels.first()) {
+        if let (Some(highest_support), Some(lowest_resistance)) = (
+            analysis.support_levels.first(),
+            analysis.resistance_levels.first(),
+        ) {
             assert!(highest_support < lowest_resistance);
         }
     }

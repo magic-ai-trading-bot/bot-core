@@ -287,7 +287,11 @@ mod tests {
         config.binance.api_key = "test_key".to_string();
         config.binance.secret_key = "".to_string();
         assert!(config.validate().is_err());
-        assert!(config.validate().unwrap_err().to_string().contains("secret"));
+        assert!(config
+            .validate()
+            .unwrap_err()
+            .to_string()
+            .contains("secret"));
     }
 
     #[test]
@@ -427,7 +431,10 @@ mod tests {
 
         env::set_var("PYTHON_AI_SERVICE_URL", "http://custom:9000");
         let config = Config::from_file(&temp_path).unwrap();
-        assert_eq!(config.market_data.python_ai_service_url, "http://custom:9000");
+        assert_eq!(
+            config.market_data.python_ai_service_url,
+            "http://custom:9000"
+        );
 
         // Cleanup
         env::remove_var("PYTHON_AI_SERVICE_URL");

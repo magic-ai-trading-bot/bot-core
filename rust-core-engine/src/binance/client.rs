@@ -350,7 +350,8 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config);
 
-        let query_string = "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1&price=9000&timestamp=1499827319559";
+        let query_string =
+            "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1&price=9000&timestamp=1499827319559";
         let signature = client.sign_request(query_string);
 
         // Signature should be a 64-character hex string (SHA256 produces 32 bytes = 64 hex chars)
@@ -537,7 +538,9 @@ mod tests {
 
         let signature = client.sign_request("test");
         // Hex encoding should be lowercase
-        assert!(signature.chars().all(|c| !c.is_ascii_uppercase() || !c.is_alphabetic()));
+        assert!(signature
+            .chars()
+            .all(|c| !c.is_ascii_uppercase() || !c.is_alphabetic()));
     }
 
     #[test]
@@ -922,7 +925,10 @@ mod tests {
         assert_eq!(client.config.secret_key, cloned.config.secret_key);
         assert_eq!(client.config.base_url, cloned.config.base_url);
         assert_eq!(client.config.ws_url, cloned.config.ws_url);
-        assert_eq!(client.config.futures_base_url, cloned.config.futures_base_url);
+        assert_eq!(
+            client.config.futures_base_url,
+            cloned.config.futures_base_url
+        );
         assert_eq!(client.config.futures_ws_url, cloned.config.futures_ws_url);
         assert_eq!(client.config.testnet, cloned.config.testnet);
     }
@@ -956,7 +962,10 @@ mod tests {
 
         let client = BinanceClient::new(config.clone());
         assert_eq!(client.config.base_url, "https://custom.binance.com");
-        assert_eq!(client.config.futures_base_url, "https://custom-futures.binance.com");
+        assert_eq!(
+            client.config.futures_base_url,
+            "https://custom-futures.binance.com"
+        );
     }
 
     #[test]
@@ -1018,10 +1027,7 @@ mod tests {
         assert_eq!(client1.config.api_key, client4.config.api_key);
 
         let query = "test=query";
-        assert_eq!(
-            client1.sign_request(query),
-            client4.sign_request(query)
-        );
+        assert_eq!(client1.sign_request(query), client4.sign_request(query));
     }
 
     // Test edge cases for query strings

@@ -314,7 +314,7 @@ mod tests {
         match error_event {
             WebSocketEvent::Error { message } => {
                 assert_eq!(message, "Connection timeout");
-            }
+            },
             _ => panic!("Expected Error variant"),
         }
     }

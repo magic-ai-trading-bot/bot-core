@@ -358,7 +358,11 @@ mod tests {
             .collect()
     }
 
-    fn create_test_input(prices_1h: Vec<f64>, prices_4h: Vec<f64>, current_price: f64) -> StrategyInput {
+    fn create_test_input(
+        prices_1h: Vec<f64>,
+        prices_4h: Vec<f64>,
+        current_price: f64,
+    ) -> StrategyInput {
         let mut timeframe_data = HashMap::new();
         timeframe_data.insert("1h".to_string(), create_test_candles(prices_1h));
         timeframe_data.insert("4h".to_string(), create_test_candles(prices_4h));
@@ -451,9 +455,15 @@ mod tests {
 
         // Update config
         let mut new_config = StrategyConfig::default();
-        new_config.parameters.insert("bb_period".to_string(), json!(15));
-        new_config.parameters.insert("bb_multiplier".to_string(), json!(2.5));
-        new_config.parameters.insert("squeeze_threshold".to_string(), json!(0.015));
+        new_config
+            .parameters
+            .insert("bb_period".to_string(), json!(15));
+        new_config
+            .parameters
+            .insert("bb_multiplier".to_string(), json!(2.5));
+        new_config
+            .parameters
+            .insert("squeeze_threshold".to_string(), json!(0.015));
 
         strategy.update_config(new_config);
         assert_eq!(strategy.get_bb_period(), 15);
@@ -514,7 +524,7 @@ mod tests {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
             110.0, // current_price (above upper band)
-            109.0, 100.0, 91.0,  // 1h: upper, middle, lower
+            109.0, 100.0, 91.0, // 1h: upper, middle, lower
             108.0, 100.0, 92.0,  // 4h: upper, middle, lower
             1.1,   // bb_position_1h (above 1.0 = above upper band)
             0.6,   // bb_position_4h
@@ -534,8 +544,8 @@ mod tests {
     fn test_analyze_bollinger_signals_mean_reversion_lower() {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
-            91.0,  // current_price (near lower band)
-            110.0, 100.0, 90.0,  // 1h: upper, middle, lower
+            91.0, // current_price (near lower band)
+            110.0, 100.0, 90.0, // 1h: upper, middle, lower
             108.0, 100.0, 92.0,  // 4h: upper, middle, lower
             0.05,  // bb_position_1h (very low, near lower band)
             0.25,  // bb_position_4h
@@ -556,7 +566,7 @@ mod tests {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
             109.0, // current_price (near upper band)
-            110.0, 100.0, 90.0,  // 1h: upper, middle, lower
+            110.0, 100.0, 90.0, // 1h: upper, middle, lower
             108.0, 100.0, 92.0,  // 4h: upper, middle, lower
             0.95,  // bb_position_1h (very high, near upper band)
             0.75,  // bb_position_4h
@@ -577,7 +587,7 @@ mod tests {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
             100.0, // current_price
-            102.0, 100.0, 98.0,  // 1h: narrow bands
+            102.0, 100.0, 98.0, // 1h: narrow bands
             103.0, 100.0, 97.0,  // 4h: narrow bands
             0.50,  // bb_position_1h (middle)
             0.50,  // bb_position_4h (middle)
@@ -598,7 +608,7 @@ mod tests {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
             100.0, // current_price
-            110.0, 100.0, 90.0,  // 1h
+            110.0, 100.0, 90.0, // 1h
             108.0, 100.0, 92.0,  // 4h
             0.50,  // bb_position_1h (middle)
             0.50,  // bb_position_4h (middle)
@@ -629,7 +639,9 @@ mod tests {
         config.enabled = true;
         config.weight = 1.2;
         config.parameters.insert("bb_period".to_string(), json!(25));
-        config.parameters.insert("bb_multiplier".to_string(), json!(3.0));
+        config
+            .parameters
+            .insert("bb_multiplier".to_string(), json!(3.0));
 
         let strategy = BollingerStrategy::with_config(config);
 

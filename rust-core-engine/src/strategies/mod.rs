@@ -148,31 +148,58 @@ mod mod_tests {
 
     #[test]
     fn test_trading_signal_from_string_long() {
-        assert_eq!(TradingSignal::from_string("LONG"), Some(TradingSignal::Long));
+        assert_eq!(
+            TradingSignal::from_string("LONG"),
+            Some(TradingSignal::Long)
+        );
     }
 
     #[test]
     fn test_trading_signal_from_string_short() {
-        assert_eq!(TradingSignal::from_string("SHORT"), Some(TradingSignal::Short));
+        assert_eq!(
+            TradingSignal::from_string("SHORT"),
+            Some(TradingSignal::Short)
+        );
     }
 
     #[test]
     fn test_trading_signal_from_string_neutral() {
-        assert_eq!(TradingSignal::from_string("NEUTRAL"), Some(TradingSignal::Neutral));
+        assert_eq!(
+            TradingSignal::from_string("NEUTRAL"),
+            Some(TradingSignal::Neutral)
+        );
     }
 
     #[test]
     fn test_trading_signal_from_string_lowercase() {
-        assert_eq!(TradingSignal::from_string("long"), Some(TradingSignal::Long));
-        assert_eq!(TradingSignal::from_string("short"), Some(TradingSignal::Short));
-        assert_eq!(TradingSignal::from_string("neutral"), Some(TradingSignal::Neutral));
+        assert_eq!(
+            TradingSignal::from_string("long"),
+            Some(TradingSignal::Long)
+        );
+        assert_eq!(
+            TradingSignal::from_string("short"),
+            Some(TradingSignal::Short)
+        );
+        assert_eq!(
+            TradingSignal::from_string("neutral"),
+            Some(TradingSignal::Neutral)
+        );
     }
 
     #[test]
     fn test_trading_signal_from_string_mixed_case() {
-        assert_eq!(TradingSignal::from_string("LoNg"), Some(TradingSignal::Long));
-        assert_eq!(TradingSignal::from_string("ShOrT"), Some(TradingSignal::Short));
-        assert_eq!(TradingSignal::from_string("NeUtRaL"), Some(TradingSignal::Neutral));
+        assert_eq!(
+            TradingSignal::from_string("LoNg"),
+            Some(TradingSignal::Long)
+        );
+        assert_eq!(
+            TradingSignal::from_string("ShOrT"),
+            Some(TradingSignal::Short)
+        );
+        assert_eq!(
+            TradingSignal::from_string("NeUtRaL"),
+            Some(TradingSignal::Neutral)
+        );
     }
 
     #[test]
@@ -235,7 +262,9 @@ mod mod_tests {
         let mut config = StrategyConfig::default();
         config.enabled = false;
         config.weight = 2.5;
-        config.parameters.insert("test".to_string(), serde_json::json!(42));
+        config
+            .parameters
+            .insert("test".to_string(), serde_json::json!(42));
 
         let cloned = config.clone();
         assert_eq!(config.enabled, cloned.enabled);

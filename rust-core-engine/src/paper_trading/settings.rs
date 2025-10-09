@@ -762,9 +762,15 @@ mod tests {
 
         assert!(effective.enabled);
         assert_eq!(effective.leverage, settings.basic.default_leverage);
-        assert_eq!(effective.position_size_pct, settings.basic.default_position_size_pct);
+        assert_eq!(
+            effective.position_size_pct,
+            settings.basic.default_position_size_pct
+        );
         assert_eq!(effective.stop_loss_pct, settings.risk.default_stop_loss_pct);
-        assert_eq!(effective.take_profit_pct, settings.risk.default_take_profit_pct);
+        assert_eq!(
+            effective.take_profit_pct,
+            settings.risk.default_take_profit_pct
+        );
     }
 
     #[test]
@@ -1100,7 +1106,10 @@ mod tests {
         let serialized = serde_json::to_string(&settings).unwrap();
         let deserialized: RiskSettings = serde_json::from_str(&serialized).unwrap();
 
-        assert_eq!(settings.max_risk_per_trade_pct, deserialized.max_risk_per_trade_pct);
+        assert_eq!(
+            settings.max_risk_per_trade_pct,
+            deserialized.max_risk_per_trade_pct
+        );
         assert_eq!(settings.max_leverage, deserialized.max_leverage);
         assert_eq!(settings.min_margin_level, deserialized.min_margin_level);
     }
@@ -1112,7 +1121,10 @@ mod tests {
         let deserialized: StrategySettings = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(settings.min_ai_confidence, deserialized.min_ai_confidence);
-        assert_eq!(settings.optimization_period_days, deserialized.optimization_period_days);
+        assert_eq!(
+            settings.optimization_period_days,
+            deserialized.optimization_period_days
+        );
     }
 
     #[test]
@@ -1248,9 +1260,15 @@ mod tests {
         let effective = settings.get_symbol_settings("BTCUSDT");
 
         assert_eq!(effective.leverage, 15);
-        assert_eq!(effective.position_size_pct, settings.basic.default_position_size_pct);
+        assert_eq!(
+            effective.position_size_pct,
+            settings.basic.default_position_size_pct
+        );
         assert_eq!(effective.stop_loss_pct, settings.risk.default_stop_loss_pct);
-        assert_eq!(effective.take_profit_pct, settings.risk.default_take_profit_pct);
+        assert_eq!(
+            effective.take_profit_pct,
+            settings.risk.default_take_profit_pct
+        );
     }
 
     #[test]
@@ -1312,10 +1330,15 @@ mod tests {
     fn test_ai_settings_custom_confidence_thresholds() {
         let mut settings = AISettings::default();
 
-        settings.confidence_thresholds.insert("custom_regime".to_string(), 0.85);
+        settings
+            .confidence_thresholds
+            .insert("custom_regime".to_string(), 0.85);
 
         assert_eq!(settings.confidence_thresholds.len(), 4);
-        assert_eq!(settings.confidence_thresholds.get("custom_regime"), Some(&0.85));
+        assert_eq!(
+            settings.confidence_thresholds.get("custom_regime"),
+            Some(&0.85)
+        );
     }
 
     #[test]
@@ -1344,9 +1367,15 @@ mod tests {
     fn test_strategy_settings_multiple_strategies() {
         let mut settings = StrategySettings::default();
 
-        settings.enabled_strategies.insert("momentum".to_string(), 0.3);
-        settings.enabled_strategies.insert("mean_reversion".to_string(), 0.4);
-        settings.enabled_strategies.insert("breakout".to_string(), 0.3);
+        settings
+            .enabled_strategies
+            .insert("momentum".to_string(), 0.3);
+        settings
+            .enabled_strategies
+            .insert("mean_reversion".to_string(), 0.4);
+        settings
+            .enabled_strategies
+            .insert("breakout".to_string(), 0.3);
 
         assert_eq!(settings.enabled_strategies.len(), 4);
 
@@ -1363,7 +1392,9 @@ mod tests {
         trending_params.insert("threshold".to_string(), serde_json::json!(0.6));
         trending_params.insert("period".to_string(), serde_json::json!(20));
 
-        settings.regime_specific_params.insert("trending".to_string(), trending_params);
+        settings
+            .regime_specific_params
+            .insert("trending".to_string(), trending_params);
 
         assert_eq!(settings.regime_specific_params.len(), 1);
     }
@@ -1511,7 +1542,10 @@ mod tests {
         // Should return defaults
         assert!(effective.enabled);
         assert_eq!(effective.leverage, settings.basic.default_leverage);
-        assert_eq!(effective.position_size_pct, settings.basic.default_position_size_pct);
+        assert_eq!(
+            effective.position_size_pct,
+            settings.basic.default_position_size_pct
+        );
     }
 
     #[test]
@@ -1608,8 +1642,14 @@ mod tests {
         assert!(load_result.is_ok());
 
         let loaded_settings = load_result.unwrap();
-        assert_eq!(loaded_settings.basic.initial_balance, settings.basic.initial_balance);
-        assert_eq!(loaded_settings.risk.max_leverage, settings.risk.max_leverage);
+        assert_eq!(
+            loaded_settings.basic.initial_balance,
+            settings.basic.initial_balance
+        );
+        assert_eq!(
+            loaded_settings.risk.max_leverage,
+            settings.risk.max_leverage
+        );
 
         // Cleanup
         let _ = fs::remove_file(test_file);
@@ -1688,7 +1728,8 @@ mod tests {
 
         for method in methods {
             let serialized = serde_json::to_string(&method).unwrap();
-            let deserialized: StrategyCombinationMethod = serde_json::from_str(&serialized).unwrap();
+            let deserialized: StrategyCombinationMethod =
+                serde_json::from_str(&serialized).unwrap();
 
             // Both should serialize/deserialize successfully
             let _ = serde_json::to_string(&deserialized).unwrap();
@@ -1813,6 +1854,9 @@ mod tests {
 
         assert_eq!(settings.basic.initial_balance, cloned.basic.initial_balance);
         assert_eq!(settings.risk.max_leverage, cloned.risk.max_leverage);
-        assert_eq!(settings.strategy.min_ai_confidence, cloned.strategy.min_ai_confidence);
+        assert_eq!(
+            settings.strategy.min_ai_confidence,
+            cloned.strategy.min_ai_confidence
+        );
     }
 }

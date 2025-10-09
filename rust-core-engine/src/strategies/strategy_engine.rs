@@ -148,11 +148,11 @@ impl StrategyEngine {
                         "Strategy '{}' signal: {:?} (confidence: {:.2})",
                         strategy_name, output.signal, output.confidence
                     );
-                }
+                },
                 Err(e) => {
                     warn!("Strategy '{strategy_name}' analysis failed: {e}");
                     continue;
-                }
+                },
             }
         }
 
@@ -861,7 +861,10 @@ mod tests {
         assert!(combined.metadata.contains_key("long_signals"));
         assert!(combined.metadata.contains_key("short_signals"));
         assert!(combined.metadata.contains_key("neutral_signals"));
-        assert_eq!(combined.metadata.get("total_strategies").unwrap().as_u64(), Some(3));
+        assert_eq!(
+            combined.metadata.get("total_strategies").unwrap().as_u64(),
+            Some(3)
+        );
     }
 
     #[tokio::test]
@@ -903,10 +906,22 @@ mod tests {
 
     #[test]
     fn test_trading_signal_from_string() {
-        assert_eq!(TradingSignal::from_string("LONG"), Some(TradingSignal::Long));
-        assert_eq!(TradingSignal::from_string("long"), Some(TradingSignal::Long));
-        assert_eq!(TradingSignal::from_string("SHORT"), Some(TradingSignal::Short));
-        assert_eq!(TradingSignal::from_string("NEUTRAL"), Some(TradingSignal::Neutral));
+        assert_eq!(
+            TradingSignal::from_string("LONG"),
+            Some(TradingSignal::Long)
+        );
+        assert_eq!(
+            TradingSignal::from_string("long"),
+            Some(TradingSignal::Long)
+        );
+        assert_eq!(
+            TradingSignal::from_string("SHORT"),
+            Some(TradingSignal::Short)
+        );
+        assert_eq!(
+            TradingSignal::from_string("NEUTRAL"),
+            Some(TradingSignal::Neutral)
+        );
         assert_eq!(TradingSignal::from_string("invalid"), None);
     }
 
@@ -969,16 +984,14 @@ mod tests {
     #[test]
     fn test_combine_weighted_average_zero_weight() {
         let engine = StrategyEngine::new();
-        let results = vec![
-            StrategySignalResult {
-                strategy_name: "S1".to_string(),
-                signal: TradingSignal::Long,
-                confidence: 0.8,
-                reasoning: "".to_string(),
-                weight: 0.0,
-                metadata: HashMap::new(),
-            },
-        ];
+        let results = vec![StrategySignalResult {
+            strategy_name: "S1".to_string(),
+            signal: TradingSignal::Long,
+            confidence: 0.8,
+            reasoning: "".to_string(),
+            weight: 0.0,
+            metadata: HashMap::new(),
+        }];
 
         let (_, confidence, _) = engine.combine_weighted_average(&results);
 
@@ -1185,7 +1198,10 @@ mod tests {
         let json = serde_json::to_string(&mode).unwrap();
         let deserialized: SignalCombinationMode = serde_json::from_str(&json).unwrap();
 
-        assert!(matches!(deserialized, SignalCombinationMode::WeightedAverage));
+        assert!(matches!(
+            deserialized,
+            SignalCombinationMode::WeightedAverage
+        ));
     }
 
     #[test]
@@ -1280,9 +1296,18 @@ mod tests {
 
         let combined = engine.combine_signals(&results, &input).unwrap();
 
-        assert_eq!(combined.metadata.get("long_signals").unwrap().as_u64(), Some(1));
-        assert_eq!(combined.metadata.get("short_signals").unwrap().as_u64(), Some(1));
-        assert_eq!(combined.metadata.get("neutral_signals").unwrap().as_u64(), Some(1));
+        assert_eq!(
+            combined.metadata.get("long_signals").unwrap().as_u64(),
+            Some(1)
+        );
+        assert_eq!(
+            combined.metadata.get("short_signals").unwrap().as_u64(),
+            Some(1)
+        );
+        assert_eq!(
+            combined.metadata.get("neutral_signals").unwrap().as_u64(),
+            Some(1)
+        );
     }
 
     #[tokio::test]

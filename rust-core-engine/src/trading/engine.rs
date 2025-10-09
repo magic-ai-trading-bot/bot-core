@@ -181,14 +181,14 @@ impl TradingEngine {
             Err(e) => {
                 debug!("No analysis available for {}: {}", symbol, e);
                 return Ok(());
-            }
+            },
         };
 
         // Check if signal is strong enough and has good confidence
         let should_trade = match analysis.overall_signal {
             TradingSignal::StrongBuy | TradingSignal::StrongSell => {
                 analysis.overall_confidence >= 0.7
-            }
+            },
             TradingSignal::Buy | TradingSignal::Sell => analysis.overall_confidence >= 0.8,
             TradingSignal::Hold => false,
         };
@@ -233,10 +233,10 @@ impl TradingEngine {
                 };
 
                 position_manager.add_position(position);
-            }
+            },
             Err(e) => {
                 error!("Failed to execute trade for {}: {}", symbol, e);
-            }
+            },
         }
 
         Ok(())
@@ -381,10 +381,10 @@ impl TradingEngine {
                 Ok(_) => {
                     position_manager.remove_position(&position.id);
                     info!("Successfully closed position {}", position.symbol);
-                }
+                },
                 Err(e) => {
                     error!("Failed to close position {}: {}", position.symbol, e);
-                }
+                },
             }
         } else {
             // Update position in manager
@@ -474,7 +474,6 @@ impl TradingEngine {
 
 #[cfg(test)]
 mod tests {
-    
 
     // Helper function to calculate unrealized PnL for BUY positions
     fn calculate_buy_pnl(size: f64, entry_price: f64, current_price: f64) -> f64 {
@@ -825,9 +824,9 @@ mod tests {
     fn test_negative_pnl_calculations() {
         // Ensure negative PnL is calculated correctly for various scenarios
         let scenarios = vec![
-            (0.1, 50000.0, 45000.0, -500.0),  // BUY loss
-            (1.0, 3000.0, 2500.0, -500.0),     // BUY loss
-            (5.0, 300.0, 250.0, -250.0),       // BUY loss
+            (0.1, 50000.0, 45000.0, -500.0), // BUY loss
+            (1.0, 3000.0, 2500.0, -500.0),   // BUY loss
+            (5.0, 300.0, 250.0, -250.0),     // BUY loss
         ];
 
         for (size, entry, current, expected) in scenarios {

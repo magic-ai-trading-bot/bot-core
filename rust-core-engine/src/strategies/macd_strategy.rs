@@ -429,9 +429,15 @@ mod tests {
 
         // Update config
         let mut new_config = StrategyConfig::default();
-        new_config.parameters.insert("fast_period".to_string(), json!(8));
-        new_config.parameters.insert("slow_period".to_string(), json!(21));
-        new_config.parameters.insert("signal_period".to_string(), json!(5));
+        new_config
+            .parameters
+            .insert("fast_period".to_string(), json!(8));
+        new_config
+            .parameters
+            .insert("slow_period".to_string(), json!(21));
+        new_config
+            .parameters
+            .insert("signal_period".to_string(), json!(5));
 
         strategy.update_config(new_config);
         assert_eq!(strategy.get_fast_period(), 8);
@@ -492,10 +498,10 @@ mod tests {
         let strategy = MacdStrategy::new();
         // Bullish crossover with positive histogram on both timeframes
         let (signal, confidence, _) = strategy.analyze_macd_signals(
-            0.5, 0.3, 0.2,  // 1h: MACD > signal, positive histogram
-            0.4, 0.2, 0.2,  // 4h: MACD > signal, positive histogram
+            0.5, 0.3, 0.2, // 1h: MACD > signal, positive histogram
+            0.4, 0.2, 0.2, // 4h: MACD > signal, positive histogram
             0.2, 0.25, 0.1, // prev: MACD was below signal (crossover)
-            0.1,            // prev 4h histogram was lower
+            0.1, // prev 4h histogram was lower
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -507,10 +513,10 @@ mod tests {
         let strategy = MacdStrategy::new();
         // Bearish crossover with negative histogram on both timeframes
         let (signal, confidence, _) = strategy.analyze_macd_signals(
-            -0.5, -0.3, -0.2,  // 1h: MACD < signal, negative histogram
-            -0.4, -0.2, -0.2,  // 4h: MACD < signal, negative histogram
+            -0.5, -0.3, -0.2, // 1h: MACD < signal, negative histogram
+            -0.4, -0.2, -0.2, // 4h: MACD < signal, negative histogram
             -0.2, -0.25, -0.1, // prev: MACD was above signal (crossover)
-            -0.1,              // prev 4h histogram was higher
+            -0.1, // prev 4h histogram was higher
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -522,10 +528,10 @@ mod tests {
     fn test_analyze_macd_signals_moderate_bullish() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, _) = strategy.analyze_macd_signals(
-            0.3, 0.2, 0.1,  // 1h: bullish crossover
+            0.3, 0.2, 0.1, // 1h: bullish crossover
             0.2, 0.25, 0.15, // 4h: histogram increasing
             0.15, 0.25, 0.05, // prev: crossover occurred
-            0.1,             // prev 4h histogram
+            0.1,  // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -537,10 +543,10 @@ mod tests {
     fn test_analyze_macd_signals_neutral() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, _) = strategy.analyze_macd_signals(
-            0.001, 0.0005, 0.0005,  // 1h: near zero
-            0.001, 0.0008, 0.0002,  // 4h: near zero
+            0.001, 0.0005, 0.0005, // 1h: near zero
+            0.001, 0.0008, 0.0002, // 4h: near zero
             0.0008, 0.0007, 0.0001, // prev: minimal change
-            0.0001,                 // prev 4h histogram
+            0.0001, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Neutral);
@@ -561,9 +567,15 @@ mod tests {
         let mut config = StrategyConfig::default();
         config.enabled = true;
         config.weight = 2.0;
-        config.parameters.insert("fast_period".to_string(), json!(10));
-        config.parameters.insert("slow_period".to_string(), json!(20));
-        config.parameters.insert("signal_period".to_string(), json!(7));
+        config
+            .parameters
+            .insert("fast_period".to_string(), json!(10));
+        config
+            .parameters
+            .insert("slow_period".to_string(), json!(20));
+        config
+            .parameters
+            .insert("signal_period".to_string(), json!(7));
 
         let strategy = MacdStrategy::with_config(config);
 
@@ -600,7 +612,9 @@ mod tests {
         assert_eq!(strategy.get_histogram_threshold(), 0.001);
 
         let mut config = StrategyConfig::default();
-        config.parameters.insert("histogram_threshold".to_string(), json!(0.005));
+        config
+            .parameters
+            .insert("histogram_threshold".to_string(), json!(0.005));
         let strategy2 = MacdStrategy::with_config(config);
         assert_eq!(strategy2.get_histogram_threshold(), 0.005);
     }
@@ -617,7 +631,9 @@ mod tests {
     #[test]
     fn test_get_fast_period_default_fallback() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("fast_period".to_string(), json!(null));
+        config
+            .parameters
+            .insert("fast_period".to_string(), json!(null));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_fast_period(), 12);
     }
@@ -625,7 +641,9 @@ mod tests {
     #[test]
     fn test_get_slow_period_default_fallback() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("slow_period".to_string(), json!(null));
+        config
+            .parameters
+            .insert("slow_period".to_string(), json!(null));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_slow_period(), 26);
     }
@@ -633,7 +651,9 @@ mod tests {
     #[test]
     fn test_get_signal_period_default_fallback() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("signal_period".to_string(), json!(null));
+        config
+            .parameters
+            .insert("signal_period".to_string(), json!(null));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_signal_period(), 9);
     }
@@ -641,7 +661,9 @@ mod tests {
     #[test]
     fn test_get_histogram_threshold_default_fallback() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("histogram_threshold".to_string(), json!(null));
+        config
+            .parameters
+            .insert("histogram_threshold".to_string(), json!(null));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_histogram_threshold(), 0.001);
     }
@@ -677,7 +699,9 @@ mod tests {
     #[test]
     fn test_get_fast_period_custom_value() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("fast_period".to_string(), json!(15));
+        config
+            .parameters
+            .insert("fast_period".to_string(), json!(15));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_fast_period(), 15);
     }
@@ -685,7 +709,9 @@ mod tests {
     #[test]
     fn test_get_slow_period_custom_value() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("slow_period".to_string(), json!(30));
+        config
+            .parameters
+            .insert("slow_period".to_string(), json!(30));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_slow_period(), 30);
     }
@@ -693,7 +719,9 @@ mod tests {
     #[test]
     fn test_get_signal_period_custom_value() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("signal_period".to_string(), json!(12));
+        config
+            .parameters
+            .insert("signal_period".to_string(), json!(12));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_signal_period(), 12);
     }
@@ -701,7 +729,9 @@ mod tests {
     #[test]
     fn test_get_histogram_threshold_custom_value() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("histogram_threshold".to_string(), json!(0.01));
+        config
+            .parameters
+            .insert("histogram_threshold".to_string(), json!(0.01));
         let strategy = MacdStrategy::with_config(config);
         assert_eq!(strategy.get_histogram_threshold(), 0.01);
     }
@@ -710,10 +740,10 @@ mod tests {
     fn test_analyze_macd_signals_moderate_bullish_crossover() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            0.5, 0.3, 0.2,   // 1h: bullish crossover
-            0.2, 0.1, 0.15,  // 4h: histogram increasing
-            0.2, 0.3, 0.1,   // prev: MACD was below signal
-            0.1,             // prev 4h histogram
+            0.5, 0.3, 0.2, // 1h: bullish crossover
+            0.2, 0.1, 0.15, // 4h: histogram increasing
+            0.2, 0.3, 0.1, // prev: MACD was below signal
+            0.1, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -725,10 +755,10 @@ mod tests {
     fn test_analyze_macd_signals_moderate_bearish_crossover() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            -0.5, -0.3, -0.2,  // 1h: bearish crossover
+            -0.5, -0.3, -0.2, // 1h: bearish crossover
             -0.2, -0.1, -0.15, // 4h: histogram decreasing
-            -0.2, -0.3, -0.1,  // prev: MACD was above signal
-            -0.1,              // prev 4h histogram
+            -0.2, -0.3, -0.1, // prev: MACD was above signal
+            -0.1, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -740,10 +770,10 @@ mod tests {
     fn test_analyze_macd_signals_moderate_bullish_histogram_above_zero() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            0.3, 0.2, 0.1,   // 1h: MACD > signal, histogram above zero
+            0.3, 0.2, 0.1, // 1h: MACD > signal, histogram above zero
             0.1, 0.05, 0.02, // 4h: not below zero
             0.25, 0.22, 0.05, // prev: histogram increasing
-            0.02,            // prev 4h histogram
+            0.02, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -755,10 +785,10 @@ mod tests {
     fn test_analyze_macd_signals_moderate_bearish_histogram_below_zero() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            -0.3, -0.2, -0.1,  // 1h: MACD < signal, histogram below zero
+            -0.3, -0.2, -0.1, // 1h: MACD < signal, histogram below zero
             -0.1, -0.05, -0.02, // 4h: not above zero
             -0.25, -0.22, -0.05, // prev: histogram decreasing
-            -0.02,             // prev 4h histogram
+            -0.02, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -770,10 +800,10 @@ mod tests {
     fn test_analyze_macd_signals_weak_bullish() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            0.25, 0.2, 0.05,  // 1h: MACD > signal
-            0.1, 0.08, 0.02,  // 4h: weak momentum
+            0.25, 0.2, 0.05, // 1h: MACD > signal
+            0.1, 0.08, 0.02, // 4h: weak momentum
             0.24, 0.21, 0.02, // prev: histogram increasing significantly
-            0.01,             // prev 4h histogram
+            0.01, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -788,7 +818,7 @@ mod tests {
             -0.25, -0.2, -0.05, // 1h: MACD < signal
             -0.1, -0.08, -0.02, // 4h: weak momentum
             -0.24, -0.21, -0.02, // prev: histogram decreasing significantly
-            -0.01,              // prev 4h histogram
+            -0.01, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -803,7 +833,7 @@ mod tests {
             0.0005, 0.0004, 0.0001, // 1h: near zero
             0.0003, 0.0002, 0.0001, // 4h: near zero
             0.0004, 0.0003, 0.0001, // prev: minimal change
-            0.0001,                 // prev 4h histogram
+            0.0001, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Neutral);
@@ -815,10 +845,10 @@ mod tests {
     fn test_analyze_macd_signals_neutral_mixed_signals() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            0.5, 0.4, 0.1,    // 1h: bullish but weak
+            0.5, 0.4, 0.1, // 1h: bullish but weak
             -0.2, -0.1, -0.1, // 4h: bearish
-            0.45, 0.42, 0.08, // prev: minimal change
-            -0.08,            // prev 4h histogram
+            0.45, 0.42, 0.08,  // prev: minimal change
+            -0.08, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Neutral);
@@ -830,10 +860,10 @@ mod tests {
     fn test_analyze_macd_signals_bullish_no_crossover_but_momentum() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, _) = strategy.analyze_macd_signals(
-            0.6, 0.4, 0.2,   // 1h: MACD > signal, strong momentum
-            0.3, 0.2, 0.1,   // 4h: positive
+            0.6, 0.4, 0.2, // 1h: MACD > signal, strong momentum
+            0.3, 0.2, 0.1, // 4h: positive
             0.55, 0.42, 0.15, // prev: no crossover but increasing
-            0.08,            // prev 4h histogram
+            0.08, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -845,10 +875,10 @@ mod tests {
     fn test_analyze_macd_signals_bearish_no_crossover_but_momentum() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, _) = strategy.analyze_macd_signals(
-            -0.6, -0.4, -0.2,  // 1h: MACD < signal, strong momentum
-            -0.3, -0.2, -0.1,  // 4h: negative
+            -0.6, -0.4, -0.2, // 1h: MACD < signal, strong momentum
+            -0.3, -0.2, -0.1, // 4h: negative
             -0.55, -0.42, -0.15, // prev: no crossover but decreasing
-            -0.08,             // prev 4h histogram
+            -0.08, // prev 4h histogram
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -861,14 +891,23 @@ mod tests {
         let strategy = MacdStrategy::new();
         let threshold = strategy.get_histogram_threshold();
         let (signal, _, _) = strategy.analyze_macd_signals(
-            threshold + 0.0001, threshold, 0.0001,
-            threshold, threshold - 0.0001, 0.0001,
-            threshold - 0.0001, threshold - 0.0002, 0.00005,
+            threshold + 0.0001,
+            threshold,
+            0.0001,
+            threshold,
+            threshold - 0.0001,
+            0.0001,
+            threshold - 0.0001,
+            threshold - 0.0002,
+            0.00005,
             0.00005,
         );
 
         // Should produce some signal, not error
-        assert!(matches!(signal, TradingSignal::Long | TradingSignal::Neutral));
+        assert!(matches!(
+            signal,
+            TradingSignal::Long | TradingSignal::Neutral
+        ));
     }
 
     #[test]
@@ -876,25 +915,30 @@ mod tests {
         let strategy = MacdStrategy::new();
         let threshold = strategy.get_histogram_threshold();
         let (signal, _, _) = strategy.analyze_macd_signals(
-            -threshold - 0.0001, -threshold, -0.0001,
-            -threshold, -threshold + 0.0001, -0.0001,
-            -threshold + 0.0001, -threshold + 0.0002, -0.00005,
+            -threshold - 0.0001,
+            -threshold,
+            -0.0001,
+            -threshold,
+            -threshold + 0.0001,
+            -0.0001,
+            -threshold + 0.0001,
+            -threshold + 0.0002,
+            -0.00005,
             -0.00005,
         );
 
         // Should produce some signal, not error
-        assert!(matches!(signal, TradingSignal::Short | TradingSignal::Neutral));
+        assert!(matches!(
+            signal,
+            TradingSignal::Short | TradingSignal::Neutral
+        ));
     }
 
     #[test]
     fn test_analyze_macd_signals_zero_values() {
         let strategy = MacdStrategy::new();
-        let (signal, _, _) = strategy.analyze_macd_signals(
-            0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0,
-            0.0,
-        );
+        let (signal, _, _) =
+            strategy.analyze_macd_signals(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
         assert_eq!(signal, TradingSignal::Neutral);
     }
@@ -903,28 +947,28 @@ mod tests {
     fn test_analyze_macd_signals_extreme_positive_values() {
         let strategy = MacdStrategy::new();
         let (signal, _, _) = strategy.analyze_macd_signals(
-            1000.0, 900.0, 100.0,
-            800.0, 700.0, 100.0,
-            850.0, 950.0, 50.0,
-            50.0,
+            1000.0, 900.0, 100.0, 800.0, 700.0, 100.0, 850.0, 950.0, 50.0, 50.0,
         );
 
         // Should handle extreme values without panic
-        assert!(matches!(signal, TradingSignal::Long | TradingSignal::Neutral));
+        assert!(matches!(
+            signal,
+            TradingSignal::Long | TradingSignal::Neutral
+        ));
     }
 
     #[test]
     fn test_analyze_macd_signals_extreme_negative_values() {
         let strategy = MacdStrategy::new();
         let (signal, _, _) = strategy.analyze_macd_signals(
-            -1000.0, -900.0, -100.0,
-            -800.0, -700.0, -100.0,
-            -850.0, -950.0, -50.0,
-            -50.0,
+            -1000.0, -900.0, -100.0, -800.0, -700.0, -100.0, -850.0, -950.0, -50.0, -50.0,
         );
 
         // Should handle extreme values without panic
-        assert!(matches!(signal, TradingSignal::Short | TradingSignal::Neutral));
+        assert!(matches!(
+            signal,
+            TradingSignal::Short | TradingSignal::Neutral
+        ));
     }
 
     #[tokio::test]
@@ -943,7 +987,10 @@ mod tests {
 
         let result = strategy.analyze(&input).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), StrategyError::InsufficientData(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            StrategyError::InsufficientData(_)
+        ));
     }
 
     #[tokio::test]
@@ -962,7 +1009,10 @@ mod tests {
 
         let result = strategy.analyze(&input).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), StrategyError::InsufficientData(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            StrategyError::InsufficientData(_)
+        ));
     }
 
     #[tokio::test]
@@ -1023,8 +1073,12 @@ mod tests {
     async fn test_macd_strategy_strong_uptrend() {
         let strategy = MacdStrategy::new();
         // Strong uptrend with accelerating prices
-        let prices_1h: Vec<f64> = (0..50).map(|i| 100.0 + (i as f64 * i as f64 * 0.01)).collect();
-        let prices_4h: Vec<f64> = (0..50).map(|i| 100.0 + (i as f64 * i as f64 * 0.008)).collect();
+        let prices_1h: Vec<f64> = (0..50)
+            .map(|i| 100.0 + (i as f64 * i as f64 * 0.01))
+            .collect();
+        let prices_4h: Vec<f64> = (0..50)
+            .map(|i| 100.0 + (i as f64 * i as f64 * 0.008))
+            .collect();
 
         let input = create_test_input(prices_1h, prices_4h);
         let result = strategy.analyze(&input).await;
@@ -1039,8 +1093,12 @@ mod tests {
     async fn test_macd_strategy_strong_downtrend() {
         let strategy = MacdStrategy::new();
         // Strong downtrend with accelerating decline
-        let prices_1h: Vec<f64> = (0..50).map(|i| 200.0 - (i as f64 * i as f64 * 0.01)).collect();
-        let prices_4h: Vec<f64> = (0..50).map(|i| 200.0 - (i as f64 * i as f64 * 0.008)).collect();
+        let prices_1h: Vec<f64> = (0..50)
+            .map(|i| 200.0 - (i as f64 * i as f64 * 0.01))
+            .collect();
+        let prices_4h: Vec<f64> = (0..50)
+            .map(|i| 200.0 - (i as f64 * i as f64 * 0.008))
+            .collect();
 
         let input = create_test_input(prices_1h, prices_4h);
         let result = strategy.analyze(&input).await;
@@ -1056,7 +1114,9 @@ mod tests {
         let mut config = StrategyConfig::default();
         config.enabled = false;
         config.weight = 3.5;
-        config.parameters.insert("fast_period".to_string(), json!(8));
+        config
+            .parameters
+            .insert("fast_period".to_string(), json!(8));
 
         let strategy = MacdStrategy::with_config(config.clone());
         let retrieved_config = strategy.config();
@@ -1073,8 +1133,12 @@ mod tests {
         let mut new_config = StrategyConfig::default();
         new_config.enabled = false;
         new_config.weight = 2.5;
-        new_config.parameters.insert("fast_period".to_string(), json!(10));
-        new_config.parameters.insert("slow_period".to_string(), json!(22));
+        new_config
+            .parameters
+            .insert("fast_period".to_string(), json!(10));
+        new_config
+            .parameters
+            .insert("slow_period".to_string(), json!(22));
 
         strategy.update_config(new_config);
 
@@ -1136,7 +1200,10 @@ mod tests {
         assert_eq!(strategy1.get_fast_period(), strategy2.get_fast_period());
         assert_eq!(strategy1.get_slow_period(), strategy2.get_slow_period());
         assert_eq!(strategy1.get_signal_period(), strategy2.get_signal_period());
-        assert_eq!(strategy1.get_histogram_threshold(), strategy2.get_histogram_threshold());
+        assert_eq!(
+            strategy1.get_histogram_threshold(),
+            strategy2.get_histogram_threshold()
+        );
     }
 
     #[tokio::test]
@@ -1176,24 +1243,25 @@ mod tests {
         let strategy = MacdStrategy::new();
         // Previous values equal current (no change)
         let (signal, _, _) = strategy.analyze_macd_signals(
-            0.5, 0.3, 0.2,
-            0.4, 0.2, 0.2,
-            0.5, 0.3, 0.2, // Same as current
-            0.2,           // Same as current
+            0.5, 0.3, 0.2, 0.4, 0.2, 0.2, 0.5, 0.3, 0.2, // Same as current
+            0.2, // Same as current
         );
 
         // Should still produce a valid signal
-        assert!(matches!(signal, TradingSignal::Long | TradingSignal::Short | TradingSignal::Neutral));
+        assert!(matches!(
+            signal,
+            TradingSignal::Long | TradingSignal::Short | TradingSignal::Neutral
+        ));
     }
 
     #[test]
     fn test_analyze_macd_signals_strong_bullish_all_conditions() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            0.6, 0.4, 0.2,   // Bullish crossover (MACD > signal)
-            0.5, 0.3, 0.2,   // 4h positive histogram
-            0.3, 0.5, 0.1,   // Previous: MACD was below signal
-            0.1,             // 4h histogram increasing
+            0.6, 0.4, 0.2, // Bullish crossover (MACD > signal)
+            0.5, 0.3, 0.2, // 4h positive histogram
+            0.3, 0.5, 0.1, // Previous: MACD was below signal
+            0.1, // 4h histogram increasing
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -1205,10 +1273,10 @@ mod tests {
     fn test_analyze_macd_signals_strong_bearish_all_conditions() {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
-            -0.6, -0.4, -0.2,  // Bearish crossover (MACD < signal)
-            -0.5, -0.3, -0.2,  // 4h negative histogram
-            -0.3, -0.5, -0.1,  // Previous: MACD was above signal
-            -0.1,              // 4h histogram decreasing
+            -0.6, -0.4, -0.2, // Bearish crossover (MACD < signal)
+            -0.5, -0.3, -0.2, // 4h negative histogram
+            -0.3, -0.5, -0.1, // Previous: MACD was above signal
+            -0.1, // 4h histogram decreasing
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -1219,9 +1287,15 @@ mod tests {
     #[tokio::test]
     async fn test_validate_data_with_custom_periods() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("fast_period".to_string(), json!(8));
-        config.parameters.insert("slow_period".to_string(), json!(17));
-        config.parameters.insert("signal_period".to_string(), json!(5));
+        config
+            .parameters
+            .insert("fast_period".to_string(), json!(8));
+        config
+            .parameters
+            .insert("slow_period".to_string(), json!(17));
+        config
+            .parameters
+            .insert("signal_period".to_string(), json!(5));
 
         let strategy = MacdStrategy::with_config(config);
         let min_required = 17 + 5 + 10; // slow_period + signal_period + buffer
@@ -1235,8 +1309,12 @@ mod tests {
     #[tokio::test]
     async fn test_validate_data_insufficient_with_custom_periods() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("slow_period".to_string(), json!(30));
-        config.parameters.insert("signal_period".to_string(), json!(12));
+        config
+            .parameters
+            .insert("slow_period".to_string(), json!(30));
+        config
+            .parameters
+            .insert("signal_period".to_string(), json!(12));
 
         let strategy = MacdStrategy::with_config(config);
         let prices: Vec<f64> = (0..40).map(|i| 100.0 + (i as f64)).collect(); // Less than 30 + 12 + 10

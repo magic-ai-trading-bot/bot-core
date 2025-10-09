@@ -317,10 +317,7 @@ mod tests {
             .collect()
     }
 
-    fn create_test_input(
-        prices_1h: Vec<f64>,
-        prices_4h: Vec<f64>,
-    ) -> StrategyInput {
+    fn create_test_input(prices_1h: Vec<f64>, prices_4h: Vec<f64>) -> StrategyInput {
         let mut timeframe_data = HashMap::new();
         timeframe_data.insert("1h".to_string(), create_test_candles(prices_1h));
         timeframe_data.insert("4h".to_string(), create_test_candles(prices_4h));
@@ -387,12 +384,8 @@ mod tests {
         let strategy = RsiStrategy::new();
 
         // Create neutral conditions with prices around 100
-        let prices_1h: Vec<f64> = (0..25)
-            .map(|i| 100.0 + ((i as f64 % 3.0) - 1.0))
-            .collect();
-        let prices_4h: Vec<f64> = (0..25)
-            .map(|i| 100.0 + ((i as f64 % 2.0) - 0.5))
-            .collect();
+        let prices_1h: Vec<f64> = (0..25).map(|i| 100.0 + ((i as f64 % 3.0) - 1.0)).collect();
+        let prices_4h: Vec<f64> = (0..25).map(|i| 100.0 + ((i as f64 % 2.0) - 0.5)).collect();
 
         let input = create_test_input(prices_1h, prices_4h);
         let result = strategy.analyze(&input).await;
@@ -412,8 +405,12 @@ mod tests {
 
         // Update config
         let mut new_config = StrategyConfig::default();
-        new_config.parameters.insert("rsi_period".to_string(), json!(10));
-        new_config.parameters.insert("oversold_threshold".to_string(), json!(25.0));
+        new_config
+            .parameters
+            .insert("rsi_period".to_string(), json!(10));
+        new_config
+            .parameters
+            .insert("oversold_threshold".to_string(), json!(25.0));
 
         strategy.update_config(new_config);
         assert_eq!(strategy.get_rsi_period(), 10);
@@ -490,9 +487,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_extreme_oversold() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            15.0, 25.0, 10.0, 20.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(15.0, 25.0, 10.0, 20.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Long);
         assert_eq!(confidence, 0.87);
@@ -501,9 +497,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_extreme_overbought() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            85.0, 75.0, 90.0, 80.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(85.0, 75.0, 90.0, 80.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Short);
         assert_eq!(confidence, 0.87);
@@ -512,9 +507,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_moderate_bullish() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            28.0, 45.0, 25.0, 40.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(28.0, 45.0, 25.0, 40.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Long);
         assert_eq!(confidence, 0.73);
@@ -523,9 +517,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_moderate_bearish() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            72.0, 55.0, 75.0, 60.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(72.0, 55.0, 75.0, 60.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Short);
         assert_eq!(confidence, 0.73);
@@ -534,9 +527,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_neutral() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            50.0, 50.0, 48.0, 52.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(50.0, 50.0, 48.0, 52.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Neutral);
         assert!(confidence > 0.4);
@@ -556,9 +548,15 @@ mod tests {
         let mut config = StrategyConfig::default();
         config.enabled = true;
         config.weight = 1.5;
-        config.parameters.insert("rsi_period".to_string(), json!(21));
-        config.parameters.insert("oversold_threshold".to_string(), json!(35.0));
-        config.parameters.insert("overbought_threshold".to_string(), json!(65.0));
+        config
+            .parameters
+            .insert("rsi_period".to_string(), json!(21));
+        config
+            .parameters
+            .insert("oversold_threshold".to_string(), json!(35.0));
+        config
+            .parameters
+            .insert("overbought_threshold".to_string(), json!(65.0));
 
         let strategy = RsiStrategy::with_config(config);
 
@@ -605,7 +603,9 @@ mod tests {
     #[test]
     fn test_get_oversold_threshold_custom() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("oversold_threshold".to_string(), json!(25.0));
+        config
+            .parameters
+            .insert("oversold_threshold".to_string(), json!(25.0));
         let strategy = RsiStrategy::with_config(config);
         assert_eq!(strategy.get_oversold_threshold(), 25.0);
     }
@@ -626,7 +626,9 @@ mod tests {
     #[test]
     fn test_get_overbought_threshold_custom() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("overbought_threshold".to_string(), json!(75.0));
+        config
+            .parameters
+            .insert("overbought_threshold".to_string(), json!(75.0));
         let strategy = RsiStrategy::with_config(config);
         assert_eq!(strategy.get_overbought_threshold(), 75.0);
     }
@@ -647,7 +649,9 @@ mod tests {
     #[test]
     fn test_get_extreme_oversold_custom() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("extreme_oversold".to_string(), json!(15.0));
+        config
+            .parameters
+            .insert("extreme_oversold".to_string(), json!(15.0));
         let strategy = RsiStrategy::with_config(config);
         assert_eq!(strategy.get_extreme_oversold(), 15.0);
     }
@@ -668,7 +672,9 @@ mod tests {
     #[test]
     fn test_get_extreme_overbought_custom() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("extreme_overbought".to_string(), json!(85.0));
+        config
+            .parameters
+            .insert("extreme_overbought".to_string(), json!(85.0));
         let strategy = RsiStrategy::with_config(config);
         assert_eq!(strategy.get_extreme_overbought(), 85.0);
     }
@@ -695,7 +701,9 @@ mod tests {
         let mut new_config = StrategyConfig::default();
         new_config.enabled = false;
         new_config.weight = 2.5;
-        new_config.parameters.insert("rsi_period".to_string(), json!(20));
+        new_config
+            .parameters
+            .insert("rsi_period".to_string(), json!(20));
 
         strategy.update_config(new_config.clone());
         assert_eq!(strategy.config().enabled, false);
@@ -706,9 +714,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_weak_bullish() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            35.0, 45.0, 33.0, 43.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(35.0, 45.0, 33.0, 43.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Long);
         assert_eq!(confidence, 0.51);
@@ -717,9 +724,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_weak_bearish() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            65.0, 55.0, 68.0, 58.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(65.0, 55.0, 68.0, 58.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Short);
         assert_eq!(confidence, 0.51);
@@ -728,9 +734,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_neutral_high_confidence() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            48.0, 52.0, 47.0, 51.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(48.0, 52.0, 47.0, 51.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Neutral);
         assert_eq!(confidence, 0.65);
@@ -739,9 +744,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_neutral_low_confidence() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            40.0, 65.0, 42.0, 63.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(40.0, 65.0, 42.0, 63.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Neutral);
         assert_eq!(confidence, 0.45);
@@ -750,9 +754,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_edge_case_exact_oversold() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            30.0, 45.0, 28.0, 43.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(30.0, 45.0, 28.0, 43.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Long);
         assert_eq!(confidence, 0.73);
@@ -761,9 +764,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_edge_case_exact_overbought() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            70.0, 55.0, 72.0, 58.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(70.0, 55.0, 72.0, 58.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Short);
         assert_eq!(confidence, 0.73);
@@ -772,9 +774,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_edge_case_exact_extreme_oversold() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            20.0, 30.0, 18.0, 28.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(20.0, 30.0, 18.0, 28.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Long);
         assert_eq!(confidence, 0.87);
@@ -783,9 +784,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_edge_case_exact_extreme_overbought() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            80.0, 70.0, 82.0, 72.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(80.0, 70.0, 82.0, 72.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Short);
         assert_eq!(confidence, 0.87);
@@ -839,7 +839,7 @@ mod tests {
         match result {
             Err(StrategyError::InsufficientData(msg)) => {
                 assert!(msg.contains("1h"));
-            }
+            },
             _ => panic!("Expected InsufficientData error"),
         }
     }
@@ -864,7 +864,7 @@ mod tests {
         match result {
             Err(StrategyError::InsufficientData(msg)) => {
                 assert!(msg.contains("4h"));
-            }
+            },
             _ => panic!("Expected InsufficientData error"),
         }
     }
@@ -899,9 +899,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_reasoning_extreme_oversold() {
         let strategy = RsiStrategy::new();
-        let (_, _, reasoning) = strategy.analyze_rsi_signals(
-            15.0, 25.0, 10.0, 20.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (_, _, reasoning) =
+            strategy.analyze_rsi_signals(15.0, 25.0, 10.0, 20.0, 30.0, 70.0, 20.0, 80.0);
 
         assert!(reasoning.contains("bullish"));
         assert!(reasoning.contains("oversold"));
@@ -910,9 +909,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_reasoning_extreme_overbought() {
         let strategy = RsiStrategy::new();
-        let (_, _, reasoning) = strategy.analyze_rsi_signals(
-            85.0, 75.0, 90.0, 80.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (_, _, reasoning) =
+            strategy.analyze_rsi_signals(85.0, 75.0, 90.0, 80.0, 30.0, 70.0, 20.0, 80.0);
 
         assert!(reasoning.contains("bearish"));
         assert!(reasoning.contains("overbought"));
@@ -921,9 +919,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_reasoning_neutral() {
         let strategy = RsiStrategy::new();
-        let (_, _, reasoning) = strategy.analyze_rsi_signals(
-            50.0, 50.0, 48.0, 52.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (_, _, reasoning) =
+            strategy.analyze_rsi_signals(50.0, 50.0, 48.0, 52.0, 30.0, 70.0, 20.0, 80.0);
 
         assert!(reasoning.contains("Consolidation"));
     }
@@ -1011,23 +1008,20 @@ mod tests {
     fn test_analyze_rsi_signals_all_parameters_boundary() {
         let strategy = RsiStrategy::new();
 
-        let (signal, _, _) = strategy.analyze_rsi_signals(
-            30.0, 30.0, 30.0, 30.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, _, _) =
+            strategy.analyze_rsi_signals(30.0, 30.0, 30.0, 30.0, 30.0, 70.0, 20.0, 80.0);
         assert!(signal == TradingSignal::Long || signal == TradingSignal::Neutral);
 
-        let (signal, _, _) = strategy.analyze_rsi_signals(
-            70.0, 70.0, 70.0, 70.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, _, _) =
+            strategy.analyze_rsi_signals(70.0, 70.0, 70.0, 70.0, 30.0, 70.0, 20.0, 80.0);
         assert!(signal == TradingSignal::Short || signal == TradingSignal::Neutral);
     }
 
     #[test]
     fn test_analyze_rsi_signals_zero_values() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            0.0, 0.0, 0.0, 0.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(0.0, 0.0, 0.0, 0.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Long);
         assert_eq!(confidence, 0.87);
@@ -1036,9 +1030,8 @@ mod tests {
     #[test]
     fn test_analyze_rsi_signals_hundred_values() {
         let strategy = RsiStrategy::new();
-        let (signal, confidence, _) = strategy.analyze_rsi_signals(
-            100.0, 100.0, 100.0, 100.0, 30.0, 70.0, 20.0, 80.0
-        );
+        let (signal, confidence, _) =
+            strategy.analyze_rsi_signals(100.0, 100.0, 100.0, 100.0, 30.0, 70.0, 20.0, 80.0);
 
         assert_eq!(signal, TradingSignal::Short);
         assert_eq!(confidence, 0.87);
@@ -1095,7 +1088,10 @@ mod tests {
 
         assert_eq!(strategy1.name(), strategy2.name());
         assert_eq!(strategy1.get_rsi_period(), strategy2.get_rsi_period());
-        assert_eq!(strategy1.get_oversold_threshold(), strategy2.get_oversold_threshold());
+        assert_eq!(
+            strategy1.get_oversold_threshold(),
+            strategy2.get_oversold_threshold()
+        );
     }
 
     #[tokio::test]
@@ -1129,9 +1125,8 @@ mod tests {
         ];
 
         for (rsi_1h, rsi_4h, prev_1h, prev_4h) in test_cases {
-            let (_, confidence, _) = strategy.analyze_rsi_signals(
-                rsi_1h, rsi_4h, prev_1h, prev_4h, 30.0, 70.0, 20.0, 80.0
-            );
+            let (_, confidence, _) = strategy
+                .analyze_rsi_signals(rsi_1h, rsi_4h, prev_1h, prev_4h, 30.0, 70.0, 20.0, 80.0);
             assert!(confidence >= 0.0 && confidence <= 1.0);
         }
     }

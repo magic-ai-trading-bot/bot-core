@@ -159,7 +159,10 @@ mod tests {
     fn test_extract_token_from_header_success() {
         let header = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
         let token = JwtService::extract_token_from_header(header);
-        assert_eq!(token, Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token"));
+        assert_eq!(
+            token,
+            Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token")
+        );
     }
 
     #[test]
@@ -234,7 +237,9 @@ mod tests {
         let service1 = JwtService::new("secret".to_string(), Some(10));
         let service2 = service1.clone();
 
-        let token = service1.generate_token("user1", "test@test.com", false).unwrap();
+        let token = service1
+            .generate_token("user1", "test@test.com", false)
+            .unwrap();
 
         // Cloned service should be able to verify token from original
         assert!(service2.verify_token(&token).is_ok());

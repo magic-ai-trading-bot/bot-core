@@ -34,7 +34,7 @@ impl BinanceWebSocket {
                 Ok(_) => {
                     info!("WebSocket connection closed normally");
                     break;
-                }
+                },
                 Err(e) => {
                     error!("WebSocket error: {e}");
                     reconnect_attempts += 1;
@@ -50,7 +50,7 @@ impl BinanceWebSocket {
                         delay, reconnect_attempts, max_reconnect_attempts
                     );
                     sleep(delay).await;
-                }
+                },
             }
         }
 
@@ -75,25 +75,25 @@ impl BinanceWebSocket {
                     if let Err(e) = self.handle_message(&text) {
                         error!("Error handling message: {e}");
                     }
-                }
+                },
                 Ok(Message::Close(_)) => {
                     info!("WebSocket connection closed by server");
                     break;
-                }
+                },
                 Ok(Message::Ping(data)) => {
                     debug!("Received ping, sending pong");
                     if let Err(e) = write.send(Message::Pong(data)).await {
                         error!("Failed to send pong: {e}");
                         break;
                     }
-                }
+                },
                 Ok(_) => {
                     // Ignore other message types (binary, pong, etc.)
-                }
+                },
                 Err(e) => {
                     error!("WebSocket error: {e}");
                     return Err(e.into());
-                }
+                },
             }
         }
 
@@ -170,7 +170,7 @@ impl BinanceWebSocket {
                     } else {
                         warn!("Failed to parse kline event: {data}");
                     }
-                }
+                },
                 "24hrTicker" => {
                     if let Ok(ticker_event) = serde_json::from_value::<TickerEvent>(data.clone()) {
                         if let Err(e) = self.sender.send(StreamEvent::Ticker(ticker_event)) {
@@ -179,7 +179,7 @@ impl BinanceWebSocket {
                     } else {
                         warn!("Failed to parse ticker event: {data}");
                     }
-                }
+                },
                 "depthUpdate" => {
                     if let Ok(depth_event) = serde_json::from_value::<OrderBookEvent>(data.clone())
                     {
@@ -189,10 +189,10 @@ impl BinanceWebSocket {
                     } else {
                         warn!("Failed to parse order book event: {data}");
                     }
-                }
+                },
                 _ => {
                     debug!("Unknown event type: {event_type}");
-                }
+                },
             }
         } else {
             debug!("Message without event type: {data}");
@@ -256,23 +256,23 @@ impl BinanceUserDataStream {
                             error!("Failed to send user data event: {e}");
                         }
                     }
-                }
+                },
                 Ok(Message::Close(_)) => {
                     info!("User data stream closed");
                     break;
-                }
+                },
                 Ok(Message::Ping(data)) => {
                     debug!("Received ping on user data stream");
                     if let Err(e) = write.send(Message::Pong(data)).await {
                         error!("Failed to send pong: {e}");
                         break;
                     }
-                }
-                Ok(_) => {}
+                },
+                Ok(_) => {},
                 Err(e) => {
                     error!("User data stream error: {e}");
                     return Err(e.into());
-                }
+                },
             }
         }
 
@@ -401,13 +401,12 @@ mod tests {
         let config = create_test_config();
         let (ws, _) = BinanceWebSocket::new(config);
 
-        let streams = vec![
-            "btcusdt@kline_1m".to_string(),
-            "btcusdt@ticker".to_string(),
-        ];
+        let streams = vec!["btcusdt@kline_1m".to_string(), "btcusdt@ticker".to_string()];
         let url = ws.build_websocket_url(&streams).unwrap();
 
-        assert!(url.as_str().starts_with("wss://stream.binance.com:9443/ws/stream?streams="));
+        assert!(url
+            .as_str()
+            .starts_with("wss://stream.binance.com:9443/ws/stream?streams="));
         assert!(url.as_str().contains("btcusdt@kline_1m"));
         assert!(url.as_str().contains("btcusdt@ticker"));
     }
@@ -421,7 +420,10 @@ mod tests {
         let result = ws.build_websocket_url(&streams);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No streams specified"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No streams specified"));
     }
 
     #[test]
@@ -429,9 +431,7 @@ mod tests {
         let config = create_test_config();
         let (ws, _) = BinanceWebSocket::new(config);
 
-        let streams: Vec<String> = (0..10)
-            .map(|i| format!("stream{i}@kline_1m"))
-            .collect();
+        let streams: Vec<String> = (0..10).map(|i| format!("stream{i}@kline_1m")).collect();
 
         let url = ws.build_websocket_url(&streams).unwrap();
 
@@ -483,7 +483,7 @@ mod tests {
             StreamEvent::Kline(kline_event) => {
                 assert_eq!(kline_event.symbol, "BTCUSDT");
                 assert_eq!(kline_event.kline.interval, "1m");
-            }
+            },
             _ => panic!("Expected Kline event"),
         }
     }
@@ -528,7 +528,7 @@ mod tests {
             StreamEvent::Ticker(ticker_event) => {
                 assert_eq!(ticker_event.symbol, "BTCUSDT");
                 assert_eq!(ticker_event.last_price, "34000.00");
-            }
+            },
             _ => panic!("Expected Ticker event"),
         }
     }
@@ -558,7 +558,7 @@ mod tests {
                 assert_eq!(orderbook_event.symbol, "BTCUSDT");
                 assert_eq!(orderbook_event.bids.len(), 2);
                 assert_eq!(orderbook_event.asks.len(), 2);
-            }
+            },
             _ => panic!("Expected OrderBook event"),
         }
     }
@@ -682,9 +682,8 @@ mod tests {
         let streams = ws.build_stream_names(&symbols, &timeframes);
 
         // All kline streams should have format: {symbol}@kline_{timeframe}
-        let kline_streams: Vec<&String> = streams.iter()
-            .filter(|s| s.contains("@kline_"))
-            .collect();
+        let kline_streams: Vec<&String> =
+            streams.iter().filter(|s| s.contains("@kline_")).collect();
 
         for stream in kline_streams {
             assert!(stream.contains("@kline_"));
@@ -886,7 +885,11 @@ mod tests {
         let config = create_test_config();
         let (ws, _) = BinanceWebSocket::new(config);
 
-        let symbols = vec!["BTCUSDT".to_string(), "ETHUSDT".to_string(), "BNBUSDT".to_string()];
+        let symbols = vec![
+            "BTCUSDT".to_string(),
+            "ETHUSDT".to_string(),
+            "BNBUSDT".to_string(),
+        ];
         let timeframes = vec!["1m".to_string(), "5m".to_string()];
 
         let streams = ws.build_stream_names(&symbols, &timeframes);
@@ -930,7 +933,10 @@ mod tests {
         let config = create_test_config();
         let (ws, _) = BinanceWebSocket::new(config);
 
-        let streams = vec!["btcusdt@kline_1m".to_string(), "ethusdt@depth@100ms".to_string()];
+        let streams = vec![
+            "btcusdt@kline_1m".to_string(),
+            "ethusdt@depth@100ms".to_string(),
+        ];
         let url = ws.build_websocket_url(&streams).unwrap();
 
         // Should handle special characters in stream names
@@ -999,7 +1005,7 @@ mod tests {
         match event.unwrap() {
             StreamEvent::Kline(kline_event) => {
                 assert_eq!(kline_event.kline.is_this_kline_closed, false);
-            }
+            },
             _ => panic!("Expected Kline event"),
         }
     }
@@ -1028,7 +1034,7 @@ mod tests {
             StreamEvent::OrderBook(orderbook_event) => {
                 assert_eq!(orderbook_event.bids.len(), 0);
                 assert_eq!(orderbook_event.asks.len(), 0);
-            }
+            },
             _ => panic!("Expected OrderBook event"),
         }
     }
@@ -1073,7 +1079,7 @@ mod tests {
             StreamEvent::Ticker(ticker_event) => {
                 assert_eq!(ticker_event.price_change, "-500.00");
                 assert_eq!(ticker_event.price_change_percent, "-1.5");
-            }
+            },
             _ => panic!("Expected Ticker event"),
         }
     }
@@ -1122,7 +1128,7 @@ mod tests {
         match event.unwrap() {
             StreamEvent::Ticker(ticker_event) => {
                 assert_eq!(ticker_event.symbol, "BTCUSDT");
-            }
+            },
             _ => panic!("Expected Ticker event"),
         }
     }
@@ -1151,7 +1157,7 @@ mod tests {
         match event.unwrap() {
             StreamEvent::OrderBook(orderbook_event) => {
                 assert_eq!(orderbook_event.symbol, "BTCUSDT");
-            }
+            },
             _ => panic!("Expected OrderBook event"),
         }
     }
@@ -1237,7 +1243,7 @@ mod tests {
             match event {
                 StreamEvent::Kline(kline_event) => {
                     assert_eq!(kline_event.symbol, *symbol);
-                }
+                },
                 _ => panic!("Expected Kline event"),
             }
         }
@@ -1249,7 +1255,14 @@ mod tests {
         let (ws, _) = BinanceWebSocket::new(config);
 
         let symbols = vec!["BTCUSDT".to_string()];
-        let timeframes = vec!["1m".to_string(), "5m".to_string(), "15m".to_string(), "1h".to_string(), "4h".to_string(), "1d".to_string()];
+        let timeframes = vec![
+            "1m".to_string(),
+            "5m".to_string(),
+            "15m".to_string(),
+            "1h".to_string(),
+            "4h".to_string(),
+            "1d".to_string(),
+        ];
 
         let streams = ws.build_stream_names(&symbols, &timeframes);
 
@@ -1310,7 +1323,7 @@ mod tests {
                 assert_eq!(orderbook_event.asks.len(), 4);
                 assert_eq!(orderbook_event.bids[0].0, "34000.00");
                 assert_eq!(orderbook_event.bids[0].1, "1.5");
-            }
+            },
             _ => panic!("Expected OrderBook event"),
         }
     }
@@ -1353,7 +1366,7 @@ mod tests {
             match event {
                 StreamEvent::Kline(kline_event) => {
                     assert_eq!(kline_event.kline.interval, interval);
-                }
+                },
                 _ => panic!("Expected Kline event"),
             }
         }
@@ -1397,7 +1410,7 @@ mod tests {
             StreamEvent::Ticker(ticker_event) => {
                 assert_eq!(ticker_event.price_change, "0.00");
                 assert_eq!(ticker_event.total_number_of_trades, 0);
-            }
+            },
             _ => panic!("Expected Ticker event"),
         }
     }
@@ -1510,7 +1523,7 @@ mod tests {
             StreamEvent::Kline(kline_event) => {
                 assert_eq!(kline_event.kline.open_price, "34000.12345678");
                 assert_eq!(kline_event.kline.close_price, "34500.87654321");
-            }
+            },
             _ => panic!("Expected Kline event"),
         }
     }
@@ -1586,7 +1599,7 @@ mod tests {
             StreamEvent::OrderBook(orderbook_event) => {
                 assert_eq!(orderbook_event.first_update_id, 1000);
                 assert_eq!(orderbook_event.final_update_id, 2000);
-            }
+            },
             _ => panic!("Expected OrderBook event"),
         }
     }
@@ -1638,7 +1651,7 @@ mod tests {
                 assert_eq!(ticker_event.best_ask_quantity, "4.5");
                 assert_eq!(ticker_event.first_trade_id, 1000);
                 assert_eq!(ticker_event.last_trade_id, 5000);
-            }
+            },
             _ => panic!("Expected Ticker event"),
         }
     }

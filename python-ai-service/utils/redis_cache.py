@@ -1,11 +1,10 @@
-import redis
 import json
 import hashlib
 import asyncio
 from typing import Any, Optional, Union
 from datetime import timedelta
 from functools import wraps
-import aioredis
+from redis import asyncio as aioredis
 from utils.logger import get_logger
 
 logger = get_logger("RedisCache")
@@ -30,10 +29,17 @@ class RedisCache:
     async def connect(self):
         """Initialize Redis connection"""
         try:
-            self._redis = await aioredis.create_redis_pool(
-                f"redis://{self.host}:{self.port}/{self.db}",
-                password=self.password,
+            # Updated to use redis.asyncio instead of deprecated aioredis
+            redis_url = f"redis://{self.host}:{self.port}/{self.db}"
+            if self.password:
+                redis_url = (
+                    f"redis://:{self.password}@{self.host}:{self.port}/{self.db}"
+                )
+
+            self._redis = await aioredis.from_url(
+                redis_url,
                 encoding="utf-8",
+                decode_responses=True,
             )
             logger.info("✅ Connected to Redis cache")
         except Exception as e:
@@ -43,8 +49,7 @@ class RedisCache:
     async def disconnect(self):
         """Close Redis connection"""
         if self._redis:
-            self._redis.close()
-            await self._redis.wait_closed()
+            await self._redis.close()
 
     def _generate_key(self, prefix: str, *args, **kwargs) -> str:
         """Generate cache key from prefix and parameters"""
@@ -70,7 +75,7 @@ class RedisCache:
             return
 
         try:
-            await self._redis.setex(key, ttl, json.dumps(value))
+            await self._redis.set(key, json.dumps(value), ex=ttl)
         except Exception as e:
             logger.warning(f"Cache set error: {e}")
 

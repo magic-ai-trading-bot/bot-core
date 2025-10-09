@@ -80,18 +80,18 @@ impl PaperTradingEngine {
             Ok(Some(saved_settings)) => {
                 info!("✅ Loaded saved paper trading settings from database");
                 saved_settings
-            }
+            },
             Ok(None) => {
                 info!("📝 No saved settings found, using defaults");
                 default_settings
-            }
+            },
             Err(e) => {
                 warn!(
                     "⚠️ Failed to load settings from database, using defaults: {}",
                     e
                 );
                 default_settings
-            }
+            },
         };
 
         let portfolio = Arc::new(RwLock::new(PaperPortfolio::new(
@@ -341,10 +341,10 @@ impl PaperTradingEngine {
                 Ok(price_info) => {
                     let price: f64 = price_info.price.parse().unwrap_or(0.0);
                     new_prices.insert(symbol.clone(), price);
-                }
+                },
                 Err(e) => {
                     warn!("Failed to get price for {}: {}", symbol, e);
-                }
+                },
             }
 
             // Get funding rate for futures
@@ -353,11 +353,11 @@ impl PaperTradingEngine {
                     if let Ok(rate) = funding_info.funding_rate.parse::<f64>() {
                         funding_rates.insert(symbol.clone(), rate);
                     }
-                }
+                },
                 Err(_) => {
                     // Funding rate not available, use default
                     funding_rates.insert(symbol.clone(), 0.0);
-                }
+                },
             }
         }
 
@@ -438,10 +438,10 @@ impl PaperTradingEngine {
                                         );
                                     }
                                 }
-                            }
+                            },
                             Err(e) => {
                                 error!("Failed to process trading signal for {}: {}", symbol, e);
-                            }
+                            },
                         }
                     } else {
                         debug!(
@@ -449,10 +449,10 @@ impl PaperTradingEngine {
                             signal.confidence, min_confidence, symbol
                         );
                     }
-                }
+                },
                 Err(e) => {
                     warn!("Failed to get AI signal for {}: {}", symbol, e);
-                }
+                },
             }
         }
 
@@ -593,10 +593,10 @@ impl PaperTradingEngine {
             match signal.signal_type {
                 crate::strategies::TradingSignal::Long => {
                     entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0)
-                }
+                },
                 crate::strategies::TradingSignal::Short => {
                     entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0)
-                }
+                },
                 _ => entry_price, // Neutral signal
             }
         });
@@ -605,10 +605,10 @@ impl PaperTradingEngine {
             match signal.signal_type {
                 crate::strategies::TradingSignal::Long => {
                     entry_price * (1.0 + symbol_settings.take_profit_pct / 100.0)
-                }
+                },
                 crate::strategies::TradingSignal::Short => {
                     entry_price * (1.0 - symbol_settings.take_profit_pct / 100.0)
-                }
+                },
                 _ => entry_price, // Neutral signal
             }
         });
@@ -710,7 +710,7 @@ impl PaperTradingEngine {
                     execution_price: None,
                     fees_paid: None,
                 })
-            }
+            },
         };
 
         // Get current settings
@@ -1142,11 +1142,11 @@ impl PaperTradingEngine {
             Ok(_) => {
                 info!("✅ Manual AI analysis completed successfully");
                 Ok(())
-            }
+            },
             Err(e) => {
                 error!("❌ Manual AI analysis failed: {}", e);
                 Err(e)
-            }
+            },
         }
     }
 }
@@ -1155,8 +1155,8 @@ impl PaperTradingEngine {
 mod tests {
     use super::*;
     use crate::paper_trading::settings::{
-        BasicSettings, RiskSettings, StrategySettings, AISettings,
-        ExecutionSettings, NotificationSettings, SymbolSettings,
+        AISettings, BasicSettings, ExecutionSettings, NotificationSettings, RiskSettings,
+        StrategySettings, SymbolSettings,
     };
     use std::sync::Arc;
     use tokio::sync::broadcast;
@@ -1249,7 +1249,10 @@ mod tests {
         let engine = engine.unwrap();
 
         let loaded_settings = engine.get_settings().await;
-        assert_eq!(loaded_settings.basic.initial_balance, settings.basic.initial_balance);
+        assert_eq!(
+            loaded_settings.basic.initial_balance,
+            settings.basic.initial_balance
+        );
     }
 
     #[tokio::test]
@@ -1271,7 +1274,10 @@ mod tests {
         .unwrap();
 
         let portfolio_status = engine.get_portfolio_status().await;
-        assert_eq!(portfolio_status.current_balance, settings.basic.initial_balance);
+        assert_eq!(
+            portfolio_status.current_balance,
+            settings.basic.initial_balance
+        );
         assert_eq!(portfolio_status.equity, settings.basic.initial_balance);
     }
 
@@ -1283,15 +1289,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         assert!(!engine.is_running().await);
         let open_trades = engine.get_open_trades().await;
@@ -1306,15 +1307,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let prices = engine.current_prices.read().await;
         assert_eq!(prices.len(), 0);
@@ -1329,15 +1325,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         assert!(!engine.is_running().await);
     }
@@ -1362,9 +1353,18 @@ mod tests {
         .unwrap();
 
         let retrieved_settings = engine.get_settings().await;
-        assert_eq!(retrieved_settings.basic.initial_balance, settings.basic.initial_balance);
-        assert_eq!(retrieved_settings.basic.max_positions, settings.basic.max_positions);
-        assert_eq!(retrieved_settings.basic.default_leverage, settings.basic.default_leverage);
+        assert_eq!(
+            retrieved_settings.basic.initial_balance,
+            settings.basic.initial_balance
+        );
+        assert_eq!(
+            retrieved_settings.basic.max_positions,
+            settings.basic.max_positions
+        );
+        assert_eq!(
+            retrieved_settings.basic.default_leverage,
+            settings.basic.default_leverage
+        );
     }
 
     #[tokio::test]
@@ -1375,20 +1375,18 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let settings1 = engine.get_settings().await;
         let settings2 = engine.get_settings().await;
 
-        assert_eq!(settings1.basic.initial_balance, settings2.basic.initial_balance);
+        assert_eq!(
+            settings1.basic.initial_balance,
+            settings2.basic.initial_balance
+        );
     }
 
     // Tests for update_settings()
@@ -1400,15 +1398,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let mut new_settings = create_test_settings();
         new_settings.basic.initial_balance = 20000.0;
@@ -1430,15 +1423,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let mut invalid_settings = create_test_settings();
         invalid_settings.basic.initial_balance = -1000.0;
@@ -1485,15 +1473,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_confidence_threshold(0.85).await;
         assert!(result.is_ok());
@@ -1510,15 +1493,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_confidence_threshold(0.0).await;
         assert!(result.is_ok());
@@ -1535,15 +1513,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_confidence_threshold(1.0).await;
         assert!(result.is_ok());
@@ -1560,15 +1533,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_confidence_threshold(-0.1).await;
         assert!(result.is_err());
@@ -1582,15 +1550,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_confidence_threshold(1.5).await;
         assert!(result.is_err());
@@ -1605,15 +1568,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_signal_refresh_interval(15).await;
         assert!(result.is_ok());
@@ -1630,15 +1588,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_signal_refresh_interval(1).await;
         assert!(result.is_ok());
@@ -1652,15 +1605,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_signal_refresh_interval(1440).await;
         assert!(result.is_ok());
@@ -1674,15 +1622,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_signal_refresh_interval(0).await;
         assert!(result.is_err());
@@ -1696,15 +1639,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.update_signal_refresh_interval(1441).await;
         assert!(result.is_err());
@@ -1746,15 +1684,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let status = engine.get_portfolio_status().await;
 
@@ -1786,15 +1719,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let open_trades = engine.get_open_trades().await;
         assert_eq!(open_trades.len(), 0);
@@ -1809,15 +1737,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let closed_trades = engine.get_closed_trades().await;
         assert_eq!(closed_trades.len(), 0);
@@ -1858,15 +1781,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.reset_portfolio().await;
         assert!(result.is_ok());
@@ -1886,15 +1804,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let result = engine.reset_portfolio().await;
         assert!(result.is_ok());
@@ -1995,15 +1908,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine1 = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine1 =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         let engine2 = engine1.clone();
 
@@ -2011,7 +1919,10 @@ mod tests {
         let settings1 = engine1.get_settings().await;
         let settings2 = engine2.get_settings().await;
 
-        assert_eq!(settings1.basic.initial_balance, settings2.basic.initial_balance);
+        assert_eq!(
+            settings1.basic.initial_balance,
+            settings2.basic.initial_balance
+        );
     }
 
     // Tests for configuration with symbol-specific settings
@@ -2065,15 +1976,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         // First update
         let result1 = engine.update_confidence_threshold(0.75).await;
@@ -2098,27 +2004,17 @@ mod tests {
         let broadcaster = create_event_broadcaster();
 
         let engine = Arc::new(
-            PaperTradingEngine::new(
-                settings,
-                binance_client,
-                ai_service,
-                storage,
-                broadcaster,
-            )
-            .await
-            .unwrap()
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap(),
         );
 
         let engine1 = Arc::clone(&engine);
         let engine2 = Arc::clone(&engine);
 
-        let handle1 = tokio::spawn(async move {
-            engine1.get_settings().await
-        });
+        let handle1 = tokio::spawn(async move { engine1.get_settings().await });
 
-        let handle2 = tokio::spawn(async move {
-            engine2.get_settings().await
-        });
+        let handle2 = tokio::spawn(async move { engine2.get_settings().await });
 
         let (settings1, settings2) = tokio::join!(handle1, handle2);
 
@@ -2162,15 +2058,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         // Test very small positive value
         assert!(engine.update_confidence_threshold(0.0001).await.is_ok());
@@ -2193,15 +2084,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         // Test minimum valid value
         assert!(engine.update_signal_refresh_interval(1).await.is_ok());
@@ -2227,15 +2113,10 @@ mod tests {
             let storage = create_mock_storage().await;
             let broadcaster = create_event_broadcaster();
 
-            let engine = PaperTradingEngine::new(
-                settings,
-                binance_client,
-                ai_service,
-                storage,
-                broadcaster,
-            )
-            .await
-            .unwrap();
+            let engine =
+                PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                    .await
+                    .unwrap();
 
             let status = engine.get_portfolio_status().await;
             assert_eq!(status.current_balance, balance);
@@ -2254,15 +2135,10 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         // Engine should be created but validation should fail on update
         let mut new_settings = create_test_settings();

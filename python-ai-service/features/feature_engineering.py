@@ -143,8 +143,8 @@ class FeatureEngineer:
             # Handle infinite values
             df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-            # Forward fill missing values
-            df.fillna(method="ffill", inplace=True)
+            # Forward fill missing values (updated to use ffill() instead of deprecated method)
+            df.ffill(inplace=True)
 
             # Drop remaining NaN values
             df.dropna(inplace=True)

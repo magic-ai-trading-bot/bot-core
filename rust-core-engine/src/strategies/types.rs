@@ -500,10 +500,18 @@ mod tests {
     fn test_strategy_context_default() {
         let ctx = StrategyContext::default();
         assert_eq!(ctx.selected_strategies.len(), 4);
-        assert!(ctx.selected_strategies.contains(&"RSI Strategy".to_string()));
-        assert!(ctx.selected_strategies.contains(&"MACD Strategy".to_string()));
-        assert!(ctx.selected_strategies.contains(&"Volume Strategy".to_string()));
-        assert!(ctx.selected_strategies.contains(&"Bollinger Bands Strategy".to_string()));
+        assert!(ctx
+            .selected_strategies
+            .contains(&"RSI Strategy".to_string()));
+        assert!(ctx
+            .selected_strategies
+            .contains(&"MACD Strategy".to_string()));
+        assert!(ctx
+            .selected_strategies
+            .contains(&"Volume Strategy".to_string()));
+        assert!(ctx
+            .selected_strategies
+            .contains(&"Bollinger Bands Strategy".to_string()));
         assert!(matches!(ctx.market_condition, MarketCondition::Unknown));
         assert!(matches!(ctx.risk_level, RiskLevel::Moderate));
         assert!(ctx.technical_indicators.is_empty());
@@ -594,7 +602,10 @@ mod tests {
 
         assert_eq!(va.relative_volume, 1.5);
         assert!(matches!(va.trend, VolumeTrend::Increasing));
-        assert!(matches!(va.accumulation_distribution, AccumulationDistribution::Accumulation));
+        assert!(matches!(
+            va.accumulation_distribution,
+            AccumulationDistribution::Accumulation
+        ));
     }
 
     #[test]
@@ -865,20 +876,18 @@ mod tests {
         use crate::market_data::cache::CandleData;
 
         let mut timeframe_data = HashMap::new();
-        let candles = vec![
-            CandleData {
-                open_time: 1000,
-                close_time: 2000,
-                open: 50000.0,
-                high: 51000.0,
-                low: 49500.0,
-                close: 50500.0,
-                volume: 100.0,
-                quote_volume: 5000000.0,
-                trades: 1000,
-                is_closed: true,
-            }
-        ];
+        let candles = vec![CandleData {
+            open_time: 1000,
+            close_time: 2000,
+            open: 50000.0,
+            high: 51000.0,
+            low: 49500.0,
+            close: 50500.0,
+            volume: 100.0,
+            quote_volume: 5000000.0,
+            trades: 1000,
+            is_closed: true,
+        }];
         timeframe_data.insert("1h".to_string(), candles);
 
         let req = AIAnalysisRequest {
@@ -1055,7 +1064,10 @@ mod tests {
     fn test_strategy_context_with_many_indicators() {
         let mut indicators = HashMap::new();
         indicators.insert("RSI".to_string(), serde_json::json!(70.5));
-        indicators.insert("MACD".to_string(), serde_json::json!({"macd": 0.5, "signal": 0.3}));
+        indicators.insert(
+            "MACD".to_string(),
+            serde_json::json!({"macd": 0.5, "signal": 0.3}),
+        );
         indicators.insert("BB_Upper".to_string(), serde_json::json!(51000.0));
         indicators.insert("BB_Lower".to_string(), serde_json::json!(49000.0));
 

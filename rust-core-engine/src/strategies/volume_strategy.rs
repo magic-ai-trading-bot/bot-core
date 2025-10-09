@@ -329,7 +329,10 @@ mod tests {
 
     fn create_test_input_with_volume(prices: Vec<f64>, volumes: Vec<f64>) -> StrategyInput {
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("1h".to_string(), create_test_candles_with_volume(prices, volumes));
+        timeframe_data.insert(
+            "1h".to_string(),
+            create_test_candles_with_volume(prices, volumes),
+        );
 
         StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -354,7 +357,9 @@ mod tests {
 
         // Create accumulation pattern: prices rising with high volume
         let prices: Vec<f64> = (0..30).map(|i| 100.0 + (i as f64 * 0.5)).collect();
-        let volumes: Vec<f64> = (0..30).map(|i| if i > 20 { 3000.0 } else { 1000.0 }).collect();
+        let volumes: Vec<f64> = (0..30)
+            .map(|i| if i > 20 { 3000.0 } else { 1000.0 })
+            .collect();
 
         let input = create_test_input_with_volume(prices, volumes);
         let result = strategy.analyze(&input).await;
@@ -371,7 +376,9 @@ mod tests {
 
         // Create distribution pattern: prices falling with high volume
         let prices: Vec<f64> = (0..30).map(|i| 150.0 - (i as f64 * 0.5)).collect();
-        let volumes: Vec<f64> = (0..30).map(|i| if i > 20 { 3000.0 } else { 1000.0 }).collect();
+        let volumes: Vec<f64> = (0..30)
+            .map(|i| if i > 20 { 3000.0 } else { 1000.0 })
+            .collect();
 
         let input = create_test_input_with_volume(prices, volumes);
         let result = strategy.analyze(&input).await;
@@ -387,9 +394,7 @@ mod tests {
         let strategy = VolumeStrategy::new();
 
         // Create low volume consolidation
-        let prices: Vec<f64> = (0..30)
-            .map(|i| 100.0 + ((i as f64 % 3.0) - 1.0))
-            .collect();
+        let prices: Vec<f64> = (0..30).map(|i| 100.0 + ((i as f64 % 3.0) - 1.0)).collect();
         let volumes: Vec<f64> = vec![500.0; 30]; // Low volume
 
         let input = create_test_input_with_volume(prices, volumes);
@@ -410,9 +415,15 @@ mod tests {
 
         // Update config
         let mut new_config = StrategyConfig::default();
-        new_config.parameters.insert("volume_sma_period".to_string(), json!(15));
-        new_config.parameters.insert("volume_spike_threshold".to_string(), json!(2.5));
-        new_config.parameters.insert("price_volume_correlation_period".to_string(), json!(5));
+        new_config
+            .parameters
+            .insert("volume_sma_period".to_string(), json!(15));
+        new_config
+            .parameters
+            .insert("volume_spike_threshold".to_string(), json!(2.5));
+        new_config
+            .parameters
+            .insert("price_volume_correlation_period".to_string(), json!(5));
 
         strategy.update_config(new_config);
         assert_eq!(strategy.get_volume_sma_period(), 15);
@@ -571,8 +582,12 @@ mod tests {
         let mut config = StrategyConfig::default();
         config.enabled = true;
         config.weight = 1.5;
-        config.parameters.insert("volume_sma_period".to_string(), json!(25));
-        config.parameters.insert("volume_spike_threshold".to_string(), json!(3.0));
+        config
+            .parameters
+            .insert("volume_sma_period".to_string(), json!(25));
+        config
+            .parameters
+            .insert("volume_spike_threshold".to_string(), json!(3.0));
 
         let strategy = VolumeStrategy::with_config(config);
 
@@ -606,9 +621,9 @@ mod tests {
         let recent_price_changes = vec![1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0]; // Balanced
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1500.0,  // current_volume
-            1000.0,  // avg_volume
-            1.5,     // volume_ratio
+            1500.0, // current_volume
+            1000.0, // avg_volume
+            1.5,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -643,9 +658,9 @@ mod tests {
         let recent_price_changes = vec![1.0; 10];
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            0.0,     // current_volume
-            1.0,     // avg_volume (prevent division by zero)
-            0.0,     // volume_ratio
+            0.0, // current_volume
+            1.0, // avg_volume (prevent division by zero)
+            0.0, // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -666,9 +681,9 @@ mod tests {
         let recent_price_changes: Vec<f64> = vec![];
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1000.0,  // current_volume
-            1000.0,  // avg_volume
-            1.0,     // volume_ratio
+            1000.0, // current_volume
+            1000.0, // avg_volume
+            1.0,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -719,7 +734,9 @@ mod tests {
     async fn test_volume_strategy_one_less_than_minimum() {
         let strategy = VolumeStrategy::new();
         let min_required = strategy.get_volume_sma_period() + 5;
-        let prices: Vec<f64> = (0..(min_required - 1)).map(|i| 100.0 + (i as f64)).collect();
+        let prices: Vec<f64> = (0..(min_required - 1))
+            .map(|i| 100.0 + (i as f64))
+            .collect();
         let volumes: Vec<f64> = vec![1000.0; min_required - 1];
 
         let input = create_test_input_with_volume(prices, volumes);
@@ -738,7 +755,9 @@ mod tests {
     #[test]
     fn test_get_volume_sma_period_invalid_type() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("volume_sma_period".to_string(), json!("invalid"));
+        config
+            .parameters
+            .insert("volume_sma_period".to_string(), json!("invalid"));
         let strategy = VolumeStrategy::with_config(config);
 
         // Should fall back to default
@@ -754,7 +773,9 @@ mod tests {
     #[test]
     fn test_get_volume_spike_threshold_invalid_type() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("volume_spike_threshold".to_string(), json!("invalid"));
+        config
+            .parameters
+            .insert("volume_spike_threshold".to_string(), json!("invalid"));
         let strategy = VolumeStrategy::with_config(config);
 
         // Should fall back to default
@@ -770,7 +791,9 @@ mod tests {
     #[test]
     fn test_get_price_volume_correlation_period_invalid_type() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("price_volume_correlation_period".to_string(), json!(null));
+        config
+            .parameters
+            .insert("price_volume_correlation_period".to_string(), json!(null));
         let strategy = VolumeStrategy::with_config(config);
 
         // Should fall back to default
@@ -780,9 +803,15 @@ mod tests {
     #[test]
     fn test_config_with_extreme_values() {
         let mut config = StrategyConfig::default();
-        config.parameters.insert("volume_sma_period".to_string(), json!(1));
-        config.parameters.insert("volume_spike_threshold".to_string(), json!(0.1));
-        config.parameters.insert("price_volume_correlation_period".to_string(), json!(100));
+        config
+            .parameters
+            .insert("volume_sma_period".to_string(), json!(1));
+        config
+            .parameters
+            .insert("volume_spike_threshold".to_string(), json!(0.1));
+        config
+            .parameters
+            .insert("price_volume_correlation_period".to_string(), json!(100));
 
         let strategy = VolumeStrategy::with_config(config);
 
@@ -800,9 +829,9 @@ mod tests {
         let recent_price_changes = vec![1.0; 10]; // All positive
 
         let (signal, _, _) = strategy.analyze_volume_signals(
-            2000.0,  // current_volume
-            1000.0,  // avg_volume
-            2.0,     // volume_ratio (exactly at threshold)
+            2000.0, // current_volume
+            1000.0, // avg_volume
+            2.0,    // volume_ratio (exactly at threshold)
             &recent_volumes,
             &recent_price_changes,
             51000.0, // current_price (above POC)
@@ -821,9 +850,9 @@ mod tests {
         let recent_price_changes = vec![1.0; 10]; // All positive
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1990.0,  // current_volume
-            1000.0,  // avg_volume
-            1.99,    // volume_ratio (just below threshold)
+            1990.0, // current_volume
+            1000.0, // avg_volume
+            1.99,   // volume_ratio (just below threshold)
             &recent_volumes,
             &recent_price_changes,
             51000.0, // current_price
@@ -869,9 +898,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0]; // 70% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            2500.0,  // current_volume (spike)
-            1000.0,  // avg_volume
-            2.5,     // volume_ratio
+            2500.0, // current_volume (spike)
+            1000.0, // avg_volume
+            2.5,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             51000.0, // current_price (above POC)
@@ -891,9 +920,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]; // 30% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            2500.0,  // current_volume (spike)
-            1000.0,  // avg_volume
-            2.5,     // volume_ratio
+            2500.0, // current_volume (spike)
+            1000.0, // avg_volume
+            2.5,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             49000.0, // current_price (below POC)
@@ -913,9 +942,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0]; // 60% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1600.0,  // current_volume (high volume)
-            1000.0,  // avg_volume
-            1.6,     // volume_ratio
+            1600.0, // current_volume (high volume)
+            1000.0, // avg_volume
+            1.6,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -935,9 +964,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]; // 40% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1600.0,  // current_volume (high volume)
-            1000.0,  // avg_volume
-            1.6,     // volume_ratio
+            1600.0, // current_volume (high volume)
+            1000.0, // avg_volume
+            1.6,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -959,9 +988,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0]; // 70% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1500.0,  // current_volume
-            1000.0,  // avg_volume
-            1.5,     // volume_ratio
+            1500.0, // current_volume
+            1000.0, // avg_volume
+            1.5,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50900.0, // current_price (near POC)
@@ -981,9 +1010,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]; // 20% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1500.0,  // current_volume
-            1000.0,  // avg_volume
-            1.5,     // volume_ratio
+            1500.0, // current_volume
+            1000.0, // avg_volume
+            1.5,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50100.0, // current_price (near POC, below)
@@ -1003,9 +1032,9 @@ mod tests {
         let recent_price_changes = vec![1.0; 10];
 
         let (signal, _, _) = strategy.analyze_volume_signals(
-            1500.0,  // current_volume
-            1000.0,  // avg_volume
-            1.5,     // volume_ratio
+            1500.0, // current_volume
+            1000.0, // avg_volume
+            1.5,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             55000.0, // current_price (far from POC)
@@ -1025,9 +1054,9 @@ mod tests {
         let recent_price_changes = vec![1.0; 10];
 
         let (signal, _, _) = strategy.analyze_volume_signals(
-            1500.0,  // current_volume
-            1000.0,  // avg_volume
-            1.5,     // volume_ratio
+            1500.0, // current_volume
+            1000.0, // avg_volume
+            1.5,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             51000.0, // current_price
@@ -1048,9 +1077,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 0.5]; // 55% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1300.0,  // current_volume
-            1000.0,  // avg_volume
-            1.3,     // volume_ratio
+            1300.0, // current_volume
+            1000.0, // avg_volume
+            1.3,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -1070,9 +1099,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -0.5]; // 45% bullish
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            1300.0,  // current_volume
-            1000.0,  // avg_volume
-            1.3,     // volume_ratio
+            1300.0, // current_volume
+            1000.0, // avg_volume
+            1.3,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -1092,9 +1121,9 @@ mod tests {
         let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0]; // 50.1% bullish
 
         let (signal, _, _) = strategy.analyze_volume_signals(
-            1100.0,  // current_volume
-            1000.0,  // avg_volume
-            1.1,     // volume_ratio
+            1100.0, // current_volume
+            1000.0, // avg_volume
+            1.1,    // volume_ratio
             &recent_volumes,
             &recent_price_changes,
             50000.0, // current_price
@@ -1155,7 +1184,9 @@ mod tests {
         let strategy = VolumeStrategy::new();
 
         let prices: Vec<f64> = (0..30).map(|i| 100.0 + ((i % 3) as f64 - 1.0)).collect();
-        let volumes: Vec<f64> = (0..30).map(|i| if i % 2 == 0 { 2000.0 } else { 500.0 }).collect();
+        let volumes: Vec<f64> = (0..30)
+            .map(|i| if i % 2 == 0 { 2000.0 } else { 500.0 })
+            .collect();
         let input = create_test_input_with_volume(prices, volumes);
 
         let result = strategy.analyze(&input).await;
@@ -1167,8 +1198,14 @@ mod tests {
         let strategy1 = VolumeStrategy::default();
         let strategy2 = VolumeStrategy::new();
 
-        assert_eq!(strategy1.get_volume_sma_period(), strategy2.get_volume_sma_period());
-        assert_eq!(strategy1.get_volume_spike_threshold(), strategy2.get_volume_spike_threshold());
+        assert_eq!(
+            strategy1.get_volume_sma_period(),
+            strategy2.get_volume_sma_period()
+        );
+        assert_eq!(
+            strategy1.get_volume_spike_threshold(),
+            strategy2.get_volume_spike_threshold()
+        );
     }
 
     #[test]
@@ -1212,7 +1249,7 @@ mod tests {
         let recent_price_changes = vec![1.0; 10];
 
         let (_, _, reasoning) = strategy.analyze_volume_signals(
-            3000.0,  // spike
+            3000.0, // spike
             1000.0,
             3.0,
             &recent_volumes,
@@ -1287,7 +1324,11 @@ mod tests {
         );
 
         assert!(confidence >= 0.0 && confidence <= 1.0);
-        assert!(signal == TradingSignal::Long || signal == TradingSignal::Short || signal == TradingSignal::Neutral);
+        assert!(
+            signal == TradingSignal::Long
+                || signal == TradingSignal::Short
+                || signal == TradingSignal::Neutral
+        );
     }
 
     #[test]
@@ -1310,7 +1351,11 @@ mod tests {
 
         // Should handle gracefully
         assert!(confidence >= 0.0 && confidence <= 1.0);
-        assert!(signal == TradingSignal::Long || signal == TradingSignal::Short || signal == TradingSignal::Neutral);
+        assert!(
+            signal == TradingSignal::Long
+                || signal == TradingSignal::Short
+                || signal == TradingSignal::Neutral
+        );
     }
 
     #[tokio::test]
@@ -1354,7 +1399,7 @@ mod tests {
         let recent_price_changes = vec![1.0; 10];
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
-            10.0,    // 0.01x very low
+            10.0, // 0.01x very low
             1000.0,
             0.01,
             &recent_volumes,
@@ -1376,7 +1421,9 @@ mod tests {
         let mut new_config = StrategyConfig::default();
         new_config.enabled = false;
         new_config.weight = 2.5;
-        new_config.parameters.insert("volume_sma_period".to_string(), json!(30));
+        new_config
+            .parameters
+            .insert("volume_sma_period".to_string(), json!(30));
 
         strategy.update_config(new_config.clone());
 
@@ -1390,7 +1437,10 @@ mod tests {
         let strategy1 = VolumeStrategy::new();
         let strategy2 = strategy1.clone();
 
-        assert_eq!(strategy1.get_volume_sma_period(), strategy2.get_volume_sma_period());
+        assert_eq!(
+            strategy1.get_volume_sma_period(),
+            strategy2.get_volume_sma_period()
+        );
         assert_eq!(strategy1.name(), strategy2.name());
     }
 

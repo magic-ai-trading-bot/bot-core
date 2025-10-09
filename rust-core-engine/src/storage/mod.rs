@@ -1304,7 +1304,7 @@ mod tests {
             entry_price: 50000.0,
             exit_price: None,
             quantity: 0.1,
-            leverage: 125,  // Maximum leverage on some platforms
+            leverage: 125, // Maximum leverage on some platforms
             pnl: None,
             pnl_percentage: 0.0,
             trading_fees: 5.0,
@@ -1332,7 +1332,7 @@ mod tests {
             signal_id: "weak_signal".to_string(),
             symbol: "DOGEUSDT".to_string(),
             signal_type: "SHORT".to_string(),
-            confidence: 0.15,  // Low confidence
+            confidence: 0.15, // Low confidence
             reasoning: "Weak signal, not recommended".to_string(),
             entry_price: 0.08,
             trend_direction: "SIDEWAYS".to_string(),
@@ -1364,7 +1364,7 @@ mod tests {
             equity: 7500.0,
             margin_used: 2000.0,
             free_margin: 6000.0,
-            total_pnl: -2500.0,  // Loss
+            total_pnl: -2500.0, // Loss
             total_pnl_percentage: -25.0,
             total_trades: 30,
             win_rate: 30.0,
@@ -1633,7 +1633,10 @@ mod tests {
         {
             // Should return error when db is None
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("Database not initialized"));
         }
     }
 
@@ -1652,7 +1655,10 @@ mod tests {
         #[cfg(feature = "database")]
         {
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("Database not initialized"));
         }
     }
 
@@ -1671,7 +1677,10 @@ mod tests {
         #[cfg(feature = "database")]
         {
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("Database not initialized"));
         }
     }
 
@@ -1690,7 +1699,10 @@ mod tests {
         #[cfg(feature = "database")]
         {
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("Database not initialized"));
         }
     }
 
@@ -1709,7 +1721,10 @@ mod tests {
         #[cfg(feature = "database")]
         {
             assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("Database not initialized"));
         }
     }
 
@@ -2234,7 +2249,10 @@ mod tests {
         };
 
         // Verify consistency
-        assert_eq!(stats.winning_trades + stats.losing_trades, stats.total_trades);
+        assert_eq!(
+            stats.winning_trades + stats.losing_trades,
+            stats.total_trades
+        );
         assert_eq!(
             (stats.winning_trades as f64 / stats.total_trades as f64 * 100.0).round(),
             stats.win_rate

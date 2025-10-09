@@ -147,7 +147,7 @@ const FAQ_DATABASE = {
 // Hugging Face API configuration
 const HF_API_URL =
   "https://api-inference.huggingface.co/models/microsoft/DialoGPT-large";
-const HF_API_KEY = "hf_your_api_key"; // Sẽ cần thay bằng API key thật
+const HF_API_KEY = import.meta.env.VITE_HF_API_KEY || ""; // Load from environment variable
 
 class ChatbotService {
   private conversationHistory: ChatMessage[] = [];

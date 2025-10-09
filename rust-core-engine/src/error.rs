@@ -58,11 +58,11 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                     "Database error occurred",
                     "database_error",
                 )
-            }
+            },
             AppError::Auth(ref msg) => (StatusCode::UNAUTHORIZED, msg.as_str(), "auth_error"),
             AppError::Validation(ref msg) => {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "validation_error")
-            }
+            },
             AppError::ExternalApi(ref msg) => {
                 tracing::error!("External API error: {msg}");
                 (
@@ -70,7 +70,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                     "External service error",
                     "external_api_error",
                 )
-            }
+            },
             AppError::Trading(ref msg) => (
                 StatusCode::UNPROCESSABLE_ENTITY,
                 msg.as_str(),
@@ -83,7 +83,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
             ),
             AppError::NotFound(ref resource) => {
                 (StatusCode::NOT_FOUND, resource.as_str(), "not_found")
-            }
+            },
             AppError::InsufficientFunds => (
                 StatusCode::PAYMENT_REQUIRED,
                 "Insufficient funds",
@@ -96,7 +96,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
             ),
             AppError::WebSocket(ref msg) => {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "websocket_error")
-            }
+            },
             AppError::Config(ref msg) => {
                 tracing::error!("Configuration error: {msg}");
                 (
@@ -104,7 +104,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                     "Configuration error",
                     "config_error",
                 )
-            }
+            },
             AppError::Internal => {
                 tracing::error!("Internal server error");
                 (
@@ -112,7 +112,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                     "Internal server error",
                     "internal_error",
                 )
-            }
+            },
             AppError::ServiceUnavailable(ref service) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 service.as_str(),
@@ -292,10 +292,7 @@ mod tests {
     #[test]
     fn test_config_error_display() {
         let error = AppError::Config("Missing API key".to_string());
-        assert_eq!(
-            format!("{}", error),
-            "Configuration error: Missing API key"
-        );
+        assert_eq!(format!("{}", error), "Configuration error: Missing API key");
     }
 
     #[test]
@@ -476,10 +473,7 @@ mod tests {
         let result: Result<i32, AppError> = Err(AppError::Validation("bad input".to_string()));
         let with_context = result.with_context(|| "Validation failed for user input".to_string());
         assert!(with_context.is_err());
-        assert!(matches!(
-            with_context.unwrap_err(),
-            AppError::Validation(_)
-        ));
+        assert!(matches!(with_context.unwrap_err(), AppError::Validation(_)));
     }
 
     #[test]
@@ -598,7 +592,11 @@ mod tests {
         // Verify error types aren't unexpectedly large
         let size = std::mem::size_of::<AppError>();
         // AppError should be reasonably sized (this is a sanity check)
-        assert!(size < 1024, "AppError size is {} bytes, may be too large", size);
+        assert!(
+            size < 1024,
+            "AppError size is {} bytes, may be too large",
+            size
+        );
     }
 
     #[test]
@@ -625,9 +623,7 @@ mod tests {
         // that triggers the MethodNotAllowed path (lines 124-129)
         use warp::Filter;
 
-        let filter = warp::post()
-            .and(warp::path("test"))
-            .map(|| warp::reply());
+        let filter = warp::post().and(warp::path("test")).map(|| warp::reply());
 
         // Simulate a GET request to a POST-only endpoint
         // This will trigger the MethodNotAllowed rejection
@@ -642,7 +638,7 @@ mod tests {
                 assert!(rejection.find::<warp::reject::MethodNotAllowed>().is_some());
                 let result = handle_rejection(rejection).await;
                 assert!(result.is_ok());
-            }
+            },
             Ok(_) => panic!("Expected rejection but got success"),
         }
     }
@@ -739,13 +735,13 @@ mod tests {
     #[test]
     fn test_error_context_with_mongodb_error_using_with_context() {
         // Test the with_context method with MongoDB error conversion
-        let io_error = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "connection refused");
+        let io_error =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "connection refused");
         let mongo_error = mongodb::error::Error::from(io_error);
         let result: Result<(), mongodb::error::Error> = Err(mongo_error);
 
-        let with_context = result.with_context(|| {
-            format!("Failed to connect to database at localhost:27017")
-        });
+        let with_context =
+            result.with_context(|| format!("Failed to connect to database at localhost:27017"));
 
         assert!(with_context.is_err());
         assert!(matches!(with_context.unwrap_err(), AppError::Database(_)));

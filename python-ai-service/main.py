@@ -23,6 +23,7 @@ from fastapi import (
     BackgroundTasks,
     WebSocket,
     WebSocketDisconnect,
+    Request,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
@@ -30,21 +31,31 @@ from openai import AsyncOpenAI
 import ta
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ASCENDING
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Global OpenAI client, WebSocket connections, and MongoDB storage
+# Thread safety: These are only written during startup/shutdown in lifespan context
+# Read-only access during request handling is safe
 openai_client = None
 websocket_connections: Set[WebSocket] = set()
 mongodb_client = None
 mongodb_db = None
 
 # Rate limiting for OpenAI API
+# Thread safety: Access to these variables is protected by asyncio's event loop
+# which ensures single-threaded execution per request
 import asyncio
 from datetime import datetime
+import threading
 
+# Use threading.Lock for thread-safe access to rate limit state
+_rate_limit_lock = threading.Lock()
 last_openai_request_time = None
 OPENAI_REQUEST_DELAY = 20  # 20 seconds between requests (GPT-4o-mini rate limiting)
 OPENAI_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
@@ -267,12 +278,20 @@ async def lifespan(app: FastAPI):
         mongodb_client = None
         mongodb_db = None
 
-    # Initialize OpenAI client with multiple API keys for fallback
-    api_keys = [
-        os.getenv("OPENAI_API_KEY"),
-        "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",
-        "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",
-    ]
+    # Initialize OpenAI client with API keys from environment
+    # Support multiple backup keys separated by commas
+    api_key_string = os.getenv("OPENAI_API_KEY", "")
+    backup_keys_string = os.getenv("OPENAI_BACKUP_API_KEYS", "")
+
+    api_keys = []
+    if api_key_string:
+        api_keys.append(api_key_string)
+    if backup_keys_string:
+        # Split by comma and strip whitespace
+        backup_keys = [
+            key.strip() for key in backup_keys_string.split(",") if key.strip()
+        ]
+        api_keys.extend(backup_keys)
 
     # Filter out None/empty keys and invalid keys
     valid_api_keys = [key for key in api_keys if key and not key.startswith("your-")]
@@ -286,9 +305,7 @@ async def lifespan(app: FastAPI):
         if len(valid_api_keys) > 1:
             logger.info("🔄 Backup keys available for auto-fallback on rate limits")
 
-    logger.info(f"🔑 OpenAI API key present: {bool(api_key)}")
-    if api_key:
-        logger.info(f"🔑 API key preview: {api_key[:15]}...{api_key[-10:]}")
+    logger.info(f"🔑 OpenAI API key configured: {bool(api_key)}")
 
     if not api_key or api_key.startswith("your-"):
         logger.error("❌ OpenAI API key not configured!")
@@ -300,8 +317,7 @@ async def lifespan(app: FastAPI):
         try:
             openai_client = DirectOpenAIClient(valid_api_keys)  # Pass all valid keys
             logger.info("✅ Direct OpenAI HTTP client initialized successfully")
-            logger.info(f"🔑 Primary API key: {api_key[:15]}...{api_key[-10:]}")
-            logger.info(f"🔑 Total backup keys: {len(valid_api_keys) - 1}")
+            logger.info(f"🔑 Total API keys configured: {len(valid_api_keys)}")
             logger.info("🔄 Using direct HTTP calls to OpenAI API with auto-fallback")
         except Exception as e:
             logger.error(f"❌ Failed to initialize direct OpenAI client: {e}")
@@ -327,6 +343,9 @@ async def lifespan(app: FastAPI):
         mongodb_client.close()
 
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # Create FastAPI app
 app = FastAPI(
     title="GPT-4 Cryptocurrency AI Trading Service",
@@ -335,10 +354,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS middleware - Allow specific origins from environment
+allowed_origins_str = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080",
+)
+allowed_origins = [
+    origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -905,7 +936,7 @@ class DirectOpenAIClient:
         max_tokens: int = 2000,
     ):
         """Direct HTTP call to OpenAI chat completions API with auto-fallback on rate limits."""
-        global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME
+        global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME, _rate_limit_lock
         import httpx
 
         # Try each available API key until success or all are exhausted
@@ -914,35 +945,41 @@ class DirectOpenAIClient:
         for attempt in range(max_attempts):
             current_key, key_index = self.get_current_api_key()
 
-            # Check if we're still in a rate limit period
-            if OPENAI_RATE_LIMIT_RESET_TIME:
-                if datetime.now() < OPENAI_RATE_LIMIT_RESET_TIME:
-                    remaining_time = (
-                        OPENAI_RATE_LIMIT_RESET_TIME - datetime.now()
+            # Check if we're still in a rate limit period (thread-safe)
+            with _rate_limit_lock:
+                if OPENAI_RATE_LIMIT_RESET_TIME:
+                    if datetime.now() < OPENAI_RATE_LIMIT_RESET_TIME:
+                        remaining_time = (
+                            OPENAI_RATE_LIMIT_RESET_TIME - datetime.now()
+                        ).total_seconds()
+                        logger.warning(
+                            f"⏰ Key {key_index + 1} in rate limit period, {remaining_time:.0f}s remaining"
+                        )
+                        # Try next key
+                        self.current_key_index += 1
+                        continue
+                    else:
+                        # Rate limit period expired, reset it
+                        OPENAI_RATE_LIMIT_RESET_TIME = None
+                        self.rate_limited_keys.discard(key_index)
+                        logger.info(f"✅ Key {key_index + 1} rate limit expired")
+
+                # Rate limiting: ensure minimum delay between requests
+                if last_openai_request_time:
+                    time_since_last = (
+                        datetime.now() - last_openai_request_time
                     ).total_seconds()
-                    logger.warning(
-                        f"⏰ Key {key_index + 1} in rate limit period, {remaining_time:.0f}s remaining"
-                    )
-                    # Try next key
-                    self.current_key_index += 1
-                    continue
-                else:
-                    # Rate limit period expired, reset it
-                    OPENAI_RATE_LIMIT_RESET_TIME = None
-                    self.rate_limited_keys.discard(key_index)
-                    logger.info(f"✅ Key {key_index + 1} rate limit expired")
+                    if time_since_last < OPENAI_REQUEST_DELAY:
+                        delay = OPENAI_REQUEST_DELAY - time_since_last
+                        logger.info(
+                            f"⏳ Rate limiting: waiting {delay:.1f}s before request"
+                        )
+                        # Release lock before sleeping
+                        _rate_limit_lock.release()
+                        await asyncio.sleep(delay)
+                        _rate_limit_lock.acquire()
 
-            # Rate limiting: ensure minimum delay between requests
-            if last_openai_request_time:
-                time_since_last = (
-                    datetime.now() - last_openai_request_time
-                ).total_seconds()
-                if time_since_last < OPENAI_REQUEST_DELAY:
-                    delay = OPENAI_REQUEST_DELAY - time_since_last
-                    logger.info(f"⏳ Rate limiting: waiting {delay:.1f}s before request")
-                    await asyncio.sleep(delay)
-
-            last_openai_request_time = datetime.now()
+                last_openai_request_time = datetime.now()
 
             headers = {
                 "Authorization": f"Bearer {current_key}",
@@ -1634,9 +1671,6 @@ async def health_check():
         "version": "2.0.0",
         "gpt4_available": openai_client is not None,
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
-        "api_key_preview": f"{os.getenv('OPENAI_API_KEY', '')[:15]}..."
-        if os.getenv("OPENAI_API_KEY")
-        else None,
         "mongodb_connected": mongodb_status,
         "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
         "supported_symbols": ANALYSIS_SYMBOLS,
@@ -1644,14 +1678,12 @@ async def health_check():
 
 
 @app.get("/debug/gpt4")
-async def debug_gpt4():
+@limiter.limit("5/minute")  # Rate limit: 5 requests per minute for debug endpoint
+async def debug_gpt4(http_request: Request):
     """Debug GPT-4 connectivity."""
     result = {
         "client_initialized": openai_client is not None,
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
-        "api_key_preview": f"{os.getenv('OPENAI_API_KEY', '')[:15]}..."
-        if os.getenv("OPENAI_API_KEY")
-        else None,
     }
 
     if openai_client is None:
@@ -1714,7 +1746,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 @app.post("/ai/analyze", response_model=AISignalResponse)
-async def analyze_trading_signals(request: AIAnalysisRequest):
+@limiter.limit("10/minute")  # Rate limit: 10 requests per minute
+async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Request):
     """Analyze trading signals using GPT-4 AI with MongoDB storage."""
     global gpt_analyzer
 

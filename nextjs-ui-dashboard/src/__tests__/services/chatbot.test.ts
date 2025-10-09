@@ -673,4 +673,40 @@ describe('Chatbot Service Tests', () => {
       expect(typeof chatbotService.clearHistory).toBe('function')
     })
   })
+
+  describe('Security - Environment Variable', () => {
+    it('should NOT have hardcoded API key in source code', async () => {
+      // This test verifies the fix for the hardcoded API key issue
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{ generated_text: 'Response' }],
+      })
+
+      global.fetch = mockFetch
+
+      await chatbotService.processMessage('test question')
+
+      // The API key should come from environment variable
+      if (mockFetch.mock.calls.length > 0) {
+        const fetchCallOptions = mockFetch.mock.calls[0][1] as RequestInit
+        const authHeader = (fetchCallOptions.headers as Record<string, string>)['Authorization']
+
+        // Should have Authorization header with Bearer token
+        expect(authHeader).toMatch(/^Bearer /)
+
+        // API key should NOT be the hardcoded placeholder
+        expect(authHeader).not.toBe('Bearer hf_your_api_key')
+      }
+    })
+
+    it('should handle missing environment variable gracefully', async () => {
+      // When VITE_HF_API_KEY is not set, it defaults to empty string
+      // This test ensures the code doesn't crash
+      const result = await chatbotService.processMessage('bot hoạt động')
+
+      // Should still work with FAQ (which doesn't need API key)
+      expect(result.success).toBe(true)
+      expect(result.type).toBe('faq')
+    })
+  })
 })

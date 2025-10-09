@@ -524,10 +524,6 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
 
     const loadChartData = useCallback(async () => {
       try {
-        console.log(
-          "🔄 Loading full chart data...",
-          new Date().toLocaleTimeString()
-        );
         setLoading(true);
 
         // Get supported symbols first
@@ -546,7 +542,6 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           )
           .map((result) => result.value);
 
-        console.log("📊 Loaded charts:", successfulCharts.length);
         setCharts(successfulCharts);
       } catch (error) {
         console.error("Failed to load chart data:", error);
@@ -558,18 +553,13 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
 
     const updatePricesOnly = useCallback(async () => {
       try {
-        console.log("🔄 Updating prices...", new Date().toLocaleTimeString());
         // Only update prices without reloading entire charts
         const pricesData = await apiClient.rust.getLatestPrices();
-        console.log("📊 Latest prices:", pricesData);
 
         setCharts((prevCharts) =>
           prevCharts.map((chart) => {
             const newPrice = pricesData[chart.symbol];
             if (newPrice && newPrice !== chart.latest_price) {
-              console.log(
-                `💰 ${chart.symbol}: ${chart.latest_price} → ${newPrice}`
-              );
               const priceChange = newPrice - chart.latest_price;
               const priceChangePercent =
                 (priceChange / chart.latest_price) * 100;
@@ -641,9 +631,6 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
     // Auto-refresh full charts every 60 seconds (less frequent to prevent price override)
     useEffect(() => {
       const interval = setInterval(() => {
-        console.log(
-          "⏰ Auto-refresh triggered, but skipping to prevent price override"
-        );
         // Skip auto-refresh to prevent overriding recent price updates
         // loadChartData();
       }, 60000);
@@ -665,9 +652,6 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       // Handle real-time price updates via MarketData messages
       if (wsState.lastMessage.type === "MarketData") {
         const marketData = wsState.lastMessage.data as MarketDataUpdateData;
-        console.log(
-          `🚀 WebSocket price update: ${marketData.symbol} = $${marketData.price}`
-        );
 
         setCharts((prev) =>
           prev.map((chart) =>
@@ -691,9 +675,6 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       // Handle detailed chart updates (when candles close)
       if (wsState.lastMessage.type === "ChartUpdate") {
         const updateData = wsState.lastMessage.data as ChartUpdateData;
-        console.log(
-          `📊 WebSocket chart update: ${updateData.symbol} ${updateData.timeframe}`
-        );
 
         setCharts((prev) =>
           prev.map((chart) =>
@@ -787,10 +768,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    console.log("🔴 Manual price update clicked");
-                    updatePricesOnly();
-                  }}
+                  onClick={updatePricesOnly}
                 >
                   Update Prices
                 </Button>
