@@ -9,10 +9,18 @@ import json
 import pandas as pd
 import numpy as np
 from main import (
-    TechnicalAnalyzer, GPTTradingAnalyzer, DirectOpenAIClient,
-    WebSocketManager, CandleData, AIAnalysisRequest, AIStrategyContext,
-    store_analysis_result, get_latest_analysis, generate_dummy_market_data
+    TechnicalAnalyzer,
+    GPTTradingAnalyzer,
+    DirectOpenAIClient,
+    WebSocketManager,
+    CandleData,
+    AIAnalysisRequest,
+    AIStrategyContext,
+    store_analysis_result,
+    get_latest_analysis,
+    generate_dummy_market_data,
 )
+
 
 @pytest.mark.unit
 class TestHealthEndpoint:
@@ -33,21 +41,24 @@ class TestHealthEndpoint:
     @pytest.mark.asyncio
     async def test_health_check_mongodb_down(self, client):
         """Test health check when MongoDB is down."""
-        with patch('main.mongodb_client', None):
+        with patch("main.mongodb_client", None):
             response = await client.get("/health")
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "healthy"
             assert data["mongodb_connected"] is False
 
+
 @pytest.mark.unit
 class TestAIAnalysisEndpoint:
     """Test AI analysis endpoint."""
 
     @pytest.mark.asyncio
-    async def test_analyze_success(self, client, sample_ai_analysis_request, mock_openai_client):
+    async def test_analyze_success(
+        self, client, sample_ai_analysis_request, mock_openai_client
+    ):
         """Test successful AI analysis."""
-        with patch('main.openai_client', mock_openai_client):
+        with patch("main.openai_client", mock_openai_client):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
             assert response.status_code == 200
             data = response.json()
@@ -69,7 +80,9 @@ class TestAIAnalysisEndpoint:
         assert data["signal"] in ["Long", "Short", "Neutral"]
 
     @pytest.mark.asyncio
-    async def test_analyze_insufficient_candles(self, client, sample_ai_analysis_request):
+    async def test_analyze_insufficient_candles(
+        self, client, sample_ai_analysis_request
+    ):
         """Test analysis with no candle data."""
         sample_ai_analysis_request["timeframe_data"]["1h"] = []
         response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
@@ -77,10 +90,14 @@ class TestAIAnalysisEndpoint:
         assert response.status_code in [200, 400, 500]
 
     @pytest.mark.asyncio
-    async def test_analyze_with_cached_result(self, client, sample_ai_analysis_request, mock_mongodb):
+    async def test_analyze_with_cached_result(
+        self, client, sample_ai_analysis_request, mock_mongodb
+    ):
         """Test analysis returns cached result."""
         # Mock cached result with proper timestamp format (milliseconds)
-        timestamp_ms = int((datetime.now(timezone.utc) - timedelta(minutes=2)).timestamp() * 1000)
+        timestamp_ms = int(
+            (datetime.now(timezone.utc) - timedelta(minutes=2)).timestamp() * 1000
+        )
         cached_result = {
             "symbol": "BTCUSDT",
             "signal": "Short",
@@ -94,22 +111,23 @@ class TestAIAnalysisEndpoint:
                 "support_levels": [45000],
                 "resistance_levels": [46000],
                 "volatility_level": "Medium",
-                "volume_analysis": "Decreasing volume"
+                "volume_analysis": "Decreasing volume",
             },
             "risk_assessment": {
                 "overall_risk": "Medium",
                 "technical_risk": 0.5,
                 "market_risk": 0.5,
-                "recommended_position_size": 0.02
-            }
+                "recommended_position_size": 0.02,
+            },
         }
 
-        with patch('main.get_latest_analysis', AsyncMock(return_value=cached_result)):
+        with patch("main.get_latest_analysis", AsyncMock(return_value=cached_result)):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
             assert response.status_code == 200
             data = response.json()
             assert data["signal"] == "Short"
             assert data["confidence"] == 0.85
+
 
 @pytest.mark.unit
 class TestStrategyRecommendations:
@@ -120,13 +138,10 @@ class TestStrategyRecommendations:
         """Test successful strategy recommendations."""
         request_data = {
             "symbol": "BTCUSDT",
-            "timeframe_data": {
-                "1h": sample_candle_data,
-                "4h": sample_candle_data
-            },
+            "timeframe_data": {"1h": sample_candle_data, "4h": sample_candle_data},
             "current_price": 45189.23,
             "available_strategies": ["RSI", "MACD", "EMA_Crossover"],
-            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
         }
 
         response = await client.post("/ai/strategy-recommendations", json=request_data)
@@ -139,6 +154,7 @@ class TestStrategyRecommendations:
         assert "suitability_score" in data[0]
         assert "reasoning" in data[0]
 
+
 @pytest.mark.unit
 class TestMarketCondition:
     """Test market condition analysis endpoint."""
@@ -148,13 +164,10 @@ class TestMarketCondition:
         """Test successful market condition analysis."""
         request_data = {
             "symbol": "BTCUSDT",
-            "timeframe_data": {
-                "1h": sample_candle_data,
-                "4h": sample_candle_data
-            },
+            "timeframe_data": {"1h": sample_candle_data, "4h": sample_candle_data},
             "current_price": 45000.0,
             "volume_24h": 25000000000.0,
-            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
         }
 
         response = await client.post("/ai/market-condition", json=request_data)
@@ -163,6 +176,7 @@ class TestMarketCondition:
         assert "condition_type" in data
         assert "market_phase" in data
         assert "confidence" in data
+
 
 @pytest.mark.unit
 class TestFeedbackEndpoint:
@@ -179,7 +193,7 @@ class TestFeedbackEndpoint:
             "profit_loss": 2.5,
             "confidence_was_accurate": True,
             "feedback_notes": "Good signal",
-            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
         }
 
         response = await client.post("/ai/feedback", json=feedback_data)
@@ -187,10 +201,11 @@ class TestFeedbackEndpoint:
         data = response.json()
         assert data["message"] == "Feedback received successfully"
 
+
 @pytest.mark.unit
 class TestWebSocket:
     """Test WebSocket functionality."""
-    
+
     def test_websocket_connection(self, test_client):
         """Test WebSocket connection and messages."""
         with test_client.websocket_connect("/ws") as websocket:
@@ -198,19 +213,18 @@ class TestWebSocket:
             data = websocket.receive_json()
             assert data["type"] == "connection"
             assert data["message"] == "Connected to AI Trading Service"
-            
+
             # Test receiving AI signal
-            with patch('main.ws_manager.broadcast_signal', AsyncMock()) as mock_broadcast:
+            with patch(
+                "main.ws_manager.broadcast_signal", AsyncMock()
+            ) as mock_broadcast:
                 # Simulate broadcasting
                 test_message = {
                     "type": "ai_signal",
-                    "data": {
-                        "symbol": "BTCUSDT",
-                        "signal": "Long",
-                        "confidence": 0.8
-                    }
+                    "data": {"symbol": "BTCUSDT", "signal": "Long", "confidence": 0.8},
                 }
                 # In real scenario, this would be broadcast to all connections
+
 
 @pytest.mark.unit
 class TestPerformanceEndpoint:
@@ -226,6 +240,7 @@ class TestPerformanceEndpoint:
         assert "predictions_made" in data
         assert data["overall_accuracy"] == 0.85
 
+
 @pytest.mark.unit
 class TestStorageEndpoints:
     """Test storage-related endpoints."""
@@ -233,15 +248,20 @@ class TestStorageEndpoints:
     @pytest.mark.asyncio
     async def test_storage_stats_success(self, client, mock_mongodb):
         """Test storage statistics endpoint."""
+
         # Create async iterator for aggregate
         async def async_gen():
             yield {"_id": "BTCUSDT", "count": 100, "latest": 1701234567000}
 
         # Mock aggregation result with proper async iterator
-        mock_mongodb[1]["ai_analysis_results"].aggregate = MagicMock(return_value=async_gen())
-        mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(return_value=500)
+        mock_mongodb[1]["ai_analysis_results"].aggregate = MagicMock(
+            return_value=async_gen()
+        )
+        mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(
+            return_value=500
+        )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.get("/ai/storage/stats")
             assert response.status_code == 200
             data = response.json()
@@ -250,7 +270,7 @@ class TestStorageEndpoints:
     @pytest.mark.asyncio
     async def test_storage_stats_no_mongodb(self, client):
         """Test storage stats when MongoDB is unavailable."""
-        with patch('main.mongodb_db', None):
+        with patch("main.mongodb_db", None):
             response = await client.get("/ai/storage/stats")
             assert response.status_code == 200
             data = response.json()
@@ -263,12 +283,13 @@ class TestStorageEndpoints:
             return_value=MagicMock(deleted_count=100)
         )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.post("/ai/storage/clear")
             assert response.status_code == 200
             data = response.json()
             assert data["cleared_analyses"] == 100
             assert data["message"] == "Storage cleared successfully"
+
 
 @pytest.mark.unit
 class TestRootEndpoint:
@@ -302,16 +323,16 @@ class TestTechnicalAnalyzer:
         ]
         df = TechnicalAnalyzer.prepare_dataframe(klines)
         assert len(df) == 2
-        assert 'open' in df.columns
-        assert 'close' in df.columns
-        assert df['open'].iloc[0] == 45000.0
+        assert "open" in df.columns
+        assert "close" in df.columns
+        assert df["open"].iloc[0] == 45000.0
 
     def test_calculate_indicators_empty(self):
         """Test calculate_indicators with empty dataframe."""
         df = pd.DataFrame()
         indicators = TechnicalAnalyzer.calculate_indicators(df)
-        assert indicators['rsi'] == 50.0
-        assert indicators['macd'] == 0.0
+        assert indicators["rsi"] == 50.0
+        assert indicators["macd"] == 0.0
 
     def test_calculate_indicators_success(self):
         """Test calculate_indicators with sufficient data."""
@@ -320,36 +341,38 @@ class TestTechnicalAnalyzer:
         base_price = 45000
         for i in range(100):
             price = base_price + i * 10
-            data.append({
-                'timestamp': pd.Timestamp.now() - pd.Timedelta(hours=100-i),
-                'open': price,
-                'high': price + 50,
-                'low': price - 50,
-                'close': price + 25,
-                'volume': 100 + i
-            })
+            data.append(
+                {
+                    "timestamp": pd.Timestamp.now() - pd.Timedelta(hours=100 - i),
+                    "open": price,
+                    "high": price + 50,
+                    "low": price - 50,
+                    "close": price + 25,
+                    "volume": 100 + i,
+                }
+            )
 
         df = pd.DataFrame(data)
-        df.set_index('timestamp', inplace=True)
+        df.set_index("timestamp", inplace=True)
 
         indicators = TechnicalAnalyzer.calculate_indicators(df)
 
         # Verify key indicators exist and have reasonable values
-        assert 'rsi' in indicators
-        assert 'macd' in indicators
-        assert 'sma_20' in indicators
-        assert 'ema_9' in indicators
-        assert 'bollinger_upper' in indicators
-        assert indicators['rsi'] >= 0
-        assert indicators['rsi'] <= 100
+        assert "rsi" in indicators
+        assert "macd" in indicators
+        assert "sma_20" in indicators
+        assert "ema_9" in indicators
+        assert "bollinger_upper" in indicators
+        assert indicators["rsi"] >= 0
+        assert indicators["rsi"] <= 100
 
     def test_calculate_indicators_error_handling(self):
         """Test calculate_indicators error handling."""
         # Create dataframe with invalid data
-        df = pd.DataFrame({'close': [None, None]})
+        df = pd.DataFrame({"close": [None, None]})
         indicators = TechnicalAnalyzer.calculate_indicators(df)
         # Should return default values on error
-        assert indicators['rsi'] == 50.0
+        assert indicators["rsi"] == 50.0
 
     def test_detect_patterns_empty(self):
         """Test detect_patterns with empty dataframe."""
@@ -359,11 +382,9 @@ class TestTechnicalAnalyzer:
 
     def test_detect_patterns_insufficient_data(self):
         """Test detect_patterns with insufficient data."""
-        df = pd.DataFrame({
-            'close': [45000, 45050],
-            'high': [45100, 45150],
-            'low': [44900, 44950]
-        })
+        df = pd.DataFrame(
+            {"close": [45000, 45050], "high": [45100, 45150], "low": [44900, 44950]}
+        )
         patterns = TechnicalAnalyzer.detect_patterns(df)
         assert all(not v for v in patterns.values())
 
@@ -374,14 +395,10 @@ class TestTechnicalAnalyzer:
         lows = [h - 500 for h in highs]
         closes = [h - 250 for h in highs]
 
-        df = pd.DataFrame({
-            'close': closes,
-            'high': highs,
-            'low': lows
-        })
+        df = pd.DataFrame({"close": closes, "high": highs, "low": lows})
 
         patterns = TechnicalAnalyzer.detect_patterns(df)
-        assert 'double_top' in patterns
+        assert "double_top" in patterns
 
     def test_detect_patterns_double_bottom(self):
         """Test detect_patterns for double bottom pattern."""
@@ -390,14 +407,10 @@ class TestTechnicalAnalyzer:
         highs = [l + 500 for l in lows]
         closes = [l + 250 for l in lows]
 
-        df = pd.DataFrame({
-            'close': closes,
-            'high': highs,
-            'low': lows
-        })
+        df = pd.DataFrame({"close": closes, "high": highs, "low": lows})
 
         patterns = TechnicalAnalyzer.detect_patterns(df)
-        assert 'double_bottom' in patterns
+        assert "double_bottom" in patterns
 
     def test_detect_patterns_ascending_triangle(self):
         """Test detect_patterns for ascending triangle."""
@@ -406,65 +419,55 @@ class TestTechnicalAnalyzer:
         highs = [45000] * 25  # Flat resistance
         closes = [(l + h) / 2 for l, h in zip(lows, highs)]
 
-        df = pd.DataFrame({
-            'close': closes,
-            'high': highs,
-            'low': lows
-        })
+        df = pd.DataFrame({"close": closes, "high": highs, "low": lows})
 
         patterns = TechnicalAnalyzer.detect_patterns(df)
         # Pattern detection exists
-        assert 'ascending_triangle' in patterns
+        assert "ascending_triangle" in patterns
         # Just verify it's a boolean
-        assert isinstance(patterns['ascending_triangle'], (bool, np.bool_))
+        assert isinstance(patterns["ascending_triangle"], (bool, np.bool_))
 
     def test_get_market_context_empty(self):
         """Test get_market_context with empty data."""
         df = pd.DataFrame()
         indicators = {}
         context = TechnicalAnalyzer.get_market_context(df, indicators)
-        assert context['trend_strength'] == 0.0
-        assert context['volatility'] == 0.5
+        assert context["trend_strength"] == 0.0
+        assert context["volatility"] == 0.5
 
     def test_get_market_context_bullish(self):
         """Test get_market_context with bullish indicators."""
-        df = pd.DataFrame({
-            'close': [45000, 45100, 45200],
-            'volume': [100, 110, 120]
-        })
+        df = pd.DataFrame({"close": [45000, 45100, 45200], "volume": [100, 110, 120]})
         indicators = {
-            'rsi': 75.0,
-            'macd_histogram': 50.0,
-            'ema_9': 45200,
-            'ema_21': 45000,
-            'atr': 100.0,
-            'volume_ratio': 1.5
+            "rsi": 75.0,
+            "macd_histogram": 50.0,
+            "ema_9": 45200,
+            "ema_21": 45000,
+            "atr": 100.0,
+            "volume_ratio": 1.5,
         }
 
         context = TechnicalAnalyzer.get_market_context(df, indicators)
-        assert context['market_sentiment'] == 'bullish'
-        assert context['trend_strength'] > 0
-        assert context['volume_trend'] == 'increasing'
+        assert context["market_sentiment"] == "bullish"
+        assert context["trend_strength"] > 0
+        assert context["volume_trend"] == "increasing"
 
     def test_get_market_context_bearish(self):
         """Test get_market_context with bearish indicators."""
-        df = pd.DataFrame({
-            'close': [45000, 44900, 44800],
-            'volume': [100, 90, 80]
-        })
+        df = pd.DataFrame({"close": [45000, 44900, 44800], "volume": [100, 90, 80]})
         indicators = {
-            'rsi': 25.0,
-            'macd_histogram': -50.0,
-            'ema_9': 44800,
-            'ema_21': 45000,
-            'atr': 100.0,
-            'volume_ratio': 0.7
+            "rsi": 25.0,
+            "macd_histogram": -50.0,
+            "ema_9": 44800,
+            "ema_21": 45000,
+            "atr": 100.0,
+            "volume_ratio": 0.7,
         }
 
         context = TechnicalAnalyzer.get_market_context(df, indicators)
-        assert context['market_sentiment'] == 'bearish'
-        assert context['trend_strength'] < 0
-        assert context['volume_trend'] == 'decreasing'
+        assert context["market_sentiment"] == "bearish"
+        assert context["trend_strength"] < 0
+        assert context["volume_trend"] == "decreasing"
 
     def test_candles_to_dataframe_empty(self):
         """Test candles_to_dataframe with empty data."""
@@ -480,7 +483,7 @@ class TestTechnicalAnalyzer:
                 high=45100.0,
                 low=44900.0,
                 close=45050.0,
-                volume=100.5
+                volume=100.5,
             ),
             CandleData(
                 timestamp=1701238167000,
@@ -488,8 +491,8 @@ class TestTechnicalAnalyzer:
                 high=45200.0,
                 low=45000.0,
                 close=45150.0,
-                volume=120.3
-            )
+                volume=120.3,
+            ),
         ]
 
         timeframe_data = {"1h": candles, "4h": candles}
@@ -498,7 +501,7 @@ class TestTechnicalAnalyzer:
         assert "1h" in result
         assert "4h" in result
         assert len(result["1h"]) == 2
-        assert result["1h"]['close'].iloc[0] == 45050.0
+        assert result["1h"]["close"].iloc[0] == 45050.0
 
 
 @pytest.mark.unit
@@ -626,27 +629,22 @@ class TestDirectOpenAIClient:
 
         client = DirectOpenAIClient(["test-key"])
 
-        mock_response = {
-            "choices": [{
-                "message": {
-                    "content": "Test response"
-                }
-            }]
-        }
+        mock_response = {"choices": [{"message": {"content": "Test response"}}]}
 
-        with patch('main.last_openai_request_time', None):
-            with patch('httpx.AsyncClient') as mock_httpx:
+        with patch("main.last_openai_request_time", None):
+            with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
-                mock_client_instance.post = AsyncMock(return_value=AsyncMock(
-                    status_code=200,
-                    json=lambda: mock_response,
-                    raise_for_status=lambda: None
-                ))
+                mock_client_instance.post = AsyncMock(
+                    return_value=AsyncMock(
+                        status_code=200,
+                        json=lambda: mock_response,
+                        raise_for_status=lambda: None,
+                    )
+                )
                 mock_httpx.return_value.__aenter__.return_value = mock_client_instance
 
                 result = await client.chat_completions_create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": "test"}]
+                    model="gpt-4o-mini", messages=[{"role": "user", "content": "test"}]
                 )
 
                 assert result == mock_response
@@ -672,16 +670,18 @@ class TestDirectOpenAIClient:
 
         client = DirectOpenAIClient(["key1"])
 
-        with patch('main.last_openai_request_time', None):
-            with patch('httpx.AsyncClient') as mock_httpx:
+        with patch("main.last_openai_request_time", None):
+            with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
-                mock_client_instance.post = AsyncMock(side_effect=Exception("Network error"))
+                mock_client_instance.post = AsyncMock(
+                    side_effect=Exception("Network error")
+                )
                 mock_httpx.return_value.__aenter__.return_value = mock_client_instance
 
                 with pytest.raises(Exception, match="Network error"):
                     await client.chat_completions_create(
                         model="gpt-4o-mini",
-                        messages=[{"role": "user", "content": "test"}]
+                        messages=[{"role": "user", "content": "test"}],
                     )
 
 
@@ -695,9 +695,15 @@ class TestGPTTradingAnalyzer:
         analyzer = GPTTradingAnalyzer(mock_openai_client)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000) - i * 3600000,
-                      open=45000 + i, high=45100 + i, low=44900 + i,
-                      close=45050 + i, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000)
+                - i * 3600000,
+                open=45000 + i,
+                high=45100 + i,
+                low=44900 + i,
+                close=45050 + i,
+                volume=100.0,
+            )
             for i in range(100)
         ]
 
@@ -710,8 +716,8 @@ class TestGPTTradingAnalyzer:
             strategy_context=AIStrategyContext(
                 selected_strategies=["RSI Strategy"],
                 market_condition="Trending",
-                risk_level="Medium"
-            )
+                risk_level="Medium",
+            ),
         )
 
         result = await analyzer.analyze_trading_signals(request)
@@ -726,9 +732,15 @@ class TestGPTTradingAnalyzer:
         analyzer = GPTTradingAnalyzer(None)  # No GPT client
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000) - i * 3600000,
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000)
+                - i * 3600000,
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
             for i in range(100)
         ]
 
@@ -741,8 +753,8 @@ class TestGPTTradingAnalyzer:
             strategy_context=AIStrategyContext(
                 selected_strategies=["RSI Strategy"],
                 market_condition="Trending",
-                risk_level="Medium"
-            )
+                risk_level="Medium",
+            ),
         )
 
         result = await analyzer.analyze_trading_signals(request)
@@ -755,9 +767,14 @@ class TestGPTTradingAnalyzer:
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
             for _ in range(100)
         ]
 
@@ -767,23 +784,30 @@ class TestGPTTradingAnalyzer:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"])
+            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"]),
         )
 
         # Mock indicators with oversold RSI
-        with patch.object(TechnicalAnalyzer, 'calculate_indicators', return_value={'rsi': 25.0}):
-            result = analyzer._fallback_analysis(request, {'rsi': 25.0}, {})
-            assert result['signal'] == 'Long'
-            assert 'oversold' in result['reasoning']
+        with patch.object(
+            TechnicalAnalyzer, "calculate_indicators", return_value={"rsi": 25.0}
+        ):
+            result = analyzer._fallback_analysis(request, {"rsi": 25.0}, {})
+            assert result["signal"] == "Long"
+            assert "oversold" in result["reasoning"]
 
     def test_fallback_analysis_rsi_overbought(self):
         """Test fallback analysis with overbought RSI."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
         ]
 
         request = AIAnalysisRequest(
@@ -792,41 +816,43 @@ class TestGPTTradingAnalyzer:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"])
+            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"]),
         )
 
-        result = analyzer._fallback_analysis(request, {'rsi': 75.0}, {})
-        assert result['signal'] == 'Short'
-        assert 'overbought' in result['reasoning']
+        result = analyzer._fallback_analysis(request, {"rsi": 75.0}, {})
+        assert result["signal"] == "Short"
+        assert "overbought" in result["reasoning"]
 
     def test_parse_gpt_response_json(self):
         """Test parsing valid JSON GPT response."""
         analyzer = GPTTradingAnalyzer(None)
 
-        response = json.dumps({
-            "signal": "Long",
-            "confidence": 0.8,
-            "reasoning": "Test",
-            "strategy_scores": {},
-            "market_analysis": {
-                "trend_direction": "Bullish",
-                "trend_strength": 0.8,
-                "support_levels": [],
-                "resistance_levels": [],
-                "volatility_level": "Medium",
-                "volume_analysis": "Normal"
-            },
-            "risk_assessment": {
-                "overall_risk": "Medium",
-                "technical_risk": 0.5,
-                "market_risk": 0.5,
-                "recommended_position_size": 0.02
+        response = json.dumps(
+            {
+                "signal": "Long",
+                "confidence": 0.8,
+                "reasoning": "Test",
+                "strategy_scores": {},
+                "market_analysis": {
+                    "trend_direction": "Bullish",
+                    "trend_strength": 0.8,
+                    "support_levels": [],
+                    "resistance_levels": [],
+                    "volatility_level": "Medium",
+                    "volume_analysis": "Normal",
+                },
+                "risk_assessment": {
+                    "overall_risk": "Medium",
+                    "technical_risk": 0.5,
+                    "market_risk": 0.5,
+                    "recommended_position_size": 0.02,
+                },
             }
-        })
+        )
 
         result = analyzer._parse_gpt_response(response)
-        assert result['signal'] == 'Long'
-        assert result['confidence'] == 0.8
+        assert result["signal"] == "Long"
+        assert result["confidence"] == 0.8
 
     def test_parse_gpt_response_fallback(self):
         """Test parsing non-JSON GPT response."""
@@ -835,33 +861,33 @@ class TestGPTTradingAnalyzer:
         response = "STRONG BUY signal based on technical analysis"
         result = analyzer._parse_gpt_response(response)
 
-        assert result['signal'] == 'Long'
-        assert result['confidence'] > 0.5
+        assert result["signal"] == "Long"
+        assert result["confidence"] > 0.5
 
     def test_fallback_parse_buy(self):
         """Test fallback parsing for buy signals."""
         analyzer = GPTTradingAnalyzer(None)
 
         result = analyzer._fallback_parse("BUY this asset")
-        assert result['signal'] == 'Long'
-        assert result['confidence'] == 0.6
+        assert result["signal"] == "Long"
+        assert result["confidence"] == 0.6
 
     def test_fallback_parse_sell(self):
         """Test fallback parsing for sell signals."""
         analyzer = GPTTradingAnalyzer(None)
 
         result = analyzer._fallback_parse("SELL immediately")
-        assert result['signal'] == 'Short'
-        assert result['confidence'] == 0.6
+        assert result["signal"] == "Short"
+        assert result["confidence"] == 0.6
 
     def test_default_response(self):
         """Test default response."""
         analyzer = GPTTradingAnalyzer(None)
 
         result = analyzer._default_response()
-        assert result['signal'] == 'Neutral'
-        assert result['confidence'] == 0.3
-        assert result['risk_assessment']['overall_risk'] == 'High'
+        assert result["signal"] == "Neutral"
+        assert result["confidence"] == 0.3
+        assert result["risk_assessment"]["overall_risk"] == "High"
 
 
 @pytest.mark.unit
@@ -872,34 +898,28 @@ class TestMongoDBFunctions:
     async def test_store_analysis_result_success(self, mock_mongodb):
         """Test storing analysis result."""
         symbol = "BTCUSDT"
-        analysis = {
-            "signal": "Long",
-            "confidence": 0.8,
-            "reasoning": "Test"
-        }
+        analysis = {"signal": "Long", "confidence": 0.8, "reasoning": "Test"}
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             await store_analysis_result(symbol, analysis)
             # Should not raise error
 
     @pytest.mark.asyncio
     async def test_store_analysis_result_no_db(self):
         """Test storing when MongoDB is unavailable."""
-        with patch('main.mongodb_db', None):
+        with patch("main.mongodb_db", None):
             # Should not raise error, just log warning
             await store_analysis_result("BTCUSDT", {})
 
     @pytest.mark.asyncio
     async def test_get_latest_analysis_success(self, mock_mongodb):
         """Test getting latest analysis."""
-        mock_result = {
-            "signal": "Long",
-            "confidence": 0.8,
-            "analysis": {}
-        }
-        mock_mongodb[1]["ai_analysis_results"].find_one = AsyncMock(return_value=mock_result)
+        mock_result = {"signal": "Long", "confidence": 0.8, "analysis": {}}
+        mock_mongodb[1]["ai_analysis_results"].find_one = AsyncMock(
+            return_value=mock_result
+        )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             result = await get_latest_analysis("BTCUSDT")
             # Should return the analysis field
             assert result is not None
@@ -907,7 +927,7 @@ class TestMongoDBFunctions:
     @pytest.mark.asyncio
     async def test_get_latest_analysis_no_db(self):
         """Test getting analysis when MongoDB is unavailable."""
-        with patch('main.mongodb_db', None):
+        with patch("main.mongodb_db", None):
             result = await get_latest_analysis("BTCUSDT")
             assert result is None
 
@@ -916,7 +936,7 @@ class TestMongoDBFunctions:
         """Test getting analysis when none exists."""
         mock_mongodb[1]["ai_analysis_results"].find_one = AsyncMock(return_value=None)
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             result = await get_latest_analysis("BTCUSDT")
             assert result is None
 
@@ -961,7 +981,7 @@ class TestAdditionalEndpoints:
     @pytest.mark.asyncio
     async def test_debug_gpt4_success(self, client, mock_openai_client):
         """Test debug GPT-4 endpoint with success."""
-        with patch('main.openai_client', mock_openai_client):
+        with patch("main.openai_client", mock_openai_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -971,7 +991,7 @@ class TestAdditionalEndpoints:
     @pytest.mark.asyncio
     async def test_debug_gpt4_no_client(self, client):
         """Test debug GPT-4 when client is not initialized."""
-        with patch('main.openai_client', None):
+        with patch("main.openai_client", None):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -982,9 +1002,11 @@ class TestAdditionalEndpoints:
     async def test_debug_gpt4_api_error(self, client):
         """Test debug GPT-4 with API error."""
         mock_client = AsyncMock()
-        mock_client.chat_completions_create = AsyncMock(side_effect=Exception("401 Unauthorized"))
+        mock_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("401 Unauthorized")
+        )
 
-        with patch('main.openai_client', mock_client):
+        with patch("main.openai_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -1018,15 +1040,17 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_analyze_with_exception(self, client, sample_ai_analysis_request):
         """Test analysis endpoint when analyzer raises exception."""
-        with patch('main.GPTTradingAnalyzer') as mock_analyzer:
+        with patch("main.GPTTradingAnalyzer") as mock_analyzer:
             mock_instance = AsyncMock()
             mock_instance.analyze_trading_signals = AsyncMock(
                 side_effect=Exception("Analysis failed")
             )
             mock_analyzer.return_value = mock_instance
 
-            with patch('main.gpt_analyzer', mock_instance):
-                response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
+            with patch("main.gpt_analyzer", mock_instance):
+                response = await client.post(
+                    "/ai/analyze", json=sample_ai_analysis_request
+                )
                 assert response.status_code == 500
 
     @pytest.mark.asyncio
@@ -1056,7 +1080,7 @@ class TestPydanticModels:
             high=45100.0,
             low=44900.0,
             close=45050.0,
-            volume=100.0
+            volume=100.0,
         )
         assert candle.open == 45000.0
 
@@ -1068,7 +1092,7 @@ class TestPydanticModels:
                 high=45100.0,
                 low=44900.0,
                 close=45050.0,
-                volume=100.0
+                volume=100.0,
             )
 
     def test_ai_strategy_context_defaults(self):
@@ -1096,9 +1120,14 @@ class TestMoreGPTAnalyzerMethods:
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
         ]
 
         request = AIAnalysisRequest(
@@ -1107,13 +1136,15 @@ class TestMoreGPTAnalyzerMethods:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext()
+            strategy_context=AIStrategyContext(),
         )
 
-        indicators_1h = {'rsi': 65.0, 'macd': 10.0}
-        indicators_4h = {'rsi': 70.0}
+        indicators_1h = {"rsi": 65.0, "macd": 10.0}
+        indicators_4h = {"rsi": 70.0}
 
-        context = analyzer._prepare_market_context(request, indicators_1h, indicators_4h)
+        context = analyzer._prepare_market_context(
+            request, indicators_1h, indicators_4h
+        )
         assert "BTCUSDT" in context
         assert "RSI" in context
 
@@ -1124,7 +1155,7 @@ class TestMoreGPTAnalyzerMethods:
         strategy_context = AIStrategyContext(
             selected_strategies=["RSI Strategy", "MACD Strategy"],
             market_condition="Trending",
-            risk_level="Medium"
+            risk_level="Medium",
         )
 
         prompt = analyzer._create_analysis_prompt(market_context, strategy_context)
@@ -1137,9 +1168,14 @@ class TestMoreGPTAnalyzerMethods:
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
             for _ in range(50)
         ]
 
@@ -1149,22 +1185,27 @@ class TestMoreGPTAnalyzerMethods:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["MACD Strategy"])
+            strategy_context=AIStrategyContext(selected_strategies=["MACD Strategy"]),
         )
 
-        indicators = {'macd': 50.0, 'macd_signal': 30.0}
+        indicators = {"macd": 50.0, "macd_signal": 30.0}
         result = analyzer._fallback_analysis(request, indicators, {})
-        assert 'MACD' in result['reasoning']
-        assert result['signal'] in ['Long', 'Short', 'Neutral']
+        assert "MACD" in result["reasoning"]
+        assert result["signal"] in ["Long", "Short", "Neutral"]
 
     def test_fallback_analysis_volume_strategy(self):
         """Test fallback analysis with volume strategy."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
         ]
 
         request = AIAnalysisRequest(
@@ -1173,21 +1214,26 @@ class TestMoreGPTAnalyzerMethods:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["Volume Strategy"])
+            strategy_context=AIStrategyContext(selected_strategies=["Volume Strategy"]),
         )
 
-        indicators = {'volume_ratio': 2.0}
+        indicators = {"volume_ratio": 2.0}
         result = analyzer._fallback_analysis(request, indicators, {})
-        assert 'volume' in result['reasoning'].lower()
+        assert "volume" in result["reasoning"].lower()
 
     def test_fallback_analysis_bollinger_bands(self):
         """Test fallback analysis with Bollinger Bands."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
         ]
 
         request = AIAnalysisRequest(
@@ -1196,24 +1242,36 @@ class TestMoreGPTAnalyzerMethods:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["Bollinger Bands Strategy"])
+            strategy_context=AIStrategyContext(
+                selected_strategies=["Bollinger Bands Strategy"]
+            ),
         )
 
-        indicators = {'bb_position': 0.05}
+        indicators = {"bb_position": 0.05}
         result = analyzer._fallback_analysis(request, indicators, {})
-        assert result['signal'] == 'Long'
+        assert result["signal"] == "Long"
 
     def test_fallback_analysis_price_trend(self):
         """Test fallback analysis with price trend."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000) - 3600000,
-                      open=45000, high=45100, low=44900,
-                      close=45000, volume=100.0),
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45500, low=44900,
-                      close=45500, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000) - 3600000,
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45000,
+                volume=100.0,
+            ),
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45500,
+                low=44900,
+                close=45500,
+                volume=100.0,
+            ),
         ]
 
         request = AIAnalysisRequest(
@@ -1222,11 +1280,11 @@ class TestMoreGPTAnalyzerMethods:
             current_price=45500.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext()
+            strategy_context=AIStrategyContext(),
         )
 
         result = analyzer._fallback_analysis(request, {}, {})
-        assert 'movement' in result['reasoning'].lower()
+        assert "movement" in result["reasoning"].lower()
 
 
 @pytest.mark.unit
@@ -1241,26 +1299,30 @@ class TestDirectOpenAIClientAdvanced:
 
         client = DirectOpenAIClient(["test-key"])
 
-        mock_response = {
-            "choices": [{"message": {"content": "Test"}}]
-        }
+        mock_response = {"choices": [{"message": {"content": "Test"}}]}
 
         # Set a recent request time to trigger delay
-        with patch('main.last_openai_request_time', datetime.now() - timedelta(seconds=5)):
-            with patch('main.OPENAI_REQUEST_DELAY', 10):
-                with patch('httpx.AsyncClient') as mock_httpx:
+        with patch(
+            "main.last_openai_request_time", datetime.now() - timedelta(seconds=5)
+        ):
+            with patch("main.OPENAI_REQUEST_DELAY", 10):
+                with patch("httpx.AsyncClient") as mock_httpx:
                     mock_client_instance = AsyncMock()
-                    mock_client_instance.post = AsyncMock(return_value=AsyncMock(
-                        status_code=200,
-                        json=lambda: mock_response,
-                        raise_for_status=lambda: None
-                    ))
-                    mock_httpx.return_value.__aenter__.return_value = mock_client_instance
+                    mock_client_instance.post = AsyncMock(
+                        return_value=AsyncMock(
+                            status_code=200,
+                            json=lambda: mock_response,
+                            raise_for_status=lambda: None,
+                        )
+                    )
+                    mock_httpx.return_value.__aenter__.return_value = (
+                        mock_client_instance
+                    )
 
-                    with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
+                    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
                         result = await client.chat_completions_create(
                             model="gpt-4o-mini",
-                            messages=[{"role": "user", "content": "test"}]
+                            messages=[{"role": "user", "content": "test"}],
                         )
                         # Should have slept
                         assert mock_sleep.called
@@ -1273,28 +1335,29 @@ class TestDirectOpenAIClientAdvanced:
         client = DirectOpenAIClient(["key1", "key2"])
 
         error_401 = httpx.HTTPStatusError(
-            "401 Unauthorized",
-            request=Mock(),
-            response=Mock(status_code=401)
+            "401 Unauthorized", request=Mock(), response=Mock(status_code=401)
         )
 
-        mock_success = {
-            "choices": [{"message": {"content": "success"}}]
-        }
+        mock_success = {"choices": [{"message": {"content": "success"}}]}
 
-        with patch('main.last_openai_request_time', None):
-            with patch('httpx.AsyncClient') as mock_httpx:
+        with patch("main.last_openai_request_time", None):
+            with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
                 # First key fails with 401, second succeeds
-                mock_client_instance.post = AsyncMock(side_effect=[
-                    error_401,
-                    AsyncMock(status_code=200, json=lambda: mock_success, raise_for_status=lambda: None)
-                ])
+                mock_client_instance.post = AsyncMock(
+                    side_effect=[
+                        error_401,
+                        AsyncMock(
+                            status_code=200,
+                            json=lambda: mock_success,
+                            raise_for_status=lambda: None,
+                        ),
+                    ]
+                )
                 mock_httpx.return_value.__aenter__.return_value = mock_client_instance
 
                 result = await client.chat_completions_create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": "test"}]
+                    model="gpt-4o-mini", messages=[{"role": "user", "content": "test"}]
                 )
                 assert result["choices"][0]["message"]["content"] == "success"
 
@@ -1306,27 +1369,28 @@ class TestDirectOpenAIClientAdvanced:
         client = DirectOpenAIClient(["key1", "key2"])
 
         error_403 = httpx.HTTPStatusError(
-            "403 Quota Exceeded",
-            request=Mock(),
-            response=Mock(status_code=403)
+            "403 Quota Exceeded", request=Mock(), response=Mock(status_code=403)
         )
 
-        mock_success = {
-            "choices": [{"message": {"content": "success"}}]
-        }
+        mock_success = {"choices": [{"message": {"content": "success"}}]}
 
-        with patch('main.last_openai_request_time', None):
-            with patch('httpx.AsyncClient') as mock_httpx:
+        with patch("main.last_openai_request_time", None):
+            with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
-                mock_client_instance.post = AsyncMock(side_effect=[
-                    error_403,
-                    AsyncMock(status_code=200, json=lambda: mock_success, raise_for_status=lambda: None)
-                ])
+                mock_client_instance.post = AsyncMock(
+                    side_effect=[
+                        error_403,
+                        AsyncMock(
+                            status_code=200,
+                            json=lambda: mock_success,
+                            raise_for_status=lambda: None,
+                        ),
+                    ]
+                )
                 mock_httpx.return_value.__aenter__.return_value = mock_client_instance
 
                 result = await client.chat_completions_create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": "test"}]
+                    model="gpt-4o-mini", messages=[{"role": "user", "content": "test"}]
                 )
                 assert result["choices"][0]["message"]["content"] == "success"
 
@@ -1342,7 +1406,7 @@ class TestMoreMongoDBScenarios:
             side_effect=Exception("Database error")
         )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             # Should not raise, just log error
             await store_analysis_result("BTCUSDT", {"signal": "Long"})
 
@@ -1353,7 +1417,7 @@ class TestMoreMongoDBScenarios:
             side_effect=Exception("Database error")
         )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             result = await get_latest_analysis("BTCUSDT")
             assert result is None
 
@@ -1370,21 +1434,24 @@ class TestMarketConditionEndpoint:
         base_price = 40000
         for i in range(25, 0, -1):  # Reverse iteration
             price = base_price + ((25 - i) * 200)  # Strong uptrend
-            candles.append({
-                "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000) - (i * 3600000),
-                "open": price,
-                "high": price + 100,
-                "low": price - 50,
-                "close": price + 50,
-                "volume": 1000.0
-            })
+            candles.append(
+                {
+                    "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+                    - (i * 3600000),
+                    "open": price,
+                    "high": price + 100,
+                    "low": price - 50,
+                    "close": price + 50,
+                    "volume": 1000.0,
+                }
+            )
 
         request_data = {
             "symbol": "BTCUSDT",
             "timeframe_data": {"1h": candles},
             "current_price": 45000.0,
             "volume_24h": 25000000000.0,
-            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
         }
 
         response = await client.post("/ai/market-condition", json=request_data)
@@ -1402,21 +1469,24 @@ class TestMarketConditionEndpoint:
         base_price = 50000
         for i in range(25, 0, -1):  # Reverse iteration
             price = base_price - ((25 - i) * 200)  # Strong downtrend
-            candles.append({
-                "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000) - (i * 3600000),
-                "open": price,
-                "high": price + 50,
-                "low": price - 100,
-                "close": price - 50,
-                "volume": 1000.0
-            })
+            candles.append(
+                {
+                    "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+                    - (i * 3600000),
+                    "open": price,
+                    "high": price + 50,
+                    "low": price - 100,
+                    "close": price - 50,
+                    "volume": 1000.0,
+                }
+            )
 
         request_data = {
             "symbol": "BTCUSDT",
             "timeframe_data": {"1h": candles},
             "current_price": 45000.0,
             "volume_24h": 25000000000.0,
-            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
         }
 
         response = await client.post("/ai/market-condition", json=request_data)
@@ -1443,20 +1513,24 @@ class TestDirectOpenAIClientErrorPaths:
 
         # Mock that rate limit period is in the past (expired)
         past_time = datetime.now() - timedelta(minutes=5)
-        with patch('main.OPENAI_RATE_LIMIT_RESET_TIME', past_time):
-            with patch('main.last_openai_request_time', None):
-                with patch('httpx.AsyncClient') as mock_httpx:
+        with patch("main.OPENAI_RATE_LIMIT_RESET_TIME", past_time):
+            with patch("main.last_openai_request_time", None):
+                with patch("httpx.AsyncClient") as mock_httpx:
                     mock_client_instance = AsyncMock()
-                    mock_client_instance.post = AsyncMock(return_value=AsyncMock(
-                        status_code=200,
-                        json=lambda: mock_response,
-                        raise_for_status=lambda: None
-                    ))
-                    mock_httpx.return_value.__aenter__.return_value = mock_client_instance
+                    mock_client_instance.post = AsyncMock(
+                        return_value=AsyncMock(
+                            status_code=200,
+                            json=lambda: mock_response,
+                            raise_for_status=lambda: None,
+                        )
+                    )
+                    mock_httpx.return_value.__aenter__.return_value = (
+                        mock_client_instance
+                    )
 
                     result = await client.chat_completions_create(
                         model="gpt-4o-mini",
-                        messages=[{"role": "user", "content": "test"}]
+                        messages=[{"role": "user", "content": "test"}],
                     )
                     assert result == mock_response
 
@@ -1468,13 +1542,11 @@ class TestDirectOpenAIClientErrorPaths:
         client = DirectOpenAIClient(["key1"])
 
         error_500 = httpx.HTTPStatusError(
-            "500 Server Error",
-            request=Mock(),
-            response=Mock(status_code=500)
+            "500 Server Error", request=Mock(), response=Mock(status_code=500)
         )
 
-        with patch('main.last_openai_request_time', None):
-            with patch('httpx.AsyncClient') as mock_httpx:
+        with patch("main.last_openai_request_time", None):
+            with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
                 mock_client_instance.post = AsyncMock(side_effect=error_500)
                 mock_httpx.return_value.__aenter__.return_value = mock_client_instance
@@ -1482,7 +1554,7 @@ class TestDirectOpenAIClientErrorPaths:
                 with pytest.raises(httpx.HTTPStatusError):
                     await client.chat_completions_create(
                         model="gpt-4o-mini",
-                        messages=[{"role": "user", "content": "test"}]
+                        messages=[{"role": "user", "content": "test"}],
                     )
 
 
@@ -1496,9 +1568,14 @@ class TestGPTAnalyzerErrorPaths:
         analyzer = GPTTradingAnalyzer(mock_openai_client)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45100, low=44900,
-                      close=45050, volume=100.0)
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
             for _ in range(100)
         ]
 
@@ -1508,26 +1585,34 @@ class TestGPTAnalyzerErrorPaths:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext()
+            strategy_context=AIStrategyContext(),
         )
 
         # Test with 401 error
-        mock_openai_client.chat_completions_create = AsyncMock(side_effect=Exception("401 Unauthorized"))
+        mock_openai_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("401 Unauthorized")
+        )
         result = await analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]  # Should fall back
 
         # Test with 429 error
-        mock_openai_client.chat_completions_create = AsyncMock(side_effect=Exception("429 Rate Limit"))
+        mock_openai_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("429 Rate Limit")
+        )
         result = await analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]  # Should fall back
 
         # Test with quota error
-        mock_openai_client.chat_completions_create = AsyncMock(side_effect=Exception("quota exceeded"))
+        mock_openai_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("quota exceeded")
+        )
         result = await analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]  # Should fall back
 
         # Test with timeout error
-        mock_openai_client.chat_completions_create = AsyncMock(side_effect=Exception("timeout occurred"))
+        mock_openai_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("timeout occurred")
+        )
         result = await analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]  # Should fall back
 
@@ -1540,30 +1625,30 @@ class TestGPTAnalyzerErrorPaths:
         result = analyzer._parse_gpt_response(response)
 
         # Should use fallback parsing
-        assert 'signal' in result
-        assert 'confidence' in result
+        assert "signal" in result
+        assert "confidence" in result
 
     def test_parse_gpt_response_with_exception(self):
         """Test parsing GPT response that raises exception."""
         analyzer = GPTTradingAnalyzer(None)
 
         # Use a mock to force an exception during parsing
-        with patch('json.loads', side_effect=Exception("JSON parse error")):
+        with patch("json.loads", side_effect=Exception("JSON parse error")):
             response = '{"signal": "Long"}'  # Valid JSON but we force error
             result = analyzer._parse_gpt_response(response)
 
             # Should use default response on exception
-            assert result['signal'] == 'Neutral'
-            assert result['confidence'] == 0.3
-            assert result['risk_assessment']['overall_risk'] == 'High'
+            assert result["signal"] == "Neutral"
+            assert result["confidence"] == 0.3
+            assert result["risk_assessment"]["overall_risk"] == "High"
 
     def test_fallback_parse_strong_short(self):
         """Test fallback parsing for strong short signal."""
         analyzer = GPTTradingAnalyzer(None)
 
         result = analyzer._fallback_parse("STRONG SELL now")
-        assert result['signal'] == 'Short'
-        assert result['confidence'] == 0.7
+        assert result["signal"] == "Short"
+        assert result["confidence"] == 0.7
 
 
 @pytest.mark.unit
@@ -1574,9 +1659,11 @@ class TestAdditionalCoverage:
     async def test_debug_gpt4_quota_error(self, client):
         """Test debug endpoint with quota error."""
         mock_client = AsyncMock()
-        mock_client.chat_completions_create = AsyncMock(side_effect=Exception("quota exceeded"))
+        mock_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("quota exceeded")
+        )
 
-        with patch('main.openai_client', mock_client):
+        with patch("main.openai_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -1587,9 +1674,11 @@ class TestAdditionalCoverage:
     async def test_debug_gpt4_timeout_error(self, client):
         """Test debug endpoint with timeout."""
         mock_client = AsyncMock()
-        mock_client.chat_completions_create = AsyncMock(side_effect=Exception("timeout occurred"))
+        mock_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("timeout occurred")
+        )
 
-        with patch('main.openai_client', mock_client):
+        with patch("main.openai_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -1600,14 +1689,13 @@ class TestAdditionalCoverage:
         """Test getting latest analysis that has analysis field."""
         mock_result = {
             "symbol": "BTCUSDT",
-            "analysis": {
-                "signal": "Long",
-                "confidence": 0.8
-            }
+            "analysis": {"signal": "Long", "confidence": 0.8},
         }
-        mock_mongodb[1]["ai_analysis_results"].find_one = AsyncMock(return_value=mock_result)
+        mock_mongodb[1]["ai_analysis_results"].find_one = AsyncMock(
+            return_value=mock_result
+        )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             result = await get_latest_analysis("BTCUSDT")
             assert result == mock_result["analysis"]
 
@@ -1621,13 +1709,16 @@ class TestLifespanAndStartup:
         """Test lifespan when MongoDB connection fails."""
         from main import lifespan
 
-        with patch('main.AsyncIOMotorClient') as mock_mongo:
+        with patch("main.AsyncIOMotorClient") as mock_mongo:
             mock_client = AsyncMock()
-            mock_client.admin.command = AsyncMock(side_effect=Exception("Connection failed"))
+            mock_client.admin.command = AsyncMock(
+                side_effect=Exception("Connection failed")
+            )
             mock_mongo.return_value = mock_client
 
             # Should handle error gracefully
             from fastapi import FastAPI
+
             test_app = FastAPI()
 
             async with lifespan(test_app):
@@ -1641,11 +1732,13 @@ class TestPatternDetectionEdgeCases:
     def test_detect_patterns_with_error(self):
         """Test pattern detection with error in calculation."""
         # Create dataframe that might cause errors
-        df = pd.DataFrame({
-            'close': [np.nan, 45000, 45050],
-            'high': [np.nan, 45100, 45150],
-            'low': [np.nan, 44900, 44950]
-        })
+        df = pd.DataFrame(
+            {
+                "close": [np.nan, 45000, 45050],
+                "high": [np.nan, 45100, 45150],
+                "low": [np.nan, 44900, 44950],
+            }
+        )
 
         # Should handle gracefully and return False for all patterns
         patterns = TechnicalAnalyzer.detect_patterns(df)
@@ -1655,11 +1748,9 @@ class TestPatternDetectionEdgeCases:
         """Test pattern detection with data that causes issues."""
         # Create dataframe with insufficient variation (all same values)
         # This might trigger edge cases in pattern detection
-        df = pd.DataFrame({
-            'close': [45000.0] * 30,
-            'high': [45000.0] * 30,
-            'low': [45000.0] * 30
-        })
+        df = pd.DataFrame(
+            {"close": [45000.0] * 30, "high": [45000.0] * 30, "low": [45000.0] * 30}
+        )
         # Should handle gracefully
         patterns = TechnicalAnalyzer.detect_patterns(df)
         assert isinstance(patterns, dict)
@@ -1674,77 +1765,61 @@ class TestMarketContextEdgeCases:
 
     def test_get_market_context_with_error(self):
         """Test market context with error."""
-        df = pd.DataFrame({
-            'close': [45000],
-            'volume': [100]
-        })
+        df = pd.DataFrame({"close": [45000], "volume": [100]})
 
         # Create indicators that could cause errors
         indicators = {
-            'rsi': 60.0,
-            'macd_histogram': 0.5,
-            'ema_9': 45100,
-            'ema_21': 45000,
-            'atr': 0.0,  # Zero ATR
-            'volume_ratio': 0.0  # Zero volume ratio
+            "rsi": 60.0,
+            "macd_histogram": 0.5,
+            "ema_9": 45100,
+            "ema_21": 45000,
+            "atr": 0.0,  # Zero ATR
+            "volume_ratio": 0.0,  # Zero volume ratio
         }
 
         context = TechnicalAnalyzer.get_market_context(df, indicators)
         # With positive MACD histogram and ema_9 > ema_21, sentiment becomes bullish
-        assert context['market_sentiment'] in ['neutral', 'bullish']
+        assert context["market_sentiment"] in ["neutral", "bullish"]
 
     def test_get_market_context_stable_volume(self):
         """Test market context with stable volume (between 0.8 and 1.2)."""
-        df = pd.DataFrame({
-            'close': [45000],
-            'volume': [100]
-        })
+        df = pd.DataFrame({"close": [45000], "volume": [100]})
 
         indicators = {
-            'rsi': 50.0,
-            'atr': 100.0,
-            'volume_ratio': 1.0  # Exactly 1.0, should be 'stable'
+            "rsi": 50.0,
+            "atr": 100.0,
+            "volume_ratio": 1.0,  # Exactly 1.0, should be 'stable'
         }
 
         context = TechnicalAnalyzer.get_market_context(df, indicators)
-        assert context['volume_trend'] == 'stable'
+        assert context["volume_trend"] == "stable"
 
     def test_get_market_context_bearish_ema(self):
         """Test market context with bearish EMA crossover."""
-        df = pd.DataFrame({
-            'close': [45000],
-            'volume': [100]
-        })
+        df = pd.DataFrame({"close": [45000], "volume": [100]})
 
         indicators = {
-            'rsi': 50.0,  # Neutral RSI
-            'macd_histogram': -10.0,  # Negative histogram
-            'ema_9': 44900,  # EMA 9 below EMA 21
-            'ema_21': 45000,
-            'atr': 100.0,
-            'volume_ratio': 1.0
+            "rsi": 50.0,  # Neutral RSI
+            "macd_histogram": -10.0,  # Negative histogram
+            "ema_9": 44900,  # EMA 9 below EMA 21
+            "ema_21": 45000,
+            "atr": 100.0,
+            "volume_ratio": 1.0,
         }
 
         context = TechnicalAnalyzer.get_market_context(df, indicators)
-        assert context['market_sentiment'] == 'bearish'
+        assert context["market_sentiment"] == "bearish"
 
     def test_get_market_context_with_zero_price(self):
         """Test market context with zero current price."""
-        df = pd.DataFrame({
-            'close': [0.0],  # Zero price - edge case
-            'volume': [100]
-        })
+        df = pd.DataFrame({"close": [0.0], "volume": [100]})  # Zero price - edge case
 
-        indicators = {
-            'rsi': 50.0,
-            'atr': 100.0,
-            'volume_ratio': 1.0
-        }
+        indicators = {"rsi": 50.0, "atr": 100.0, "volume_ratio": 1.0}
 
         # Should handle gracefully without division by zero
         context = TechnicalAnalyzer.get_market_context(df, indicators)
         assert isinstance(context, dict)
-        assert 'volatility' in context
+        assert "volatility" in context
 
 
 @pytest.mark.unit
@@ -1834,9 +1909,16 @@ class TestGPTAnalyzerFallbackStrategies:
         """Test fallback with neutral RSI (between 30-70)."""
         analyzer = GPTTradingAnalyzer(None)
 
-        candles = [CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                              open=45000, high=45100, low=44900,
-                              close=45050, volume=100.0)]
+        candles = [
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
+        ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
@@ -1844,19 +1926,26 @@ class TestGPTAnalyzerFallbackStrategies:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"])
+            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"]),
         )
 
-        result = analyzer._fallback_analysis(request, {'rsi': 55.0}, {})
-        assert 'neutral' in result['reasoning'].lower()
+        result = analyzer._fallback_analysis(request, {"rsi": 55.0}, {})
+        assert "neutral" in result["reasoning"].lower()
 
     def test_fallback_analysis_macd_bearish_neutral_signal(self):
         """Test MACD bearish crossover."""
         analyzer = GPTTradingAnalyzer(None)
 
-        candles = [CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                              open=45000, high=45100, low=44900,
-                              close=45050, volume=100.0)]
+        candles = [
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
+        ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
@@ -1864,24 +1953,31 @@ class TestGPTAnalyzerFallbackStrategies:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["MACD Strategy"])
+            strategy_context=AIStrategyContext(selected_strategies=["MACD Strategy"]),
         )
 
         # MACD bearish crossover - but default signal is "Long", so it stays Long
         # (only changes if signal == "Neutral")
-        indicators = {'macd': 30.0, 'macd_signal': 50.0}
+        indicators = {"macd": 30.0, "macd_signal": 50.0}
         result = analyzer._fallback_analysis(request, indicators, {})
         # Signal should be Long (default) since MACD only changes from Neutral
-        assert result['signal'] == 'Long'
-        assert 'MACD bearish' in result['reasoning']
+        assert result["signal"] == "Long"
+        assert "MACD bearish" in result["reasoning"]
 
     def test_fallback_analysis_low_volume(self):
         """Test fallback with low volume."""
         analyzer = GPTTradingAnalyzer(None)
 
-        candles = [CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                              open=45000, high=45100, low=44900,
-                              close=45050, volume=100.0)]
+        candles = [
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
+        ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
@@ -1889,19 +1985,26 @@ class TestGPTAnalyzerFallbackStrategies:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["Volume Strategy"])
+            strategy_context=AIStrategyContext(selected_strategies=["Volume Strategy"]),
         )
 
-        result = analyzer._fallback_analysis(request, {'volume_ratio': 0.3}, {})
-        assert 'low volume' in result['reasoning'].lower()
+        result = analyzer._fallback_analysis(request, {"volume_ratio": 0.3}, {})
+        assert "low volume" in result["reasoning"].lower()
 
     def test_fallback_analysis_bb_upper_neutral(self):
         """Test Bollinger Bands upper boundary."""
         analyzer = GPTTradingAnalyzer(None)
 
-        candles = [CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                              open=45000, high=45100, low=44900,
-                              close=45050, volume=100.0)]
+        candles = [
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45050,
+                volume=100.0,
+            )
+        ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
@@ -1909,25 +2012,37 @@ class TestGPTAnalyzerFallbackStrategies:
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["Bollinger Bands Strategy"])
+            strategy_context=AIStrategyContext(
+                selected_strategies=["Bollinger Bands Strategy"]
+            ),
         )
 
-        result = analyzer._fallback_analysis(request, {'bb_position': 0.95}, {})
+        result = analyzer._fallback_analysis(request, {"bb_position": 0.95}, {})
         # BB upper only changes signal if signal == "Neutral", but default is "Long"
-        assert result['signal'] == 'Long'
-        assert 'upper Bollinger' in result['reasoning']
+        assert result["signal"] == "Long"
+        assert "upper Bollinger" in result["reasoning"]
 
     def test_fallback_analysis_strong_downward_movement(self):
         """Test price trend with strong downward movement."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000) - 3600000,
-                      open=45000, high=45100, low=44900,
-                      close=45000, volume=100.0),
-            CandleData(timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                      open=45000, high=45000, low=44000,
-                      close=44000, volume=100.0)  # -2.2% drop
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000) - 3600000,
+                open=45000,
+                high=45100,
+                low=44900,
+                close=45000,
+                volume=100.0,
+            ),
+            CandleData(
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
+                open=45000,
+                high=45000,
+                low=44000,
+                close=44000,
+                volume=100.0,
+            ),  # -2.2% drop
         ]
 
         request = AIAnalysisRequest(
@@ -1936,11 +2051,11 @@ class TestGPTAnalyzerFallbackStrategies:
             current_price=44000.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext()
+            strategy_context=AIStrategyContext(),
         )
 
         result = analyzer._fallback_analysis(request, {}, {})
-        assert 'downward' in result['reasoning'].lower()
+        assert "downward" in result["reasoning"].lower()
 
 
 @pytest.mark.unit
@@ -1948,7 +2063,9 @@ class TestAnalysisEndpointEdgeCases:
     """Test analysis endpoint edge cases."""
 
     @pytest.mark.asyncio
-    async def test_analyze_with_stored_non_int_timestamp(self, client, sample_ai_analysis_request, mock_mongodb):
+    async def test_analyze_with_stored_non_int_timestamp(
+        self, client, sample_ai_analysis_request, mock_mongodb
+    ):
         """Test analysis with stored result having non-integer timestamp."""
         # Mock cached result with datetime timestamp
         cached_result = {
@@ -1964,23 +2081,25 @@ class TestAnalysisEndpointEdgeCases:
                 "support_levels": [],
                 "resistance_levels": [],
                 "volatility_level": "Medium",
-                "volume_analysis": "Decreasing volume"
+                "volume_analysis": "Decreasing volume",
             },
             "risk_assessment": {
                 "overall_risk": "Medium",
                 "technical_risk": 0.5,
                 "market_risk": 0.5,
-                "recommended_position_size": 0.02
-            }
+                "recommended_position_size": 0.02,
+            },
         }
 
-        with patch('main.get_latest_analysis', AsyncMock(return_value=cached_result)):
+        with patch("main.get_latest_analysis", AsyncMock(return_value=cached_result)):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
             # Should handle and perform fresh analysis
             assert response.status_code in [200, 500]
 
     @pytest.mark.asyncio
-    async def test_analyze_broadcasts_fresh_signal(self, client, sample_ai_analysis_request, mock_openai_client):
+    async def test_analyze_broadcasts_fresh_signal(
+        self, client, sample_ai_analysis_request, mock_openai_client
+    ):
         """Test that fresh analysis broadcasts via WebSocket."""
         from main import ws_manager
 
@@ -1988,10 +2107,12 @@ class TestAnalysisEndpointEdgeCases:
         mock_ws = AsyncMock()
         ws_manager.active_connections.add(mock_ws)
 
-        with patch('main.openai_client', mock_openai_client):
-            with patch('main.get_latest_analysis', AsyncMock(return_value=None)):
-                with patch('main.store_analysis_result', AsyncMock()):
-                    response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
+        with patch("main.openai_client", mock_openai_client):
+            with patch("main.get_latest_analysis", AsyncMock(return_value=None)):
+                with patch("main.store_analysis_result", AsyncMock()):
+                    response = await client.post(
+                        "/ai/analyze", json=sample_ai_analysis_request
+                    )
                     assert response.status_code == 200
 
         # Clean up
@@ -2005,13 +2126,18 @@ class TestStorageEndpointEdgeCases:
     @pytest.mark.asyncio
     async def test_storage_stats_with_datetime_latest(self, client, mock_mongodb):
         """Test storage stats when latest is datetime object."""
+
         async def async_gen():
             yield {"_id": "BTCUSDT", "count": 100, "latest": datetime.now(timezone.utc)}
 
-        mock_mongodb[1]["ai_analysis_results"].aggregate = MagicMock(return_value=async_gen())
-        mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(return_value=500)
+        mock_mongodb[1]["ai_analysis_results"].aggregate = MagicMock(
+            return_value=async_gen()
+        )
+        mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(
+            return_value=500
+        )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.get("/ai/storage/stats")
             assert response.status_code == 200
             data = response.json()
@@ -2024,7 +2150,7 @@ class TestStorageEndpointEdgeCases:
             side_effect=Exception("Aggregation error")
         )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.get("/ai/storage/stats")
             assert response.status_code == 200
             data = response.json()
@@ -2037,7 +2163,7 @@ class TestStorageEndpointEdgeCases:
             side_effect=Exception("Delete error")
         )
 
-        with patch('main.mongodb_db', mock_mongodb[1]):
+        with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.post("/ai/storage/clear")
             assert response.status_code == 200
             data = response.json()
@@ -2072,9 +2198,11 @@ class TestDebugEndpointEdgeCases:
     async def test_debug_gpt4_rate_limit_error(self, client):
         """Test debug endpoint with 429 rate limit."""
         mock_client = AsyncMock()
-        mock_client.chat_completions_create = AsyncMock(side_effect=Exception("429 Rate Limit"))
+        mock_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("429 Rate Limit")
+        )
 
-        with patch('main.openai_client', mock_client):
+        with patch("main.openai_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()

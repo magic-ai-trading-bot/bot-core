@@ -14,7 +14,9 @@ from datetime import datetime, timezone
 # Import the FastAPI app
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -23,6 +25,7 @@ def event_loop():
     yield loop
     loop.close()
 
+
 @pytest.fixture
 def mock_openai_client():
     """Mock OpenAI client."""
@@ -30,17 +33,20 @@ def mock_openai_client():
 
     # Mock response as dictionary (as expected by the code)
     mock_response = {
-        "choices": [{
-            "message": {
-                "content": '{"signal": "Long", "confidence": 0.75, "reasoning": "Strong bullish momentum based on technical indicators", "strategy_scores": {"RSI": 0.8, "MACD": 0.7}, "market_analysis": {"trend_direction": "Bullish", "trend_strength": 0.75, "support_levels": [45000], "resistance_levels": [46000], "volatility_level": "Medium", "volume_analysis": "Increasing volume"}, "risk_assessment": {"overall_risk": "Medium", "technical_risk": 0.4, "market_risk": 0.5, "recommended_position_size": 0.03}}'
+        "choices": [
+            {
+                "message": {
+                    "content": '{"signal": "Long", "confidence": 0.75, "reasoning": "Strong bullish momentum based on technical indicators", "strategy_scores": {"RSI": 0.8, "MACD": 0.7}, "market_analysis": {"trend_direction": "Bullish", "trend_strength": 0.75, "support_levels": [45000], "resistance_levels": [46000], "volatility_level": "Medium", "volume_analysis": "Increasing volume"}, "risk_assessment": {"overall_risk": "Medium", "technical_risk": 0.4, "market_risk": 0.5, "recommended_position_size": 0.03}}'
+                }
             }
-        }]
+        ]
     }
 
     # Mock the custom chat_completions_create method
     mock.chat_completions_create = AsyncMock(return_value=mock_response)
 
     return mock
+
 
 @pytest.fixture
 def mock_mongodb():
@@ -55,9 +61,7 @@ def mock_mongodb():
     )
     mock_collection.find_one = AsyncMock(return_value=None)
     mock_collection.count_documents = AsyncMock(return_value=100)
-    mock_collection.delete_many = AsyncMock(
-        return_value=MagicMock(deleted_count=50)
-    )
+    mock_collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=50))
 
     # Mock __getitem__ to return collection
     mock_db.__getitem__ = MagicMock(return_value=mock_collection)
@@ -67,6 +71,7 @@ def mock_mongodb():
     mock_client.get_default_database = MagicMock(return_value=mock_db)
 
     return mock_client, mock_db
+
 
 @pytest.fixture
 def app(mock_openai_client, mock_mongodb):
@@ -83,7 +88,7 @@ def app(mock_openai_client, mock_mongodb):
     main.gpt_analyzer = None  # Reset analyzer
 
     # Mock WebSocket manager's active_connections
-    if hasattr(main, 'ws_manager'):
+    if hasattr(main, "ws_manager"):
         main.ws_manager.active_connections = set()
 
     yield main.app
@@ -94,16 +99,19 @@ def app(mock_openai_client, mock_mongodb):
     main.mongodb_db = None
     main.gpt_analyzer = None
 
+
 @pytest_asyncio.fixture
 async def client(app) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client."""
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
 
+
 @pytest.fixture
 def test_client(app) -> TestClient:
     """Create sync test client for WebSocket tests."""
     return TestClient(app)
+
 
 @pytest.fixture
 def sample_candle_data():
@@ -115,9 +123,10 @@ def sample_candle_data():
             "low": 45012.34,
             "close": 45189.23,
             "volume": 1234.56,
-            "timestamp": 1701234567000
+            "timestamp": 1701234567000,
         }
     ]
+
 
 @pytest.fixture
 def sample_technical_indicators():
@@ -137,8 +146,9 @@ def sample_technical_indicators():
         "atr": 234.56,
         "adx": 25.5,
         "stochastic_k": 75.5,
-        "stochastic_d": 72.3
+        "stochastic_d": 72.3,
     }
+
 
 @pytest.fixture
 def sample_market_context():
@@ -147,17 +157,18 @@ def sample_market_context():
         "trend_strength": 0.75,
         "volatility": 0.45,
         "volume_trend": "increasing",
-        "market_sentiment": "bullish"
+        "market_sentiment": "bullish",
     }
 
+
 @pytest.fixture
-def sample_ai_analysis_request(sample_candle_data, sample_technical_indicators, sample_market_context):
+def sample_ai_analysis_request(
+    sample_candle_data, sample_technical_indicators, sample_market_context
+):
     """Complete AI analysis request."""
     return {
         "symbol": "BTCUSDT",
-        "timeframe_data": {
-            "1h": sample_candle_data
-        },
+        "timeframe_data": {"1h": sample_candle_data},
         "current_price": 45189.23,
         "volume_24h": 25000000000.0,
         "timestamp": 1701234567000,
@@ -166,15 +177,16 @@ def sample_ai_analysis_request(sample_candle_data, sample_technical_indicators, 
             "risk_tolerance": "medium",
             "trading_style": "swing",
             "technical_indicators": sample_technical_indicators,
-            "market_context": sample_market_context
-        }
+            "market_context": sample_market_context,
+        },
     }
+
 
 @pytest.fixture
 def mock_datetime():
     """Mock datetime for consistent testing."""
     test_time = datetime(2025, 7, 31, 18, 0, 0, tzinfo=timezone.utc)
-    with patch('main.datetime') as mock_dt:
+    with patch("main.datetime") as mock_dt:
         mock_dt.now.return_value = test_time
         mock_dt.utcnow.return_value = test_time
         yield test_time

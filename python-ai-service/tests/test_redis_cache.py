@@ -31,7 +31,7 @@ class TestRedisCache:
         assert cache.db == 0
 
     @pytest.mark.asyncio
-    @patch('utils.redis_cache.aioredis.create_redis_pool')
+    @patch("utils.redis_cache.aioredis.create_redis_pool")
     async def test_connect_success(self, mock_create_pool):
         """Test successful Redis connection"""
         mock_pool = AsyncMock()
@@ -42,13 +42,11 @@ class TestRedisCache:
 
         assert cache._redis == mock_pool
         mock_create_pool.assert_called_once_with(
-            'redis://redis:6379/0',
-            password=None,
-            encoding='utf-8'
+            "redis://redis:6379/0", password=None, encoding="utf-8"
         )
 
     @pytest.mark.asyncio
-    @patch('utils.redis_cache.aioredis.create_redis_pool')
+    @patch("utils.redis_cache.aioredis.create_redis_pool")
     async def test_connect_failure(self, mock_create_pool):
         """Test Redis connection failure"""
         mock_create_pool.side_effect = Exception("Connection failed")
@@ -145,9 +143,7 @@ class TestRedisCache:
         await cache.set("test_key", {"test": "value"}, ttl=60)
 
         mock_redis.setex.assert_called_once_with(
-            "test_key",
-            60,
-            json.dumps({"test": "value"})
+            "test_key", 60, json.dumps({"test": "value"})
         )
 
     @pytest.mark.asyncio
@@ -248,6 +244,7 @@ class TestCacheResultDecorator:
     @pytest.mark.asyncio
     async def test_decorator_without_cache(self):
         """Test decorator when instance has no cache"""
+
         class TestClass:
             async def test_method(self, arg):
                 return f"result_{arg}"
@@ -263,6 +260,7 @@ class TestCacheResultDecorator:
     @pytest.mark.asyncio
     async def test_decorator_cache_miss(self):
         """Test decorator with cache miss"""
+
         class TestClass:
             def __init__(self):
                 self._cache = RedisCache()
@@ -286,6 +284,7 @@ class TestCacheResultDecorator:
     @pytest.mark.asyncio
     async def test_decorator_cache_hit(self):
         """Test decorator with cache hit"""
+
         class TestClass:
             def __init__(self):
                 self._cache = RedisCache()
