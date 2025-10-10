@@ -5,6 +5,12 @@ from typing import Dict, Any, Optional, Tuple
 from config.config import config
 from utils.logger import get_logger
 
+
+
+# @spec:FR-AI-004 - Technical Indicators
+# @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md
+# @test:TC-AI-008, TC-AI-009
+
 logger = get_logger("TechnicalIndicators")
 
 

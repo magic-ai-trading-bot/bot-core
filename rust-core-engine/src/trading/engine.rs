@@ -12,6 +12,14 @@ use crate::storage::{Storage, TradeRecord};
 use super::position_manager::{Position, PositionManager};
 use super::risk_manager::RiskManager;
 
+// @spec:FR-TRADING-001 - Market Order Execution
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md
+// @test:TC-TRADING-001, TC-TRADING-002, TC-TRADING-003
+
+// @spec:FR-TRADING-006 - Market vs Limit Orders
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md
+// @test:TC-TRADING-035, TC-TRADING-036
+
 #[derive(Clone)]
 pub struct TradingEngine {
     #[allow(dead_code)]

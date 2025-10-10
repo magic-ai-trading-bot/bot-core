@@ -12,11 +12,17 @@ use crate::binance::BinanceClient;
 use crate::storage::Storage;
 
 use super::{
+    // @spec:FR-PAPER-001 - Paper Trading Engine
+    // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#paper-trading
+    // @test:TC-INTEGRATION-025, TC-INTEGRATION-026
     portfolio::PaperPortfolio,
     settings::PaperTradingSettings,
     strategy_optimizer::StrategyOptimizer,
     trade::{CloseReason, PaperTrade, TradeType},
-    AITradingSignal, MarketAnalysisData, PaperTradingEvent, PerformanceSummary,
+    AITradingSignal,
+    MarketAnalysisData,
+    PaperTradingEvent,
+    PerformanceSummary,
     TradeExecutionResult,
 };
 use uuid;

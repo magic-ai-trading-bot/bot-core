@@ -4,6 +4,12 @@ import logger from "@/utils/logger";
 
 // WebSocket message types from Rust Trading Engine
 export interface WebSocketMessage {
+
+
+// @spec:FR-DASHBOARD-006 - WebSocket Integration
+// @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
+// @test:TC-INTEGRATION-040
+
   type:
     | "PositionUpdate"
     | "TradeExecuted"

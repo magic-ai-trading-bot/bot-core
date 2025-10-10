@@ -28,6 +28,12 @@ impl JwtService {
         }
     }
 
+    // @spec:FR-AUTH-001 - JWT Token Generation
+    // @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md#jwt-implementation
+    // @ref:specs/02-design/2.3-api/API-RUST-CORE.md#authentication
+    // @test:TC-AUTH-001, TC-AUTH-002, TC-AUTH-003
+    // @spec:FR-AUTH-005 - Token Expiration (expiration time set here)
+    // @test:TC-AUTH-011, TC-AUTH-012
     pub fn generate_token(&self, user_id: &str, email: &str, is_admin: bool) -> Result<String> {
         let now = Utc::now();
         let exp = now + Duration::hours(self.expiration_hours);
@@ -50,6 +56,9 @@ impl JwtService {
         Ok(token)
     }
 
+    // @spec:FR-AUTH-004 - JWT Validation
+    // @ref:specs/02-design/2.1-architecture/ARCH-SECURITY.md#authentication
+    // @test:TC-AUTH-009, TC-AUTH-010
     pub fn verify_token(&self, token: &str) -> Result<Claims> {
         let validation = Validation::new(Algorithm::HS256);
         let token_data: TokenData<Claims> = decode(
@@ -67,6 +76,9 @@ impl JwtService {
 }
 
 // Password hashing utilities
+// @spec:FR-AUTH-006 - Password Hashing
+// @ref:specs/01-requirements/1.2-non-functional-requirements/NFR-SECURITY.md#password-security
+// @test:TC-AUTH-013, TC-AUTH-014
 pub struct PasswordService;
 
 impl PasswordService {

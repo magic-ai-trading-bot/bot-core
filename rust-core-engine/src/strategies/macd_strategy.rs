@@ -4,6 +4,11 @@ use async_trait::async_trait;
 use serde_json::json;
 
 /// MACD-based trading strategy
+
+// @spec:FR-STRATEGY-002 - MACD Strategy
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
+// @test:TC-TRADING-024
+
 #[derive(Debug, Clone)]
 pub struct MacdStrategy {
     config: StrategyConfig,

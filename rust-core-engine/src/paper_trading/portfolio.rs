@@ -6,6 +6,27 @@ use std::collections::HashMap;
 use super::trade::{CloseReason, PaperTrade, TradeStatus};
 
 /// Paper trading portfolio that tracks all positions and performance
+
+// @spec:FR-PORTFOLIO-001 - Portfolio Creation
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#portfolio
+// @test:TC-TRADING-013, TC-TRADING-014
+
+// @spec:FR-PORTFOLIO-002 - Balance Tracking
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#portfolio
+// @test:TC-TRADING-015, TC-TRADING-016
+
+// @spec:FR-PORTFOLIO-003 - P&L Calculation
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#portfolio
+// @test:TC-TRADING-017, TC-TRADING-018
+
+// @spec:FR-PORTFOLIO-004 - Asset Allocation
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#portfolio
+// @test:TC-TRADING-019
+
+// @spec:FR-PAPER-002 - Virtual Portfolio
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#paper-trading
+// @test:TC-INTEGRATION-027, TC-INTEGRATION-028
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaperPortfolio {
     /// Starting balance in USDT

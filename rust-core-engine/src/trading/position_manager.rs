@@ -2,6 +2,10 @@ use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+// @spec:FR-TRADING-002 - Position Management
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md
+// @test:TC-TRADING-010, TC-TRADING-011, TC-TRADING-012
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub id: String,
