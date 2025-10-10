@@ -184,21 +184,17 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 service.as_str(),
                 "service_unavailable",
             ),
-            AppError::DataProcessing(ref msg) | AppError::ParseError(ref msg) | AppError::Serialization(ref msg) => (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                msg.as_str(),
-                "data_error",
-            ),
-            AppError::MissingData(ref msg) | AppError::TradeNotFound(ref msg) => (
-                StatusCode::NOT_FOUND,
-                msg.as_str(),
-                "not_found",
-            ),
-            AppError::InvalidInput(ref msg) | AppError::InvalidPriceData(ref msg) => (
-                StatusCode::BAD_REQUEST,
-                msg.as_str(),
-                "invalid_input",
-            ),
+            AppError::DataProcessing(ref msg)
+            | AppError::ParseError(ref msg)
+            | AppError::Serialization(ref msg) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str(), "data_error")
+            },
+            AppError::MissingData(ref msg) | AppError::TradeNotFound(ref msg) => {
+                (StatusCode::NOT_FOUND, msg.as_str(), "not_found")
+            },
+            AppError::InvalidInput(ref msg) | AppError::InvalidPriceData(ref msg) => {
+                (StatusCode::BAD_REQUEST, msg.as_str(), "invalid_input")
+            },
             AppError::CalculationError(ref _msg) | AppError::IndicatorError(ref _msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Calculation failed",
@@ -209,17 +205,22 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 "Storage operation failed",
                 "storage_error",
             ),
-            AppError::InvalidTradeStatus(ref msg) | AppError::PositionError(ref msg) | AppError::RiskManagementError(ref msg) => (
-                StatusCode::CONFLICT,
-                msg.as_str(),
-                "trade_error",
-            ),
-            AppError::StrategyError(ref _msg) | AppError::MarketDataError(ref _msg) | AppError::AIServiceError(ref _msg) | AppError::BinanceError(ref _msg) => (
+            AppError::InvalidTradeStatus(ref msg)
+            | AppError::PositionError(ref msg)
+            | AppError::RiskManagementError(ref msg) => {
+                (StatusCode::CONFLICT, msg.as_str(), "trade_error")
+            },
+            AppError::StrategyError(ref _msg)
+            | AppError::MarketDataError(ref _msg)
+            | AppError::AIServiceError(ref _msg)
+            | AppError::BinanceError(ref _msg) => (
                 StatusCode::BAD_GATEWAY,
                 "External service error",
                 "service_error",
             ),
-            AppError::HttpError(ref _msg) | AppError::JsonError(ref _msg) | AppError::IoError(ref _msg) => (
+            AppError::HttpError(ref _msg)
+            | AppError::JsonError(ref _msg)
+            | AppError::IoError(ref _msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal error",
                 "internal_error",

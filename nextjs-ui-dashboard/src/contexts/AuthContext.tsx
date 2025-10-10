@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import logger from "@/utils/logger";
 import {
+
+
+// @spec:FR-AUTH-005 (Frontend) - `nextjs-ui-dashboard/src/contexts/AuthContext.tsx:78-234`
+// @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+// @test:
+
   BotCoreApiClient,
   LoginRequest,
   RegisterRequest,

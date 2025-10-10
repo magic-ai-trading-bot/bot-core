@@ -1747,6 +1747,10 @@ async def websocket_endpoint(websocket: WebSocket):
         ws_manager.disconnect(websocket)
 
 
+# @spec:FR-AI-005 - GPT-4 Signal Analysis
+# @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md
+# @ref:specs/02-design/2.3-api/API-PYTHON-AI.md
+# @test:TC-AI-010, TC-AI-011, TC-AI-012
 @app.post("/ai/analyze", response_model=AISignalResponse)
 @limiter.limit("10/minute")  # Rate limit: 10 requests per minute
 async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Request):

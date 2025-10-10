@@ -4,6 +4,30 @@ use tracing::debug;
 use crate::config::TradingConfig;
 use crate::market_data::analyzer::MultiTimeframeAnalysis;
 
+// @spec:FR-RISK-001 - Position Size Limits
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#risk-management
+// @test:TC-TRADING-004, TC-TRADING-005
+
+// @spec:FR-RISK-002 - Max Daily Loss
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#risk-management
+// @test:TC-TRADING-006, TC-TRADING-007
+
+// @spec:FR-RISK-003 - Max Open Positions
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#risk-management
+// @test:TC-TRADING-008, TC-TRADING-009
+
+// @spec:FR-RISK-004 - Risk Validation
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#risk-management
+// @test:TC-TRADING-047, TC-TRADING-048
+
+// @spec:FR-RISK-005 - Emergency Stop
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#risk-management
+// @test:TC-TRADING-049
+
+// @spec:FR-RISK-006 - Exposure Limits
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#risk-management
+// @test:TC-TRADING-052, TC-TRADING-053
+
 #[derive(Clone)]
 pub struct RiskManager {
     config: TradingConfig,

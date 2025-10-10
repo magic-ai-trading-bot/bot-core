@@ -11,6 +11,10 @@ use url::Url;
 use super::types::*;
 use crate::config::BinanceConfig;
 
+// @spec:FR-TRADING-005 - Binance Integration
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md
+// @test:TC-TRADING-030, TC-TRADING-031, TC-TRADING-032
+
 type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Clone)]

@@ -4,6 +4,18 @@ use warp::{Filter, Rejection, Reply};
 
 use super::jwt::{Claims, JwtService};
 
+// @spec:FR-AUTH-004 - JWT Validation
+// @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+// @test:TC-AUTH-009, TC-AUTH-010
+
+// @spec:FR-AUTH-008 - Authorization Middleware
+// @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+// @test:TC-AUTH-017, TC-AUTH-018, TC-AUTH-019
+
+// @spec:FR-AUTH-009 - Role-Based Access Control
+// @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+// @test:TC-AUTH-020, TC-AUTH-021
+
 pub fn with_auth(
     jwt_service: JwtService,
 ) -> impl Filter<Extract = (Claims,), Error = Rejection> + Clone {

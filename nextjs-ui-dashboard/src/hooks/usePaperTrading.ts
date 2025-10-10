@@ -3,6 +3,12 @@ import logger from "@/utils/logger";
 import { useToast } from "@/hooks/use-toast";
 
 // Types for Rust backend integration
+
+
+// @spec:FR-PAPER-001 (Frontend) - `nextjs-ui-dashboard/src/hooks/usePaperTrading.ts:56-245`
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#paper-trading
+// @test:--- ## Design to Test Mapping
+
 interface RustPaperTradingResponse<T> {
   success: boolean;
   data?: T;

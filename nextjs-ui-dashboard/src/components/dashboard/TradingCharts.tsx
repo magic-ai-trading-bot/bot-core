@@ -5,6 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+
+
+// @spec:FR-DASHBOARD-001 - Real-time Trading Charts
+// @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
+// @test:TC-INTEGRATION-035, TC-INTEGRATION-036
+
   Select,
   SelectContent,
   SelectItem,

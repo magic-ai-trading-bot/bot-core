@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import logger from "@/utils/logger";
 import {
+
+
+// @spec:FR-AI-005 (Frontend) - `nextjs-ui-dashboard/src/hooks/useAIAnalysis.ts:45-189`
+// @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md
+// @test:
+
   AISignalResponse,
   AIStrategyContext,
   StrategyRecommendation,

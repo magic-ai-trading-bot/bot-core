@@ -7,6 +7,10 @@ use tracing::{debug, info};
 
 use crate::binance::types::{Kline, KlineData};
 
+// @spec:FR-MARKET-004 - Market Data Caching
+// @ref:specs/02-design/2.3-api/API-RUST-CORE.md#market-data
+// @test:TC-INTEGRATION-006
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CandleData {
     pub open_time: i64,

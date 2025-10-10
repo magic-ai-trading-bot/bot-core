@@ -11,6 +11,10 @@ use url::Url;
 use super::types::*;
 use crate::config::BinanceConfig;
 
+// @spec:FR-WEBSOCKET-001 - Binance WebSocket Connection
+// @ref:specs/02-design/2.3-api/API-WEBSOCKET.md
+// @test:TC-INTEGRATION-008, TC-INTEGRATION-009
+
 pub struct BinanceWebSocket {
     config: BinanceConfig,
     sender: mpsc::UnboundedSender<StreamEvent>,

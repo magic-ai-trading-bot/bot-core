@@ -5,6 +5,17 @@ use validator::Validate;
 use warp::{Filter, Rejection, Reply};
 
 use super::{
+    // @spec:FR-AUTH-002 - User Registration
+    // @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+    // @test:TC-AUTH-004, TC-AUTH-005
+
+    // @spec:FR-AUTH-003 - User Login
+    // @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+    // @test:TC-AUTH-006, TC-AUTH-007, TC-AUTH-008
+
+    // @spec:FR-AUTH-007 - Profile Retrieval
+    // @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+    // @test:TC-AUTH-015, TC-AUTH-016
     database::UserRepository,
     jwt::{JwtService, PasswordService},
     models::{LoginRequest, LoginResponse, RegisterRequest, User},

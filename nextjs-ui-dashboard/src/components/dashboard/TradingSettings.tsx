@@ -9,6 +9,12 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+
+
+// @spec:FR-DASHBOARD-004 - Settings Management
+// @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
+// @test:TC-INTEGRATION-039
+
   Select,
   SelectContent,
   SelectItem,

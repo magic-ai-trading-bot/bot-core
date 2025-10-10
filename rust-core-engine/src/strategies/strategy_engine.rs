@@ -1,6 +1,11 @@
 use super::*;
 use crate::strategies::{
-    bollinger_strategy::BollingerStrategy, macd_strategy::MacdStrategy, rsi_strategy::RsiStrategy,
+    // @spec:FR-STRATEGY-005 - Strategy Parameters
+    // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
+    // @test:TC-TRADING-029
+    bollinger_strategy::BollingerStrategy,
+    macd_strategy::MacdStrategy,
+    rsi_strategy::RsiStrategy,
     volume_strategy::VolumeStrategy,
 };
 use serde_json::json;

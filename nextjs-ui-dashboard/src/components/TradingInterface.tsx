@@ -1,6 +1,12 @@
 import React from 'react'
 
 // Stub component for tests
+
+
+// @spec:FR-DASHBOARD-002 - Trading Interface
+// @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
+// @test:TC-INTEGRATION-037
+
 const TradingInterface: React.FC = () => {
   return (
     <div>
