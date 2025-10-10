@@ -1,4 +1,5 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import logger from "@/utils/logger";
 import { TradingSettings } from "@/components/dashboard/TradingSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -149,7 +150,7 @@ const TradingPaper = () => {
         });
       }
     } catch (error) {
-      console.error("Failed to toggle paper trading:", error);
+      logger.error("Failed to toggle paper trading:", error);
       toast.error(`Lỗi khi ${active ? "khởi động" : "dừng"} bot`, {
         description: "Có lỗi xảy ra. Vui lòng thử lại.",
         duration: 4000,
@@ -186,7 +187,7 @@ const TradingPaper = () => {
       await refreshAISignals();
       // Silent refresh - no toast notification needed
     } catch (error) {
-      console.error("Failed to refresh AI signals:", error);
+      logger.error("Failed to refresh AI signals:", error);
       toast.error("Lỗi khi cập nhật tín hiệu AI", {
         description: "Không thể tải tín hiệu mới. Vui lòng thử lại.",
         duration: 3000,
@@ -280,7 +281,7 @@ const TradingPaper = () => {
         throw new Error(data.error || "Failed to load symbol settings");
       }
     } catch (error) {
-      console.error("Failed to load symbol settings:", error);
+      logger.error("Failed to load symbol settings:", error);
       toast.error("Lỗi khi tải cài đặt symbols", {
         description: "Không thể tải cài đặt symbols. Sử dụng giá trị mặc định.",
         duration: 3000,
@@ -318,7 +319,7 @@ const TradingPaper = () => {
         throw new Error(data.error || "Failed to update symbol settings");
       }
     } catch (error) {
-      console.error("Failed to update symbol settings:", error);
+      logger.error("Failed to update symbol settings:", error);
       toast.error("Lỗi khi lưu cài đặt symbols", {
         description:
           error instanceof Error
@@ -339,7 +340,7 @@ const TradingPaper = () => {
         await loadSymbolSettings(); // Load symbol settings
         // Silent load - no toast notification needed
       } catch (error) {
-        console.error("Failed to refresh settings:", error);
+        logger.error("Failed to refresh settings:", error);
         toast.error("Lỗi khi tải cài đặt", {
           description: "Không thể tải cài đặt hiện tại. Hiển thị dữ liệu cũ.",
           duration: 3000,
@@ -358,7 +359,7 @@ const TradingPaper = () => {
         duration: 4000,
       });
     } catch (error) {
-      console.error("Failed to update settings:", error);
+      logger.error("Failed to update settings:", error);
       toast.error("Lỗi khi lưu cài đặt", {
         description:
           error instanceof Error
@@ -379,7 +380,7 @@ const TradingPaper = () => {
         duration: 4000,
       });
     } catch (error) {
-      console.error("Failed to reset portfolio:", error);
+      logger.error("Failed to reset portfolio:", error);
       toast.error("Lỗi khi reset portfolio", {
         description: "Có lỗi xảy ra khi reset dữ liệu. Vui lòng thử lại.",
         duration: 5000,
@@ -421,7 +422,7 @@ const TradingPaper = () => {
         minute: "2-digit",
       }).format(dateObj);
     } catch (error) {
-      console.error("Invalid date:", date, error);
+      logger.error("Invalid date:", date, error);
       return "N/A";
     }
   };

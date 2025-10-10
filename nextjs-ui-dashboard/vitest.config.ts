@@ -23,6 +23,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      'e2e/**',
+      '**/*.e2e.{test,spec}.{ts,tsx}',
+      '**/*.spec.ts', // Exclude Playwright spec files
+    ],
     pool: 'forks',
     poolOptions: {
       forks: {

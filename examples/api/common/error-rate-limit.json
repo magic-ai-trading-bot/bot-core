@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Too many requests. Please try again later.",
+    "details": {
+      "limit": 10,
+      "window": "1 minute",
+      "retry_after": 45,
+      "current_usage": 10
+    },
+    "timestamp": "2025-10-10T12:00:00Z",
+    "request_id": "req_123456"
+  }
+}

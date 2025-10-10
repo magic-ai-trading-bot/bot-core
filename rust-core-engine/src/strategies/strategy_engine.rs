@@ -332,8 +332,12 @@ impl StrategyEngine {
     ) -> (TradingSignal, f64, String) {
         let best_result = results
             .iter()
-            .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap())
-            .unwrap();
+            .max_by(|a, b| {
+                a.confidence
+                    .partial_cmp(&b.confidence)
+                    .unwrap_or(std::cmp::Ordering::Equal) // Handle NaN gracefully
+            })
+            .expect("Results should not be empty"); // Safe: checked by caller
 
         let reasoning = format!(
             "Best confidence from {} ({:.1}%): {}",

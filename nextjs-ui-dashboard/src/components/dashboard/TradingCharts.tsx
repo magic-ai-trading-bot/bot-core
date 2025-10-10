@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -544,7 +545,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
 
         setCharts(successfulCharts);
       } catch (error) {
-        console.error("Failed to load chart data:", error);
+        logger.error("Failed to load chart data:", error);
         toast.error("Failed to load chart data");
       } finally {
         setLoading(false);
@@ -578,7 +579,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           })
         );
       } catch (error) {
-        console.error("Failed to update prices:", error);
+        logger.error("Failed to update prices:", error);
         // Silently fail for price updates to avoid spam
       }
     }, []);
@@ -597,14 +598,14 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           );
           setCharts((prev) => [...prev, newChart]);
         } catch (error) {
-          console.warn(
+          logger.warn(
             "Failed to load chart for new symbol immediately:",
             error
           );
           // Will be loaded on next refresh
         }
       } catch (error) {
-        console.error("Failed to add symbol:", error);
+        logger.error("Failed to add symbol:", error);
         toast.error("Failed to add symbol");
       }
     };
@@ -615,7 +616,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
         setCharts((prev) => prev.filter((chart) => chart.symbol !== symbol));
         toast.success(`Removed ${symbol}`);
       } catch (error) {
-        console.error("Failed to remove symbol:", error);
+        logger.error("Failed to remove symbol:", error);
         toast.error("Failed to remove symbol");
       }
     };

@@ -290,6 +290,74 @@ check-deps: ## Check if required dependencies are installed
 	@which docker-compose > /dev/null || (echo "Docker Compose not found. Please install Docker Compose." && exit 1)
 	@echo "All dependencies are installed!"
 
+# Security and Environment Validation
+validate-env: ## Validate that all required environment variables are set
+	@echo "Validating environment variables..."
+	@chmod +x scripts/validate-env.sh
+	@./scripts/validate-env.sh || (echo "Environment validation failed. Please check your .env file." && exit 1)
+
+check-secrets: ## Check for weak or default secrets in environment files
+	@echo "Checking for weak or default secrets..."
+	@if [ -f .env ]; then \
+		if grep -q "your_api_key_here\|your_secret_key_here\|changeme\|password123\|admin123" .env; then \
+			echo "ERROR: Weak or default secrets found in .env file!"; \
+			echo "Please replace all placeholder values with secure secrets."; \
+			exit 1; \
+		fi; \
+		echo "No obvious weak secrets detected."; \
+	else \
+		echo "WARNING: .env file not found. Run 'make setup' first."; \
+	fi
+
+validate-secrets: ## Validate that secrets meet minimum security requirements
+	@echo "Validating secret strength..."
+	@if [ -f .env ]; then \
+		source .env 2>/dev/null; \
+		ERRORS=0; \
+		if [ ! -z "$$BINANCE_API_KEY" ] && [ $${#BINANCE_API_KEY} -lt 32 ]; then \
+			echo "ERROR: BINANCE_API_KEY is too short (min 32 chars)"; \
+			ERRORS=$$((ERRORS + 1)); \
+		fi; \
+		if [ ! -z "$$INTER_SERVICE_TOKEN" ] && [ $${#INTER_SERVICE_TOKEN} -lt 32 ]; then \
+			echo "ERROR: INTER_SERVICE_TOKEN is too short (min 32 chars)"; \
+			ERRORS=$$((ERRORS + 1)); \
+		fi; \
+		if [ ! -z "$$RUST_API_KEY" ] && [ $${#RUST_API_KEY} -lt 32 ]; then \
+			echo "ERROR: RUST_API_KEY is too short (min 32 chars)"; \
+			ERRORS=$$((ERRORS + 1)); \
+		fi; \
+		if [ $$ERRORS -gt 0 ]; then \
+			echo "$$ERRORS secret validation errors found."; \
+			exit 1; \
+		fi; \
+		echo "All secrets meet minimum requirements."; \
+	else \
+		echo "ERROR: .env file not found."; \
+		exit 1; \
+	fi
+
+generate-secrets: ## Generate secure random secrets for all required variables
+	@echo "Generating secure secrets..."
+	@echo "Copy these values to your .env file:"
+	@echo ""
+	@echo "# Inter-service Authentication"
+	@echo "INTER_SERVICE_TOKEN=$$(openssl rand -hex 32)"
+	@echo "RUST_API_KEY=$$(openssl rand -hex 32)"
+	@echo "PYTHON_API_KEY=$$(openssl rand -hex 32)"
+	@echo ""
+	@echo "# Dashboard"
+	@echo "DASHBOARD_SESSION_SECRET=$$(openssl rand -hex 32)"
+	@echo ""
+	@echo "# Infrastructure (if using optional services)"
+	@echo "REDIS_PASSWORD=$$(openssl rand -hex 16)"
+	@echo "RABBITMQ_PASSWORD=$$(openssl rand -hex 16)"
+	@echo "KONG_DB_PASSWORD=$$(openssl rand -hex 16)"
+	@echo ""
+	@echo "Note: You still need to provide BINANCE_API_KEY, BINANCE_SECRET_KEY, and DATABASE_URL manually."
+
+security-check: check-secrets validate-secrets ## Run all security checks on environment configuration
+	@echo "All security checks passed!"
+
 # Show service URLs
 urls: ## Show service URLs
 	@echo "Service URLs:"

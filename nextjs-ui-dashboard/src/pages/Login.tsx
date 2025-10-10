@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logger from "@/utils/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +51,7 @@ const Login = () => {
         });
       }
     } catch (err) {
-      console.error("Login error:", err);
+      logger.error("Login error:", err);
       toast.error("Lỗi đăng nhập", {
         description: "Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.",
         id: "login-loading",

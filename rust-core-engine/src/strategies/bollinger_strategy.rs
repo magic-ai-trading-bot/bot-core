@@ -104,14 +104,32 @@ impl Strategy for BollingerStrategy {
 
         let current_price = data.current_price;
 
-        // Current BB values
-        let upper_1h = *primary_bb.upper.last().unwrap();
-        let middle_1h = *primary_bb.middle.last().unwrap();
-        let lower_1h = *primary_bb.lower.last().unwrap();
+        // Current BB values with proper error handling
+        let upper_1h = *primary_bb
+            .upper
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No upper BB values".to_string()))?;
+        let middle_1h = *primary_bb
+            .middle
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No middle BB values".to_string()))?;
+        let lower_1h = *primary_bb
+            .lower
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No lower BB values".to_string()))?;
 
-        let upper_4h = *confirmation_bb.upper.last().unwrap();
-        let middle_4h = *confirmation_bb.middle.last().unwrap();
-        let lower_4h = *confirmation_bb.lower.last().unwrap();
+        let upper_4h = *confirmation_bb
+            .upper
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No 4h upper BB values".to_string()))?;
+        let middle_4h = *confirmation_bb
+            .middle
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No 4h middle BB values".to_string()))?;
+        let lower_4h = *confirmation_bb
+            .lower
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No 4h lower BB values".to_string()))?;
 
         // Calculate price position within bands
         let bb_width_1h = (upper_1h - lower_1h) / middle_1h;

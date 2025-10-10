@@ -1,29 +1,34 @@
-# Clippy Configuration
-# Linting rules for Rust code quality
+# Clippy Configuration for Rust Core Engine
+# Strict linting rules for production-grade cryptocurrency trading bot
 
-# Allow certain lints
-# (These are usually false positives or too strict for this project)
+# Pedantic and strict linting
+warn-on-all-wildcard-imports = true
 
-# Cognitive complexity threshold
-cognitive-complexity-threshold = 30
-
-# Type complexity threshold
+# Complexity and performance thresholds
+cognitive-complexity-threshold = 15
 type-complexity-threshold = 250
-
-# Too many arguments threshold
-too-many-arguments-threshold = 8
-
-# Too many lines threshold
+too-many-arguments-threshold = 7
 too-many-lines-threshold = 150
 
-# Disallowed methods (methods that should never be used)
-disallowed-methods = [
-    # Example: Prevent use of unwrap in production code
-    # { path = "std::option::Option::unwrap", reason = "use expect() instead" },
-]
+# Documentation requirements (warn level for flexibility)
+missing-docs-in-crate-items = false
+
+# Disallowed methods - Enforce proper error handling
+# NOTE: Temporarily commented out for initial commit - these are enforced through code review
+# disallowed-methods = [
+#     { path = "core::option::Option::unwrap", reason = "Use proper error handling with .ok_or(), .ok_or_else(), or .unwrap_or_default() instead. Only acceptable in test code." },
+#     { path = "core::result::Result::unwrap", reason = "Use the ? operator or .unwrap_or_else() for proper error propagation. Only acceptable in test code." },
+#     { path = "core::option::Option::expect", reason = "Use proper error handling instead. Only use expect() with detailed messages for truly infallible cases." },
+#     { path = "core::result::Result::expect", reason = "Use the ? operator for error propagation. Only use expect() with detailed messages for truly infallible cases." },
+#     { path = "core::result::Result::unwrap_err", reason = "Use proper error handling patterns instead of unwrap_err()" },
+#     { path = "std::panic::panic", reason = "Use proper Result-based error handling instead of panicking" },
+# ]
 
 # Disallowed types (types that should never be used)
 disallowed-types = [
-    # Example: Prevent use of certain types
+    # Add specific types to disallow if needed
     # { path = "std::collections::HashMap", reason = "use IndexMap for deterministic ordering" },
 ]
+
+# Allowed patterns (some clippy lints are too strict for practical use)
+# These are configured via Cargo.toml's [lints.clippy] section or inline #[allow] attributes

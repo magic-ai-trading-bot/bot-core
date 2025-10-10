@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -296,7 +297,7 @@ export function TradingSettings() {
         }
       }
     } catch (error) {
-      console.error("Failed to load settings:", error);
+      logger.error("Failed to load settings:", error);
       toast.error("Failed to load trading settings");
     } finally {
       setIsLoading(false);
@@ -326,7 +327,7 @@ export function TradingSettings() {
         throw new Error("Failed to save settings");
       }
     } catch (error) {
-      console.error("Failed to save settings:", error);
+      logger.error("Failed to save settings:", error);
       toast.error("Failed to save trading settings");
     } finally {
       setIsSaving(false);

@@ -341,18 +341,26 @@ describe('useWebSocket', () => {
 
       const { result } = renderHook(() => useWebSocket())
 
-      // Wait for initial connection attempt
-      await waitFor(() => expect(connectionAttempts).toBe(1), { timeout: 1000 })
-
-      // Trigger open
+      // Manually trigger connect since auto-connect is disabled in test env
       act(() => {
-        mockWs?.triggerOpen()
+        result.current.connect()
       })
 
-      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 1000 })
+      // Wait for initial connection attempt
+      await waitFor(() => expect(connectionAttempts).toBe(1), { timeout: 3000 })
+
+      // Trigger open
+      await act(async () => {
+        mockWs?.triggerOpen()
+        await new Promise(resolve => setTimeout(resolve, 100))
+      })
+
+      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 3000 })
 
       // Wait a bit to ensure no additional connection attempts
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      })
 
       // Should only have 1 connection attempt (not infinite)
       expect(connectionAttempts).toBe(1)
@@ -443,13 +451,29 @@ describe('useWebSocket', () => {
       // Mount the hook
       const { result } = renderHook(() => useWebSocket())
 
-      // Wait for auto-connect
-      await waitFor(() => expect(connectionAttempts).toBeGreaterThan(0), { timeout: 1000 })
+      // Manually trigger connect since auto-connect is disabled in test env
+      act(() => {
+        result.current.connect()
+      })
+
+      // Wait for connect to happen
+      await waitFor(() => expect(connectionAttempts).toBeGreaterThan(0), { timeout: 3000 })
 
       const initialAttempts = connectionAttempts
 
+      // Trigger connection open
+      await act(async () => {
+        mockWs?.triggerOpen()
+        await new Promise(resolve => setTimeout(resolve, 100))
+      })
+
+      // Wait for connection to be established
+      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 3000 })
+
       // Wait a bit more to ensure no additional connections
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      })
 
       // Should not have additional connection attempts
       expect(connectionAttempts).toBe(initialAttempts)

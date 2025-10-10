@@ -1,0 +1,62 @@
+# Cargo Mutants Configuration
+# Mutation testing for Rust Core Engine
+
+# Exclude certain files from mutation testing
+exclude_globs = [
+    "tests/**",
+    "benches/**",
+    "**/mod.rs",
+    "**/*_test.rs",
+    "target/**",
+]
+
+# Timeout for each test in seconds (5 minutes)
+timeout = 300
+
+# Minimum coverage for mutation to be considered
+minimum_test_timeout_multiple = 2.0
+
+# Exclude specific functions that are hard to test or not critical
+exclude_functions = [
+    # Logging functions
+    "log_*",
+    "tracing_*",
+
+    # Simple getters/setters
+    "get_*",
+    "set_*",
+
+    # Debug/Display implementations
+    "fmt",
+]
+
+# Test commands to run
+test_tool = ["cargo", "test", "--lib", "--", "--nocapture", "--test-threads=1"]
+
+# Only mutate specific modules (most critical)
+# Comment out to mutate everything
+# mutate_only = [
+#     "src/trading/",
+#     "src/strategies/",
+#     "src/paper_trading/",
+# ]
+
+# Mutation operators to use
+mutation_types = [
+    "replace_binary_operator",
+    "replace_constant",
+    "replace_function_call",
+    "delete_statement",
+]
+
+# Parallelism
+jobs = 4
+
+# Output options
+json_output = true
+baseline_output = true
+
+# Print summary at the end
+print_caught = true
+print_unviable = true
+print_timeout = true

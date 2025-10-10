@@ -1,7 +1,23 @@
-# Environment files
+# Environment files - CRITICAL: Never commit credentials
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.development
+.env.backup
+.env.*.backup
+
+# Credential and secret files
+*credentials*
+*secrets*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials-rotation-log.txt
+security-audit.log
 
 # Configuration files with sensitive data
 config.toml

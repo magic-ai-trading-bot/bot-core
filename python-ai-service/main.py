@@ -205,7 +205,7 @@ async def periodic_analysis_runner():
                     )
 
                     # Store result in MongoDB
-                    await store_analysis_result(symbol, analysis_result.dict())
+                    await store_analysis_result(symbol, analysis_result.model_dump())
 
                     # Broadcast via WebSocket
                     await ws_manager.broadcast_signal(
@@ -867,7 +867,7 @@ class TechnicalAnalyzer:
 
     @staticmethod
     def candles_to_dataframe(
-        timeframe_data: Dict[str, List[CandleData]]
+        timeframe_data: Dict[str, List[CandleData]],
     ) -> Dict[str, pd.DataFrame]:
         """Convert candle data to pandas DataFrames."""
         dataframes = {}
@@ -1152,7 +1152,9 @@ class GPTTradingAnalyzer:
             market_context = self._prepare_market_context(
                 request, indicators_1h, indicators_4h
             )
-            logger.debug(f"📊 Market context prepared: {len(market_context)} characters")
+            logger.debug(
+                f"📊 Market context prepared: {len(market_context)} characters"
+            )
 
             # Create GPT-4 prompt
             prompt = self._create_analysis_prompt(
@@ -1860,8 +1862,8 @@ async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Requ
             "confidence": response.confidence,
             "reasoning": response.reasoning,
             "strategy_scores": response.strategy_scores,
-            "market_analysis": response.market_analysis.dict(),
-            "risk_assessment": response.risk_assessment.dict(),
+            "market_analysis": response.market_analysis.model_dump(),
+            "risk_assessment": response.risk_assessment.model_dump(),
             "timestamp": response.timestamp,
         }
         await store_analysis_result(request.symbol, analysis_data)
@@ -1944,7 +1946,9 @@ async def analyze_market_condition(request: MarketConditionRequest):
 @app.post("/ai/feedback")
 async def send_performance_feedback(feedback: PerformanceFeedback):
     """Receive performance feedback for learning."""
-    logger.info(f"📝 Feedback received for {feedback.symbol}: {feedback.actual_outcome}")
+    logger.info(
+        f"📝 Feedback received for {feedback.symbol}: {feedback.actual_outcome}"
+    )
 
     # Store feedback for future model improvements
     # In a real implementation, this would be stored in a database
@@ -2007,9 +2011,11 @@ async def get_storage_statistics():
                 {
                     "symbol": doc["_id"],
                     "analysis_count": doc["count"],
-                    "latest_analysis": doc["latest"].isoformat()
-                    if isinstance(doc["latest"], datetime)
-                    else str(doc["latest"]),
+                    "latest_analysis": (
+                        doc["latest"].isoformat()
+                        if isinstance(doc["latest"], datetime)
+                        else str(doc["latest"])
+                    ),
                 }
             )
 

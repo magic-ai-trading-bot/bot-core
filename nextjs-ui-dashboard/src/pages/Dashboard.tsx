@@ -1,11 +1,18 @@
+import { lazy, Suspense } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { BotStatus } from "@/components/dashboard/BotStatus";
 import { AISignals } from "@/components/dashboard/AISignals";
 import { AIStrategySelector } from "@/components/dashboard/AIStrategySelector";
-import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { TransactionHistory } from "@/components/dashboard/TransactionHistory";
-import { TradingCharts } from "@/components/dashboard/TradingCharts";
-import ChatBot from "@/components/ChatBot";
+
+// Lazy load heavy components
+const TradingCharts = lazy(() => import("@/components/dashboard/TradingCharts").then(module => ({ default: module.TradingCharts })));
+const PerformanceChart = lazy(() => import("@/components/dashboard/PerformanceChart").then(module => ({ default: module.PerformanceChart })));
+const ChatBot = lazy(() => import("@/components/ChatBot"));
+
+const ChartFallback = () => (
+  <div className="w-full h-64 bg-muted animate-pulse rounded-lg"></div>
+);
 
 const Dashboard = () => {
   return (
@@ -17,7 +24,9 @@ const Dashboard = () => {
         <BotStatus />
 
         {/* Trading Charts Section */}
-        <TradingCharts />
+        <Suspense fallback={<ChartFallback />}>
+          <TradingCharts />
+        </Suspense>
 
         {/* AI Section - Strategy Configuration & Trading Signals */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 lg:items-start">
@@ -31,7 +40,9 @@ const Dashboard = () => {
 
         {/* Performance Section - Overview & Metrics */}
         <div>
-          <PerformanceChart />
+          <Suspense fallback={<ChartFallback />}>
+            <PerformanceChart />
+          </Suspense>
         </div>
 
         {/* Bottom Section - Transaction History */}
@@ -39,7 +50,9 @@ const Dashboard = () => {
       </div>
 
       {/* Chatbot Widget */}
-      <ChatBot />
+      <Suspense fallback={null}>
+        <ChatBot />
+      </Suspense>
     </div>
   );
 };

@@ -1,0 +1,11 @@
+{
+  "symbol": "BTCUSDT",
+  "side": "BUY",
+  "type": "LIMIT",
+  "quantity": 0.001,
+  "price": 45000.00,
+  "time_in_force": "GTC",
+  "reduce_only": false,
+  "ai_signal_id": "550e8400-e29b-41d4-a716-446655440000",
+  "strategy": "ai_ensemble"
+}

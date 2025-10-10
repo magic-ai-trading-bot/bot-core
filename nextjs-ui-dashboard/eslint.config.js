@@ -1,4 +1,3 @@
-import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
@@ -7,7 +6,7 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   { ignores: ["dist"] },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    extends: [...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
@@ -24,6 +23,32 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      // Prevent console.logs in production code
+      "no-console":
+        process.env.NODE_ENV === "production"
+          ? "error"
+          : "warn",
+    },
+  },
+  // Allow 'any' type in test files
+  {
+    files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  // Allow console in logger utility
+  {
+    files: ["**/utils/logger.ts"],
+    rules: {
+      "no-console": "off",
+    },
+  },
+  // Allow component exports with utilities in UI components, contexts, and test utils
+  {
+    files: ["**/components/ui/**/*.{ts,tsx}", "**/contexts/**/*.{ts,tsx}", "**/test/utils.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
     },
   }
 );

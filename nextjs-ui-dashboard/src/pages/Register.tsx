@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logger from "@/utils/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +67,7 @@ const Register = () => {
         });
       }
     } catch (err) {
-      console.error("Registration error:", err);
+      logger.error("Registration error:", err);
       toast.error("Lỗi đăng ký", {
         description: "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.",
         id: "register-loading",

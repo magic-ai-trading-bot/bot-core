@@ -1,3 +1,5 @@
+import logger from "@/utils/logger";
+
 export interface ChatMessage {
   id: string;
   type: "user" | "bot";
@@ -234,7 +236,7 @@ Assistant:`,
         "Xin lỗi, tôi không hiểu câu hỏi của bạn."
       );
     } catch (error) {
-      console.error("Hugging Face API Error:", error);
+      logger.error("Hugging Face API Error:", error);
       return "⚠️ Hiện tại AI đang bảo trì. Vui lòng hỏi câu hỏi khác hoặc liên hệ support.";
     }
   }
@@ -264,7 +266,7 @@ Assistant:`,
         type: "ai",
       };
     } catch (error) {
-      console.error("Chatbot Error:", error);
+      logger.error("Chatbot Error:", error);
       return {
         success: false,
         message:
