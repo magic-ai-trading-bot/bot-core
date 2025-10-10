@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "<string>", line 8, in <module>
-  File "/Users/dungngo97/.asdf/installs/python/3.11.9/lib/python3.11/site-packages/tensorflow/python/util/lazy_loader.py", line 171, in __getattr__
-    return getattr(module, item)
-           ^^^^^^^^^^^^^^^^^^^^^
-AttributeError: module 'keras.api._v2.keras' has no attribute '__version__'
-PyTorch: 2.1.0
-TensorFlow: 2.15.0
