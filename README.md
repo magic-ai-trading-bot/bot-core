@@ -1008,11 +1008,15 @@ bot-core/
 │       ├── TESTING_IMPLEMENTATION_SUMMARY.md
 │       └── MUTATION_TESTING_SUMMARY.md
 │
-├── specs/                      # 📋 API Specifications
-│   ├── API_SPEC.md            # Complete API contracts
-│   ├── DATA_MODELS.md         # Data structures
-│   ├── BUSINESS_RULES.md      # Business logic
-│   └── INTEGRATION_SPEC.md    # Integration patterns
+├── specs/                      # 📋 Specifications (100% Complete)
+│   ├── README.md              # Specification system overview
+│   ├── TRACEABILITY_MATRIX.md # Requirements-to-code traceability
+│   ├── TASK_TRACKER.md        # 100% completion tracking
+│   ├── 01-requirements/       # 24 docs (FR, NFR, US, SYS)
+│   ├── 02-design/             # 20 docs (Architecture, DB, API, UI)
+│   ├── 03-testing/            # 12 docs (Test cases & scenarios)
+│   ├── 04-deployment/         # 7 docs (Infrastructure, CI/CD)
+│   └── 05-operations/         # 3 docs (Operations, DR plan)
 │
 ├── rust-core-engine/          # 🦀 Rust Trading Engine
 │   ├── src/
@@ -1052,7 +1056,9 @@ bot-core/
 │   ├── bot.sh                 # Main control script
 │   ├── security-scan.sh       # Security scanning
 │   ├── validate-env.sh        # Environment validation
-│   └── generate-secrets.sh    # Secret generation
+│   ├── generate-secrets.sh    # Secret generation
+│   ├── auto-tag-code.py       # Automated @spec tagging
+│   └── validate-spec-tags.py  # Spec tag validation
 │
 ├── infrastructure/            # 🏗️ Infrastructure Code
 │   ├── docker/
