@@ -4,13 +4,15 @@
 
 ### Root Directory - ONLY Essential Files
 Keep ONLY these files in root:
-- ✅ README.md - Project overview (GitHub standard)
-- ✅ CONTRIBUTING.md - Contribution guidelines (GitHub standard)
-- ✅ CLAUDE.md - Project instructions for Claude Code
-- ✅ SECURITY_CREDENTIALS.md - Security documentation
+- ✅ README.md - Project overview (GitHub standard, must be in root)
+- ✅ CLAUDE.md - Project instructions for Claude Code (must be in root)
 - ✅ Makefile - Build automation
 - ✅ docker-compose*.yml - Docker configuration
 - ✅ config.env - Environment template
+
+All other .md files go to docs/:
+- 📁 docs/CONTRIBUTING.md - Contribution guidelines
+- 📁 docs/SECURITY_CREDENTIALS.md - Security documentation
 
 ### Documentation Files - Always use docs/
 - ✅ Reports → `docs/reports/`
