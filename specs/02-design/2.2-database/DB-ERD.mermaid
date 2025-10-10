@@ -1,0 +1,377 @@
+%% Bot Core Trading Platform - Database Entity Relationship Diagram
+%% Version: 1.0.0
+%% Last Updated: 2025-10-10
+
+erDiagram
+    %% =============================================================================
+    %% CORE USER & AUTHENTICATION
+    %% =============================================================================
+
+    users ||--o{ trades : "has many"
+    users ||--o{ positions : "has many"
+    users ||--o{ portfolio_snapshots : "has many"
+    users ||--o{ paper_trading_accounts : "has one"
+    users ||--o{ audit_logs : "generates"
+    users ||--o{ notifications : "receives"
+    users ||--o{ api_keys : "manages"
+    users ||--o{ strategy_configs : "configures"
+
+    users {
+        ObjectId _id PK "Primary key"
+        string email UK "Unique email"
+        string password_hash "bcrypt hash"
+        string full_name "Optional display name"
+        boolean is_active "Account status"
+        boolean is_admin "Admin privileges"
+        DateTime created_at "Account creation"
+        DateTime updated_at "Last update"
+        DateTime last_login "Last login time"
+        object settings "Embedded trading settings"
+    }
+
+    %% =============================================================================
+    %% LIVE TRADING
+    %% =============================================================================
+
+    trades }o--|| users : "belongs to"
+    trades }o--o| ai_analysis_results : "references signal"
+    trades }o--|| market_data : "references price data"
+
+    trades {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference"
+        string symbol "Trading pair"
+        enum side "BUY or SELL"
+        enum order_type "MARKET, LIMIT, etc"
+        Decimal128 quantity "Order quantity"
+        Decimal128 price "Limit price"
+        Decimal128 executed_price "Execution price"
+        enum status "Order status"
+        string binance_order_id "Binance ID"
+        Decimal128 pnl "Profit/Loss"
+        Decimal128 fees "Trading fees"
+        string ai_signal_id "AI signal reference"
+        DateTime created_at "Order time"
+        DateTime executed_at "Execution time"
+        object metadata "Additional data"
+    }
+
+    positions }o--|| users : "belongs to"
+    positions }o--|| market_data : "references price"
+
+    positions {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference"
+        string symbol "Trading pair"
+        enum side "LONG or SHORT"
+        Decimal128 entry_price "Entry price"
+        Decimal128 current_price "Current market price"
+        Decimal128 quantity "Position size"
+        number leverage "Leverage (1-125)"
+        Decimal128 stop_loss "Stop loss price"
+        Decimal128 take_profit "Take profit price"
+        Decimal128 unrealized_pnl "Unrealized P&L"
+        Decimal128 margin_used "Margin allocated"
+        DateTime opened_at "Position open time"
+        DateTime updated_at "Last update"
+        object metadata "Performance tracking"
+    }
+
+    %% =============================================================================
+    %% MARKET DATA & AI ANALYSIS
+    %% =============================================================================
+
+    market_data {
+        ObjectId _id PK "Primary key"
+        string symbol "Trading pair"
+        enum timeframe "1m, 5m, 1h, etc"
+        DateTime open_time "Candle open time"
+        DateTime close_time "Candle close time"
+        Decimal128 open_price "Open price"
+        Decimal128 high_price "High price"
+        Decimal128 low_price "Low price"
+        Decimal128 close_price "Close price"
+        Decimal128 volume "Trading volume"
+        Decimal128 quote_volume "Quote volume"
+        number trades_count "Number of trades"
+        object indicators "Cached indicators"
+        DateTime created_at "Ingestion time"
+        string source "Data source"
+    }
+
+    ai_analysis_results ||--o{ trades : "generates"
+    ai_analysis_results ||--o{ paper_trading_trades : "generates"
+
+    ai_analysis_results {
+        ObjectId _id PK "Primary key"
+        string analysis_id UK "UUID reference"
+        string symbol "Trading pair"
+        string timeframe "Analysis timeframe"
+        enum signal "BUY, SELL, HOLD"
+        number confidence "0.0-1.0"
+        string reasoning "AI explanation"
+        Decimal128 entry_price "Suggested entry"
+        Decimal128 stop_loss "Suggested SL"
+        Decimal128 take_profit "Suggested TP"
+        object market_analysis "Market conditions"
+        object indicators "Technical indicators"
+        object model_metadata "AI model info"
+        DateTime timestamp "Analysis time"
+        boolean executed "Execution status"
+        string trade_id "Executed trade ID"
+        object performance "Outcome tracking"
+    }
+
+    %% =============================================================================
+    %% PORTFOLIO & PERFORMANCE
+    %% =============================================================================
+
+    portfolio_snapshots }o--|| users : "belongs to"
+
+    portfolio_snapshots {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference"
+        Decimal128 total_value "Total portfolio value"
+        Decimal128 cash_balance "Available cash"
+        Decimal128 positions_value "Open positions value"
+        Decimal128 unrealized_pnl "Unrealized P&L"
+        Decimal128 realized_pnl "Realized P&L"
+        Decimal128 daily_pnl "Daily P&L"
+        number open_positions_count "Position count"
+        Decimal128 max_drawdown "Maximum drawdown"
+        number sharpe_ratio "Sharpe ratio"
+        DateTime snapshot_time "Snapshot timestamp"
+        DateTime created_at "Record time"
+    }
+
+    %% =============================================================================
+    %% PAPER TRADING
+    %% =============================================================================
+
+    paper_trading_accounts }o--|| users : "belongs to"
+    paper_trading_accounts ||--o{ paper_trading_trades : "has many"
+    paper_trading_accounts ||--o{ portfolio_history : "tracks"
+
+    paper_trading_accounts {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK UK "User reference (unique)"
+        Decimal128 initial_balance "Starting balance"
+        Decimal128 current_balance "Current cash"
+        Decimal128 equity "Balance + unrealized"
+        Decimal128 margin_used "Allocated margin"
+        object metrics "Performance metrics"
+        number open_positions "Open position count"
+        array open_trade_ids "Active trade UUIDs"
+        object settings "Trading settings"
+        DateTime created_at "Account creation"
+        DateTime updated_at "Last activity"
+        DateTime last_trade_at "Last trade time"
+    }
+
+    paper_trading_trades }o--|| paper_trading_accounts : "belongs to"
+    paper_trading_trades }o--|| users : "belongs to"
+    paper_trading_trades }o--o| ai_analysis_results : "references signal"
+
+    paper_trading_trades {
+        ObjectId _id PK "Primary key"
+        string trade_id UK "UUID"
+        ObjectId user_id FK "User reference"
+        ObjectId account_id FK "Account reference"
+        string symbol "Trading pair"
+        enum trade_type "LONG or SHORT"
+        enum status "OPEN, CLOSED, CANCELLED"
+        Decimal128 entry_price "Entry price"
+        Decimal128 exit_price "Exit price"
+        Decimal128 quantity "Trade size"
+        number leverage "Leverage used"
+        Decimal128 pnl "Realized P&L"
+        number pnl_percentage "P&L percentage"
+        Decimal128 trading_fees "Fees paid"
+        string ai_signal_id "AI signal reference"
+        DateTime open_time "Position open time"
+        DateTime close_time "Position close time"
+        DateTime created_at "Record creation"
+    }
+
+    portfolio_history }o--|| paper_trading_accounts : "belongs to"
+
+    portfolio_history {
+        ObjectId _id PK "Primary key"
+        ObjectId account_id FK "Account reference"
+        DateTime timestamp "Snapshot time"
+        Decimal128 current_balance "Cash balance"
+        Decimal128 equity "Total equity"
+        Decimal128 total_pnl "Total P&L"
+        number total_trades "Trade count"
+        number win_rate "Win percentage"
+        Decimal128 max_drawdown "Maximum drawdown"
+        number open_positions "Open position count"
+        DateTime created_at "Record time"
+    }
+
+    %% =============================================================================
+    %% AI SIGNALS & METRICS
+    %% =============================================================================
+
+    ai_signals }o--|| ai_analysis_results : "references"
+    ai_signals }o--o| paper_trading_trades : "executed as"
+
+    ai_signals {
+        ObjectId _id PK "Primary key"
+        string signal_id UK "UUID"
+        string symbol "Trading pair"
+        enum signal_type "LONG or SHORT"
+        number confidence "Signal confidence"
+        string reasoning "AI reasoning"
+        Decimal128 entry_price "Suggested entry"
+        string trend_direction "Market trend"
+        number trend_strength "Trend strength"
+        boolean executed "Execution status"
+        string trade_id "Executed trade ID"
+        DateTime timestamp "Signal time"
+        DateTime created_at "Record time"
+    }
+
+    performance_metrics {
+        ObjectId _id PK "Primary key"
+        Date date "Metrics date"
+        number total_trades "Total trades"
+        number winning_trades "Winning trades"
+        number losing_trades "Losing trades"
+        number win_rate "Win percentage"
+        Decimal128 average_win "Avg win amount"
+        Decimal128 average_loss "Avg loss amount"
+        Decimal128 largest_win "Largest win"
+        Decimal128 largest_loss "Largest loss"
+        number profit_factor "Profit factor"
+        number sharpe_ratio "Sharpe ratio"
+        Decimal128 max_drawdown "Max drawdown"
+        Decimal128 total_pnl "Total P&L"
+        Decimal128 daily_pnl "Daily P&L"
+        DateTime created_at "Record time"
+    }
+
+    %% =============================================================================
+    %% STRATEGY CONFIGURATION
+    %% =============================================================================
+
+    strategy_configs }o--|| users : "belongs to"
+
+    strategy_configs {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference"
+        string strategy_name "Strategy identifier"
+        object parameters "Strategy parameters"
+        boolean enabled "Enabled status"
+        number weight "Strategy weight"
+        object risk_settings "Risk configuration"
+        DateTime created_at "Config creation"
+        DateTime updated_at "Last update"
+    }
+
+    paper_trading_settings {
+        ObjectId _id PK "Primary key"
+        object settings_data "Serialized settings"
+        DateTime created_at "Creation time"
+        DateTime updated_at "Last update"
+    }
+
+    %% =============================================================================
+    %% AUDIT & SECURITY
+    %% =============================================================================
+
+    audit_logs }o--o| users : "performed by"
+
+    audit_logs {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference (nullable)"
+        string action "Action performed"
+        string resource "Resource affected"
+        string resource_id "Resource ID"
+        string method "HTTP method"
+        string endpoint "API endpoint"
+        string ip_address "Client IP"
+        string user_agent "Client user agent"
+        enum status "SUCCESS, FAILURE, ERROR"
+        string error_message "Error details"
+        object metadata "Action-specific data"
+        DateTime timestamp "Action time"
+        DateTime created_at "Log time"
+    }
+
+    notifications }o--|| users : "belongs to"
+
+    notifications {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference"
+        string type "Notification type"
+        string title "Notification title"
+        string message "Notification message"
+        enum priority "LOW, MEDIUM, HIGH, URGENT"
+        boolean read "Read status"
+        object data "Additional data"
+        DateTime created_at "Notification time"
+        DateTime read_at "Read timestamp"
+        DateTime expires_at "Expiration time"
+    }
+
+    %% =============================================================================
+    %% SYSTEM CONFIGURATION
+    %% =============================================================================
+
+    system_config {
+        ObjectId _id PK "Primary key"
+        string key UK "Config key (unique)"
+        any value "Config value"
+        string category "Config category"
+        string description "Human description"
+        boolean is_active "Active status"
+        string updated_by "Admin username"
+        DateTime updated_at "Last update"
+        DateTime created_at "Creation time"
+    }
+
+    sessions }o--|| users : "belongs to"
+
+    sessions {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference"
+        string session_token UK "Session token (unique)"
+        string refresh_token "Refresh token"
+        string ip_address "Client IP"
+        string user_agent "Client user agent"
+        DateTime created_at "Session start"
+        DateTime expires_at "Session expiry"
+        DateTime last_activity "Last activity"
+    }
+
+    api_keys }o--|| users : "belongs to"
+
+    api_keys {
+        ObjectId _id PK "Primary key"
+        ObjectId user_id FK "User reference"
+        string exchange "Exchange name"
+        string api_key "Encrypted API key"
+        string api_secret "Encrypted secret"
+        string label "User label"
+        boolean is_active "Active status"
+        array permissions "Allowed operations"
+        DateTime created_at "Key creation"
+        DateTime updated_at "Last update"
+        DateTime last_used_at "Last usage"
+    }
+
+    %% =============================================================================
+    %% RELATIONSHIP LEGEND
+    %% =============================================================================
+    %%
+    %% ||--o{ : One-to-Many
+    %% }o--|| : Many-to-One
+    %% ||--|| : One-to-One
+    %% }o--o{ : Many-to-Many
+    %%
+    %% PK = Primary Key
+    %% FK = Foreign Key
+    %% UK = Unique Key
+    %%
+    %% =============================================================================

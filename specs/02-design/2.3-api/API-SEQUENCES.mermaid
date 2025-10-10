@@ -1,0 +1,665 @@
+# API Sequence Diagrams
+
+This document contains Mermaid sequence diagrams for key API workflows in the Bot Core trading platform.
+
+---
+
+## 1. User Registration Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Frontend<br/>(Next.js)
+    participant RustAPI as Rust Core API<br/>(Port 8080)
+    participant MongoDB
+
+    User->>Frontend: Enter email & password
+    Frontend->>Frontend: Validate input locally
+    Frontend->>RustAPI: POST /api/auth/register<br/>{email, password, full_name}
+
+    RustAPI->>RustAPI: Validate request body
+    RustAPI->>MongoDB: Query: Check if email exists
+    MongoDB-->>RustAPI: email_exists: false
+
+    RustAPI->>RustAPI: Hash password (bcrypt)
+    RustAPI->>MongoDB: Insert new user document
+
+    MongoDB-->>RustAPI: User ID: 507f1f77bcf86cd799439011
+
+    RustAPI->>RustAPI: Generate JWT token<br/>(expires in 7 days)
+    RustAPI-->>Frontend: 201 Created<br/>{token, user profile}
+
+    Frontend->>Frontend: Store token in localStorage
+    Frontend-->>User: Redirect to dashboard
+```
+
+---
+
+## 2. User Login Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Frontend<br/>(Next.js)
+    participant RustAPI as Rust Core API<br/>(Port 8080)
+    participant MongoDB
+
+    User->>Frontend: Enter email & password
+    Frontend->>RustAPI: POST /api/auth/login<br/>{email, password}
+
+    RustAPI->>RustAPI: Validate request format
+    RustAPI->>MongoDB: Find user by email
+
+    MongoDB-->>RustAPI: User document<br/>(with hashed password)
+
+    RustAPI->>RustAPI: Check if account is active
+    RustAPI->>RustAPI: Verify password (bcrypt)
+
+    alt Password Valid
+        RustAPI->>MongoDB: Update last_login timestamp
+        RustAPI->>RustAPI: Generate JWT token
+        RustAPI-->>Frontend: 200 OK<br/>{token, user profile}
+        Frontend->>Frontend: Store token in localStorage
+        Frontend-->>User: Show dashboard
+    else Password Invalid
+        RustAPI-->>Frontend: 401 Unauthorized<br/>{error: "Invalid email or password"}
+        Frontend-->>User: Show error message
+    end
+```
+
+---
+
+## 3. JWT Token Verification Flow
+
+```mermaid
+sequenceDiagram
+    participant Frontend as Frontend<br/>(Next.js)
+    participant RustAPI as Rust Core API<br/>(Port 8080)
+
+    Frontend->>RustAPI: GET /api/auth/verify<br/>Header: Authorization: Bearer <token>
+
+    RustAPI->>RustAPI: Extract token from header
+    RustAPI->>RustAPI: Verify JWT signature
+    RustAPI->>RustAPI: Check expiration time
+
+    alt Token Valid
+        RustAPI-->>Frontend: 200 OK<br/>{user_id, email, is_admin, exp}
+        Frontend->>Frontend: Update user session
+    else Token Invalid or Expired
+        RustAPI-->>Frontend: 401 Unauthorized<br/>{error: "Invalid or expired token"}
+        Frontend->>Frontend: Clear token from storage
+        Frontend-->>Frontend: Redirect to login page
+    end
+```
+
+---
+
+## 4. Market Data Subscription Flow
+
+```mermaid
+sequenceDiagram
+    participant Frontend as Frontend<br/>(Next.js)
+    participant RustAPI as Rust Core API<br/>(Port 8080)
+    participant WebSocket as WebSocket Server
+    participant Binance as Binance WebSocket
+
+    Frontend->>RustAPI: GET /api/market/symbols
+    RustAPI-->>Frontend: {symbols: [BTCUSDT, ETHUSDT, ...]}
+
+    Frontend->>WebSocket: Connect ws://localhost:8080/ws
+    WebSocket-->>Frontend: 101 Switching Protocols
+    WebSocket-->>Frontend: Message: {"type": "Connected"}
+
+    Note over Binance,WebSocket: Binance streams already running
+
+    Binance->>WebSocket: Price update: BTCUSDT @ 67500.50
+    WebSocket->>WebSocket: Process price update
+    WebSocket-->>Frontend: {"type": "MarketData", "data": {...}}
+
+    Frontend->>Frontend: Update price display
+    Frontend->>Frontend: Update charts
+
+    loop Every 1 minute
+        Binance->>WebSocket: Candle close event
+        WebSocket-->>Frontend: {"type": "ChartUpdate", "data": {...}}
+        Frontend->>Frontend: Append new candle to chart
+    end
+```
+
+---
+
+## 5. AI Analysis Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Frontend as Frontend<br/>(Next.js)
+    participant RustAPI as Rust Core API<br/>(Port 8080)
+    participant PythonAI as Python AI Service<br/>(Port 8000)
+    participant OpenAI as OpenAI GPT-4 API
+    participant MongoDB
+
+    Frontend->>RustAPI: POST /api/ai/analyze<br/>{symbol, timeframe_data, strategy_context}
+
+    RustAPI->>PythonAI: POST /ai/analyze<br/>Forward request
+
+    PythonAI->>MongoDB: Query: Get latest analysis for BTCUSDT
+    MongoDB-->>PythonAI: Latest analysis (2 minutes old)
+
+    alt Analysis is recent (< 5 min)
+        PythonAI-->>RustAPI: 200 OK [CACHED]<br/>{signal, confidence, reasoning}
+        RustAPI-->>Frontend: Return cached analysis
+    else Analysis is stale or missing
+        PythonAI->>PythonAI: Calculate technical indicators<br/>(RSI, MACD, Bollinger Bands)
+
+        PythonAI->>PythonAI: Prepare GPT-4 prompt<br/>with market context
+
+        PythonAI->>OpenAI: POST /v1/chat/completions<br/>Model: gpt-4o-mini
+
+        OpenAI-->>PythonAI: AI analysis response<br/>(JSON with signal & reasoning)
+
+        PythonAI->>PythonAI: Parse GPT-4 response
+        PythonAI->>MongoDB: Store analysis result<br/>(cache for 5 minutes)
+
+        PythonAI-->>RustAPI: 200 OK<br/>{signal, confidence, reasoning, ...}
+        RustAPI-->>Frontend: Return fresh analysis
+    end
+
+    Frontend->>Frontend: Display AI signal
+    Frontend->>Frontend: Update signal chart
+```
+
+---
+
+## 6. Paper Trading Execution Flow
+
+```mermaid
+sequenceDiagram
+    participant PaperEngine as Paper Trading Engine<br/>(Rust Background Task)
+    participant RustAPI as Rust Core API
+    participant PythonAI as Python AI Service
+    participant MongoDB
+    participant WebSocket as WebSocket Server
+    participant Frontend as Frontend<br/>(Dashboard)
+
+    Note over PaperEngine: Timer triggers (every 5 min)
+
+    PaperEngine->>PaperEngine: Get tracked symbols<br/>[BTCUSDT, ETHUSDT, ...]
+
+    loop For each symbol
+        PaperEngine->>PaperEngine: Fetch market data<br/>(last 100 candles)
+
+        PaperEngine->>PythonAI: POST /ai/analyze<br/>{symbol, timeframe_data}
+
+        PythonAI->>PythonAI: Calculate indicators
+        PythonAI->>PythonAI: Run GPT-4 analysis
+        PythonAI-->>PaperEngine: {signal: "Long", confidence: 0.82}
+
+        PaperEngine->>PaperEngine: Check confidence threshold<br/>(> 0.65 default)
+
+        alt Confidence >= Threshold
+            PaperEngine->>PaperEngine: Check position limits<br/>Check risk management
+
+            alt Can open position
+                PaperEngine->>PaperEngine: Calculate position size<br/>(5% of portfolio)
+
+                PaperEngine->>PaperEngine: Execute simulated trade
+                PaperEngine->>MongoDB: Store trade record
+
+                PaperEngine->>WebSocket: Broadcast position opened
+                WebSocket-->>Frontend: {"type": "PositionUpdate", "action": "OPENED"}
+
+                Frontend->>Frontend: Add position to UI
+                Frontend->>Frontend: Show notification
+            else Cannot open position
+                Note over PaperEngine: Skip trade (risk limits)
+            end
+        else Confidence < Threshold
+            Note over PaperEngine: Signal ignored (low confidence)
+        end
+    end
+
+    Note over PaperEngine: Check existing positions
+
+    loop For each open position
+        PaperEngine->>PaperEngine: Get current price
+        PaperEngine->>PaperEngine: Calculate PnL
+
+        alt Stop loss hit
+            PaperEngine->>PaperEngine: Close position (STOP_LOSS)
+            PaperEngine->>MongoDB: Update trade record
+            PaperEngine->>WebSocket: Broadcast position closed
+            WebSocket-->>Frontend: {"type": "PositionUpdate", "action": "CLOSED"}
+        else Take profit hit
+            PaperEngine->>PaperEngine: Close position (TAKE_PROFIT)
+            PaperEngine->>MongoDB: Update trade record
+            PaperEngine->>WebSocket: Broadcast position closed
+        else Still open
+            PaperEngine->>WebSocket: Broadcast position updated
+            WebSocket-->>Frontend: {"type": "PositionUpdate", "action": "UPDATED"}
+        end
+    end
+```
+
+---
+
+## 7. Real-time WebSocket Update Flow
+
+```mermaid
+sequenceDiagram
+    participant Binance as Binance WebSocket
+    participant MarketData as Market Data Processor<br/>(Rust)
+    participant WebSocket as WebSocket Server
+    participant Client1 as Client 1<br/>(Dashboard)
+    participant Client2 as Client 2<br/>(Mobile App)
+    participant Client3 as Client 3<br/>(Trading Bot)
+
+    Binance->>MarketData: Price update: BTCUSDT @ 67500.50
+
+    MarketData->>MarketData: Update cache
+    MarketData->>MarketData: Calculate change_24h
+
+    MarketData->>WebSocket: Broadcast to channel<br/>{"type": "MarketData", ...}
+
+    par Broadcast to all clients
+        WebSocket-->>Client1: Market data message
+        Client1->>Client1: Update price ticker
+        Client1->>Client1: Update chart
+
+        WebSocket-->>Client2: Market data message
+        Client2->>Client2: Update price display
+
+        WebSocket-->>Client3: Market data message
+        Client3->>Client3: Process for trading logic
+    end
+
+    Note over Binance,MarketData: 1 minute later - Candle closes
+
+    Binance->>MarketData: Candle close event
+
+    MarketData->>MarketData: Calculate indicators<br/>(RSI, MACD, BB)
+
+    MarketData->>WebSocket: Broadcast chart update<br/>{"type": "ChartUpdate", ...}
+
+    par Broadcast to all clients
+        WebSocket-->>Client1: Chart update message
+        Client1->>Client1: Append candle to chart
+        Client1->>Client1: Update indicators
+
+        WebSocket-->>Client2: Chart update message
+        Client2->>Client2: Update chart view
+
+        WebSocket-->>Client3: Chart update message
+        Client3->>Client3: Trigger strategy evaluation
+    end
+```
+
+---
+
+## 8. AI Signal Broadcasting Flow
+
+```mermaid
+sequenceDiagram
+    participant PythonAI as Python AI Service<br/>(Background Task)
+    participant OpenAI as OpenAI GPT-4 API
+    participant MongoDB
+    participant WSManager as WebSocket Manager<br/>(Python)
+    participant Client1 as Client 1
+    participant Client2 as Client 2
+
+    Note over PythonAI: Periodic analysis timer (5 min)
+
+    loop For each tracked symbol
+        PythonAI->>PythonAI: Generate market data
+
+        PythonAI->>OpenAI: POST /v1/chat/completions<br/>Analyze BTCUSDT
+
+        OpenAI-->>PythonAI: GPT-4 analysis result
+
+        PythonAI->>MongoDB: Store analysis result
+
+        PythonAI->>WSManager: Broadcast AI signal<br/>{"type": "AISignalReceived", ...}
+
+        par Broadcast to all WebSocket clients
+            WSManager-->>Client1: AI signal message
+            Client1->>Client1: Display signal badge
+            Client1->>Client1: Play notification sound
+            Client1->>Client1: Update signal history
+
+            WSManager-->>Client2: AI signal message
+            Client2->>Client2: Check auto-trading settings
+
+            alt Auto-trading enabled
+                Client2->>Client2: Evaluate confidence > 0.70
+                Client2->>Client2: Execute trade via API
+            else Auto-trading disabled
+                Client2->>Client2: Show notification only
+            end
+        end
+
+        Note over PythonAI: Wait 10 seconds (rate limit)
+    end
+```
+
+---
+
+## 9. Manual Trade Close Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Frontend<br/>(Dashboard)
+    participant RustAPI as Rust Core API
+    participant PaperEngine as Paper Trading Engine
+    participant MongoDB
+    participant WebSocket as WebSocket Server
+
+    User->>Frontend: Click "Close Position" button<br/>for BTCUSDT
+
+    Frontend->>Frontend: Show confirmation modal
+
+    User->>Frontend: Confirm close action
+
+    Frontend->>RustAPI: POST /api/paper-trading/trades/BTCUSDT/close<br/>{reason: "Manual close"}
+
+    RustAPI->>PaperEngine: Request position close
+
+    PaperEngine->>PaperEngine: Get current BTCUSDT position
+
+    alt Position exists
+        PaperEngine->>PaperEngine: Get current market price
+        PaperEngine->>PaperEngine: Calculate final PnL
+
+        PaperEngine->>PaperEngine: Close position<br/>Update balance
+
+        PaperEngine->>MongoDB: Update trade record<br/>Set exit_price, realized_pnl
+
+        PaperEngine->>WebSocket: Broadcast position closed
+        WebSocket-->>Frontend: {"type": "PositionUpdate", "action": "CLOSED"}
+
+        PaperEngine-->>RustAPI: Position closed successfully
+
+        RustAPI-->>Frontend: 200 OK<br/>{trade_id, exit_price, realized_pnl}
+
+        Frontend->>Frontend: Remove position from UI
+        Frontend->>Frontend: Update balance display
+        Frontend->>Frontend: Show success notification
+
+        Frontend-->>User: "Position closed: +$50.00 (5.0%)"
+    else Position not found
+        PaperEngine-->>RustAPI: Error: Position not found
+
+        RustAPI-->>Frontend: 404 Not Found<br/>{error: "No open position"}
+
+        Frontend-->>User: Show error message
+    end
+```
+
+---
+
+## 10. Settings Update Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Frontend<br/>(Settings Page)
+    participant RustAPI as Rust Core API
+    participant PaperEngine as Paper Trading Engine
+    participant MongoDB
+
+    User->>Frontend: Navigate to Paper Trading Settings
+
+    Frontend->>RustAPI: GET /api/paper-trading/settings
+
+    RustAPI->>PaperEngine: Request current settings
+
+    PaperEngine->>PaperEngine: Read settings from state
+
+    PaperEngine-->>RustAPI: Current settings object
+
+    RustAPI-->>Frontend: 200 OK<br/>{basic_settings, strategy_settings, symbol_settings}
+
+    Frontend->>Frontend: Display settings form<br/>Pre-fill with current values
+
+    User->>Frontend: Update confidence threshold<br/>0.65 → 0.45
+
+    User->>Frontend: Update position size<br/>5% → 3%
+
+    User->>Frontend: Click "Save Changes"
+
+    Frontend->>RustAPI: PUT /api/paper-trading/basic-settings<br/>{confidence_threshold: 0.45, default_position_size_percent: 3.0}
+
+    RustAPI->>PaperEngine: Update basic settings
+
+    PaperEngine->>PaperEngine: Validate new settings<br/>Check value ranges
+
+    alt Settings valid
+        PaperEngine->>PaperEngine: Update internal state
+        PaperEngine->>MongoDB: Persist updated settings
+
+        PaperEngine-->>RustAPI: Settings updated successfully
+
+        RustAPI-->>Frontend: 200 OK<br/>{success: true}
+
+        Frontend->>Frontend: Show success toast
+        Frontend->>Frontend: Refresh settings display
+
+        Frontend-->>User: "Settings saved successfully"
+    else Settings invalid
+        PaperEngine-->>RustAPI: Validation error
+
+        RustAPI-->>Frontend: 400 Bad Request<br/>{error: "Invalid leverage: must be 1-125"}
+
+        Frontend-->>User: Show error message
+    end
+```
+
+---
+
+## 11. Strategy Recommendation Flow
+
+```mermaid
+sequenceDiagram
+    participant Frontend as Frontend<br/>(Strategy Page)
+    participant RustAPI as Rust Core API
+    participant PythonAI as Python AI Service
+    participant OpenAI as OpenAI GPT-4 API
+
+    Frontend->>RustAPI: GET /api/market/chart/BTCUSDT/1h?limit=100
+
+    RustAPI-->>Frontend: Candle data + indicators
+
+    Frontend->>RustAPI: POST /api/ai/strategy-recommendations<br/>{symbol, timeframe_data, available_strategies}
+
+    RustAPI->>PythonAI: POST /ai/strategy-recommendations<br/>Forward request
+
+    PythonAI->>PythonAI: Convert timeframe_data to DataFrame
+    PythonAI->>PythonAI: Calculate technical indicators
+
+    PythonAI->>PythonAI: Analyze market conditions<br/>Trend: Upward, Volatility: Medium
+
+    PythonAI->>PythonAI: Generate suitability scores<br/>for each strategy
+
+    Note over PythonAI: Simple scoring algorithm<br/>(Future: GPT-4 powered)
+
+    PythonAI-->>RustAPI: 200 OK<br/>[{strategy_name, suitability_score, reasoning}, ...]
+
+    RustAPI-->>Frontend: Strategy recommendations
+
+    Frontend->>Frontend: Sort by suitability score
+    Frontend->>Frontend: Display recommendation cards
+
+    Frontend->>Frontend: Highlight top 3 strategies<br/>1. RSI Strategy (0.85)<br/>2. MACD Strategy (0.78)<br/>3. Bollinger Bands (0.72)
+
+    User->>Frontend: Click "Apply Recommendations"
+
+    Frontend->>RustAPI: PUT /api/paper-trading/strategy-settings<br/>{enabled_strategies: [RSI, MACD, BB]}
+
+    RustAPI-->>Frontend: 200 OK
+
+    Frontend->>Frontend: Update enabled strategies list
+    Frontend->>Frontend: Show success notification
+```
+
+---
+
+## 12. Error Handling and Retry Flow
+
+```mermaid
+sequenceDiagram
+    participant Frontend as Frontend
+    participant RustAPI as Rust Core API
+    participant PythonAI as Python AI Service
+    participant OpenAI as OpenAI GPT-4 API
+
+    Frontend->>RustAPI: POST /api/ai/analyze
+
+    RustAPI->>PythonAI: POST /ai/analyze
+
+    PythonAI->>OpenAI: POST /v1/chat/completions<br/>API Key 1
+
+    OpenAI-->>PythonAI: 429 Rate Limit Exceeded<br/>Retry-After: 60
+
+    Note over PythonAI: Mark API Key 1 as rate limited<br/>Set reset time
+
+    PythonAI->>PythonAI: Switch to API Key 2
+
+    PythonAI->>OpenAI: POST /v1/chat/completions<br/>API Key 2
+
+    OpenAI-->>PythonAI: 200 OK<br/>Analysis result
+
+    PythonAI-->>RustAPI: 200 OK<br/>AI analysis
+
+    RustAPI-->>Frontend: 200 OK
+
+    Note over Frontend,PythonAI: 5 minutes later - Key 1 retry
+
+    Frontend->>RustAPI: POST /api/ai/analyze
+
+    RustAPI->>PythonAI: POST /ai/analyze
+
+    PythonAI->>PythonAI: Check rate limit status<br/>Key 1 reset time expired
+
+    PythonAI->>PythonAI: Clear rate limit flag<br/>Switch back to API Key 1
+
+    PythonAI->>OpenAI: POST /v1/chat/completions<br/>API Key 1
+
+    OpenAI-->>PythonAI: 200 OK
+
+    PythonAI-->>RustAPI: 200 OK
+
+    RustAPI-->>Frontend: 200 OK
+```
+
+---
+
+## 13. Health Check Flow
+
+```mermaid
+sequenceDiagram
+    participant Monitoring as Monitoring Service<br/>(External)
+    participant RustAPI as Rust Core API<br/>(Port 8080)
+    participant PythonAI as Python AI Service<br/>(Port 8000)
+    participant MongoDB
+    participant Binance as Binance WebSocket
+
+    Monitoring->>RustAPI: GET /health
+
+    RustAPI->>RustAPI: Check service status
+
+    RustAPI-->>Monitoring: 200 OK<br/>{status: "healthy"}
+
+    Monitoring->>PythonAI: GET /health
+
+    PythonAI->>PythonAI: Check OpenAI client status
+    PythonAI->>MongoDB: Ping database
+
+    MongoDB-->>PythonAI: Pong
+
+    PythonAI-->>Monitoring: 200 OK<br/>{status: "healthy", gpt4_available: true, mongodb_connected: true}
+
+    Note over Monitoring: All services healthy
+
+    Note over RustAPI,Binance: 5 minutes later - WebSocket disconnected
+
+    Monitoring->>RustAPI: GET /api/monitoring/connection
+
+    RustAPI->>RustAPI: Check Binance WebSocket status
+
+    RustAPI-->>Monitoring: 200 OK<br/>{binance_websocket: {connected: false, reconnect_count: 3}}
+
+    Monitoring->>Monitoring: Alert: Binance WebSocket down
+
+    Note over RustAPI: Auto-reconnection in progress
+
+    RustAPI->>Binance: Reconnect WebSocket
+
+    Binance-->>RustAPI: 101 Switching Protocols
+
+    RustAPI->>RustAPI: Update connection status
+
+    Note over Monitoring: 1 minute later - Recheck
+
+    Monitoring->>RustAPI: GET /api/monitoring/connection
+
+    RustAPI-->>Monitoring: 200 OK<br/>{binance_websocket: {connected: true}}
+
+    Monitoring->>Monitoring: Clear alert
+```
+
+---
+
+## 14. Multi-Chart Data Fetching Flow
+
+```mermaid
+sequenceDiagram
+    participant Frontend as Frontend<br/>(Dashboard)
+    participant RustAPI as Rust Core API
+    participant Cache as Market Data Cache
+    participant Binance as Binance API
+
+    Frontend->>RustAPI: GET /api/market/charts?<br/>symbols=BTCUSDT,ETHUSDT,BNBUSDT&<br/>timeframes=1h,4h&limit=100
+
+    RustAPI->>RustAPI: Parse query parameters<br/>Split symbols and timeframes
+
+    par Fetch BTCUSDT 1h
+        RustAPI->>Cache: Get BTCUSDT 1h candles
+        alt Cache hit
+            Cache-->>RustAPI: Cached candles
+        else Cache miss
+            RustAPI->>Binance: GET /api/v3/klines<br/>symbol=BTCUSDT, interval=1h
+            Binance-->>RustAPI: Candle data
+            RustAPI->>Cache: Store in cache
+        end
+    and Fetch BTCUSDT 4h
+        RustAPI->>Cache: Get BTCUSDT 4h candles
+        Cache-->>RustAPI: Cached candles
+    and Fetch ETHUSDT 1h
+        RustAPI->>Cache: Get ETHUSDT 1h candles
+        Cache-->>RustAPI: Cached candles
+    and Fetch ETHUSDT 4h
+        RustAPI->>Cache: Get ETHUSDT 4h candles
+        Cache-->>RustAPI: Cached candles
+    and Fetch BNBUSDT 1h
+        RustAPI->>Cache: Get BNBUSDT 1h candles
+        Cache-->>RustAPI: Cached candles
+    and Fetch BNBUSDT 4h
+        RustAPI->>Cache: Get BNBUSDT 4h candles
+        Cache-->>RustAPI: Cached candles
+    end
+
+    RustAPI->>RustAPI: Calculate indicators for each chart
+
+    RustAPI->>RustAPI: Combine all chart data<br/>into nested JSON structure
+
+    RustAPI-->>Frontend: 200 OK<br/>{BTCUSDT: {1h: {...}, 4h: {...}}, ...}
+
+    Frontend->>Frontend: Render multi-chart view
+    Frontend->>Frontend: Initialize 6 chart instances
+```
+
+---
+
+**Document Version:** 1.0.0
+**Last Updated:** 2025-10-10
+**Author:** Claude Code
+**Total Diagrams:** 14
