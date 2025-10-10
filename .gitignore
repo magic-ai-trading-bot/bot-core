@@ -61,6 +61,21 @@ Thumbs.db
 *.temp
 .cache/
 
+# Temporary reports and audit files
+security_audit*.json
+security_audit*.txt
+security_scan*.txt
+*_VERSIONS*.txt
+requirements.*.updated.txt
+requirements.txt.backup.*
+verify_versions.py
+compare_versions.sh
+
+# Mutation testing output
+mutants-indicators/
+mutants.out/
+.mutants/
+
 # Package lock files (keep package.json)
 package-lock.json
 yarn.lock
