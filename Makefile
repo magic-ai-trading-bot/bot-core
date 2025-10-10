@@ -367,6 +367,20 @@ urls: ## Show service URLs
 	@echo "  Grafana (optional): http://localhost:3001"
 	@echo "  Prometheus (opt.):  http://localhost:9090"
 
+# Quality Metrics
+quality-metrics: ## Run comprehensive quality metrics analysis
+	@echo "Running quality metrics analysis..."
+	@chmod +x scripts/quality-metrics.sh
+	@./scripts/quality-metrics.sh
+
+quality-report: ## Generate quality metrics report
+	@echo "Generating quality metrics report..."
+	@chmod +x scripts/quality-metrics.sh
+	@./scripts/quality-metrics.sh
+	@echo ""
+	@echo "Report available at: metrics/quality-report-*.json"
+	@echo "See docs/reports/QUALITY_METRICS_SUMMARY.md for detailed analysis"
+
 # Development help
 dev-help: ## Show development commands
 	@echo "Development Commands:"
