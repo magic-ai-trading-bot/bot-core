@@ -85,14 +85,12 @@ impl Strategy for VolumeStrategy {
         let volume_sma =
             calculate_sma(&volumes, volume_sma_period).map_err(StrategyError::CalculationError)?;
 
-        if volume_sma.is_empty() {
-            return Err(StrategyError::InsufficientData(
-                "No volume SMA calculated".to_string(),
-            ));
-        }
-
-        let current_volume = *volumes.last().unwrap();
-        let avg_volume = *volume_sma.last().unwrap();
+        let current_volume = *volumes.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No volume data available".to_string())
+        })?;
+        let avg_volume = *volume_sma.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No volume SMA calculated".to_string())
+        })?;
         let volume_ratio = current_volume / avg_volume;
 
         // Calculate price changes for volume-price analysis

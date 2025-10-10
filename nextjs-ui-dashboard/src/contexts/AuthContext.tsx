@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import logger from "@/utils/logger";
 import {
   BotCoreApiClient,
   LoginRequest,
@@ -43,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setUser(userProfile);
           setIsAuthenticated(true);
         } catch (error) {
-          console.error("Failed to verify token:", error);
+          logger.error("Failed to verify token:", error);
           apiClient.auth.removeAuthToken();
         }
       }
@@ -68,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return true;
     } catch (error: unknown) {
-      console.error("Login failed:", error);
+      logger.error("Login failed:", error);
       setError(error instanceof Error ? error.message : "Login failed");
       return false;
     } finally {
@@ -99,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return true;
     } catch (error: unknown) {
-      console.error("Registration failed:", error);
+      logger.error("Registration failed:", error);
       setError(error instanceof Error ? error.message : "Registration failed");
       return false;
     } finally {

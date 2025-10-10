@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,7 +195,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
       }, 1000 + Math.random() * 1000); // 1-2 second delay
     } catch (error) {
       setIsTyping(false);
-      console.error("Chat error:", error);
+      logger.error("Chat error:", error);
       toast.error("Có lỗi xảy ra khi gửi tin nhắn");
     } finally {
       setIsLoading(false);

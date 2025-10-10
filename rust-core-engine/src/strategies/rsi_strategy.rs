@@ -118,14 +118,12 @@ impl Strategy for RsiStrategy {
         let confirmation_rsi = calculate_rsi(confirmation_candles, rsi_period)
             .map_err(StrategyError::CalculationError)?;
 
-        if primary_rsi.is_empty() || confirmation_rsi.is_empty() {
-            return Err(StrategyError::InsufficientData(
-                "No RSI values calculated".to_string(),
-            ));
-        }
-
-        let current_rsi_1h = *primary_rsi.last().unwrap();
-        let current_rsi_4h = *confirmation_rsi.last().unwrap();
+        let current_rsi_1h = *primary_rsi.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No RSI values calculated for 1h".to_string())
+        })?;
+        let current_rsi_4h = *confirmation_rsi.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No RSI values calculated for 4h".to_string())
+        })?;
 
         // Get previous RSI values for trend analysis
         let prev_rsi_1h = if primary_rsi.len() > 1 {

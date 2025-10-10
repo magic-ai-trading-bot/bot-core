@@ -31,13 +31,25 @@ logs/*.log
 # Configuration files with secrets
 config.toml
 .env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.key
 *.pem
+secrets/
+.secrets/
 
 # Coverage reports
 tarpaulin-report.html
 cobertura.xml
 /target/tarpaulin/
+coverage/
+htmlcov/
+.coverage
+*.lcov
+lcov.info
 
 # Local data
 /data/*

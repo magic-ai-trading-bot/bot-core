@@ -1,0 +1,383 @@
+name: Test Coverage & Quality Gates
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  RUST_COVERAGE_THRESHOLD: 90.0
+  PYTHON_COVERAGE_THRESHOLD: 94.0
+  FRONTEND_COVERAGE_THRESHOLD: 90.0
+
+jobs:
+  test-rust:
+    name: Rust Core Engine Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust-core-engine/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin || true
+
+      - name: Run Rust tests
+        working-directory: ./rust-core-engine
+        run: |
+          cargo test --all --verbose -- --test-threads=1 --nocapture
+
+      - name: Generate coverage report
+        working-directory: ./rust-core-engine
+        run: |
+          cargo tarpaulin \
+            --timeout 300 \
+            --skip-clean \
+            --out Xml \
+            --out Html \
+            --output-dir coverage \
+            -- --test-threads=1
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./rust-core-engine/coverage/cobertura.xml
+          flags: rust
+          name: rust-coverage
+          fail_ci_if_error: false
+
+      - name: Check coverage threshold
+        working-directory: ./rust-core-engine
+        run: |
+          COVERAGE=$(cargo tarpaulin --print-summary 2>/dev/null | grep -oP '\d+\.\d+(?=%)' | head -1 || echo "0")
+          echo "Current Rust coverage: $COVERAGE%"
+          echo "Required threshold: $RUST_COVERAGE_THRESHOLD%"
+
+          if (( $(echo "$COVERAGE < $RUST_COVERAGE_THRESHOLD" | bc -l) )); then
+            echo "⚠️ Coverage $COVERAGE% is below $RUST_COVERAGE_THRESHOLD% threshold"
+            echo "This is a warning, not blocking the build yet"
+          else
+            echo "✅ Coverage $COVERAGE% meets threshold"
+          fi
+
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: rust-coverage-report
+          path: rust-core-engine/coverage/
+
+  test-python:
+    name: Python AI Service Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        working-directory: ./python-ai-service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-xdist
+
+      - name: Run Python tests
+        working-directory: ./python-ai-service
+        run: |
+          python -m pytest tests/ \
+            -v \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term-missing \
+            -n auto
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./python-ai-service/coverage.xml
+          flags: python
+          name: python-coverage
+          fail_ci_if_error: false
+
+      - name: Check coverage threshold
+        working-directory: ./python-ai-service
+        run: |
+          COVERAGE=$(python -m pytest --cov=. --cov-report=term-missing tests/ 2>/dev/null | grep "TOTAL" | awk '{print $NF}' | sed 's/%//' || echo "0")
+          echo "Current Python coverage: $COVERAGE%"
+          echo "Required threshold: $PYTHON_COVERAGE_THRESHOLD%"
+
+          if (( $(echo "$COVERAGE < $PYTHON_COVERAGE_THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below $PYTHON_COVERAGE_THRESHOLD% threshold"
+            exit 1
+          else
+            echo "✅ Coverage $COVERAGE% meets threshold"
+          fi
+
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-coverage-report
+          path: python-ai-service/htmlcov/
+
+  test-frontend:
+    name: Frontend (Next.js) Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: nextjs-ui-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./nextjs-ui-dashboard
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ./nextjs-ui-dashboard
+        run: npm run lint || true
+
+      - name: Run tests with coverage
+        working-directory: ./nextjs-ui-dashboard
+        run: npm run test:coverage || npm test -- --coverage
+        env:
+          CI: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./nextjs-ui-dashboard/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+
+      - name: Check coverage threshold
+        working-directory: ./nextjs-ui-dashboard
+        run: |
+          # Try to extract coverage from test output
+          COVERAGE=$(npm run test:coverage 2>&1 | grep -oP '\d+\.\d+(?=%)' | head -1 || echo "0")
+          echo "Current Frontend coverage: $COVERAGE%"
+          echo "Required threshold: $FRONTEND_COVERAGE_THRESHOLD%"
+
+          if (( $(echo "$COVERAGE < $FRONTEND_COVERAGE_THRESHOLD" | bc -l) )); then
+            echo "⚠️ Coverage $COVERAGE% is below $FRONTEND_COVERAGE_THRESHOLD% threshold"
+            echo "This is a warning, not blocking the build yet"
+          else
+            echo "✅ Coverage $COVERAGE% meets threshold"
+          fi
+
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-coverage-report
+          path: nextjs-ui-dashboard/coverage/
+
+  lint-and-format:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Rust format check
+        working-directory: ./rust-core-engine
+        run: cargo fmt -- --check
+
+      - name: Rust clippy
+        working-directory: ./rust-core-engine
+        run: cargo clippy -- -D warnings -A clippy::too_many_arguments
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python linters
+        run: |
+          pip install flake8 black isort mypy
+
+      - name: Python format check
+        working-directory: ./python-ai-service
+        run: |
+          black --check . || true
+          isort --check-only . || true
+
+      - name: Python lint
+        working-directory: ./python-ai-service
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install frontend linters
+        working-directory: ./nextjs-ui-dashboard
+        run: npm ci
+
+      - name: Frontend lint
+        working-directory: ./nextjs-ui-dashboard
+        run: npm run lint || true
+
+  coverage-report:
+    name: Generate Coverage Report
+    needs: [test-rust, test-python, test-frontend]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Rust coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: rust-coverage-report
+          path: ./coverage/rust
+        continue-on-error: true
+
+      - name: Download Python coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: python-coverage-report
+          path: ./coverage/python
+        continue-on-error: true
+
+      - name: Download Frontend coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-coverage-report
+          path: ./coverage/frontend
+        continue-on-error: true
+
+      - name: Generate summary report
+        run: |
+          echo "# Test Coverage Summary" > coverage-summary.md
+          echo "" >> coverage-summary.md
+          echo "## Coverage by Service" >> coverage-summary.md
+          echo "" >> coverage-summary.md
+          echo "| Service | Coverage | Status | Tests |" >> coverage-summary.md
+          echo "|---------|----------|--------|-------|" >> coverage-summary.md
+          echo "| Rust Core | - | ⏳ | - |" >> coverage-summary.md
+          echo "| Python AI | - | ⏳ | - |" >> coverage-summary.md
+          echo "| Frontend | - | ⏳ | - |" >> coverage-summary.md
+          echo "" >> coverage-summary.md
+          echo "View detailed reports in workflow artifacts." >> coverage-summary.md
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-summary
+          path: coverage-summary.md
+
+      - name: Comment PR with coverage
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('coverage-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  performance-benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install criterion
+        run: cargo install cargo-criterion || true
+
+      - name: Run Rust benchmarks
+        working-directory: ./rust-core-engine
+        run: |
+          cargo bench --no-fail-fast || echo "Benchmarks not configured yet"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: rust-benchmarks
+          path: rust-core-engine/target/criterion/
+        continue-on-error: true

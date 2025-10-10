@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Position, TradeHistory, BotStatus, AISignal } from "@/services/api";
+import logger from "@/utils/logger";
 
 // WebSocket message types from Rust Trading Engine
 export interface WebSocketMessage {
@@ -252,7 +253,7 @@ export const useWebSocket = (): WebSocketHook => {
             // Handle market data update
             break;
           case "Error":
-            console.error("WebSocket error:", message.data);
+            logger.error("WebSocket error:", message.data);
             if (message.data) {
               setState((prev) => ({
                 ...prev,
@@ -261,10 +262,10 @@ export const useWebSocket = (): WebSocketHook => {
             }
             break;
           default:
-            console.warn("Unknown message type:", message.type);
+            logger.warn("Unknown message type:", message.type);
         }
       } catch (error) {
-        console.error("Failed to parse WebSocket message:", error);
+        logger.error("Failed to parse WebSocket message:", error);
         setState((prev) => ({
           ...prev,
           error: "Failed to parse WebSocket message",
@@ -308,7 +309,7 @@ export const useWebSocket = (): WebSocketHook => {
   }, []);
 
   const handleError = useCallback((event: Event) => {
-    console.error("❌ WebSocket error:", event);
+    logger.error("WebSocket error:", event);
     setState((prev) => ({
       ...prev,
       error: "WebSocket connection error",
@@ -336,7 +337,7 @@ export const useWebSocket = (): WebSocketHook => {
 
       wsRef.current = ws;
     } catch (error) {
-      console.error("Failed to create WebSocket connection:", error);
+      logger.error("Failed to create WebSocket connection:", error);
       setState((prev) => ({
         ...prev,
         error: "Failed to create WebSocket connection",
@@ -382,7 +383,7 @@ export const useWebSocket = (): WebSocketHook => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(messageStr);
     } else {
-      console.warn("WebSocket is not connected. Cannot send message.");
+      logger.warn("WebSocket is not connected. Cannot send message.");
     }
   }, []);
 

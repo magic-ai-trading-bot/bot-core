@@ -114,20 +114,28 @@ impl Strategy for MacdStrategy {
         )
         .map_err(StrategyError::CalculationError)?;
 
-        if primary_macd.histogram.is_empty() || confirmation_macd.histogram.is_empty() {
-            return Err(StrategyError::InsufficientData(
-                "No MACD values calculated".to_string(),
-            ));
-        }
+        // Get current values with proper error handling
+        let current_macd_1h = *primary_macd
+            .macd_line
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No MACD line values".to_string()))?;
+        let current_signal_1h = *primary_macd.signal_line.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No MACD signal line values".to_string())
+        })?;
+        let current_histogram_1h = *primary_macd.histogram.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No MACD histogram values".to_string())
+        })?;
 
-        // Get current and previous values
-        let current_macd_1h = *primary_macd.macd_line.last().unwrap();
-        let current_signal_1h = *primary_macd.signal_line.last().unwrap();
-        let current_histogram_1h = *primary_macd.histogram.last().unwrap();
-
-        let current_macd_4h = *confirmation_macd.macd_line.last().unwrap();
-        let current_signal_4h = *confirmation_macd.signal_line.last().unwrap();
-        let current_histogram_4h = *confirmation_macd.histogram.last().unwrap();
+        let current_macd_4h = *confirmation_macd
+            .macd_line
+            .last()
+            .ok_or_else(|| StrategyError::InsufficientData("No 4h MACD line values".to_string()))?;
+        let current_signal_4h = *confirmation_macd.signal_line.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No 4h MACD signal line values".to_string())
+        })?;
+        let current_histogram_4h = *confirmation_macd.histogram.last().ok_or_else(|| {
+            StrategyError::InsufficientData("No 4h MACD histogram values".to_string())
+        })?;
 
         // Get previous values for trend analysis
         let prev_macd_1h = if primary_macd.macd_line.len() > 1 {

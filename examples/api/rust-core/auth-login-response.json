@@ -1,0 +1,25 @@
+{
+  "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImVtYWlsIjoidHJhZGVyQGV4YW1wbGUuY29tIiwicm9sZSI6InRyYWRlciIsInBlcm1pc3Npb25zIjpbInRyYWRlIiwidmlld19wb3NpdGlvbnMiLCJ2aWV3X2hpc3RvcnkiXSwiaWF0IjoxNzAxMjM0NTY3LCJleHAiOjE3MDEzMjA5NjcsImlzcyI6ImJvdC1jb3JlLWF1dGgiLCJhdWQiOiJib3QtY29yZS1hcGkifQ.signature",
+  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.refresh_payload.signature",
+  "expires_in": 86400,
+  "user": {
+    "id": "user_123",
+    "email": "trader@example.com",
+    "full_name": "John Trader",
+    "is_active": true,
+    "is_admin": false,
+    "created_at": "2025-01-15T10:30:00Z",
+    "last_login": "2025-10-10T12:00:00Z",
+    "settings": {
+      "trading_enabled": true,
+      "risk_level": "medium",
+      "max_positions": 5,
+      "default_quantity": 0.01,
+      "notifications": {
+        "email_alerts": true,
+        "trade_notifications": true,
+        "system_alerts": true
+      }
+    }
+  }
+}

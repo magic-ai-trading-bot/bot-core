@@ -1,0 +1,45 @@
+{
+  "symbol": "BTCUSDT",
+  "timeframe": "1h",
+  "candles": [
+    {
+      "open": 45123.45,
+      "high": 45234.56,
+      "low": 45012.34,
+      "close": 45189.23,
+      "volume": 1234.56,
+      "timestamp": 1701234567000
+    },
+    {
+      "open": 45189.23,
+      "high": 45298.12,
+      "low": 45150.00,
+      "close": 45267.89,
+      "volume": 1456.78,
+      "timestamp": 1701238167000
+    }
+  ],
+  "technical_indicators": {
+    "rsi": 65.5,
+    "macd": 123.45,
+    "signal": 110.23,
+    "histogram": 13.22,
+    "ema_9": 45100.00,
+    "ema_21": 44900.00,
+    "ema_50": 44500.00,
+    "bollinger_upper": 45500.00,
+    "bollinger_middle": 45000.00,
+    "bollinger_lower": 44500.00,
+    "volume_sma": 1000.00,
+    "atr": 234.56,
+    "adx": 25.5,
+    "stochastic_k": 75.5,
+    "stochastic_d": 72.3
+  },
+  "market_context": {
+    "trend_strength": 0.75,
+    "volatility": 0.45,
+    "volume_trend": "increasing",
+    "market_sentiment": "bullish"
+  }
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import logger from "@/utils/logger";
 import {
   AISignalResponse,
   AIStrategyContext,
@@ -188,7 +189,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           }));
         }
       } catch (error) {
-        console.error("AI Analysis error:", error);
+        logger.error("AI Analysis error:", error);
         setError(
           error instanceof Error ? error.message : "Failed to analyze symbol"
         );
@@ -224,7 +225,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           }));
         }
       } catch (error) {
-        console.error("Strategy recommendations error:", error);
+        logger.error("Strategy recommendations error:", error);
         setError(
           error instanceof Error
             ? error.message
@@ -264,7 +265,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           }));
         }
       } catch (error) {
-        console.error("Market condition analysis error:", error);
+        logger.error("Market condition analysis error:", error);
         setError(
           error instanceof Error
             ? error.message
@@ -290,7 +291,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         }));
       }
     } catch (error) {
-      console.error("Service info error:", error);
+      logger.error("Service info error:", error);
       // Don't show error for service info as it's not critical
     }
   }, []);

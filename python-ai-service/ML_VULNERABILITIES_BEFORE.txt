@@ -1,0 +1,16 @@
+=== ML LIBRARY VULNERABILITIES - BEFORE UPDATE ===
+
+PyTorch 2.1.0 - 7 MEDIUM CVEs:
+1. PYSEC-2025-41: RCE when loading model with torch.load (Fix: 2.6.0)
+2. PYSEC-2024-250: Out-of-bounds Read in flatbuffer_loader.cpp (Fix: 2.2.0)
+3. PYSEC-2024-251: Use-after-free in interpreter.cpp (Fix: 2.2.0)
+4. PYSEC-2024-252: Heap buffer overflow in vararg_functions.cpp (Fix: 2.2.0)
+5. PYSEC-2024-259: RemoteModule Deserialization RCE (Fix: 2.5.0)
+6. GHSA-3749-ghw9-m3mg: DoS in torch.mkldnn_max_pool2d (Fix: 2.7.1rc1)
+7. GHSA-887c-mr87-cxwp: DoS in torch.nn.functional.ctc_loss (Fix: 2.8.0)
+
+TensorFlow/Keras 2.15.0 - 2 MEDIUM CVEs:
+1. GHSA-cjgq-5qmw-rcj6: Arbitrary file write via get_file (No specific fix)
+2. GHSA-36fq-jgmw-4r9c: Arbitrary code execution in .keras loading (Fix: 3.11.0)
+
+Total: 9 MEDIUM severity vulnerabilities in ML libraries

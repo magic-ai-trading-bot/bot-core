@@ -1,5 +1,6 @@
 // API Client for Bot Core Services Integration
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import logger from "@/utils/logger";
 
 // Environment variables
 const RUST_API_URL =
@@ -339,7 +340,7 @@ class BaseApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        console.error(
+        logger.error(
           `API Error [${serviceName}]:`,
           error.response?.status || "Network Error",
           error.message
@@ -863,7 +864,7 @@ export class BotCoreApiClient {
         overall: rustHealthy && pythonHealthy,
       };
     } catch (error) {
-      console.error("Health check failed:", error);
+      logger.error("Health check failed:", error);
       return {
         rust: { status: "error", healthy: false },
         python: { status: "error", healthy: false, model_loaded: false },
@@ -903,7 +904,7 @@ export class BotCoreApiClient {
         recentTrades,
       };
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
+      logger.error("Failed to fetch dashboard data:", error);
       throw error;
     }
   }

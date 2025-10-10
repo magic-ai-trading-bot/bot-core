@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import logger from "@/utils/logger";
 import { useToast } from "@/hooks/use-toast";
 
 // Types for Rust backend integration
@@ -198,7 +199,7 @@ export const usePaperTrading = () => {
         }));
       }
     } catch (error) {
-      console.error("Failed to fetch bot status:", error);
+      logger.error("Failed to fetch bot status:", error);
     }
   }, [API_BASE]);
 
@@ -244,7 +245,7 @@ export const usePaperTrading = () => {
         }));
       }
     } catch (error) {
-      console.error("Failed to fetch open trades:", error);
+      logger.error("Failed to fetch open trades:", error);
     }
   }, [API_BASE]);
 
@@ -264,7 +265,7 @@ export const usePaperTrading = () => {
         }));
       }
     } catch (error) {
-      console.error("Failed to fetch closed trades:", error);
+      logger.error("Failed to fetch closed trades:", error);
     }
   }, [API_BASE]);
 
@@ -292,7 +293,7 @@ export const usePaperTrading = () => {
         }));
       }
     } catch (error) {
-      console.error("Failed to fetch current settings:", error);
+      logger.error("Failed to fetch current settings:", error);
       // Don't set error for settings fetch failure to avoid disrupting the app
     }
   }, [API_BASE]);
@@ -400,7 +401,7 @@ export const usePaperTrading = () => {
         };
       });
     } catch (error) {
-      console.error("Failed to fetch AI signals:", error);
+      logger.error("Failed to fetch AI signals:", error);
     }
   }, [API_BASE, deduplicateSignals]);
 
@@ -780,7 +781,7 @@ export const usePaperTrading = () => {
             break;
         }
       } catch (error) {
-        console.error("Failed to parse WebSocket message:", error);
+        logger.error("Failed to parse WebSocket message:", error);
       }
     };
 
@@ -791,7 +792,7 @@ export const usePaperTrading = () => {
     };
 
     ws.onerror = (error) => {
-      console.error("📡 Paper Trading WebSocket error:", error);
+      logger.error("📡 Paper Trading WebSocket error:", error);
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
       }

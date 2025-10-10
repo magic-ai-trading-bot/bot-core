@@ -427,20 +427,19 @@ impl StrategyOptimizer {
         // Increase confidence thresholds
         if let Some(confidence) = parameters.get_mut("min_confidence") {
             if let Some(val) = confidence.as_f64() {
-                *confidence = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
-                );
+                // from_f64 can return None for NaN/Inf, use original value as fallback
+                if let Some(num) = serde_json::Number::from_f64(val * factor) {
+                    *confidence = serde_json::Value::Number(num);
+                }
             }
         }
 
         // Tighten entry conditions
         if let Some(threshold) = parameters.get_mut("entry_threshold") {
             if let Some(val) = threshold.as_f64() {
-                *threshold = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
-                );
+                if let Some(num) = serde_json::Number::from_f64(val * factor) {
+                    *threshold = serde_json::Value::Number(num);
+                }
             }
         }
     }
@@ -454,10 +453,9 @@ impl StrategyOptimizer {
         // Increase take profit relative to stop loss
         if let Some(tp_ratio) = parameters.get_mut("take_profit_ratio") {
             if let Some(val) = tp_ratio.as_f64() {
-                *tp_ratio = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
-                );
+                if let Some(num) = serde_json::Number::from_f64(val * factor) {
+                    *tp_ratio = serde_json::Value::Number(num);
+                }
             }
         }
     }
@@ -471,10 +469,9 @@ impl StrategyOptimizer {
         // Reduce position sizes
         if let Some(position_size) = parameters.get_mut("position_size_multiplier") {
             if let Some(val) = position_size.as_f64() {
-                *position_size = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * factor)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
-                );
+                if let Some(num) = serde_json::Number::from_f64(val * factor) {
+                    *position_size = serde_json::Value::Number(num);
+                }
             }
         }
     }
@@ -484,10 +481,9 @@ impl StrategyOptimizer {
         // Wider stop losses
         if let Some(sl_multiplier) = parameters.get_mut("stop_loss_multiplier") {
             if let Some(val) = sl_multiplier.as_f64() {
-                *sl_multiplier = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * 1.5)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
-                );
+                if let Some(num) = serde_json::Number::from_f64(val * 1.5) {
+                    *sl_multiplier = serde_json::Value::Number(num);
+                }
             }
         }
 
@@ -512,10 +508,9 @@ impl StrategyOptimizer {
         // More conservative entry
         if let Some(entry_threshold) = parameters.get_mut("entry_threshold") {
             if let Some(val) = entry_threshold.as_f64() {
-                *entry_threshold = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * 1.2)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
-                );
+                if let Some(num) = serde_json::Number::from_f64(val * 1.2) {
+                    *entry_threshold = serde_json::Value::Number(num);
+                }
             }
         }
     }
@@ -532,10 +527,9 @@ impl StrategyOptimizer {
         // More aggressive position sizing
         if let Some(position_multiplier) = parameters.get_mut("position_size_multiplier") {
             if let Some(val) = position_multiplier.as_f64() {
-                *position_multiplier = serde_json::Value::Number(
-                    serde_json::Number::from_f64(val * 1.2)
-                        .unwrap_or_else(|| serde_json::Number::from_f64(val).unwrap()),
-                );
+                if let Some(num) = serde_json::Number::from_f64(val * 1.2) {
+                    *position_multiplier = serde_json::Value::Number(num);
+                }
             }
         }
     }

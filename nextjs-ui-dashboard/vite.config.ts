@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
         timeout: 30000,
         configure: (proxy, options) => {
           proxy.on("error", (err, req, res) => {
-            console.log("Proxy error:", err);
+            // Proxy errors are logged by Vite automatically
           });
         },
       },
@@ -81,8 +81,56 @@ export default defineConfig(({ mode }) => ({
   },
   // Additional configuration for Node.js compatibility
   build: {
+    target: 'esnext',
+    minify: 'esbuild',
     rollupOptions: {
       external: ["ws"],
+      output: {
+        manualChunks: {
+          // React core
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // React Query
+          'query-vendor': ['@tanstack/react-query'],
+          // UI Library - Radix primitives
+          'radix-vendor': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-label',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-scroll-area',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slider',
+            '@radix-ui/react-switch',
+          ],
+          // Charts library
+          'chart-vendor': ['recharts'],
+          // 3D visualization libraries
+          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
+          // Form libraries
+          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          // Utilities
+          'utils-vendor': ['axios', 'date-fns', 'clsx', 'class-variance-authority', 'tailwind-merge'],
+        },
+        // Optimize chunk size
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
     },
+    chunkSizeWarningLimit: 500,
+    reportCompressedSize: true,
+  },
+  // Strip console.logs and debugger statements in production
+  esbuild: {
+    drop: mode === "production" ? ["console", "debugger"] : [],
   },
 }));

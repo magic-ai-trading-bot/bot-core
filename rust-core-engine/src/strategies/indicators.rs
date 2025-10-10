@@ -191,7 +191,9 @@ pub fn calculate_volume_profile(
     let max_volume_idx = volumes
         .iter()
         .enumerate()
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .max_by(|(_, a), (_, b)| {
+            a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal) // Handle NaN gracefully
+        })
         .map(|(idx, _)| idx)
         .unwrap_or(0);
 
@@ -235,7 +237,12 @@ pub fn calculate_ema(prices: &[f64], period: usize) -> Result<Vec<f64>, String> 
 
     // Calculate subsequent EMA values
     for price in prices.iter().skip(period) {
-        let ema = (price * multiplier) + (ema_values.last().unwrap() * (1.0 - multiplier));
+        // Safe to unwrap because we just pushed first_sma above
+        let last_ema = ema_values
+            .last()
+            .copied()
+            .expect("EMA values should not be empty after initialization");
+        let ema = (price * multiplier) + (last_ema * (1.0 - multiplier));
         ema_values.push(ema);
     }
 

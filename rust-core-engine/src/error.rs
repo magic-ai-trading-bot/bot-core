@@ -43,6 +43,72 @@ pub enum AppError {
 
     #[error("Service unavailable: {0}")]
     ServiceUnavailable(String),
+
+    #[error("Data processing error: {0}")]
+    DataProcessing(String),
+
+    #[error("Missing required data: {0}")]
+    MissingData(String),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("Serialization error: {0}")]
+    Serialization(String),
+
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+
+    #[error("Calculation error: {0}")]
+    CalculationError(String),
+
+    #[error("Storage error: {0}")]
+    StorageError(String),
+
+    #[error("Trade not found: {0}")]
+    TradeNotFound(String),
+
+    #[error("Invalid trade status: {0}")]
+    InvalidTradeStatus(String),
+
+    #[error("Position error: {0}")]
+    PositionError(String),
+
+    #[error("Risk management error: {0}")]
+    RiskManagementError(String),
+
+    #[error("Indicator calculation error: {0}")]
+    IndicatorError(String),
+
+    #[error("Strategy execution error: {0}")]
+    StrategyError(String),
+
+    #[error("Market data error: {0}")]
+    MarketDataError(String),
+
+    #[error("AI service error: {0}")]
+    AIServiceError(String),
+
+    #[error("Binance API error: {0}")]
+    BinanceError(String),
+
+    #[error("HTTP error: {0}")]
+    HttpError(String),
+
+    #[error("JSON error: {0}")]
+    JsonError(String),
+
+    #[error("IO error: {0}")]
+    IoError(String),
+
+    #[error("Collection not initialized")]
+    CollectionNotInitialized,
+
+    #[error("Invalid price data: {0}")]
+    InvalidPriceData(String),
+
+    #[error("Insufficient data for calculation: {0}")]
+    InsufficientDataForCalculation(String),
 }
 
 impl Reject for AppError {}
@@ -117,6 +183,56 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 StatusCode::SERVICE_UNAVAILABLE,
                 service.as_str(),
                 "service_unavailable",
+            ),
+            AppError::DataProcessing(ref msg) | AppError::ParseError(ref msg) | AppError::Serialization(ref msg) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                msg.as_str(),
+                "data_error",
+            ),
+            AppError::MissingData(ref msg) | AppError::TradeNotFound(ref msg) => (
+                StatusCode::NOT_FOUND,
+                msg.as_str(),
+                "not_found",
+            ),
+            AppError::InvalidInput(ref msg) | AppError::InvalidPriceData(ref msg) => (
+                StatusCode::BAD_REQUEST,
+                msg.as_str(),
+                "invalid_input",
+            ),
+            AppError::CalculationError(ref _msg) | AppError::IndicatorError(ref _msg) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Calculation failed",
+                "calculation_error",
+            ),
+            AppError::StorageError(ref _msg) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Storage operation failed",
+                "storage_error",
+            ),
+            AppError::InvalidTradeStatus(ref msg) | AppError::PositionError(ref msg) | AppError::RiskManagementError(ref msg) => (
+                StatusCode::CONFLICT,
+                msg.as_str(),
+                "trade_error",
+            ),
+            AppError::StrategyError(ref _msg) | AppError::MarketDataError(ref _msg) | AppError::AIServiceError(ref _msg) | AppError::BinanceError(ref _msg) => (
+                StatusCode::BAD_GATEWAY,
+                "External service error",
+                "service_error",
+            ),
+            AppError::HttpError(ref _msg) | AppError::JsonError(ref _msg) | AppError::IoError(ref _msg) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal error",
+                "internal_error",
+            ),
+            AppError::CollectionNotInitialized => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Database collection not initialized",
+                "service_unavailable",
+            ),
+            AppError::InsufficientDataForCalculation(ref msg) => (
+                StatusCode::PRECONDITION_FAILED,
+                msg.as_str(),
+                "insufficient_data",
             ),
         }
     } else if err.is_not_found() {

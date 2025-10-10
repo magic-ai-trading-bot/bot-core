@@ -1,0 +1,48 @@
+# Updated Development dependencies for Python AI Service
+# Generated on: 2025-10-10
+-r requirements.updated.txt
+
+# === Development and Testing Tools ===
+pytest==8.3.4  # Updated from 7.4.3 - latest stable with improved fixtures
+pytest-asyncio==0.24.0  # Updated from 0.21.1 - async test improvements
+pytest-cov==6.0.0  # Updated from 4.1.0 - coverage improvements
+pytest-mock==3.14.0  # Updated from 3.12.0 - better mock support
+pytest-timeout==2.3.1  # Updated from 2.2.0 - stability improvements
+
+# === Code Quality and Linting ===
+flake8==7.1.1  # Updated from 6.0.0 - latest stable
+black==24.10.0  # Updated from 23.7.0 - Python 3.13 support
+isort==5.13.2  # Updated from 5.12.0 - compatibility improvements
+mypy==1.13.0  # Updated from 1.5.1 - better type checking
+
+# === Type Stubs ===
+types-requests==2.32.0.20241016  # Updated to match requests 2.32.3
+types-PyYAML==6.0.12.20240917  # Updated
+
+# === Development Server and Hot Reload ===
+watchdog==6.0.0  # Updated from 3.0.0 - file system monitoring improvements
+
+# === Debugging and Profiling ===
+pdb-attach==3.0.3  # Updated from 3.0.1 - minor fixes
+line-profiler==4.2.0  # Updated from 4.1.1 - profiling improvements
+memory-profiler==0.61.0  # KEPT - latest version
+
+# === Documentation ===
+sphinx==8.1.3  # Updated from 7.1.2 - latest stable
+sphinx-rtd-theme==3.0.2  # Updated from 1.3.0 - theme improvements
+
+# === Jupyter for Data Analysis and Experimentation ===
+jupyter==1.1.1  # Updated from 1.0.0 - latest stable
+jupyterlab==4.3.3  # Updated from 4.0.5 - major UI improvements
+ipykernel==6.29.5  # Updated from 6.25.1 - kernel improvements
+
+# === Additional ML Development Tools ===
+matplotlib==3.9.3  # Updated from 3.7.2 - plotting improvements
+seaborn==0.13.2  # Updated from 0.12.2 - visualization updates
+plotly==5.24.1  # Updated from 5.15.0 - interactive plotting improvements
+
+# === Additional Testing Tools ===
+httpx==0.28.1  # For API testing - already in main requirements
+faker==33.1.0  # Updated from 20.1.0 - test data generation
+freezegun==1.5.1  # Updated from 1.3.1 - time mocking
+coverage[toml]==7.6.9  # Updated from 7.3.4 - coverage reporting
