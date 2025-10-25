@@ -35,16 +35,14 @@ jobs:
         bun install
 
     - name: Type check
-      continue-on-error: true
       run: |
         cd nextjs-ui-dashboard
-        bun run type-check || true
+        bun run type-check
 
     - name: Lint check
-      continue-on-error: true
       run: |
         cd nextjs-ui-dashboard
-        bun run lint || true
+        bun run lint
 
     - name: Build project
       run: |

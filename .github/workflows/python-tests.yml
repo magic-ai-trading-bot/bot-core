@@ -57,14 +57,14 @@ jobs:
       run: |
         cd python-ai-service
         which flake8 || (echo "flake8 not found, installing..." && pip install flake8==6.0.0)
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || true
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Type check with mypy
       continue-on-error: true
       run: |
         cd python-ai-service
-        mypy . --ignore-missing-imports || true
+        mypy . --ignore-missing-imports
 
     - name: Run tests with coverage
       env:
