@@ -56,8 +56,8 @@ fn benchmark_liquidation_price(c: &mut Criterion) {
             let maintenance_margin_rate = black_box(0.005); // 0.5%
 
             // Liquidation price for long = entry_price * (1 - 1/leverage + maintenance_margin_rate)
-            let liquidation_price = entry_price
-                * (1.0 - 1.0 / leverage as f64 + maintenance_margin_rate);
+            let liquidation_price =
+                entry_price * (1.0 - 1.0 / leverage as f64 + maintenance_margin_rate);
 
             black_box(liquidation_price);
         });
@@ -70,8 +70,8 @@ fn benchmark_liquidation_price(c: &mut Criterion) {
             let maintenance_margin_rate = black_box(0.005);
 
             // Liquidation price for short = entry_price * (1 + 1/leverage - maintenance_margin_rate)
-            let liquidation_price = entry_price
-                * (1.0 + 1.0 / leverage as f64 - maintenance_margin_rate);
+            let liquidation_price =
+                entry_price * (1.0 + 1.0 / leverage as f64 - maintenance_margin_rate);
 
             black_box(liquidation_price);
         });

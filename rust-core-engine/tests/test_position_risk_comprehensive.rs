@@ -1,9 +1,9 @@
 // Comprehensive Position Manager and Risk Manager Tests
 
-use binance_trading_bot::trading::position_manager::{Position, PositionManager};
-use binance_trading_bot::trading::risk_manager::RiskManager;
 use binance_trading_bot::config::TradingConfig;
 use binance_trading_bot::market_data::analyzer::{MultiTimeframeAnalysis, TradingSignal};
+use binance_trading_bot::trading::position_manager::{Position, PositionManager};
+use binance_trading_bot::trading::risk_manager::RiskManager;
 
 // ============== POSITION MANAGER TESTS ==============
 

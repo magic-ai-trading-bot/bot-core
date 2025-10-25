@@ -1,5 +1,10 @@
-# Rustfmt Configuration
+# Rustfmt Configuration (Stable Features Only)
 # Auto-formatting rules for consistent Rust code style
+# Only uses features available in stable Rust toolchain
+
+# ============================================================================
+# STABLE FEATURES (Safe for GitHub Actions)
+# ============================================================================
 
 # Edition
 edition = "2021"
@@ -10,9 +15,9 @@ max_width = 100
 # Tab spaces
 tab_spaces = 4
 
-# Imports
-imports_granularity = "Crate"
-group_imports = "StdExternalCrate"
+# Imports - COMMENTED OUT (unstable)
+# imports_granularity = "Crate"
+# group_imports = "StdExternalCrate"
 reorder_imports = true
 
 # Use field init shorthand if possible
@@ -21,8 +26,8 @@ use_field_init_shorthand = true
 # Use try shorthand
 use_try_shorthand = true
 
-# Format strings
-format_strings = true
+# Format strings - COMMENTED OUT (unstable)
+# format_strings = true
 
 # Merge derives
 merge_derives = true
@@ -30,22 +35,22 @@ merge_derives = true
 # Remove nested parens
 remove_nested_parens = true
 
-# Reorder impl items
-reorder_impl_items = true
+# Reorder impl items - COMMENTED OUT (unstable)
+# reorder_impl_items = true
 
-# Normalize comments
-normalize_comments = true
-wrap_comments = true
-comment_width = 80
+# Normalize comments - COMMENTED OUT (unstable)
+# normalize_comments = true
+# wrap_comments = true
+# comment_width = 80
 
 # Match block trailing comma
 match_block_trailing_comma = true
 
-# Struct field align threshold
-struct_field_align_threshold = 20
+# Struct field align threshold - COMMENTED OUT (unstable)
+# struct_field_align_threshold = 20
 
-# Enum variant width threshold
-enum_discrim_align_threshold = 20
+# Enum variant width threshold - COMMENTED OUT (unstable)
+# enum_discrim_align_threshold = 20
 
 # Chain width
 chain_width = 60
@@ -53,18 +58,23 @@ chain_width = 60
 # Function definition return type indent
 fn_params_layout = "Tall"
 
-# Brace style
-brace_style = "SameLineWhere"
+# Brace style - COMMENTED OUT (unstable)
+# brace_style = "SameLineWhere"
 
+# Indent style - COMMENTED OUT (unstable)
+# indent_style = "Block"
 
-# Indent style
-indent_style = "Block"
+# Where clause formatting - COMMENTED OUT (unstable)
+# where_single_line = false
 
-# Where clause formatting
-where_single_line = false
-
-
-# Unstable features (require nightly, commented out for stable)
+# ============================================================================
+# UNSTABLE FEATURES (Require Nightly Rust)
+# ============================================================================
+# To enable these features, switch to nightly Rust:
+#   rustup default nightly
+#   rustup component add rustfmt --toolchain nightly
+#
+# Then uncomment the features above and add:
 # unstable_features = true
 # format_code_in_doc_comments = true
 # normalize_doc_attributes = true

@@ -72,8 +72,8 @@ mod service_integration_tests {
 
         // Aggregate signals
         let long_count = signals.iter().filter(|s| s.signal == "LONG").count();
-        let avg_confidence: f64 = signals.iter().map(|s| s.confidence).sum::<f64>()
-            / signals.len() as f64;
+        let avg_confidence: f64 =
+            signals.iter().map(|s| s.confidence).sum::<f64>() / signals.len() as f64;
 
         // Consensus logic
         let consensus = if long_count >= 2 && avg_confidence > 0.7 {
@@ -172,8 +172,8 @@ mod service_integration_tests {
     async fn test_concurrent_position_updates() {
         // Test thread-safe position updates
 
-        use std::sync::Arc;
         use parking_lot::RwLock;
+        use std::sync::Arc;
 
         #[derive(Clone)]
         struct Position {
@@ -305,11 +305,8 @@ mod service_integration_tests {
 
         // Calculate weighted average price
         let total_volume: f64 = data_sources.iter().map(|d| d.volume).sum();
-        let weighted_price: f64 = data_sources
-            .iter()
-            .map(|d| d.price * d.volume)
-            .sum::<f64>()
-            / total_volume;
+        let weighted_price: f64 =
+            data_sources.iter().map(|d| d.price * d.volume).sum::<f64>() / total_volume;
 
         assert!(weighted_price > 50000.0 && weighted_price < 50050.0);
     }
@@ -370,9 +367,27 @@ mod service_integration_tests {
         }
 
         let historical_data = vec![
-            Candle { open: 50000.0, high: 50500.0, low: 49800.0, close: 50200.0, volume: 1000.0 },
-            Candle { open: 50200.0, high: 50800.0, low: 50100.0, close: 50600.0, volume: 1200.0 },
-            Candle { open: 50600.0, high: 51000.0, low: 50400.0, close: 50900.0, volume: 1100.0 },
+            Candle {
+                open: 50000.0,
+                high: 50500.0,
+                low: 49800.0,
+                close: 50200.0,
+                volume: 1000.0,
+            },
+            Candle {
+                open: 50200.0,
+                high: 50800.0,
+                low: 50100.0,
+                close: 50600.0,
+                volume: 1200.0,
+            },
+            Candle {
+                open: 50600.0,
+                high: 51000.0,
+                low: 50400.0,
+                close: 50900.0,
+                volume: 1100.0,
+            },
         ];
 
         let mut total_pnl = 0.0;
@@ -396,11 +411,11 @@ mod service_integration_tests {
         // Test calculating trading performance metrics
 
         let trades = vec![
-            (100.0, true),   // win
-            (-50.0, false),  // loss
-            (150.0, true),   // win
-            (-30.0, false),  // loss
-            (200.0, true),   // win
+            (100.0, true),  // win
+            (-50.0, false), // loss
+            (150.0, true),  // win
+            (-30.0, false), // loss
+            (200.0, true),  // win
         ];
 
         let total_trades = trades.len();
