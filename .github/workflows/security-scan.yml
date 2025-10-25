@@ -38,6 +38,9 @@ jobs:
 
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
+      # Only upload on push to main
+      # Note: This requires GitHub Advanced Security for private repos
+      # Will fail gracefully if not available (continue-on-error: true)
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       continue-on-error: true
       with:
@@ -58,6 +61,9 @@ jobs:
 
     - name: Upload Docker image scan results
       uses: github/codeql-action/upload-sarif@v3
+      # Only upload on push to main
+      # Note: This requires GitHub Advanced Security for private repos
+      # Will fail gracefully if not available (continue-on-error: true)
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       continue-on-error: true
       with:
