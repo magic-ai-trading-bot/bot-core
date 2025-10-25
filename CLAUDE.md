@@ -263,6 +263,147 @@ cd python-ai-service && python main.py
 cd nextjs-ui-dashboard && npm run dev
 ```
 
+### CI/CD & FlyCI Wingman
+
+**GitHub Actions Workflows:**
+
+The project uses GitHub Actions for CI/CD with **FlyCI Wingman** integration for AI-powered failure analysis:
+
+```bash
+# View all workflows
+ls -la .github/workflows/
+
+# Key workflows:
+# - flyci-wingman.yml     - 🤖 AI-powered CI with failure analysis (NEW)
+# - ci-cd.yml             - Main CI/CD pipeline
+# - rust-tests.yml        - Rust-specific tests
+# - python-tests.yml      - Python-specific tests
+# - nextjs-tests.yml      - Frontend-specific tests
+# - integration-tests.yml - Cross-service integration tests
+# - security-scan.yml     - Security vulnerability scanning
+```
+
+**FlyCI Wingman Features:**
+
+FlyCI Wingman automatically:
+- 🔍 Analyzes build failures using AI
+- 💡 Provides intelligent code suggestions
+- 🐛 Identifies root causes of errors
+- 📝 Posts PR comments with fixes
+- ⚡ Speeds up debugging and resolution
+
+**Setup & Configuration:**
+
+```bash
+# FlyCI is already configured and active!
+# Workflow: .github/workflows/flyci-wingman.yml
+# Documentation: docs/FLYCI_SETUP.md
+
+# FlyCI runs automatically on:
+# - Every push to main, develop, feature/*, bugfix/*, hotfix/*
+# - Every pull request to main or develop
+# - Manual trigger via GitHub Actions UI
+```
+
+**How It Works:**
+
+1. **Build Phase** - All services build and test in parallel
+   - 🦀 Rust Core Engine (format, clippy, test, build)
+   - 🐍 Python AI Service (flake8, black, pytest, coverage)
+   - ⚛️  Next.js Dashboard (lint, type-check, test, build)
+
+2. **FlyCI Analysis** - If any build fails:
+   - Downloads failure artifacts (logs, test results)
+   - Analyzes failures with AI
+   - Identifies root cause
+   - Generates code suggestions
+   - Posts PR comment with actionable fixes
+
+3. **Integration Tests** - If all builds pass:
+   - Runs cross-service integration tests
+   - Verifies service communication
+   - Tests WebSocket connections
+
+4. **Security & Quality** - Final checks:
+   - Security vulnerability scanning (Trivy, TruffleHog)
+   - Quality metrics analysis
+   - Final status report
+
+**Viewing FlyCI Results:**
+
+```bash
+# In GitHub:
+# 1. Go to Actions tab
+# 2. Click on a workflow run
+# 3. View "FlyCI Wingman Analysis" job
+# 4. Check PR comments for AI suggestions
+
+# FlyCI comments include:
+# - Root cause analysis
+# - Suggested fixes with code examples
+# - Links to relevant documentation
+```
+
+**Manual Trigger:**
+
+```bash
+# Trigger FlyCI manually:
+# 1. Go to Actions tab
+# 2. Select "FlyCI Wingman - AI Code Review"
+# 3. Click "Run workflow"
+# 4. Select branch and click "Run workflow"
+```
+
+**Configuration Options:**
+
+Edit `.github/workflows/flyci-wingman.yml` to customize:
+
+```yaml
+# Analyze specific paths
+analyze-paths: |
+  rust-core-engine/src
+  python-ai-service
+  nextjs-ui-dashboard/src
+
+# Exclude paths
+exclude-paths: |
+  **/node_modules
+  **/target
+  **/__pycache__
+
+# Analysis options
+failure-analysis: true      # AI failure analysis
+code-suggestions: true      # Code fix suggestions
+security-scan: true         # Security checks
+
+# Comment settings
+comment-on-success: false   # No comment on success
+comment-on-failure: true    # Comment on failures
+min-severity: medium        # Severity threshold
+```
+
+**Best Practices:**
+
+✅ **DO:**
+- Let FlyCI analyze failures before manually debugging
+- Review FlyCI suggestions in PR comments
+- Use descriptive commit messages (helps AI analysis)
+- Upload failure artifacts for detailed analysis
+- Set appropriate timeouts for jobs
+
+❌ **DON'T:**
+- Ignore FlyCI suggestions without review
+- Disable FlyCI without understanding impact
+- Set severity too high (miss useful suggestions)
+- Skip artifact uploads (reduces analysis quality)
+
+**Resources:**
+
+- 📚 **Full Setup Guide:** `docs/FLYCI_SETUP.md`
+- 🔧 **Workflow File:** `.github/workflows/flyci-wingman.yml`
+- 🌐 **FlyCI Docs:** https://www.flyci.net/docs
+- 📋 **CI/CD Spec:** `specs/04-deployment/4.2-cicd/CICD-PIPELINE.md`
+
 ---
 
 ## File Organization Rules
@@ -305,7 +446,8 @@ docs/
 ├── CONTRIBUTING.md
 ├── SECURITY_CREDENTIALS.md
 ├── TESTING_GUIDE.md
-└── TROUBLESHOOTING.md
+├── TROUBLESHOOTING.md
+└── FLYCI_SETUP.md             # FlyCI Wingman setup & configuration (NEW)
 ```
 
 **Service-specific documentation:**

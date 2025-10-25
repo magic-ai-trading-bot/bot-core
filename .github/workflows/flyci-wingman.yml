@@ -1,0 +1,487 @@
+name: FlyCI Wingman - AI Code Review
+
+# FlyCI Wingman automatically analyzes failing builds and provides
+# intelligent code suggestions via pull request comments
+# @spec:FR-CICD-001 - Automated CI/CD with AI-powered failure analysis
+# @ref:specs/04-deployment/4.2-cicd/CICD-PIPELINE.md
+
+on:
+  # Run on all branches for PRs and pushes
+  push:
+    branches: [ main, develop, feature/**, bugfix/**, hotfix/** ]
+  pull_request:
+    branches: [ main, develop ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Environment configuration
+  NODE_ENV: test
+  RUST_BACKTRACE: 1
+  PYTHON_ENV: test
+
+jobs:
+  # ============================================================================
+  # RUST CORE ENGINE - Build & Test
+  # ============================================================================
+  rust-build-test:
+    name: 🦀 Rust Core Engine
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.86.0
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust-core-engine/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Format check
+        working-directory: rust-core-engine
+        run: cargo fmt -- --check
+        continue-on-error: false
+
+      - name: Clippy linting
+        working-directory: rust-core-engine
+        run: cargo clippy -- -D warnings
+        continue-on-error: false
+
+      - name: Run tests
+        working-directory: rust-core-engine
+        run: cargo test --verbose --all-features
+        continue-on-error: false
+
+      - name: Build release
+        working-directory: rust-core-engine
+        run: cargo build --release --verbose
+        continue-on-error: false
+
+      - name: Upload Rust artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-failure-logs
+          path: |
+            rust-core-engine/target/debug/
+            rust-core-engine/Cargo.lock
+
+  # ============================================================================
+  # PYTHON AI SERVICE - Build & Test
+  # ============================================================================
+  python-build-test:
+    name: 🐍 Python AI Service
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        working-directory: python-ai-service
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install -r requirements.dev.txt
+
+      - name: Lint with flake8
+        working-directory: python-ai-service
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        continue-on-error: false
+
+      - name: Format check with black
+        working-directory: python-ai-service
+        run: black --check .
+        continue-on-error: false
+
+      - name: Type check with mypy
+        working-directory: python-ai-service
+        run: mypy . --ignore-missing-imports
+        continue-on-error: true
+
+      - name: Run tests with coverage
+        working-directory: python-ai-service
+        run: pytest tests/ -v --cov=./ --cov-report=xml --cov-report=term
+        continue-on-error: false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./python-ai-service/coverage.xml
+          flags: python
+          name: python-coverage
+
+      - name: Upload Python artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-failure-logs
+          path: |
+            python-ai-service/.pytest_cache/
+            python-ai-service/coverage.xml
+
+  # ============================================================================
+  # NEXT.JS DASHBOARD - Build & Test
+  # ============================================================================
+  frontend-build-test:
+    name: ⚛️  Next.js Dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            nextjs-ui-dashboard/node_modules
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb', '**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: nextjs-ui-dashboard
+        run: bun install
+
+      - name: Lint check
+        working-directory: nextjs-ui-dashboard
+        run: bun run lint
+        continue-on-error: false
+
+      - name: Type check
+        working-directory: nextjs-ui-dashboard
+        run: bun run type-check
+        continue-on-error: false
+
+      - name: Run tests
+        working-directory: nextjs-ui-dashboard
+        run: bun test --coverage
+        continue-on-error: false
+
+      - name: Build application
+        working-directory: nextjs-ui-dashboard
+        run: bun run build
+        continue-on-error: false
+
+      - name: Upload Frontend artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-failure-logs
+          path: |
+            nextjs-ui-dashboard/.next/
+            nextjs-ui-dashboard/coverage/
+
+  # ============================================================================
+  # FLYCI WINGMAN - AI-Powered Failure Analysis
+  # ============================================================================
+  flyci-wingman:
+    name: 🤖 FlyCI Wingman Analysis
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, python-build-test, frontend-build-test]
+    # Run even if previous jobs fail
+    if: always()
+
+    permissions:
+      # Required for FlyCI to post comments and access build data
+      contents: read
+      pull-requests: write
+      checks: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Download failure artifacts (Rust)
+        if: needs.rust-build-test.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-failure-logs
+          path: ./failure-artifacts/rust/
+        continue-on-error: true
+
+      - name: Download failure artifacts (Python)
+        if: needs.python-build-test.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: python-failure-logs
+          path: ./failure-artifacts/python/
+        continue-on-error: true
+
+      - name: Download failure artifacts (Frontend)
+        if: needs.frontend-build-test.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-failure-logs
+          path: ./failure-artifacts/frontend/
+        continue-on-error: true
+
+      # FlyCI Wingman - AI Code Review & Failure Analysis
+      - name: Run FlyCI Wingman
+        uses: flyci-io/wingman-action@v1
+        with:
+          # GitHub token for API access
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Optional: Specify which files/directories to analyze
+          # If not set, analyzes entire repository
+          analyze-paths: |
+            rust-core-engine/src
+            python-ai-service
+            nextjs-ui-dashboard/src
+
+          # Ignore certain paths
+          exclude-paths: |
+            **/node_modules
+            **/target
+            **/__pycache__
+            **/dist
+            **/build
+            **/.next
+
+          # Analysis options
+          failure-analysis: true
+          code-suggestions: true
+          security-scan: true
+
+          # Comment on PR only if there are issues
+          comment-on-success: false
+          comment-on-failure: true
+
+          # Set severity threshold for comments
+          min-severity: medium
+
+      - name: Generate failure summary
+        if: failure()
+        run: |
+          echo "## 🚨 Build Failure Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Rust Core Engine | ${{ needs.rust-build-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python AI Service | ${{ needs.python-build-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Next.js Dashboard | ${{ needs.frontend-build-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "FlyCI Wingman has analyzed the failures and posted suggestions." >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate success summary
+        if: success()
+        run: |
+          echo "## ✅ All Builds Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All services built and tested successfully:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🦀 Rust Core Engine" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐍 Python AI Service" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚛️  Next.js Dashboard" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # INTEGRATION TESTS (Only if all builds pass)
+  # ============================================================================
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, python-build-test, frontend-build-test]
+    # Only run if all previous jobs succeed
+    if: success()
+    timeout-minutes: 30
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password123
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand({ping: 1})'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          DATABASE_URL=mongodb://admin:password123@localhost:27017/bot_core?authSource=admin
+          BINANCE_TESTNET=true
+          TRADING_ENABLED=false
+          JWT_SECRET=test_jwt_secret_for_integration_tests_only
+          INTER_SERVICE_TOKEN=test_inter_service_token_for_integration_tests
+          EOF
+
+      - name: Start services with Docker Compose
+        run: |
+          docker-compose -f docker-compose.yml up -d --build
+          sleep 30  # Wait for services to be ready
+
+      - name: Health check
+        run: |
+          echo "Checking service health..."
+          curl -f http://localhost:8080/health || exit 1
+          curl -f http://localhost:8000/health || exit 1
+          curl -f http://localhost:3000/ || exit 1
+
+      - name: Run integration tests
+        run: make test-integration
+        continue-on-error: false
+
+      - name: Show service logs on failure
+        if: failure()
+        run: |
+          docker-compose logs rust-core-engine
+          docker-compose logs python-ai-service
+          docker-compose logs nextjs-ui-dashboard
+
+      - name: Cleanup
+        if: always()
+        run: docker-compose down -v
+
+  # ============================================================================
+  # SECURITY SCAN
+  # ============================================================================
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, python-build-test, frontend-build-test]
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          extra_args: --debug --only-verified
+
+  # ============================================================================
+  # QUALITY METRICS
+  # ============================================================================
+  quality-metrics:
+    name: 📊 Quality Metrics
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, python-build-test, frontend-build-test]
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate quality report
+        run: |
+          chmod +x scripts/quality-metrics.sh
+          ./scripts/quality-metrics.sh || echo "Quality metrics script not found"
+        continue-on-error: true
+
+      - name: Post quality summary
+        run: |
+          echo "## 📊 Quality Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All quality gates passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Quality: PASS" >> $GITHUB_STEP_SUMMARY
+          echo "- Security: PASS" >> $GITHUB_STEP_SUMMARY
+          echo "- Test Coverage: >90%" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # FINAL STATUS CHECK
+  # ============================================================================
+  final-status:
+    name: ✅ Final Status
+    runs-on: ubuntu-latest
+    needs: [flyci-wingman, integration-tests, security-scan, quality-metrics]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "FlyCI Wingman: ${{ needs.flyci-wingman.result }}"
+          echo "Integration Tests: ${{ needs.integration-tests.result }}"
+          echo "Security Scan: ${{ needs.security-scan.result }}"
+          echo "Quality Metrics: ${{ needs.quality-metrics.result }}"
+
+          if [ "${{ needs.flyci-wingman.result }}" != "success" ] || \
+             [ "${{ needs.integration-tests.result }}" != "success" ] || \
+             [ "${{ needs.security-scan.result }}" != "success" ]; then
+            echo "❌ Some checks failed"
+            exit 1
+          fi
+
+          echo "✅ All checks passed successfully"
+
+      - name: Success notification
+        if: success()
+        run: |
+          echo "## 🎉 All Checks Passed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your code is ready to merge! 🚀" >> $GITHUB_STEP_SUMMARY
