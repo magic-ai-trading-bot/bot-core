@@ -45,6 +45,12 @@ FlyCI Wingman is an AI-powered CI/CD tool that automatically analyzes failing bu
 
 ### Step 2: Grant Permissions
 
+**IMPORTANT:** FlyCI Wingman works as a **GitHub App**, NOT as a GitHub Action. This means:
+- ✅ It runs automatically when you install the app
+- ✅ It analyzes ALL your workflow failures (not just specific workflows)
+- ✅ No need to add `uses: flyci-io/wingman-action` to your workflows
+- ✅ It posts comments directly on PRs when builds fail
+
 FlyCI Wingman requires the following permissions to function:
 
 | Permission | Access Level | Purpose |

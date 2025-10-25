@@ -267,39 +267,30 @@ jobs:
         continue-on-error: true
 
       # FlyCI Wingman - AI Code Review & Failure Analysis
-      - name: Run FlyCI Wingman
-        uses: flyci-io/wingman-action@v1
-        with:
-          # GitHub token for API access
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # NOTE: FlyCI Wingman works as a GitHub App, not a GitHub Action
+      # Once you install the FlyCI GitHub App from https://www.flyci.net/,
+      # it will automatically analyze all workflow failures and post suggestions
+      # No additional action needed here - this is just for artifact collection
 
-          # Optional: Specify which files/directories to analyze
-          # If not set, analyzes entire repository
-          analyze-paths: |
-            rust-core-engine/src
-            python-ai-service
-            nextjs-ui-dashboard/src
+      - name: FlyCI Wingman Status
+        run: |
+          echo "## 🤖 FlyCI Wingman" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "FlyCI Wingman is a GitHub App that automatically analyzes failures." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Installation Status:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Install from: https://www.flyci.net/" >> $GITHUB_STEP_SUMMARY
+          echo "- Select repository: magic-ai-trading-bot/bot-core" >> $GITHUB_STEP_SUMMARY
+          echo "- Once installed, FlyCI will automatically comment on failed builds" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Ignore certain paths
-          exclude-paths: |
-            **/node_modules
-            **/target
-            **/__pycache__
-            **/dist
-            **/build
-            **/.next
-
-          # Analysis options
-          failure-analysis: true
-          code-suggestions: true
-          security-scan: true
-
-          # Comment on PR only if there are issues
-          comment-on-success: false
-          comment-on-failure: true
-
-          # Set severity threshold for comments
-          min-severity: medium
+          if [ "${{ needs.rust-build-test.result }}" = "failure" ] || \
+             [ "${{ needs.python-build-test.result }}" = "failure" ] || \
+             [ "${{ needs.frontend-build-test.result }}" = "failure" ]; then
+            echo "**Current Status:** ❌ Builds failed - FlyCI will analyze once installed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Current Status:** ✅ All builds passed!" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Generate failure summary
         if: failure()
