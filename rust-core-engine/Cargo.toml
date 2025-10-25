@@ -49,4 +49,13 @@ tokio-test = "0.4"
 actix-web = { version = "4.0", features = ["macros"] }
 futures-util = "0.3"
 tempfile = "3.8"
-anyhow = "1.0" 
+anyhow = "1.0"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "position_benchmarks"
+harness = false
+
+[[bench]]
+name = "strategy_benchmarks"
+harness = false 
