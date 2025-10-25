@@ -20,6 +20,9 @@ jobs:
   trivy-scan:
     runs-on: ubuntu-latest
     name: Trivy Security Scan
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
     - name: Checkout code
@@ -67,6 +70,9 @@ jobs:
     runs-on: ubuntu-latest
     name: CodeQL Analysis
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      security-events: write
 
     strategy:
       fail-fast: false
