@@ -128,7 +128,7 @@ jobs:
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        base: main
+        base: ${{ github.event.before || format('HEAD~{0}', github.event.commits && length(github.event.commits) || 1) }}
         head: HEAD
         extra_args: --debug --only-verified
 

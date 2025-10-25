@@ -343,8 +343,17 @@ async def lifespan(app: FastAPI):
         mongodb_client.close()
 
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Initialize rate limiter (disabled in test environment)
+if os.getenv("TESTING") == "true":
+    # Create a dummy limiter for tests that doesn't actually limit
+    class DummyLimiter:
+        def limit(self, *args, **kwargs):
+            """No-op decorator for testing."""
+            return lambda f: f
+
+    limiter = DummyLimiter()
+else:
+    limiter = Limiter(key_func=get_remote_address)
 
 # Create FastAPI app
 app = FastAPI(
@@ -1681,7 +1690,7 @@ async def health_check():
 
 @app.get("/debug/gpt4")
 @limiter.limit("5/minute")  # Rate limit: 5 requests per minute for debug endpoint
-async def debug_gpt4(http_request: Request):
+async def debug_gpt4(request: Request):
     """Debug GPT-4 connectivity."""
     result = {
         "client_initialized": openai_client is not None,
