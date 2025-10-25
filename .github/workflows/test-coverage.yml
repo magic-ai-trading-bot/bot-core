@@ -346,10 +346,23 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+      # Note: SARIF upload is disabled because it requires GitHub Advanced Security
+      # for private repos (paid feature). The scan results are still available in
+      # the trivy-results.sarif artifact. To enable:
+      # 1. Make repo public, OR
+      # 2. Enable GitHub Advanced Security in repo settings
+      # 3. Uncomment the step below
+      # - name: Upload Trivy results to GitHub Security
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results as artifact
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: 'trivy-results.sarif'
+          name: trivy-scan-results-test-coverage
+          path: trivy-results.sarif
+          retention-days: 30
 
   performance-benchmarks:
     name: Performance Benchmarks
