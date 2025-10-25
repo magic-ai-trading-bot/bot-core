@@ -36,15 +36,25 @@ jobs:
         format: 'sarif'
         output: 'trivy-results.sarif'
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      # Only upload on push to main
-      # Note: This requires GitHub Advanced Security for private repos
-      # Will fail gracefully if not available (continue-on-error: true)
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      continue-on-error: true
+    # Note: SARIF upload is disabled because it requires GitHub Advanced Security
+    # for private repos (paid feature). The scan results are still available in
+    # the trivy-results.sarif artifact. To enable:
+    # 1. Make repo public, OR
+    # 2. Enable GitHub Advanced Security in repo settings
+    # 3. Uncomment the step below
+    # - name: Upload Trivy scan results to GitHub Security tab
+    #   uses: github/codeql-action/upload-sarif@v3
+    #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #   continue-on-error: true
+    #   with:
+    #     sarif_file: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results as artifact
+      uses: actions/upload-artifact@v4
       with:
-        sarif_file: 'trivy-results.sarif'
+        name: trivy-scan-results
+        path: trivy-results.sarif
+        retention-days: 30
 
     - name: Run Trivy vulnerability scanner for Docker images
       if: github.event_name == 'push'
@@ -59,18 +69,27 @@ jobs:
         trivy image --format sarif --output python-image-scan.sarif python-ai-service
         trivy image --format sarif --output nextjs-image-scan.sarif nextjs-ui-dashboard
 
-    - name: Upload Docker image scan results
-      uses: github/codeql-action/upload-sarif@v3
-      # Only upload on push to main
-      # Note: This requires GitHub Advanced Security for private repos
-      # Will fail gracefully if not available (continue-on-error: true)
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      continue-on-error: true
+    # Note: SARIF upload is disabled (see comment above for details)
+    # - name: Upload Docker image scan results
+    #   uses: github/codeql-action/upload-sarif@v3
+    #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #   continue-on-error: true
+    #   with:
+    #     sarif_file: |
+    #       rust-image-scan.sarif
+    #       python-image-scan.sarif
+    #       nextjs-image-scan.sarif
+
+    - name: Upload Docker image scan results as artifacts
+      uses: actions/upload-artifact@v4
+      if: github.event_name == 'push'
       with:
-        sarif_file: |
+        name: docker-image-scan-results
+        path: |
           rust-image-scan.sarif
           python-image-scan.sarif
           nextjs-image-scan.sarif
+        retention-days: 30
 
   codeql-analysis:
     runs-on: ubuntu-latest
