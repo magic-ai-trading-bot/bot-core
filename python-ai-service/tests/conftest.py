@@ -15,6 +15,9 @@ from datetime import datetime, timezone
 import sys
 import os
 
+# Set TESTING environment variable BEFORE importing main
+os.environ["TESTING"] = "true"
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -190,3 +193,24 @@ def mock_datetime():
         mock_dt.now.return_value = test_time
         mock_dt.utcnow.return_value = test_time
         yield test_time
+
+
+def pytest_collection_modifyitems(config, items):
+    """
+    Modify test collection to ensure ML tests run last.
+
+    This prevents import conflicts between ML libraries and other tests.
+    ML libraries are heavy and can cause state pollution when mixed with other tests.
+    """
+    ml_tests = []
+    other_tests = []
+
+    for item in items:
+        # Identify ML-related tests
+        if "ml_compatibility" in str(item.fspath) or "ml_performance" in str(item.fspath):
+            ml_tests.append(item)
+        else:
+            other_tests.append(item)
+
+    # Reorder: run other tests first, then ML tests
+    items[:] = other_tests + ml_tests
