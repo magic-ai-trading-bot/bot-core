@@ -1,7 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use binance_trading_bot::strategies::indicators::{
     calculate_bollinger_bands, calculate_ema, calculate_macd, calculate_rsi, calculate_sma,
 };
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 /// Benchmark RSI calculation with various data sizes
 fn benchmark_rsi(c: &mut Criterion) {
@@ -31,7 +31,12 @@ fn benchmark_macd(c: &mut Criterion) {
         group.throughput(Throughput::Elements(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), &prices, |b, prices| {
             b.iter(|| {
-                calculate_macd(black_box(prices), black_box(12), black_box(26), black_box(9));
+                calculate_macd(
+                    black_box(prices),
+                    black_box(12),
+                    black_box(26),
+                    black_box(9),
+                );
             });
         });
     }
@@ -111,7 +116,14 @@ fn benchmark_all_indicators(c: &mut Criterion) {
     });
 
     group.bench_function("macd_12_26_9", |b| {
-        b.iter(|| calculate_macd(black_box(&prices), black_box(12), black_box(26), black_box(9)))
+        b.iter(|| {
+            calculate_macd(
+                black_box(&prices),
+                black_box(12),
+                black_box(26),
+                black_box(9),
+            )
+        })
     });
 
     group.bench_function("bollinger_20_2", |b| {

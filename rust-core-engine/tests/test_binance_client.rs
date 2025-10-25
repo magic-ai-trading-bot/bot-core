@@ -23,18 +23,18 @@ fn create_test_config() -> BinanceConfig {
 fn create_mock_kline_response() -> Vec<serde_json::Value> {
     vec![
         json!([
-            1701234567000i64,  // Open time
-            "45000.00",        // Open
-            "45500.00",        // High
-            "44800.00",        // Low
-            "45200.00",        // Close
-            "100.123",         // Volume
-            1701238167000i64,  // Close time
-            "4510123.45",      // Quote asset volume
-            101,               // Number of trades
-            "50.123",          // Taker buy base asset volume
-            "2255123.45",      // Taker buy quote asset volume
-            "0"                // Ignore
+            1701234567000i64, // Open time
+            "45000.00",       // Open
+            "45500.00",       // High
+            "44800.00",       // Low
+            "45200.00",       // Close
+            "100.123",        // Volume
+            1701238167000i64, // Close time
+            "4510123.45",     // Quote asset volume
+            101,              // Number of trades
+            "50.123",         // Taker buy base asset volume
+            "2255123.45",     // Taker buy quote asset volume
+            "0"               // Ignore
         ]),
         json!([
             1701238168000i64,
@@ -49,7 +49,7 @@ fn create_mock_kline_response() -> Vec<serde_json::Value> {
             "55.234",
             "2479123.89",
             "0"
-        ])
+        ]),
     ]
 }
 
@@ -110,13 +110,13 @@ async fn test_kline_parsing() {
             assert_eq!(arr.len(), 12);
 
             // Verify all required fields are present
-            assert!(arr[0].is_i64());  // Open time
-            assert!(arr[1].is_string());  // Open price
-            assert!(arr[2].is_string());  // High
-            assert!(arr[3].is_string());  // Low
-            assert!(arr[4].is_string());  // Close
-            assert!(arr[5].is_string());  // Volume
-            assert!(arr[6].is_i64());  // Close time
+            assert!(arr[0].is_i64()); // Open time
+            assert!(arr[1].is_string()); // Open price
+            assert!(arr[2].is_string()); // High
+            assert!(arr[3].is_string()); // Low
+            assert!(arr[4].is_string()); // Close
+            assert!(arr[5].is_string()); // Volume
+            assert!(arr[6].is_i64()); // Close time
 
             // Test parsing specific values
             let open_time = arr[0].as_i64().unwrap();
@@ -750,7 +750,9 @@ async fn test_testnet_vs_production_urls() {
 #[tokio::test]
 async fn test_interval_validation() {
     // Test valid intervals
-    let valid_intervals = vec!["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"];
+    let valid_intervals = vec![
+        "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M",
+    ];
 
     for interval in valid_intervals {
         // Each interval should be valid
@@ -773,7 +775,14 @@ async fn test_order_side_values() {
 #[tokio::test]
 async fn test_order_type_values() {
     // Test order type values
-    let valid_types = vec!["LIMIT", "MARKET", "STOP", "STOP_MARKET", "TAKE_PROFIT", "TAKE_PROFIT_MARKET"];
+    let valid_types = vec![
+        "LIMIT",
+        "MARKET",
+        "STOP",
+        "STOP_MARKET",
+        "TAKE_PROFIT",
+        "TAKE_PROFIT_MARKET",
+    ];
 
     for order_type in valid_types {
         assert!(!order_type.is_empty());

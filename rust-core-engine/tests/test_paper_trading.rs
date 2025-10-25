@@ -167,7 +167,10 @@ fn test_sharpe_ratio_zero_volatility() {
         (avg_return - risk_free_rate) / std_dev
     };
 
-    assert_eq!(sharpe_ratio, 0.0, "Sharpe ratio should be 0 with no volatility");
+    assert_eq!(
+        sharpe_ratio, 0.0,
+        "Sharpe ratio should be 0 with no volatility"
+    );
 }
 
 #[test]
@@ -209,7 +212,11 @@ fn test_max_drawdown_from_peak() {
 
     // Max drawdown from 12000 to 8000 = (12000 - 8000) / 12000 = 0.3333
     let expected: f64 = 0.3333;
-    assert!((max_dd - expected).abs() < 0.001, "Max drawdown should be ~33.33%, got {}", max_dd);
+    assert!(
+        (max_dd - expected).abs() < 0.001,
+        "Max drawdown should be ~33.33%, got {}",
+        max_dd
+    );
 }
 
 #[test]
@@ -281,5 +288,8 @@ fn test_profit_factor_calculation() {
     } else {
         total_wins / zero_losses
     };
-    assert!(safe_pf.is_infinite(), "Profit factor should be infinite with no losses");
+    assert!(
+        safe_pf.is_infinite(),
+        "Profit factor should be infinite with no losses"
+    );
 }

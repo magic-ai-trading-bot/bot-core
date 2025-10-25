@@ -150,7 +150,10 @@ enable_metrics = false
         assert_eq!(config.binance.testnet, false);
         assert_eq!(config.binance.base_url, "https://api.binance.com");
 
-        assert_eq!(config.market_data.symbols, vec!["BTCUSDT", "ETHUSDT", "BNBUSDT"]);
+        assert_eq!(
+            config.market_data.symbols,
+            vec!["BTCUSDT", "ETHUSDT", "BNBUSDT"]
+        );
         assert_eq!(config.market_data.kline_limit, 1000);
         assert_eq!(config.market_data.update_interval_ms, 2000);
 
@@ -243,7 +246,10 @@ enable_metrics = true
         let (_temp_dir, config_path) = setup_test_config_file(toml_content);
 
         // Set environment variable
-        env::set_var("DATABASE_URL", "mongodb://overridden:password@localhost:27017/overridden");
+        env::set_var(
+            "DATABASE_URL",
+            "mongodb://overridden:password@localhost:27017/overridden",
+        );
 
         let config = Config::from_file(&config_path).expect("Failed to load config");
 
@@ -633,8 +639,7 @@ enable_metrics = true
         let toml_str = toml::to_string(&config).expect("Failed to serialize config");
 
         // Deserialize back
-        let deserialized: Config =
-            toml::from_str(&toml_str).expect("Failed to deserialize config");
+        let deserialized: Config = toml::from_str(&toml_str).expect("Failed to deserialize config");
 
         // Verify key fields match
         assert_eq!(config.binance.testnet, deserialized.binance.testnet);
@@ -715,10 +720,7 @@ mod error_tests {
     fn test_app_error_invalid_market_conditions_display() {
         let app_error = AppError::InvalidMarketConditions("High volatility".to_string());
         let error_string = format!("{}", app_error);
-        assert_eq!(
-            error_string,
-            "Invalid market conditions: High volatility"
-        );
+        assert_eq!(error_string, "Invalid market conditions: High volatility");
     }
 
     #[test]
@@ -757,7 +759,7 @@ mod error_tests {
         match app_error {
             AppError::Database(_) => {
                 // Successfully converted to Database error
-            }
+            },
             _ => panic!("Expected Database error"),
         }
     }
@@ -853,8 +855,7 @@ mod error_tests {
 
     #[tokio::test]
     async fn test_handle_rejection_invalid_market_conditions() {
-        let rejection: Rejection =
-            custom(AppError::InvalidMarketConditions("Halted".to_string()));
+        let rejection: Rejection = custom(AppError::InvalidMarketConditions("Halted".to_string()));
         let result = handle_rejection(rejection).await;
 
         assert!(result.is_ok());

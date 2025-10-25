@@ -71,7 +71,11 @@ impl MockAIServer {
 
         let routes = warp::any()
             .and(warp::path::full())
-            .and(warp::body::json().or(warp::any().map(|| json!(null))).unify())
+            .and(
+                warp::body::json()
+                    .or(warp::any().map(|| json!(null)))
+                    .unify(),
+            )
             .then(move |path: warp::path::FullPath, body: serde_json::Value| {
                 let handler = handler_clone.clone();
                 async move {
@@ -228,7 +232,7 @@ impl ResponseHandler for DefaultResponseHandler {
             "/ai/analyze" => MockResponse::success(create_test_ai_signal_response()),
             "/ai/strategy-recommendations" => {
                 MockResponse::success(create_test_strategy_recommendations())
-            }
+            },
             "/ai/market-condition" => MockResponse::success(create_test_market_condition()),
             "/ai/feedback" => MockResponse::success(json!({ "status": "received" })),
             "/ai/info" => MockResponse::success(json!({
@@ -421,9 +425,7 @@ async fn test_get_supported_strategies_success() {
     let strategies = result.unwrap();
     assert_eq!(strategies.strategies.len(), 4);
     assert!(strategies.strategies.contains(&"RSI Strategy".to_string()));
-    assert!(strategies
-        .strategies
-        .contains(&"MACD Strategy".to_string()));
+    assert!(strategies.strategies.contains(&"MACD Strategy".to_string()));
 }
 
 // ============================================================================
@@ -1392,9 +1394,18 @@ async fn test_multiple_timeframes() {
     let client = AIClient::new(&server.base_url(), 5);
 
     let mut timeframe_data = HashMap::new();
-    timeframe_data.insert("1m".to_string(), vec![create_test_candle_data(1700000000000, 45000.0)]);
-    timeframe_data.insert("5m".to_string(), vec![create_test_candle_data(1700000000000, 45050.0)]);
-    timeframe_data.insert("1h".to_string(), vec![create_test_candle_data(1700000000000, 45100.0)]);
+    timeframe_data.insert(
+        "1m".to_string(),
+        vec![create_test_candle_data(1700000000000, 45000.0)],
+    );
+    timeframe_data.insert(
+        "5m".to_string(),
+        vec![create_test_candle_data(1700000000000, 45050.0)],
+    );
+    timeframe_data.insert(
+        "1h".to_string(),
+        vec![create_test_candle_data(1700000000000, 45100.0)],
+    );
 
     let request = AIAnalysisRequest {
         symbol: "BTCUSDT".to_string(),

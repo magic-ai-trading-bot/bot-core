@@ -173,7 +173,7 @@ async fn test_websocket_heartbeat() {
         match msg {
             tokio_tungstenite::tungstenite::Message::Pong(data) => {
                 assert_eq!(data, vec![1, 2, 3]);
-            }
+            },
             _ => panic!("Expected pong message"),
         }
     }

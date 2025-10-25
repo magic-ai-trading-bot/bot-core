@@ -51,12 +51,7 @@ fn create_test_klines(count: usize, start_price: f64, trend: f64) -> Vec<Kline> 
 }
 
 /// Create test kline data for WebSocket events
-fn create_test_kline_data(
-    symbol: &str,
-    timeframe: &str,
-    price: f64,
-    is_closed: bool,
-) -> KlineData {
+fn create_test_kline_data(symbol: &str, timeframe: &str, price: f64, is_closed: bool) -> KlineData {
     let timestamp = Utc::now().timestamp_millis();
     KlineData {
         kline_start_time: timestamp,
@@ -210,7 +205,11 @@ mod cache_tests {
         cache.update_kline("BTCUSDT", "1m", &kline2);
 
         let candles = cache.get_candles("BTCUSDT", "1m", None);
-        assert_eq!(candles.len(), 1, "Should update existing candle, not add new one");
+        assert_eq!(
+            candles.len(),
+            1,
+            "Should update existing candle, not add new one"
+        );
 
         let latest = candles.last().unwrap();
         assert!((latest.close - 45100.0).abs() < 1.0);
@@ -535,7 +534,9 @@ mod processor_tests {
 
     #[test]
     fn test_chart_data_serialization() {
-        use binance_trading_bot::market_data::processor::{CandleData as ChartCandleData, ChartData};
+        use binance_trading_bot::market_data::processor::{
+            CandleData as ChartCandleData, ChartData,
+        };
 
         let chart_data = ChartData {
             symbol: "BTCUSDT".to_string(),
@@ -870,7 +871,8 @@ mod integration_tests {
 
         // Simulate high-frequency updates with unique timestamps
         for i in 0..1000 {
-            let mut kline_data = create_test_kline_data("BTCUSDT", "1m", 45000.0 + (i as f64 * 0.1), false);
+            let mut kline_data =
+                create_test_kline_data("BTCUSDT", "1m", 45000.0 + (i as f64 * 0.1), false);
             kline_data.kline_start_time = base_time + (i as i64 * 60000);
             kline_data.kline_close_time = base_time + (i as i64 * 60000) + 59999;
             cache.update_kline("BTCUSDT", "1m", &kline_data);
@@ -894,13 +896,19 @@ mod integration_tests {
         let uptrend = create_uptrend_klines(50);
         let first_price: f64 = uptrend[0].close.parse().unwrap();
         let last_price: f64 = uptrend[49].close.parse().unwrap();
-        assert!(last_price > first_price, "Uptrend should have rising prices");
+        assert!(
+            last_price > first_price,
+            "Uptrend should have rising prices"
+        );
 
         // Downtrend
         let downtrend = create_downtrend_klines(50);
         let first_price: f64 = downtrend[0].close.parse().unwrap();
         let last_price: f64 = downtrend[49].close.parse().unwrap();
-        assert!(last_price < first_price, "Downtrend should have falling prices");
+        assert!(
+            last_price < first_price,
+            "Downtrend should have falling prices"
+        );
 
         // Sideways - with 0 trend, price might still drift slightly due to pseudo-random volatility
         let sideways = create_sideways_klines(50);
@@ -908,7 +916,11 @@ mod integration_tests {
         let last_price: f64 = sideways[49].close.parse().unwrap();
         let price_diff = ((last_price - first_price) / first_price).abs();
         // Increased tolerance since volatility can accumulate over 50 candles
-        assert!(price_diff < 0.10, "Sideways should have minimal price change (< 10%), got {:.2}%", price_diff * 100.0);
+        assert!(
+            price_diff < 0.10,
+            "Sideways should have minimal price change (< 10%), got {:.2}%",
+            price_diff * 100.0
+        );
     }
 
     #[test]
@@ -920,13 +932,11 @@ mod integration_tests {
         fn calculate_volatility(klines: &[Kline]) -> f64 {
             let prices: Vec<f64> = klines.iter().map(|k| k.close.parse().unwrap()).collect();
 
-            let returns: Vec<f64> = prices
-                .windows(2)
-                .map(|w| (w[1] - w[0]) / w[0])
-                .collect();
+            let returns: Vec<f64> = prices.windows(2).map(|w| (w[1] - w[0]) / w[0]).collect();
 
             let mean = returns.iter().sum::<f64>() / returns.len() as f64;
-            let variance = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / returns.len() as f64;
+            let variance =
+                returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / returns.len() as f64;
 
             variance.sqrt()
         }
@@ -1110,7 +1120,8 @@ mod performance_tests {
                 let symbol = format!("SYMBOL{}", i);
                 let base_time = Utc::now().timestamp_millis();
                 for j in 0..50 {
-                    let mut kline_data = create_test_kline_data(&symbol, "1m", 1000.0 + j as f64, true);
+                    let mut kline_data =
+                        create_test_kline_data(&symbol, "1m", 1000.0 + j as f64, true);
                     kline_data.kline_start_time = base_time + (j as i64 * 60000);
                     kline_data.kline_close_time = base_time + (j as i64 * 60000) + 59999;
                     cache_clone.update_kline(&symbol, "1m", &kline_data);

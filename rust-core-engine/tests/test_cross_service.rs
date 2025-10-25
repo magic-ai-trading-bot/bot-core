@@ -83,11 +83,11 @@ mod cross_service_tests {
                 assert!(!analysis.signal.is_empty());
                 assert!(analysis.confidence >= 0.0 && analysis.confidence <= 1.0);
                 assert!(!analysis.reasoning.is_empty());
-            }
+            },
             Err(e) => {
                 // Service might not be running in test environment
                 println!("Python AI service not available: {}", e);
-            }
+            },
         }
     }
 
@@ -115,10 +115,10 @@ mod cross_service_tests {
                 if let Ok(health) = health {
                     assert_eq!(health.status, "healthy");
                 }
-            }
+            },
             Err(e) => {
                 println!("Health check failed: {}", e);
-            }
+            },
         }
     }
 
@@ -196,10 +196,10 @@ mod cross_service_tests {
             Ok(resp) => {
                 // Should get error response
                 assert!(resp.status().is_client_error() || resp.status().is_server_error());
-            }
+            },
             Err(_) => {
                 // Network error is also acceptable in test
-            }
+            },
         }
     }
 
