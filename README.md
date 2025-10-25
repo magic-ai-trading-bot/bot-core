@@ -90,7 +90,7 @@
 - **Multi-region Deployment** - Global availability
 - **Disaster Recovery** - RTO < 2h, RPO < 1h
 - **99.99% Uptime** - Production proven
-- **CI/CD Pipeline** - Automated deployment
+- **CI/CD + FlyCI Wingman** - 🤖 AI-powered CI/CD with automated failure analysis
 
 ---
 
@@ -1107,10 +1107,11 @@ bot-core/
 - [Security Credentials](docs/SECURITY_CREDENTIALS.md)
 - [Security Audit Report](docs/reports/SECURITY_AUDIT_REPORT.md)
 
-#### Deployment
+#### Deployment & CI/CD
 - [Production Deployment](docs/PRODUCTION_DEPLOYMENT.md)
 - [Kubernetes Guide](docs/KUBERNETES_DEPLOYMENT.md)
 - [Disaster Recovery](docs/DISASTER_RECOVERY.md)
+- [🤖 FlyCI Wingman Setup](docs/FLYCI_SETUP.md) - AI-powered CI/CD failure analysis (NEW)
 
 #### Achievements
 - [Perfect 10/10 Certificate](docs/certificates/PERFECT_10_10_CERTIFICATE.md)
