@@ -625,7 +625,7 @@ mod tests {
         let failure: AppResult<i32> = Err(AppError::Internal);
 
         assert!(success.is_ok());
-        assert_eq!(success.unwrap(), 100);
+        assert_eq!(success.expect("success should contain value"), 100);
         assert!(failure.is_err());
     }
 
@@ -690,7 +690,7 @@ mod tests {
         assert!(step1.is_err());
 
         let result2: Result<i32, AppError> = Err(AppError::Trading("order failed".to_string()));
-        let step2 = result2.with_context(|| format!("Step 2 failed with order"));
+        let step2 = result2.with_context(|| "Step 2 failed with order".to_string());
         assert!(step2.is_err());
     }
 
@@ -740,7 +740,7 @@ mod tests {
         // that triggers the MethodNotAllowed path (lines 124-129)
         use warp::Filter;
 
-        let filter = warp::post().and(warp::path("test")).map(|| warp::reply());
+        let filter = warp::post().and(warp::path("test")).map(warp::reply);
 
         // Simulate a GET request to a POST-only endpoint
         // This will trigger the MethodNotAllowed rejection
@@ -858,7 +858,7 @@ mod tests {
         let result: Result<(), mongodb::error::Error> = Err(mongo_error);
 
         let with_context =
-            result.with_context(|| format!("Failed to connect to database at localhost:27017"));
+            result.with_context(|| "Failed to connect to database at localhost:27017".to_string());
 
         assert!(with_context.is_err());
         assert!(matches!(with_context.unwrap_err(), AppError::Database(_)));
