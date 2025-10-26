@@ -127,9 +127,9 @@ class TestMACDExactValues:
 
         # Get valid (non-NaN) indices
         valid_mask = (
-            ~macd["macd"].isna() &
-            ~macd["macd_signal"].isna() &
-            ~macd["macd_histogram"].isna()
+            ~macd["macd"].isna()
+            & ~macd["macd_signal"].isna()
+            & ~macd["macd_histogram"].isna()
         )
 
         if valid_mask.sum() > 0:
@@ -141,8 +141,9 @@ class TestMACDExactValues:
             for idx in macd_line.index:
                 expected = macd_line[idx] - signal_line[idx]
                 actual = histogram[idx]
-                assert abs(actual - expected) < 0.0001, \
-                    f"MACD histogram at {idx}: expected {expected}, got {actual}"
+                assert (
+                    abs(actual - expected) < 0.0001
+                ), f"MACD histogram at {idx}: expected {expected}, got {actual}"
 
     def test_macd_uptrend_positive(self, tech_indicators, known_price_data):
         """Test MACD in uptrend is positive"""
@@ -175,8 +176,12 @@ class TestMACDExactValues:
             last_macd = valid_macd.iloc[-1]
             last_signal = macd["macd_signal"].dropna().iloc[-1]
 
-            assert abs(last_macd) < 0.1, f"Flat price MACD should be ~0, got {last_macd}"
-            assert abs(last_signal) < 0.1, f"Flat price signal should be ~0, got {last_signal}"
+            assert (
+                abs(last_macd) < 0.1
+            ), f"Flat price MACD should be ~0, got {last_macd}"
+            assert (
+                abs(last_signal) < 0.1
+            ), f"Flat price signal should be ~0, got {last_signal}"
 
 
 class TestBollingerBandsRelationships:
@@ -193,8 +198,9 @@ class TestBollingerBandsRelationships:
 
         if valid_mask.sum() > 0:
             for idx in upper[valid_mask].index:
-                assert upper[idx] > middle[idx], \
-                    f"Upper band {upper[idx]} must be > middle {middle[idx]} at {idx}"
+                assert (
+                    upper[idx] > middle[idx]
+                ), f"Upper band {upper[idx]} must be > middle {middle[idx]} at {idx}"
 
     def test_middle_always_greater_than_lower(self, tech_indicators, known_price_data):
         """Test middle band > lower band (always)"""
@@ -207,8 +213,9 @@ class TestBollingerBandsRelationships:
 
         if valid_mask.sum() > 0:
             for idx in middle[valid_mask].index:
-                assert middle[idx] > lower[idx], \
-                    f"Middle band {middle[idx]} must be > lower {lower[idx]} at {idx}"
+                assert (
+                    middle[idx] > lower[idx]
+                ), f"Middle band {middle[idx]} must be > lower {lower[idx]} at {idx}"
 
     def test_bandwidth_calculation(self, tech_indicators, known_price_data):
         """Test Bollinger Bandwidth = (Upper - Lower) / Middle * 100"""
@@ -230,8 +237,9 @@ class TestBollingerBandsRelationships:
                         actual_width = width[idx]
 
                         # Allow small floating point differences
-                        assert abs(actual_width - expected_width) < 0.1, \
-                            f"BB Width at {idx}: expected {expected_width}, got {actual_width}"
+                        assert (
+                            abs(actual_width - expected_width) < 0.1
+                        ), f"BB Width at {idx}: expected {expected_width}, got {actual_width}"
 
     def test_bollinger_percent_range(self, tech_indicators, known_price_data):
         """Test Bollinger %B is in valid range"""
@@ -243,8 +251,9 @@ class TestBollingerBandsRelationships:
             # %B can go outside [0, 1] when price breaks bands
             # but should be reasonable
             for idx, value in percent_b.items():
-                assert -2.0 <= value <= 3.0, \
-                    f"Bollinger %B at {idx} is {value}, seems unreasonable"
+                assert (
+                    -2.0 <= value <= 3.0
+                ), f"Bollinger %B at {idx} is {value}, seems unreasonable"
 
 
 class TestErrorPathsAndEdgeCases:
@@ -350,7 +359,9 @@ class TestErrorPathsAndEdgeCases:
         # RSI should still be in valid range
         valid_rsi = rsi.dropna()
         if len(valid_rsi) > 0:
-            assert all(0 <= v <= 100 for v in valid_rsi), "RSI out of range with extreme volatility"
+            assert all(
+                0 <= v <= 100 for v in valid_rsi
+            ), "RSI out of range with extreme volatility"
 
     def test_zero_volume_handling(self, tech_indicators):
         """Test volume indicators with zero volume"""

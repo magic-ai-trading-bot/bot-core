@@ -20,6 +20,7 @@ class TestPyTorchCompatibility:
     def test_pytorch_import(self):
         """Test PyTorch imports successfully"""
         import torch
+
         assert torch.__version__ >= "2.5.0"
 
     def test_pytorch_basic_tensor_operations(self):
@@ -73,9 +74,7 @@ class TestPyTorchCompatibility:
         import torch.optim as optim
 
         # Simple model
-        model = nn.Sequential(
-            nn.Linear(10, 20), nn.ReLU(), nn.Linear(20, 1)
-        )
+        model = nn.Sequential(nn.Linear(10, 20), nn.ReLU(), nn.Linear(20, 1))
 
         # Optimizer and loss
         optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -123,9 +122,7 @@ class TestPyTorchCompatibility:
             torch.save(model.state_dict(), tmp_path)
 
             # Load model
-            loaded_model = nn.Sequential(
-                nn.Linear(10, 20), nn.ReLU(), nn.Linear(20, 1)
-            )
+            loaded_model = nn.Sequential(nn.Linear(10, 20), nn.ReLU(), nn.Linear(20, 1))
             loaded_model.load_state_dict(torch.load(tmp_path))
 
             # Verify
@@ -181,7 +178,9 @@ class TestTensorFlowCompatibility:
         )
 
         model.compile(
-            optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+            optimizer="adam",
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
         )
 
         assert model is not None
@@ -303,8 +302,11 @@ class TestTensorFlowCompatibility:
             # Load with custom_objects to handle Keras 3.0 compatibility
             # In Keras 3.0, loss functions have different internal representations
             from keras import losses
+
             custom_objects = {"mse": losses.MeanSquaredError()}
-            loaded_model = keras.models.load_model(tmp_path, custom_objects=custom_objects)
+            loaded_model = keras.models.load_model(
+                tmp_path, custom_objects=custom_objects
+            )
 
             # Verify
             x = np.random.rand(1, 5).astype(np.float32)
