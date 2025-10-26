@@ -69,13 +69,26 @@ class WebSocketMockClass {
 }
 
 describe('useWebSocket - Enhanced Tests', () => {
+  let originalWebSocket: typeof WebSocket
+
   beforeEach(() => {
     mockWs = undefined as unknown as MockWebSocket
-    vi.stubGlobal('WebSocket', WebSocketMockClass)
+    originalWebSocket = global.WebSocket
+    Object.defineProperty(global, 'WebSocket', {
+      writable: true,
+      configurable: true,
+      value: WebSocketMockClass
+    })
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    Object.defineProperty(global, 'WebSocket', {
+      writable: true,
+      configurable: true,
+      value: originalWebSocket
+    })
+    mockWs = undefined as unknown as MockWebSocket
+    vi.clearAllMocks()
   })
 
   describe('Message Handling with Exact Verification', () => {
@@ -387,7 +400,7 @@ describe('useWebSocket - Enhanced Tests', () => {
       }
 
       act(() => {
-        result.current.send(messageToSend)
+        result.current.sendMessage(messageToSend)
       })
 
       // Verify exact message was sent
@@ -406,7 +419,7 @@ describe('useWebSocket - Enhanced Tests', () => {
       const message = { data: 'test' }
 
       act(() => {
-        result.current.send(message)
+        result.current.sendMessage(message)
       })
 
       // Should not crash, message should not be sent
@@ -420,7 +433,7 @@ describe('useWebSocket - Enhanced Tests', () => {
         result.current.connect()
       })
 
-      await waitFor(() => expect(mockWs).toBeDefined())
+      await waitFor(() => expect(mockWs).toBeDefined(), { timeout: 1000 })
 
       act(() => {
         mockWs.triggerOpen()
@@ -428,7 +441,7 @@ describe('useWebSocket - Enhanced Tests', () => {
 
       await waitFor(() => {
         expect(result.current.state.isConnected).toBe(true)
-      })
+      }, { timeout: 1000 })
 
       // Send multiple messages
       const msg1 = { id: 1, action: 'first' }
@@ -436,9 +449,9 @@ describe('useWebSocket - Enhanced Tests', () => {
       const msg3 = { id: 3, action: 'third' }
 
       act(() => {
-        result.current.send(msg1)
-        result.current.send(msg2)
-        result.current.send(msg3)
+        result.current.sendMessage(msg1)
+        result.current.sendMessage(msg2)
+        result.current.sendMessage(msg3)
       })
 
       // All messages should be sent in order

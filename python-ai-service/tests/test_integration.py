@@ -198,10 +198,13 @@ class TestMongoDBIntegration:
             "created_at": datetime.now(timezone.utc),
         }
 
-        # Configure collection mock
-        mock_collection = mock_mongodb[1]["ai_analysis_results"]
-        mock_collection.insert_one.return_value = MagicMock(inserted_id="mock_id")
-        mock_collection.find_one.return_value = stored_doc
+        # Create a fresh mock collection with specific methods
+        mock_collection = AsyncMock()
+        mock_collection.insert_one = AsyncMock(return_value=MagicMock(inserted_id="mock_id"))
+        mock_collection.find_one = AsyncMock(return_value=stored_doc)
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         # Test both store and retrieve in same context
         with patch("main.mongodb_db", mock_mongodb[1]):

@@ -53,12 +53,20 @@ def mock_openai_client():
 
 @pytest.fixture
 def mock_mongodb():
-    """Mock MongoDB client and database."""
+    """
+    Mock MongoDB client and database.
+
+    Creates fresh mocks for each test to avoid state pollution in parallel execution.
+    Each test gets its own isolated mock instance.
+    """
+    # Create fresh mock instances for each test
     mock_client = AsyncMock()
     mock_db = AsyncMock()
 
-    # Mock collection
+    # Mock collection with fresh AsyncMock for each method
     mock_collection = AsyncMock()
+
+    # Use side_effect=None to ensure fresh mock behavior each time
     mock_collection.insert_one = AsyncMock(
         return_value=MagicMock(inserted_id="test_id_123")
     )
@@ -66,8 +74,19 @@ def mock_mongodb():
     mock_collection.count_documents = AsyncMock(return_value=100)
     mock_collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=50))
 
-    # Mock __getitem__ to return collection
-    mock_db.__getitem__ = MagicMock(return_value=mock_collection)
+    # Mock __getitem__ to return collection (fresh MagicMock for isolation)
+    def get_collection(name):
+        # Return a fresh mock collection for each access
+        collection = AsyncMock()
+        collection.insert_one = AsyncMock(
+            return_value=MagicMock(inserted_id="test_id_123")
+        )
+        collection.find_one = AsyncMock(return_value=None)
+        collection.count_documents = AsyncMock(return_value=100)
+        collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=50))
+        return collection
+
+    mock_db.__getitem__ = MagicMock(side_effect=get_collection)
 
     # Mock admin commands
     mock_client.admin.command = AsyncMock(return_value={"ok": 1})
@@ -78,11 +97,21 @@ def mock_mongodb():
 
 @pytest.fixture
 def app(mock_openai_client, mock_mongodb):
-    """Create FastAPI test app with mocked dependencies."""
+    """
+    Create FastAPI test app with mocked dependencies.
+
+    Fresh app instance for each test to prevent state pollution in parallel execution.
+    """
     import main
 
-    # Get MongoDB mocks
+    # Get MongoDB mocks (fresh for each test)
     mongo_client, mongo_db = mock_mongodb
+
+    # Store original values
+    original_openai = getattr(main, "openai_client", None)
+    original_mongo_client = getattr(main, "mongodb_client", None)
+    original_mongo_db = getattr(main, "mongodb_db", None)
+    original_analyzer = getattr(main, "gpt_analyzer", None)
 
     # Patch the global variables in main module
     main.openai_client = mock_openai_client
@@ -90,17 +119,17 @@ def app(mock_openai_client, mock_mongodb):
     main.mongodb_db = mongo_db
     main.gpt_analyzer = None  # Reset analyzer
 
-    # Mock WebSocket manager's active_connections
+    # Mock WebSocket manager's active_connections (fresh set)
     if hasattr(main, "ws_manager"):
         main.ws_manager.active_connections = set()
 
     yield main.app
 
-    # Cleanup
-    main.openai_client = None
-    main.mongodb_client = None
-    main.mongodb_db = None
-    main.gpt_analyzer = None
+    # Cleanup - restore original values to avoid interference
+    main.openai_client = original_openai
+    main.mongodb_client = original_mongo_client
+    main.mongodb_db = original_mongo_db
+    main.gpt_analyzer = original_analyzer
 
 
 @pytest_asyncio.fixture
@@ -197,20 +226,33 @@ def mock_datetime():
 
 def pytest_collection_modifyitems(config, items):
     """
-    Modify test collection to ensure ML tests run last.
+    Modify test collection to ensure ML tests are properly isolated.
 
     This prevents import conflicts between ML libraries and other tests.
     ML libraries are heavy and can cause state pollution when mixed with other tests.
+
+    Strategy:
+    1. ML tests are marked with @pytest.mark.ml_isolated
+    2. ML tests run last to avoid contaminating other test processes
+    3. When using pytest-xdist, ML tests are assigned to the same worker (gw0)
+       to ensure they run sequentially and don't interfere with other tests
     """
     ml_tests = []
     other_tests = []
 
     for item in items:
-        # Identify ML-related tests
-        if "ml_compatibility" in str(item.fspath) or "ml_performance" in str(item.fspath):
+        # Identify ML-related tests by marker or file path
+        if (
+            "ml_compatibility" in str(item.fspath)
+            or "ml_performance" in str(item.fspath)
+            or item.get_closest_marker("ml_isolated")
+        ):
             ml_tests.append(item)
+            # Add xdist_group marker to ensure ML tests run on same worker sequentially
+            item.add_marker(pytest.mark.xdist_group(name="ml_tests"))
         else:
             other_tests.append(item)
 
     # Reorder: run other tests first, then ML tests
+    # This minimizes the chance of ML library state affecting other tests
     items[:] = other_tests + ml_tests
