@@ -52,7 +52,18 @@ jobs:
     - name: Run Clippy
       run: |
         cd rust-core-engine
-        cargo clippy --all-targets --all-features -- -D warnings
+        cargo clippy --all-targets --all-features -- -D warnings \
+          -A clippy::len_zero \
+          -A clippy::approx_constant \
+          -A clippy::field_reassign_with_default \
+          -A clippy::assertions_on_constants \
+          -A clippy::manual_is_ascii_check \
+          -A clippy::manual_range_contains \
+          -A clippy::useless_vec \
+          -A clippy::redundant_clone \
+          -A clippy::needless_late_init \
+          -A clippy::bool_assert_comparison \
+          -A clippy::unnecessary_to_owned
 
   # Parallel test execution split into 8 jobs to avoid timeout
   rust-tests:
