@@ -620,12 +620,13 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unnecessary_literal_unwrap)]
     fn test_app_result_type_alias() {
         let success: AppResult<i32> = Ok(100);
         let failure: AppResult<i32> = Err(AppError::Internal);
 
         assert!(success.is_ok());
-        assert_eq!(success.expect("success should contain value"), 100);
+        assert_eq!(success.unwrap(), 100);
         assert!(failure.is_err());
     }
 
