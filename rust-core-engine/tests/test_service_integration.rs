@@ -1,9 +1,8 @@
 /// Integration tests for Rust Core Engine
 /// Tests full service integration, cross-component workflows, and system behavior
-
 #[cfg(test)]
+#[allow(dead_code, unused_variables, unused_imports)]
 mod service_integration_tests {
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_full_trading_cycle() {
@@ -11,11 +10,11 @@ mod service_integration_tests {
 
         // 1. Mock market data
         let market_price = 50000.0;
-        let quantity = 0.1;
+        let _quantity = 0.1;
 
         // 2. Simulate strategy signal
-        let signal = "LONG";
-        let confidence = 0.85;
+        let _signal = "LONG";
+        let _confidence = 0.85;
 
         // 3. Calculate position size (simple risk management)
         let max_risk = 0.02; // 2% risk
@@ -28,7 +27,7 @@ mod service_integration_tests {
 
         // 4. Open position
         let entry_price = market_price;
-        let position_value = position_size * entry_price;
+        let _position_value = position_size * entry_price;
 
         // 5. Calculate PnL at new price
         let new_price = 51000.0;

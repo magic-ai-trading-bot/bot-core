@@ -880,7 +880,6 @@ pub struct PaperTradingSettingsRecord {
 mod tests {
     use super::*;
     use chrono::TimeZone;
-    use serde_json;
 
     // Test helper to create sample TradeRecord
     fn create_sample_trade_record() -> TradeRecord {
