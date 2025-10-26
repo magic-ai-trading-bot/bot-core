@@ -273,7 +273,7 @@ mod tests {
 
         assert_eq!(deserialized.sub, "user123");
         assert_eq!(deserialized.email, "test@example.com");
-        assert_eq!(deserialized.is_admin, false);
+        assert!(!deserialized.is_admin);
         assert_eq!(deserialized.exp, 1234567890);
         assert_eq!(deserialized.iat, 1234567800);
     }

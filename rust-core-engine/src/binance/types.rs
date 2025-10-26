@@ -504,7 +504,7 @@ mod tests {
         assert_eq!(event.event_type, "kline");
         assert_eq!(event.symbol, "BTCUSDT");
         assert_eq!(event.kline.interval, "1m");
-        assert_eq!(event.kline.is_this_kline_closed, true);
+        assert!(event.kline.is_this_kline_closed);
     }
 
     #[test]
@@ -620,7 +620,7 @@ mod tests {
         assert_eq!(order.order_id, 12345);
         assert_eq!(order.status, "PARTIALLY_FILLED");
         assert_eq!(order.side, "BUY");
-        assert_eq!(order.is_working, true);
+        assert!(order.is_working);
     }
 
     #[test]
@@ -648,7 +648,7 @@ mod tests {
         assert_eq!(position.position_amt, "0.01");
         assert_eq!(position.leverage, "10");
         assert_eq!(position.margin_type, "isolated");
-        assert_eq!(position.is_auto_add_margin, false);
+        assert!(!position.is_auto_add_margin);
     }
 
     #[test]
@@ -671,7 +671,7 @@ mod tests {
         }"#;
 
         let account: AccountInfo = serde_json::from_str(json).unwrap();
-        assert_eq!(account.can_trade, true);
+        assert!(account.can_trade);
         assert_eq!(account.balances.len(), 2);
         assert_eq!(account.balances[0].asset, "BTC");
         assert_eq!(account.permissions.len(), 2);
@@ -832,7 +832,7 @@ mod tests {
         match event {
             WebSocketEvent::ChartUpdate(update) => {
                 assert_eq!(update.symbol, "BTCUSDT");
-                assert_eq!(update.candle.is_closed, true);
+                assert!(update.candle.is_closed);
             },
             _ => panic!("Expected ChartUpdate variant"),
         }
@@ -1798,7 +1798,7 @@ mod tests {
         let event: ChartUpdateEvent = serde_json::from_str(json).unwrap();
         assert_eq!(event.symbol, "ETHUSDT");
         assert_eq!(event.timeframe, "5m");
-        assert_eq!(event.candle.is_closed, false);
+        assert!(!event.candle.is_closed);
     }
 
     #[test]
@@ -1859,7 +1859,7 @@ mod tests {
         let candle: ChartCandle = serde_json::from_str(json).unwrap();
         assert_eq!(candle.timestamp, 1625097600000);
         assert_eq!(candle.open, 40000.0);
-        assert_eq!(candle.is_closed, true);
+        assert!(candle.is_closed);
     }
 
     #[test]
@@ -2149,7 +2149,7 @@ mod tests {
 
         assert_eq!(deserialized.balances.len(), 0);
         assert_eq!(deserialized.permissions.len(), 0);
-        assert_eq!(deserialized.can_trade, false);
+        assert!(!deserialized.can_trade);
     }
 
     #[test]

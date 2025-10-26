@@ -446,7 +446,7 @@ async fn test_new_order_request_construction() {
     assert_eq!(order.r#type, "LIMIT");
     assert_eq!(order.quantity.unwrap(), "0.001");
     assert_eq!(order.price.unwrap(), "45000.00");
-    assert_eq!(order.reduce_only.unwrap(), false);
+    assert!(!order.reduce_only.unwrap());
 }
 
 #[tokio::test]

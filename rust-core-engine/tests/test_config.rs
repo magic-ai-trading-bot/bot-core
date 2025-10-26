@@ -30,7 +30,7 @@ mod config_tests {
         let config = Config::default();
 
         // Test binance config defaults
-        assert_eq!(config.binance.testnet, true);
+        assert!(config.binance.testnet);
         assert_eq!(config.binance.base_url, "https://testnet.binance.vision");
         assert_eq!(config.binance.ws_url, "wss://testnet.binance.vision/ws");
         assert_eq!(
@@ -52,7 +52,7 @@ mod config_tests {
         assert_eq!(config.market_data.cache_size, 1000);
 
         // Test trading config defaults
-        assert_eq!(config.trading.enabled, false);
+        assert!(!config.trading.enabled);
         assert_eq!(config.trading.max_positions, 5);
         assert_eq!(config.trading.default_quantity, 0.01);
         assert_eq!(config.trading.risk_percentage, 2.0);
@@ -60,12 +60,12 @@ mod config_tests {
 
         // Test database config defaults
         assert_eq!(config.database.max_connections, 10);
-        assert_eq!(config.database.enable_logging, false);
+        assert!(!config.database.enable_logging);
 
         // Test API config defaults
         assert_eq!(config.api.host, "0.0.0.0");
         assert_eq!(config.api.port, 8080);
-        assert_eq!(config.api.enable_metrics, true);
+        assert!(config.api.enable_metrics);
     }
 
     #[test]
@@ -83,8 +83,8 @@ mod config_tests {
         assert!(config_path.exists());
 
         // Should return default config
-        assert_eq!(config.binance.testnet, true);
-        assert_eq!(config.trading.enabled, false);
+        assert!(config.binance.testnet);
+        assert!(!config.trading.enabled);
     }
 
     #[test]
@@ -147,7 +147,7 @@ enable_metrics = false
         // Verify all fields are loaded correctly
         assert_eq!(config.binance.api_key, "test_api_key");
         assert_eq!(config.binance.secret_key, "test_secret_key");
-        assert_eq!(config.binance.testnet, false);
+        assert!(!config.binance.testnet);
         assert_eq!(config.binance.base_url, "https://api.binance.com");
 
         assert_eq!(
@@ -157,15 +157,15 @@ enable_metrics = false
         assert_eq!(config.market_data.kline_limit, 1000);
         assert_eq!(config.market_data.update_interval_ms, 2000);
 
-        assert_eq!(config.trading.enabled, true);
+        assert!(config.trading.enabled);
         assert_eq!(config.trading.max_positions, 10);
         assert_eq!(config.trading.leverage, 5);
 
         assert_eq!(config.database.max_connections, 20);
-        assert_eq!(config.database.enable_logging, true);
+        assert!(config.database.enable_logging);
 
         assert_eq!(config.api.port, 9090);
-        assert_eq!(config.api.enable_metrics, false);
+        assert!(!config.api.enable_metrics);
     }
 
     #[test]
@@ -379,19 +379,19 @@ enable_metrics = true
         // Test setting to false
         env::set_var("BINANCE_TESTNET", "false");
         let config = Config::from_file(&config_path).expect("Failed to load config");
-        assert_eq!(config.binance.testnet, false);
+        assert!(!config.binance.testnet);
         env::remove_var("BINANCE_TESTNET");
 
         // Test setting to true
         env::set_var("BINANCE_TESTNET", "true");
         let config = Config::from_file(&config_path).expect("Failed to load config");
-        assert_eq!(config.binance.testnet, true);
+        assert!(config.binance.testnet);
         env::remove_var("BINANCE_TESTNET");
 
         // Test non-true value (should be false)
         env::set_var("BINANCE_TESTNET", "anything_else");
         let config = Config::from_file(&config_path).expect("Failed to load config");
-        assert_eq!(config.binance.testnet, false);
+        assert!(!config.binance.testnet);
         env::remove_var("BINANCE_TESTNET");
     }
 
@@ -476,7 +476,7 @@ enable_metrics = true
         // Load it back and verify
         let loaded_config = Config::from_file(&config_path).expect("Failed to load saved config");
         assert_eq!(loaded_config.binance.api_key, "saved_api_key");
-        assert_eq!(loaded_config.trading.enabled, true);
+        assert!(loaded_config.trading.enabled);
         assert_eq!(loaded_config.api.port, 9999);
     }
 
@@ -899,8 +899,8 @@ mod monitoring_tests {
         assert_eq!(service.get_trading_metrics().win_rate, 0.0);
         assert_eq!(service.get_trading_metrics().total_volume, 0.0);
 
-        assert_eq!(service.get_connection_status().websocket_connected, false);
-        assert_eq!(service.get_connection_status().api_responsive, false);
+        assert!(!service.get_connection_status().websocket_connected);
+        assert!(!service.get_connection_status().api_responsive);
         assert_eq!(service.get_connection_status().reconnect_count, 0);
     }
 
@@ -976,23 +976,23 @@ mod monitoring_tests {
         let mut service = MonitoringService::new();
 
         // Initially disconnected
-        assert_eq!(service.get_connection_status().websocket_connected, false);
-        assert_eq!(service.get_connection_status().api_responsive, false);
+        assert!(!service.get_connection_status().websocket_connected);
+        assert!(!service.get_connection_status().api_responsive);
 
         // Update to connected
         service.update_connection_status(true, true);
 
         let status = service.get_connection_status();
-        assert_eq!(status.websocket_connected, true);
-        assert_eq!(status.api_responsive, true);
+        assert!(status.websocket_connected);
+        assert!(status.api_responsive);
         assert!(status.last_data_update > 0);
 
         // Update to partially connected
         service.update_connection_status(true, false);
 
         let status = service.get_connection_status();
-        assert_eq!(status.websocket_connected, true);
-        assert_eq!(status.api_responsive, false);
+        assert!(status.websocket_connected);
+        assert!(!status.api_responsive);
     }
 
     #[test]
@@ -1048,8 +1048,8 @@ mod monitoring_tests {
         let status = service.get_connection_status();
 
         // Verify we can access all fields
-        assert_eq!(status.websocket_connected, false);
-        assert_eq!(status.api_responsive, false);
+        assert!(!status.websocket_connected);
+        assert!(!status.api_responsive);
         assert_eq!(status.last_data_update, 0);
         assert_eq!(status.reconnect_count, 0);
     }
