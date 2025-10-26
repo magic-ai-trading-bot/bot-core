@@ -945,7 +945,7 @@ class DirectOpenAIClient:
         max_tokens: int = 2000,
     ):
         """Direct HTTP call to OpenAI chat completions API with auto-fallback on rate limits."""
-        global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME, _rate_limit_lock
+        global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME
         import httpx
 
         # Try each available API key until success or all are exhausted
