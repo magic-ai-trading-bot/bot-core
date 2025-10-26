@@ -17,9 +17,57 @@ env:
   RUST_VERSION: '1.86'
 
 jobs:
+  # Linting and formatting check (runs first, fast fail)
+  rust-lint:
+    runs-on: ubuntu-latest
+    name: Rust Lint & Format
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+        override: true
+        components: rustfmt, clippy
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          rust-core-engine/target
+        key: ${{ runner.os }}-cargo-lint-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-lint-
+
+    - name: Check Rust formatting
+      run: |
+        cd rust-core-engine
+        cargo fmt -- --check
+
+    - name: Run Clippy
+      run: |
+        cd rust-core-engine
+        cargo clippy --all-targets --all-features -- -D warnings
+
+  # Parallel test execution split into 4 jobs to avoid timeout
   rust-tests:
     runs-on: ubuntu-latest
-    name: Rust Core Engine Tests
+    name: Rust Tests (${{ matrix.test-group }})
+    needs: rust-lint
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group:
+          - 'config-auth'
+          - 'ai-binance'
+          - 'market-indicators'
+          - 'trading-strategies'
 
     services:
       mongodb:
@@ -44,7 +92,6 @@ jobs:
       with:
         toolchain: ${{ env.RUST_VERSION }}
         override: true
-        components: rustfmt, clippy
 
     - name: Cache Rust dependencies
       uses: actions/cache@v4
@@ -53,19 +100,96 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           rust-core-engine/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ matrix.test-group }}-${{ hashFiles('rust-core-engine/Cargo.lock') }}
         restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.test-group }}-
           ${{ runner.os }}-cargo-
 
-    - name: Check Rust formatting
+    - name: Build project
       run: |
         cd rust-core-engine
-        cargo fmt -- --check
+        cargo build --tests --verbose
 
-    - name: Run Clippy
+    - name: Run test group - ${{ matrix.test-group }}
+      env:
+        DATABASE_URL: mongodb://root:password@localhost:27017/test_trading_bot
+        JWT_SECRET: test_jwt_secret_key_for_testing_only_do_not_use_in_production
+        BINANCE_TESTNET: true
+        TRADING_ENABLED: false
       run: |
         cd rust-core-engine
-        cargo clippy --all-targets --all-features -- -D warnings
+
+        # Run specific test group based on matrix
+        case "${{ matrix.test-group }}" in
+          config-auth)
+            echo "Running config and auth tests..."
+            cargo test --test test_config --no-fail-fast -- --test-threads=2
+            cargo test --test test_auth --no-fail-fast -- --test-threads=2
+            ;;
+          ai-binance)
+            echo "Running AI and Binance client tests..."
+            cargo test --test test_ai --no-fail-fast -- --test-threads=2
+            cargo test --test test_binance_client --no-fail-fast -- --test-threads=2
+            ;;
+          market-indicators)
+            echo "Running market data and indicators tests..."
+            cargo test --test test_market_data --no-fail-fast -- --test-threads=2
+            cargo test --test test_indicators_comprehensive --no-fail-fast -- --test-threads=2
+            ;;
+          trading-strategies)
+            echo "Running trading, strategies, and integration tests..."
+            cargo test --test test_trading --no-fail-fast -- --test-threads=2
+            cargo test --test test_strategies --no-fail-fast -- --test-threads=2
+            cargo test --test test_paper_trading --no-fail-fast -- --test-threads=2
+            cargo test --test test_position_risk_comprehensive --no-fail-fast -- --test-threads=2
+            cargo test --test test_service_integration --no-fail-fast -- --test-threads=2
+            cargo test --test test_websocket --no-fail-fast -- --test-threads=2
+            cargo test --test test_storage --no-fail-fast -- --test-threads=2
+            cargo test --test test_cross_service --no-fail-fast -- --test-threads=2
+            ;;
+        esac
+
+  # Coverage job (runs after all test groups complete)
+  rust-coverage:
+    runs-on: ubuntu-latest
+    name: Rust Test Coverage
+    needs: rust-tests
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: password
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+        override: true
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          rust-core-engine/target
+        key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-coverage-
+          ${{ runner.os }}-cargo-
 
     - name: Install cargo-tarpaulin
       run: cargo install cargo-tarpaulin
@@ -112,7 +236,7 @@ jobs:
   rust-security:
     runs-on: ubuntu-latest
     name: Rust Security Audit
-    needs: rust-tests
+    needs: rust-coverage
 
     steps:
     - name: Checkout code
@@ -151,7 +275,7 @@ jobs:
   rust-benchmark:
     runs-on: ubuntu-latest
     name: Rust Performance Benchmarks
-    needs: rust-tests
+    needs: rust-coverage
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
