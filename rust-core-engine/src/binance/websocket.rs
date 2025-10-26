@@ -1008,7 +1008,7 @@ mod tests {
 
         match event.unwrap() {
             StreamEvent::Kline(kline_event) => {
-                assert_eq!(kline_event.kline.is_this_kline_closed, false);
+                assert!(!kline_event.kline.is_this_kline_closed);
             },
             _ => panic!("Expected Kline event"),
         }

@@ -1430,7 +1430,7 @@ mod tests {
 
         strategy.update_config(new_config.clone());
 
-        assert_eq!(strategy.config().enabled, false);
+        assert!(!strategy.config().enabled);
         assert_eq!(strategy.config().weight, 2.5);
         assert_eq!(strategy.get_volume_sma_period(), 30);
     }

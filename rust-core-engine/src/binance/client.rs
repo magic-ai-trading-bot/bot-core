@@ -463,7 +463,7 @@ mod tests {
 
         let client = BinanceClient::new(config.clone());
         assert_eq!(client.config.base_url, "https://testnet.binance.vision");
-        assert_eq!(client.config.testnet, true);
+        assert!(client.config.testnet);
     }
 
     #[test]
@@ -574,7 +574,7 @@ mod tests {
 
         let client = BinanceClient::new(config.clone());
         assert_eq!(client.config.api_key, "prod_api_key");
-        assert_eq!(client.config.testnet, false);
+        assert!(!client.config.testnet);
         assert_eq!(client.config.base_url, "https://api.binance.com");
     }
 
@@ -591,7 +591,7 @@ mod tests {
         };
 
         let client = BinanceClient::new(config.clone());
-        assert_eq!(client.config.testnet, true);
+        assert!(client.config.testnet);
         assert!(client.config.base_url.contains("testnet"));
     }
 
@@ -988,11 +988,11 @@ mod tests {
     #[test]
     fn test_config_testnet_flag() {
         let mut config = create_test_config();
-        assert_eq!(config.testnet, false);
+        assert!(!config.testnet);
 
         config.testnet = true;
         let client = BinanceClient::new(config.clone());
-        assert_eq!(client.config.testnet, true);
+        assert!(client.config.testnet);
     }
 
     // Test signature consistency across instances

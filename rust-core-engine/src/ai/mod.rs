@@ -269,7 +269,7 @@ mod tests {
         assert_eq!(config.python_service_url, "http://localhost:8000");
         assert_eq!(config.request_timeout_seconds, 30);
         assert_eq!(config.max_retries, 3);
-        assert_eq!(config.enable_caching, true);
+        assert!(config.enable_caching);
         assert_eq!(config.cache_ttl_seconds, 300);
     }
 
@@ -289,7 +289,7 @@ mod tests {
         assert_eq!(deserialized.python_service_url, "http://ai-service:8000");
         assert_eq!(deserialized.request_timeout_seconds, 60);
         assert_eq!(deserialized.max_retries, 5);
-        assert_eq!(deserialized.enable_caching, false);
+        assert!(!deserialized.enable_caching);
         assert_eq!(deserialized.cache_ttl_seconds, 600);
     }
 

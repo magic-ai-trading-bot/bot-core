@@ -210,8 +210,8 @@ mod tests {
     #[test]
     fn test_config_default() {
         let config = Config::default();
-        assert_eq!(config.binance.testnet, true);
-        assert_eq!(config.trading.enabled, false);
+        assert!(config.binance.testnet);
+        assert!(!config.trading.enabled);
         assert!(!config.market_data.symbols.is_empty());
     }
 
@@ -311,8 +311,8 @@ mod tests {
         let _ = std::fs::remove_file(&temp_path);
 
         let config = Config::from_file(&temp_path).unwrap();
-        assert_eq!(config.binance.testnet, true);
-        assert_eq!(config.trading.enabled, false);
+        assert!(config.binance.testnet);
+        assert!(!config.trading.enabled);
 
         // Cleanup
         let _ = std::fs::remove_file(&temp_path);
@@ -411,11 +411,11 @@ mod tests {
 
         env::set_var("BINANCE_TESTNET", "false");
         let config = Config::from_file(&temp_path).unwrap();
-        assert_eq!(config.binance.testnet, false);
+        assert!(!config.binance.testnet);
 
         env::set_var("BINANCE_TESTNET", "true");
         let config = Config::from_file(&temp_path).unwrap();
-        assert_eq!(config.binance.testnet, true);
+        assert!(config.binance.testnet);
 
         // Cleanup
         env::remove_var("BINANCE_TESTNET");

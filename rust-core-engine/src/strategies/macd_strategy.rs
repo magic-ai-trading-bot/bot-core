@@ -1134,7 +1134,7 @@ mod tests {
         let strategy = MacdStrategy::with_config(config.clone());
         let retrieved_config = strategy.config();
 
-        assert_eq!(retrieved_config.enabled, false);
+        assert!(!retrieved_config.enabled);
         assert_eq!(retrieved_config.weight, 3.5);
         assert_eq!(strategy.get_fast_period(), 8);
     }
@@ -1155,7 +1155,7 @@ mod tests {
 
         strategy.update_config(new_config);
 
-        assert_eq!(strategy.config().enabled, false);
+        assert!(!strategy.config().enabled);
         assert_eq!(strategy.config().weight, 2.5);
         assert_eq!(strategy.get_fast_period(), 10);
         assert_eq!(strategy.get_slow_period(), 22);
