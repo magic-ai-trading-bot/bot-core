@@ -56,7 +56,7 @@ fn create_mock_kline_response() -> Vec<serde_json::Value> {
 #[tokio::test]
 async fn test_client_creation() {
     let config = create_test_config();
-    let client = BinanceClient::new(config.clone());
+    let _client = BinanceClient::new(config.clone());
 
     // Test that client is created successfully
     // We can't directly access internal fields, but we can verify it doesn't panic
@@ -76,7 +76,7 @@ async fn test_sign_request() {
         futures_ws_url: "wss://fstream.binance.com/ws".to_string(),
     };
 
-    let client = BinanceClient::new(config);
+    let _client = BinanceClient::new(config);
 
     // Test signature calculation (we can't directly call sign_request, but we can test through API calls)
     // The signature should be deterministic for the same input
@@ -637,7 +637,7 @@ async fn test_header_construction() {
     let header_name = "X-MBX-APIKEY";
 
     assert_eq!(header_name, "X-MBX-APIKEY");
-    assert!(!api_key.is_empty());
+    assert!(api_key.len() > 0);
 }
 
 #[tokio::test]

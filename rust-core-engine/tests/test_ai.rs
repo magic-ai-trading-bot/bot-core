@@ -26,6 +26,7 @@ use warp::Filter;
 // ============================================================================
 
 /// Mock HTTP server that simulates the Python AI service
+#[allow(dead_code)]
 struct MockAIServer {
     port: u16,
     response_handler: Arc<Mutex<Box<dyn ResponseHandler + Send>>>,
@@ -113,6 +114,7 @@ impl MockAIServer {
         format!("http://127.0.0.1:{}", self.port)
     }
 
+    #[allow(dead_code)]
     async fn set_handler(&self, handler: Box<dyn ResponseHandler + Send>) {
         *self.response_handler.lock().await = handler;
     }

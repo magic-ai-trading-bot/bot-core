@@ -224,7 +224,7 @@ mod mod_tests {
     #[test]
     fn test_trading_signal_clone() {
         let signal = TradingSignal::Long;
-        let cloned = signal.clone();
+        let cloned = signal;
         assert_eq!(signal, cloned);
     }
 
