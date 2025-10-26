@@ -9,7 +9,6 @@ from config.config import config
 from utils.logger import get_logger
 
 
-
 # @spec:FR-AI-001 - LSTM Model Prediction
 # @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md
 # @test:TC-AI-001, TC-AI-002, TC-AI-003

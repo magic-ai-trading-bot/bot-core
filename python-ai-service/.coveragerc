@@ -6,6 +6,8 @@ omit =
     test_setup.py
     start.py
     utils/redis_cache.py
+    tests/test_ml_compatibility.py
+    tests/test_ml_performance.py
     */site-packages/*
     */__pycache__/*
 

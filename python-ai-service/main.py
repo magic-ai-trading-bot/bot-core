@@ -1161,9 +1161,7 @@ class GPTTradingAnalyzer:
             market_context = self._prepare_market_context(
                 request, indicators_1h, indicators_4h
             )
-            logger.debug(
-                f"📊 Market context prepared: {len(market_context)} characters"
-            )
+            logger.debug(f"📊 Market context prepared: {len(market_context)} characters")
 
             # Create GPT-4 prompt
             prompt = self._create_analysis_prompt(
@@ -1959,9 +1957,7 @@ async def analyze_market_condition(request: MarketConditionRequest):
 @app.post("/ai/feedback")
 async def send_performance_feedback(feedback: PerformanceFeedback):
     """Receive performance feedback for learning."""
-    logger.info(
-        f"📝 Feedback received for {feedback.symbol}: {feedback.actual_outcome}"
-    )
+    logger.info(f"📝 Feedback received for {feedback.symbol}: {feedback.actual_outcome}")
 
     # Store feedback for future model improvements
     # In a real implementation, this would be stored in a database

@@ -20,17 +20,21 @@ class TestFullAnalysisPipeline:
     """Test complete AI analysis pipeline"""
 
     @pytest.mark.asyncio
-    async def test_end_to_end_analysis_flow(self, client, sample_ai_analysis_request, mock_openai_client):
+    async def test_end_to_end_analysis_flow(
+        self, client, sample_ai_analysis_request, mock_openai_client
+    ):
         """Test complete flow: request → indicators → ML → AI → response"""
 
         # Setup OpenAI mock
         mock_openai_client.chat_completions_create = AsyncMock(
             return_value={
-                "choices": [{
-                    "message": {
-                        "content": '{"signal": "Long", "confidence": 0.82, "reasoning": "Strong bullish momentum"}'
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"signal": "Long", "confidence": 0.82, "reasoning": "Strong bullish momentum"}'
+                        }
                     }
-                }]
+                ]
             }
         )
 
@@ -76,7 +80,11 @@ class TestFullAnalysisPipeline:
         assert len(responses) == len(symbols)
 
         # Most should succeed (some might fail due to rate limiting)
-        successful = [r for r in responses if not isinstance(r, Exception) and r.status_code == 200]
+        successful = [
+            r
+            for r in responses
+            if not isinstance(r, Exception) and r.status_code == 200
+        ]
         assert len(successful) >= 0  # At least no crashes
 
 
@@ -95,7 +103,7 @@ class TestMLModelIntegration:
         window = 3
         sma = []
         for i in range(len(prices) - window + 1):
-            avg = sum(prices[i:i+window]) / window
+            avg = sum(prices[i : i + window]) / window
             sma.append(avg)
 
         assert len(sma) == len(prices) - window + 1
@@ -105,7 +113,9 @@ class TestMLModelIntegration:
     async def test_rsi_calculation(self):
         """Test RSI indicator calculation"""
 
-        prices = np.array([50000, 50100, 50050, 50200, 50150, 50300, 50250, 50400, 50350, 50500])
+        prices = np.array(
+            [50000, 50100, 50050, 50200, 50150, 50300, 50250, 50400, 50350, 50500]
+        )
 
         # Calculate price changes
         deltas = np.diff(prices)
@@ -128,7 +138,22 @@ class TestMLModelIntegration:
     async def test_macd_calculation(self):
         """Test MACD indicator calculation"""
 
-        prices = np.array([50000, 50100, 50200, 50150, 50300, 50250, 50400, 50350, 50500, 50450, 50600, 50550])
+        prices = np.array(
+            [
+                50000,
+                50100,
+                50200,
+                50150,
+                50300,
+                50250,
+                50400,
+                50350,
+                50500,
+                50450,
+                50600,
+                50550,
+            ]
+        )
 
         # Simple EMA calculation
         def calculate_ema(data, period):
@@ -139,7 +164,11 @@ class TestMLModelIntegration:
             return ema[-1]
 
         ema_12 = calculate_ema(prices, 12)
-        ema_26 = calculate_ema(prices, 26) if len(prices) >= 26 else calculate_ema(prices, len(prices))
+        ema_26 = (
+            calculate_ema(prices, 26)
+            if len(prices) >= 26
+            else calculate_ema(prices, len(prices))
+        )
 
         macd = ema_12 - ema_26
 
@@ -165,12 +194,16 @@ class TestDatabaseIntegration:
 
         # Create a fresh mock collection with specific methods
         mock_collection = AsyncMock()
-        mock_collection.insert_one = AsyncMock(return_value=MagicMock(inserted_id="test_id"))
-        mock_collection.find_one = AsyncMock(return_value={
-            "symbol": symbol,
-            "analysis": analysis,
-            "timestamp": datetime.now(timezone.utc),
-        })
+        mock_collection.insert_one = AsyncMock(
+            return_value=MagicMock(inserted_id="test_id")
+        )
+        mock_collection.find_one = AsyncMock(
+            return_value={
+                "symbol": symbol,
+                "analysis": analysis,
+                "timestamp": datetime.now(timezone.utc),
+            }
+        )
 
         # Override the collection getter for this test
         mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
@@ -186,7 +219,9 @@ class TestDatabaseIntegration:
             assert result["signal"] == "Long"
 
     @pytest.mark.asyncio
-    async def test_database_failure_graceful_degradation(self, client, sample_ai_analysis_request):
+    async def test_database_failure_graceful_degradation(
+        self, client, sample_ai_analysis_request
+    ):
         """Test system continues when database fails"""
 
         with patch("main.mongodb_db", None):
@@ -203,9 +238,12 @@ class TestWebSocketIntegration:
     """Test WebSocket broadcasting"""
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
-
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
     async def test_websocket_connection(self, test_client):
         """Test WebSocket connection and messages"""
 
@@ -213,10 +251,13 @@ class TestWebSocketIntegration:
             # Receive connection message
             data = websocket.receive_json()
             assert "type" in data or "message" in data
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
 
-
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
     @pytest.mark.asyncio
     async def test_signal_broadcast(self, test_client):
         """Test broadcasting AI signals to WebSocket clients"""
@@ -229,12 +270,12 @@ class TestWebSocketIntegration:
                 "symbol": "BTCUSDT",
                 "signal": "Long",
                 "confidence": 0.80,
-            }
+            },
         }
 
         # This tests the broadcast mechanism exists
         # Actual broadcast happens asynchronously
-        assert hasattr(ws_manager, 'broadcast_signal')
+        assert hasattr(ws_manager, "broadcast_signal")
 
 
 @pytest.mark.integration
@@ -285,7 +326,12 @@ class TestAPIEndpoints:
 
         # Should work with minimal data or return rate limit/validation error
         # 200: Success, 422: Validation error (missing fields), 429: Rate limit, 500: Server error
-        assert response.status_code in [200, 422, 429, 500], f"Unexpected status code: {response.status_code}"
+        assert response.status_code in [
+            200,
+            422,
+            429,
+            500,
+        ], f"Unexpected status code: {response.status_code}"
 
 
 @pytest.mark.integration
@@ -315,7 +361,9 @@ class TestErrorHandling:
         assert response.status_code == 422  # Validation error
 
     @pytest.mark.asyncio
-    async def test_openai_api_failure_fallback(self, client, sample_ai_analysis_request):
+    async def test_openai_api_failure_fallback(
+        self, client, sample_ai_analysis_request
+    ):
         """Test fallback when OpenAI API fails"""
 
         with patch("main.openai_client", None):
@@ -382,11 +430,13 @@ class TestCaching:
 
         # Create a fresh mock collection with specific methods
         mock_collection = AsyncMock()
-        mock_collection.find_one = AsyncMock(return_value={
-            "symbol": symbol,
-            "analysis": cached_analysis,
-            "timestamp": datetime.now(timezone.utc),
-        })
+        mock_collection.find_one = AsyncMock(
+            return_value={
+                "symbol": symbol,
+                "analysis": cached_analysis,
+                "timestamp": datetime.now(timezone.utc),
+            }
+        )
 
         # Override the collection getter for this test
         mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)

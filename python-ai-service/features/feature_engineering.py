@@ -7,7 +7,6 @@ from utils.logger import get_logger
 from .technical_indicators import TechnicalIndicators
 
 
-
 # @spec:FR-AI-006 - Feature Engineering
 # @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md
 # @test:TC-AI-015, TC-AI-016

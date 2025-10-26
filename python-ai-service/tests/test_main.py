@@ -206,7 +206,9 @@ class TestFeedbackEndpoint:
 class TestWebSocket:
     """Test WebSocket functionality."""
 
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
     def test_websocket_connection(self, test_client):
         """Test WebSocket connection and messages."""
         with test_client.websocket_connect("/ws") as websocket:
@@ -282,7 +284,9 @@ class TestStorageEndpoints:
         """Test clearing storage."""
         # Create a fresh mock collection
         mock_collection = AsyncMock()
-        mock_collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=100))
+        mock_collection.delete_many = AsyncMock(
+            return_value=MagicMock(deleted_count=100)
+        )
 
         # Override the collection getter for this test
         mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
@@ -918,7 +922,11 @@ class TestMongoDBFunctions:
     @pytest.mark.asyncio
     async def test_get_latest_analysis_success(self, mock_mongodb):
         """Test getting latest analysis."""
-        mock_result = {"signal": "Long", "confidence": 0.8, "analysis": {"test": "data"}}
+        mock_result = {
+            "signal": "Long",
+            "confidence": 0.8,
+            "analysis": {"test": "data"},
+        }
 
         # Create a fresh mock collection with the specific find_one result
         mock_collection = AsyncMock()
@@ -1063,7 +1071,9 @@ class TestErrorHandling:
                 assert response.status_code == 500
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
     async def test_websocket_disconnect(self, test_client):
         """Test WebSocket disconnect handling."""
         from fastapi import WebSocketDisconnect
@@ -2163,7 +2173,9 @@ class TestStorageEndpointEdgeCases:
         """Test storage stats with aggregation error."""
         # Create a fresh mock collection that raises error
         mock_collection = AsyncMock()
-        mock_collection.count_documents = AsyncMock(side_effect=Exception("Aggregation error"))
+        mock_collection.count_documents = AsyncMock(
+            side_effect=Exception("Aggregation error")
+        )
 
         # Override the collection getter for this test
         mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
@@ -2196,7 +2208,9 @@ class TestWebSocketEdgeCases:
     """Test WebSocket edge cases."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
     async def test_websocket_receive_text(self, test_client):
         """Test WebSocket receiving text message."""
         with test_client.websocket_connect("/ws") as websocket:

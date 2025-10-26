@@ -200,7 +200,9 @@ class TestMongoDBIntegration:
 
         # Create a fresh mock collection with specific methods
         mock_collection = AsyncMock()
-        mock_collection.insert_one = AsyncMock(return_value=MagicMock(inserted_id="mock_id"))
+        mock_collection.insert_one = AsyncMock(
+            return_value=MagicMock(inserted_id="mock_id")
+        )
         mock_collection.find_one = AsyncMock(return_value=stored_doc)
 
         # Override the collection getter for this test
@@ -226,7 +228,9 @@ class TestWebSocketBroadcasting:
     """Test WebSocket broadcasting in real scenarios."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite")
+    @pytest.mark.skip(
+        reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
+    )
     async def test_analysis_broadcast_to_clients(self, test_client, mock_openai_client):
         """Test that analysis results are broadcast to WebSocket clients."""
         from main import ws_manager
