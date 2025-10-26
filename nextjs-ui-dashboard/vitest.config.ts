@@ -23,6 +23,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    include: ['src/__tests__/**/*.{test,spec}.{ts,tsx}'],
     testTimeout: 5000,
     hookTimeout: 5000,
     teardownTimeout: 5000,
