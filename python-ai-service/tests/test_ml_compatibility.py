@@ -1,6 +1,10 @@
 """
 Test ML Library Compatibility
 Tests for PyTorch 2.5.1 and TensorFlow 2.18.0 (Keras 3.0)
+
+These tests are marked with @pytest.mark.ml_isolated to run in a controlled order.
+When using pytest-xdist (-n auto), each test worker will run these tests sequentially
+to avoid ML library global state conflicts and resource contention issues.
 """
 
 import pytest
@@ -9,6 +13,7 @@ import os
 import tempfile
 
 
+@pytest.mark.ml_isolated
 class TestPyTorchCompatibility:
     """Test PyTorch 2.5.1 compatibility"""
 
@@ -146,6 +151,7 @@ class TestPyTorchCompatibility:
         assert x.grad.shape == x.shape
 
 
+@pytest.mark.ml_isolated
 class TestTensorFlowCompatibility:
     """Test TensorFlow 2.18.0 and Keras 3.0 compatibility"""
 
@@ -382,6 +388,7 @@ class TestTensorFlowCompatibility:
         assert any(isinstance(layer, keras.layers.Dropout) for layer in model.layers)
 
 
+@pytest.mark.ml_isolated
 class TestMLLibraryInteroperability:
     """Test PyTorch and TensorFlow can coexist"""
 

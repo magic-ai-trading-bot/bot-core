@@ -253,13 +253,13 @@ class TestStorageEndpoints:
         async def async_gen():
             yield {"_id": "BTCUSDT", "count": 100, "latest": 1701234567000}
 
-        # Mock aggregation result with proper async iterator
-        mock_mongodb[1]["ai_analysis_results"].aggregate = MagicMock(
-            return_value=async_gen()
-        )
-        mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(
-            return_value=500
-        )
+        # Create a fresh mock collection with specific methods
+        mock_collection = AsyncMock()
+        mock_collection.aggregate = MagicMock(return_value=async_gen())
+        mock_collection.count_documents = AsyncMock(return_value=500)
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.get("/ai/storage/stats")
@@ -279,9 +279,12 @@ class TestStorageEndpoints:
     @pytest.mark.asyncio
     async def test_clear_storage_success(self, client, mock_mongodb):
         """Test clearing storage."""
-        mock_mongodb[1]["ai_analysis_results"].delete_many = AsyncMock(
-            return_value=MagicMock(deleted_count=100)
-        )
+        # Create a fresh mock collection
+        mock_collection = AsyncMock()
+        mock_collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=100))
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.post("/ai/storage/clear")
@@ -914,15 +917,20 @@ class TestMongoDBFunctions:
     @pytest.mark.asyncio
     async def test_get_latest_analysis_success(self, mock_mongodb):
         """Test getting latest analysis."""
-        mock_result = {"signal": "Long", "confidence": 0.8, "analysis": {}}
-        mock_mongodb[1]["ai_analysis_results"].find_one = AsyncMock(
-            return_value=mock_result
-        )
+        mock_result = {"signal": "Long", "confidence": 0.8, "analysis": {"test": "data"}}
+
+        # Create a fresh mock collection with the specific find_one result
+        mock_collection = AsyncMock()
+        mock_collection.find_one = AsyncMock(return_value=mock_result)
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             result = await get_latest_analysis("BTCUSDT")
             # Should return the analysis field
             assert result is not None
+            assert result == {"test": "data"}
 
     @pytest.mark.asyncio
     async def test_get_latest_analysis_no_db(self):
@@ -1691,9 +1699,13 @@ class TestAdditionalCoverage:
             "symbol": "BTCUSDT",
             "analysis": {"signal": "Long", "confidence": 0.8},
         }
-        mock_mongodb[1]["ai_analysis_results"].find_one = AsyncMock(
-            return_value=mock_result
-        )
+
+        # Create a fresh mock collection with the specific find_one result
+        mock_collection = AsyncMock()
+        mock_collection.find_one = AsyncMock(return_value=mock_result)
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             result = await get_latest_analysis("BTCUSDT")
@@ -2130,12 +2142,13 @@ class TestStorageEndpointEdgeCases:
         async def async_gen():
             yield {"_id": "BTCUSDT", "count": 100, "latest": datetime.now(timezone.utc)}
 
-        mock_mongodb[1]["ai_analysis_results"].aggregate = MagicMock(
-            return_value=async_gen()
-        )
-        mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(
-            return_value=500
-        )
+        # Create a fresh mock collection
+        mock_collection = AsyncMock()
+        mock_collection.aggregate = MagicMock(return_value=async_gen())
+        mock_collection.count_documents = AsyncMock(return_value=500)
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.get("/ai/storage/stats")
@@ -2146,9 +2159,12 @@ class TestStorageEndpointEdgeCases:
     @pytest.mark.asyncio
     async def test_storage_stats_with_error(self, client, mock_mongodb):
         """Test storage stats with aggregation error."""
-        mock_mongodb[1]["ai_analysis_results"].count_documents = AsyncMock(
-            side_effect=Exception("Aggregation error")
-        )
+        # Create a fresh mock collection that raises error
+        mock_collection = AsyncMock()
+        mock_collection.count_documents = AsyncMock(side_effect=Exception("Aggregation error"))
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.get("/ai/storage/stats")
@@ -2159,9 +2175,12 @@ class TestStorageEndpointEdgeCases:
     @pytest.mark.asyncio
     async def test_clear_storage_with_error(self, client, mock_mongodb):
         """Test clearing storage with error."""
-        mock_mongodb[1]["ai_analysis_results"].delete_many = AsyncMock(
-            side_effect=Exception("Delete error")
-        )
+        # Create a fresh mock collection that raises error
+        mock_collection = AsyncMock()
+        mock_collection.delete_many = AsyncMock(side_effect=Exception("Delete error"))
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             response = await client.post("/ai/storage/clear")

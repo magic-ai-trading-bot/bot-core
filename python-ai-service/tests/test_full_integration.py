@@ -163,14 +163,17 @@ class TestDatabaseIntegration:
             "reasoning": "Test analysis",
         }
 
-        # Mock collection
-        mock_collection = mock_mongodb[1]["ai_analysis_results"]
-        mock_collection.insert_one.return_value = MagicMock(inserted_id="test_id")
-        mock_collection.find_one.return_value = {
+        # Create a fresh mock collection with specific methods
+        mock_collection = AsyncMock()
+        mock_collection.insert_one = AsyncMock(return_value=MagicMock(inserted_id="test_id"))
+        mock_collection.find_one = AsyncMock(return_value={
             "symbol": symbol,
             "analysis": analysis,
             "timestamp": datetime.now(timezone.utc),
-        }
+        })
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             # Store
@@ -371,12 +374,16 @@ class TestCaching:
             "confidence": 0.75,
         }
 
-        mock_collection = mock_mongodb[1]["ai_analysis_results"]
-        mock_collection.find_one.return_value = {
+        # Create a fresh mock collection with specific methods
+        mock_collection = AsyncMock()
+        mock_collection.find_one = AsyncMock(return_value={
             "symbol": symbol,
             "analysis": cached_analysis,
             "timestamp": datetime.now(timezone.utc),
-        }
+        })
+
+        # Override the collection getter for this test
+        mock_mongodb[1].__getitem__ = MagicMock(return_value=mock_collection)
 
         with patch("main.mongodb_db", mock_mongodb[1]):
             result = await get_latest_analysis(symbol)

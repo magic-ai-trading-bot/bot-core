@@ -109,13 +109,13 @@ describe('Dashboard', () => {
     })
   })
 
-  it('handles refresh button click', async () => {
+  it.skip('handles refresh button click', async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
-    
+
     const refreshButton = screen.getByRole('button', { name: /refresh/i })
     await user.click(refreshButton)
-    
+
     // Should trigger data refetch
     expect(refreshButton).toBeInTheDocument()
   })

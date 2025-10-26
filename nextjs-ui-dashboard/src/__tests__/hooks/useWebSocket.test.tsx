@@ -68,15 +68,31 @@ class WebSocketMockClass {
 }
 
 describe('useWebSocket', () => {
+  let originalWebSocket: typeof WebSocket
+
   beforeEach(() => {
     // Reset mockWs
     mockWs = undefined as unknown as MockWebSocket
-    // Stub global WebSocket with our mock class
-    vi.stubGlobal('WebSocket', WebSocketMockClass)
+    // Save original WebSocket
+    originalWebSocket = global.WebSocket
+    // Mock global WebSocket with our mock class
+    Object.defineProperty(global, 'WebSocket', {
+      writable: true,
+      configurable: true,
+      value: WebSocketMockClass
+    })
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    // Restore original WebSocket
+    Object.defineProperty(global, 'WebSocket', {
+      writable: true,
+      configurable: true,
+      value: originalWebSocket
+    })
+    // Reset mockWs
+    mockWs = undefined as unknown as MockWebSocket
+    vi.clearAllMocks()
   })
 
   // Helper function to connect and wait for WebSocket
@@ -337,7 +353,11 @@ describe('useWebSocket', () => {
         }
       }
 
-      vi.stubGlobal('WebSocket', CountingWebSocketMock)
+      Object.defineProperty(global, 'WebSocket', {
+        writable: true,
+        configurable: true,
+        value: CountingWebSocketMock
+      })
 
       const { result } = renderHook(() => useWebSocket())
 
@@ -347,25 +367,26 @@ describe('useWebSocket', () => {
       })
 
       // Wait for initial connection attempt
-      await waitFor(() => expect(connectionAttempts).toBe(1), { timeout: 3000 })
+      await waitFor(() => expect(connectionAttempts).toBe(1), { timeout: 1000 })
 
       // Trigger open
-      await act(async () => {
+      act(() => {
         mockWs?.triggerOpen()
-        await new Promise(resolve => setTimeout(resolve, 100))
       })
 
-      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 3000 })
+      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 1000 })
 
       // Wait a bit to ensure no additional connection attempts
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 500))
-      })
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       // Should only have 1 connection attempt (not infinite)
       expect(connectionAttempts).toBe(1)
 
-      vi.stubGlobal('WebSocket', originalWebSocket)
+      Object.defineProperty(global, 'WebSocket', {
+        writable: true,
+        configurable: true,
+        value: originalWebSocket
+      })
     })
 
     it('should not re-render infinitely when connect function changes', async () => {
@@ -446,7 +467,11 @@ describe('useWebSocket', () => {
         }
       }
 
-      vi.stubGlobal('WebSocket', CountingWebSocketMock2)
+      Object.defineProperty(global, 'WebSocket', {
+        writable: true,
+        configurable: true,
+        value: CountingWebSocketMock2
+      })
 
       // Mount the hook
       const { result } = renderHook(() => useWebSocket())
@@ -457,23 +482,20 @@ describe('useWebSocket', () => {
       })
 
       // Wait for connect to happen
-      await waitFor(() => expect(connectionAttempts).toBeGreaterThan(0), { timeout: 3000 })
+      await waitFor(() => expect(connectionAttempts).toBeGreaterThan(0), { timeout: 1000 })
 
       const initialAttempts = connectionAttempts
 
       // Trigger connection open
-      await act(async () => {
+      act(() => {
         mockWs?.triggerOpen()
-        await new Promise(resolve => setTimeout(resolve, 100))
       })
 
       // Wait for connection to be established
-      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 3000 })
+      await waitFor(() => expect(result.current.state.isConnected).toBe(true), { timeout: 1000 })
 
-      // Wait a bit more to ensure no additional connections
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 500))
-      })
+      // Wait a bit to ensure no additional connections
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       // Should not have additional connection attempts
       expect(connectionAttempts).toBe(initialAttempts)

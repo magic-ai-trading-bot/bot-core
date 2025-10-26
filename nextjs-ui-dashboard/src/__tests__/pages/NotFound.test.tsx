@@ -19,13 +19,21 @@ vi.mock('../../components/ChatBot', () => ({
   default: () => null,
 }))
 
-// Mock console.error to avoid noise in tests
-const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+// Mock logger.error
+const loggerErrorSpy = vi.fn()
+vi.mock('@/utils/logger', () => ({
+  default: {
+    error: (...args: any[]) => loggerErrorSpy(...args),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}))
 
 describe('NotFound', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    consoleErrorSpy.mockClear()
+    loggerErrorSpy.mockClear()
   })
 
   it('renders 404 page', () => {
@@ -59,7 +67,7 @@ describe('NotFound', () => {
   it('logs error to console with pathname', () => {
     render(<NotFound />)
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
       '404 Error: User attempted to access non-existent route:',
       '/non-existent-page'
     )
@@ -68,14 +76,14 @@ describe('NotFound', () => {
   it('logs error only once on mount', () => {
     render(<NotFound />)
 
-    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+    expect(loggerErrorSpy).toHaveBeenCalledTimes(1)
   })
 
   it('uses correct pathname from location', () => {
     mockLocation.pathname = '/some-other-page'
     render(<NotFound />)
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
       '404 Error: User attempted to access non-existent route:',
       '/some-other-page'
     )
@@ -140,11 +148,11 @@ describe('NotFound', () => {
     ]
 
     testPaths.forEach(path => {
-      consoleErrorSpy.mockClear()
+      loggerErrorSpy.mockClear()
       mockLocation.pathname = path
       const { unmount } = render(<NotFound />)
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         '404 Error: User attempted to access non-existent route:',
         path
       )
@@ -156,13 +164,13 @@ describe('NotFound', () => {
   it('logs error once per mount', () => {
     const { rerender } = render(<NotFound />)
 
-    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+    expect(loggerErrorSpy).toHaveBeenCalledTimes(1)
 
     // Re-rendering should not call again since pathname hasn't changed
     rerender(<NotFound />)
 
     // Should still be 1 since the dependency (pathname) hasn't changed
-    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+    expect(loggerErrorSpy).toHaveBeenCalledTimes(1)
   })
 
   it('displays all elements in correct hierarchy', () => {
