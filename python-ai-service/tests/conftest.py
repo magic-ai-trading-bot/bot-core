@@ -7,7 +7,7 @@ import pytest
 import pytest_asyncio
 from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from fastapi.testclient import TestClient
 from datetime import datetime, timezone
 
@@ -134,8 +134,10 @@ def app(mock_openai_client, mock_mongodb):
 
 @pytest_asyncio.fixture
 async def client(app) -> AsyncGenerator[AsyncClient, None]:
-    """Create async test client."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    """Create async test client using ASGITransport for httpx 0.24+."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         yield ac
 
 
