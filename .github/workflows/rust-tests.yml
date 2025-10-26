@@ -54,7 +54,7 @@ jobs:
         cd rust-core-engine
         cargo clippy --all-targets --all-features -- -D warnings
 
-  # Parallel test execution split into 4 jobs to avoid timeout
+  # Parallel test execution split into 8 jobs to avoid timeout
   rust-tests:
     runs-on: ubuntu-latest
     name: Rust Tests (${{ matrix.test-group }})
@@ -64,10 +64,14 @@ jobs:
       fail-fast: false
       matrix:
         test-group:
-          - 'config-auth'
-          - 'ai-binance'
-          - 'market-indicators'
-          - 'trading-strategies'
+          - 'config'
+          - 'auth-ai'
+          - 'binance'
+          - 'market-data'
+          - 'indicators'
+          - 'trading-paper'
+          - 'strategies-position'
+          - 'integration-services'
 
     services:
       mongodb:
@@ -119,29 +123,41 @@ jobs:
       run: |
         cd rust-core-engine
 
-        # Run specific test group based on matrix
+        # Run specific test group based on matrix (8 parallel jobs)
         case "${{ matrix.test-group }}" in
-          config-auth)
-            echo "Running config and auth tests..."
+          config)
+            echo "Running config tests (67 tests)..."
             cargo test --test test_config --no-fail-fast -- --test-threads=2
-            cargo test --test test_auth --no-fail-fast -- --test-threads=2
             ;;
-          ai-binance)
-            echo "Running AI and Binance client tests..."
+          auth-ai)
+            echo "Running auth and AI tests (57 tests)..."
+            cargo test --test test_auth --no-fail-fast -- --test-threads=2
             cargo test --test test_ai --no-fail-fast -- --test-threads=2
+            ;;
+          binance)
+            echo "Running Binance client tests (36 tests)..."
             cargo test --test test_binance_client --no-fail-fast -- --test-threads=2
             ;;
-          market-indicators)
-            echo "Running market data and indicators tests..."
+          market-data)
+            echo "Running market data tests (45 tests)..."
             cargo test --test test_market_data --no-fail-fast -- --test-threads=2
+            ;;
+          indicators)
+            echo "Running indicators tests (35 tests)..."
             cargo test --test test_indicators_comprehensive --no-fail-fast -- --test-threads=2
             ;;
-          trading-strategies)
-            echo "Running trading, strategies, and integration tests..."
+          trading-paper)
+            echo "Running trading and paper trading tests (28 tests)..."
             cargo test --test test_trading --no-fail-fast -- --test-threads=2
-            cargo test --test test_strategies --no-fail-fast -- --test-threads=2
             cargo test --test test_paper_trading --no-fail-fast -- --test-threads=2
+            ;;
+          strategies-position)
+            echo "Running strategies and position risk tests (34 tests)..."
+            cargo test --test test_strategies --no-fail-fast -- --test-threads=2
             cargo test --test test_position_risk_comprehensive --no-fail-fast -- --test-threads=2
+            ;;
+          integration-services)
+            echo "Running integration and service tests (32 tests)..."
             cargo test --test test_service_integration --no-fail-fast -- --test-threads=2
             cargo test --test test_websocket --no-fail-fast -- --test-threads=2
             cargo test --test test_storage --no-fail-fast -- --test-threads=2
