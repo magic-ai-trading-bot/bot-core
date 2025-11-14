@@ -18,7 +18,7 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 log = "0.4"
 anyhow = "1.0"
 thiserror = "1.0"
-dashmap = "5.4"
+dashmap = "6.1"
 parking_lot = "0.12"
 crossbeam-channel = "0.5"
 config = "0.13"
