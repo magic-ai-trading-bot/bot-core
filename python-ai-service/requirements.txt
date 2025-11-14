@@ -1,7 +1,7 @@
+numpy>=1.26.0,<2.4.0
 fastapi==0.121.2
 uvicorn==0.38.0
 pydantic==2.12.4
-numpy>=1.26.0,<2.1.0
 pandas==2.3.3
 scikit-learn>=1.7.0
 tensorflow==2.20.0
