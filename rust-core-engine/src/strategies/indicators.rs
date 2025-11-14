@@ -237,11 +237,8 @@ pub fn calculate_ema(prices: &[f64], period: usize) -> Result<Vec<f64>, String> 
 
     // Calculate subsequent EMA values
     for price in prices.iter().skip(period) {
-        // Safe to unwrap because we just pushed first_sma above
-        let last_ema = ema_values
-            .last()
-            .copied()
-            .expect("EMA values should not be empty after initialization");
+        // Safe: we just pushed first_sma above, so ema_values is never empty
+        let last_ema = *ema_values.last().unwrap_or(&first_sma);
         let ema = (price * multiplier) + (last_ema * (1.0 - multiplier));
         ema_values.push(ema);
     }

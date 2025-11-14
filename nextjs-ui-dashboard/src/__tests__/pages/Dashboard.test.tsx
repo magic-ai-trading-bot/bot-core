@@ -1,8 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { render, mockPosition, mockTrade } from '../../test/utils'
+import { render, mockPosition, mockTrade, mockUser } from '../../test/utils'
 import Dashboard from '../../pages/Dashboard'
+
+// Mock the API module
+vi.mock('../../services/api', () => {
+  const mockAuthClient = {
+    login: vi.fn(),
+    register: vi.fn(),
+    getProfile: vi.fn(() => Promise.resolve(mockUser)),
+    verifyToken: vi.fn(),
+    setAuthToken: vi.fn(),
+    removeAuthToken: vi.fn(),
+    getAuthToken: vi.fn(() => null),
+    isTokenExpired: vi.fn(() => true),
+  }
+
+  return {
+    BotCoreApiClient: vi.fn(() => ({
+      auth: mockAuthClient,
+      rust: {},
+      python: {},
+    })),
+  }
+})
 
 // Mock the hooks
 vi.mock('../../hooks/usePositions', () => ({

@@ -1170,9 +1170,10 @@ mod tests {
     // Mock implementations for testing
     async fn create_mock_storage() -> Storage {
         use crate::config::DatabaseConfig;
-        // Using actual Storage for tests
+        // Use in-memory storage for tests (no MongoDB connection required)
+        // By using a non-MongoDB URL, Storage will use in-memory fallback
         let config = DatabaseConfig {
-            url: "mongodb://localhost:27017".to_string(),
+            url: "memory://test".to_string(),
             database_name: Some("test_db".to_string()),
             max_connections: 10,
             enable_logging: false,

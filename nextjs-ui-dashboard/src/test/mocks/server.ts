@@ -1,7 +1,10 @@
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
 
-// Mock API responses
+/**
+ * MSW Handlers - Mock API responses
+ * NOTE: Server instance is created lazily to avoid localStorage errors
+ */
 export const handlers = [
   // Auth endpoints
   http.post('http://localhost:8080/api/auth/login', () => {
@@ -234,4 +237,20 @@ export const handlers = [
   }),
 ]
 
-export const server = setupServer(...handlers)
+// Create server instance lazily (after jsdom localStorage is available)
+let serverInstance: ReturnType<typeof setupServer> | null = null
+
+export const getServer = () => {
+  if (!serverInstance) {
+    serverInstance = setupServer(...handlers)
+  }
+  return serverInstance
+}
+
+// For backward compatibility
+export const server = new Proxy({} as ReturnType<typeof setupServer>, {
+  get(target, prop) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (getServer() as any)[prop]
+  }
+})
