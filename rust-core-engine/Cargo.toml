@@ -32,7 +32,7 @@ rust_decimal = { version = "1.39", features = ["serde"] }
 mongodb = { version = "3.3", optional = true }
 bson = { version = "3.0", features = ["chrono-0_4"], optional = true }
 structopt = "0.3"
-toml = "0.8"
+toml = "0.9"
 base64 = "0.21.7"
 jsonwebtoken = "9.1"
 bcrypt = "0.15"
