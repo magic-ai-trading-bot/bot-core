@@ -1,10 +1,43 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { render } from '../../test/utils'
+import { render, mockUser } from '../../test/utils'
 import Login from '../../pages/Login'
-import { http, HttpResponse } from 'msw'
-import { server } from '../../test/mocks/server'
+
+// Mock the API module with factory function
+vi.mock('../../services/api', () => {
+  const mockLogin = vi.fn()
+  const mockGetProfile = vi.fn()
+  const mockGetAuthToken = vi.fn()
+  const mockIsTokenExpired = vi.fn()
+
+  return {
+    BotCoreApiClient: vi.fn(() => ({
+      auth: {
+        login: mockLogin,
+        register: vi.fn(),
+        getProfile: mockGetProfile,
+        verifyToken: vi.fn(),
+        setAuthToken: vi.fn(),
+        removeAuthToken: vi.fn(),
+        getAuthToken: mockGetAuthToken,
+        isTokenExpired: mockIsTokenExpired,
+      },
+      rust: {},
+      python: {},
+    })),
+    mockAuthHelpers: {
+      mockLogin,
+      mockGetProfile,
+      mockGetAuthToken,
+      mockIsTokenExpired,
+    },
+  }
+})
+
+// Get the exported mocks
+const { mockAuthHelpers } = await import('../../services/api')
+const { mockLogin, mockGetProfile, mockGetAuthToken, mockIsTokenExpired } = mockAuthHelpers
 
 // Mock router
 const mockNavigate = vi.fn()
@@ -29,7 +62,18 @@ vi.mock('../../components/ChatBot', () => ({
 describe('Login', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear()
+    }
+
+    // Setup default mock behaviors
+    mockGetAuthToken.mockReturnValue(null)
+    mockIsTokenExpired.mockReturnValue(true)
+    mockLogin.mockResolvedValue({
+      token: 'mock-jwt-token',
+      user: mockUser,
+    })
+    mockGetProfile.mockResolvedValue(mockUser)
   })
 
   it('renders login form', () => {

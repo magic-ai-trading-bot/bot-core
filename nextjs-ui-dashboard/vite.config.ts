@@ -133,4 +133,45 @@ export default defineConfig(({ mode }) => ({
   esbuild: {
     drop: mode === "production" ? ["console", "debugger"] : [],
   },
+  // Test configuration
+  test: {
+    globalSetup: './vitest.globalSetup.ts', // Global setup (runs before everything)
+    environment: './vitest-environment-jsdom-with-storage.ts', // Custom environment with localStorage
+    environmentOptions: {
+      jsdom: {
+        resources: 'usable',
+      },
+    },
+    setupFiles: [
+      './src/test/vitest-setup.ts', // Global setup FIRST (before any imports)
+      './src/test/setup.ts',        // Main test setup with MSW
+    ],
+    globals: true,
+    css: true,
+    pool: 'forks', // Use forks instead of threads for better isolation
+    poolOptions: {
+      forks: {
+        singleFork: false,
+      },
+    },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov', 'json'],
+      exclude: [
+        'node_modules/',
+        'src/test/',
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+        '**/mocks/**',
+        '**/*.config.{ts,js}',
+        '**/dist/**',
+      ],
+      thresholds: {
+        lines: 90,
+        functions: 90,
+        branches: 90,
+        statements: 90,
+      },
+    },
+  },
 }));

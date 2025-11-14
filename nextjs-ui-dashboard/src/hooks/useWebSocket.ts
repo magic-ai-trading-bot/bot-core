@@ -312,7 +312,8 @@ export const useWebSocket = (): WebSocketHook => {
         connectWebSocket();
       }, delay);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // connectWebSocket intentionally excluded to prevent infinite reconnection loop
 
   const handleError = useCallback((event: Event) => {
     logger.error("WebSocket error:", event);

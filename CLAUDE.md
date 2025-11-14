@@ -700,6 +700,250 @@ cd python-ai-service && pytest -m benchmark
 
 ---
 
+## ClaudeKit AI Agents & Commands
+
+**Bot-core now includes ClaudeKit's comprehensive AI agent orchestration system** for enhanced development workflow automation and code quality.
+
+### 🤖 Available AI Agents (11 agents)
+
+**Core Development Agents:**
+- **planner** - Research & create comprehensive implementation plans
+  - Spawns multiple researcher agents in parallel
+  - Creates detailed plans in `docs/plans/`
+  - Reads specs/, docs/, and analyzes architecture
+  - Usage: Invoke via `Task` tool when planning new features
+
+- **researcher** - Technical investigation & analysis
+  - Investigates technologies, frameworks, best practices
+  - Provides technical recommendations
+  - Works with planner agent in parallel
+
+- **tester** - Test execution & validation
+  - Runs all test suites (2,202+ tests)
+  - Generates coverage reports (90.4%+ required)
+  - Checks mutation scores (84%+ required)
+  - Usage: After implementing features to validate quality
+
+- **code-reviewer** - Comprehensive code quality assessment
+  - Reviews code for standards & best practices
+  - Security audit (OWASP Top 10)
+  - Runs quality gates (make lint, make quality-metrics)
+  - Verifies @spec tags and file organization
+  - Usage: After implementation, before commits
+
+- **debugger** - Issue analysis & root cause finder
+  - Analyzes logs and errors
+  - Diagnoses performance bottlenecks
+  - Investigates CI/CD issues
+
+**Management Agents:**
+- **docs-manager** - Documentation sync & maintenance
+  - Maintains docs/, specs/ structure
+  - Updates API documentation
+  - Manages codebase summaries
+
+- **git-manager** - Version control & conventional commits
+  - Creates semantic commit messages
+  - Manages branching strategies
+  - Professional git history with co-authoring
+
+- **project-manager** - Progress tracking & roadmaps
+  - Tracks milestones
+  - Updates roadmaps
+  - Maintains project health metrics
+
+**Specialized Agents:**
+- **scout** - Codebase search & analysis
+- **database-admin** - MongoDB operations & optimization
+- **ui-ux-designer** - UI/UX design work
+
+### 📋 Custom Commands (17 commands)
+
+**Essential Commands:**
+- `/plan [task]` - Create implementation plan using planner agent
+  - Researches approaches, creates detailed plan in docs/plans/
+  - Example: `/plan "implement WebSocket authentication"`
+
+- `/cook [tasks]` - Implement features step-by-step
+  - Follows YAGNI, KISS, DRY principles
+  - Spawns researcher agents for exploration
+  - Example: `/cook "add rate limiting to API"`
+
+- `/test` - Run comprehensive test suite using tester agent
+  - Executes 2,202+ tests across all services
+  - Generates coverage reports
+  - Checks mutation scores
+
+- `/debug [issue]` - Debug issues using debugger agent
+  - Analyzes logs and errors
+  - Provides root cause analysis
+  - Example: `/debug "investigate slow database queries"`
+
+- `/docs` - Update documentation using docs-manager agent
+  - Syncs docs with code changes
+  - Updates API documentation
+  - Maintains spec traceability
+
+**Git & Quality Commands:**
+- `/git [operation]` - Git operations with conventional commits
+- `/watzup` - Project status check and health metrics
+- `/integrate` - Integration work and cross-service testing
+
+**Additional Commands:**
+- `/scout [query]` - Search codebase for patterns
+- `/ask [question]` - Ask questions about architecture/code
+- `/fix [issue]` - Quick fixes with automated testing
+- `/design [feature]` - UI/UX design tasks
+- `/brainstorm [topic]` - Creative ideation sessions
+- `/journal` - Development journal entries
+- `/bootstrap` - Project bootstrap operations
+- `/content` - Content creation tasks
+- `/skill` - Custom skill execution
+
+### 🔄 Workflows
+
+**4 orchestration workflows guide agent collaboration:**
+
+1. **primary-workflow.md** - Main development workflow
+   - Code → Test → Review → Integration → Debug
+   - Sequential and parallel agent execution
+   - Quality gates enforcement
+
+2. **development-rules.md** - Development standards
+   - Coding conventions
+   - Best practices
+   - Bot-core specific requirements
+
+3. **orchestration-protocol.md** - Agent coordination
+   - Sequential vs parallel execution patterns
+   - Context management between agents
+   - Agent handoff protocols
+
+4. **documentation-management.md** - Docs structure & sync
+   - Documentation organization (docs/, specs/)
+   - Update protocols
+   - Traceability maintenance
+
+### ⚙️ Git Automation
+
+**Semantic Release (.releaserc.json):**
+- Automated changelog generation
+- Semantic versioning (major.minor.patch)
+- GitHub releases automation
+- Conventional commits enforcement
+
+**Commit Linting (.commitlintrc.json):**
+- Enforces conventional commit format
+- Types: feat, fix, docs, refactor, test, ci, etc.
+- Husky pre-commit hooks integration
+
+**Husky Git Hooks:**
+- Auto-validates commit messages
+- Enforces format before commit
+- Prevents non-conventional commits
+
+### 📊 Enhanced Status Bar
+
+**statusline.sh** provides rich CLI status information:
+- Current directory and git branch
+- Git status (staged/unstaged changes)
+- Model name and version
+- Token usage and session time
+- Cost tracking per hour
+- Progress bars for session limits
+
+### 💡 Agent Usage Examples
+
+**Feature Development:**
+```bash
+# 1. Plan the feature
+/plan "implement JWT token refresh mechanism"
+
+# 2. Implement following the plan
+/cook "implement JWT refresh as per plan"
+
+# 3. Test the implementation
+/test
+
+# 4. Review code quality
+# (code-reviewer agent auto-invoked after implementation)
+
+# 5. Update documentation
+/docs
+
+# 6. Commit with semantic versioning
+/git "commit changes with conventional message"
+```
+
+**Bug Fixing:**
+```bash
+# 1. Debug the issue
+/debug "authentication fails after 1 hour"
+
+# 2. Create fix plan
+/plan "fix JWT expiration handling"
+
+# 3. Implement fix
+/cook "implement JWT expiration fix"
+
+# 4. Test thoroughly
+/test
+```
+
+**Quality Assurance:**
+```bash
+# Check project health
+/watzup
+
+# Review recent changes
+# (invoke code-reviewer agent via Task tool)
+
+# Run comprehensive tests
+/test
+
+# Update documentation
+/docs
+```
+
+### 🎯 Best Practices
+
+**When to Use Agents:**
+- **planner**: Before starting any significant feature or refactoring
+- **researcher**: When evaluating multiple technical approaches
+- **tester**: After every code change, before commits
+- **code-reviewer**: After implementation, as final quality gate
+- **debugger**: When investigating errors, performance issues, or CI/CD failures
+- **docs-manager**: When code changes affect documentation
+- **git-manager**: For creating professional commit messages
+
+**Agent Orchestration:**
+- Use **parallel execution** for independent research tasks
+- Use **sequential execution** when tasks have dependencies
+- Let planner agent spawn multiple researcher agents
+- Always run tester agent before code-reviewer agent
+- Update docs after implementation passes review
+
+**Integration with Bot-Core:**
+- All agents follow spec-driven development (specs/)
+- Agents verify @spec tags in code
+- Agents respect file organization rules
+- Agents run quality gates (make lint, make test, make quality-metrics)
+- Agents maintain Perfect 10/10 quality standards
+
+### 📚 Agent Documentation
+
+**For detailed agent-specific instructions:**
+- Read `.claude/BOT_CORE_INSTRUCTIONS.md` - Complete bot-core guidelines for all agents
+- Read `.claude/workflows/` - Orchestration protocols and development rules
+- Read `CLAUDE.md` (this file) - Project overview and standards
+
+**Agent configuration files:**
+- `.claude/agents/` - Individual agent definitions (11 agents)
+- `.claude/commands/` - Custom command definitions (17 commands)
+- `.claude/workflows/` - Workflow orchestration (4 workflows)
+
+---
+
 ## Common Tasks
 
 ### Adding a New Feature

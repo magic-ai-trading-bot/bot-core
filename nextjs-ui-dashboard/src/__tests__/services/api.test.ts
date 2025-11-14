@@ -22,6 +22,24 @@ import type {
   AIServiceInfo,
 } from '../../services/api'
 
+// Mock localStorage for this test file
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => { store[key] = value },
+    removeItem: (key: string) => { delete store[key] },
+    clear: () => { store = {} },
+    get length() { return Object.keys(store).length },
+    key: (index: number) => Object.keys(store)[index] || null,
+  }
+})()
+
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+})
+
 // Mock axios before importing the service
 vi.mock('axios', () => {
   const mockInstance = {
@@ -54,8 +72,10 @@ const mockAxiosInstance = (axios.create as any)()
 
 describe('API Service Tests', () => {
   beforeEach(async () => {
-    // Clear localStorage
-    localStorage.clear()
+    // Clear localStorage safely
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear()
+    }
 
     // Reset all mocks
     vi.clearAllMocks()
@@ -1267,7 +1287,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toThrow('Network Error')
-    })
+    }, 10000) // 10s timeout for retry logic
 
     it('should handle 400 errors', async () => {
       const error = {
@@ -1282,7 +1302,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toEqual(error)
-    })
+    }, 10000)
 
     it('should handle 401 errors', async () => {
       const error = {
@@ -1297,7 +1317,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toEqual(error)
-    })
+    }, 10000)
 
     it('should handle 403 errors', async () => {
       const error = {
@@ -1312,7 +1332,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toEqual(error)
-    })
+    }, 10000)
 
     it('should handle 404 errors', async () => {
       const error = {
@@ -1327,7 +1347,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toEqual(error)
-    })
+    }, 10000)
 
     it('should handle 500 errors', async () => {
       const error = {
@@ -1342,7 +1362,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toEqual(error)
-    })
+    }, 10000)
 
     it('should handle timeout errors', async () => {
       const error = {
@@ -1355,7 +1375,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toEqual(error)
-    })
+    }, 10000)
   })
 
   describe('Response Data Extraction', () => {

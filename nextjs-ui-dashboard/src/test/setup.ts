@@ -1,15 +1,39 @@
 import '@testing-library/jest-dom'
-import { afterEach, beforeAll, afterAll, vi } from 'vitest'
+import { afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { server } from './mocks/server'
 
-// Setup MSW
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
-afterAll(() => server.close())
+/**
+ * NOTE: MSW (Mock Service Worker) is currently disabled due to incompatibility
+ * with vitest's test environment initialization.
+ *
+ * Issue: MSW v2 creates a global CookieStore at module load time that requires
+ * localStorage, but jsdom's localStorage is not available until after the test
+ * environment is fully initialized.
+ *
+ * Attempted solutions:
+ * - Global setup scripts (run too late)
+ * - Custom environment (MSW loads before environment setup)
+ * - Node.js --require hooks (isolated per worker pool)
+ * - Lazy MSW initialization (module-level exports still execute)
+ *
+ * Recommended fix: Upgrade MSW or use fetch mocking instead
+ */
+
+// MSW setup disabled - tests will use real fetch (will fail without backend)
+// import { server } from './mocks/server'
+// beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+// afterAll(() => server.close())
+
 afterEach(() => {
-  server.resetHandlers()
+  // server.resetHandlers()
   cleanup()
-  localStorage.clear()
+  // Clear storage after each test
+  if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+    localStorage.clear()
+  }
+  if (typeof sessionStorage !== 'undefined' && typeof sessionStorage.clear === 'function') {
+    sessionStorage.clear()
+  }
 })
 
 // Mock ResizeObserver

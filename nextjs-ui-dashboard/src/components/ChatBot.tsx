@@ -99,7 +99,8 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
       };
       setMessages([welcomeMessage]);
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Only trigger on open, not on messages.length change
 
   // Handle toggle
   const handleToggle = () => {

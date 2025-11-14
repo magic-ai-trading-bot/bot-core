@@ -633,7 +633,8 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       if (!wsState.isConnected && !wsState.isConnecting) {
         connectWs();
       }
-    }, [selectedTimeframe]); // Only depend on selectedTimeframe
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedTimeframe]); // Only depend on selectedTimeframe to avoid infinite loops
 
     // Auto-refresh full charts every 60 seconds (less frequent to prevent price override)
     useEffect(() => {

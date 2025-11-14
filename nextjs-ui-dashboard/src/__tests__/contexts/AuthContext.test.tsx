@@ -1,10 +1,31 @@
-import { describe, it, expect, vi, beforeEach, beforeAll, afterEach, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuth } from '../../contexts/AuthContext'
 import { mockUser, mockLocalStorage } from '../../test/utils'
 import React from 'react'
-import { server } from '../../test/mocks/server'
-import { http, HttpResponse } from 'msw'
+
+// Mock the entire API module
+vi.mock('../../services/api', () => {
+  const mockAuthClient = {
+    login: vi.fn(),
+    register: vi.fn(),
+    getProfile: vi.fn(),
+    verifyToken: vi.fn(),
+    setAuthToken: vi.fn(),
+    removeAuthToken: vi.fn(),
+    getAuthToken: vi.fn(() => null),
+    isTokenExpired: vi.fn(() => true),
+  }
+
+  return {
+    BotCoreApiClient: vi.fn(() => ({
+      auth: mockAuthClient,
+      rust: {},
+      python: {},
+    })),
+    mockAuthClient, // Export for test access
+  }
+})
 
 // Mock localStorage
 Object.defineProperty(window, 'localStorage', {
@@ -12,18 +33,30 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 })
 
+// Get mock auth client for test assertions
+const { mockAuthClient } = await import('../../services/api')
+
 describe('AuthContext', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <AuthProvider>{children}</AuthProvider>
   )
 
-  beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-  afterEach(() => server.resetHandlers())
-  afterAll(() => server.close())
-
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.clear()
+
+    // Reset mock implementations
+    mockAuthClient.getAuthToken.mockReturnValue(null)
+    mockAuthClient.isTokenExpired.mockReturnValue(true)
+    mockAuthClient.login.mockResolvedValue({
+      token: 'mock-jwt-token',
+      user: mockUser,
+    })
+    mockAuthClient.register.mockResolvedValue({
+      token: 'mock-jwt-token',
+      user: mockUser,
+    })
+    mockAuthClient.getProfile.mockResolvedValue(mockUser)
   })
 
   it('initializes with no user', async () => {
@@ -67,15 +100,8 @@ describe('AuthContext', () => {
   })
 
   it('handles login failure', async () => {
-    // Override MSW handler to return error
-    server.use(
-      http.post('http://localhost:8080/api/auth/login', () => {
-        return HttpResponse.json(
-          { success: false, error: 'Invalid credentials' },
-          { status: 401 }
-        )
-      })
-    )
+    // Mock login to reject with error
+    mockAuthClient.login.mockRejectedValueOnce(new Error('Invalid credentials'))
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 
@@ -244,12 +270,8 @@ describe('AuthContext', () => {
   })
 
   it('handles network errors gracefully', async () => {
-    // Simulate network error by closing the server
-    server.use(
-      http.post('http://localhost:8080/api/auth/login', () => {
-        return HttpResponse.error()
-      })
-    )
+    // Simulate network error
+    mockAuthClient.login.mockRejectedValueOnce(new Error('Network error'))
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 

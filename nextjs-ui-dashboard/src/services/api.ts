@@ -323,7 +323,9 @@ class BaseApiClient {
 
     // Add auth token to requests if available
     this.client.interceptors.request.use((config) => {
-      const token = localStorage.getItem("authToken");
+      const token = typeof window !== 'undefined' && window.localStorage
+        ? localStorage.getItem("authToken")
+        : null;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -697,15 +699,22 @@ class AuthApiClient extends BaseApiClient {
 
   // Utility methods
   setAuthToken(token: string): void {
-    localStorage.setItem("authToken", token);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem("authToken", token);
+    }
   }
 
   removeAuthToken(): void {
-    localStorage.removeItem("authToken");
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem("authToken");
+    }
   }
 
   getAuthToken(): string | null {
-    return localStorage.getItem("authToken");
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem("authToken");
+    }
+    return null;
   }
 
   isTokenExpired(token?: string): boolean {
