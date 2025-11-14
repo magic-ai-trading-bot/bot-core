@@ -1,0 +1,111 @@
+# GitHub Dependabot Configuration
+# Automatically checks and updates dependencies for Rust, Python, and Node.js
+# Documentation: https://docs.github.com/en/code-security/dependabot
+
+version: 2
+updates:
+  # Rust Core Engine - Cargo dependencies
+  - package-ecosystem: "cargo"
+    directory: "/rust-core-engine"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "magic-ai-trading-bot/core-team"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "automated"
+    commit-message:
+      prefix: "chore(rust)"
+      include: "scope"
+    # Security updates only for critical/high vulnerabilities
+    allow:
+      - dependency-type: "all"
+    # Group minor and patch updates
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Python AI Service - pip dependencies
+  - package-ecosystem: "pip"
+    directory: "/python-ai-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "magic-ai-trading-bot/core-team"
+    labels:
+      - "dependencies"
+      - "python"
+      - "automated"
+    commit-message:
+      prefix: "chore(python)"
+      include: "scope"
+    allow:
+      - dependency-type: "all"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Next.js Dashboard - npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/nextjs-ui-dashboard"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "magic-ai-trading-bot/core-team"
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "automated"
+    commit-message:
+      prefix: "chore(frontend)"
+      include: "scope"
+    allow:
+      - dependency-type: "all"
+    groups:
+      frontend-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignore specific packages if needed
+    ignore:
+      # Example: ignore major version updates for React
+      # - dependency-name: "react"
+      #   update-types: ["version-update:semver-major"]
+
+  # GitHub Actions - workflow dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "magic-ai-trading-bot/core-team"
+    labels:
+      - "dependencies"
+      - "ci-cd"
+      - "automated"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"

@@ -404,6 +404,70 @@ min-severity: medium        # Severity threshold
 - 🌐 **FlyCI Docs:** https://www.flyci.net/docs
 - 📋 **CI/CD Spec:** `specs/04-deployment/4.2-cicd/CICD-PIPELINE.md`
 
+### GitHub Dependabot - Automated Dependency Updates
+
+**Status:** ✅ **CONFIGURED AND ACTIVE**
+
+GitHub Dependabot automatically checks and updates dependencies for all services:
+
+```bash
+# Dependabot configuration
+.github/dependabot.yml
+
+# Scans:
+# - Rust Core Engine (Cargo)
+# - Python AI Service (pip)
+# - Next.js Dashboard (npm)
+# - GitHub Actions (workflows)
+```
+
+**Automated Features:**
+
+- 🔍 **Weekly Scans** - Every Monday at 9:00 AM
+- 🚨 **Security Alerts** - Immediate notifications for vulnerabilities
+- 📝 **Auto PRs** - Creates pull requests for updates
+- ✅ **Grouped Updates** - Minor/patch updates grouped to reduce noise
+- 🔐 **Priority Security** - Critical vulnerabilities get immediate PRs
+
+**Current Vulnerability Status:**
+
+After commit `1d472e9`, GitHub Dependabot detected **6 vulnerabilities**:
+- 🔴 1 Critical
+- 🟠 2 High
+- 🟡 1 Moderate
+- 🟢 2 Low
+
+Dependabot will automatically create PRs to fix these.
+
+**Viewing Alerts:**
+
+```bash
+# GitHub Web UI
+open https://github.com/magic-ai-trading-bot/bot-core/security/dependabot
+
+# GitHub CLI
+gh api repos/magic-ai-trading-bot/bot-core/dependabot/alerts
+```
+
+**Handling Dependabot PRs:**
+
+✅ **Auto-merge** (safe):
+- Patch updates (1.2.3 → 1.2.4)
+- Security fixes with no breaking changes
+- All CI/CD tests passing
+
+⚠️ **Manual review** (required):
+- Major version updates (1.x → 2.0)
+- Breaking changes
+- Critical dependencies (React, Rust core, ML libraries)
+
+**Resources:**
+
+- 📚 **Complete Guide:** `docs/DEPENDABOT_GUIDE.md`
+- 🔧 **Config File:** `.github/dependabot.yml`
+- 🌐 **GitHub Docs:** https://docs.github.com/en/code-security/dependabot
+- 📋 **Security Policy:** `docs/SECURITY_CREDENTIALS.md`
+
 ---
 
 ## File Organization Rules
@@ -447,7 +511,8 @@ docs/
 ├── SECURITY_CREDENTIALS.md
 ├── TESTING_GUIDE.md
 ├── TROUBLESHOOTING.md
-└── FLYCI_SETUP.md             # FlyCI Wingman setup & configuration (NEW)
+├── FLYCI_SETUP.md             # FlyCI Wingman setup & configuration
+└── DEPENDABOT_GUIDE.md        # GitHub Dependabot automation guide (NEW)
 ```
 
 **Service-specific documentation:**
