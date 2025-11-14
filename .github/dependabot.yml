@@ -86,11 +86,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Ignore specific packages if needed
-    ignore:
-      # Example: ignore major version updates for React
-      # - dependency-name: "react"
-      #   update-types: ["version-update:semver-major"]
 
   # GitHub Actions - workflow dependencies
   - package-ecosystem: "github-actions"
