@@ -76,18 +76,23 @@ export default <Environment>{
 
     for (const name of globalNames) {
       if (name in dom.window) {
-        (global as any)[name] = (dom.window as any)[name]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (global as Record<string, any>)[name] = (dom.window as Record<string, any>)[name]
       }
     }
 
     // CRITICAL: Set localStorage on ALL relevant global objects
     // Set on global object (Node.js global)
-    (global as any).localStorage = localStorageInstance;
-    (global as any).sessionStorage = sessionStorageInstance;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global as Record<string, any>).localStorage = localStorageInstance;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global as Record<string, any>).sessionStorage = sessionStorageInstance;
 
     // Set on globalThis
-    (globalThis as any).localStorage = localStorageInstance;
-    (globalThis as any).sessionStorage = sessionStorageInstance;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as Record<string, any>).localStorage = localStorageInstance;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as Record<string, any>).sessionStorage = sessionStorageInstance;
 
     // Set on window object
     Object.defineProperty(global.window, 'localStorage', {
