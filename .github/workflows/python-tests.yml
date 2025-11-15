@@ -35,6 +35,18 @@ jobs:
           --health-retries 5
 
     steps:
+    - name: Free Disk Space
+      run: |
+        echo "Before cleanup:"
+        df -h
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo docker image prune --all --force
+        echo "After cleanup:"
+        df -h
+
     - name: Checkout code
       uses: actions/checkout@v4
 
