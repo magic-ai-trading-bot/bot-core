@@ -49,11 +49,10 @@ jobs:
         cd nextjs-ui-dashboard
         bun run build
 
-    - name: Run tests with coverage
+    - name: Run tests
       run: |
         cd nextjs-ui-dashboard
-        chmod +x run_tests.sh
-        ./run_tests.sh
+        npm run test:run
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
