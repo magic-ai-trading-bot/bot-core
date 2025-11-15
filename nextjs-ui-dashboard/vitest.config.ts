@@ -34,10 +34,10 @@ export default defineConfig({
       '**/*.e2e.{test,spec}.{ts,tsx}',
       '**/*.spec.ts', // Exclude Playwright spec files
     ],
-    pool: 'forks',
+    pool: 'threads',
     poolOptions: {
-      forks: {
-        singleFork: true,
+      threads: {
+        singleThread: true,
         isolate: true,
       },
     },
@@ -50,7 +50,8 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text'],
+      reportsDirectory: './coverage',
       exclude: [
         'node_modules/',
         'src/test/',
@@ -69,6 +70,8 @@ export default defineConfig({
           statements: 30,
         },
       },
+      clean: true,
+      cleanOnRerun: true,
     },
   },
   resolve: {
