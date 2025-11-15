@@ -81,7 +81,8 @@ jobs:
     - name: Install Python dependencies
       run: |
         cd python-ai-service
-        pip install -r requirements.txt
+        # Use lightweight CI requirements (no TensorFlow/PyTorch)
+        pip install -r requirements-ci.txt
 
     - name: Install Node.js dependencies
       run: |
