@@ -1,15 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { render, mockPosition, mockTrade, mockUser } from '../../test/utils'
-import Dashboard from '../../pages/Dashboard'
 
-// Mock the API module
-vi.mock('../../services/api', () => {
+// Mock the API module - MUST be before any imports that use it
+vi.mock('@/services/api', () => {
   const mockAuthClient = {
     login: vi.fn(),
     register: vi.fn(),
-    getProfile: vi.fn(() => Promise.resolve(mockUser)),
+    getProfile: vi.fn(() => Promise.resolve({
+      id: 'user123',
+      email: 'test@example.com',
+      full_name: 'Test User',
+      roles: ['user'],
+      created_at: '2024-01-01T00:00:00Z',
+    })),
     verifyToken: vi.fn(),
     setAuthToken: vi.fn(),
     removeAuthToken: vi.fn(),
@@ -18,13 +20,19 @@ vi.mock('../../services/api', () => {
   }
 
   return {
-    BotCoreApiClient: vi.fn(() => ({
-      auth: mockAuthClient,
-      rust: {},
-      python: {},
-    })),
+    BotCoreApiClient: vi.fn(function() {
+      this.auth = mockAuthClient
+      this.rust = {}
+      this.python = {}
+    }),
   }
 })
+
+// Import other dependencies AFTER the mock
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { render, mockPosition, mockTrade, mockUser } from '../../test/utils'
+import Dashboard from '../../pages/Dashboard'
 
 // Mock the hooks
 vi.mock('../../hooks/usePositions', () => ({

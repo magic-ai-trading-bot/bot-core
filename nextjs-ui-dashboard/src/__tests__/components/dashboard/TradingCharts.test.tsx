@@ -32,7 +32,7 @@ const mockApiClient = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('../../../services/api', () => ({
+vi.mock('@/services/api', () => ({
   BotCoreApiClient: class MockBotCoreApiClient {
     rust = mockApiClient.rust
     python = {}

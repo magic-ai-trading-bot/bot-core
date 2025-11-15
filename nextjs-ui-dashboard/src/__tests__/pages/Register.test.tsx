@@ -6,8 +6,8 @@ import { server } from '../../test/mocks/server'
 import { render, mockUser } from '../../test/utils'
 import Register from '../../pages/Register'
 
-// Mock the API module with factory function
-vi.mock('../../services/api', () => {
+// Mock the API module with factory function - use alias path
+vi.mock('@/services/api', () => {
   const mockRegister = vi.fn()
   const mockGetProfile = vi.fn()
   const mockGetAuthToken = vi.fn()
@@ -38,7 +38,7 @@ vi.mock('../../services/api', () => {
 })
 
 // Get the exported mocks
-const { mockAuthHelpers } = await import('../../services/api')
+const { mockAuthHelpers } = await import('@/services/api')
 const { mockRegister, mockGetProfile, mockGetAuthToken, mockIsTokenExpired } = mockAuthHelpers
 
 // Mock router
