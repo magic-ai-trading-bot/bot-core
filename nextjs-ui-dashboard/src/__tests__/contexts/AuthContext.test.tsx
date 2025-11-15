@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
-import { AuthProvider, useAuth } from '../../contexts/AuthContext'
-import { mockUser, mockLocalStorage } from '../../test/utils'
-import React from 'react'
 
-// Mock the entire API module
-vi.mock('../../services/api', () => {
+// Mock the entire API module - MUST be before any imports that use it
+vi.mock('@/services/api', () => {
   const mockAuthClient = {
     login: vi.fn(),
     register: vi.fn(),
@@ -18,11 +14,11 @@ vi.mock('../../services/api', () => {
   }
 
   return {
-    BotCoreApiClient: vi.fn(() => ({
-      auth: mockAuthClient,
-      rust: {},
-      python: {},
-    })),
+    BotCoreApiClient: vi.fn(function() {
+      this.auth = mockAuthClient
+      this.rust = {}
+      this.python = {}
+    }),
     mockAuthClient, // Export for test access
   }
 })
@@ -33,8 +29,14 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 })
 
+// Import other dependencies AFTER the mock
+import { renderHook, act, waitFor } from '@testing-library/react'
+import { AuthProvider, useAuth } from '../../contexts/AuthContext'
+import { mockUser, mockLocalStorage } from '../../test/utils'
+import React from 'react'
+
 // Get mock auth client for test assertions
-const { mockAuthClient } = await import('../../services/api')
+const { mockAuthClient } = await import('@/services/api')
 
 describe('AuthContext', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
