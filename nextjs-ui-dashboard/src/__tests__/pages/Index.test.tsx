@@ -1,4 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// Mock the API module FIRST - before any other imports
+vi.mock('@/services/api', () => {
+  const mockAuthClient = {
+    login: vi.fn(),
+    register: vi.fn(),
+    getProfile: vi.fn(),
+    verifyToken: vi.fn(),
+    setAuthToken: vi.fn(),
+    removeAuthToken: vi.fn(),
+    getAuthToken: vi.fn(() => null),
+    isTokenExpired: vi.fn(() => true),
+  }
+
+  return {
+    BotCoreApiClient: vi.fn(function() {
+      this.auth = mockAuthClient
+      this.rust = {}
+      this.python = {}
+    }),
+  }
+})
+
+// Then import other dependencies
 import { screen } from '@testing-library/react'
 import { render } from '../../test/utils'
 import Index from '../../pages/Index'
