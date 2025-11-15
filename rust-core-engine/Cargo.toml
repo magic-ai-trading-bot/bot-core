@@ -21,7 +21,7 @@ thiserror = "2.0"
 dashmap = "6.1"
 parking_lot = "0.12"
 crossbeam-channel = "0.5"
-warp = "0.4"
+warp = "0.3"
 config = "0.15"
 futures-util = "0.3"
 futures = "0.3"
@@ -30,10 +30,9 @@ sha2 = "0.10"
 hex = "0.4"
 rust_decimal = { version = "1.39", features = ["serde"] }
 mongodb = { version = "3.3", optional = true }
-bson = { version = "3.0", features = ["chrono-0_4"], optional = true }
+bson = { version = "2.15", features = ["chrono-0_4"], optional = true }
 structopt = "0.3"
-jsonwebtoken = "10.2"
-bcrypt = "0.15"
+jsonwebtoken = "9.1"
 base64 = "0.22.1"
 toml = "0.9"
 bcrypt = "0.17"

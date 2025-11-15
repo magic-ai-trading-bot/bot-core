@@ -48,13 +48,15 @@ impl PositionManager {
 
     pub fn remove_position(&self, position_id: &str) -> Option<Position> {
         // Find position by ID (since we're using symbol as key, we need to search)
-        for entry in self.positions.iter() {
-            if entry.value().id == position_id {
-                let symbol = entry.key().clone();
-                return self.positions.remove(&symbol).map(|(_, pos)| pos);
-            }
-        }
-        None
+        // First find the symbol, then remove outside the iterator to avoid deadlock
+        let symbol_to_remove = self
+            .positions
+            .iter()
+            .find(|entry| entry.value().id == position_id)
+            .map(|entry| entry.key().clone());
+
+        // Then remove it outside the iterator
+        symbol_to_remove.and_then(|symbol| self.positions.remove(&symbol).map(|(_, pos)| pos))
     }
 
     pub fn get_position(&self, symbol: &str) -> Option<Position> {

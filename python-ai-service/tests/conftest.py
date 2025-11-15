@@ -252,6 +252,9 @@ def pytest_collection_modifyitems(config, items):
             ml_tests.append(item)
             # Add xdist_group marker to ensure ML tests run on same worker sequentially
             item.add_marker(pytest.mark.xdist_group(name="ml_tests"))
+            # Add forked marker to run each ML test in a separate process
+            # This prevents ML library global state pollution between tests
+            item.add_marker(pytest.mark.forked)
         else:
             other_tests.append(item)
 
