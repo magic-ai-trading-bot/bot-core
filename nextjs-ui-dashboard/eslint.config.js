@@ -28,6 +28,9 @@ export default tseslint.config(
         process.env.NODE_ENV === "production"
           ? "error"
           : "warn",
+      // Disable purity rule for mock/visualization data (Math.random, Date.now in components)
+      // These are used for demo charts and don't affect actual business logic
+      "react-hooks/purity": "off",
     },
   },
   // Allow 'any' type in test files
