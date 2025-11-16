@@ -68,84 +68,84 @@ mod tests {
     fn test_ai_module_exists() {
         // Verify ai module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_api_module_exists() {
         // Verify api module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_auth_module_exists() {
         // Verify auth module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_binance_module_exists() {
         // Verify binance module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_config_module_exists() {
         // Verify config module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_error_module_exists() {
         // Verify error module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_market_data_module_exists() {
         // Verify market_data module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_monitoring_module_exists() {
         // Verify monitoring module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_paper_trading_module_exists() {
         // Verify paper_trading module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_storage_module_exists() {
         // Verify storage module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_strategies_module_exists() {
         // Verify strategies module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     #[test]
     fn test_trading_module_exists() {
         // Verify trading module is accessible
         let _module_name = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     // ============================================================================
@@ -301,7 +301,7 @@ mod tests {
     fn test_websocket_module_accessible() {
         // Verify websocket module is accessible
         let _module_path = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     // ============================================================================
@@ -312,7 +312,7 @@ mod tests {
     fn test_routes_module_accessible() {
         // Verify routes module is accessible
         let _module_path = std::module_path!();
-        assert!(std::module_path!().contains("rust_core_engine"));
+        assert!(std::module_path!().contains("binance_trading_bot"));
     }
 
     // ============================================================================
@@ -368,13 +368,13 @@ mod tests {
     fn test_crate_name_in_module_path() {
         // Verify we're in the correct crate
         let module_path = std::module_path!();
-        assert!(module_path.starts_with("rust_core_engine"));
+        assert!(module_path.starts_with("binance_trading_bot"));
     }
 
     #[test]
     fn test_lib_module_in_path() {
         // Verify we're in the lib module
         let module_path = std::module_path!();
-        assert!(module_path.contains("rust_core_engine"));
+        assert!(module_path.contains("binance_trading_bot"));
     }
 }
