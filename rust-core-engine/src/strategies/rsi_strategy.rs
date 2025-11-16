@@ -221,7 +221,7 @@ impl RsiStrategy {
         extreme_overbought: f64,
     ) -> (TradingSignal, f64, String) {
         // Strong bullish signals
-        if rsi_1h <= extreme_oversold && rsi_4h <= oversold && prev_rsi_1h < rsi_1h {
+        if rsi_1h <= extreme_oversold && rsi_4h <= oversold && prev_rsi_1h <= rsi_1h {
             return (
                 TradingSignal::Long,
                 0.87,
@@ -230,7 +230,7 @@ impl RsiStrategy {
         }
 
         // Strong bearish signals
-        if rsi_1h >= extreme_overbought && rsi_4h >= overbought && prev_rsi_1h > rsi_1h {
+        if rsi_1h >= extreme_overbought && rsi_4h >= overbought && prev_rsi_1h >= rsi_1h {
             return (
                 TradingSignal::Short,
                 0.87,

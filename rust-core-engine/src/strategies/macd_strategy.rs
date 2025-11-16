@@ -310,8 +310,11 @@ impl MacdStrategy {
             );
         }
 
-        // Weak bullish signals
-        if histogram_increasing_1h && macd_1h > signal_1h && histogram_1h > prev_histogram_1h * 1.1
+        // Weak bullish signals (but not if 4h is bearish)
+        if histogram_increasing_1h
+            && macd_1h > signal_1h
+            && histogram_1h > prev_histogram_1h * 1.1
+            && !histogram_below_zero_4h
         {
             return (
                 TradingSignal::Long,
@@ -320,8 +323,11 @@ impl MacdStrategy {
             );
         }
 
-        // Weak bearish signals
-        if histogram_decreasing_1h && macd_1h < signal_1h && histogram_1h < prev_histogram_1h * 1.1
+        // Weak bearish signals (but not if 4h is bullish)
+        if histogram_decreasing_1h
+            && macd_1h < signal_1h
+            && histogram_1h < prev_histogram_1h * 1.1
+            && !histogram_above_zero_4h
         {
             return (
                 TradingSignal::Short,
@@ -754,9 +760,9 @@ mod tests {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
             0.5, 0.3, 0.2, // 1h: bullish crossover
-            0.2, 0.1, 0.15, // 4h: histogram increasing
-            0.2, 0.3, 0.1, // prev: MACD was below signal
-            0.1, // prev 4h histogram
+            0.2, 0.1, 0.15, // 4h: histogram NOT increasing (to avoid strong signal)
+            0.2, 0.3, 0.1,  // prev: MACD was below signal
+            0.20, // prev 4h histogram > current (decreasing, not increasing)
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -769,9 +775,9 @@ mod tests {
         let strategy = MacdStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_macd_signals(
             -0.5, -0.3, -0.2, // 1h: bearish crossover
-            -0.2, -0.1, -0.15, // 4h: histogram decreasing
-            -0.2, -0.3, -0.1, // prev: MACD was above signal
-            -0.1, // prev 4h histogram
+            -0.2, -0.1, -0.15, // 4h: histogram NOT decreasing (to avoid strong signal)
+            -0.2, -0.3, -0.1,  // prev: MACD was above signal
+            -0.20, // prev 4h histogram < current (increasing, not decreasing)
         );
 
         assert_eq!(signal, TradingSignal::Short);
