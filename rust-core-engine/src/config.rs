@@ -206,6 +206,11 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Global mutex to serialize all environment variable tests
+    // This prevents race conditions when tests run in parallel
+    static ENV_TEST_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_config_default() {
@@ -366,6 +371,10 @@ mod tests {
     #[test]
     fn test_config_env_var_override_database_url() {
         use std::env;
+
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         let temp_path = env::temp_dir().join("test_config_env_db.toml");
 
         // Create test config
@@ -385,6 +394,10 @@ mod tests {
     #[test]
     fn test_config_env_var_override_binance_keys() {
         use std::env;
+
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         let temp_path = env::temp_dir().join("test_config_env_binance.toml");
 
         Config::default().save_to_file(&temp_path).unwrap();
@@ -405,11 +418,9 @@ mod tests {
     #[test]
     fn test_config_env_var_override_testnet() {
         use std::env;
-        use std::sync::Mutex;
 
-        // Use a mutex to prevent parallel test execution from interfering
-        static TEST_MUTEX: Mutex<()> = Mutex::new(());
-        let _guard = TEST_MUTEX.lock().unwrap();
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
 
         // Save and clear env var to ensure clean state
         let original_testnet = env::var("BINANCE_TESTNET").ok();
@@ -448,6 +459,10 @@ mod tests {
     #[test]
     fn test_config_env_var_override_python_url() {
         use std::env;
+
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         let temp_path = env::temp_dir().join("test_config_env_python.toml");
 
         Config::default().save_to_file(&temp_path).unwrap();
