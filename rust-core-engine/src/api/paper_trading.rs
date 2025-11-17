@@ -178,8 +178,8 @@ impl PaperTradingApi {
     }
 
     /// Create paper trading API routes
-    pub fn routes(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-        let api = Arc::new(self.clone());
+    pub fn routes(self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+        let api = Arc::new(self);
 
         let cors = warp::cors()
             .allow_any_origin()

@@ -1,5 +1,5 @@
 use serde_json::json;
-use std::convert::Infallible;
+use std::{convert::Infallible, sync::Arc};
 use tracing::{error, info, warn};
 use validator::Validate;
 use warp::{Filter, Rejection, Reply};
@@ -47,11 +47,12 @@ impl AuthService {
         }
     }
 
-    pub fn routes(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-        let register = self.register_route();
-        let login = self.login_route();
-        let verify = self.verify_route();
-        let profile = self.profile_route();
+    pub fn routes(self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+        let service = Arc::new(self);
+        let register = service.register_route();
+        let login = service.login_route();
+        let verify = service.verify_route();
+        let profile = service.profile_route();
 
         warp::path("auth").and(register.or(login).or(verify).or(profile))
     }
