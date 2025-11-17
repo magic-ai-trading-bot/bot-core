@@ -1,6 +1,5 @@
 /// Cross-service integration tests
 /// Tests communication between Rust Core Engine and Python AI Service
-
 #[cfg(test)]
 mod cross_service_tests {
     use reqwest::Client;
@@ -106,6 +105,7 @@ mod cross_service_tests {
                 assert_eq!(resp.status(), 200);
 
                 #[derive(Deserialize)]
+                #[allow(dead_code)]
                 struct HealthResponse {
                     status: String,
                     service: String,
@@ -168,8 +168,9 @@ mod cross_service_tests {
             .filter(|r| r.is_ok() && r.as_ref().unwrap().is_ok())
             .count();
 
-        // Just verify no panics occurred
-        assert!(success_count >= 0);
+        // Just verify test completed without panics
+        // success_count is always >= 0 since it's usize, but we keep this for test structure
+        println!("Success count: {}", success_count);
     }
 
     #[tokio::test]
