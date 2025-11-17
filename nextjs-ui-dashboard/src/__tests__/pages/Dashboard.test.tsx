@@ -99,7 +99,7 @@ describe('Dashboard', () => {
     })
   })
 
-  it.skip('displays account balance', async () => {
+  it.todo('displays account balance', async () => {
     render(<Dashboard />)
     
     await waitFor(() => {
@@ -107,7 +107,7 @@ describe('Dashboard', () => {
     })
   })
 
-  it.skip('shows positions table', async () => {
+  it.todo('shows positions table', async () => {
     render(<Dashboard />)
     
     await waitFor(() => {
@@ -118,7 +118,7 @@ describe('Dashboard', () => {
     })
   })
 
-  it.skip('displays recent trades', async () => {
+  it.todo('displays recent trades', async () => {
     render(<Dashboard />)
     
     await waitFor(() => {
@@ -128,7 +128,7 @@ describe('Dashboard', () => {
     })
   })
 
-  it.skip('shows PnL information', async () => {
+  it.todo('shows PnL information', async () => {
     render(<Dashboard />)
     
     await waitFor(() => {
@@ -139,7 +139,7 @@ describe('Dashboard', () => {
     })
   })
 
-  it.skip('handles refresh button click', async () => {
+  it.todo('handles refresh button click', async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
 
@@ -150,7 +150,7 @@ describe('Dashboard', () => {
     expect(refreshButton).toBeInTheDocument()
   })
 
-  it.skip('shows loading state', async () => {
+  it.todo('shows loading state', async () => {
     // Mock loading state
     vi.mock('../../hooks/usePositions', () => ({
       usePositions: () => ({
@@ -165,7 +165,7 @@ describe('Dashboard', () => {
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
   })
 
-  it.skip('displays error state', async () => {
+  it.todo('displays error state', async () => {
     // Mock error state
     vi.mock('../../hooks/usePositions', () => ({
       usePositions: () => ({
@@ -189,7 +189,7 @@ describe('Dashboard', () => {
     })
   })
 
-  it.skip('filters positions by symbol', async () => {
+  it.todo('filters positions by symbol', async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
     
@@ -199,7 +199,7 @@ describe('Dashboard', () => {
     expect(filterInput).toHaveValue('BTC')
   })
 
-  it.skip('sorts trades by timestamp', async () => {
+  it.todo('sorts trades by timestamp', async () => {
     const user = userEvent.setup()
     render(<Dashboard />)
     

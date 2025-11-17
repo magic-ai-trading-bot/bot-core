@@ -323,9 +323,15 @@ class BaseApiClient {
 
     // Add auth token to requests if available
     this.client.interceptors.request.use((config) => {
-      const token = typeof window !== 'undefined' && window.localStorage
-        ? localStorage.getItem("authToken")
-        : null;
+      let token = null;
+      try {
+        if (typeof window !== 'undefined' && window?.localStorage) {
+          token = window.localStorage.getItem("authToken");
+        }
+      } catch (error) {
+        // Handle SecurityError in test environments
+        token = null;
+      }
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -699,20 +705,33 @@ class AuthApiClient extends BaseApiClient {
 
   // Utility methods
   setAuthToken(token: string): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem("authToken", token);
+    try {
+      if (typeof window !== 'undefined' && window?.localStorage) {
+        window.localStorage.setItem("authToken", token);
+      }
+    } catch (error) {
+      // Handle SecurityError in test environments
     }
   }
 
   removeAuthToken(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem("authToken");
+    try {
+      if (typeof window !== 'undefined' && window?.localStorage) {
+        window.localStorage.removeItem("authToken");
+      }
+    } catch (error) {
+      // Handle SecurityError in test environments
     }
   }
 
   getAuthToken(): string | null {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return localStorage.getItem("authToken");
+    try {
+      if (typeof window !== 'undefined' && window?.localStorage) {
+        return window.localStorage.getItem("authToken");
+      }
+    } catch (error) {
+      // Handle SecurityError in test environments
+      return null;
     }
     return null;
   }

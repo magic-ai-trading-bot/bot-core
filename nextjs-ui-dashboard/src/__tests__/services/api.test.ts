@@ -73,8 +73,12 @@ const mockAxiosInstance = (axios.create as any)()
 describe('API Service Tests', () => {
   beforeEach(async () => {
     // Clear localStorage safely
-    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
-      localStorage.clear()
+    try {
+      if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+        localStorage.clear()
+      }
+    } catch (error) {
+      // Handle SecurityError in test environments
     }
 
     // Reset all mocks
