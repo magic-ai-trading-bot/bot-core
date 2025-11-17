@@ -30,24 +30,34 @@ pub fn calculate_rsi(candles: &[CandleData], period: usize) -> Result<Vec<f64>, 
     let mut avg_loss: f64 = losses.iter().take(period).sum::<f64>() / period as f64;
 
     // First RSI value
-    let rs = if avg_loss == 0.0 {
+    let rsi = if avg_gain == 0.0 && avg_loss == 0.0 {
+        // No price movement - neutral RSI
+        50.0
+    } else if avg_loss == 0.0 {
+        // All gains, no losses
         100.0
     } else {
-        avg_gain / avg_loss
+        let rs = avg_gain / avg_loss;
+        100.0 - (100.0 / (1.0 + rs))
     };
-    rsi_values.push(100.0 - (100.0 / (1.0 + rs)));
+    rsi_values.push(rsi);
 
     // Calculate subsequent RSI values using smoothed averages
     for i in period..gains.len() {
         avg_gain = ((avg_gain * (period - 1) as f64) + gains[i]) / period as f64;
         avg_loss = ((avg_loss * (period - 1) as f64) + losses[i]) / period as f64;
 
-        let rs = if avg_loss == 0.0 {
+        let rsi = if avg_gain == 0.0 && avg_loss == 0.0 {
+            // No price movement - neutral RSI
+            50.0
+        } else if avg_loss == 0.0 {
+            // All gains, no losses
             100.0
         } else {
-            avg_gain / avg_loss
+            let rs = avg_gain / avg_loss;
+            100.0 - (100.0 / (1.0 + rs))
         };
-        rsi_values.push(100.0 - (100.0 / (1.0 + rs)));
+        rsi_values.push(rsi);
     }
 
     Ok(rsi_values)
