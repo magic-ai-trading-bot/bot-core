@@ -23,7 +23,7 @@ import sys
 # They must be run separately with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py
 pytestmark = pytest.mark.skipif(
     os.environ.get("ML_TESTS") != "1",
-    reason="ML tests require process isolation. Run with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py"
+    reason="ML tests require process isolation. Run with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py",
 )
 
 

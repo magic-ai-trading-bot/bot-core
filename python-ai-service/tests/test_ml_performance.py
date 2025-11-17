@@ -19,7 +19,7 @@ import sys
 # They must be run separately with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py
 pytestmark = pytest.mark.skipif(
     os.environ.get("ML_TESTS") != "1",
-    reason="ML tests require process isolation. Run with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py"
+    reason="ML tests require process isolation. Run with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py",
 )
 
 
@@ -95,7 +95,6 @@ class TestPyTorchPerformance:
 
 @pytest.mark.ml_isolated
 @pytest.mark.forked
-
 class TestTensorFlowPerformance:
     """Test TensorFlow inference and training performance"""
 
@@ -157,10 +156,9 @@ class TestTensorFlowPerformance:
         # Should complete in reasonable time
         assert elapsed < 10.0, f"Training too slow: {elapsed:.4f}s for 10 epochs"
 
+
 @pytest.mark.ml_isolated
 @pytest.mark.forked
-
-
 class TestMemoryUsage:
     """Test memory usage is reasonable"""
 

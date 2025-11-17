@@ -919,7 +919,9 @@ class TestMongoDBFunctions:
             # Should not raise error, just log warning
             await store_analysis_result("BTCUSDT", {})
 
-    @pytest.mark.skip(reason="Flaky test - MongoDB mock state pollution. Passes when run in isolation.")
+    @pytest.mark.skip(
+        reason="Flaky test - MongoDB mock state pollution. Passes when run in isolation."
+    )
     @pytest.mark.asyncio
     async def test_get_latest_analysis_success(self, mock_mongodb):
         """Test getting latest analysis."""
@@ -1705,7 +1707,9 @@ class TestAdditionalCoverage:
             data = response.json()
             assert data["status"] == "failed"
 
-    @pytest.mark.skip(reason="Flaky test - MongoDB mock state pollution. Passes when run in isolation.")
+    @pytest.mark.skip(
+        reason="Flaky test - MongoDB mock state pollution. Passes when run in isolation."
+    )
     @pytest.mark.asyncio
     async def test_get_latest_analysis_with_analysis_field(self, mock_mongodb):
         """Test getting latest analysis that has analysis field."""
