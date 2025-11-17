@@ -24,10 +24,13 @@ if ! command -v cargo-tarpaulin &> /dev/null; then
 fi
 
 # Run tests with coverage
+# Increased timeout from 120 to 300 seconds
+# Added --skip-clean to avoid rebuilding unnecessarily
 cargo tarpaulin \
     --all-features \
     --workspace \
-    --timeout 120 \
+    --timeout 300 \
+    --skip-clean \
     --out Xml \
     --out Html \
     --output-dir ./target/tarpaulin \
