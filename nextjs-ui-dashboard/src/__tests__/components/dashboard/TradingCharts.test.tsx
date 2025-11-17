@@ -157,7 +157,7 @@ describe('TradingCharts', () => {
       })
     })
 
-    it.skip('loads charts when timeframe changes', async () => {
+    it.todo('loads charts when timeframe changes', async () => {
       const user = userEvent.setup()
       render(<TradingCharts />)
 

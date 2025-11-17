@@ -50,7 +50,7 @@ describe('TradingInterface', () => {
     expect(screen.getByText('+2.5%')).toBeInTheDocument()
   })
 
-  it.skip('validates form inputs', async () => {
+  it.todo('validates form inputs', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
     
@@ -61,7 +61,7 @@ describe('TradingInterface', () => {
     expect(screen.getByText(/quantity must be greater than 0/i)).toBeInTheDocument()
   })
 
-  it.skip('executes buy trade', async () => {
+  it.todo('executes buy trade', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
 
@@ -85,7 +85,7 @@ describe('TradingInterface', () => {
     })
   })
 
-  it.skip('executes sell trade', async () => {
+  it.todo('executes sell trade', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
     
@@ -107,7 +107,7 @@ describe('TradingInterface', () => {
     })
   })
 
-  it.skip('switches between order types', async () => {
+  it.todo('switches between order types', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
     
@@ -118,7 +118,7 @@ describe('TradingInterface', () => {
     expect(screen.getByLabelText(/price/i)).toBeDisabled()
   })
 
-  it.skip('calculates order value', async () => {
+  it.todo('calculates order value', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
 
@@ -128,7 +128,7 @@ describe('TradingInterface', () => {
     expect(screen.getByText('Order Value: $4,500.00')).toBeInTheDocument()
   })
 
-  it.skip('shows loading state during execution', async () => {
+  it.todo('shows loading state during execution', async () => {
     // Mock loading state
     vi.mock('../../hooks/useTradingApi', () => ({
       useTradingApi: () => ({
@@ -143,7 +143,7 @@ describe('TradingInterface', () => {
     expect(submitButton).toBeDisabled()
   })
 
-  it.skip('handles trade execution error', async () => {
+  it.todo('handles trade execution error', async () => {
     mockExecuteTrade.mockRejectedValue(new Error('Insufficient balance'))
 
     const user = userEvent.setup()
@@ -160,7 +160,7 @@ describe('TradingInterface', () => {
     })
   })
 
-  it.skip('resets form after successful trade', async () => {
+  it.todo('resets form after successful trade', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
     
@@ -175,7 +175,7 @@ describe('TradingInterface', () => {
     })
   })
 
-  it.skip('shows confirmation dialog for large trades', async () => {
+  it.todo('shows confirmation dialog for large trades', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
 
@@ -188,7 +188,7 @@ describe('TradingInterface', () => {
     expect(screen.getByText(/order value: \\$450,000/i)).toBeInTheDocument()
   })
 
-  it.skip('applies trading fees to order value', async () => {
+  it.todo('applies trading fees to order value', async () => {
     const user = userEvent.setup()
     render(<TradingInterface />)
     

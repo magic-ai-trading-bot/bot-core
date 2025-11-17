@@ -169,7 +169,7 @@ describe('useAIAnalysis', () => {
     })
   })
 
-  it.skip('handles analyze symbol error', async () => {
+  it.todo('handles analyze symbol error', async () => {
     mockAnalyzeAI.mockRejectedValueOnce(new Error('Analysis failed'))
 
     const { result } = renderHook(() => useAIAnalysis())
@@ -332,7 +332,7 @@ describe('useAIAnalysis', () => {
     expect(result.current.state.error).toBe(null)
   })
 
-  it.skip('clears error state', async () => {
+  it.todo('clears error state', async () => {
     mockAnalyzeAI.mockRejectedValueOnce(new Error('Test error'))
 
     const { result } = renderHook(() => useAIAnalysis())
