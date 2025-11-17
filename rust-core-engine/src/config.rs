@@ -405,20 +405,39 @@ mod tests {
     #[test]
     fn test_config_env_var_override_testnet() {
         use std::env;
-        let temp_path = env::temp_dir().join("test_config_env_testnet.toml");
+        use std::sync::Mutex;
+
+        // Use a mutex to prevent parallel test execution from interfering
+        static TEST_MUTEX: Mutex<()> = Mutex::new(());
+        let _guard = TEST_MUTEX.lock().unwrap();
+
+        // Save and clear env var to ensure clean state
+        let original_testnet = env::var("BINANCE_TESTNET").ok();
+
+        let temp_path = env::temp_dir().join("test_config_env_testnet_unique.toml");
 
         Config::default().save_to_file(&temp_path).unwrap();
 
+        // Test setting to false
         env::set_var("BINANCE_TESTNET", "false");
+        // Small delay to ensure env var is set
+        std::thread::sleep(std::time::Duration::from_millis(10));
         let config = Config::from_file(&temp_path).unwrap();
-        assert!(!config.binance.testnet);
+        assert!(!config.binance.testnet,
+            "Expected testnet=false but got testnet=true (env var should override file default)");
 
+        // Test setting to true
         env::set_var("BINANCE_TESTNET", "true");
+        std::thread::sleep(std::time::Duration::from_millis(10));
         let config = Config::from_file(&temp_path).unwrap();
-        assert!(config.binance.testnet);
+        assert!(config.binance.testnet,
+            "Expected testnet=true but got testnet=false");
 
-        // Cleanup
-        env::remove_var("BINANCE_TESTNET");
+        // Restore original env var or remove it
+        match original_testnet {
+            Some(val) => env::set_var("BINANCE_TESTNET", val),
+            None => env::remove_var("BINANCE_TESTNET"),
+        }
         let _ = std::fs::remove_file(&temp_path);
     }
 
