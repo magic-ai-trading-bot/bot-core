@@ -41,7 +41,7 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.86.0
+          toolchain: stable
           components: rustfmt, clippy
 
       - name: Cache Rust dependencies
