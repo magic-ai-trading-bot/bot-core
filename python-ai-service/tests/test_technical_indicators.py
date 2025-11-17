@@ -1,4 +1,5 @@
 """Tests for features/technical_indicators.py"""
+
 import pytest
 import pandas as pd
 import numpy as np
