@@ -5,14 +5,8 @@
 echo "🦀 Running Rust Core Engine Tests"
 echo "=================================="
 
-# Build first (lib only to save disk space)
-echo "🔨 Building project..."
-cargo build --lib
-
-if [ $? -ne 0 ]; then
-    echo "❌ Build failed"
-    exit 1
-fi
+# Skip separate build - tarpaulin will build with instrumentation
+# Building separately is redundant and wastes time
 
 # Run tests with coverage using cargo-tarpaulin
 echo "📊 Running tests with coverage..."
