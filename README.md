@@ -2,11 +2,11 @@
 
 <div align="center">
 
-[![Quality Score](https://img.shields.io/badge/Quality-94%2F100_(A)-brightgreen?style=for-the-badge&logo=checkmarx)](docs/QUALITY_SCORE.md)
+[![Quality Score](https://img.shields.io/badge/Quality-94%2F100_(A)-brightgreen?style=for-the-badge&logo=checkmarx)](docs/reports/QUALITY_METRICS_SUMMARY.md)
 [![Perfect 10/10](https://img.shields.io/badge/PERFECT-10%2F10-gold?style=for-the-badge&logo=target)](docs/certificates/PERFECT_10_10_CERTIFICATE.md)
-[![Security](https://img.shields.io/badge/Security-98%2F100-blue?style=for-the-badge&logo=security)](docs/SECURITY_CREDENTIALS.md)
+[![Security](https://img.shields.io/badge/Security-98%2F100-blue?style=for-the-badge&logo=security)](docs/reports/SECURITY_AUDIT_REPORT.md)
 [![Test Coverage](https://img.shields.io/badge/Coverage-90.4%25-success?style=for-the-badge&logo=jest)](docs/reports/TEST_COVERAGE_REPORT.md)
-[![Production Ready](https://img.shields.io/badge/Production-Ready-success?style=for-the-badge&logo=docker)](docs/architecture/SYSTEM_ARCHITECTURE.md)
+[![Production Ready](https://img.shields.io/badge/Production-Ready-success?style=for-the-badge&logo=docker)](docs/reports/PERFECT_10_10_VALIDATION_REPORT.md)
 
 **Hệ thống trading cryptocurrency toàn diện với AI dự đoán thị trường**
 *Kiến trúc microservices sử dụng Rust + Python + TypeScript*
@@ -112,7 +112,7 @@ git clone https://github.com/your-org/bot-core.git
 cd bot-core
 
 # 2. Tạo environment configuration
-cp config.env .env
+cp .env.example .env
 
 # 3. Chỉnh sửa API keys (QUAN TRỌNG!)
 nano .env  # Hoặc sử dụng editor yêu thích
@@ -1082,19 +1082,19 @@ bot-core/
 ### 📖 Documentation Index
 
 #### Getting Started
-- [Quick Start Guide](docs/QUICK_START.md)
-- [Installation Guide](docs/INSTALLATION.md)
-- [Configuration Guide](docs/CONFIGURATION.md)
+- [Quick Start](#-bắt-đầu-nhanh) - This README
+- [Configuration](#-cấu-hình) - Environment setup
+- [ClaudeKit AI Agents](CLAUDE.md#claudekit-ai-agents--commands) - AI-powered development
 
 #### Architecture
-- [System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md)
-- [API Documentation](docs/API_DOCUMENTATION.md)
-- [Database Schema](docs/DATABASE_SCHEMA.md)
+- [System Architecture](#%EF%B8%8F-kiến-trúc-hệ-thống) - Microservices overview
+- [API Documentation](#-api-documentation) - REST API reference
+- [Specifications](specs/README.md) - Complete spec system (75 docs)
 
 #### Development
 - [Contributing Guidelines](docs/CONTRIBUTING.md)
-- [Code Style Guide](docs/CODE_STYLE.md)
-- [Development Workflow](docs/DEVELOPMENT_WORKFLOW.md)
+- [Development Guide](CLAUDE.md) - For Claude Code AI
+- [Spec-Driven Development](CLAUDE.md#spec-driven-development)
 
 #### Testing
 - [Testing Guide](docs/testing/TESTING_IMPLEMENTATION_SUMMARY.md)
@@ -1102,16 +1102,16 @@ bot-core/
 - [Mutation Testing](docs/testing/MUTATION_TESTING_SUMMARY.md)
 
 #### Quality & Security
-- [Quality Score Card](docs/QUALITY_SCORE.md)
-- [Quality Metrics Guide](docs/QUALITY_METRICS.md)
-- [Security Credentials](docs/SECURITY_CREDENTIALS.md)
-- [Security Audit Report](docs/reports/SECURITY_AUDIT_REPORT.md)
+- [Quality Metrics Summary](docs/reports/QUALITY_METRICS_SUMMARY.md) - 94/100 Grade A
+- [Perfect 10/10 Validation](docs/reports/PERFECT_10_10_VALIDATION_REPORT.md)
+- [Security Audit Report](docs/reports/SECURITY_AUDIT_REPORT.md) - 98/100 A+
+- [Comprehensive Code Review](docs/reports/251118-comprehensive-codebase-review-report.md) - Latest
 
 #### Deployment & CI/CD
-- [Production Deployment](docs/PRODUCTION_DEPLOYMENT.md)
-- [Kubernetes Guide](docs/KUBERNETES_DEPLOYMENT.md)
-- [Disaster Recovery](docs/DISASTER_RECOVERY.md)
-- [🤖 FlyCI Wingman Setup](docs/FLYCI_SETUP.md) - AI-powered CI/CD failure analysis (NEW)
+- [Production Deployment](#-production-deployment) - Docker & Kubernetes
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues
+- [🤖 FlyCI Wingman Setup](docs/FLYCI_SETUP.md) - AI-powered CI/CD
+- [Dependabot Automation](docs/DEPENDABOT_GUIDE.md) - Dependency updates
 
 #### Achievements
 - [Perfect 10/10 Certificate](docs/certificates/PERFECT_10_10_CERTIFICATE.md)
