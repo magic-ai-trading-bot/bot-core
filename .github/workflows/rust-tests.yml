@@ -223,14 +223,16 @@ jobs:
 
     - name: Cache Rust dependencies
       uses: actions/cache@v4
+      continue-on-error: true
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          rust-core-engine/target
-        key: ${{ runner.os }}-cargo-coverage-v2-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+          rust-core-engine/target/debug/deps
+          rust-core-engine/target/debug/build
+        key: ${{ runner.os }}-cargo-coverage-v3-${{ hashFiles('rust-core-engine/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-cargo-coverage-v2-
+          ${{ runner.os }}-cargo-coverage-v3-
           ${{ runner.os }}-cargo-
 
     - name: Install llvm-tools and cargo-llvm-cov
