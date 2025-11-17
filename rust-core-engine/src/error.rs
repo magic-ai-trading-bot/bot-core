@@ -341,8 +341,7 @@ mod tests {
 
     #[test]
     fn test_database_error_display() {
-        let error = AppError::Database(mongodb::error::Error::from(std::io::Error::new(
-            std::io::ErrorKind::Other,
+        let error = AppError::Database(mongodb::error::Error::from(std::io::Error::other(
             "connection failed",
         )));
         let display = format!("{}", error);
@@ -429,7 +428,7 @@ mod tests {
 
     #[test]
     fn test_database_error_from_mongodb_error() {
-        let io_error = std::io::Error::new(std::io::ErrorKind::Other, "test error");
+        let io_error = std::io::Error::other("test error");
         let mongo_error = mongodb::error::Error::from(io_error);
         let app_error: AppError = mongo_error.into();
         assert!(matches!(app_error, AppError::Database(_)));
@@ -437,10 +436,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_rejection_database_error() {
-        let mongo_error = mongodb::error::Error::from(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "db connection failed",
-        ));
+        let mongo_error =
+            mongodb::error::Error::from(std::io::Error::other("db connection failed"));
         let app_error = AppError::Database(mongo_error);
         let rejection = reject::custom(app_error);
 
@@ -611,7 +608,7 @@ mod tests {
 
     #[test]
     fn test_error_context_converts_mongodb_error() {
-        let io_error = std::io::Error::new(std::io::ErrorKind::Other, "test");
+        let io_error = std::io::Error::other("test");
         let mongo_error = mongodb::error::Error::from(io_error);
         let result: Result<i32, mongodb::error::Error> = Err(mongo_error);
         let with_context = result.context("Database operation failed");
@@ -926,10 +923,7 @@ mod tests {
     async fn test_handle_rejection_preserves_error_details() {
         // Verify that error details are preserved through rejection handling
         let specific_message = "Database connection pool exhausted";
-        let mongo_error = mongodb::error::Error::from(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            specific_message,
-        ));
+        let mongo_error = mongodb::error::Error::from(std::io::Error::other(specific_message));
         let app_error = AppError::Database(mongo_error);
         let rejection = reject::custom(app_error);
 

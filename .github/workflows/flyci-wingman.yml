@@ -41,7 +41,7 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.86.0
+          toolchain: stable
           components: rustfmt, clippy
 
       - name: Cache Rust dependencies
@@ -325,7 +325,7 @@ jobs:
     needs: [rust-build-test, python-build-test, frontend-build-test]
     # Only run if all previous jobs succeed
     if: success()
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     services:
       mongodb:
@@ -345,42 +345,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env file
-        run: |
-          cat > .env << EOF
-          DATABASE_URL=mongodb://admin:password123@localhost:27017/bot_core?authSource=admin
-          BINANCE_TESTNET=true
-          TRADING_ENABLED=false
-          JWT_SECRET=test_jwt_secret_for_integration_tests_only
-          INTER_SERVICE_TOKEN=test_inter_service_token_for_integration_tests
-          EOF
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
 
-      - name: Start services with Docker Compose
-        run: |
-          docker compose -f docker-compose.yml up -d --build
-          sleep 30  # Wait for services to be ready
-
-      - name: Health check
-        run: |
-          echo "Checking service health..."
-          curl -f http://localhost:8080/health || exit 1
-          curl -f http://localhost:8000/health || exit 1
-          curl -f http://localhost:3000/ || exit 1
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust-core-engine/target
+          key: ${{ runner.os }}-cargo-integration-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-integration-
+            ${{ runner.os }}-cargo-
 
       - name: Run integration tests
+        env:
+          DATABASE_URL: mongodb://admin:password123@localhost:27017/bot_core?authSource=admin
+          BINANCE_TESTNET: true
+          TRADING_ENABLED: false
+          JWT_SECRET: test_jwt_secret_for_integration_tests_only
+          INTER_SERVICE_TOKEN: test_inter_service_token_for_integration_tests
         run: make test-integration
         continue-on-error: false
-
-      - name: Show service logs on failure
-        if: failure()
-        run: |
-          docker compose logs rust-core-engine
-          docker compose logs python-ai-service
-          docker compose logs nextjs-ui-dashboard
-
-      - name: Cleanup
-        if: always()
-        run: docker compose down -v
 
   # ============================================================================
   # SECURITY SCAN

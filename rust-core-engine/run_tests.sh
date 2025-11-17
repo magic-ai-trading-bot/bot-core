@@ -5,41 +5,31 @@
 echo "🦀 Running Rust Core Engine Tests"
 echo "=================================="
 
-# Build first (lib only to save disk space)
-echo "🔨 Building project..."
-cargo build --lib
-
-if [ $? -ne 0 ]; then
-    echo "❌ Build failed"
-    exit 1
-fi
-
-# Run tests with coverage using cargo-tarpaulin
+# Run tests with coverage using cargo-llvm-cov (faster than tarpaulin)
 echo "📊 Running tests with coverage..."
 
-# Check if tarpaulin is installed
-if ! command -v cargo-tarpaulin &> /dev/null; then
-    echo "📦 Installing cargo-tarpaulin..."
-    cargo install cargo-tarpaulin
+# Check if llvm-tools and cargo-llvm-cov are installed
+if ! rustup component list | grep -q "llvm-tools-preview (installed)"; then
+    echo "📦 Installing llvm-tools-preview..."
+    rustup component add llvm-tools-preview
 fi
 
-# Run tests with coverage
-# Increased timeout from 120 to 300 seconds
-# Added --skip-clean to avoid rebuilding unnecessarily
-# Using --lib to reduce build size (integration tests already run in CI)
-cargo tarpaulin \
-    --lib \
-    --timeout 300 \
-    --skip-clean \
-    --out Xml \
-    --out Html \
-    --output-dir ./target/tarpaulin \
-    --verbose
+if ! command -v cargo-llvm-cov &> /dev/null; then
+    echo "📦 Installing cargo-llvm-cov..."
+    cargo install cargo-llvm-cov
+fi
+
+# Run tests with coverage using llvm-cov
+# Much faster than tarpaulin (2-3x)
+# Uses LLVM's native coverage instrumentation
+cargo llvm-cov --lib --lcov --output-path coverage.lcov
 
 # Check if tests passed
 if [ $? -eq 0 ]; then
     echo "✅ All tests passed!"
-    echo "📄 Coverage report available at: target/tarpaulin/tarpaulin-report.html"
+    echo "📄 Coverage report: coverage.lcov"
+    # Show coverage summary
+    cargo llvm-cov report --lib
 else
     echo "❌ Tests failed"
     exit 1
