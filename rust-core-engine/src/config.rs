@@ -303,6 +303,9 @@ mod tests {
     fn test_config_from_file_creates_default_if_missing() {
         use std::env;
 
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         // Clear env vars to prevent interference
         env::remove_var("BINANCE_API_KEY");
         env::remove_var("BINANCE_SECRET_KEY");
