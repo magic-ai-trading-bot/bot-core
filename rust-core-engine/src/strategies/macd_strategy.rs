@@ -212,7 +212,7 @@ impl Strategy for MacdStrategy {
 
         for timeframe in required_timeframes {
             let candles = data.timeframe_data.get(timeframe).ok_or_else(|| {
-                StrategyError::DataValidation(format!("Missing {timeframe} timeframe data"))
+                StrategyError::InsufficientData(format!("Missing {timeframe} timeframe data"))
             })?;
 
             let min_required = self.get_slow_period() + self.get_signal_period() + 10; // MACD calculation + buffer
@@ -1073,7 +1073,7 @@ mod tests {
 
         let result = strategy.validate_data(&input);
         assert!(result.is_err());
-        if let Err(StrategyError::DataValidation(msg)) = result {
+        if let Err(StrategyError::InsufficientData(msg)) = result {
             assert!(msg.contains("4h"));
         }
     }

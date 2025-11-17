@@ -288,14 +288,20 @@ impl StrategyEngine {
             .count();
 
         let total_count = results.len();
-        let majority_threshold = total_count / 2;
 
-        let final_signal = if long_count > majority_threshold {
-            TradingSignal::Long
-        } else if short_count > majority_threshold {
-            TradingSignal::Short
-        } else {
+        // Require at least 2 strategies for valid consensus
+        // Single strategy cannot form consensus by itself
+        let final_signal = if total_count < 2 {
             TradingSignal::Neutral
+        } else {
+            let majority_threshold = total_count / 2;
+            if long_count > majority_threshold {
+                TradingSignal::Long
+            } else if short_count > majority_threshold {
+                TradingSignal::Short
+            } else {
+                TradingSignal::Neutral
+            }
         };
 
         // Calculate confidence based on consensus strength
