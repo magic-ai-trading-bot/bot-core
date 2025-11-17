@@ -119,14 +119,14 @@ impl ApiServer {
             self.config.host, self.config.port
         );
 
-        let api = self.create_routes();
+        let api = self.clone().create_routes();
 
         warp::serve(api).run(([0, 0, 0, 0], self.config.port)).await;
 
         Ok(())
     }
 
-    fn create_routes(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+    fn create_routes(self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
         let cors = warp::cors()
             .allow_any_origin()
             .allow_headers(vec!["content-type", "x-client", "authorization", "accept"])
@@ -145,21 +145,19 @@ impl ApiServer {
         });
 
         // Market data routes
-        let market_data = self.market_data_routes();
+        let market_data = self.clone().market_data_routes();
 
         // Trading routes
-        let trading = self.trading_routes();
+        let trading = self.clone().trading_routes();
 
         // Monitoring routes
-        let monitoring = self.monitoring_routes();
+        let monitoring = self.clone().monitoring_routes();
 
         // AI routes
-        let ai_routes = self.ai_routes();
+        let ai_routes = self.clone().ai_routes();
 
         // Paper trading routes
-        let paper_trading_api =
-            paper_trading::PaperTradingApi::new(self.paper_trading_engine.clone());
-        let paper_trading = paper_trading_api.routes();
+        let paper_trading = paper_trading::PaperTradingApi::new(self.paper_trading_engine.clone()).routes();
 
         // Combine all routes
         let api_routes = health
@@ -168,7 +166,7 @@ impl ApiServer {
             .or(monitoring)
             .or(ai_routes)
             .or(paper_trading)
-            .or(self.auth_service.routes());
+            .or(self.auth_service.clone().routes());
 
         let api = warp::path("api").and(api_routes);
 
@@ -365,7 +363,7 @@ impl ApiServer {
         )
     }
 
-    fn trading_routes(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+    fn trading_routes(self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
         let trading_engine = self.trading_engine.clone();
 
         // Get positions
@@ -490,7 +488,7 @@ impl ApiServer {
         debug!("New WebSocket connection established");
 
         // Handle incoming messages from client (ping/pong, etc.)
-        let ws_sender_clone = Arc::new(tokio::sync::Mutex::new(ws_sender));
+        let ws_sender_clone: Arc<tokio::sync::Mutex<futures::stream::SplitSink<WebSocket, Message>>> = Arc::new(tokio::sync::Mutex::new(ws_sender));
         let ws_sender_for_broadcast = ws_sender_clone.clone();
 
         // Task to handle incoming messages
@@ -543,7 +541,7 @@ impl ApiServer {
         }
     }
 
-    fn ai_routes(&self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
+    fn ai_routes(self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
         let ai_service = self.ai_service.clone();
         let ws_broadcaster = self.ws_broadcaster.clone();
 

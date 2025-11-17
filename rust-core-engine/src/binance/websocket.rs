@@ -67,7 +67,7 @@ impl BinanceWebSocket {
 
         info!("Connecting to WebSocket: {url}");
 
-        let (ws_stream, _) = connect_async(&url).await?;
+        let (ws_stream, _) = connect_async(url.as_str()).await?;
         let (mut write, mut read) = ws_stream.split();
 
         info!("WebSocket connected successfully");

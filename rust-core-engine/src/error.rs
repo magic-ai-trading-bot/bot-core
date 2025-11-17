@@ -117,7 +117,7 @@ impl Reject for AppError {}
 pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     let (status, error_message, error_type) = if let Some(app_error) = err.find::<AppError>() {
         match app_error {
-            AppError::Database(ref e) => {
+            AppError::Database(e) => {
                 tracing::error!("Database error: {:?}", e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -125,11 +125,11 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                     "database_error",
                 )
             },
-            AppError::Auth(ref msg) => (StatusCode::UNAUTHORIZED, msg.as_str(), "auth_error"),
-            AppError::Validation(ref msg) => {
+            AppError::Auth(msg) => (StatusCode::UNAUTHORIZED, msg.as_str(), "auth_error"),
+            AppError::Validation(msg) => {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "validation_error")
             },
-            AppError::ExternalApi(ref msg) => {
+            AppError::ExternalApi(msg) => {
                 tracing::error!("External API error: {msg}");
                 (
                     StatusCode::BAD_GATEWAY,
@@ -137,7 +137,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                     "external_api_error",
                 )
             },
-            AppError::Trading(ref msg) => (
+            AppError::Trading(msg) => (
                 StatusCode::UNPROCESSABLE_ENTITY,
                 msg.as_str(),
                 "trading_error",
@@ -147,7 +147,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 "Rate limit exceeded",
                 "rate_limit",
             ),
-            AppError::NotFound(ref resource) => {
+            AppError::NotFound(resource) => {
                 (StatusCode::NOT_FOUND, resource.as_str(), "not_found")
             },
             AppError::InsufficientFunds => (
@@ -155,15 +155,15 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 "Insufficient funds",
                 "insufficient_funds",
             ),
-            AppError::InvalidMarketConditions(ref msg) => (
+            AppError::InvalidMarketConditions(msg) => (
                 StatusCode::PRECONDITION_FAILED,
                 msg.as_str(),
                 "invalid_market_conditions",
             ),
-            AppError::WebSocket(ref msg) => {
+            AppError::WebSocket(msg) => {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "websocket_error")
             },
-            AppError::Config(ref msg) => {
+            AppError::Config(msg) => {
                 tracing::error!("Configuration error: {msg}");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -179,48 +179,48 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                     "internal_error",
                 )
             },
-            AppError::ServiceUnavailable(ref service) => (
+            AppError::ServiceUnavailable(service) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 service.as_str(),
                 "service_unavailable",
             ),
-            AppError::DataProcessing(ref msg)
-            | AppError::ParseError(ref msg)
-            | AppError::Serialization(ref msg) => {
+            AppError::DataProcessing(msg)
+            | AppError::ParseError(msg)
+            | AppError::Serialization(msg) => {
                 (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str(), "data_error")
             },
-            AppError::MissingData(ref msg) | AppError::TradeNotFound(ref msg) => {
+            AppError::MissingData(msg) | AppError::TradeNotFound(msg) => {
                 (StatusCode::NOT_FOUND, msg.as_str(), "not_found")
             },
-            AppError::InvalidInput(ref msg) | AppError::InvalidPriceData(ref msg) => {
+            AppError::InvalidInput(msg) | AppError::InvalidPriceData(msg) => {
                 (StatusCode::BAD_REQUEST, msg.as_str(), "invalid_input")
             },
-            AppError::CalculationError(ref _msg) | AppError::IndicatorError(ref _msg) => (
+            AppError::CalculationError(_msg) | AppError::IndicatorError(_msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Calculation failed",
                 "calculation_error",
             ),
-            AppError::StorageError(ref _msg) => (
+            AppError::StorageError(_msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Storage operation failed",
                 "storage_error",
             ),
-            AppError::InvalidTradeStatus(ref msg)
-            | AppError::PositionError(ref msg)
-            | AppError::RiskManagementError(ref msg) => {
+            AppError::InvalidTradeStatus(msg)
+            | AppError::PositionError(msg)
+            | AppError::RiskManagementError(msg) => {
                 (StatusCode::CONFLICT, msg.as_str(), "trade_error")
             },
-            AppError::StrategyError(ref _msg)
-            | AppError::MarketDataError(ref _msg)
-            | AppError::AIServiceError(ref _msg)
-            | AppError::BinanceError(ref _msg) => (
+            AppError::StrategyError(_msg)
+            | AppError::MarketDataError(_msg)
+            | AppError::AIServiceError(_msg)
+            | AppError::BinanceError(_msg) => (
                 StatusCode::BAD_GATEWAY,
                 "External service error",
                 "service_error",
             ),
-            AppError::HttpError(ref _msg)
-            | AppError::JsonError(ref _msg)
-            | AppError::IoError(ref _msg) => (
+            AppError::HttpError(_msg)
+            | AppError::JsonError(_msg)
+            | AppError::IoError(_msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal error",
                 "internal_error",
@@ -230,7 +230,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 "Database collection not initialized",
                 "service_unavailable",
             ),
-            AppError::InsufficientDataForCalculation(ref msg) => (
+            AppError::InsufficientDataForCalculation(msg) => (
                 StatusCode::PRECONDITION_FAILED,
                 msg.as_str(),
                 "insufficient_data",
