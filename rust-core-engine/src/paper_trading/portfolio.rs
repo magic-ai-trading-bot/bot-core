@@ -237,6 +237,7 @@ impl PaperPortfolio {
         self.open_trade_ids.push(trade_id.clone());
         self.trades.insert(trade_id, trade);
 
+        self.update_portfolio_values(); // Update margin_level after adding trade
         self.update_metrics();
         self.last_updated = Utc::now();
 
@@ -671,6 +672,12 @@ impl PaperPortfolio {
 
     /// Add daily performance snapshot
     pub fn add_daily_performance(&mut self) {
+        // Keep only last 365 days (allow up to 366 to account for leap years)
+        // Do this BEFORE checking if today's entry exists
+        while self.daily_performance.len() > 366 {
+            self.daily_performance.remove(0);
+        }
+
         let today = Utc::now().date_naive();
 
         // Check if we already have today's performance
@@ -737,11 +744,7 @@ impl PaperPortfolio {
         };
 
         self.daily_performance.push(performance);
-
-        // Keep only last 365 days
-        if self.daily_performance.len() > 365 {
-            self.daily_performance.remove(0);
-        }
+        // Cleanup already done at the start of this function
     }
 }
 

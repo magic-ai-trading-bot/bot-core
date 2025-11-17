@@ -203,11 +203,16 @@ impl VolumeStrategy {
         let mut bullish_volume = 0.0;
         let mut _bearish_volume = 0.0;
         let mut total_volume = 0.0;
+        let mut has_any_price_movement = false;
 
         for (i, &volume) in recent_volumes.iter().enumerate() {
             if i < recent_price_changes.len() {
                 let price_change = recent_price_changes[i];
                 total_volume += volume;
+
+                if price_change.abs() > 0.0001 {
+                    has_any_price_movement = true;
+                }
 
                 if price_change > 0.0 {
                     bullish_volume += volume;
@@ -217,7 +222,10 @@ impl VolumeStrategy {
             }
         }
 
-        let bullish_volume_ratio = if total_volume > 0.0 {
+        // If there's no price movement at all, treat as balanced (neutral)
+        let bullish_volume_ratio = if !has_any_price_movement {
+            0.5 // Consolidation - perfectly balanced
+        } else if total_volume > 0.0 {
             bullish_volume / total_volume
         } else {
             0.5
@@ -228,7 +236,7 @@ impl VolumeStrategy {
         let above_poc = current_price > poc;
 
         // Strong bullish signals
-        if is_volume_spike && bullish_volume_ratio > 0.7 && above_poc {
+        if is_volume_spike && bullish_volume_ratio >= 0.7 && above_poc {
             return (
                 TradingSignal::Long,
                 0.91,
@@ -237,7 +245,7 @@ impl VolumeStrategy {
         }
 
         // Strong bearish signals
-        if is_volume_spike && bullish_volume_ratio < 0.3 && !above_poc {
+        if is_volume_spike && bullish_volume_ratio <= 0.3 && !above_poc {
             return (
                 TradingSignal::Short,
                 0.91,
@@ -246,8 +254,8 @@ impl VolumeStrategy {
         }
 
         // Moderate bullish signals
-        if (is_high_volume && bullish_volume_ratio > 0.6)
-            || (near_poc && bullish_volume_ratio > 0.65 && above_poc)
+        if (is_high_volume && bullish_volume_ratio >= 0.6)
+            || (near_poc && bullish_volume_ratio >= 0.65 && above_poc)
         {
             return (
                 TradingSignal::Long,
@@ -257,8 +265,8 @@ impl VolumeStrategy {
         }
 
         // Moderate bearish signals
-        if (is_high_volume && bullish_volume_ratio < 0.4)
-            || (near_poc && bullish_volume_ratio < 0.35 && !above_poc)
+        if (is_high_volume && bullish_volume_ratio <= 0.4)
+            || (near_poc && bullish_volume_ratio <= 0.35 && !above_poc)
         {
             return (
                 TradingSignal::Short,
@@ -268,7 +276,7 @@ impl VolumeStrategy {
         }
 
         // Weak signals based on volume patterns
-        if bullish_volume_ratio > 0.55 && volume_ratio > 1.2 {
+        if bullish_volume_ratio >= 0.55 && volume_ratio > 1.2 {
             return (
                 TradingSignal::Long,
                 0.51,
@@ -276,7 +284,7 @@ impl VolumeStrategy {
             );
         }
 
-        if bullish_volume_ratio < 0.45 && volume_ratio > 1.2 {
+        if bullish_volume_ratio <= 0.45 && volume_ratio > 1.2 {
             return (
                 TradingSignal::Short,
                 0.51,
@@ -1098,8 +1106,12 @@ mod tests {
     #[test]
     fn test_analyze_volume_signals_weak_short_45_percent() {
         let strategy = VolumeStrategy::new();
-        let recent_volumes = vec![1000.0; 10];
-        let recent_price_changes = vec![1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -0.5]; // 45% bullish
+        let recent_volumes = vec![1000.0; 20];
+        // 9 positive (45%), 11 negative (55%) = 45% bullish
+        let recent_price_changes = vec![
+            1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0,
+            -1.0, -1.0, -1.0, -1.0,
+        ];
 
         let (signal, confidence, _) = strategy.analyze_volume_signals(
             1300.0, // current_volume
