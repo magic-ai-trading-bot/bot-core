@@ -776,8 +776,9 @@ mod tests {
         let result = calculate_rsi(&candles, 14);
         assert!(result.is_ok());
         let rsi_values = result.unwrap();
-        // When no change in close prices, RSI formula gives 100 - (100/(1+100)) ≈ 99.009
-        assert!((rsi_values[0] - 99.009900).abs() < 0.001);
+        // When no change in close prices (flat), RSI should be 50.0 (neutral)
+        // avg_gain = 0, avg_loss = 0 → RSI = 50.0
+        assert!((rsi_values[0] - 50.0).abs() < 0.001);
     }
 
     #[test]
