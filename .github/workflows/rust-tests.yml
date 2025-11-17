@@ -35,14 +35,14 @@ jobs:
 
     - name: Cache Rust dependencies
       uses: actions/cache@v4
+      continue-on-error: true
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          rust-core-engine/target
-        key: ${{ runner.os }}-cargo-lint-v2-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-lint-v3-${{ hashFiles('rust-core-engine/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-cargo-lint-v2-
+          ${{ runner.os }}-cargo-lint-v3-
 
     - name: Check Rust formatting
       run: |
@@ -110,15 +110,15 @@ jobs:
 
     - name: Cache Rust dependencies
       uses: actions/cache@v4
+      continue-on-error: true
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          rust-core-engine/target
-        key: ${{ runner.os }}-cargo-v2-${{ matrix.test-group }}-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-v3-${{ matrix.test-group }}-${{ hashFiles('rust-core-engine/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-cargo-v2-${{ matrix.test-group }}-
-          ${{ runner.os }}-cargo-v2-
+          ${{ runner.os }}-cargo-v3-${{ matrix.test-group }}-
+          ${{ runner.os }}-cargo-v3-
 
     - name: Build project
       run: |
@@ -290,11 +290,14 @@ jobs:
 
     - name: Cache dependencies
       uses: actions/cache@v4
+      continue-on-error: true
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.os }}-cargo-audit-v2-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-audit-v3-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-audit-v3-
 
     - name: Install cargo-audit
       run: cargo install cargo-audit
@@ -330,12 +333,14 @@ jobs:
 
     - name: Cache dependencies
       uses: actions/cache@v4
+      continue-on-error: true
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          rust-core-engine/target
-        key: ${{ runner.os }}-cargo-bench-v2-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-bench-v3-${{ hashFiles('rust-core-engine/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-bench-v3-
 
     - name: Run benchmarks
       run: |
