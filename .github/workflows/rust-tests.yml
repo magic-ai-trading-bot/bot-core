@@ -44,6 +44,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-lint-v2-
 
+    - name: Clean build cache to prevent corruption
+      run: |
+        cd rust-core-engine
+        cargo clean
+
     - name: Check Rust formatting
       run: |
         cd rust-core-engine
@@ -119,6 +124,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-v2-${{ matrix.test-group }}-
           ${{ runner.os }}-cargo-v2-
+
+    - name: Clean build cache to prevent corruption
+      run: |
+        cd rust-core-engine
+        cargo clean
 
     - name: Build project
       run: |
