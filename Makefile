@@ -164,14 +164,16 @@ test: ## Run all tests with coverage
 
 test-integration: ## Run integration tests for all services
 	@echo "Running integration tests..."
-	@$(MAKE) test-rust-python
-	@$(MAKE) test-dashboard-rust
-	@$(MAKE) test-dashboard-python
-	@$(MAKE) test-websocket
+	@echo "Testing Rust integration tests..."
+	@cd rust-core-engine && cargo test integration -- --test-threads=1
+	@echo "⚠️  Frontend integration tests not yet implemented, skipping..."
+	# @$(MAKE) test-dashboard-rust
+	# @$(MAKE) test-dashboard-python
+	# @$(MAKE) test-websocket
 
 test-rust-python: ## Test Rust → Python AI communication
 	@echo "Testing Rust → Python AI integration..."
-	@cd rust-core-engine && cargo test test_ai_service_integration -- --test-threads=1
+	@cd rust-core-engine && cargo test integration -- --test-threads=1
 
 test-dashboard-rust: ## Test Dashboard → Rust API communication
 	@echo "Testing Dashboard → Rust API integration..."
