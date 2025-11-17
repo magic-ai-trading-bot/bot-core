@@ -200,6 +200,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Free up disk space
+      run: |
+        echo "=== Disk space before cleanup ==="
+        df -h
+        echo "=== Removing unused software ==="
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo apt-get clean
+        docker system prune -af
+        echo "=== Disk space after cleanup ==="
+        df -h
+
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -230,7 +244,7 @@ jobs:
     - name: Build project
       run: |
         cd rust-core-engine
-        cargo build --all-features --verbose
+        cargo build --lib --verbose
 
     - name: Run tests with coverage
       timeout-minutes: 30
