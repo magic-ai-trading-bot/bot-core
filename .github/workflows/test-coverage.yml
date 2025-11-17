@@ -28,6 +28,18 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # Optimized for speed and space
+          tool-cache: false
+          android: true        # ~12GB, fast
+          dotnet: true         # ~2GB, fast
+          haskell: true        # ~2GB, fast
+          large-packages: false  # Slow, only ~1GB
+          docker-images: true    # ~2GB, medium speed
+          swap-storage: false    # Slow, not needed
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -39,8 +51,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin || true
+      - name: Install llvm-tools and cargo-llvm-cov
+        run: |
+          rustup component add llvm-tools-preview
+          cargo install cargo-llvm-cov
 
       - name: Run Rust tests
         working-directory: ./rust-core-engine
@@ -50,13 +64,10 @@ jobs:
       - name: Generate coverage report
         working-directory: ./rust-core-engine
         run: |
-          cargo tarpaulin \
-            --timeout 300 \
-            --skip-clean \
-            --out Xml \
-            --out Html \
-            --output-dir coverage \
-            -- --test-threads=1
+          # Use llvm-cov (much faster than tarpaulin)
+          cargo llvm-cov --lib --lcov --output-path coverage/lcov.info
+          cargo llvm-cov --lib --html --output-dir coverage
+          cargo llvm-cov --lib --cobertura --output-path coverage/cobertura.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -69,7 +80,8 @@ jobs:
       - name: Check coverage threshold
         working-directory: ./rust-core-engine
         run: |
-          COVERAGE=$(cargo tarpaulin --print-summary 2>/dev/null | grep -oP '\d+\.\d+(?=%)' | head -1 || echo "0")
+          # Extract coverage from llvm-cov report
+          COVERAGE=$(cargo llvm-cov report --lib 2>/dev/null | grep "TOTAL" | awk '{print $NF}' | sed 's/%//' || echo "0")
           echo "Current Rust coverage: $COVERAGE%"
           echo "Required threshold: $RUST_COVERAGE_THRESHOLD%"
 
