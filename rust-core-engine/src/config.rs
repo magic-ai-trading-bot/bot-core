@@ -423,15 +423,19 @@ mod tests {
         // Small delay to ensure env var is set
         std::thread::sleep(std::time::Duration::from_millis(10));
         let config = Config::from_file(&temp_path).unwrap();
-        assert!(!config.binance.testnet,
-            "Expected testnet=false but got testnet=true (env var should override file default)");
+        assert!(
+            !config.binance.testnet,
+            "Expected testnet=false but got testnet=true (env var should override file default)"
+        );
 
         // Test setting to true
         env::set_var("BINANCE_TESTNET", "true");
         std::thread::sleep(std::time::Duration::from_millis(10));
         let config = Config::from_file(&temp_path).unwrap();
-        assert!(config.binance.testnet,
-            "Expected testnet=true but got testnet=false");
+        assert!(
+            config.binance.testnet,
+            "Expected testnet=true but got testnet=false"
+        );
 
         // Restore original env var or remove it
         match original_testnet {
