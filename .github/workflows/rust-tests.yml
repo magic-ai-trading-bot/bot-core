@@ -233,20 +233,13 @@ jobs:
           ${{ runner.os }}-cargo-coverage-v2-
           ${{ runner.os }}-cargo-
 
-    - name: Install cargo-tarpaulin
+    - name: Install llvm-tools and cargo-llvm-cov
       run: |
-        # Download pre-built binary instead of compiling from source
-        # This avoids ruzstd unstable feature issues
-        wget https://github.com/xd009642/tarpaulin/releases/download/0.31.2/cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz
-        tar -xzf cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz
-        chmod +x cargo-tarpaulin
-        mv cargo-tarpaulin ~/.cargo/bin/
-
-    # Skip separate build - let tarpaulin handle it with instrumentation
-    # Building separately wastes time as tarpaulin rebuilds anyway
+        rustup component add llvm-tools-preview
+        cargo install cargo-llvm-cov
 
     - name: Run tests with coverage
-      timeout-minutes: 60
+      timeout-minutes: 30
       env:
         DATABASE_URL: mongodb://root:password@localhost:27017/test_trading_bot
         JWT_SECRET: test_jwt_secret_key_for_testing_only_do_not_use_in_production
@@ -254,13 +247,14 @@ jobs:
         TRADING_ENABLED: false
       run: |
         cd rust-core-engine
-        chmod +x run_tests.sh
-        ./run_tests.sh
+        # Run tests with llvm-cov (much faster than tarpaulin)
+        cargo llvm-cov --lib --lcov --output-path coverage.lcov
+        cargo llvm-cov report --lib
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
-        file: rust-core-engine/target/tarpaulin/cobertura.xml
+        file: rust-core-engine/coverage.lcov
         flags: rust
         name: rust-core-engine-coverage
         fail_ci_if_error: false
