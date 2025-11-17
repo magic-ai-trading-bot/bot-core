@@ -13,10 +13,10 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:?Error: INTER_SERVICE_TOKEN not set}
-      - PYTHON_API_KEY=${PYTHON_API_KEY:?Error: PYTHON_API_KEY not set}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_inter_service_token}
+      - PYTHON_API_KEY=${PYTHON_API_KEY:-default_python_api_key}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=${DATABASE_URL:?Error: DATABASE_URL not set}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:password@mongodb:27017/bot_core}
     volumes:
       - ./python-ai-service/models:/app/models
       - ./python-ai-service/logs:/app/logs
@@ -103,14 +103,14 @@ services:
       - "8080:8080"
     environment:
       - RUST_LOG=${RUST_LOG:-info}
-      - DATABASE_URL=${DATABASE_URL:?Error: DATABASE_URL not set}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:password@mongodb:27017/bot_core}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
-      - BINANCE_API_KEY=${BINANCE_API_KEY:?Error: BINANCE_API_KEY not set}
-      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:?Error: BINANCE_SECRET_KEY not set}
+      - BINANCE_API_KEY=${BINANCE_API_KEY:-default_binance_api_key}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-default_binance_secret}
       - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
       - TRADING_ENABLED=${TRADING_ENABLED:-false}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:?Error: INTER_SERVICE_TOKEN not set}
-      - RUST_API_KEY=${RUST_API_KEY:?Error: RUST_API_KEY not set}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_inter_service_token}
+      - RUST_API_KEY=${RUST_API_KEY:-default_rust_api_key}
     volumes:
       - ./rust-core-engine/data:/app/data
       - ./rust-core-engine/logs:/app/logs
@@ -149,14 +149,14 @@ services:
     environment:
       - RUST_LOG=debug
       - RUST_BACKTRACE=1
-      - DATABASE_URL=${DATABASE_URL:?Error: DATABASE_URL not set}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:password@mongodb:27017/bot_core}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service-dev:8000
-      - BINANCE_API_KEY=${BINANCE_API_KEY:?Error: BINANCE_API_KEY not set}
-      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:?Error: BINANCE_SECRET_KEY not set}
+      - BINANCE_API_KEY=${BINANCE_API_KEY:-default_binance_api_key}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-default_binance_secret}
       - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
       - TRADING_ENABLED=${TRADING_ENABLED:-false}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:?Error: INTER_SERVICE_TOKEN not set}
-      - RUST_API_KEY=${RUST_API_KEY:?Error: RUST_API_KEY not set}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_inter_service_token}
+      - RUST_API_KEY=${RUST_API_KEY:-default_rust_api_key}
     volumes:
       - ./rust-core-engine/src:/app/src
       - ./rust-core-engine/Cargo.toml:/app/Cargo.toml
@@ -201,7 +201,7 @@ services:
       - VITE_API_TIMEOUT=10000
       - VITE_REFRESH_INTERVAL=5000
       - VITE_ENABLE_REALTIME=true
-      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:?Error: DASHBOARD_SESSION_SECRET not set}
+      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:-default_dashboard_session_secret}
       - NODE_OPTIONS="--max-old-space-size=${NODE_MEMORY:-1024}"
     # No volumes needed for production static serving
     networks:
@@ -286,7 +286,7 @@ services:
     image: redis:7-alpine
     container_name: redis-cache
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD not set}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_default_password}
     volumes:
       - redis_data:/data
     networks:
@@ -307,7 +307,7 @@ services:
     restart: unless-stopped
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-admin}
-      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:?Error: RABBITMQ_PASSWORD not set}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-rabbitmq_default_password}
       - RABBITMQ_DEFAULT_VHOST=bot-core
     ports:
       - "5672:5672"   # AMQP port
@@ -335,7 +335,7 @@ services:
     environment:
       - POSTGRES_DB=kong
       - POSTGRES_USER=kong
-      - POSTGRES_PASSWORD=${KONG_DB_PASSWORD:?Error: KONG_DB_PASSWORD not set}
+      - POSTGRES_PASSWORD=${KONG_DB_PASSWORD:-kong_db_default_password}
     volumes:
       - kong_data:/var/lib/postgresql/data
     networks:
@@ -359,7 +359,7 @@ services:
       - KONG_DATABASE=postgres
       - KONG_PG_HOST=kong-database
       - KONG_PG_USER=kong
-      - KONG_PG_PASSWORD=${KONG_DB_PASSWORD:?Error: KONG_DB_PASSWORD not set}
+      - KONG_PG_PASSWORD=${KONG_DB_PASSWORD:-kong_db_default_password}
     networks:
       - bot-network
     restart: on-failure
@@ -379,7 +379,7 @@ services:
       - KONG_DATABASE=postgres
       - KONG_PG_HOST=kong-database
       - KONG_PG_USER=kong
-      - KONG_PG_PASSWORD=${KONG_DB_PASSWORD:?Error: KONG_DB_PASSWORD not set}
+      - KONG_PG_PASSWORD=${KONG_DB_PASSWORD:-kong_db_default_password}
       - KONG_PROXY_ACCESS_LOG=/dev/stdout
       - KONG_ADMIN_ACCESS_LOG=/dev/stdout
       - KONG_PROXY_ERROR_LOG=/dev/stderr
