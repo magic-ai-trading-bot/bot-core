@@ -44,11 +44,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-lint-v2-
 
-    - name: Clean build cache to prevent corruption
-      run: |
-        cd rust-core-engine
-        cargo clean
-
     - name: Check Rust formatting
       run: |
         cd rust-core-engine
@@ -124,11 +119,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-v2-${{ matrix.test-group }}-
           ${{ runner.os }}-cargo-v2-
-
-    - name: Clean build cache to prevent corruption
-      run: |
-        cd rust-core-engine
-        cargo clean
 
     - name: Build project
       run: |
@@ -250,11 +240,6 @@ jobs:
         tar -xzf cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz
         chmod +x cargo-tarpaulin
         mv cargo-tarpaulin ~/.cargo/bin/
-
-    - name: Clean build cache to prevent corruption
-      run: |
-        cd rust-core-engine
-        cargo clean
 
     - name: Build project
       run: |
