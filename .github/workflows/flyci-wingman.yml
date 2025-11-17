@@ -357,7 +357,7 @@ jobs:
 
       - name: Start services with Docker Compose
         run: |
-          docker compose -f docker-compose.yml up -d --build
+          docker compose -f docker-compose.yml --profile prod up -d --build
           sleep 30  # Wait for services to be ready
 
       - name: Health check
@@ -380,7 +380,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose --profile prod down -v
 
   # ============================================================================
   # SECURITY SCAN
