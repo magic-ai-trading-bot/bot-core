@@ -16,9 +16,8 @@ use binance_trading_bot::market_data::cache::CandleData;
 use binance_trading_bot::strategies::{StrategyInput, TradingSignal};
 use serde_json::json;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tokio::sync::Mutex;
 use warp::Filter;
 
 // ============================================================================
@@ -29,10 +28,10 @@ use warp::Filter;
 #[allow(dead_code)]
 struct MockAIServer {
     port: u16,
-    response_handler: Arc<Mutex<Box<dyn ResponseHandler + Send>>>,
+    response_handler: Arc<Mutex<Box<dyn ResponseHandler + Send + Sync>>>,
 }
 
-trait ResponseHandler {
+trait ResponseHandler: Send + Sync + 'static {
     fn handle(&self, path: &str, body: Option<serde_json::Value>) -> MockResponse;
 }
 
@@ -66,39 +65,46 @@ impl MockResponse {
 }
 
 impl MockAIServer {
-    async fn start(port: u16, handler: Box<dyn ResponseHandler + Send>) -> Result<Self> {
+    async fn start(port: u16, handler: Box<dyn ResponseHandler + Send + Sync>) -> Result<Self> {
         let response_handler = Arc::new(Mutex::new(handler));
-        let handler_clone = response_handler.clone();
 
-        let routes = warp::any()
-            .and(warp::path::full())
-            .and(
-                warp::body::json()
-                    .or(warp::any().map(|| json!(null)))
-                    .unify(),
-            )
-            .then(move |path: warp::path::FullPath, body: serde_json::Value| {
-                let handler = handler_clone.clone();
-                async move {
-                    let handler = handler.lock().await;
-                    let response = handler.handle(
-                        path.as_str(),
-                        if body.is_null() { None } else { Some(body) },
-                    );
+        std::thread::spawn({
+            let response_handler = response_handler.clone();
+            move || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async move {
+                    let routes = warp::any()
+                        .and(warp::path::full())
+                        .and(
+                            warp::body::json()
+                                .or(warp::any().map(|| json!(null)))
+                                .unify(),
+                        )
+                        .then(move |path: warp::path::FullPath, body: serde_json::Value| {
+                            let handler = response_handler.clone();
+                            async move {
+                                let response = {
+                                    let handler = handler.lock().unwrap();
+                                    handler.handle(
+                                        path.as_str(),
+                                        if body.is_null() { None } else { Some(body) },
+                                    )
+                                };
 
-                    if let Some(delay) = response.delay {
-                        tokio::time::sleep(delay).await;
-                    }
+                                if let Some(delay) = response.delay {
+                                    tokio::time::sleep(delay).await;
+                                }
 
-                    warp::reply::with_status(
-                        warp::reply::json(&response.body),
-                        warp::http::StatusCode::from_u16(response.status).unwrap(),
-                    )
-                }
-            });
+                                warp::reply::with_status(
+                                    warp::reply::json(&response.body),
+                                    warp::http::StatusCode::from_u16(response.status).unwrap(),
+                                )
+                            }
+                        });
 
-        tokio::spawn(async move {
-            warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+                    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
+                });
+            }
         });
 
         // Give server time to start
@@ -115,8 +121,8 @@ impl MockAIServer {
     }
 
     #[allow(dead_code)]
-    async fn set_handler(&self, handler: Box<dyn ResponseHandler + Send>) {
-        *self.response_handler.lock().await = handler;
+    fn set_handler(&self, handler: Box<dyn ResponseHandler + Send + Sync>) {
+        *self.response_handler.lock().unwrap() = handler;
     }
 }
 
