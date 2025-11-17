@@ -65,6 +65,7 @@ jobs:
         working-directory: ./rust-core-engine
         run: |
           # Use llvm-cov (much faster than tarpaulin)
+          mkdir -p coverage
           cargo llvm-cov --lib --lcov --output-path coverage/lcov.info
           cargo llvm-cov --lib --html --output-dir coverage
           cargo llvm-cov --lib --cobertura --output-path coverage/cobertura.xml
