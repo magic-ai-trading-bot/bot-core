@@ -224,7 +224,7 @@ fn test_pnl_percentage_zero_entry_price() {
     // PnL percentage with zero entry price should handle gracefully
     let entry_price: f64 = 0.0;
     let current_price: f64 = 100.0;
-    let quantity: f64 = 1.0;
+    let _quantity: f64 = 1.0; // Not used in calculation but kept for clarity
 
     let pnl_pct = if entry_price == 0.0 || entry_price.abs() < 1e-10 {
         0.0
