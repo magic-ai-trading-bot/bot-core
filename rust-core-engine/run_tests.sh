@@ -5,9 +5,9 @@
 echo "🦀 Running Rust Core Engine Tests"
 echo "=================================="
 
-# Build first
+# Build first (lib only to save disk space)
 echo "🔨 Building project..."
-cargo build --all-features
+cargo build --lib
 
 if [ $? -ne 0 ]; then
     echo "❌ Build failed"
@@ -26,9 +26,9 @@ fi
 # Run tests with coverage
 # Increased timeout from 120 to 300 seconds
 # Added --skip-clean to avoid rebuilding unnecessarily
+# Using --lib to reduce build size (integration tests already run in CI)
 cargo tarpaulin \
-    --all-features \
-    --workspace \
+    --lib \
     --timeout 300 \
     --skip-clean \
     --out Xml \
