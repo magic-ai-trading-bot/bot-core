@@ -436,9 +436,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_rejection_database_error() {
-        let mongo_error = mongodb::error::Error::from(std::io::Error::other(
-            "db connection failed",
-        ));
+        let mongo_error =
+            mongodb::error::Error::from(std::io::Error::other("db connection failed"));
         let app_error = AppError::Database(mongo_error);
         let rejection = reject::custom(app_error);
 
@@ -924,9 +923,7 @@ mod tests {
     async fn test_handle_rejection_preserves_error_details() {
         // Verify that error details are preserved through rejection handling
         let specific_message = "Database connection pool exhausted";
-        let mongo_error = mongodb::error::Error::from(std::io::Error::other(
-            specific_message,
-        ));
+        let mongo_error = mongodb::error::Error::from(std::io::Error::other(specific_message));
         let app_error = AppError::Database(mongo_error);
         let rejection = reject::custom(app_error);
 
