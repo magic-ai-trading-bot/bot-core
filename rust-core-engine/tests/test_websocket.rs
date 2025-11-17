@@ -29,7 +29,7 @@ async fn test_websocket_connection() {
     });
     write
         .send(tokio_tungstenite::tungstenite::Message::Text(
-            subscribe_msg.to_string(),
+            subscribe_msg.to_string().into(),
         ))
         .await
         .unwrap();
@@ -163,7 +163,7 @@ async fn test_websocket_heartbeat() {
 
     // Send ping
     write
-        .send(tokio_tungstenite::tungstenite::Message::Ping(vec![1, 2, 3]))
+        .send(tokio_tungstenite::tungstenite::Message::Ping(vec![1, 2, 3].into()))
         .await
         .unwrap();
 
@@ -258,7 +258,7 @@ async fn test_websocket_concurrent_connections() {
             // Send test message
             write
                 .send(tokio_tungstenite::tungstenite::Message::Text(
-                    json!({"client": i, "test": true}).to_string(),
+                    json!({"client": i, "test": true}).to_string().into(),
                 ))
                 .await
                 .unwrap();

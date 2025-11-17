@@ -196,12 +196,19 @@ mod cache_tests {
     fn test_cache_candle_update_same_timestamp() {
         let cache = MarketDataCache::new(100);
 
+        // Create a fixed timestamp for both klines
+        let timestamp = Utc::now().timestamp_millis();
+
         // Add initial candle
-        let kline1 = create_test_kline_data("BTCUSDT", "1m", 45000.0, false);
+        let mut kline1 = create_test_kline_data("BTCUSDT", "1m", 45000.0, false);
+        kline1.kline_start_time = timestamp;
+        kline1.kline_close_time = timestamp + 59999;
         cache.update_kline("BTCUSDT", "1m", &kline1);
 
         // Update same candle (same timestamp)
-        let kline2 = create_test_kline_data("BTCUSDT", "1m", 45100.0, true);
+        let mut kline2 = create_test_kline_data("BTCUSDT", "1m", 45100.0, true);
+        kline2.kline_start_time = timestamp;
+        kline2.kline_close_time = timestamp + 59999;
         cache.update_kline("BTCUSDT", "1m", &kline2);
 
         let candles = cache.get_candles("BTCUSDT", "1m", None);
