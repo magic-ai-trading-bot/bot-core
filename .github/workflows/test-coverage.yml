@@ -203,7 +203,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: ./nextjs-ui-dashboard
-        run: bun run test:coverage || bun test -- --coverage
+        run: npm run test:coverage
         env:
           CI: true
 
