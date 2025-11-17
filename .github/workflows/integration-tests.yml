@@ -69,14 +69,16 @@ jobs:
 
     - name: Cache dependencies
       uses: actions/cache@v4
+      continue-on-error: true
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          rust-core-engine/target
           nextjs-ui-dashboard/node_modules
           python-ai-service/.venv
-        key: ${{ runner.os }}-integration-${{ hashFiles('**/Cargo.lock', '**/package-lock.json', '**/requirements.txt') }}
+        key: ${{ runner.os }}-integration-v3-${{ hashFiles('**/Cargo.lock', '**/package-lock.json', '**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-integration-v3-
 
     - name: Install Python dependencies
       run: |
