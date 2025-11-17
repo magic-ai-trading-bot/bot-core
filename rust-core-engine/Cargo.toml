@@ -46,7 +46,7 @@ database = ["mongodb", "bson"]
 
 [dev-dependencies]
 tokio-test = "0.4"
-actix-web = { version = "4.0", features = ["macros"] }
+actix-web = { version = "4.12", features = ["macros"] }
 futures-util = "0.3"
 tempfile = "3.8"
 anyhow = "1.0"
