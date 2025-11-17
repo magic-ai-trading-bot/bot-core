@@ -163,7 +163,9 @@ async fn test_websocket_heartbeat() {
 
     // Send ping
     write
-        .send(tokio_tungstenite::tungstenite::Message::Ping(vec![1, 2, 3].into()))
+        .send(tokio_tungstenite::tungstenite::Message::Ping(
+            vec![1, 2, 3].into(),
+        ))
         .await
         .unwrap();
 
