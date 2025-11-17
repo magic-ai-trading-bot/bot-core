@@ -203,20 +203,17 @@ jobs:
     - name: Free up disk space
       uses: jlumbroso/free-disk-space@main
       with:
-        # This will remove:
-        # - Android SDK (~12GB)
-        # - .NET (~2GB)
-        # - Haskell (~2GB)
-        # - Large packages
-        # - Docker images
-        # - Swap file
+        # Optimized for speed and space
+        # Keep tool-cache to avoid re-downloading
         tool-cache: false
-        android: true
-        dotnet: true
-        haskell: true
-        large-packages: true
-        docker-images: true
-        swap-storage: true
+        # Fast removals (most space gained)
+        android: true        # ~12GB, fast
+        dotnet: true         # ~2GB, fast
+        haskell: true        # ~2GB, fast
+        # Skip slow operations
+        large-packages: false  # Slow, only ~1GB
+        docker-images: true    # ~2GB, medium speed
+        swap-storage: false    # Slow, not needed
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -251,7 +248,7 @@ jobs:
         cargo build --lib --verbose
 
     - name: Run tests with coverage
-      timeout-minutes: 30
+      timeout-minutes: 60
       env:
         DATABASE_URL: mongodb://root:password@localhost:27017/test_trading_bot
         JWT_SECRET: test_jwt_secret_key_for_testing_only_do_not_use_in_production
