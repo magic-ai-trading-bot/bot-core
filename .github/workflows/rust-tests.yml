@@ -249,7 +249,7 @@ jobs:
         cd rust-core-engine
         # Run tests with llvm-cov (much faster than tarpaulin)
         cargo llvm-cov --lib --lcov --output-path coverage.lcov
-        cargo llvm-cov report --lib
+        cargo llvm-cov report
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
