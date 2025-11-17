@@ -233,6 +233,7 @@ jobs:
         cargo build --all-features --verbose
 
     - name: Run tests with coverage
+      timeout-minutes: 30
       env:
         DATABASE_URL: mongodb://root:password@localhost:27017/test_trading_bot
         JWT_SECRET: test_jwt_secret_key_for_testing_only_do_not_use_in_production
