@@ -221,19 +221,16 @@ jobs:
         toolchain: ${{ env.RUST_VERSION }}
         override: true
 
-    - name: Cache Rust dependencies
-      uses: actions/cache@v4
-      continue-on-error: true
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          rust-core-engine/target/debug/deps
-          rust-core-engine/target/debug/build
-        key: ${{ runner.os }}-cargo-coverage-v3-${{ hashFiles('rust-core-engine/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-coverage-v3-
-          ${{ runner.os }}-cargo-
+    # Cache disabled for coverage job to avoid timeout issues
+    # Coverage builds are already fast enough without caching (~3-5 min)
+    # - name: Cache Rust dependencies
+    #   uses: actions/cache@v4
+    #   continue-on-error: true
+    #   with:
+    #     path: |
+    #       ~/.cargo/registry
+    #       ~/.cargo/git
+    #     key: ${{ runner.os }}-cargo-coverage-v3-${{ hashFiles('rust-core-engine/Cargo.lock') }}
 
     - name: Install llvm-tools and cargo-llvm-cov
       run: |
