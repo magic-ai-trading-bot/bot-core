@@ -242,10 +242,8 @@ jobs:
         chmod +x cargo-tarpaulin
         mv cargo-tarpaulin ~/.cargo/bin/
 
-    - name: Build project
-      run: |
-        cd rust-core-engine
-        cargo build --lib --verbose
+    # Skip separate build - let tarpaulin handle it with instrumentation
+    # Building separately wastes time as tarpaulin rebuilds anyway
 
     - name: Run tests with coverage
       timeout-minutes: 60
