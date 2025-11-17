@@ -1,4 +1,5 @@
 """Tests for utils/redis_cache.py"""
+
 import pytest
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
