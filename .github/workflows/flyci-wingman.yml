@@ -357,7 +357,7 @@ jobs:
 
       - name: Start services with Docker Compose
         run: |
-          docker-compose -f docker-compose.yml up -d --build
+          docker compose -f docker-compose.yml up -d --build
           sleep 30  # Wait for services to be ready
 
       - name: Health check
@@ -374,13 +374,13 @@ jobs:
       - name: Show service logs on failure
         if: failure()
         run: |
-          docker-compose logs rust-core-engine
-          docker-compose logs python-ai-service
-          docker-compose logs nextjs-ui-dashboard
+          docker compose logs rust-core-engine
+          docker compose logs python-ai-service
+          docker compose logs nextjs-ui-dashboard
 
       - name: Cleanup
         if: always()
-        run: docker-compose down -v
+        run: docker compose down -v
 
   # ============================================================================
   # SECURITY SCAN
