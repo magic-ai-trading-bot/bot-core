@@ -157,7 +157,8 @@ impl ApiServer {
         let ai_routes = self.clone().ai_routes();
 
         // Paper trading routes
-        let paper_trading = paper_trading::PaperTradingApi::new(self.paper_trading_engine.clone()).routes();
+        let paper_trading =
+            paper_trading::PaperTradingApi::new(self.paper_trading_engine.clone()).routes();
 
         // Combine all routes
         let api_routes = health
@@ -488,7 +489,9 @@ impl ApiServer {
         debug!("New WebSocket connection established");
 
         // Handle incoming messages from client (ping/pong, etc.)
-        let ws_sender_clone: Arc<tokio::sync::Mutex<futures::stream::SplitSink<WebSocket, Message>>> = Arc::new(tokio::sync::Mutex::new(ws_sender));
+        let ws_sender_clone: Arc<
+            tokio::sync::Mutex<futures::stream::SplitSink<WebSocket, Message>>,
+        > = Arc::new(tokio::sync::Mutex::new(ws_sender));
         let ws_sender_for_broadcast = ws_sender_clone.clone();
 
         // Task to handle incoming messages

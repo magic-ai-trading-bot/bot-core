@@ -147,9 +147,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 "Rate limit exceeded",
                 "rate_limit",
             ),
-            AppError::NotFound(resource) => {
-                (StatusCode::NOT_FOUND, resource.as_str(), "not_found")
-            },
+            AppError::NotFound(resource) => (StatusCode::NOT_FOUND, resource.as_str(), "not_found"),
             AppError::InsufficientFunds => (
                 StatusCode::PAYMENT_REQUIRED,
                 "Insufficient funds",
@@ -160,9 +158,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 msg.as_str(),
                 "invalid_market_conditions",
             ),
-            AppError::WebSocket(msg) => {
-                (StatusCode::BAD_REQUEST, msg.as_str(), "websocket_error")
-            },
+            AppError::WebSocket(msg) => (StatusCode::BAD_REQUEST, msg.as_str(), "websocket_error"),
             AppError::Config(msg) => {
                 tracing::error!("Configuration error: {msg}");
                 (
@@ -218,9 +214,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 "External service error",
                 "service_error",
             ),
-            AppError::HttpError(_msg)
-            | AppError::JsonError(_msg)
-            | AppError::IoError(_msg) => (
+            AppError::HttpError(_msg) | AppError::JsonError(_msg) | AppError::IoError(_msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal error",
                 "internal_error",
