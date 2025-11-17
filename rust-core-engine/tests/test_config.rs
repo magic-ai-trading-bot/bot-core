@@ -16,6 +16,11 @@ use tempfile::TempDir;
 
 mod config_tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Global mutex to serialize all environment variable tests
+    // This prevents race conditions when tests run in parallel
+    static ENV_TEST_MUTEX: Mutex<()> = Mutex::new(());
 
     // Helper function to create a temporary directory and config file
     fn setup_test_config_file(content: &str) -> (TempDir, PathBuf) {
@@ -89,6 +94,9 @@ mod config_tests {
 
     #[test]
     fn test_config_from_file_valid_toml() {
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         // Clean up any env vars that might interfere
         env::remove_var("BINANCE_API_KEY");
         env::remove_var("BINANCE_SECRET_KEY");
@@ -198,6 +206,9 @@ api_key = "test_key"
 
     #[test]
     fn test_config_environment_variable_override_database_url() {
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         let toml_content = r#"
 [binance]
 api_key = ""
@@ -265,6 +276,9 @@ enable_metrics = true
 
     #[test]
     fn test_config_environment_variable_override_binance_keys() {
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         let toml_content = r#"
 [binance]
 api_key = "original_api_key"
@@ -329,6 +343,9 @@ enable_metrics = true
 
     #[test]
     fn test_config_environment_variable_override_testnet() {
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         let toml_content = r#"
 [binance]
 api_key = ""
@@ -397,6 +414,9 @@ enable_metrics = true
 
     #[test]
     fn test_config_environment_variable_override_python_service_url() {
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
         let toml_content = r#"
 [binance]
 api_key = ""
@@ -457,6 +477,16 @@ enable_metrics = true
 
     #[test]
     fn test_config_save_to_file() {
+        // Use global mutex to serialize all env var tests
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        // Clean up env vars to prevent interference
+        env::remove_var("BINANCE_API_KEY");
+        env::remove_var("BINANCE_SECRET_KEY");
+        env::remove_var("DATABASE_URL");
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("PYTHON_AI_SERVICE_URL");
+
         let temp_dir = TempDir::new().expect("Failed to create temp directory");
         let config_path = temp_dir.path().join("save_test_config.toml");
 
