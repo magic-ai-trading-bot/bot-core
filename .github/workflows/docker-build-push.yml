@@ -21,7 +21,8 @@ on:
 
 env:
   DOCKER_REGISTRY: ghcr.io/${{ github.repository_owner }}/bot-core
-  PLATFORMS: linux/amd64,linux/arm64
+  # Only build amd64 in CI to save disk space; arm64 can be built manually
+  PLATFORMS: linux/amd64
 
 jobs:
   build-and-push:
@@ -44,6 +45,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false  # Keep Docker images
+          swap-storage: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -98,6 +110,9 @@ jobs:
             VERSION=${{ steps.build-meta.outputs.version }}
             GIT_SHA=${{ steps.build-meta.outputs.git-sha }}
             BUILD_DATE=${{ steps.build-meta.outputs.build-date }}
+          # Optimize for disk space
+          provenance: false
+          sbom: false
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
