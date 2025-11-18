@@ -39,7 +39,7 @@ jobs:
       matrix:
         service:
           - rust-core-engine
-          - python-ai-service
+          # - python-ai-service  # DISABLED: Builds timeout due to disk space (TensorFlow/PyTorch ~4GB)
           - nextjs-ui-dashboard
 
     steps:
