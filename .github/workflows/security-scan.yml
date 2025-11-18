@@ -165,7 +165,7 @@ jobs:
         extra_args: --debug --only-verified
 
     - name: Run TruffleHog (Push)
-      if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+      if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000' && github.event.before != github.sha
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
@@ -173,8 +173,8 @@ jobs:
         head: ${{ github.sha }}
         extra_args: --debug --only-verified
 
-    - name: Run TruffleHog (Full Scan - Scheduled/First Push)
-      if: github.event_name == 'schedule' || (github.event_name == 'push' && github.event.before == '0000000000000000000000000000000000000000')
+    - name: Run TruffleHog (Full Scan - Scheduled/First Push/Same Commit)
+      if: github.event_name == 'schedule' || (github.event_name == 'push' && (github.event.before == '0000000000000000000000000000000000000000' || github.event.before == github.sha))
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
