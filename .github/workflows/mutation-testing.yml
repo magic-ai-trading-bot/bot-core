@@ -17,6 +17,11 @@ on:
           - python
           - frontend
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 env:
   RUST_MUTATION_THRESHOLD: 75.0
   PYTHON_MUTATION_THRESHOLD: 75.0
