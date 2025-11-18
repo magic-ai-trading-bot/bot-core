@@ -38,7 +38,7 @@ data:
 
 ai_cache:
   enabled: true
-  duration_minutes: 5 # Cache AI analysis for 5 minutes to save tokens
+  duration_minutes: 15 # Cache AI analysis for 15 minutes to save tokens (optimized from 5)
   max_entries: 100 # Maximum number of cache entries
 
 model_management:
