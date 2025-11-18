@@ -413,12 +413,30 @@ jobs:
           path: trivy-results.sarif
           retention-days: 30
 
-      - name: Check for secrets
+      - name: Check for secrets (PR)
+        if: github.event_name == 'pull_request'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
           extra_args: --debug --only-verified
+
+      - name: Check for secrets (Push with changes)
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000' && github.event.before != github.sha
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.before }}
+          head: ${{ github.sha }}
+          extra_args: --debug --only-verified
+
+      - name: Check for secrets (Full scan)
+        if: (github.event_name == 'push' && (github.event.before == '0000000000000000000000000000000000000000' || github.event.before == github.sha)) || github.event_name == 'workflow_dispatch'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --debug --only-verified --since-commit="" --max-depth=1000
 
   # ============================================================================
   # QUALITY METRICS
