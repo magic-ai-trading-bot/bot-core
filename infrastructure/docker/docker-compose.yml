@@ -126,6 +126,8 @@ services:
     depends_on:
       python-ai-service:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -175,6 +177,8 @@ services:
       start_period: 60s
     depends_on:
       python-ai-service-dev:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     deploy:
       resources:
@@ -280,6 +284,70 @@ services:
     profiles:
       - dev
 
+
+  # MongoDB - Primary database with replica set
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}
+      - MONGO_INITDB_DATABASE=bot_core
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./infrastructure/docker/scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - bot-network
+    healthcheck:
+      test: |
+        mongosh --quiet --eval "
+          try {
+            rs.status();
+            db.adminCommand('ping');
+            print('MongoDB is healthy');
+          } catch (err) {
+            print('MongoDB is not ready');
+            quit(1);
+          }
+        " || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: ${MONGO_MEMORY_LIMIT:-2G}
+          cpus: "${MONGO_CPU_LIMIT:-2}"
+        reservations:
+          memory: ${MONGO_MEMORY_RESERVE:-512M}
+          cpus: "${MONGO_CPU_RESERVE:-0.5}"
+
+  # MongoDB Express - Web-based admin interface (optional)
+  mongo-express:
+    image: mongo-express:1.0-20
+    container_name: mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_ROOT_USER:-admin}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}
+      - ME_CONFIG_MONGODB_URL=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USER:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD:-admin}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - bot-network
+    profiles:
+      - mongo-admin
 
   # Redis service - For caching and session management
   redis:
@@ -445,6 +513,10 @@ networks:
         - subnet: 172.20.0.0/16
 
 volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
   redis_data:
     driver: local
   rabbitmq_data:

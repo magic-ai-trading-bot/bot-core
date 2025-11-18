@@ -1,0 +1,445 @@
+name: Mutation Testing
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to test (all, rust, python, frontend)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - rust
+          - python
+          - frontend
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  RUST_MUTATION_THRESHOLD: 75.0
+  PYTHON_MUTATION_THRESHOLD: 75.0
+  FRONTEND_MUTATION_THRESHOLD: 75.0
+
+jobs:
+  mutation-test-rust:
+    name: Rust Mutation Testing
+    runs-on: ubuntu-latest
+    if: github.event.inputs.service == 'rust' || github.event.inputs.service == 'all' || github.event_name == 'schedule'
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-mutants-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-mutants-
+
+      - name: Install cargo-mutants
+        run: |
+          cargo install cargo-mutants --locked || cargo install cargo-mutants
+
+      - name: Run mutation tests
+        working-directory: ./rust-core-engine
+        run: |
+          echo "Running mutation tests (this may take a while)..."
+          cargo mutants --timeout 300 --jobs 4 --output mutants-report.json || true
+
+      - name: Generate mutation report
+        working-directory: ./rust-core-engine
+        run: |
+          if [ -f mutants-report.json ]; then
+            echo "# Rust Mutation Testing Report" > mutation-report.md
+            echo "" >> mutation-report.md
+            echo "Generated: $(date)" >> mutation-report.md
+            echo "" >> mutation-report.md
+
+            # Parse JSON report
+            TOTAL=$(jq '.summary.total_mutants' mutants-report.json 2>/dev/null || echo "0")
+            CAUGHT=$(jq '.summary.caught' mutants-report.json 2>/dev/null || echo "0")
+            MISSED=$(jq '.summary.missed' mutants-report.json 2>/dev/null || echo "0")
+            TIMEOUT=$(jq '.summary.timeout' mutants-report.json 2>/dev/null || echo "0")
+
+            if [ "$TOTAL" -gt 0 ]; then
+              SCORE=$(echo "scale=2; ($CAUGHT * 100) / $TOTAL" | bc)
+            else
+              SCORE="0"
+            fi
+
+            echo "## Summary" >> mutation-report.md
+            echo "- **Total Mutants:** $TOTAL" >> mutation-report.md
+            echo "- **Caught:** $CAUGHT" >> mutation-report.md
+            echo "- **Missed:** $MISSED" >> mutation-report.md
+            echo "- **Timeout:** $TIMEOUT" >> mutation-report.md
+            echo "- **Mutation Score:** ${SCORE}%" >> mutation-report.md
+            echo "" >> mutation-report.md
+
+            if (( $(echo "$SCORE >= $RUST_MUTATION_THRESHOLD" | bc -l) )); then
+              echo "✅ **Status:** PASSED (threshold: ${RUST_MUTATION_THRESHOLD}%)" >> mutation-report.md
+            else
+              echo "❌ **Status:** FAILED (threshold: ${RUST_MUTATION_THRESHOLD}%)" >> mutation-report.md
+            fi
+
+            cat mutation-report.md
+          else
+            echo "No mutation report generated"
+          fi
+
+      - name: Upload mutation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-mutation-results
+          path: |
+            rust-core-engine/mutants-report.json
+            rust-core-engine/mutation-report.md
+          retention-days: 30
+
+      - name: Check mutation score threshold
+        working-directory: ./rust-core-engine
+        run: |
+          if [ -f mutants-report.json ]; then
+            TOTAL=$(jq '.summary.total_mutants' mutants-report.json)
+            CAUGHT=$(jq '.summary.caught' mutants-report.json)
+
+            if [ "$TOTAL" -gt 0 ]; then
+              SCORE=$(echo "scale=2; ($CAUGHT * 100) / $TOTAL" | bc)
+              echo "Mutation Score: ${SCORE}%"
+              echo "Threshold: ${RUST_MUTATION_THRESHOLD}%"
+
+              if (( $(echo "$SCORE < $RUST_MUTATION_THRESHOLD" | bc -l) )); then
+                echo "⚠️ Mutation score ${SCORE}% is below threshold ${RUST_MUTATION_THRESHOLD}%"
+                echo "This is informational only - not failing the build"
+              else
+                echo "✅ Mutation score ${SCORE}% meets threshold"
+              fi
+            fi
+          fi
+
+  mutation-test-python:
+    name: Python Mutation Testing
+    runs-on: ubuntu-latest
+    if: github.event.inputs.service == 'python' || github.event.inputs.service == 'all' || github.event_name == 'schedule'
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-mutmut-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-mutmut-
+
+      - name: Install dependencies
+        working-directory: ./python-ai-service
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-ci.txt
+          pip install mutmut pytest pytest-cov
+
+      - name: Run mutation tests
+        working-directory: ./python-ai-service
+        run: |
+          echo "Running mutation tests (this may take a while)..."
+          mutmut run --paths-to-mutate=. --tests-dir=tests/ || true
+
+      - name: Generate mutation report
+        working-directory: ./python-ai-service
+        run: |
+          echo "# Python Mutation Testing Report" > mutation-report.md
+          echo "" >> mutation-report.md
+          echo "Generated: $(date)" >> mutation-report.md
+          echo "" >> mutation-report.md
+
+          # Get mutation results
+          mutmut results > mutation-results.txt || true
+          mutmut show --all > mutation-details.txt || true
+
+          # Parse results
+          if [ -f mutation-results.txt ]; then
+            echo "## Summary" >> mutation-report.md
+            cat mutation-results.txt >> mutation-report.md
+            echo "" >> mutation-report.md
+          fi
+
+          # Calculate score
+          SURVIVED=$(grep -c "Status: survived" mutation-results.txt 2>/dev/null || echo "0")
+          KILLED=$(grep -c "Status: killed" mutation-results.txt 2>/dev/null || echo "0")
+          TIMEOUT=$(grep -c "Status: timeout" mutation-results.txt 2>/dev/null || echo "0")
+          TOTAL=$((SURVIVED + KILLED + TIMEOUT))
+
+          if [ "$TOTAL" -gt 0 ]; then
+            SCORE=$(echo "scale=2; ($KILLED * 100) / $TOTAL" | bc)
+          else
+            SCORE="0"
+          fi
+
+          echo "- **Total Mutants:** $TOTAL" >> mutation-report.md
+          echo "- **Killed:** $KILLED" >> mutation-report.md
+          echo "- **Survived:** $SURVIVED" >> mutation-report.md
+          echo "- **Timeout:** $TIMEOUT" >> mutation-report.md
+          echo "- **Mutation Score:** ${SCORE}%" >> mutation-report.md
+          echo "" >> mutation-report.md
+
+          if (( $(echo "$SCORE >= $PYTHON_MUTATION_THRESHOLD" | bc -l) )); then
+            echo "✅ **Status:** PASSED (threshold: ${PYTHON_MUTATION_THRESHOLD}%)" >> mutation-report.md
+          else
+            echo "❌ **Status:** FAILED (threshold: ${PYTHON_MUTATION_THRESHOLD}%)" >> mutation-report.md
+          fi
+
+          cat mutation-report.md
+
+      - name: Upload mutation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-mutation-results
+          path: |
+            python-ai-service/mutation-report.md
+            python-ai-service/mutation-results.txt
+            python-ai-service/mutation-details.txt
+          retention-days: 30
+
+  mutation-test-frontend:
+    name: Frontend Mutation Testing
+    runs-on: ubuntu-latest
+    if: github.event.inputs.service == 'frontend' || github.event.inputs.service == 'all' || github.event_name == 'schedule'
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ./nextjs-ui-dashboard
+        run: |
+          bun install
+          npm install -g stryker-cli
+          npm install --save-dev @stryker-mutator/core @stryker-mutator/typescript-checker @stryker-mutator/jest-runner
+
+      - name: Create Stryker config
+        working-directory: ./nextjs-ui-dashboard
+        run: |
+          cat > stryker.conf.json << 'EOF'
+          {
+            "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+            "packageManager": "npm",
+            "reporters": ["html", "clear-text", "progress", "json"],
+            "testRunner": "jest",
+            "coverageAnalysis": "perTest",
+            "jest": {
+              "projectType": "custom",
+              "configFile": "jest.config.js",
+              "enableFindRelatedTests": true
+            },
+            "thresholds": {
+              "high": 80,
+              "low": 60,
+              "break": null
+            },
+            "timeoutMS": 60000,
+            "mutate": [
+              "src/**/*.ts",
+              "src/**/*.tsx",
+              "!src/**/*.test.ts",
+              "!src/**/*.test.tsx",
+              "!src/**/*.spec.ts",
+              "!src/**/*.spec.tsx"
+            ]
+          }
+          EOF
+
+      - name: Run mutation tests
+        working-directory: ./nextjs-ui-dashboard
+        run: |
+          echo "Running mutation tests (this may take a while)..."
+          npx stryker run || true
+
+      - name: Generate mutation report
+        working-directory: ./nextjs-ui-dashboard
+        run: |
+          echo "# Frontend Mutation Testing Report" > mutation-report.md
+          echo "" >> mutation-report.md
+          echo "Generated: $(date)" >> mutation-report.md
+          echo "" >> mutation-report.md
+
+          # Parse Stryker JSON report
+          if [ -f reports/mutation/mutation.json ]; then
+            TOTAL=$(jq '.files | to_entries | map(.value.mutants | length) | add' reports/mutation/mutation.json 2>/dev/null || echo "0")
+            KILLED=$(jq '.files | to_entries | map(.value.mutants | map(select(.status == "Killed")) | length) | add' reports/mutation/mutation.json 2>/dev/null || echo "0")
+            SURVIVED=$(jq '.files | to_entries | map(.value.mutants | map(select(.status == "Survived")) | length) | add' reports/mutation/mutation.json 2>/dev/null || echo "0")
+            TIMEOUT=$(jq '.files | to_entries | map(.value.mutants | map(select(.status == "Timeout")) | length) | add' reports/mutation/mutation.json 2>/dev/null || echo "0")
+
+            if [ "$TOTAL" -gt 0 ]; then
+              SCORE=$(echo "scale=2; ($KILLED * 100) / $TOTAL" | bc)
+            else
+              SCORE="0"
+            fi
+
+            echo "## Summary" >> mutation-report.md
+            echo "- **Total Mutants:** $TOTAL" >> mutation-report.md
+            echo "- **Killed:** $KILLED" >> mutation-report.md
+            echo "- **Survived:** $SURVIVED" >> mutation-report.md
+            echo "- **Timeout:** $TIMEOUT" >> mutation-report.md
+            echo "- **Mutation Score:** ${SCORE}%" >> mutation-report.md
+            echo "" >> mutation-report.md
+
+            if (( $(echo "$SCORE >= $FRONTEND_MUTATION_THRESHOLD" | bc -l) )); then
+              echo "✅ **Status:** PASSED (threshold: ${FRONTEND_MUTATION_THRESHOLD}%)" >> mutation-report.md
+            else
+              echo "❌ **Status:** FAILED (threshold: ${FRONTEND_MUTATION_THRESHOLD}%)" >> mutation-report.md
+            fi
+
+            cat mutation-report.md
+          else
+            echo "No mutation report generated"
+          fi
+
+      - name: Upload mutation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-mutation-results
+          path: |
+            nextjs-ui-dashboard/mutation-report.md
+            nextjs-ui-dashboard/reports/mutation/
+          retention-days: 30
+
+  summary:
+    name: Mutation Testing Summary
+    needs: [mutation-test-rust, mutation-test-python, mutation-test-frontend]
+    runs-on: ubuntu-latest
+    if: always()
+    timeout-minutes: 10
+
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: ./mutation-reports
+
+      - name: Generate combined report
+        run: |
+          echo "# Mutation Testing Summary" > summary.md
+          echo "" >> summary.md
+          echo "Generated: $(date)" >> summary.md
+          echo "Trigger: ${{ github.event_name }}" >> summary.md
+          echo "" >> summary.md
+          echo "## Results by Service" >> summary.md
+          echo "" >> summary.md
+
+          # Rust results
+          if [ -f mutation-reports/rust-mutation-results/mutation-report.md ]; then
+            echo "### Rust Core Engine" >> summary.md
+            cat mutation-reports/rust-mutation-results/mutation-report.md >> summary.md
+            echo "" >> summary.md
+          else
+            echo "### Rust Core Engine" >> summary.md
+            echo "- **Status:** ${{ needs.mutation-test-rust.result }}" >> summary.md
+            echo "" >> summary.md
+          fi
+
+          # Python results
+          if [ -f mutation-reports/python-mutation-results/mutation-report.md ]; then
+            echo "### Python AI Service" >> summary.md
+            cat mutation-reports/python-mutation-results/mutation-report.md >> summary.md
+            echo "" >> summary.md
+          else
+            echo "### Python AI Service" >> summary.md
+            echo "- **Status:** ${{ needs.mutation-test-python.result }}" >> summary.md
+            echo "" >> summary.md
+          fi
+
+          # Frontend results
+          if [ -f mutation-reports/frontend-mutation-results/mutation-report.md ]; then
+            echo "### Frontend Dashboard" >> summary.md
+            cat mutation-reports/frontend-mutation-results/mutation-report.md >> summary.md
+            echo "" >> summary.md
+          else
+            echo "### Frontend Dashboard" >> summary.md
+            echo "- **Status:** ${{ needs.mutation-test-frontend.result }}" >> summary.md
+            echo "" >> summary.md
+          fi
+
+          echo "## Recommendations" >> summary.md
+          echo "" >> summary.md
+          echo "1. Review survived mutants to improve test quality" >> summary.md
+          echo "2. Add tests for uncovered edge cases" >> summary.md
+          echo "3. Increase assertion strength in existing tests" >> summary.md
+          echo "4. Consider adding property-based tests" >> summary.md
+
+          cat summary.md
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-testing-summary
+          path: summary.md
+          retention-days: 90
+
+      - name: Create issue for low scores
+        if: github.event_name == 'schedule'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('summary.md', 'utf8');
+
+            // Check if any service failed
+            const rustResult = '${{ needs.mutation-test-rust.result }}';
+            const pythonResult = '${{ needs.mutation-test-python.result }}';
+            const frontendResult = '${{ needs.mutation-test-frontend.result }}';
+
+            if (rustResult === 'failure' || pythonResult === 'failure' || frontendResult === 'failure') {
+              github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '⚠️ Mutation Testing Scores Below Threshold',
+                body: summary,
+                labels: ['quality', 'testing', 'mutation-testing']
+              });
+            }
