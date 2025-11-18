@@ -131,7 +131,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/${{ steps.dockerfile.outputs.name }}
+          # SIMPLE FIX: ALWAYS use Dockerfile.ci for python-ai-service in ALL builds
+          file: ./${{ matrix.service }}/${{ matrix.service == 'python-ai-service' && 'Dockerfile.ci' || 'Dockerfile' }}
           platforms: ${{ env.PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' && (inputs.push_images || 'true') == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
