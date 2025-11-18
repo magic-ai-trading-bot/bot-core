@@ -1,0 +1,329 @@
+# Recording Rules for Bot-Core
+# Pre-aggregate commonly used queries for faster dashboard loading
+# @spec:NFR-PERFORMANCE-001 - Performance optimization through recording rules
+
+groups:
+  # ===========================================
+  # SYSTEM METRICS RECORDING RULES
+  # ===========================================
+
+  - name: system_metrics
+    interval: 30s
+    rules:
+      # CPU usage per instance
+      - record: instance:node_cpu_utilization:rate5m
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      # Memory usage per instance
+      - record: instance:node_memory_utilization:ratio
+        expr: 1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+
+      # Disk usage per instance
+      - record: instance:node_disk_utilization:ratio
+        expr: 1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})
+
+      # Network throughput (RX+TX)
+      - record: instance:node_network_throughput_bytes:rate5m
+        expr: rate(node_network_receive_bytes_total[5m]) + rate(node_network_transmit_bytes_total[5m])
+
+  # ===========================================
+  # APPLICATION PERFORMANCE RECORDING RULES
+  # ===========================================
+
+  - name: application_performance
+    interval: 30s
+    rules:
+      # HTTP request rate per service
+      - record: service:http_requests:rate5m
+        expr: sum by (service, job) (rate(http_requests_total[5m]))
+
+      # HTTP error rate per service
+      - record: service:http_errors:rate5m
+        expr: sum by (service, job) (rate(http_requests_total{status=~"5.."}[5m]))
+
+      # HTTP error ratio (percentage)
+      - record: service:http_error_ratio:rate5m
+        expr: |
+          sum by (service, job) (rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum by (service, job) (rate(http_requests_total[5m]))
+
+      # HTTP request latency percentiles
+      - record: service:http_request_duration_seconds:p50
+        expr: histogram_quantile(0.50, sum by (service, job, le) (rate(http_request_duration_seconds_bucket[5m])))
+
+      - record: service:http_request_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum by (service, job, le) (rate(http_request_duration_seconds_bucket[5m])))
+
+      - record: service:http_request_duration_seconds:p99
+        expr: histogram_quantile(0.99, sum by (service, job, le) (rate(http_request_duration_seconds_bucket[5m])))
+
+      # Average request duration
+      - record: service:http_request_duration_seconds:avg
+        expr: |
+          sum by (service, job) (rate(http_request_duration_seconds_sum[5m]))
+          /
+          sum by (service, job) (rate(http_request_duration_seconds_count[5m]))
+
+  # ===========================================
+  # TRADING METRICS RECORDING RULES
+  # ===========================================
+
+  - name: trading_metrics
+    interval: 30s
+    rules:
+      # Trade execution rate
+      - record: trading:trades:rate5m
+        expr: rate(trades_total[5m])
+
+      # Trade success rate
+      - record: trading:trade_success:rate5m
+        expr: rate(trades_success_total[5m])
+
+      # Trade failure rate
+      - record: trading:trade_failure:rate5m
+        expr: rate(trades_failed_total[5m])
+
+      # Trade success ratio (percentage)
+      - record: trading:trade_success_ratio:rate5m
+        expr: |
+          rate(trades_success_total[5m])
+          /
+          rate(trades_total[5m])
+
+      # Average trade execution duration
+      - record: trading:trade_duration_seconds:avg
+        expr: |
+          rate(trade_execution_duration_seconds_sum[5m])
+          /
+          rate(trade_execution_duration_seconds_count[5m])
+
+      # Trade execution latency percentiles
+      - record: trading:trade_duration_seconds:p50
+        expr: histogram_quantile(0.50, rate(trade_execution_duration_seconds_bucket[5m]))
+
+      - record: trading:trade_duration_seconds:p95
+        expr: histogram_quantile(0.95, rate(trade_execution_duration_seconds_bucket[5m]))
+
+      - record: trading:trade_duration_seconds:p99
+        expr: histogram_quantile(0.99, rate(trade_execution_duration_seconds_bucket[5m]))
+
+      # Total trading volume (1h)
+      - record: trading:volume_total:1h
+        expr: sum(increase(trade_volume_total[1h]))
+
+      # Total trades count (1h)
+      - record: trading:trades_count:1h
+        expr: sum(increase(trades_total[1h]))
+
+  # ===========================================
+  # AI SERVICE RECORDING RULES
+  # ===========================================
+
+  - name: ai_metrics
+    interval: 30s
+    rules:
+      # AI analysis rate
+      - record: ai:analysis:rate5m
+        expr: rate(ai_analysis_total[5m])
+
+      # AI analysis duration percentiles
+      - record: ai:analysis_duration_seconds:p50
+        expr: histogram_quantile(0.50, rate(ai_analysis_duration_seconds_bucket[5m]))
+
+      - record: ai:analysis_duration_seconds:p95
+        expr: histogram_quantile(0.95, rate(ai_analysis_duration_seconds_bucket[5m]))
+
+      - record: ai:analysis_duration_seconds:p99
+        expr: histogram_quantile(0.99, rate(ai_analysis_duration_seconds_bucket[5m]))
+
+      # Average analysis duration
+      - record: ai:analysis_duration_seconds:avg
+        expr: |
+          rate(ai_analysis_duration_seconds_sum[5m])
+          /
+          rate(ai_analysis_duration_seconds_count[5m])
+
+      # Model confidence average
+      - record: ai:model_confidence:avg
+        expr: avg(ai_model_confidence)
+
+      # Predictions by signal type
+      - record: ai:predictions_by_signal:rate5m
+        expr: sum by (signal) (rate(ai_predictions_total[5m]))
+
+      # OpenAI API usage rate
+      - record: ai:openai_requests:rate5m
+        expr: rate(openai_requests_total[5m])
+
+      # OpenAI API error rate
+      - record: ai:openai_errors:rate5m
+        expr: rate(openai_errors_total[5m])
+
+      # OpenAI API error ratio
+      - record: ai:openai_error_ratio:rate5m
+        expr: |
+          rate(openai_errors_total[5m])
+          /
+          rate(openai_requests_total[5m])
+
+  # ===========================================
+  # DATABASE RECORDING RULES
+  # ===========================================
+
+  - name: database_metrics
+    interval: 30s
+    rules:
+      # Database query rate
+      - record: db:queries:rate5m
+        expr: rate(db_query_duration_seconds_count[5m])
+
+      # Database query latency percentiles
+      - record: db:query_duration_seconds:p50
+        expr: histogram_quantile(0.50, rate(db_query_duration_seconds_bucket[5m]))
+
+      - record: db:query_duration_seconds:p95
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m]))
+
+      - record: db:query_duration_seconds:p99
+        expr: histogram_quantile(0.99, rate(db_query_duration_seconds_bucket[5m]))
+
+      # Average query duration
+      - record: db:query_duration_seconds:avg
+        expr: |
+          rate(db_query_duration_seconds_sum[5m])
+          /
+          rate(db_query_duration_seconds_count[5m])
+
+      # MongoDB connection utilization
+      - record: db:mongodb_connection_utilization:ratio
+        expr: |
+          mongodb_connections{state="current"}
+          /
+          mongodb_connections{state="available"}
+
+      # MongoDB operations rate
+      - record: db:mongodb_operations:rate5m
+        expr: sum by (type) (rate(mongodb_op_latencies_ops_total[5m]))
+
+  # ===========================================
+  # WEBSOCKET RECORDING RULES
+  # ===========================================
+
+  - name: websocket_metrics
+    interval: 30s
+    rules:
+      # WebSocket message rate (sent)
+      - record: websocket:messages_sent:rate5m
+        expr: rate(websocket_messages_sent_total[5m])
+
+      # WebSocket message rate (received)
+      - record: websocket:messages_received:rate5m
+        expr: rate(websocket_messages_received_total[5m])
+
+      # WebSocket error rate
+      - record: websocket:errors:rate5m
+        expr: rate(websocket_errors_total[5m])
+
+      # WebSocket message latency percentiles
+      - record: websocket:message_duration_seconds:p95
+        expr: histogram_quantile(0.95, rate(websocket_message_duration_seconds_bucket[5m]))
+
+      # Active WebSocket connections
+      - record: websocket:connections_active:current
+        expr: websocket_connections_active
+
+  # ===========================================
+  # CONTAINER METRICS RECORDING RULES
+  # ===========================================
+
+  - name: container_metrics
+    interval: 30s
+    rules:
+      # Container CPU usage percentage
+      - record: container:cpu_usage_percent:rate5m
+        expr: rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100
+
+      # Container memory usage percentage
+      - record: container:memory_usage_percent:current
+        expr: |
+          (container_memory_usage_bytes{name!=""}
+          /
+          container_spec_memory_limit_bytes{name!=""}) * 100
+
+      # Container network throughput
+      - record: container:network_throughput_bytes:rate5m
+        expr: |
+          rate(container_network_receive_bytes_total{name!=""}[5m])
+          +
+          rate(container_network_transmit_bytes_total{name!=""}[5m])
+
+  # ===========================================
+  # SLO RECORDING RULES
+  # ===========================================
+
+  - name: slo_metrics
+    interval: 60s
+    rules:
+      # API availability (last 30 days)
+      - record: slo:api_availability:30d
+        expr: |
+          (sum(rate(http_requests_total{status!~"5.."}[30d]))
+          /
+          sum(rate(http_requests_total[30d]))) * 100
+
+      # API availability (last 7 days)
+      - record: slo:api_availability:7d
+        expr: |
+          (sum(rate(http_requests_total{status!~"5.."}[7d]))
+          /
+          sum(rate(http_requests_total[7d]))) * 100
+
+      # API availability (last 24 hours)
+      - record: slo:api_availability:24h
+        expr: |
+          (sum(rate(http_requests_total{status!~"5.."}[24h]))
+          /
+          sum(rate(http_requests_total[24h]))) * 100
+
+      # Trade execution success rate (last 24 hours)
+      - record: slo:trade_success_rate:24h
+        expr: |
+          (rate(trades_success_total[24h])
+          /
+          rate(trades_total[24h])) * 100
+
+      # Error budget remaining (30 days, target 99.5%)
+      - record: slo:error_budget_remaining:30d
+        expr: |
+          (1 - ((1 - (sum(rate(http_requests_total{status!~"5.."}[30d])) / sum(rate(http_requests_total[30d])))) / 0.005)) * 100
+
+  # ===========================================
+  # BUSINESS METRICS RECORDING RULES
+  # ===========================================
+
+  - name: business_metrics
+    interval: 60s
+    rules:
+      # Active users (hourly)
+      - record: business:users_active:1h
+        expr: users_active_total
+
+      # New user registrations (hourly)
+      - record: business:user_registrations:1h
+        expr: increase(user_registrations_total[1h])
+
+      # Total trading volume (daily)
+      - record: business:trading_volume:24h
+        expr: sum(increase(trade_volume_total[24h]))
+
+      # Total profit/loss (daily)
+      - record: business:profit_loss:24h
+        expr: sum(profit_loss_total) - sum(profit_loss_total offset 24h)
+
+      # Portfolio value growth (24h)
+      - record: business:portfolio_value_growth:24h
+        expr: |
+          (portfolio_value_usd - (portfolio_value_usd offset 24h))
+          /
+          (portfolio_value_usd offset 24h) * 100

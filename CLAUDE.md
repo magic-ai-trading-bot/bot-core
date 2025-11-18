@@ -468,6 +468,14 @@ make quality-metrics                       # Quality check
 - `specs/README.md` - Specification system (75 docs)
 - `specs/TRACEABILITY_MATRIX.md` - Requirements traceability
 
+### Deployment Documentation
+- `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` - Comprehensive deployment (1300+ lines)
+- `docs/PRODUCTION_CHECKLIST.md` - 125+ deployment checklist items
+- `docs/runbooks/DEPLOYMENT_RUNBOOK.md` - Step-by-step commands
+- `docs/OPERATIONS_MANUAL.md` - Daily operations & disaster recovery
+- `docs/quickstart/` - Quick start guides (dev, staging, prod)
+- `docs/API_DEPLOYMENT.md` - API documentation & endpoints
+
 ### Quality Reports
 - `docs/reports/QUALITY_METRICS_SUMMARY.md`
 - `docs/reports/PERFECT_10_10_VALIDATION_REPORT.md`

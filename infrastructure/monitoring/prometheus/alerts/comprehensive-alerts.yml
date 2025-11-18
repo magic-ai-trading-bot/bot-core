@@ -1,0 +1,675 @@
+# Comprehensive Alert Rules for Bot-Core
+# @spec:NFR-RELIABILITY-001 - System reliability and alerting
+# @ref:specs/04-deployment/4.3-monitoring/MON-METRICS.md
+
+groups:
+  # ===========================================
+  # INFRASTRUCTURE ALERTS
+  # ===========================================
+
+  - name: infrastructure_critical
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 2 minutes."
+          runbook_url: "https://docs.bot-core.io/runbooks/service-down"
+          dashboard_url: "https://grafana.bot-core.io/d/service-overview"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          category: performance
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-cpu"
+
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          category: performance
+        annotations:
+          summary: "CRITICAL: CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 95%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-cpu"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          category: performance
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-memory"
+
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          category: performance
+        annotations:
+          summary: "CRITICAL: Memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 95%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-memory"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+          category: storage
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value | humanizePercentage }} disk space available (threshold: 10%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/disk-space-low"
+
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+          category: storage
+        annotations:
+          summary: "Disk space warning on {{ $labels.instance }}"
+          description: "Only {{ $value | humanizePercentage }} disk space available (threshold: 20%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/disk-space-low"
+
+      - alert: HighDiskIO
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          category: performance
+        annotations:
+          summary: "High disk I/O on {{ $labels.instance }}"
+          description: "Disk I/O utilization is {{ $value | humanizePercentage }}"
+
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          category: network
+        annotations:
+          summary: "High network traffic on {{ $labels.instance }}"
+          description: "Network RX is {{ $value | humanize }}B/s"
+
+  # ===========================================
+  # APPLICATION PERFORMANCE ALERTS
+  # ===========================================
+
+  - name: application_performance
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: application
+          category: errors
+        annotations:
+          summary: "High error rate in {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-error-rate"
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+          category: performance
+        annotations:
+          summary: "High latency (p95) in {{ $labels.job }}"
+          description: "P95 latency is {{ $value }}s (threshold: 1s)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-latency"
+
+      - alert: CriticalLatencyP95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: critical
+          component: application
+          category: performance
+        annotations:
+          summary: "CRITICAL: High latency (p95) in {{ $labels.job }}"
+          description: "P95 latency is {{ $value }}s (threshold: 2s)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-latency"
+
+      - alert: HighLatencyP99
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+          category: performance
+        annotations:
+          summary: "High latency (p99) in {{ $labels.job }}"
+          description: "P99 latency is {{ $value }}s"
+
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: info
+          component: application
+          category: traffic
+        annotations:
+          summary: "High request rate in {{ $labels.job }}"
+          description: "Request rate is {{ $value }}/s (may indicate DDoS or unusual activity)"
+
+  # ===========================================
+  # TRADING ENGINE ALERTS
+  # ===========================================
+
+  - name: trading_alerts
+    interval: 30s
+    rules:
+      - alert: HighTradeFailureRate
+        expr: rate(trades_failed_total[5m]) / rate(trades_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: trading
+          category: execution
+        annotations:
+          summary: "High trade failure rate"
+          description: "{{ $value | humanizePercentage }} of trades are failing (threshold: 10%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-trade-failure"
+
+      - alert: TradingHalted
+        expr: rate(trades_total[10m]) == 0 and trading_enabled == 1
+        for: 10m
+        labels:
+          severity: critical
+          component: trading
+          category: execution
+        annotations:
+          summary: "Trading activity has stopped"
+          description: "No trades executed in the last 10 minutes despite trading being enabled"
+          runbook_url: "https://docs.bot-core.io/runbooks/trading-halted"
+
+      - alert: HighTradeLatency
+        expr: histogram_quantile(0.95, rate(trade_execution_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: trading
+          category: performance
+        annotations:
+          summary: "High trade execution latency"
+          description: "P95 trade execution time is {{ $value }}s (threshold: 1s)"
+          runbook_url: "https://docs.bot-core.io/runbooks/high-trade-latency"
+
+      - alert: LowTradingBalance
+        expr: trading_balance_usdt < 100
+        for: 5m
+        labels:
+          severity: warning
+          component: trading
+          category: balance
+        annotations:
+          summary: "Low trading balance"
+          description: "Trading balance is ${{ $value }} (threshold: $100)"
+
+      - alert: CriticalTradingBalance
+        expr: trading_balance_usdt < 50
+        for: 2m
+        labels:
+          severity: critical
+          component: trading
+          category: balance
+        annotations:
+          summary: "CRITICAL: Very low trading balance"
+          description: "Trading balance is ${{ $value }} (threshold: $50)"
+
+      - alert: UnexpectedPositionSize
+        expr: abs(sum(position_size_btc)) > 10
+        for: 1m
+        labels:
+          severity: critical
+          component: trading
+          category: risk
+        annotations:
+          summary: "Unexpected large position size"
+          description: "Total position size is {{ $value }} BTC (threshold: 10 BTC)"
+          runbook_url: "https://docs.bot-core.io/runbooks/large-position"
+
+      - alert: MaxPositionsReached
+        expr: count(position_size_btc != 0) >= 10
+        for: 5m
+        labels:
+          severity: warning
+          component: trading
+          category: risk
+        annotations:
+          summary: "Maximum concurrent positions reached"
+          description: "{{ $value }} positions open (max: 10)"
+
+  # ===========================================
+  # AI SERVICE ALERTS
+  # ===========================================
+
+  - name: ai_service_alerts
+    interval: 30s
+    rules:
+      - alert: AIServiceSlow
+        expr: histogram_quantile(0.95, rate(ai_analysis_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: ai
+          category: performance
+        annotations:
+          summary: "AI service is slow"
+          description: "P95 analysis time is {{ $value }}s (threshold: 5s)"
+          runbook_url: "https://docs.bot-core.io/runbooks/ai-service-slow"
+
+      - alert: AIServiceCriticalSlow
+        expr: histogram_quantile(0.95, rate(ai_analysis_duration_seconds_bucket[5m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+          component: ai
+          category: performance
+        annotations:
+          summary: "CRITICAL: AI service is very slow"
+          description: "P95 analysis time is {{ $value }}s (threshold: 10s)"
+          runbook_url: "https://docs.bot-core.io/runbooks/ai-service-slow"
+
+      - alert: LowModelConfidence
+        expr: avg(ai_model_confidence) < 0.45
+        for: 15m
+        labels:
+          severity: warning
+          component: ai
+          category: quality
+        annotations:
+          summary: "AI model confidence is low"
+          description: "Average confidence is {{ $value | humanizePercentage }} (threshold: 45%)"
+
+      - alert: OpenAIRateLimited
+        expr: rate(openai_rate_limit_errors_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: ai
+          category: external_api
+        annotations:
+          summary: "OpenAI API rate limited"
+          description: "OpenAI API is returning rate limit errors"
+          runbook_url: "https://docs.bot-core.io/runbooks/openai-rate-limit"
+
+      - alert: OpenAIHighErrorRate
+        expr: rate(openai_errors_total[5m]) / rate(openai_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: ai
+          category: external_api
+        annotations:
+          summary: "High OpenAI API error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      - alert: ModelLoadFailure
+        expr: increase(model_load_failures_total[10m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: ai
+          category: startup
+        annotations:
+          summary: "AI model failed to load"
+          description: "Model loading has failed {{ $value }} times in the last 10 minutes"
+          runbook_url: "https://docs.bot-core.io/runbooks/model-load-failure"
+
+  # ===========================================
+  # DATABASE ALERTS
+  # ===========================================
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      - alert: MongoDBDown
+        expr: mongodb_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+          category: availability
+        annotations:
+          summary: "MongoDB is down"
+          description: "Cannot connect to MongoDB database"
+          runbook_url: "https://docs.bot-core.io/runbooks/mongodb-down"
+
+      - alert: MongoDBHighConnections
+        expr: mongodb_connections{state="current"} / mongodb_connections{state="available"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+          category: performance
+        annotations:
+          summary: "MongoDB connection pool near limit"
+          description: "{{ $value | humanizePercentage }} of connections in use (threshold: 80%)"
+
+      - alert: MongoDBSlowQueries
+        expr: rate(mongodb_op_latencies_latency_total[5m]) / rate(mongodb_op_latencies_ops_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+          category: performance
+        annotations:
+          summary: "MongoDB slow queries detected"
+          description: "Average query latency is {{ $value }}ms (threshold: 100ms)"
+          runbook_url: "https://docs.bot-core.io/runbooks/slow-queries"
+
+      - alert: MongoDBHighDiskUsage
+        expr: mongodb_disk_usage_bytes / mongodb_disk_capacity_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+          category: storage
+        annotations:
+          summary: "MongoDB disk usage high"
+          description: "Disk usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+      - alert: MongoDBReplicationLag
+        expr: mongodb_replset_member_replication_lag > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+          category: replication
+        annotations:
+          summary: "MongoDB replication lag detected"
+          description: "Replication lag is {{ $value }}s (threshold: 30s)"
+
+  # ===========================================
+  # WEBSOCKET ALERTS
+  # ===========================================
+
+  - name: websocket_alerts
+    interval: 30s
+    rules:
+      - alert: WebSocketConnectionsHigh
+        expr: websocket_connections_active > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: websocket
+          category: capacity
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "{{ $value }} active WebSocket connections (threshold: 1000)"
+
+      - alert: WebSocketConnectionsCritical
+        expr: websocket_connections_active > 5000
+        for: 2m
+        labels:
+          severity: critical
+          component: websocket
+          category: capacity
+        annotations:
+          summary: "CRITICAL: Very high number of WebSocket connections"
+          description: "{{ $value }} active WebSocket connections (threshold: 5000)"
+
+      - alert: WebSocketHighLatency
+        expr: histogram_quantile(0.95, rate(websocket_message_duration_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: websocket
+          category: performance
+        annotations:
+          summary: "High WebSocket message latency"
+          description: "P95 message latency is {{ $value }}s (threshold: 100ms)"
+
+      - alert: WebSocketHighErrorRate
+        expr: rate(websocket_errors_total[5m]) / rate(websocket_messages_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: websocket
+          category: errors
+        annotations:
+          summary: "High WebSocket error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+  # ===========================================
+  # CACHE & MESSAGE QUEUE ALERTS
+  # ===========================================
+
+  - name: cache_messaging_alerts
+    interval: 30s
+    rules:
+      # Redis alerts
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: cache
+          category: availability
+        annotations:
+          summary: "Redis is down"
+          description: "Cannot connect to Redis cache"
+          runbook_url: "https://docs.bot-core.io/runbooks/redis-down"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+          category: memory
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+
+      - alert: RedisHighEvictionRate
+        expr: rate(redis_evicted_keys_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+          category: performance
+        annotations:
+          summary: "High Redis key eviction rate"
+          description: "{{ $value }} keys/s being evicted (threshold: 100/s)"
+
+      # RabbitMQ alerts
+      - alert: RabbitMQDown
+        expr: rabbitmq_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: messaging
+          category: availability
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "Cannot connect to RabbitMQ"
+          runbook_url: "https://docs.bot-core.io/runbooks/rabbitmq-down"
+
+      - alert: RabbitMQQueueBacklog
+        expr: rabbitmq_queue_messages > 10000
+        for: 10m
+        labels:
+          severity: warning
+          component: messaging
+          category: performance
+        annotations:
+          summary: "RabbitMQ queue backlog"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages (threshold: 10000)"
+
+      - alert: RabbitMQHighMemoryUsage
+        expr: rabbitmq_node_mem_used / rabbitmq_node_mem_limit > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: messaging
+          category: memory
+        annotations:
+          summary: "RabbitMQ high memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+
+  # ===========================================
+  # CONTAINER & POD ALERTS
+  # ===========================================
+
+  - name: container_alerts
+    interval: 30s
+    rules:
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: container
+          category: performance
+        annotations:
+          summary: "Container {{ $labels.name }} high CPU"
+          description: "CPU usage is {{ $value }}% (threshold: 80%)"
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""} * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: container
+          category: memory
+        annotations:
+          summary: "Container {{ $labels.name }} high memory"
+          description: "Memory usage is {{ $value }}% (threshold: 90%)"
+
+      - alert: ContainerRestarting
+        expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+        for: 1m
+        labels:
+          severity: warning
+          component: container
+          category: stability
+        annotations:
+          summary: "Container {{ $labels.container }} restarting frequently"
+          description: "{{ $value }} restarts in last 15 minutes (threshold: 3)"
+          runbook_url: "https://docs.bot-core.io/runbooks/container-restarts"
+
+      - alert: PodNotReady
+        expr: kube_pod_status_phase{phase!="Running"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: kubernetes
+          category: availability
+        annotations:
+          summary: "Pod {{ $labels.pod }} not ready"
+          description: "Pod is in {{ $labels.phase }} state"
+
+  # ===========================================
+  # EXTERNAL API ALERTS
+  # ===========================================
+
+  - name: external_api_alerts
+    interval: 60s
+    rules:
+      - alert: BinanceAPIDown
+        expr: probe_success{job="binance-api"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: external_api
+          category: availability
+        annotations:
+          summary: "Binance API is down or unreachable"
+          description: "Cannot reach Binance API endpoint {{ $labels.instance }}"
+          runbook_url: "https://docs.bot-core.io/runbooks/binance-api-down"
+
+      - alert: BinanceAPIHighLatency
+        expr: probe_http_duration_seconds{job="binance-api"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: external_api
+          category: performance
+        annotations:
+          summary: "Binance API high latency"
+          description: "API response time is {{ $value }}s (threshold: 2s)"
+
+      - alert: HealthCheckFailed
+        expr: probe_success{job=~"blackbox-.*"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          component: healthcheck
+          category: availability
+        annotations:
+          summary: "Health check failed for {{ $labels.instance }}"
+          description: "{{ $labels.job }} health check has been failing for 3 minutes"
+          runbook_url: "https://docs.bot-core.io/runbooks/health-check-failed"
+
+  # ===========================================
+  # BUSINESS METRICS ALERTS
+  # ===========================================
+
+  - name: business_metrics
+    interval: 60s
+    rules:
+      - alert: NoActiveUsers
+        expr: users_active_total == 0 and hour() >= 9 and hour() <= 17
+        for: 30m
+        labels:
+          severity: warning
+          component: business
+          category: engagement
+        annotations:
+          summary: "No active users detected"
+          description: "Zero active users during business hours (9 AM - 5 PM)"
+
+      - alert: HighDailyLossLimit
+        expr: abs(profit_loss_daily) / portfolio_value_usd > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: trading
+          category: risk
+        annotations:
+          summary: "Daily loss limit approaching"
+          description: "Daily P&L is {{ $value | humanizePercentage }} of portfolio (threshold: 5%)"
+          runbook_url: "https://docs.bot-core.io/runbooks/daily-loss-limit"
+
+      - alert: LowPredictionAccuracy
+        expr: ai_prediction_accuracy < 0.55
+        for: 1h
+        labels:
+          severity: warning
+          component: ai
+          category: quality
+        annotations:
+          summary: "Low AI prediction accuracy"
+          description: "Prediction accuracy is {{ $value | humanizePercentage }} over the last hour (threshold: 55%)"
