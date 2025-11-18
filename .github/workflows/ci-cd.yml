@@ -16,6 +16,13 @@ on:
           - staging
           - production
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  statuses: write
+  checks: write
+
 env:
   RUST_COVERAGE_THRESHOLD: 90.0
   PYTHON_COVERAGE_THRESHOLD: 93.0
