@@ -94,15 +94,26 @@ jobs:
         run: |
           echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ'))" >> $GITHUB_OUTPUT
+
+      - name: Determine Dockerfile to use
+        id: dockerfile
+        run: |
+          # Use lightweight Dockerfile.ci for python-ai-service in PRs to save disk space and time
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ matrix.service }}" = "python-ai-service" ]; then
+            echo "name=Dockerfile.ci" >> $GITHUB_OUTPUT
+            echo "Using Dockerfile.ci for python-ai-service in PR (lightweight build)"
+          else
+            echo "name=Dockerfile" >> $GITHUB_OUTPUT
+            echo "Using standard Dockerfile"
+          fi
 
       - name: Build and push Docker image
         id: build-push
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
-          # Use lightweight Dockerfile.ci for python-ai-service in PRs to save disk space
-          file: ./${{ matrix.service }}/${{ github.event_name == 'pull_request' && matrix.service == 'python-ai-service' && 'Dockerfile.ci' || 'Dockerfile' }}
+          file: ./${{ matrix.service }}/${{ steps.dockerfile.outputs.name }}
           platforms: ${{ env.PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' && (inputs.push_images || 'true') == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
