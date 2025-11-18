@@ -270,6 +270,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./python-ai-service
+          file: ./python-ai-service/Dockerfile.ci  # Use lightweight CI Dockerfile (no TensorFlow/PyTorch)
           push: false
           tags: bot-core/python-ai:${{ github.sha }}
           cache-from: type=gha
