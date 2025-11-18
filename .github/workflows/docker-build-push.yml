@@ -99,13 +99,20 @@ jobs:
       - name: Determine Dockerfile to use
         id: dockerfile
         run: |
-          # Use lightweight Dockerfile.ci for python-ai-service in PRs to save disk space and time
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ matrix.service }}" = "python-ai-service" ]; then
-            echo "name=Dockerfile.ci" >> $GITHUB_OUTPUT
-            echo "Using Dockerfile.ci for python-ai-service in PR (lightweight build)"
+          # ALWAYS use lightweight Dockerfile.ci for python-ai-service in CI builds
+          # Only use full Dockerfile for production version tag releases (v*)
+          if [ "${{ matrix.service }}" = "python-ai-service" ]; then
+            # Check if this is a version tag release
+            if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+              echo "name=Dockerfile" >> $GITHUB_OUTPUT
+              echo "✓ Using full Dockerfile for python-ai-service (version tag release)"
+            else
+              echo "name=Dockerfile.ci" >> $GITHUB_OUTPUT
+              echo "✓ Using lightweight Dockerfile.ci for python-ai-service (CI build - no TensorFlow/PyTorch)"
+            fi
           else
             echo "name=Dockerfile" >> $GITHUB_OUTPUT
-            echo "Using standard Dockerfile"
+            echo "✓ Using standard Dockerfile for ${{ matrix.service }}"
           fi
 
       - name: Build and push Docker image
