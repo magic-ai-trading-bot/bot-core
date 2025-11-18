@@ -27,6 +27,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Prevent hanging builds
     permissions:
       contents: read
       packages: write
@@ -34,6 +35,7 @@ jobs:
       security-events: write
 
     strategy:
+      fail-fast: false  # Continue other services if one fails
       matrix:
         service:
           - rust-core-engine
@@ -99,7 +101,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
+          # Use lightweight Dockerfile.ci for python-ai-service in PRs to save disk space
+          file: ./${{ matrix.service }}/${{ github.event_name == 'pull_request' && matrix.service == 'python-ai-service' && 'Dockerfile.ci' || 'Dockerfile' }}
           platforms: ${{ env.PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' && (inputs.push_images || 'true') == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
