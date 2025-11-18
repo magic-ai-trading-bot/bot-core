@@ -99,21 +99,32 @@ jobs:
       - name: Determine Dockerfile to use
         id: dockerfile
         run: |
+          echo "======================================"
+          echo "🔍 DOCKERFILE SELECTION DEBUG INFO"
+          echo "======================================"
+          echo "Service: ${{ matrix.service }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "======================================"
+
           # ALWAYS use lightweight Dockerfile.ci for python-ai-service in CI builds
           # Only use full Dockerfile for production version tag releases (v*)
           if [ "${{ matrix.service }}" = "python-ai-service" ]; then
             # Check if this is a version tag release
             if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
               echo "name=Dockerfile" >> $GITHUB_OUTPUT
-              echo "✓ Using full Dockerfile for python-ai-service (version tag release)"
+              echo "📦 SELECTED: Dockerfile (full build with TensorFlow/PyTorch)"
+              echo "Reason: Version tag release"
             else
               echo "name=Dockerfile.ci" >> $GITHUB_OUTPUT
-              echo "✓ Using lightweight Dockerfile.ci for python-ai-service (CI build - no TensorFlow/PyTorch)"
+              echo "⚡ SELECTED: Dockerfile.ci (lightweight CI build)"
+              echo "Reason: Non-release CI build (NO TensorFlow/PyTorch)"
             fi
           else
             echo "name=Dockerfile" >> $GITHUB_OUTPUT
-            echo "✓ Using standard Dockerfile for ${{ matrix.service }}"
+            echo "📦 SELECTED: Dockerfile (standard build for ${{ matrix.service }})"
           fi
+          echo "======================================"
 
       - name: Build and push Docker image
         id: build-push
