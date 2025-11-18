@@ -1,0 +1,99 @@
+# Bot-Core Automated Backup Schedule
+# @spec:NFR-OPS-015 - Backup Automation Schedule
+# @ref:specs/05-operations/5.3-disaster-recovery/DR-PLAN.md
+#
+# Installation:
+#   crontab -e
+#   Add: @include /path/to/bot-core/infrastructure/cron/backup-crontab
+#
+# Or copy contents to crontab:
+#   crontab -l > /tmp/current-cron
+#   cat backup-crontab >> /tmp/current-cron
+#   crontab /tmp/current-cron
+
+# Environment variables
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+BACKUP_DIR=/backups
+LOG_DIR=/var/log/backups
+ENABLE_S3_BACKUP=true
+ENABLE_GCS_BACKUP=false
+ENABLE_SFTP_BACKUP=false
+
+# Project root (CHANGE THIS to your actual path)
+PROJECT_ROOT=/path/to/bot-core
+
+# =============================================================================
+# HOURLY BACKUPS
+# =============================================================================
+
+# Incremental MongoDB backup every hour (at minute 0)
+0 * * * * $PROJECT_ROOT/scripts/backup/backup-mongodb.sh incremental >> $LOG_DIR/cron-mongodb.log 2>&1
+
+# =============================================================================
+# DAILY BACKUPS
+# =============================================================================
+
+# Full MongoDB backup at 2 AM every day
+0 2 * * * $PROJECT_ROOT/scripts/backup/backup-mongodb.sh full >> $LOG_DIR/cron-mongodb.log 2>&1
+
+# Full system backup (MongoDB + volumes + config) at 3 AM every day
+0 3 * * * $PROJECT_ROOT/scripts/backup/backup-all.sh >> $LOG_DIR/cron-full.log 2>&1
+
+# Cleanup old backups at 4 AM every day
+0 4 * * * $PROJECT_ROOT/scripts/cleanup-old-backups.sh >> $LOG_DIR/cron-cleanup.log 2>&1
+
+# =============================================================================
+# WEEKLY TASKS
+# =============================================================================
+
+# Full backup verification at 3 AM every Sunday
+0 3 * * 0 $PROJECT_ROOT/scripts/verify-backups.sh >> $LOG_DIR/cron-verify.log 2>&1
+
+# Test restore (dry-run) at 4 AM every Sunday
+0 4 * * 0 $PROJECT_ROOT/scripts/verify-backups.sh --test-restore >> $LOG_DIR/cron-test-restore.log 2>&1
+
+# =============================================================================
+# MONTHLY TASKS
+# =============================================================================
+
+# Full DR drill on first Sunday of month at 5 AM
+# (Requires manual intervention - sends notification)
+0 5 1-7 * 0 $PROJECT_ROOT/scripts/test-dr.sh --automated >> $LOG_DIR/cron-dr-drill.log 2>&1
+
+# Archive old logs on first day of month
+0 5 1 * * find $LOG_DIR -name "*.log" -mtime +90 -exec gzip {} \;
+
+# =============================================================================
+# MONITORING & ALERTS
+# =============================================================================
+
+# Check backup health every 6 hours
+0 */6 * * * $PROJECT_ROOT/scripts/check-backup-health.sh >> $LOG_DIR/cron-health.log 2>&1
+
+# Send daily backup status report at 9 AM
+0 9 * * * $PROJECT_ROOT/scripts/backup-status-report.sh >> $LOG_DIR/cron-report.log 2>&1
+
+# =============================================================================
+# NOTES
+# =============================================================================
+#
+# Cron format:
+#   *    *    *    *    *
+#   |    |    |    |    |
+#   |    |    |    |    +----- Day of week (0-7, Sunday=0 or 7)
+#   |    |    |    +---------- Month (1-12)
+#   |    |    +--------------- Day of month (1-31)
+#   |    +-------------------- Hour (0-23)
+#   +------------------------- Minute (0-59)
+#
+# Examples:
+#   0 2 * * *        - 2 AM every day
+#   0 */6 * * *      - Every 6 hours
+#   0 3 * * 0        - 3 AM every Sunday
+#   0 4 1 * *        - 4 AM on first day of month
+#
+# Monitoring cron execution:
+#   grep CRON /var/log/syslog
+#   tail -f $LOG_DIR/cron-*.log
+#
