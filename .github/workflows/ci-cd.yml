@@ -68,9 +68,10 @@ jobs:
           fi
 
           echo "Validating docker-compose configuration..."
-          docker-compose config > /dev/null 2>&1 || {
+          # Use Docker Compose V2 (docker compose, not docker-compose)
+          docker compose config > /dev/null 2>&1 || {
             echo "✗ Invalid docker-compose.yml - showing errors:"
-            docker-compose config
+            docker compose config
             exit 1
           }
           echo "✓ Docker Compose configuration valid"
