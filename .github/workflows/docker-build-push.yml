@@ -72,7 +72,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Generate build metadata
@@ -101,15 +101,16 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
+        if: github.event_name != 'pull_request'
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/bot-core/${{ matrix.service }}:${{ steps.build-meta.outputs.git-sha }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/bot-core/${{ matrix.service }}:sha-${{ steps.build-meta.outputs.git-sha }}
           format: 'sarif'
           output: 'trivy-results-${{ matrix.service }}.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: github.event_name != 'pull_request' && always()
         with:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
           category: 'trivy-${{ matrix.service }}'
@@ -118,7 +119,7 @@ jobs:
         uses: anchore/sbom-action@v0
         if: github.event_name != 'pull_request'
         with:
-          image: ghcr.io/${{ github.repository_owner }}/bot-core/${{ matrix.service }}:${{ steps.build-meta.outputs.git-sha }}
+          image: ghcr.io/${{ github.repository_owner }}/bot-core/${{ matrix.service }}:sha-${{ steps.build-meta.outputs.git-sha }}
           format: spdx-json
           output-file: sbom-${{ matrix.service }}.spdx.json
 
