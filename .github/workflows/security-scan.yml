@@ -59,11 +59,11 @@ jobs:
     - name: Run Trivy vulnerability scanner for Docker images
       if: github.event_name == 'push'
       run: |
-        # Build images first
+        # Build images first (use CI Dockerfile for Python to save memory/time)
         docker build -t rust-core-engine ./rust-core-engine
-        docker build -t python-ai-service ./python-ai-service  
+        docker build -f python-ai-service/Dockerfile.ci -t python-ai-service ./python-ai-service
         docker build -t nextjs-ui-dashboard ./nextjs-ui-dashboard
-        
+
         # Scan each image
         trivy image --format sarif --output rust-image-scan.sarif rust-core-engine
         trivy image --format sarif --output python-image-scan.sarif python-ai-service
