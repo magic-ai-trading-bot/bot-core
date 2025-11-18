@@ -1204,15 +1204,23 @@ export function AISignals() {
 
   // Normalize and sort signals by timestamp (newest first)
   const normalizedSignals = allSignalsRaw
-    .map((signal) => ({
-      ...signal,
-      symbol: (signal.symbol || "unknown").toUpperCase(), // Normalize symbol names
-      timestamp:
-        typeof signal.timestamp === "string"
-          ? signal.timestamp
-          : new Date(signal.timestamp).toISOString(),
-      timestampMs: new Date(signal.timestamp).getTime(),
-    }))
+    .map((signal) => {
+      // Safely convert timestamp to Date
+      const dateObj = new Date(signal.timestamp);
+      const isValidDate = !isNaN(dateObj.getTime());
+
+      return {
+        ...signal,
+        symbol: (signal.symbol || "unknown").toUpperCase(), // Normalize symbol names
+        timestamp:
+          typeof signal.timestamp === "string" && isValidDate
+            ? signal.timestamp
+            : isValidDate
+            ? dateObj.toISOString()
+            : new Date().toISOString(), // Fallback to current time if invalid
+        timestampMs: isValidDate ? dateObj.getTime() : Date.now(),
+      };
+    })
     .sort((a, b) => b.timestampMs - a.timestampMs); // Sort by timestamp descending (newest first)
 
   // Filter to show only the most recent signal per token pair
@@ -1259,8 +1267,8 @@ export function AISignals() {
 
   const formatSignalForDisplay = (signal: CombinedSignal) => ({
     id: `${signal.symbol}-${signal.timestamp}-${signal.source}`,
-    signal: signal.signal.toUpperCase() as "LONG" | "SHORT" | "NEUTRAL",
-    confidence: signal.confidence,
+    signal: (signal.signal || "NEUTRAL").toUpperCase() as "LONG" | "SHORT" | "NEUTRAL",
+    confidence: signal.confidence || 0,
     timestamp: new Date(signal.timestamp).toLocaleString(),
     pair: signal.symbol ? signal.symbol.replace("USDT", "/USDT") : "N/A",
     reason: signal.reasoning || `${signal.source} signal`,

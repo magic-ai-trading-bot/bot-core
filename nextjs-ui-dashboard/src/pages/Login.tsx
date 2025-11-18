@@ -140,7 +140,7 @@ const Login = () => {
                   <strong>Email:</strong> admin@tradingbot.com
                 </p>
                 <p>
-                  <strong>Password:</strong> demo123
+                  <strong>Password:</strong> Admin@123456
                 </p>
               </div>
             </div>
