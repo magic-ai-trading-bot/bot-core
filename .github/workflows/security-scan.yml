@@ -155,13 +155,30 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Run TruffleHog
+    - name: Run TruffleHog (PR)
+      if: github.event_name == 'pull_request'
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        base: ${{ github.event.before || format('HEAD~{0}', github.event.commits && length(github.event.commits) || 1) }}
-        head: HEAD
+        base: ${{ github.event.pull_request.base.sha }}
+        head: ${{ github.event.pull_request.head.sha }}
         extra_args: --debug --only-verified
+
+    - name: Run TruffleHog (Push)
+      if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.before }}
+        head: ${{ github.sha }}
+        extra_args: --debug --only-verified
+
+    - name: Run TruffleHog (Full Scan - Scheduled/First Push)
+      if: github.event_name == 'schedule' || (github.event_name == 'push' && github.event.before == '0000000000000000000000000000000000000000')
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        extra_args: --debug --only-verified --since-commit="" --max-depth=1000
 
     - name: Run GitLeaks
       uses: gitleaks/gitleaks-action@v2
