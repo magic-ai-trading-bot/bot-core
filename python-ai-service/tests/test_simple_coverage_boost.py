@@ -18,13 +18,15 @@ class TestFeatureEngineerCoverageBoost:
         fe = FeatureEngineer()
 
         # Create 100 data points - enough for all indicators
-        df = pd.DataFrame({
-            "open": np.random.uniform(95, 105, 100),
-            "high": np.random.uniform(100, 110, 100),
-            "low": np.random.uniform(90, 100, 100),
-            "close": np.random.uniform(95, 105, 100),
-            "volume": np.random.uniform(1000, 2000, 100),
-        })
+        df = pd.DataFrame(
+            {
+                "open": np.random.uniform(95, 105, 100),
+                "high": np.random.uniform(100, 110, 100),
+                "low": np.random.uniform(90, 100, 100),
+                "close": np.random.uniform(95, 105, 100),
+                "volume": np.random.uniform(1000, 2000, 100),
+            }
+        )
 
         result = fe.prepare_features(df)
 
@@ -37,13 +39,15 @@ class TestFeatureEngineerCoverageBoost:
         """Test prepare_features handles zero volume."""
         fe = FeatureEngineer()
 
-        df = pd.DataFrame({
-            "open": [100.0] * 30,
-            "high": [102.0] * 30,
-            "low": [99.0] * 30,
-            "close": [101.0] * 30,
-            "volume": [0.0] * 30,  # Zero volume
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * 30,
+                "high": [102.0] * 30,
+                "low": [99.0] * 30,
+                "close": [101.0] * 30,
+                "volume": [0.0] * 30,  # Zero volume
+            }
+        )
 
         result = fe.prepare_features(df)
 
@@ -59,13 +63,15 @@ class TestTechnicalIndicatorsCoverageBoost:
         ti = TechnicalIndicators()
 
         # Create comprehensive dataset
-        df = pd.DataFrame({
-            "open": np.random.uniform(95, 105, 50),
-            "high": np.random.uniform(100, 110, 50),
-            "low": np.random.uniform(90, 100, 50),
-            "close": np.random.uniform(95, 105, 50),
-            "volume": np.random.uniform(1000, 2000, 50),
-        })
+        df = pd.DataFrame(
+            {
+                "open": np.random.uniform(95, 105, 50),
+                "high": np.random.uniform(100, 110, 50),
+                "low": np.random.uniform(90, 100, 50),
+                "close": np.random.uniform(95, 105, 50),
+                "volume": np.random.uniform(1000, 2000, 50),
+            }
+        )
 
         result = ti.calculate_all_indicators(df)
 
@@ -73,47 +79,43 @@ class TestTechnicalIndicatorsCoverageBoost:
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 50
 
-    def test_calculate_trend_indicators(self):
-        """Test trend indicators calculation."""
+    def test_calculate_ema(self):
+        """Test EMA calculation."""
         ti = TechnicalIndicators()
 
-        df = pd.DataFrame({
-            "close": np.random.uniform(95, 105, 50)
-        })
+        df = pd.DataFrame({"close": np.random.uniform(95, 105, 50)})
 
-        indicators = ti.calculate_trend_indicators(df)
+        emas = ti.calculate_ema(df, periods=[20])
 
-        # Should return dict of trend indicators
-        assert isinstance(indicators, dict)
-        # Should contain SMA/EMA indicators
-        assert "sma_20" in indicators or len(indicators) > 0
+        # Should return dict of EMAs
+        assert isinstance(emas, dict)
+        assert "ema_20" in emas
+        assert isinstance(emas["ema_20"], pd.Series)
 
-    def test_calculate_volatility_indicators(self):
-        """Test volatility indicators calculation."""
+    def test_calculate_stochastic(self):
+        """Test Stochastic oscillator calculation."""
         ti = TechnicalIndicators()
 
-        df = pd.DataFrame({
-            "open": np.random.uniform(95, 105, 50),
-            "high": np.random.uniform(100, 110, 50),
-            "low": np.random.uniform(90, 100, 50),
-            "close": np.random.uniform(95, 105, 50),
-        })
+        df = pd.DataFrame(
+            {
+                "high": np.random.uniform(100, 110, 50),
+                "low": np.random.uniform(90, 100, 50),
+                "close": np.random.uniform(95, 105, 50),
+            }
+        )
 
-        indicators = ti.calculate_volatility_indicators(df)
+        stoch = ti.calculate_stochastic(df)
 
-        # Should return dict of volatility indicators
-        assert isinstance(indicators, dict)
-        # ATR or similar should be present
-        assert len(indicators) > 0
+        # Should return dict with stoch_k and stoch_d
+        assert isinstance(stoch, dict)
+        assert "stoch_k" in stoch or "stoch_d" in stoch
 
     def test_bollinger_bands_with_more_data(self):
         """Test Bollinger Bands with sufficient data."""
         ti = TechnicalIndicators()
 
         # 50 data points
-        df = pd.DataFrame({
-            "close": np.random.uniform(95, 105, 50)
-        })
+        df = pd.DataFrame({"close": np.random.uniform(95, 105, 50)})
 
         indicators = ti.calculate_bollinger_bands(df)
 
@@ -126,9 +128,7 @@ class TestTechnicalIndicatorsCoverageBoost:
         ti = TechnicalIndicators()
 
         # 50 data points - more than MACD slow period (26)
-        df = pd.DataFrame({
-            "close": np.random.uniform(95, 105, 50)
-        })
+        df = pd.DataFrame({"close": np.random.uniform(95, 105, 50)})
 
         indicators = ti.calculate_macd(df)
 
@@ -143,20 +143,26 @@ class TestTechnicalIndicatorsCoverageBoost:
 
         # Create df with uptrend then downtrend
         close_prices = list(range(100, 150)) + list(range(150, 100, -1))
-        df = pd.DataFrame({
-            "open": close_prices,
-            "high": [p + 2 for p in close_prices],
-            "low": [p - 2 for p in close_prices],
-            "close": close_prices,
-            "volume": [1000] * len(close_prices),
-        })
+        df = pd.DataFrame(
+            {
+                "open": close_prices,
+                "high": [p + 2 for p in close_prices],
+                "low": [p - 2 for p in close_prices],
+                "close": close_prices,
+                "volume": [1000] * len(close_prices),
+            }
+        )
 
-        indicators = ti.calculate_momentum_indicators(df)
+        # Test RSI directly
+        rsi = ti.calculate_rsi(df)
 
-        # RSI should be present
-        assert "rsi" in indicators
-        # RSI values should be Series
-        assert isinstance(indicators["rsi"], pd.Series)
+        # RSI should be a Series
+        assert isinstance(rsi, pd.Series)
+        # RSI values should be within 0-100 (where not NaN)
+        valid_rsi = rsi.dropna()
+        if len(valid_rsi) > 0:
+            assert valid_rsi.min() >= 0
+            assert valid_rsi.max() <= 100
 
 
 class TestEdgeCasesCoverage:
@@ -167,13 +173,15 @@ class TestEdgeCasesCoverage:
         fe = FeatureEngineer()
 
         # Some crypto pairs might have calculation errors leading to negatives
-        df = pd.DataFrame({
-            "open": [100.0, 101.0, -1.0, 103.0, 104.0],
-            "high": [102.0, 103.0, 1.0, 105.0, 106.0],
-            "low": [99.0, 100.0, -2.0, 102.0, 103.0],
-            "close": [101.0, 102.0, 0.5, 104.0, 105.0],
-            "volume": [1000.0, 1100.0, 1200.0, 1300.0, 1400.0],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0, 101.0, -1.0, 103.0, 104.0],
+                "high": [102.0, 103.0, 1.0, 105.0, 106.0],
+                "low": [99.0, 100.0, -2.0, 102.0, 103.0],
+                "close": [101.0, 102.0, 0.5, 104.0, 105.0],
+                "volume": [1000.0, 1100.0, 1200.0, 1300.0, 1400.0],
+            }
+        )
 
         # Should handle negative prices gracefully
         result = fe.prepare_features(df)
@@ -184,13 +192,15 @@ class TestEdgeCasesCoverage:
         ti = TechnicalIndicators()
 
         # Extreme volatility: prices jumping 50%
-        df = pd.DataFrame({
-            "open": [100, 150, 75, 125, 90] * 10,
-            "high": [105, 160, 80, 130, 95] * 10,
-            "low": [95, 140, 70, 115, 85] * 10,
-            "close": [102, 155, 77, 127, 92] * 10,
-            "volume": [1000, 2000, 3000, 1500, 2500] * 10,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100, 150, 75, 125, 90] * 10,
+                "high": [105, 160, 80, 130, 95] * 10,
+                "low": [95, 140, 70, 115, 85] * 10,
+                "close": [102, 155, 77, 127, 92] * 10,
+                "volume": [1000, 2000, 3000, 1500, 2500] * 10,
+            }
+        )
 
         result = ti.calculate_all_indicators(df)
 
