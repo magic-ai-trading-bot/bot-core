@@ -127,9 +127,9 @@ fn test_risk_management_config() {
         enabled: true,
         max_positions: 3,
         default_quantity: 0.01,
-        risk_percentage: 0.02,
-        stop_loss_percentage: 0.02,
-        take_profit_percentage: 0.04,
+        risk_percentage: 2.0,  // 2% of account (stored as percentage, not decimal)
+        stop_loss_percentage: 2.0,  // 2% (stored as percentage, not decimal)
+        take_profit_percentage: 4.0,  // 4% (stored as percentage, not decimal)
         order_timeout_seconds: 60,
         position_check_interval_seconds: 30,
         leverage: 1,
@@ -145,9 +145,15 @@ fn test_risk_management_config() {
         10000.0,       // account balance
     );
 
-    assert_eq!(position_size, trading_config.default_quantity);
+    // With proper risk management, position size is calculated based on:
+    // risk_amount = 10,000 * 2% = 200
+    // stop_loss_distance = 2% (50k to 49k)
+    // position_value = 200 / 0.02 = 10,000
+    // position_size = 10,000 / 50,000 = 0.2
+    // Capped by max_position_value (20% of account): 0.04
+    assert_eq!(position_size, 0.04);
     assert!(risk_manager.get_max_positions() == 3);
-    assert!(risk_manager.get_risk_percentage() == 0.02);
+    assert!(risk_manager.get_risk_percentage() == 2.0);
 }
 
 #[test]

@@ -4,6 +4,67 @@ import userEvent from '@testing-library/user-event'
 import { render } from '../../../test/utils'
 import { BotSettings } from '../../../components/dashboard/BotSettings'
 
+// Mock usePaperTrading hook
+const mockStartBot = vi.fn()
+const mockStopBot = vi.fn()
+const mockUpdateSettings = vi.fn()
+const mockResetPortfolio = vi.fn()
+
+vi.mock('../../../hooks/usePaperTrading', () => ({
+  usePaperTrading: vi.fn(() => ({
+    portfolio: {
+      current_balance: 12450,
+      available_balance: 11000,
+      equity: 12450,
+      total_pnl: 0,
+      total_pnl_percentage: 0,
+      total_trades: 0,
+      margin_used: 1450,
+      free_margin: 11000,
+      win_rate: 0,
+      average_win: 0,
+      average_loss: 0,
+      profit_factor: 0,
+      max_drawdown: 0,
+      max_drawdown_percentage: 0,
+      sharpe_ratio: 0,
+      win_streak: 0,
+      loss_streak: 0,
+      best_trade: 0,
+      worst_trade: 0,
+    },
+    settings: {
+      basic: {
+        initial_balance: 10000,
+        default_position_size_pct: 75,
+        trading_fee_rate: 0.04,
+      },
+      risk: {
+        max_leverage: 20,
+        default_stop_loss_pct: 5,
+        default_take_profit_pct: 10,
+      },
+    },
+    positions: [],
+    openTrades: [],
+    closedTrades: [],
+    recentSignals: [],
+    isActive: false,
+    isLoading: false,
+    error: null,
+    lastUpdated: new Date(),
+    startBot: mockStartBot,
+    stopBot: mockStopBot,
+    updateSettings: mockUpdateSettings,
+    resetPortfolio: mockResetPortfolio,
+    startTrading: vi.fn(),
+    stopTrading: vi.fn(),
+    closeTrade: vi.fn(),
+    refreshAISignals: vi.fn(),
+    refreshSettings: vi.fn(),
+  })),
+}))
+
 describe('BotSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks()

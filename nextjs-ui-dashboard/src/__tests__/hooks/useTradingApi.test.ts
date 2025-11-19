@@ -1,8 +1,28 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useTradingApi } from '../../hooks/useTradingApi'
 
+// Mock the API client
+vi.mock('@/services/api', () => ({
+  apiClient: {
+    rust: {
+      client: {
+        post: vi.fn().mockResolvedValue({
+          data: {
+            trade_id: 'trade123',
+            status: 'executed'
+          }
+        })
+      }
+    }
+  }
+}))
+
 describe('useTradingApi', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -166,7 +186,7 @@ describe('useTradingApi', () => {
     expect(result.current.isLoading).toBe(false)
   })
 
-  it('returns hook with exactly two properties', async () => {
+  it('returns hook with all expected properties', async () => {
     const { result } = renderHook(() => useTradingApi())
 
     await waitFor(() => {
@@ -174,8 +194,31 @@ describe('useTradingApi', () => {
     })
 
     const keys = Object.keys(result.current)
-    expect(keys).toHaveLength(2)
+    expect(keys).toHaveLength(4)
     expect(keys).toContain('executeTrade')
     expect(keys).toContain('isLoading')
+    expect(keys).toContain('error')
+    expect(keys).toContain('clearError')
+  })
+
+  it('initializes error as null', async () => {
+    const { result } = renderHook(() => useTradingApi())
+
+    await waitFor(() => {
+      expect(result.current).not.toBeNull()
+    })
+
+    expect(result.current.error).toBeNull()
+  })
+
+  it('provides clearError function', async () => {
+    const { result } = renderHook(() => useTradingApi())
+
+    await waitFor(() => {
+      expect(result.current).not.toBeNull()
+    })
+
+    expect(result.current.clearError).toBeDefined()
+    expect(typeof result.current.clearError).toBe('function')
   })
 })

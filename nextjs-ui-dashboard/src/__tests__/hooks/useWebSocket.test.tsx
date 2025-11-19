@@ -169,6 +169,9 @@ describe('useWebSocket', () => {
     const { result } = renderHook(() => useWebSocket())
     await connectAndWait(result)
 
+    // Clear the initial Ping message sent by heartbeat
+    mockWs.sent = []
+
     const message = { type: 'test', data: 'hello' }
 
     act(() => {
