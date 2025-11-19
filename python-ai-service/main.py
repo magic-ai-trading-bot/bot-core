@@ -224,7 +224,8 @@ async def periodic_analysis_runner():
                     )
 
                     logger.info(
-                        f"✅ Completed analysis for {symbol}: {analysis_result.signal} ({analysis_result.confidence:.2f})"
+                        f"✅ Completed analysis for {symbol}: "
+                        f"{analysis_result.signal} ({analysis_result.confidence:.2f})"
                     )
 
                     # Rate limiting between symbols
@@ -395,6 +396,50 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Security headers middleware for Top 1% security score
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all HTTP responses."""
+    response = await call_next(request)
+
+    # Prevent clickjacking attacks
+    response.headers["X-Frame-Options"] = "DENY"
+
+    # Prevent MIME type sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # Enable XSS protection (legacy but still useful)
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+
+    # Enforce HTTPS (only if in production)
+    if os.getenv("ENVIRONMENT") == "production":
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains; preload"
+        )
+
+    # Content Security Policy (strict)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self'; "
+        "connect-src 'self' ws: wss:; "
+        "frame-ancestors 'none'"
+    )
+
+    # Referrer policy
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    # Permissions policy (restrict features)
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(), microphone=(), camera=(), payment=()"
+    )
+
+    return response
+
 
 # === PYDANTIC MODELS (Compatible with Rust AI Client) ===
 
@@ -1233,7 +1278,8 @@ class GPTTradingAnalyzer:
             # Parse GPT-4 response
             parsed_result = self._parse_gpt_response(response_content)
             logger.info(
-                f"🎯 GPT-4 analysis complete: signal={parsed_result.get('signal')}, confidence={parsed_result.get('confidence')}"
+                f"🎯 GPT-4 analysis complete: signal={parsed_result.get('signal')}, "
+                f"confidence={parsed_result.get('confidence')}"
             )
 
             return parsed_result
@@ -1387,19 +1433,38 @@ class GPTTradingAnalyzer:
 
     def _get_system_prompt(self) -> str:
         """Get system prompt for GPT-4 (optimized for cost)."""
-        return """Crypto trading analyst. Respond ONLY in JSON:
-{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief","strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,"Bollinger Bands Strategy":0-1},"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways","trend_strength":0-1,"support_levels":[],"resistance_levels":[],"volatility_level":"Low|Medium|High","volume_analysis":"brief"},"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,"take_profit_suggestion":null}}
-Use confidence >0.6 for strong signals, >0.5 for moderate. Prefer Long/Short over Neutral."""
+        return (
+            "Crypto trading analyst. Respond ONLY in JSON:\n"
+            '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
+            '"strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,'
+            '"Bollinger Bands Strategy":0-1},"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways",'
+            '"trend_strength":0-1,"support_levels":[],"resistance_levels":[],'
+            '"volatility_level":"Low|Medium|High","volume_analysis":"brief"},'
+            '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
+            '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
+            '"take_profit_suggestion":null}}\n'
+            "Use confidence >0.6 for strong signals, >0.5 for moderate. Prefer Long/Short over Neutral."
+        )
 
     def _prepare_market_context(
         self, request: AIAnalysisRequest, indicators_1h: Dict, indicators_4h: Dict
     ) -> str:
         """Prepare market context for GPT-4 (optimized for cost)."""
         # Compact format to reduce tokens
-        context = f"{request.symbol} ${request.current_price:.0f}\n1H: RSI:{indicators_1h.get('rsi',50):.1f} MACD:{indicators_1h.get('macd_histogram',0):.2f} BB:{indicators_1h.get('bb_position',0.5):.2f} Vol:{indicators_1h.get('volume_ratio',1):.1f}x"
+        context = (
+            f"{request.symbol} ${request.current_price:.0f}\n"
+            f"1H: RSI:{indicators_1h.get('rsi',50):.1f} "
+            f"MACD:{indicators_1h.get('macd_histogram',0):.2f} "
+            f"BB:{indicators_1h.get('bb_position',0.5):.2f} "
+            f"Vol:{indicators_1h.get('volume_ratio',1):.1f}x"
+        )
 
         if indicators_4h:
-            context += f"\n4H: RSI:{indicators_4h.get('rsi',50):.1f} MACD:{indicators_4h.get('macd_histogram',0):.2f} BB:{indicators_4h.get('bb_position',0.5):.2f}"
+            context += (
+                f"\n4H: RSI:{indicators_4h.get('rsi',50):.1f} "
+                f"MACD:{indicators_4h.get('macd_histogram',0):.2f} "
+                f"BB:{indicators_4h.get('bb_position',0.5):.2f}"
+            )
 
         return context
 
@@ -1412,7 +1477,10 @@ Use confidence >0.6 for strong signals, >0.5 for moderate. Prefer Long/Short ove
             if strategy_context.selected_strategies
             else "All"
         )
-        return f"{market_context}\nStrategies:{strategies}|Risk:{strategy_context.risk_level}\nAnalyze & provide JSON signal with strategy scores."
+        return (
+            f"{market_context}\nStrategies:{strategies}|Risk:{strategy_context.risk_level}\n"
+            "Analyze & provide JSON signal with strategy scores."
+        )
 
     def _parse_gpt_response(self, response_text: str) -> Dict[str, Any]:
         """Parse GPT-4 JSON response."""
@@ -1741,7 +1809,8 @@ async def analyze_trading_signals(
 
     logger.info(f"🤖 GPT-4 analysis request for {analysis_request.symbol}")
     logger.debug(
-        f"📋 Request details: strategies={analysis_request.strategy_context.selected_strategies}, timeframes={list(analysis_request.timeframe_data.keys())}"
+        f"📋 Request details: strategies={analysis_request.strategy_context.selected_strategies}, "
+        f"timeframes={list(analysis_request.timeframe_data.keys())}"
     )
 
     # Check GPT-4 availability
@@ -2094,7 +2163,10 @@ async def root():
     return {
         "service": "GPT-4 Cryptocurrency AI Trading Service",
         "version": "2.0.0",
-        "description": "Advanced AI-powered trading signal generation using OpenAI GPT-4 with MongoDB storage and real-time WebSocket broadcasting",
+        "description": (
+            "Advanced AI-powered trading signal generation using OpenAI GPT-4 "
+            "with MongoDB storage and real-time WebSocket broadcasting"
+        ),
         "endpoints": {
             "analyze": "POST /ai/analyze - Generate trading signals with GPT-4 (stored in MongoDB)",
             "strategy_recommendations": "POST /ai/strategy-recommendations - Get strategy recommendations",
