@@ -162,7 +162,9 @@ export const useAIAnalysis = (): AIAnalysisHook => {
 
         const timeframeData = generateSampleCandles(symbol);
         const latestCandle =
-          timeframeData["1h"][timeframeData["1h"].length - 1];
+          timeframeData["1h"] && timeframeData["1h"].length > 0
+            ? timeframeData["1h"][timeframeData["1h"].length - 1]
+            : null;
 
         const request = {
           symbol,
@@ -211,7 +213,9 @@ export const useAIAnalysis = (): AIAnalysisHook => {
       try {
         const timeframeData = generateSampleCandles(symbol);
         const latestCandle =
-          timeframeData["1h"][timeframeData["1h"].length - 1];
+          timeframeData["1h"] && timeframeData["1h"].length > 0
+            ? timeframeData["1h"][timeframeData["1h"].length - 1]
+            : null;
 
         const data = {
           symbol,
@@ -247,7 +251,9 @@ export const useAIAnalysis = (): AIAnalysisHook => {
       try {
         const timeframeData = generateSampleCandles(symbol);
         const latestCandle =
-          timeframeData["1h"][timeframeData["1h"].length - 1];
+          timeframeData["1h"] && timeframeData["1h"].length > 0
+            ? timeframeData["1h"][timeframeData["1h"].length - 1]
+            : null;
 
         const data = {
           symbol,
