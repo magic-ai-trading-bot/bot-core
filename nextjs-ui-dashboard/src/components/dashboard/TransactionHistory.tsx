@@ -69,7 +69,7 @@ const TradeRow = memo(({ trade }: TradeRowProps) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>
           <span className="text-muted-foreground">Entry: </span>
-          <span className="font-mono">${trade.entry_price.toLocaleString()}</span>
+          <span className="font-mono">${(trade?.entry_price || 0).toLocaleString()}</span>
         </div>
         <div>
           <span className="text-muted-foreground">Exit: </span>
