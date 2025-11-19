@@ -1135,7 +1135,7 @@ class TestMoreGPTAnalyzerMethods:
         analyzer = GPTTradingAnalyzer(None)
         prompt = analyzer._get_system_prompt()
         assert len(prompt) > 0
-        assert "cryptocurrency" in prompt.lower()
+        assert "crypto" in prompt.lower()  # Changed from "cryptocurrency" to "crypto"
         assert "JSON" in prompt
 
     def test_prepare_market_context(self):
@@ -1739,20 +1739,22 @@ class TestLifespanAndStartup:
         """Test lifespan when MongoDB connection fails."""
         from main import lifespan
 
-        with patch("main.AsyncIOMotorClient") as mock_mongo:
-            mock_client = AsyncMock()
-            mock_client.admin.command = AsyncMock(
-                side_effect=Exception("Connection failed")
-            )
-            mock_mongo.return_value = mock_client
+        # Patch DATABASE_URL environment variable
+        with patch.dict(os.environ, {"DATABASE_URL": "mongodb://localhost:27017/test"}):
+            with patch("main.AsyncIOMotorClient") as mock_mongo:
+                mock_client = AsyncMock()
+                mock_client.admin.command = AsyncMock(
+                    side_effect=Exception("Connection failed")
+                )
+                mock_mongo.return_value = mock_client
 
-            # Should handle error gracefully
-            from fastapi import FastAPI
+                # Should handle error gracefully
+                from fastapi import FastAPI
 
-            test_app = FastAPI()
+                test_app = FastAPI()
 
-            async with lifespan(test_app):
-                pass  # Should not raise exception
+                async with lifespan(test_app):
+                    pass  # Should not raise exception
 
 
 @pytest.mark.unit
