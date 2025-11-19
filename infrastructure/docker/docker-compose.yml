@@ -416,7 +416,7 @@ services:
       - api-gateway
 
   kong-migration:
-    image: kong:3.4-alpine
+    image: kong:3.8
     container_name: kong-migration
     command: kong migrations bootstrap
     depends_on:
@@ -434,7 +434,7 @@ services:
       - api-gateway
 
   kong:
-    image: kong:3.4-alpine
+    image: kong:3.8
     container_name: kong
     restart: unless-stopped
     depends_on:
