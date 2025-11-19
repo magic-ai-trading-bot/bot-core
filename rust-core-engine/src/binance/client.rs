@@ -473,13 +473,13 @@ mod tests {
         config.testnet = true;
         config.base_url = "https://testnet.binance.vision".to_string();
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.base_url, "https://testnet.binance.vision");
         assert!(client.config.testnet);
     }
 
     #[test]
-    fn test_signature_with_different_keys() {
+    fn test_signature_with_different_keys() -> Result<()> {
         let mut config1 = create_test_config();
         config1.secret_key = "secret_key_1".to_string();
         let client1 = BinanceClient::new(config1)?;
@@ -498,6 +498,7 @@ mod tests {
 
         // Different keys should produce different signatures
         assert_ne!(signature1, signature2);
+        Ok(())
     }
 
     #[test]
@@ -592,7 +593,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.api_key, "prod_api_key");
         assert!(!client.config.testnet);
         assert_eq!(client.config.base_url, "https://api.binance.com");
@@ -610,7 +611,7 @@ mod tests {
             testnet: true,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert!(client.config.testnet);
         assert!(client.config.base_url.contains("testnet"));
     }
@@ -662,7 +663,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.api_key, "key!@#$%^&*()");
         assert!(client.config.secret_key.contains("+=-_"));
     }
@@ -823,7 +824,7 @@ mod tests {
 
     // Test signature with different secret keys
     #[test]
-    fn test_different_secrets_produce_different_signatures() {
+    fn test_different_secrets_produce_different_signatures() -> Result<()> {
         let mut config1 = create_test_config();
         config1.secret_key = "secret1".to_string();
         let client1 = BinanceClient::new(config1)?;
@@ -844,6 +845,7 @@ mod tests {
         assert_ne!(sig1, sig2);
         assert_ne!(sig2, sig3);
         assert_ne!(sig1, sig3);
+        Ok(())
     }
 
     #[test]
@@ -990,7 +992,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.base_url, "https://custom.binance.com");
         assert_eq!(
             client.config.futures_base_url,
@@ -1017,7 +1019,7 @@ mod tests {
         assert!(!config.testnet);
 
         config.testnet = true;
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert!(client.config.testnet);
     }
 
@@ -1025,8 +1027,8 @@ mod tests {
     #[test]
     fn test_signature_consistency_across_instances() {
         let config = create_test_config();
-        let client1 = BinanceClient::new(config.clone());
-        let client2 = BinanceClient::new(config.clone());
+        let client1 = BinanceClient::new(config.clone()).expect("Failed to create client1");
+        let client2 = BinanceClient::new(config.clone()).expect("Failed to create client2");
 
         let query = "symbol=BTCUSDT&side=BUY&type=MARKET";
         let sig1 = client1.sign_request(query).expect("Failed to sign request");
@@ -1119,7 +1121,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
 
         // Original config should be unchanged
         assert_eq!(config.api_key, "original_key");
