@@ -127,9 +127,9 @@ fn test_risk_management_config() {
         enabled: true,
         max_positions: 3,
         default_quantity: 0.01,
-        risk_percentage: 2.0,  // 2% of account (stored as percentage, not decimal)
-        stop_loss_percentage: 2.0,  // 2% (stored as percentage, not decimal)
-        take_profit_percentage: 4.0,  // 4% (stored as percentage, not decimal)
+        risk_percentage: 2.0, // 2% of account (stored as percentage, not decimal)
+        stop_loss_percentage: 2.0, // 2% (stored as percentage, not decimal)
+        take_profit_percentage: 4.0, // 4% (stored as percentage, not decimal)
         order_timeout_seconds: 60,
         position_check_interval_seconds: 30,
         leverage: 1,

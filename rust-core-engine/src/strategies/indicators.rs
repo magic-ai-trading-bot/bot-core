@@ -1391,11 +1391,17 @@ mod tests {
         let candles = create_test_candles(prices);
         let result = calculate_rsi(&candles, 14);
 
-        assert!(result.is_ok(), "RSI should handle flat prices without panicking");
+        assert!(
+            result.is_ok(),
+            "RSI should handle flat prices without panicking"
+        );
         let rsi = result.unwrap();
         // All gains and losses are zero → RSI should be 50.0 (neutral)
         for &value in &rsi {
-            assert_eq!(value, 50.0, "Flat prices should produce neutral RSI of 50.0");
+            assert_eq!(
+                value, 50.0,
+                "Flat prices should produce neutral RSI of 50.0"
+            );
         }
     }
 
@@ -1445,14 +1451,28 @@ mod tests {
     fn test_calculate_volume_profile_zero_price_range() {
         let candles = vec![
             CandleData {
-                open: 100.0, high: 100.0, low: 100.0, close: 100.0,
-                volume: 1000.0, open_time: 0, close_time: 1000,
-                quote_volume: 100000.0, trades: 100, is_closed: true,
+                open: 100.0,
+                high: 100.0,
+                low: 100.0,
+                close: 100.0,
+                volume: 1000.0,
+                open_time: 0,
+                close_time: 1000,
+                quote_volume: 100000.0,
+                trades: 100,
+                is_closed: true,
             },
             CandleData {
-                open: 100.0, high: 100.0, low: 100.0, close: 100.0,
-                volume: 2000.0, open_time: 1000, close_time: 2000,
-                quote_volume: 200000.0, trades: 200, is_closed: true,
+                open: 100.0,
+                high: 100.0,
+                low: 100.0,
+                close: 100.0,
+                volume: 2000.0,
+                open_time: 1000,
+                close_time: 2000,
+                quote_volume: 200000.0,
+                trades: 200,
+                is_closed: true,
             },
         ];
 
@@ -1469,7 +1489,7 @@ mod tests {
             },
             Err(_) => {
                 // Acceptable to return error for zero range
-            }
+            },
         }
     }
 
@@ -1499,12 +1519,21 @@ mod tests {
         let candles = create_test_candles(prices);
         let result = calculate_bollinger_bands(&candles, 20, 2.0);
 
-        assert!(result.is_ok(), "Bollinger Bands should handle zero volatility");
+        assert!(
+            result.is_ok(),
+            "Bollinger Bands should handle zero volatility"
+        );
         let bb = result.unwrap();
         // With zero volatility, all bands should be equal to the middle
         for i in 0..bb.middle.len() {
-            assert_eq!(bb.upper[i], bb.middle[i], "Upper band should equal middle with zero volatility");
-            assert_eq!(bb.lower[i], bb.middle[i], "Lower band should equal middle with zero volatility");
+            assert_eq!(
+                bb.upper[i], bb.middle[i],
+                "Upper band should equal middle with zero volatility"
+            );
+            assert_eq!(
+                bb.lower[i], bb.middle[i],
+                "Lower band should equal middle with zero volatility"
+            );
             assert_eq!(bb.middle[i], 100.0, "Middle band should be 100.0");
         }
     }
@@ -1536,7 +1565,11 @@ mod tests {
         assert!(result.is_ok());
         let sma = result.unwrap();
         // Expected length: prices.len() - period + 1 = 10 - 5 + 1 = 6
-        assert_eq!(sma.len(), 6, "SMA length should be prices.len() - period + 1");
+        assert_eq!(
+            sma.len(),
+            6,
+            "SMA length should be prices.len() - period + 1"
+        );
     }
 
     /// Catches boundary mutation in SMA when period equals data length
@@ -1562,8 +1595,7 @@ mod tests {
         let sma = calculate_sma(&prices, period).unwrap();
         let ema = calculate_ema(&prices, period).unwrap();
 
-        assert_eq!(ema[0], sma[0],
-            "First EMA value must equal first SMA value");
+        assert_eq!(ema[0], sma[0], "First EMA value must equal first SMA value");
     }
 
     /// Catches off-by-one in RSI period calculation
@@ -1575,14 +1607,18 @@ mod tests {
         // Exactly period candles → should fail
         let prices_too_short = vec![100.0; period];
         let candles_too_short = create_test_candles(prices_too_short);
-        assert!(calculate_rsi(&candles_too_short, period).is_err(),
-            "RSI should fail with exactly period candles");
+        assert!(
+            calculate_rsi(&candles_too_short, period).is_err(),
+            "RSI should fail with exactly period candles"
+        );
 
         // Period + 1 candles → should succeed
         let prices_exact = vec![100.0; period + 1];
         let candles_exact = create_test_candles(prices_exact);
-        assert!(calculate_rsi(&candles_exact, period).is_ok(),
-            "RSI should succeed with period + 1 candles");
+        assert!(
+            calculate_rsi(&candles_exact, period).is_ok(),
+            "RSI should succeed with period + 1 candles"
+        );
     }
 
     /// Catches boundary mutation in MACD period calculation
@@ -1598,14 +1634,18 @@ mod tests {
         // One less than minimum → should fail
         let prices_too_short = vec![100.0; min_required - 1];
         let candles_too_short = create_test_candles(prices_too_short);
-        assert!(calculate_macd(&candles_too_short, fast, slow, signal).is_err(),
-            "MACD should fail with insufficient data");
+        assert!(
+            calculate_macd(&candles_too_short, fast, slow, signal).is_err(),
+            "MACD should fail with insufficient data"
+        );
 
         // Exactly minimum → should succeed
         let prices_exact = vec![100.0; min_required];
         let candles_exact = create_test_candles(prices_exact);
-        assert!(calculate_macd(&candles_exact, fast, slow, signal).is_ok(),
-            "MACD should succeed with minimum required data");
+        assert!(
+            calculate_macd(&candles_exact, fast, slow, signal).is_ok(),
+            "MACD should succeed with minimum required data"
+        );
     }
 
     /// Catches off-by-one in ATR calculation
@@ -1629,8 +1669,10 @@ mod tests {
     /// Catches constant mutation: 2.0 → 1.0 in band calculation
     #[test]
     fn test_bollinger_bands_multiplier_effect() {
-        let prices = vec![100.0, 102.0, 98.0, 101.0, 99.0, 103.0, 97.0, 100.0, 102.0, 98.0,
-                         101.0, 99.0, 103.0, 97.0, 100.0, 102.0, 98.0, 101.0, 99.0, 103.0, 97.0];
+        let prices = vec![
+            100.0, 102.0, 98.0, 101.0, 99.0, 103.0, 97.0, 100.0, 102.0, 98.0, 101.0, 99.0, 103.0,
+            97.0, 100.0, 102.0, 98.0, 101.0, 99.0, 103.0, 97.0,
+        ];
         let candles = create_test_candles(prices);
 
         let bb_2std = calculate_bollinger_bands(&candles, 20, 2.0).unwrap();
@@ -1640,8 +1682,10 @@ mod tests {
         for i in 0..bb_2std.upper.len() {
             let width_2std = bb_2std.upper[i] - bb_2std.lower[i];
             let width_1std = bb_1std.upper[i] - bb_1std.lower[i];
-            assert!(width_2std > width_1std,
-                "2 std bands must be wider than 1 std bands");
+            assert!(
+                width_2std > width_1std,
+                "2 std bands must be wider than 1 std bands"
+            );
         }
     }
 
@@ -1670,9 +1714,9 @@ mod tests {
         let mut prices = vec![100.0];
         for i in 1..30 {
             if i % 2 == 0 {
-                prices.push(prices[i-1] + 10.0);
+                prices.push(prices[i - 1] + 10.0);
             } else {
-                prices.push(prices[i-1] - 8.0);
+                prices.push(prices[i - 1] - 8.0);
             }
         }
         let candles = create_test_candles(prices);
@@ -1681,8 +1725,11 @@ mod tests {
         assert!(result.is_ok());
         let rsi = result.unwrap();
         for &value in &rsi {
-            assert!(value >= 0.0 && value <= 100.0,
-                "RSI must stay within 0-100 bounds, got {}", value);
+            assert!(
+                value >= 0.0 && value <= 100.0,
+                "RSI must stay within 0-100 bounds, got {}",
+                value
+            );
         }
     }
 
@@ -1690,24 +1737,36 @@ mod tests {
     /// Catches constant mutations in stochastic calculation
     #[test]
     fn test_stochastic_stays_within_0_and_100_bounds() {
-        let closes = vec![100.0, 110.0, 90.0, 105.0, 95.0, 115.0, 85.0, 100.0, 120.0, 80.0,
-                         105.0, 95.0, 110.0, 90.0, 100.0];
-        let highs = vec![105.0, 115.0, 100.0, 110.0, 100.0, 120.0, 95.0, 110.0, 125.0, 100.0,
-                        110.0, 100.0, 115.0, 95.0, 105.0];
-        let lows = vec![95.0, 105.0, 85.0, 95.0, 90.0, 110.0, 80.0, 95.0, 115.0, 75.0,
-                       100.0, 90.0, 105.0, 85.0, 95.0];
+        let closes = vec![
+            100.0, 110.0, 90.0, 105.0, 95.0, 115.0, 85.0, 100.0, 120.0, 80.0, 105.0, 95.0, 110.0,
+            90.0, 100.0,
+        ];
+        let highs = vec![
+            105.0, 115.0, 100.0, 110.0, 100.0, 120.0, 95.0, 110.0, 125.0, 100.0, 110.0, 100.0,
+            115.0, 95.0, 105.0,
+        ];
+        let lows = vec![
+            95.0, 105.0, 85.0, 95.0, 90.0, 110.0, 80.0, 95.0, 115.0, 75.0, 100.0, 90.0, 105.0,
+            85.0, 95.0,
+        ];
         let candles = create_test_candles_with_range(closes, highs, lows);
         let result = calculate_stochastic(&candles, 5, 3);
 
         assert!(result.is_ok());
         let stoch = result.unwrap();
         for &k in &stoch.k_percent {
-            assert!(k >= 0.0 && k <= 100.0,
-                "Stochastic K must be within 0-100, got {}", k);
+            assert!(
+                k >= 0.0 && k <= 100.0,
+                "Stochastic K must be within 0-100, got {}",
+                k
+            );
         }
         for &d in &stoch.d_percent {
-            assert!(d >= 0.0 && d <= 100.0,
-                "Stochastic D must be within 0-100, got {}", d);
+            assert!(
+                d >= 0.0 && d <= 100.0,
+                "Stochastic D must be within 0-100, got {}",
+                d
+            );
         }
     }
 
@@ -1746,10 +1805,14 @@ mod tests {
         let bb = result.unwrap();
 
         for i in 0..bb.upper.len() {
-            assert!(bb.upper[i] >= bb.middle[i],
-                "Upper band must be >= middle band");
-            assert!(bb.middle[i] >= bb.lower[i],
-                "Middle band must be >= lower band");
+            assert!(
+                bb.upper[i] >= bb.middle[i],
+                "Upper band must be >= middle band"
+            );
+            assert!(
+                bb.middle[i] >= bb.lower[i],
+                "Middle band must be >= lower band"
+            );
         }
     }
 
@@ -1767,8 +1830,10 @@ mod tests {
         let offset = macd.macd_line.len() - macd.histogram.len();
         for i in 0..macd.histogram.len() {
             let expected = macd.macd_line[offset + i] - macd.signal_line[i];
-            assert!((macd.histogram[i] - expected).abs() < 0.0001,
-                "Histogram must equal MACD - Signal");
+            assert!(
+                (macd.histogram[i] - expected).abs() < 0.0001,
+                "Histogram must equal MACD - Signal"
+            );
         }
     }
 
@@ -1783,8 +1848,10 @@ mod tests {
 
         // Manually calculate expected values
         let expected_0 = (100.123 + 100.456 + 100.789) / 3.0;
-        assert!((sma[0] - expected_0).abs() < 0.0001,
-            "SMA precision must be maintained");
+        assert!(
+            (sma[0] - expected_0).abs() < 0.0001,
+            "SMA precision must be maintained"
+        );
     }
 
     /// Catches operator mutations in volume profile POC (Point of Control)
@@ -1792,19 +1859,40 @@ mod tests {
     fn test_volume_profile_poc_is_max_volume_level() {
         let candles = vec![
             CandleData {
-                open: 100.0, high: 101.0, low: 99.0, close: 100.0,
-                volume: 1000.0, open_time: 0, close_time: 1000,
-                quote_volume: 100000.0, trades: 100, is_closed: true,
+                open: 100.0,
+                high: 101.0,
+                low: 99.0,
+                close: 100.0,
+                volume: 1000.0,
+                open_time: 0,
+                close_time: 1000,
+                quote_volume: 100000.0,
+                trades: 100,
+                is_closed: true,
             },
             CandleData {
-                open: 100.0, high: 102.0, low: 99.0, close: 101.0,
-                volume: 5000.0, open_time: 1000, close_time: 2000,
-                quote_volume: 505000.0, trades: 500, is_closed: true,
+                open: 100.0,
+                high: 102.0,
+                low: 99.0,
+                close: 101.0,
+                volume: 5000.0,
+                open_time: 1000,
+                close_time: 2000,
+                quote_volume: 505000.0,
+                trades: 500,
+                is_closed: true,
             },
             CandleData {
-                open: 101.0, high: 103.0, low: 100.0, close: 102.0,
-                volume: 2000.0, open_time: 2000, close_time: 3000,
-                quote_volume: 204000.0, trades: 200, is_closed: true,
+                open: 101.0,
+                high: 103.0,
+                low: 100.0,
+                close: 102.0,
+                volume: 2000.0,
+                open_time: 2000,
+                close_time: 3000,
+                quote_volume: 204000.0,
+                trades: 200,
+                is_closed: true,
             },
         ];
 
@@ -1818,7 +1906,9 @@ mod tests {
         let poc_from_max_volume = vp.price_levels[max_idx];
 
         // POC should be the price level with maximum volume
-        assert!((vp.poc - poc_from_max_volume).abs() < 0.01,
-            "POC must be at the price level with maximum volume");
+        assert!(
+            (vp.poc - poc_from_max_volume).abs() < 0.01,
+            "POC must be at the price level with maximum volume"
+        );
     }
 }
