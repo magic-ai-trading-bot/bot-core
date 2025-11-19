@@ -193,7 +193,9 @@ class TestRateLimiting:
 class TestThreadSafety:
     """Test thread safety improvements"""
 
-    @pytest.mark.skip(reason="Threading lock not needed - FastAPI/Uvicorn + SlowAPI provide thread safety")
+    @pytest.mark.skip(
+        reason="Threading lock not needed - FastAPI/Uvicorn + SlowAPI provide thread safety"
+    )
     def test_rate_limit_lock_exists(self):
         """Verify thread lock for rate limiting exists"""
         main_file = Path(__file__).parent.parent / "main.py"
@@ -203,7 +205,9 @@ class TestThreadSafety:
         assert "_rate_limit_lock" in content
         assert "threading.Lock()" in content
 
-    @pytest.mark.skip(reason="Threading lock not needed - FastAPI/Uvicorn + SlowAPI provide thread safety")
+    @pytest.mark.skip(
+        reason="Threading lock not needed - FastAPI/Uvicorn + SlowAPI provide thread safety"
+    )
     def test_lock_used_in_rate_limit_code(self):
         """Verify lock is used in rate limiting code"""
         main_file = Path(__file__).parent.parent / "main.py"
