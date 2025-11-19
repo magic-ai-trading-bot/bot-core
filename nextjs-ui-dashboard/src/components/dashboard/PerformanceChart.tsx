@@ -298,8 +298,8 @@ export function PerformanceChart() {
 
           <div className="text-right">
             <p className="text-xs text-muted-foreground">
-              Lịch sử 30 ngày • {openTrades.length} lệnh mở •{" "}
-              {closedTrades.length} lệnh đóng
+              Lịch sử 30 ngày • {openTrades?.length || 0} lệnh mở •{" "}
+              {closedTrades?.length || 0} lệnh đóng
             </p>
           </div>
         </div>
