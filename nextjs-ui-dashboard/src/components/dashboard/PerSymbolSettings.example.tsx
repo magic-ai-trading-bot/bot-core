@@ -41,13 +41,13 @@ export function TradingDashboardWithSymbolSettings() {
             <div>
               <p className="text-sm text-muted-foreground">Current Balance</p>
               <p className="text-2xl font-bold">
-                ${portfolio.current_balance.toLocaleString()}
+                ${(portfolio?.current_balance || 0).toLocaleString()}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Equity</p>
               <p className="text-2xl font-bold">
-                ${portfolio.equity.toLocaleString()}
+                ${(portfolio?.equity || 0).toLocaleString()}
               </p>
             </div>
           </div>

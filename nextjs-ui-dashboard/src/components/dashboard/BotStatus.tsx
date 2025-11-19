@@ -57,17 +57,17 @@ export function BotStatus() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-xs lg:text-sm text-muted-foreground">Total Balance</p>
-              <p className="text-xl lg:text-2xl font-bold">${portfolio.current_balance.toLocaleString()}</p>
+              <p className="text-xl lg:text-2xl font-bold">${(portfolio?.current_balance || 0).toLocaleString()}</p>
             </div>
             <div>
               <p className="text-xs lg:text-sm text-muted-foreground">Available Funds</p>
-              <p className="text-xl lg:text-2xl font-bold text-profit">${portfolio.available_balance.toLocaleString()}</p>
+              <p className="text-xl lg:text-2xl font-bold text-profit">${(portfolio?.available_balance || 0).toLocaleString()}</p>
             </div>
           </div>
           <div className="pt-2 border-t">
             <div className="flex justify-between items-center">
               <span className="text-xs lg:text-sm text-muted-foreground">BTC/USDT</span>
-              <span className="font-mono text-base lg:text-lg">${marketData.price.toLocaleString()}</span>
+              <span className="font-mono text-base lg:text-lg">${(marketData?.price || 0).toLocaleString()}</span>
             </div>
           </div>
         </CardContent>
@@ -121,8 +121,8 @@ export function BotStatus() {
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs lg:text-sm text-muted-foreground">
-                  <span>Entry: ${position.entry_price.toLocaleString()}</span>
-                  <span>Size: {position.quantity}</span>
+                  <span>Entry: ${(position?.entry_price || 0).toLocaleString()}</span>
+                  <span>Size: {position?.quantity || 0}</span>
                 </div>
               </div>
             ))
