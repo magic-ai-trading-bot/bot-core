@@ -181,8 +181,8 @@ export function BotSettings() {
 
   // Calculate actual amounts based on portfolio balance
   const currentBalance = portfolio?.current_balance || settings?.basic?.initial_balance || 10000;
-  const allocatedCapital = (currentBalance * capitalAllocation[0]) / 100;
-  const maxLossPerTrade = (currentBalance * riskThreshold[0]) / 100;
+  const allocatedCapital = ((currentBalance || 0) * capitalAllocation[0]) / 100;
+  const maxLossPerTrade = ((currentBalance || 0) * riskThreshold[0]) / 100;
 
   return (
     <Card>
