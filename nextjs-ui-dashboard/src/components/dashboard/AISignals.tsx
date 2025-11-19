@@ -1392,7 +1392,7 @@ export function AISignals() {
         )}
 
         {/* No Signals Message */}
-        {!aiState.isLoading && allSignals.length === 0 && (
+        {!aiState.isLoading && (!allSignals || allSignals.length === 0) && (
           <div className="p-8 text-center text-muted-foreground">
             <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No AI signals available yet</p>
