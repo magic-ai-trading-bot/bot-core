@@ -2,10 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { MobileNav } from "./MobileNav";
+import { WifiOff } from "lucide-react";
 
 export function DashboardHeader() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const isOnline = useOnlineStatus();
 
   const handleLogout = () => {
     logout();
@@ -13,14 +17,30 @@ export function DashboardHeader() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-border gap-4">
-      <div className="flex items-center gap-4">
+    <>
+      {!isOnline && (
+        <div className="bg-warning/10 border-b border-warning/20 px-4 py-2">
+          <div className="flex items-center gap-2 text-warning text-sm">
+            <WifiOff className="h-4 w-4" />
+            <span>Bạn đang offline. Một số tính năng có thể không khả dụng.</span>
+          </div>
+        </div>
+      )}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-border gap-4">
+        <div className="flex items-center gap-4">
+        {/* Mobile Hamburger Menu - Only visible on mobile/tablet */}
+        <MobileNav />
         <Link
           to="/dashboard"
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          aria-label="Go to Dashboard home"
         >
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">
+          <div
+            className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
+            role="img"
+            aria-label="Bot Core Logo"
+          >
+            <span className="text-primary-foreground font-bold text-sm" aria-hidden="true">
               BT
             </span>
           </div>
@@ -97,5 +117,6 @@ export function DashboardHeader() {
         </Button>
       </div>
     </div>
+    </>
   );
 }
