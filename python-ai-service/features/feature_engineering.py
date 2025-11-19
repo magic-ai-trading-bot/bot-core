@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, Optional, Tuple, List
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from typing import Dict, Optional, Tuple, List
+from sklearn.preprocessing import StandardScaler
 from config.config import config
 from utils.logger import get_logger
 from .technical_indicators import TechnicalIndicators
@@ -195,8 +195,9 @@ class FeatureEngineer:
             future_return = df["close"].shift(-1) / df["close"] - 1
 
             # Create classification target
-            long_threshold = self.trading_config.get("long_threshold", 0.6)
-            short_threshold = self.trading_config.get("short_threshold", 0.4)
+            # Note: Using fixed thresholds instead of config for now
+            # long_threshold = self.trading_config.get("long_threshold", 0.6)
+            # short_threshold = self.trading_config.get("short_threshold", 0.4)
 
             # Convert to probabilities for long position
             # 1.0 for strong upward movement, 0.0 for strong downward movement

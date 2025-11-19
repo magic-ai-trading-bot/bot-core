@@ -1,0 +1,74 @@
+"""
+Configuration module for AI Trading Service.
+Centralizes all configuration constants and environment variables.
+"""
+
+import os
+from typing import List
+
+# === API Configuration ===
+OPENAI_REQUEST_DELAY = 20  # seconds between requests (GPT-4o-mini rate limiting)
+
+# === Cost Monitoring (GPT-4o-mini pricing as of Nov 2024) ===
+GPT4O_MINI_INPUT_COST_PER_1M = 0.150  # $0.150 per 1M input tokens
+GPT4O_MINI_OUTPUT_COST_PER_1M = 0.600  # $0.600 per 1M output tokens
+
+# === MongoDB Configuration ===
+AI_ANALYSIS_COLLECTION = "ai_analysis_results"
+ANALYSIS_INTERVAL_MINUTES = 10  # Run analysis every 10 minutes (optimized from 5)
+
+# === Symbols to Analyze ===
+ANALYSIS_SYMBOLS: List[str] = [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "ADAUSDT",
+    "DOTUSDT",
+    "XRPUSDT",
+    "LINKUSDT",
+]
+
+
+def get_mongodb_url() -> str:
+    """Get MongoDB URL from environment variable with validation."""
+    mongodb_url = os.getenv("DATABASE_URL")
+    if not mongodb_url:
+        raise ValueError(
+            "DATABASE_URL environment variable is required. "
+            "Please set it in your .env file."
+        )
+    return mongodb_url
+
+
+def get_openai_api_keys() -> List[str]:
+    """Get OpenAI API keys from environment variables."""
+    keys = []
+
+    # Try primary key
+    primary_key = os.getenv("OPENAI_API_KEY")
+    if primary_key:
+        keys.append(primary_key)
+
+    # Try fallback keys
+    for i in range(1, 6):  # Support up to 5 fallback keys
+        fallback_key = os.getenv(f"OPENAI_API_KEY_FALLBACK_{i}")
+        if fallback_key:
+            keys.append(fallback_key)
+
+    if not keys:
+        raise ValueError(
+            "At least one OpenAI API key is required. "
+            "Set OPENAI_API_KEY in your .env file."
+        )
+
+    return keys
+
+
+# === CORS Configuration ===
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+]

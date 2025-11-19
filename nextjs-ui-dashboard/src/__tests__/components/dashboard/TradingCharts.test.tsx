@@ -671,7 +671,10 @@ describe('TradingCharts', () => {
       render(<TradingCharts />)
 
       await waitFor(() => {
-        expect(screen.getByText(/0\.000012/)).toBeInTheDocument()
+        // Use getAllByText since price appears in both visible element and aria-live region
+        const priceElements = screen.getAllByText(/0\.000012/)
+        expect(priceElements.length).toBeGreaterThan(0)
+        expect(priceElements[0]).toBeInTheDocument()
       })
     })
   })

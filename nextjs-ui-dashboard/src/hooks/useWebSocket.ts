@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Position, TradeHistory, BotStatus, AISignal } from "@/services/api";
 import logger from "@/utils/logger";
+import {
+  WS_PING_INTERVAL_MS,
+  WS_PONG_TIMEOUT_MS,
+  GOOD_LATENCY_MS,
+  WARNING_LATENCY_MS,
+  ERROR_LATENCY_MS,
+} from "@/constants/trading";
 
 // WebSocket message types from Rust Trading Engine
 export interface WebSocketMessage {
@@ -18,6 +25,7 @@ export interface WebSocketMessage {
     | "ChartUpdate"
     | "MarketData"
     | "Connected"
+    | "Ping"
     | "Pong"
     | "Error";
   data?:
@@ -112,6 +120,8 @@ export interface WebSocketState {
   positions: Position[];
   aiSignals: AISignal[];
   recentTrades: TradeHistory[];
+  latency: number;
+  connectionQuality: "good" | "slow" | "poor";
 }
 
 export interface OutgoingWebSocketMessage {
@@ -141,12 +151,93 @@ export const useWebSocket = (): WebSocketHook => {
     positions: [],
     aiSignals: [],
     recentTrades: [],
+    latency: 0,
+    connectionQuality: "good",
   });
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const shouldReconnectRef = useRef(true);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pongTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPingTimeRef = useRef<number>(0);
+
+  const stopHeartbeat = useCallback(() => {
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+    if (pongTimeoutRef.current) {
+      clearTimeout(pongTimeoutRef.current);
+      pongTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startHeartbeat = useCallback(() => {
+    stopHeartbeat();
+
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const sendPing = () => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        lastPingTimeRef.current = Date.now();
+        wsRef.current.send(
+          JSON.stringify({
+            type: "Ping",
+            timestamp: new Date().toISOString(),
+          })
+        );
+
+        // Set timeout for pong response
+        pongTimeoutRef.current = setTimeout(() => {
+          logger.warn("Pong timeout - connection may be unstable");
+          setState((prev) => ({
+            ...prev,
+            connectionQuality: "poor",
+            latency: WS_PONG_TIMEOUT_MS,
+          }));
+
+          // Reconnect on timeout
+          if (wsRef.current) {
+            wsRef.current.close();
+          }
+        }, WS_PONG_TIMEOUT_MS);
+      }
+    };
+
+    // Send initial ping
+    sendPing();
+
+    // Set up interval for periodic pings
+    pingIntervalRef.current = setInterval(sendPing, WS_PING_INTERVAL_MS);
+  }, [stopHeartbeat]);
+
+  const handlePong = useCallback(() => {
+    if (pongTimeoutRef.current) {
+      clearTimeout(pongTimeoutRef.current);
+      pongTimeoutRef.current = null;
+    }
+
+    const latency = Date.now() - lastPingTimeRef.current;
+    let quality: "good" | "slow" | "poor" = "good";
+
+    if (latency >= ERROR_LATENCY_MS) {
+      quality = "poor";
+    } else if (latency >= WARNING_LATENCY_MS) {
+      quality = "slow";
+    }
+
+    setState((prev) => ({
+      ...prev,
+      latency,
+      connectionQuality: quality,
+    }));
+
+    logger.debug(`WebSocket latency: ${latency}ms (${quality})`);
+  }, []);
 
   const updatePosition = useCallback((positionData: PositionUpdateData) => {
     setState((prev) => ({
@@ -234,8 +325,20 @@ export const useWebSocket = (): WebSocketHook => {
           case "Connected":
             // WebSocket connected successfully
             break;
+          case "Ping":
+            // Server ping - respond with pong
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.send(
+                JSON.stringify({
+                  type: "Pong",
+                  timestamp: new Date().toISOString(),
+                })
+              );
+            }
+            break;
           case "Pong":
-            // Keep-alive response
+            // Keep-alive response - update latency
+            handlePong();
             break;
           case "PositionUpdate":
             if (message.data)
@@ -278,7 +381,7 @@ export const useWebSocket = (): WebSocketHook => {
         }));
       }
     },
-    [updatePosition, addTradeToHistory, addAISignal, updateBotStatus]
+    [updatePosition, addTradeToHistory, addAISignal, updateBotStatus, handlePong]
   );
 
   const handleOpen = useCallback(() => {
@@ -289,15 +392,22 @@ export const useWebSocket = (): WebSocketHook => {
       isConnecting: false,
       error: null,
     }));
-  }, []);
 
-  const handleClose = useCallback((event: CloseEvent) => {
-    setState((prev) => ({
-      ...prev,
-      isConnected: false,
-    }));
+    // Start heartbeat monitoring
+    startHeartbeat();
+  }, [startHeartbeat]);
 
-    // Attempt reconnection if not explicitly closed
+  const handleClose = useCallback(
+    (event: CloseEvent) => {
+      // Stop heartbeat monitoring
+      stopHeartbeat();
+
+      setState((prev) => ({
+        ...prev,
+        isConnected: false,
+      }));
+
+      // Attempt reconnection if not explicitly closed
     if (
       shouldReconnectRef.current &&
       reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS
@@ -313,7 +423,9 @@ export const useWebSocket = (): WebSocketHook => {
       }, delay);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // connectWebSocket intentionally excluded to prevent infinite reconnection loop
+    },
+    [stopHeartbeat]
+  ); // connectWebSocket intentionally excluded to prevent infinite reconnection loop
 
   const handleError = useCallback((event: Event) => {
     logger.error("WebSocket error:", event);
@@ -367,6 +479,9 @@ export const useWebSocket = (): WebSocketHook => {
   const disconnect = useCallback(() => {
     shouldReconnectRef.current = false;
 
+    // Stop heartbeat monitoring
+    stopHeartbeat();
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -382,7 +497,7 @@ export const useWebSocket = (): WebSocketHook => {
       isConnected: false,
       isConnecting: false,
     }));
-  }, []);
+  }, [stopHeartbeat]);
 
   const sendMessage = useCallback((message: OutgoingWebSocketMessage) => {
     const messageStr = JSON.stringify(message);
@@ -398,6 +513,7 @@ export const useWebSocket = (): WebSocketHook => {
   useEffect(() => {
     return () => {
       shouldReconnectRef.current = false;
+      stopHeartbeat();
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -405,7 +521,7 @@ export const useWebSocket = (): WebSocketHook => {
         wsRef.current.close();
       }
     };
-  }, []);
+  }, [stopHeartbeat]);
 
   // Auto-connect on mount (only once)
   useEffect(() => {

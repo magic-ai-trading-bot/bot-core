@@ -392,6 +392,9 @@ describe('useWebSocket - Enhanced Tests', () => {
         expect(result.current.state.isConnected).toBe(true)
       })
 
+      // Clear the initial Ping message sent by heartbeat
+      mockWs.sent = []
+
       // Send message
       const messageToSend = {
         action: 'subscribe',
@@ -442,6 +445,9 @@ describe('useWebSocket - Enhanced Tests', () => {
       await waitFor(() => {
         expect(result.current.state.isConnected).toBe(true)
       }, { timeout: 1000 })
+
+      // Clear the initial Ping message sent by heartbeat
+      mockWs.sent = []
 
       // Send multiple messages
       const msg1 = { id: 1, action: 'first' }

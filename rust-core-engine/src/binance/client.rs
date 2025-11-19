@@ -24,21 +24,21 @@ pub struct BinanceClient {
 }
 
 impl BinanceClient {
-    pub fn new(config: BinanceConfig) -> Self {
+    pub fn new(config: BinanceConfig) -> Result<Self> {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
-        Self { config, client }
+        Ok(Self { config, client })
     }
 
     // Authentication helpers
-    fn sign_request(&self, query_string: &str) -> String {
+    fn sign_request(&self, query_string: &str) -> Result<String> {
         let mut mac = HmacSha256::new_from_slice(self.config.secret_key.as_bytes())
-            .expect("HMAC can take key of any size");
+            .map_err(|e| anyhow::anyhow!("Failed to create HMAC instance: {}", e))?;
         mac.update(query_string.as_bytes());
-        hex::encode(mac.finalize().into_bytes())
+        Ok(hex::encode(mac.finalize().into_bytes()))
     }
 
     fn get_timestamp() -> i64 {
@@ -74,7 +74,7 @@ impl BinanceClient {
                 .collect::<Vec<_>>()
                 .join("&");
 
-            let signature = self.sign_request(&query_string);
+            let signature = self.sign_request(&query_string)?;
             query_params.insert("signature".to_string(), signature);
         }
 
@@ -344,7 +344,7 @@ mod tests {
     #[test]
     fn test_client_creation() {
         let config = create_test_config();
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create test client");
         assert_eq!(client.config.api_key, "test_api_key");
         assert_eq!(client.config.secret_key, "test_secret_key");
     }
@@ -352,11 +352,13 @@ mod tests {
     #[test]
     fn test_sign_request() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query_string =
             "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1&price=9000&timestamp=1499827319559";
-        let signature = client.sign_request(query_string);
+        let signature = client
+            .sign_request(query_string)
+            .expect("Failed to sign request");
 
         // Signature should be a 64-character hex string (SHA256 produces 32 bytes = 64 hex chars)
         assert_eq!(signature.len(), 64);
@@ -366,11 +368,15 @@ mod tests {
     #[test]
     fn test_sign_request_consistency() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query_string = "symbol=BTCUSDT&timestamp=1499827319559";
-        let signature1 = client.sign_request(query_string);
-        let signature2 = client.sign_request(query_string);
+        let signature1 = client
+            .sign_request(query_string)
+            .expect("Failed to sign request");
+        let signature2 = client
+            .sign_request(query_string)
+            .expect("Failed to sign request");
 
         // Same input should produce same signature
         assert_eq!(signature1, signature2);
@@ -379,12 +385,16 @@ mod tests {
     #[test]
     fn test_sign_request_different_inputs() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query_string1 = "symbol=BTCUSDT&timestamp=1499827319559";
         let query_string2 = "symbol=ETHUSDT&timestamp=1499827319559";
-        let signature1 = client.sign_request(query_string1);
-        let signature2 = client.sign_request(query_string2);
+        let signature1 = client
+            .sign_request(query_string1)
+            .expect("Failed to sign request");
+        let signature2 = client
+            .sign_request(query_string2)
+            .expect("Failed to sign request");
 
         // Different inputs should produce different signatures
         assert_ne!(signature1, signature2);
@@ -407,7 +417,7 @@ mod tests {
     #[test]
     fn test_clone() {
         let config = create_test_config();
-        let client1 = BinanceClient::new(config);
+        let client1 = BinanceClient::new(config).expect("Failed to create test client");
         let client2 = client1.clone();
 
         assert_eq!(client1.config.api_key, client2.config.api_key);
@@ -417,9 +427,9 @@ mod tests {
     #[test]
     fn test_sign_empty_string() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("");
+        let signature = client.sign_request("").expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
         assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
     }
@@ -427,10 +437,12 @@ mod tests {
     #[test]
     fn test_sign_special_characters() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query_string = "symbol=BTC%2FUSDT&quantity=1.5&price=50000.00";
-        let signature = client.sign_request(query_string);
+        let signature = client
+            .sign_request(query_string)
+            .expect("Failed to sign request");
 
         assert_eq!(signature.len(), 64);
         assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
@@ -461,37 +473,44 @@ mod tests {
         config.testnet = true;
         config.base_url = "https://testnet.binance.vision".to_string();
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.base_url, "https://testnet.binance.vision");
         assert!(client.config.testnet);
     }
 
     #[test]
-    fn test_signature_with_different_keys() {
+    fn test_signature_with_different_keys() -> Result<()> {
         let mut config1 = create_test_config();
         config1.secret_key = "secret_key_1".to_string();
-        let client1 = BinanceClient::new(config1);
+        let client1 = BinanceClient::new(config1)?;
 
         let mut config2 = create_test_config();
         config2.secret_key = "secret_key_2".to_string();
-        let client2 = BinanceClient::new(config2);
+        let client2 = BinanceClient::new(config2)?;
 
         let query_string = "symbol=BTCUSDT&timestamp=1499827319559";
-        let signature1 = client1.sign_request(query_string);
-        let signature2 = client2.sign_request(query_string);
+        let signature1 = client1
+            .sign_request(query_string)
+            .expect("Failed to sign request");
+        let signature2 = client2
+            .sign_request(query_string)
+            .expect("Failed to sign request");
 
         // Different keys should produce different signatures
         assert_ne!(signature1, signature2);
+        Ok(())
     }
 
     #[test]
     fn test_sign_request_with_unicode() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         // Test that signature works with various strings
         let query_string = "symbol=BTCUSDT&note=test";
-        let signature = client.sign_request(query_string);
+        let signature = client
+            .sign_request(query_string)
+            .expect("Failed to sign request");
 
         assert_eq!(signature.len(), 64);
         assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
@@ -516,21 +535,23 @@ mod tests {
         let mut config = create_test_config();
         config.api_key = "".to_string();
 
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
         assert_eq!(client.config.api_key, "");
     }
 
     #[test]
     fn test_sign_long_query_string() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let mut long_query = String::new();
         for i in 0..100 {
             long_query.push_str(&format!("param{i}=value{i}&"));
         }
 
-        let signature = client.sign_request(&long_query);
+        let signature = client
+            .sign_request(&long_query)
+            .expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
         assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
     }
@@ -538,9 +559,9 @@ mod tests {
     #[test]
     fn test_hex_encoding_lowercase() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("test");
+        let signature = client.sign_request("test").expect("Failed to sign request");
         // Hex encoding should be lowercase
         assert!(signature
             .chars()
@@ -572,7 +593,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.api_key, "prod_api_key");
         assert!(!client.config.testnet);
         assert_eq!(client.config.base_url, "https://api.binance.com");
@@ -590,7 +611,7 @@ mod tests {
             testnet: true,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert!(client.config.testnet);
         assert!(client.config.base_url.contains("testnet"));
     }
@@ -607,7 +628,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
         assert_eq!(client.config.api_key, "");
         assert_eq!(client.config.secret_key, "");
     }
@@ -625,7 +646,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
         assert_eq!(client.config.api_key.len(), 1000);
         assert_eq!(client.config.secret_key.len(), 1000);
     }
@@ -642,7 +663,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.api_key, "key!@#$%^&*()");
         assert!(client.config.secret_key.contains("+=-_"));
     }
@@ -651,9 +672,9 @@ mod tests {
     #[test]
     fn test_sign_request_empty_query() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("");
+        let signature = client.sign_request("").expect("Failed to sign request");
 
         // Should still produce valid signature for empty string
         assert_eq!(signature.len(), 64);
@@ -663,61 +684,63 @@ mod tests {
     #[test]
     fn test_sign_request_single_param() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("symbol=BTCUSDT");
+        let signature = client
+            .sign_request("symbol=BTCUSDT")
+            .expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_multiple_params() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query = "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1&price=50000";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_with_encoded_params() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query = "symbol=BTCUSDT&note=Hello%20World&tag=test%26tag";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_with_numbers() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query = "timestamp=1234567890123&recvWindow=5000";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_with_decimals() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query = "price=50000.50&quantity=0.001&stopPrice=49999.99";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_deterministic() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query = "symbol=ETHUSDT&interval=1h&limit=100";
-        let sig1 = client.sign_request(query);
-        let sig2 = client.sign_request(query);
-        let sig3 = client.sign_request(query);
+        let sig1 = client.sign_request(query).expect("Failed to sign request");
+        let sig2 = client.sign_request(query).expect("Failed to sign request");
+        let sig3 = client.sign_request(query).expect("Failed to sign request");
 
         assert_eq!(sig1, sig2);
         assert_eq!(sig2, sig3);
@@ -726,12 +749,12 @@ mod tests {
     #[test]
     fn test_sign_request_order_matters() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query1 = "symbol=BTCUSDT&side=BUY";
         let query2 = "side=BUY&symbol=BTCUSDT";
-        let sig1 = client.sign_request(query1);
-        let sig2 = client.sign_request(query2);
+        let sig1 = client.sign_request(query1).expect("Failed to sign request");
+        let sig2 = client.sign_request(query2).expect("Failed to sign request");
 
         // Different order should produce different signatures
         assert_ne!(sig1, sig2);
@@ -740,12 +763,12 @@ mod tests {
     #[test]
     fn test_sign_request_case_sensitive() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query1 = "symbol=BTCUSDT";
         let query2 = "symbol=btcusdt";
-        let sig1 = client.sign_request(query1);
-        let sig2 = client.sign_request(query2);
+        let sig1 = client.sign_request(query1).expect("Failed to sign request");
+        let sig2 = client.sign_request(query2).expect("Failed to sign request");
 
         // Case difference should produce different signatures
         assert_ne!(sig1, sig2);
@@ -754,12 +777,12 @@ mod tests {
     #[test]
     fn test_sign_request_with_whitespace() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query1 = "symbol=BTCUSDT&side=BUY";
         let query2 = "symbol=BTCUSDT&side=BUY ";
-        let sig1 = client.sign_request(query1);
-        let sig2 = client.sign_request(query2);
+        let sig1 = client.sign_request(query1).expect("Failed to sign request");
+        let sig2 = client.sign_request(query2).expect("Failed to sign request");
 
         // Trailing space should produce different signature
         assert_ne!(sig1, sig2);
@@ -768,68 +791,71 @@ mod tests {
     #[test]
     fn test_sign_request_very_long_query() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let mut query = String::from("symbol=BTCUSDT");
         for i in 0..500 {
             query.push_str(&format!("&param{i}=value{i}"));
         }
 
-        let signature = client.sign_request(&query);
+        let signature = client.sign_request(&query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_with_equals_in_value() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query = "symbol=BTCUSDT&note=test=value";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_with_ampersand_encoded() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query = "symbol=BTCUSDT&tag=test%26encoded";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     // Test signature with different secret keys
     #[test]
-    fn test_different_secrets_produce_different_signatures() {
+    fn test_different_secrets_produce_different_signatures() -> Result<()> {
         let mut config1 = create_test_config();
         config1.secret_key = "secret1".to_string();
-        let client1 = BinanceClient::new(config1);
+        let client1 = BinanceClient::new(config1)?;
 
         let mut config2 = create_test_config();
         config2.secret_key = "secret2".to_string();
-        let client2 = BinanceClient::new(config2);
+        let client2 = BinanceClient::new(config2)?;
 
         let mut config3 = create_test_config();
         config3.secret_key = "secret3".to_string();
-        let client3 = BinanceClient::new(config3);
+        let client3 = BinanceClient::new(config3)?;
 
         let query = "symbol=BTCUSDT&timestamp=1234567890";
-        let sig1 = client1.sign_request(query);
-        let sig2 = client2.sign_request(query);
-        let sig3 = client3.sign_request(query);
+        let sig1 = client1.sign_request(query).expect("Failed to sign request");
+        let sig2 = client2.sign_request(query).expect("Failed to sign request");
+        let sig3 = client3.sign_request(query).expect("Failed to sign request");
 
         assert_ne!(sig1, sig2);
         assert_ne!(sig2, sig3);
         assert_ne!(sig1, sig3);
+        Ok(())
     }
 
     #[test]
     fn test_signature_hex_format() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("test_query");
+        let signature = client
+            .sign_request("test_query")
+            .expect("Failed to sign request");
 
         // Should be all lowercase hex
         for c in signature.chars() {
@@ -843,21 +869,23 @@ mod tests {
     #[test]
     fn test_signature_with_numeric_only_query() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("1234567890");
+        let signature = client
+            .sign_request("1234567890")
+            .expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_signature_with_newlines() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query1 = "symbol=BTCUSDT&side=BUY";
         let query2 = "symbol=BTCUSDT\n&side=BUY";
-        let sig1 = client.sign_request(query1);
-        let sig2 = client.sign_request(query2);
+        let sig1 = client.sign_request(query1).expect("Failed to sign request");
+        let sig2 = client.sign_request(query2).expect("Failed to sign request");
 
         // Newline should produce different signature
         assert_ne!(sig1, sig2);
@@ -922,7 +950,7 @@ mod tests {
     #[test]
     fn test_client_clone_preserves_config() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
         let cloned = client.clone();
 
         assert_eq!(client.config.api_key, cloned.config.api_key);
@@ -940,12 +968,12 @@ mod tests {
     #[test]
     fn test_client_clone_independent_signatures() {
         let config = create_test_config();
-        let client1 = BinanceClient::new(config);
+        let client1 = BinanceClient::new(config).expect("Failed to create test client");
         let client2 = client1.clone();
 
         let query = "symbol=BTCUSDT&timestamp=1234567890";
-        let sig1 = client1.sign_request(query);
-        let sig2 = client2.sign_request(query);
+        let sig1 = client1.sign_request(query).expect("Failed to sign request");
+        let sig2 = client2.sign_request(query).expect("Failed to sign request");
 
         // Should produce same signature
         assert_eq!(sig1, sig2);
@@ -964,7 +992,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert_eq!(client.config.base_url, "https://custom.binance.com");
         assert_eq!(
             client.config.futures_base_url,
@@ -991,7 +1019,7 @@ mod tests {
         assert!(!config.testnet);
 
         config.testnet = true;
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
         assert!(client.config.testnet);
     }
 
@@ -999,12 +1027,12 @@ mod tests {
     #[test]
     fn test_signature_consistency_across_instances() {
         let config = create_test_config();
-        let client1 = BinanceClient::new(config.clone());
-        let client2 = BinanceClient::new(config.clone());
+        let client1 = BinanceClient::new(config.clone()).expect("Failed to create client1");
+        let client2 = BinanceClient::new(config.clone()).expect("Failed to create client2");
 
         let query = "symbol=BTCUSDT&side=BUY&type=MARKET";
-        let sig1 = client1.sign_request(query);
-        let sig2 = client2.sign_request(query);
+        let sig1 = client1.sign_request(query).expect("Failed to sign request");
+        let sig2 = client2.sign_request(query).expect("Failed to sign request");
 
         assert_eq!(sig1, sig2);
     }
@@ -1012,18 +1040,18 @@ mod tests {
     #[test]
     fn test_signature_with_all_printable_ascii() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         // Test with various ASCII characters
         let query = "data=!@#$%^&*()_+-=[]{}|;':\",./<>?`~";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_client_multiple_clones() {
         let config = create_test_config();
-        let client1 = BinanceClient::new(config);
+        let client1 = BinanceClient::new(config).expect("Failed to create test client");
         let client2 = client1.clone();
         let client3 = client2.clone();
         let client4 = client3.clone();
@@ -1031,37 +1059,40 @@ mod tests {
         assert_eq!(client1.config.api_key, client4.config.api_key);
 
         let query = "test=query";
-        assert_eq!(client1.sign_request(query), client4.sign_request(query));
+        assert_eq!(
+            client1.sign_request(query).expect("Failed to sign request"),
+            client4.sign_request(query).expect("Failed to sign request")
+        );
     }
 
     // Test edge cases for query strings
     #[test]
     fn test_sign_request_query_with_only_ampersands() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("&&&");
+        let signature = client.sign_request("&&&").expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_query_with_only_equals() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("===");
+        let signature = client.sign_request("===").expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 
     #[test]
     fn test_sign_request_mixed_case_params() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query1 = "Symbol=BTCUSDT&Side=BUY";
         let query2 = "symbol=BTCUSDT&side=BUY";
-        let sig1 = client.sign_request(query1);
-        let sig2 = client.sign_request(query2);
+        let sig1 = client.sign_request(query1).expect("Failed to sign request");
+        let sig2 = client.sign_request(query2).expect("Failed to sign request");
 
         // Case should matter
         assert_ne!(sig1, sig2);
@@ -1090,7 +1121,7 @@ mod tests {
             testnet: false,
         };
 
-        let client = BinanceClient::new(config.clone());
+        let client = BinanceClient::new(config.clone()).expect("Failed to create client");
 
         // Original config should be unchanged
         assert_eq!(config.api_key, "original_key");
@@ -1100,7 +1131,7 @@ mod tests {
     #[test]
     fn test_signature_length_always_64() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let long_string = "x".repeat(10000);
         let test_queries = vec![
@@ -1113,7 +1144,7 @@ mod tests {
         ];
 
         for query in test_queries {
-            let signature = client.sign_request(query);
+            let signature = client.sign_request(query).expect("Failed to sign request");
             assert_eq!(signature.len(), 64, "Failed for query: {}", query);
         }
     }
@@ -1121,9 +1152,9 @@ mod tests {
     #[test]
     fn test_signature_alphanumeric_only() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
-        let signature = client.sign_request("test");
+        let signature = client.sign_request("test").expect("Failed to sign request");
 
         // Should only contain 0-9 and a-f (hex)
         for c in signature.chars() {
@@ -1171,12 +1202,12 @@ mod tests {
     #[test]
     fn test_signature_with_tab_character() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         let query1 = "symbol=BTCUSDT&side=BUY";
         let query2 = "symbol=BTCUSDT\t&side=BUY";
-        let sig1 = client.sign_request(query1);
-        let sig2 = client.sign_request(query2);
+        let sig1 = client.sign_request(query1).expect("Failed to sign request");
+        let sig2 = client.sign_request(query2).expect("Failed to sign request");
 
         // Tab should produce different signature
         assert_ne!(sig1, sig2);
@@ -1185,11 +1216,11 @@ mod tests {
     #[test]
     fn test_signature_with_null_byte_string() {
         let config = create_test_config();
-        let client = BinanceClient::new(config);
+        let client = BinanceClient::new(config).expect("Failed to create test client");
 
         // This should still work, as it's just a string
         let query = "symbol=BTCUSDT\0&side=BUY";
-        let signature = client.sign_request(query);
+        let signature = client.sign_request(query).expect("Failed to sign request");
         assert_eq!(signature.len(), 64);
     }
 }

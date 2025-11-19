@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Zap, Shield, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Lazy load the 3D component to reduce initial bundle size
 const Hero3D = lazy(() => import("./Hero3D").then(module => ({ default: module.Hero3D })));
@@ -19,9 +20,11 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-background/95 to-background">
-      <Suspense fallback={<div className="absolute inset-0" />}>
-        <Hero3D />
-      </Suspense>
+      <ErrorBoundary fallback={<div className="absolute inset-0 bg-gradient-to-br from-background/50 to-background" />}>
+        <Suspense fallback={<div className="absolute inset-0" />}>
+          <Hero3D />
+        </Suspense>
+      </ErrorBoundary>
       
       <div className="relative z-10 container mx-auto px-4 text-center">
         <Badge variant="outline" className="mb-6 bg-primary/10 text-primary border-primary/20">

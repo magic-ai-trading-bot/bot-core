@@ -467,34 +467,124 @@ impl PaperTradingEngine {
 
     /// Get AI signal for a specific symbol
     async fn get_ai_signal_for_symbol(&self, symbol: &str) -> Result<AITradingSignal> {
-        // Get recent market data
-        let klines = self
-            .binance_client
-            .get_klines(symbol, "1h", Some(100))
-            .await?;
-
-        // Convert to AI request format
+        // @spec:FR-STRATEGY-006 - Multi-Timeframe Analysis (FIXED)
+        // Fetch multiple timeframes for better market context
         let mut timeframe_data = HashMap::new();
-        let candles: Vec<crate::market_data::cache::CandleData> = klines
-            .into_iter()
-            .map(|kline| crate::market_data::cache::CandleData {
-                open_time: kline.open_time,
-                close_time: kline.close_time,
-                open: kline.open.parse().unwrap_or(0.0),
-                high: kline.high.parse().unwrap_or(0.0),
-                low: kline.low.parse().unwrap_or(0.0),
-                close: kline.close.parse().unwrap_or(0.0),
-                volume: kline.volume.parse().unwrap_or(0.0),
-                quote_volume: kline.quote_asset_volume.parse().unwrap_or(0.0),
-                trades: kline.number_of_trades,
-                is_closed: true,
-            })
+        let timeframes = vec![
+            ("1h", 100), // 100 hourly candles (~ 4 days)
+            ("4h", 60),  // 60 4-hour candles (~ 10 days)
+            ("1d", 30),  // 30 daily candles (~ 1 month)
+        ];
+
+        let mut current_price = 0.0;
+        let mut volume_24h = 0.0;
+
+        // Fetch data for all timeframes
+        for (timeframe, limit) in timeframes {
+            let klines = self
+                .binance_client
+                .get_klines(symbol, timeframe, Some(limit))
+                .await?;
+
+            let candles: Vec<crate::market_data::cache::CandleData> = klines
+                .into_iter()
+                .map(|kline| crate::market_data::cache::CandleData {
+                    open_time: kline.open_time,
+                    close_time: kline.close_time,
+                    open: kline.open.parse().unwrap_or(0.0),
+                    high: kline.high.parse().unwrap_or(0.0),
+                    low: kline.low.parse().unwrap_or(0.0),
+                    close: kline.close.parse().unwrap_or(0.0),
+                    volume: kline.volume.parse().unwrap_or(0.0),
+                    quote_volume: kline.quote_asset_volume.parse().unwrap_or(0.0),
+                    trades: kline.number_of_trades,
+                    is_closed: true,
+                })
+                .collect();
+
+            // Use 1h data for current price and volume
+            if timeframe == "1h" {
+                current_price = candles.last().map(|c| c.close).unwrap_or(0.0);
+                volume_24h = candles.iter().map(|c| c.volume).sum();
+            }
+
+            timeframe_data.insert(timeframe.to_string(), candles);
+        }
+
+        // Execute technical analysis with StrategyEngine
+        // @spec:FR-STRATEGY-005 - Strategy Engine Integration (FIXED)
+        let settings_read = self.settings.read().await;
+        let enabled_strategies: Vec<String> = settings_read
+            .strategy
+            .enabled_strategies
+            .keys()
+            .cloned()
             .collect();
+        let min_confidence = settings_read.strategy.min_ai_confidence;
+        drop(settings_read);
 
-        timeframe_data.insert("1h".to_string(), candles.clone());
+        // Create strategy engine
+        let strategy_engine = crate::strategies::strategy_engine::StrategyEngine::with_config(
+            crate::strategies::strategy_engine::StrategyEngineConfig {
+                enabled_strategies: enabled_strategies.clone(),
+                min_confidence_threshold: min_confidence,
+                signal_combination_mode:
+                    crate::strategies::strategy_engine::SignalCombinationMode::Consensus,
+                max_history_size: 100,
+            },
+        );
 
-        let current_price = candles.last().map(|c| c.close).unwrap_or(0.0);
-        let volume_24h = candles.iter().map(|c| c.volume).sum();
+        let strategy_input = crate::strategies::StrategyInput {
+            symbol: symbol.to_string(),
+            timeframe_data: timeframe_data.clone(),
+            current_price,
+            volume_24h,
+            timestamp: chrono::Utc::now().timestamp_millis(),
+        };
+
+        // Get technical analysis
+        let technical_analysis = strategy_engine.analyze_market(&strategy_input).await?;
+
+        // Build technical indicators map for AI
+        let mut technical_indicators = HashMap::new();
+        for strategy_result in &technical_analysis.strategy_signals {
+            technical_indicators.insert(
+                strategy_result.strategy_name.clone(),
+                serde_json::json!({
+                    "signal": format!("{:?}", strategy_result.signal),
+                    "confidence": strategy_result.confidence,
+                }),
+            );
+        }
+
+        // Determine market condition from strategy signals
+        let long_count = technical_analysis
+            .metadata
+            .get("long_signals")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let short_count = technical_analysis
+            .metadata
+            .get("short_signals")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+
+        let market_condition = if long_count > short_count {
+            "Bullish"
+        } else if short_count > long_count {
+            "Bearish"
+        } else {
+            "Neutral"
+        };
+
+        // Determine risk level from combined confidence
+        let risk_level = if technical_analysis.combined_confidence < 0.5 {
+            "High" // Low confidence = high uncertainty = high risk
+        } else if technical_analysis.combined_confidence > 0.75 {
+            "Low" // High confidence = low risk
+        } else {
+            "Moderate"
+        };
 
         let ai_request = crate::ai::AIAnalysisRequest {
             symbol: symbol.to_string(),
@@ -503,11 +593,11 @@ impl PaperTradingEngine {
             volume_24h,
             timestamp: chrono::Utc::now().timestamp_millis(),
             strategy_context: crate::ai::AIStrategyContext {
-                selected_strategies: vec!["ai_ensemble".to_string()],
-                market_condition: "Unknown".to_string(),
-                risk_level: "Moderate".to_string(),
+                selected_strategies: enabled_strategies,
+                market_condition: market_condition.to_string(),
+                risk_level: risk_level.to_string(),
                 user_preferences: HashMap::new(),
-                technical_indicators: HashMap::new(),
+                technical_indicators,
             },
         };
 
@@ -594,17 +684,74 @@ impl PaperTradingEngine {
         let leverage = symbol_settings.leverage;
         let entry_price = signal.entry_price;
 
-        // Calculate stop loss and take profit
+        // @spec:FR-RISK-002 - Dynamic ATR-based Stop Loss (FIXED)
+        // Calculate stop loss using ATR for dynamic volatility-adjusted risk management
         let stop_loss = signal.suggested_stop_loss.unwrap_or_else(|| {
-            match signal.signal_type {
-                crate::strategies::TradingSignal::Long => {
-                    entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0)
-                },
-                crate::strategies::TradingSignal::Short => {
-                    entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0)
-                },
-                _ => entry_price, // Neutral signal
-            }
+            // Fetch recent candles for ATR calculation
+            let atr_stop_loss = async {
+                // Get recent 30 candles for ATR calculation
+                match self
+                    .binance_client
+                    .get_klines(&signal.symbol, "1h", Some(30))
+                    .await
+                {
+                    Ok(klines) => {
+                        let candles: Vec<crate::market_data::cache::CandleData> = klines
+                            .into_iter()
+                            .map(|kline| crate::market_data::cache::CandleData {
+                                open_time: kline.open_time,
+                                close_time: kline.close_time,
+                                open: kline.open.parse().unwrap_or(0.0),
+                                high: kline.high.parse().unwrap_or(0.0),
+                                low: kline.low.parse().unwrap_or(0.0),
+                                close: kline.close.parse().unwrap_or(0.0),
+                                volume: kline.volume.parse().unwrap_or(0.0),
+                                quote_volume: kline.quote_asset_volume.parse().unwrap_or(0.0),
+                                trades: kline.number_of_trades,
+                                is_closed: true,
+                            })
+                            .collect();
+
+                        // Calculate ATR with 14-period
+                        if let Ok(atr_values) =
+                            crate::strategies::indicators::calculate_atr(&candles, 14)
+                        {
+                            if let Some(current_atr) = atr_values.last() {
+                                // Use 2x ATR as stop loss distance (industry standard)
+                                let atr_stop_distance = current_atr * 2.0;
+                                return match signal.signal_type {
+                                    crate::strategies::TradingSignal::Long => {
+                                        entry_price - atr_stop_distance
+                                    },
+                                    crate::strategies::TradingSignal::Short => {
+                                        entry_price + atr_stop_distance
+                                    },
+                                    _ => entry_price,
+                                };
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        warn!("Failed to fetch candles for ATR calculation: {}", e);
+                    },
+                }
+
+                // Fallback to fixed percentage if ATR calculation fails
+                match signal.signal_type {
+                    crate::strategies::TradingSignal::Long => {
+                        entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0)
+                    },
+                    crate::strategies::TradingSignal::Short => {
+                        entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0)
+                    },
+                    _ => entry_price,
+                }
+            };
+
+            // Block on the async operation
+            tokio::task::block_in_place(|| {
+                tokio::runtime::Handle::current().block_on(atr_stop_loss)
+            })
         });
 
         let take_profit = signal.suggested_take_profit.unwrap_or_else(|| {
@@ -619,22 +766,33 @@ impl PaperTradingEngine {
             }
         });
 
-        // Calculate position size
+        // Calculate position size with PROPER risk-based formula
+        // @spec:FR-RISK-001 - Position Size Calculation (FIXED)
         let risk_amount = portfolio.equity * (symbol_settings.position_size_pct / 100.0);
-        let price_diff = (entry_price - stop_loss).abs();
-        let max_quantity = if price_diff > 0.0 {
-            risk_amount / price_diff
+
+        // Calculate stop loss percentage
+        let stop_loss_pct = ((entry_price - stop_loss).abs() / entry_price) * 100.0;
+
+        // Calculate max position value based on risk
+        let max_position_value = if stop_loss_pct > 0.0 {
+            risk_amount / (stop_loss_pct / 100.0)
         } else {
-            0.0
+            risk_amount * 10.0 // Default to 10% SL if none set
         };
 
-        // Limit by available margin
-        let required_margin = (max_quantity * entry_price) / leverage as f64;
-        let quantity = if required_margin <= portfolio.free_margin {
-            max_quantity
-        } else {
-            (portfolio.free_margin * 0.95 * leverage as f64) / entry_price
-        };
+        // Apply leverage to position value
+        let max_position_value_with_leverage = max_position_value * leverage as f64;
+
+        // Limit by available margin (keep 5% buffer)
+        let available_for_position = portfolio.free_margin * 0.95;
+        let actual_position_value = max_position_value_with_leverage.min(available_for_position);
+
+        // Calculate quantity
+        let max_quantity = actual_position_value / entry_price;
+
+        // Additional safety: limit to max 20% of account per trade
+        let safety_limit = portfolio.equity * 0.2 / entry_price;
+        let quantity = max_quantity.min(safety_limit);
 
         drop(portfolio);
         drop(settings);
@@ -1192,7 +1350,7 @@ mod tests {
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
         };
-        BinanceClient::new(config)
+        BinanceClient::new(config).expect("Failed to create mock binance client")
     }
 
     fn create_mock_ai_service() -> AIService {

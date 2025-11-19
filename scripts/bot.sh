@@ -159,7 +159,13 @@ start_services() {
     # Wait for services to be ready
     print_status "Waiting for services to be ready..."
     sleep 5
-    
+
+    # Auto-seed MongoDB with sample data (only on first run)
+    if [[ -f "scripts/init-mongodb-seed.sh" ]]; then
+        print_status "Checking MongoDB seed data..."
+        bash scripts/init-mongodb-seed.sh || print_warning "Seed script failed (may already exist)"
+    fi
+
     show_status
     show_urls
 }

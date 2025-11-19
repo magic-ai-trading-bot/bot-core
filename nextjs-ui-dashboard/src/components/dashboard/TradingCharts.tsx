@@ -301,11 +301,22 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
                 }`}
               >
                 {isPositive ? (
-                  <TrendingUp className="h-3 w-3 mr-1" />
+                  <TrendingUp className="h-3 w-3 mr-1" aria-hidden="true" />
                 ) : (
-                  <TrendingDown className="h-3 w-3 mr-1" />
+                  <TrendingDown className="h-3 w-3 mr-1" aria-hidden="true" />
                 )}
-                {formatPercent(chartData.price_change_percent_24h)}
+                <span>{formatPercent(chartData.price_change_percent_24h)}</span>
+                <span className="sr-only">
+                  {isPositive ? "Price increase" : "Price decrease"}
+                </span>
+              </div>
+              {/* Live region for price updates - announced to screen readers */}
+              <div
+                aria-live="polite"
+                aria-atomic="true"
+                className="sr-only"
+              >
+                {chartData.symbol} price updated to ${formatPrice(chartData.latest_price)}
               </div>
             </div>
           </div>
@@ -317,11 +328,16 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">24h Change:</span>
               <span
-                className={`font-mono ${
+                className={`font-mono flex items-center gap-1 ${
                   isPositive ? "text-profit" : "text-destructive"
                 }`}
               >
-                ${chartData.price_change_24h.toFixed(2)}
+                {isPositive ? (
+                  <TrendingUp className="h-3 w-3" aria-hidden="true" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" aria-hidden="true" />
+                )}
+                <span>${chartData.price_change_24h.toFixed(2)}</span>
               </span>
             </div>
 

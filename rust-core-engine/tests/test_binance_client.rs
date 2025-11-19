@@ -695,7 +695,7 @@ async fn test_json_serialization_roundtrip() {
 async fn test_concurrent_client_usage() {
     // Test that client can be used concurrently
     let config = create_test_config();
-    let client = BinanceClient::new(config);
+    let client = BinanceClient::new(config).expect("Failed to create BinanceClient");
 
     // Clone client for concurrent use
     let client1 = client.clone();

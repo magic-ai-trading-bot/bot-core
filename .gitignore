@@ -103,3 +103,11 @@ pip-delete-this-directory.txt
 
 # Tool versions
 .tool-versions 
+# Coverage data
+*.profraw
+
+# Bun lock file (we use npm/package-lock.json)
+bun.lock
+
+# OpenAPI generation script (temporary)
+generate_openapi.py
