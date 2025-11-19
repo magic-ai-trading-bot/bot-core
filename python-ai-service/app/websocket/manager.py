@@ -21,8 +21,7 @@ class WebSocketManager:
         await websocket.accept()
         self.active_connections.add(websocket)
         logger.info(
-            f"🔗 New WebSocket connection. "
-            f"Total: {len(self.active_connections)}"
+            f"🔗 New WebSocket connection. " f"Total: {len(self.active_connections)}"
         )
 
         # Send welcome message
@@ -38,8 +37,7 @@ class WebSocketManager:
         """Remove WebSocket connection."""
         self.active_connections.discard(websocket)
         logger.info(
-            f"🔌 WebSocket disconnected. "
-            f"Remaining: {len(self.active_connections)}"
+            f"🔌 WebSocket disconnected. " f"Remaining: {len(self.active_connections)}"
         )
 
     async def broadcast_signal(self, signal_data: Dict[str, Any]):
@@ -67,8 +65,7 @@ class WebSocketManager:
             self.active_connections.discard(conn)
 
         logger.info(
-            f"📡 Broadcasted AI signal to "
-            f"{len(self.active_connections)} clients"
+            f"📡 Broadcasted AI signal to " f"{len(self.active_connections)} clients"
         )
 
     def get_connection_count(self) -> int:

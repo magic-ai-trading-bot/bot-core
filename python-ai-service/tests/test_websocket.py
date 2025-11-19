@@ -141,7 +141,6 @@ class TestWebSocketEndpoint:
                 assert data2["type"] == "connection"
 
                 # Both connections should be active
-                from main import ws_manager
 
                 # Note: In real scenario, would verify both in active_connections
 

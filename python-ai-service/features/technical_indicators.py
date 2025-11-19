@@ -1,7 +1,6 @@
-import numpy as np
 import pandas as pd
 import ta
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Optional
 from config.config import config
 from utils.logger import get_logger
 

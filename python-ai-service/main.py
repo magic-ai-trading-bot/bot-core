@@ -782,7 +782,7 @@ class TechnicalAnalyzer:
 
         try:
             # Simple pattern detection logic
-            closes = df["close"].values
+            # closes = df["close"].values  # Unused for now
             highs = df["high"].values
             lows = df["low"].values
 
@@ -1709,7 +1709,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             # Keep connection alive and handle incoming messages
-            data = await websocket.receive_text()
+            _ = await websocket.receive_text()  # Receive but ignore for now
             await websocket.send_json(
                 {
                     "type": "Pong",
@@ -1966,7 +1966,7 @@ async def get_model_performance():
 @app.get("/ai/cost/statistics")
 async def get_cost_statistics():
     """Get GPT-4 API cost statistics."""
-    global total_input_tokens, total_output_tokens, total_requests_count, total_cost_usd
+    # Note: Reading global variables (no 'global' keyword needed for read-only access)
 
     # Calculate estimates
     estimated_cost_per_day = (
