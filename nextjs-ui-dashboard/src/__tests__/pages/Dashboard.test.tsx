@@ -85,6 +85,59 @@ vi.mock('../../hooks/useWebSocket', () => ({
   }),
 }))
 
+vi.mock('../../hooks/usePaperTrading', () => ({
+  usePaperTrading: () => ({
+    portfolio: {
+      current_balance: 10000,
+      available_balance: 9000,
+      equity: 10000,
+      total_pnl: 0,
+      total_pnl_percentage: 0,
+      total_trades: 0,
+      margin_used: 1000,
+      free_margin: 9000,
+      win_rate: 0,
+      average_win: 0,
+      average_loss: 0,
+      profit_factor: 0,
+      max_drawdown: 0,
+      max_drawdown_percentage: 0,
+      sharpe_ratio: 0,
+      win_streak: 0,
+      loss_streak: 0,
+      best_trade: 0,
+      worst_trade: 0,
+    },
+    positions: [],
+    openTrades: [],
+    closedTrades: [],
+    settings: {
+      basic: {
+        initial_balance: 10000,
+        default_position_size_pct: 10,
+        trading_fee_rate: 0.04,
+      },
+      risk: {
+        max_leverage: 20,
+        default_stop_loss_pct: 2,
+        default_take_profit_pct: 4,
+      },
+    },
+    recentSignals: [],
+    isActive: false,
+    isLoading: false,
+    error: null,
+    lastUpdated: new Date(),
+    startTrading: vi.fn(),
+    stopTrading: vi.fn(),
+    updateSettings: vi.fn(),
+    resetPortfolio: vi.fn(),
+    closeTrade: vi.fn(),
+    refreshAISignals: vi.fn(),
+    refreshSettings: vi.fn(),
+  }),
+}))
+
 describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
