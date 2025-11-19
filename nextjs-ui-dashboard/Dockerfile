@@ -22,8 +22,8 @@ RUN bun run build
 # Production stage
 FROM oven/bun:1-alpine
 
-# Install serve for serving static files
-RUN bun add -g serve
+# Install curl for health checks
+RUN apk add --no-cache curl
 
 # Create app user
 RUN addgroup -g 1001 -S appuser && \
@@ -35,6 +35,7 @@ WORKDIR /app
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
 
 # Set ownership
 RUN chown -R appuser:appuser /app
@@ -52,5 +53,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/ || exit 1
 
-# Serve the built application
-CMD ["serve", "-s", "dist", "-l", "3000"] 
+# Serve the built application using Vite preview
+CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "3000"] 

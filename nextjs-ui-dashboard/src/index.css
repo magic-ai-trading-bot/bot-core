@@ -118,5 +118,56 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* Custom focus styles for accessibility */
+  .focus-custom {
+    @apply focus:outline-none focus:ring-2 focus:ring-profit focus:ring-offset-2 focus:ring-offset-background transition-shadow;
+  }
+
+  .focus-danger {
+    @apply focus:outline-none focus:ring-2 focus:ring-loss focus:ring-offset-2 focus:ring-offset-background transition-shadow;
+  }
+
+  .focus-high-contrast {
+    @apply focus:outline-4 focus:outline-offset-2 focus:outline-profit;
+  }
+
+  /* Screen reader only content */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  /* Skip to content link for keyboard navigation */
+  .skip-to-content {
+    @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-profit focus:text-profit-foreground focus:rounded-md focus-custom;
+  }
+
+  /* Touch target optimization - WCAG 2.5.5 (44x44px minimum) */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .touch-target-lg {
+    @apply min-h-[48px] min-w-[48px];
+  }
+
+  /* Reduced motion support - WCAG 2.3.3 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
