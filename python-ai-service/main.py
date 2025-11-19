@@ -11,7 +11,7 @@ import os
 import logging
 import sys
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List, Optional, Union, Set
+from typing import Dict, Any, List, Optional, Set
 from contextlib import asynccontextmanager
 
 import pandas as pd
@@ -20,14 +20,12 @@ import fastapi
 from fastapi import (
     FastAPI,
     HTTPException,
-    BackgroundTasks,
     WebSocket,
     WebSocketDisconnect,
     Request,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
-from openai import AsyncOpenAI
+from pydantic import BaseModel, Field
 import ta
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ASCENDING
@@ -40,24 +38,21 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Global OpenAI client, WebSocket connections, and MongoDB storage
-# Thread safety: These are only written during startup/shutdown in lifespan context
+# Thread safety: These are only written during startup/shutdown in lifespan
 # Read-only access during request handling is safe
-openai_client = None
+# Type annotations help mypy understand optional types
+openai_client: Optional[Any] = None
 websocket_connections: Set[WebSocket] = set()
-mongodb_client = None
-mongodb_db = None
+mongodb_client: Optional[AsyncIOMotorClient] = None
+mongodb_db: Optional[Any] = None
 
 # Rate limiting for OpenAI API
-# Thread safety: Access to these variables is protected by asyncio's event loop
-# which ensures single-threaded execution per request
-import asyncio
-from datetime import datetime
-import threading
-
-# Use threading.Lock for thread-safe access to rate limit state
-_rate_limit_lock = threading.Lock()
+# Thread safety: Access to these variables is protected by asyncio.Lock
+# for proper async/await compatibility
+_rate_limit_lock = asyncio.Lock()
 last_openai_request_time = None
-OPENAI_REQUEST_DELAY = 20  # 20 seconds between requests (GPT-4o-mini rate limiting)
+# 20 seconds between requests (GPT-4o-mini rate limiting)
+OPENAI_REQUEST_DELAY = 20
 OPENAI_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
 
 # Cost monitoring (GPT-4o-mini pricing as of Nov 2024)
@@ -70,7 +65,9 @@ total_cost_usd = 0.0
 
 # MongoDB storage for AI analysis results
 AI_ANALYSIS_COLLECTION = "ai_analysis_results"
-ANALYSIS_INTERVAL_MINUTES = 10  # Run analysis every 10 minutes (optimized from 5 for cost saving)
+ANALYSIS_INTERVAL_MINUTES = (
+    10  # Run analysis every 10 minutes (optimized from 5 for cost saving)
+)
 
 # === WEBSOCKET MANAGER ===
 
@@ -227,7 +224,8 @@ async def periodic_analysis_runner():
                     )
 
                     logger.info(
-                        f"✅ Completed analysis for {symbol}: {analysis_result.signal} ({analysis_result.confidence:.2f})"
+                        f"✅ Completed analysis for {symbol}: "
+                        f"{analysis_result.signal} ({analysis_result.confidence:.2f})"
                     )
 
                     # Rate limiting between symbols
@@ -263,10 +261,17 @@ async def lifespan(app: FastAPI):
     logger.info(f"FastAPI version: {fastapi.__version__}")
 
     # Initialize MongoDB connection
-    mongodb_url = os.getenv(
-        "DATABASE_URL",
-        "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin",
-    )
+    mongodb_url = os.getenv("DATABASE_URL")
+    if not mongodb_url:
+        logger.error(
+            "❌ DATABASE_URL environment variable not set! "
+            "MongoDB connection required."
+        )
+        raise ValueError(
+            "DATABASE_URL environment variable is required. "
+            "Please set it in your .env file."
+        )
+
     try:
         mongodb_client = AsyncIOMotorClient(mongodb_url)
         mongodb_db = mongodb_client.get_default_database()
@@ -391,6 +396,50 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Security headers middleware for Top 1% security score
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all HTTP responses."""
+    response = await call_next(request)
+
+    # Prevent clickjacking attacks
+    response.headers["X-Frame-Options"] = "DENY"
+
+    # Prevent MIME type sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # Enable XSS protection (legacy but still useful)
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+
+    # Enforce HTTPS (only if in production)
+    if os.getenv("ENVIRONMENT") == "production":
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains; preload"
+        )
+
+    # Content Security Policy (strict)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self'; "
+        "connect-src 'self' ws: wss:; "
+        "frame-ancestors 'none'"
+    )
+
+    # Referrer policy
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    # Permissions policy (restrict features)
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(), microphone=(), camera=(), payment=()"
+    )
+
+    return response
+
 
 # === PYDANTIC MODELS (Compatible with Rust AI Client) ===
 
@@ -778,7 +827,7 @@ class TechnicalAnalyzer:
 
         try:
             # Simple pattern detection logic
-            closes = df["close"].values
+            # closes = df["close"].values  # Unused for now
             highs = df["high"].values
             lows = df["low"].values
 
@@ -924,7 +973,8 @@ class DirectOpenAIClient:
         self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
         self.current_key_index = 0
         self.base_url = "https://api.openai.com/v1"
-        self.rate_limited_keys = set()  # Track which keys are rate limited
+        # Track which keys are rate limited
+        self.rate_limited_keys: Set[int] = set()
 
     def get_current_api_key(self):
         """Get the current API key, cycling through available keys if needed."""
@@ -962,15 +1012,16 @@ class DirectOpenAIClient:
         for attempt in range(max_attempts):
             current_key, key_index = self.get_current_api_key()
 
-            # Check if we're still in a rate limit period (thread-safe)
-            with _rate_limit_lock:
+            # Check if we're still in a rate limit period (async-safe)
+            async with _rate_limit_lock:
                 if OPENAI_RATE_LIMIT_RESET_TIME:
                     if datetime.now() < OPENAI_RATE_LIMIT_RESET_TIME:
                         remaining_time = (
                             OPENAI_RATE_LIMIT_RESET_TIME - datetime.now()
                         ).total_seconds()
                         logger.warning(
-                            f"⏰ Key {key_index + 1} in rate limit period, {remaining_time:.0f}s remaining"
+                            f"⏰ Key {key_index + 1} in rate limit "
+                            f"period, {remaining_time:.0f}s remaining"
                         )
                         # Try next key
                         self.current_key_index += 1
@@ -981,21 +1032,21 @@ class DirectOpenAIClient:
                         self.rate_limited_keys.discard(key_index)
                         logger.info(f"✅ Key {key_index + 1} rate limit expired")
 
-                # Rate limiting: ensure minimum delay between requests
-                if last_openai_request_time:
-                    time_since_last = (
-                        datetime.now() - last_openai_request_time
-                    ).total_seconds()
-                    if time_since_last < OPENAI_REQUEST_DELAY:
-                        delay = OPENAI_REQUEST_DELAY - time_since_last
-                        logger.info(
-                            f"⏳ Rate limiting: waiting {delay:.1f}s before request"
-                        )
-                        # Release lock before sleeping
-                        _rate_limit_lock.release()
-                        await asyncio.sleep(delay)
-                        _rate_limit_lock.acquire()
+            # Rate limiting: ensure minimum delay between requests
+            # (checked outside lock to allow sleep without blocking)
+            if last_openai_request_time:
+                time_since_last = (
+                    datetime.now() - last_openai_request_time
+                ).total_seconds()
+                if time_since_last < OPENAI_REQUEST_DELAY:
+                    delay = OPENAI_REQUEST_DELAY - time_since_last
+                    logger.info(
+                        f"⏳ Rate limiting: waiting {delay:.1f}s " f"before request"
+                    )
+                    await asyncio.sleep(delay)
 
+            # Update last request time (async-safe)
+            async with _rate_limit_lock:
                 last_openai_request_time = datetime.now()
 
             headers = {
@@ -1207,7 +1258,9 @@ class GPTTradingAnalyzer:
 
                 # Calculate cost
                 input_cost = (input_tokens / 1_000_000) * GPT4O_MINI_INPUT_COST_PER_1M
-                output_cost = (output_tokens / 1_000_000) * GPT4O_MINI_OUTPUT_COST_PER_1M
+                output_cost = (
+                    output_tokens / 1_000_000
+                ) * GPT4O_MINI_OUTPUT_COST_PER_1M
                 request_cost = input_cost + output_cost
 
                 # Update global counters
@@ -1225,7 +1278,8 @@ class GPTTradingAnalyzer:
             # Parse GPT-4 response
             parsed_result = self._parse_gpt_response(response_content)
             logger.info(
-                f"🎯 GPT-4 analysis complete: signal={parsed_result.get('signal')}, confidence={parsed_result.get('confidence')}"
+                f"🎯 GPT-4 analysis complete: signal={parsed_result.get('signal')}, "
+                f"confidence={parsed_result.get('confidence')}"
             )
 
             return parsed_result
@@ -1379,19 +1433,38 @@ class GPTTradingAnalyzer:
 
     def _get_system_prompt(self) -> str:
         """Get system prompt for GPT-4 (optimized for cost)."""
-        return """Crypto trading analyst. Respond ONLY in JSON:
-{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief","strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,"Bollinger Bands Strategy":0-1},"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways","trend_strength":0-1,"support_levels":[],"resistance_levels":[],"volatility_level":"Low|Medium|High","volume_analysis":"brief"},"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,"take_profit_suggestion":null}}
-Use confidence >0.6 for strong signals, >0.5 for moderate. Prefer Long/Short over Neutral."""
+        return (
+            "Crypto trading analyst. Respond ONLY in JSON:\n"
+            '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
+            '"strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,'
+            '"Bollinger Bands Strategy":0-1},"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways",'
+            '"trend_strength":0-1,"support_levels":[],"resistance_levels":[],'
+            '"volatility_level":"Low|Medium|High","volume_analysis":"brief"},'
+            '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
+            '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
+            '"take_profit_suggestion":null}}\n'
+            "Use confidence >0.6 for strong signals, >0.5 for moderate. Prefer Long/Short over Neutral."
+        )
 
     def _prepare_market_context(
         self, request: AIAnalysisRequest, indicators_1h: Dict, indicators_4h: Dict
     ) -> str:
         """Prepare market context for GPT-4 (optimized for cost)."""
         # Compact format to reduce tokens
-        context = f"{request.symbol} ${request.current_price:.0f}\n1H: RSI:{indicators_1h.get('rsi',50):.1f} MACD:{indicators_1h.get('macd_histogram',0):.2f} BB:{indicators_1h.get('bb_position',0.5):.2f} Vol:{indicators_1h.get('volume_ratio',1):.1f}x"
+        context = (
+            f"{request.symbol} ${request.current_price:.0f}\n"
+            f"1H: RSI:{indicators_1h.get('rsi',50):.1f} "
+            f"MACD:{indicators_1h.get('macd_histogram',0):.2f} "
+            f"BB:{indicators_1h.get('bb_position',0.5):.2f} "
+            f"Vol:{indicators_1h.get('volume_ratio',1):.1f}x"
+        )
 
         if indicators_4h:
-            context += f"\n4H: RSI:{indicators_4h.get('rsi',50):.1f} MACD:{indicators_4h.get('macd_histogram',0):.2f} BB:{indicators_4h.get('bb_position',0.5):.2f}"
+            context += (
+                f"\n4H: RSI:{indicators_4h.get('rsi',50):.1f} "
+                f"MACD:{indicators_4h.get('macd_histogram',0):.2f} "
+                f"BB:{indicators_4h.get('bb_position',0.5):.2f}"
+            )
 
         return context
 
@@ -1399,8 +1472,15 @@ Use confidence >0.6 for strong signals, >0.5 for moderate. Prefer Long/Short ove
         self, market_context: str, strategy_context: AIStrategyContext
     ) -> str:
         """Create analysis prompt for GPT-4 (optimized for cost)."""
-        strategies = ', '.join(strategy_context.selected_strategies) if strategy_context.selected_strategies else 'All'
-        return f"{market_context}\nStrategies:{strategies}|Risk:{strategy_context.risk_level}\nAnalyze & provide JSON signal with strategy scores."
+        strategies = (
+            ", ".join(strategy_context.selected_strategies)
+            if strategy_context.selected_strategies
+            else "All"
+        )
+        return (
+            f"{market_context}\nStrategies:{strategies}|Risk:{strategy_context.risk_level}\n"
+            "Analyze & provide JSON signal with strategy scores."
+        )
 
     def _parse_gpt_response(self, response_text: str) -> Dict[str, Any]:
         """Parse GPT-4 JSON response."""
@@ -1645,7 +1725,7 @@ async def health_check():
 @limiter.limit("5/minute")  # Rate limit: 5 requests per minute for debug endpoint
 async def debug_gpt4(request: Request):
     """Debug GPT-4 connectivity."""
-    result = {
+    result: Dict[str, Any] = {
         "client_initialized": openai_client is not None,
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
     }
@@ -1697,7 +1777,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             # Keep connection alive and handle incoming messages
-            data = await websocket.receive_text()
+            _ = await websocket.receive_text()  # Receive but ignore for now
             await websocket.send_json(
                 {
                     "type": "Pong",
@@ -1714,8 +1794,10 @@ async def websocket_endpoint(websocket: WebSocket):
 # @ref:specs/02-design/2.3-api/API-PYTHON-AI.md
 # @test:TC-AI-010, TC-AI-011, TC-AI-012
 @app.post("/ai/analyze", response_model=AISignalResponse)
-@limiter.limit("10/minute")  # Rate limit: 10 requests per minute
-async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Request):
+@limiter.limit("60/minute")  # Rate limit: 60 requests per minute (1 per second)
+async def analyze_trading_signals(
+    analysis_request: AIAnalysisRequest, request: Request
+):
     """Analyze trading signals using GPT-4 AI with MongoDB storage."""
     global gpt_analyzer
 
@@ -1725,9 +1807,10 @@ async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Requ
             f"🤖 GPT analyzer created with client: {'Available' if openai_client else 'None'}"
         )
 
-    logger.info(f"🤖 GPT-4 analysis request for {request.symbol}")
+    logger.info(f"🤖 GPT-4 analysis request for {analysis_request.symbol}")
     logger.debug(
-        f"📋 Request details: strategies={request.strategy_context.selected_strategies}, timeframes={list(request.timeframe_data.keys())}"
+        f"📋 Request details: strategies={analysis_request.strategy_context.selected_strategies}, "
+        f"timeframes={list(analysis_request.timeframe_data.keys())}"
     )
 
     # Check GPT-4 availability
@@ -1738,7 +1821,7 @@ async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Requ
 
     try:
         # Check MongoDB for latest analysis
-        latest_analysis = await get_latest_analysis(request.symbol)
+        latest_analysis = await get_latest_analysis(analysis_request.symbol)
 
         # Check if analysis is still fresh (< 5 minutes old)
         if latest_analysis:
@@ -1759,7 +1842,7 @@ async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Requ
 
             if time_since_analysis < ANALYSIS_INTERVAL_MINUTES:
                 logger.info(
-                    f"📊 Using recent MongoDB analysis for {request.symbol} (age: {time_since_analysis:.1f}min)"
+                    f"📊 Using recent MongoDB analysis for {analysis_request.symbol} (age: {time_since_analysis:.1f}min)"
                 )
 
                 # Return stored analysis
@@ -1794,13 +1877,13 @@ async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Requ
                             },
                         )
                     ),
-                    timestamp=request.timestamp,
+                    timestamp=analysis_request.timestamp,
                 )
 
                 # Broadcast stored signal via WebSocket
                 if ws_manager.active_connections:
                     signal_data = {
-                        "symbol": request.symbol,
+                        "symbol": analysis_request.symbol,
                         "signal": stored_response.signal.lower(),
                         "confidence": stored_response.confidence,
                         "timestamp": stored_response.timestamp,
@@ -1815,9 +1898,9 @@ async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Requ
 
         # No recent analysis found, perform fresh AI analysis
         logger.info(
-            f"🔥 No recent analysis found. Calling OpenAI GPT-4 for {request.symbol}"
+            f"🔥 No recent analysis found. Calling OpenAI GPT-4 for {analysis_request.symbol}"
         )
-        response = await gpt_analyzer.analyze_trading_signals(request)
+        response = await gpt_analyzer.analyze_trading_signals(analysis_request)
         logger.info(
             f"✅ GPT-4 signal: {response.signal} (confidence: {response.confidence:.2f})"
         )
@@ -1832,12 +1915,12 @@ async def analyze_trading_signals(request: AIAnalysisRequest, http_request: Requ
             "risk_assessment": response.risk_assessment.model_dump(),
             "timestamp": response.timestamp,
         }
-        await store_analysis_result(request.symbol, analysis_data)
+        await store_analysis_result(analysis_request.symbol, analysis_data)
 
         # Broadcast signal via WebSocket to connected clients
         if ws_manager.active_connections:
             signal_data = {
-                "symbol": request.symbol,
+                "symbol": analysis_request.symbol,
                 "signal": response.signal.lower(),
                 "confidence": response.confidence,
                 "timestamp": response.timestamp,
@@ -1952,12 +2035,15 @@ async def get_model_performance():
 @app.get("/ai/cost/statistics")
 async def get_cost_statistics():
     """Get GPT-4 API cost statistics."""
-    global total_input_tokens, total_output_tokens, total_requests_count, total_cost_usd
+    # Note: Reading global variables (no 'global' keyword needed for read-only access)
 
     # Calculate estimates
-    estimated_cost_per_day = (total_cost_usd / max(total_requests_count, 1)) * (
-        24 * 60 / max(ANALYSIS_INTERVAL_MINUTES, 1) * len(ANALYSIS_SYMBOLS)
-    ) if total_requests_count > 0 else 0.0
+    estimated_cost_per_day = (
+        (total_cost_usd / max(total_requests_count, 1))
+        * (24 * 60 / max(ANALYSIS_INTERVAL_MINUTES, 1) * len(ANALYSIS_SYMBOLS))
+        if total_requests_count > 0
+        else 0.0
+    )
 
     estimated_cost_per_month = estimated_cost_per_day * 30
 
@@ -1968,10 +2054,16 @@ async def get_cost_statistics():
             "total_output_tokens": total_output_tokens,
             "total_tokens": total_input_tokens + total_output_tokens,
             "total_cost_usd": round(total_cost_usd, 4),
-            "total_cost_vnd": round(total_cost_usd * 23000, 0),  # Approximate VND conversion
-            "average_cost_per_request_usd": round(total_cost_usd / max(total_requests_count, 1), 5),
+            "total_cost_vnd": round(
+                total_cost_usd * 23000, 0
+            ),  # Approximate VND conversion
+            "average_cost_per_request_usd": round(
+                total_cost_usd / max(total_requests_count, 1), 5
+            ),
             "average_tokens_per_request": round(
-                (total_input_tokens + total_output_tokens) / max(total_requests_count, 1), 0
+                (total_input_tokens + total_output_tokens)
+                / max(total_requests_count, 1),
+                0,
             ),
         },
         "projections": {
@@ -2071,7 +2163,10 @@ async def root():
     return {
         "service": "GPT-4 Cryptocurrency AI Trading Service",
         "version": "2.0.0",
-        "description": "Advanced AI-powered trading signal generation using OpenAI GPT-4 with MongoDB storage and real-time WebSocket broadcasting",
+        "description": (
+            "Advanced AI-powered trading signal generation using OpenAI GPT-4 "
+            "with MongoDB storage and real-time WebSocket broadcasting"
+        ),
         "endpoints": {
             "analyze": "POST /ai/analyze - Generate trading signals with GPT-4 (stored in MongoDB)",
             "strategy_recommendations": "POST /ai/strategy-recommendations - Get strategy recommendations",

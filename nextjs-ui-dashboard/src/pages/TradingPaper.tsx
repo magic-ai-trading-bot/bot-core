@@ -1,6 +1,8 @@
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import logger from "@/utils/logger";
 import { TradingSettings } from "@/components/dashboard/TradingSettings";
+import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +27,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { usePaperTrading, PaperTrade } from "@/hooks/usePaperTrading";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import {
   TrendingUp,
@@ -56,15 +58,220 @@ interface SymbolConfig {
   take_profit_pct: number;
   max_positions: number;
 }
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+
+// Memoized position row component to prevent unnecessary re-renders
+interface PositionRowProps {
+  trade: PaperTrade;
+  onOpenDetails: (trade: PaperTrade) => void;
+  onCloseTrade: (tradeId: string) => void;
+  formatCurrency: (value: number) => string;
+  formatDate: (date: Date | string | number) => string;
+  calculatePositionSize: (trade: PaperTrade) => number;
+  calculateMarginRequired: (trade: PaperTrade) => number;
+}
+
+const PositionRow = memo(({
+  trade,
+  onOpenDetails,
+  onCloseTrade,
+  formatCurrency,
+  formatDate,
+  calculatePositionSize,
+  calculateMarginRequired
+}: PositionRowProps) => {
+  const handleRowClick = useCallback(() => {
+    onOpenDetails(trade);
+  }, [trade, onOpenDetails]);
+
+  const handleCloseClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCloseTrade(trade.id);
+  }, [trade.id, onCloseTrade]);
+
+  const positionSize = useMemo(() => calculatePositionSize(trade), [trade, calculatePositionSize]);
+  const marginRequired = useMemo(() => calculateMarginRequired(trade), [trade, calculateMarginRequired]);
+  const pnlColor = useMemo(() => (trade.pnl || 0) >= 0 ? "text-profit" : "text-loss", [trade.pnl]);
+  const pnlPercentColor = useMemo(() => trade.pnl_percentage >= 0 ? "text-profit" : "text-loss", [trade.pnl_percentage]);
+
+  return (
+    <TableRow
+      className="cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={handleRowClick}
+    >
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-2">
+          {trade.symbol}
+          <span className="text-xs text-muted-foreground">
+            ({trade.leverage}x)
+          </span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge
+          variant={trade.trade_type === "Long" ? "default" : "destructive"}
+          className={
+            trade.trade_type === "Long"
+              ? "bg-profit text-profit-foreground"
+              : "bg-loss text-loss-foreground"
+          }
+        >
+          {trade.trade_type}
+        </Badge>
+      </TableCell>
+      <TableCell>{formatCurrency(trade.entry_price)}</TableCell>
+      <TableCell>
+        <div className="text-right">
+          <div className="font-medium">{trade.quantity.toFixed(6)}</div>
+          <div className="text-xs text-muted-foreground">
+            {trade.symbol.replace("USDT", "")}
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-right">
+          <div className="font-medium text-primary">
+            {formatCurrency(positionSize)}
+          </div>
+          <div className="text-xs text-muted-foreground">Notional Value</div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-right">
+          <div className="font-medium text-warning">
+            {formatCurrency(marginRequired)}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            với {trade.leverage}x leverage
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className="font-mono">
+          {trade.leverage}x
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="text-right">
+          <div className={`font-medium ${pnlColor}`}>
+            {formatCurrency(trade.pnl || 0)}
+          </div>
+          <div className={`text-xs ${pnlPercentColor}`}>
+            ({trade.pnl_percentage >= 0 ? "+" : ""}
+            {trade.pnl_percentage.toFixed(2)}%)
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-center">
+          {trade.stop_loss ? (
+            <div className="text-loss font-medium">
+              {formatCurrency(trade.stop_loss)}
+            </div>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              Chưa đặt
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-center">
+          {trade.take_profit ? (
+            <div className="text-profit font-medium">
+              {formatCurrency(trade.take_profit)}
+            </div>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              Chưa đặt
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm">{formatDate(new Date(trade.open_time))}</div>
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCloseClick}
+          className="hover:bg-destructive hover:text-destructive-foreground"
+        >
+          Đóng
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+});
+
+PositionRow.displayName = 'PositionRow';
+
+// Memoized closed trade row component
+interface ClosedTradeRowProps {
+  trade: PaperTrade;
+  onOpenDetails: (trade: PaperTrade) => void;
+  formatCurrency: (value: number) => string;
+  formatPercentage: (value: number | undefined) => string;
+}
+
+const ClosedTradeRow = memo(({
+  trade,
+  onOpenDetails,
+  formatCurrency,
+  formatPercentage
+}: ClosedTradeRowProps) => {
+  const handleRowClick = useCallback(() => {
+    onOpenDetails(trade);
+  }, [trade, onOpenDetails]);
+
+  const duration = useMemo(() => {
+    if (!trade.close_time) return "N/A";
+    return Math.round(
+      (new Date(trade.close_time).getTime() - new Date(trade.open_time).getTime()) / (1000 * 60)
+    ) + "m";
+  }, [trade.close_time, trade.open_time]);
+
+  const pnlColor = useMemo(() =>
+    trade.pnl && trade.pnl >= 0 ? "text-profit" : "text-loss",
+    [trade.pnl]
+  );
+
+  const pnlPercentColor = useMemo(() =>
+    trade.pnl_percentage && trade.pnl_percentage >= 0 ? "text-profit" : "text-loss",
+    [trade.pnl_percentage]
+  );
+
+  return (
+    <TableRow
+      className="cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={handleRowClick}
+    >
+      <TableCell className="font-medium">{trade.symbol}</TableCell>
+      <TableCell>
+        <Badge variant={trade.trade_type === "Long" ? "default" : "destructive"}>
+          {trade.trade_type}
+        </Badge>
+      </TableCell>
+      <TableCell>{formatCurrency(trade.entry_price)}</TableCell>
+      <TableCell>
+        {trade.exit_price ? formatCurrency(trade.exit_price) : "N/A"}
+      </TableCell>
+      <TableCell>{trade.quantity.toFixed(6)}</TableCell>
+      <TableCell className={pnlColor}>
+        {trade.pnl ? formatCurrency(trade.pnl) : "N/A"}
+      </TableCell>
+      <TableCell className={pnlPercentColor}>
+        {trade.pnl_percentage ? formatPercentage(trade.pnl_percentage) : "N/A"}
+      </TableCell>
+      <TableCell>{duration}</TableCell>
+      <TableCell>
+        <Badge variant="outline">Manual</Badge>
+      </TableCell>
+    </TableRow>
+  );
+});
+
+ClosedTradeRow.displayName = 'ClosedTradeRow';
 
 const TradingPaper = () => {
   const {
@@ -163,24 +370,29 @@ const TradingPaper = () => {
     // Only paper trading errors now
   };
 
-  // Open trade details popup
-  const openTradeDetails = (trade: PaperTrade) => {
+  // Memoize trade details callback
+  const openTradeDetails = useCallback((trade: PaperTrade) => {
     setSelectedTradeId(trade.id);
     setIsTradeDetailOpen(true);
-  };
+  }, []);
 
-  // Calculate position value and P&L
-  const calculatePositionValue = (trade: PaperTrade) => {
+  // Memoize calculation functions to prevent re-creation on every render
+  const calculatePositionValue = useCallback((trade: PaperTrade) => {
     return trade.quantity * trade.entry_price;
-  };
+  }, []);
 
-  const calculatePositionSize = (trade: PaperTrade) => {
+  const calculatePositionSize = useCallback((trade: PaperTrade) => {
     return calculatePositionValue(trade); // Position Size = Entry Price × Quantity (notional value)
-  };
+  }, [calculatePositionValue]);
 
-  const calculateMarginRequired = (trade: PaperTrade) => {
+  const calculateMarginRequired = useCallback((trade: PaperTrade) => {
     return calculatePositionValue(trade) / trade.leverage; // Margin = Position Size / Leverage
-  };
+  }, [calculatePositionValue]);
+
+  // Memoize close trade callback
+  const handleCloseTrade = useCallback((tradeId: string) => {
+    closeTrade(tradeId);
+  }, [closeTrade]);
 
   const fetchAISignals = async () => {
     try {
@@ -389,23 +601,24 @@ const TradingPaper = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
+  // Memoize formatters to prevent re-creation
+  const formatCurrency = useCallback((value: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "USD",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
-  };
+  }, []);
 
-  const formatPercentage = (value: number | undefined) => {
+  const formatPercentage = useCallback((value: number | undefined) => {
     if (value === undefined || value === null || isNaN(value)) {
       return "0.00%";
     }
     return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-  };
+  }, []);
 
-  const formatDate = (date: Date | string | number) => {
+  const formatDate = useCallback((date: Date | string | number) => {
     try {
       const dateObj = date instanceof Date ? date : new Date(date);
 
@@ -425,124 +638,26 @@ const TradingPaper = () => {
       logger.error("Invalid date:", date, error);
       return "N/A";
     }
-  };
+  }, []);
 
-  // Generate performance chart data with more detailed timeline
-  const generateChartData = () => {
-    // Create timeline for the last 24 hours
-    const data = [];
-    const now = new Date();
-    const startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+  // Memoize total position calculations to prevent recalculation on every render
+  const totalPositionSize = useMemo(() => {
+    return openTrades.reduce((total, trade) => total + calculatePositionSize(trade), 0);
+  }, [openTrades, calculatePositionSize]);
 
-    // Add initial balance (ensure reasonable values)
-    const initialBalance = settings.basic.initial_balance || 10000;
-    data.push({
-      date: "24h trước",
-      balance: initialBalance,
-      pnl: 0,
-      equity: initialBalance,
-      marginUsed: 0,
-      totalPositions: 0,
-      timestamp: startDate.toISOString(),
-    });
+  const totalMarginRequired = useMemo(() => {
+    return openTrades.reduce((total, trade) => total + calculateMarginRequired(trade), 0);
+  }, [openTrades, calculateMarginRequired]);
 
-    // Generate 8 data points over 24 hours (every 3 hours)
-    for (let i = 1; i <= 8; i++) {
-      const hoursAgo = 24 - i * 3;
-      const currentTime = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
-      const progressRatio = Math.min(i / 8, 1);
-
-      // Simulate gradual portfolio changes
-      let simulatedBalance = initialBalance;
-      let simulatedPnl = 0;
-
-      // Add some realistic market movement simulation
-      if (openTrades.length > 0) {
-        // Create a realistic P&L progression
-        simulatedPnl = (portfolio.total_pnl || 0) * progressRatio;
-        simulatedBalance = initialBalance + simulatedPnl;
-
-        // Add small market volatility (max ±0.5% of balance)
-        const volatility = Math.sin(i * 0.5) * 0.005; // 0.5% max volatility
-        const volatilityAmount = initialBalance * volatility;
-        simulatedBalance += volatilityAmount;
-        simulatedPnl += volatilityAmount;
-      } else {
-        // If no trades, add small random movement around initial balance
-        const smallMovement = Math.sin(i * 0.3) * 25; // ±$25 movement
-        simulatedBalance = initialBalance + smallMovement;
-        simulatedPnl = smallMovement;
-      }
-
-      // Create simple time labels
-      let timeLabel;
-      if (hoursAgo <= 0) {
-        timeLabel = "Hiện tại";
-      } else {
-        timeLabel = `${hoursAgo}h trước`;
-      }
-
-      data.push({
-        date: timeLabel,
-        balance: simulatedBalance,
-        pnl: simulatedPnl,
-        equity: simulatedBalance,
-        marginUsed: portfolio.margin_used * progressRatio,
-        totalPositions: Math.floor(openTrades.length * progressRatio),
-        timestamp: currentTime.toISOString(),
-      });
-    }
-
-    // Add closed trades if any
-    if (closedTrades.length > 0) {
-      const sortedTrades = [...closedTrades].sort(
-        (a, b) =>
-          new Date(a.close_time!).getTime() - new Date(b.close_time!).getTime()
-      );
-
-      let runningBalance = initialBalance;
-
-      sortedTrades.forEach((trade, index) => {
-        runningBalance += trade.pnl || 0;
-        const tradeDate = new Date(trade.close_time!);
-
-        data.push({
-          date: `T${index + 1}`,
-          balance: runningBalance,
-          pnl: trade.pnl || 0,
-          equity: runningBalance,
-          marginUsed: 0,
-          totalPositions: 0,
-          timestamp: tradeDate.toISOString(),
-          tradeEvent: true,
-        });
-      });
-    }
-
-    // Always add current state (ensure values are reasonable)
-    data.push({
-      date: "Hiện tại",
-      balance: Math.max(portfolio.equity || initialBalance, 0),
-      pnl: portfolio.total_pnl || 0,
-      equity: Math.max(portfolio.equity || initialBalance, 0),
-      marginUsed: Math.max(portfolio.margin_used || 0, 0),
-      totalPositions: openTrades.length || 0,
-      timestamp: now.toISOString(),
-      isCurrent: true,
-    });
-
-    // Sort by timestamp for correct order
-    return data.sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-  };
-
-  const chartData = generateChartData();
+  // Memoize reversed closed trades for display
+  const reversedClosedTrades = useMemo(() => {
+    return closedTrades.slice().reverse();
+  }, [closedTrades]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
 
       <div className="p-4 lg:p-6">
         <div className="mb-4 lg:mb-6">
@@ -766,13 +881,7 @@ const TradingPaper = () => {
                           Position Size:{" "}
                         </span>
                         <span className="font-medium text-primary">
-                          {formatCurrency(
-                            openTrades.reduce(
-                              (total, trade) =>
-                                total + calculatePositionSize(trade),
-                              0
-                            )
-                          )}
+                          {formatCurrency(totalPositionSize)}
                         </span>
                       </div>
                       <div>
@@ -780,13 +889,7 @@ const TradingPaper = () => {
                           Margin Used:{" "}
                         </span>
                         <span className="font-medium text-warning">
-                          {formatCurrency(
-                            openTrades.reduce(
-                              (total, trade) =>
-                                total + calculateMarginRequired(trade),
-                              0
-                            )
-                          )}
+                          {formatCurrency(totalMarginRequired)}
                         </span>
                       </div>
                     </div>
@@ -952,189 +1055,8 @@ const TradingPaper = () => {
               </Card>
             </div>
 
-            {/* Performance Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  Biểu đồ hiệu suất
-                  <Badge
-                    variant="outline"
-                    className={`text-xs ${
-                      wsConnected
-                        ? "border-green-500 text-green-600"
-                        : "border-gray-400"
-                    }`}
-                  >
-                    {wsConnected && (
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
-                    )}
-                    {wsConnected ? "Live Data" : "Static Data"}
-                  </Badge>
-                  {wsConnected && (
-                    <Badge
-                      variant="secondary"
-                      className="text-xs bg-blue-100 text-blue-700"
-                    >
-                      Updates #{lastUpdateCount}
-                    </Badge>
-                  )}
-                </CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  {openTrades.length > 0
-                    ? `${
-                        openTrades.length
-                      } lệnh đang hoạt động • P&L: ${formatCurrency(
-                        portfolio.total_pnl
-                      )}`
-                    : "Chưa có lệnh giao dịch nào"}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {chartData.length > 1 ? (
-                  <div className="h-96">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="hsl(var(--border))"
-                        />
-                        <XAxis
-                          dataKey="date"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          angle={0}
-                          textAnchor="middle"
-                          height={50}
-                          interval={0}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={11}
-                          domain={[
-                            (dataMin: number) => Math.max(dataMin * 0.998, 0),
-                            (dataMax: number) => dataMax * 1.002,
-                          ]}
-                          tickFormatter={(value) => {
-                            if (value >= 1000000) {
-                              return `$${(value / 1000000).toFixed(1)}M`;
-                            } else if (value >= 1000) {
-                              return `$${(value / 1000).toFixed(1)}K`;
-                            } else {
-                              return `$${value.toFixed(0)}`;
-                            }
-                          }}
-                        />
-                        <Tooltip
-                          content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0]?.payload;
-                              return (
-                                <div className="bg-card border border-border rounded-lg p-4 shadow-lg min-w-[200px]">
-                                  <p className="font-medium mb-2">{label}</p>
-                                  <div className="space-y-1">
-                                    <p className="text-sm flex justify-between">
-                                      <span>Balance:</span>
-                                      <span className="font-medium text-primary">
-                                        {formatCurrency(data?.balance || 0)}
-                                      </span>
-                                    </p>
-                                    <p className="text-sm flex justify-between">
-                                      <span>P&L:</span>
-                                      <span
-                                        className={`font-medium ${
-                                          (data?.pnl || 0) >= 0
-                                            ? "text-profit"
-                                            : "text-loss"
-                                        }`}
-                                      >
-                                        {(data?.pnl || 0) >= 0 ? "+" : ""}
-                                        {formatCurrency(data?.pnl || 0)}
-                                      </span>
-                                    </p>
-                                    <p className="text-sm flex justify-between">
-                                      <span>Margin Used:</span>
-                                      <span className="font-medium text-warning">
-                                        {formatCurrency(data?.marginUsed || 0)}
-                                      </span>
-                                    </p>
-                                    <p className="text-sm flex justify-between">
-                                      <span>Positions:</span>
-                                      <span className="font-medium text-info">
-                                        {data?.totalPositions || 0}
-                                      </span>
-                                    </p>
-                                    {data?.tradeEvent && (
-                                      <p className="text-xs text-muted-foreground mt-2">
-                                        📊 Trade Event
-                                      </p>
-                                    )}
-                                    {data?.isCurrent && (
-                                      <p className="text-xs text-muted-foreground mt-2">
-                                        🔴 Current Status
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="balance"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          dot={(props) => {
-                            const { payload } = props;
-                            if (payload?.tradeEvent) {
-                              return (
-                                <circle
-                                  cx={props.cx}
-                                  cy={props.cy}
-                                  r={6}
-                                  fill="hsl(var(--chart-1))"
-                                  stroke="hsl(var(--primary))"
-                                  strokeWidth={2}
-                                />
-                              );
-                            }
-                            if (payload?.isCurrent) {
-                              return (
-                                <circle
-                                  cx={props.cx}
-                                  cy={props.cy}
-                                  r={8}
-                                  fill="hsl(var(--chart-5))"
-                                  stroke="hsl(var(--primary))"
-                                  strokeWidth={3}
-                                />
-                              );
-                            }
-                            return null;
-                          }}
-                          activeDot={{
-                            r: 6,
-                            stroke: "hsl(var(--primary))",
-                            strokeWidth: 2,
-                          }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <Activity className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Chưa có dữ liệu hiệu suất</p>
-                      <p className="text-sm">
-                        Khởi động bot để bắt đầu thu thập dữ liệu
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Performance Chart - Reusing the working component from Dashboard */}
+            <PerformanceChart />
           </TabsContent>
 
           {/* AI Signals Tab */}
@@ -1313,13 +1235,7 @@ const TradingPaper = () => {
                           Tổng Position Size
                         </div>
                         <div className="font-bold text-primary">
-                          {formatCurrency(
-                            openTrades.reduce(
-                              (total, trade) =>
-                                total + calculatePositionSize(trade),
-                              0
-                            )
-                          )}
+                          {formatCurrency(totalPositionSize)}
                         </div>
                       </div>
                       <div>
@@ -1327,13 +1243,7 @@ const TradingPaper = () => {
                           Tổng Margin Required
                         </div>
                         <div className="font-bold text-warning">
-                          {formatCurrency(
-                            openTrades.reduce(
-                              (total, trade) =>
-                                total + calculateMarginRequired(trade),
-                              0
-                            )
-                          )}
+                          {formatCurrency(totalMarginRequired)}
                         </div>
                       </div>
                     </div>
@@ -1359,141 +1269,16 @@ const TradingPaper = () => {
                     </TableHeader>
                     <TableBody>
                       {openTrades.map((trade) => (
-                        <TableRow
+                        <PositionRow
                           key={trade.id}
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => openTradeDetails(trade)}
-                        >
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              {trade.symbol}
-                              <span className="text-xs text-muted-foreground">
-                                ({trade.leverage}x)
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                trade.trade_type === "Long"
-                                  ? "default"
-                                  : "destructive"
-                              }
-                              className={
-                                trade.trade_type === "Long"
-                                  ? "bg-profit text-profit-foreground"
-                                  : "bg-loss text-loss-foreground"
-                              }
-                            >
-                              {trade.trade_type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {formatCurrency(trade.entry_price)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-right">
-                              <div className="font-medium">
-                                {trade.quantity.toFixed(6)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {trade.symbol.replace("USDT", "")}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-right">
-                              <div className="font-medium text-primary">
-                                {formatCurrency(calculatePositionSize(trade))}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Notional Value
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-right">
-                              <div className="font-medium text-warning">
-                                {formatCurrency(calculateMarginRequired(trade))}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                với {trade.leverage}x leverage
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono">
-                              {trade.leverage}x
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-right">
-                              <div
-                                className={`font-medium ${
-                                  (trade.pnl || 0) >= 0
-                                    ? "text-profit"
-                                    : "text-loss"
-                                }`}
-                              >
-                                {formatCurrency(trade.pnl || 0)}
-                              </div>
-                              <div
-                                className={`text-xs ${
-                                  trade.pnl_percentage >= 0
-                                    ? "text-profit"
-                                    : "text-loss"
-                                }`}
-                              >
-                                ({trade.pnl_percentage >= 0 ? "+" : ""}
-                                {trade.pnl_percentage.toFixed(2)}%)
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              {trade.stop_loss ? (
-                                <div className="text-loss font-medium">
-                                  {formatCurrency(trade.stop_loss)}
-                                </div>
-                              ) : (
-                                <Badge variant="secondary" className="text-xs">
-                                  Chưa đặt
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              {trade.take_profit ? (
-                                <div className="text-profit font-medium">
-                                  {formatCurrency(trade.take_profit)}
-                                </div>
-                              ) : (
-                                <Badge variant="secondary" className="text-xs">
-                                  Chưa đặt
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {formatDate(new Date(trade.open_time))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                closeTrade(trade.id);
-                              }}
-                              className="hover:bg-destructive hover:text-destructive-foreground"
-                            >
-                              Đóng
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                          trade={trade}
+                          onOpenDetails={openTradeDetails}
+                          onCloseTrade={handleCloseTrade}
+                          formatCurrency={formatCurrency}
+                          formatDate={formatDate}
+                          calculatePositionSize={calculatePositionSize}
+                          calculateMarginRequired={calculateMarginRequired}
+                        />
                       ))}
                     </TableBody>
                   </Table>
@@ -1531,73 +1316,15 @@ const TradingPaper = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {closedTrades
-                        .slice()
-                        .reverse()
-                        .map((trade) => (
-                          <TableRow
-                            key={trade.id}
-                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => openTradeDetails(trade)}
-                          >
-                            <TableCell className="font-medium">
-                              {trade.symbol}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  trade.trade_type === "Long"
-                                    ? "default"
-                                    : "destructive"
-                                }
-                              >
-                                {trade.trade_type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {formatCurrency(trade.entry_price)}
-                            </TableCell>
-                            <TableCell>
-                              {trade.exit_price
-                                ? formatCurrency(trade.exit_price)
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>{trade.quantity.toFixed(6)}</TableCell>
-                            <TableCell
-                              className={
-                                trade.pnl && trade.pnl >= 0
-                                  ? "text-profit"
-                                  : "text-loss"
-                              }
-                            >
-                              {trade.pnl ? formatCurrency(trade.pnl) : "N/A"}
-                            </TableCell>
-                            <TableCell
-                              className={
-                                trade.pnl_percentage &&
-                                trade.pnl_percentage >= 0
-                                  ? "text-profit"
-                                  : "text-loss"
-                              }
-                            >
-                              {trade.pnl_percentage
-                                ? formatPercentage(trade.pnl_percentage)
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {trade.close_time
-                                ? Math.round(
-                                    (new Date(trade.close_time).getTime() -
-                                      new Date(trade.open_time).getTime()) /
-                                      (1000 * 60)
-                                  ) + "m"
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{"Manual"}</Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                      {reversedClosedTrades.map((trade) => (
+                        <ClosedTradeRow
+                          key={trade.id}
+                          trade={trade}
+                          onOpenDetails={openTradeDetails}
+                          formatCurrency={formatCurrency}
+                          formatPercentage={formatPercentage}
+                        />
+                      ))}
                     </TableBody>
                   </Table>
                 ) : (
@@ -2344,9 +2071,10 @@ const TradingPaper = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Chatbot Widget */}
-      <ChatBot />
-    </div>
+        {/* Chatbot Widget */}
+        <ChatBot />
+      </div>
+    </ErrorBoundary>
   );
 };
 

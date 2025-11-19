@@ -700,9 +700,12 @@ export const usePaperTrading = () => {
                 });
 
                 // Update portfolio equity with real-time price changes
+                const newEquity = prev.portfolio.current_balance + totalUnrealizedPnl;
+                const equityChanged = Math.abs(newEquity - prev.portfolio.equity) > 0.01;
+
                 const updatedPortfolio = {
                   ...prev.portfolio,
-                  equity: prev.portfolio.current_balance + totalUnrealizedPnl,
+                  equity: newEquity,
                   total_pnl: totalUnrealizedPnl,
                 };
 
@@ -710,7 +713,8 @@ export const usePaperTrading = () => {
                   ...prev,
                   openTrades: updatedOpenTrades,
                   portfolio: updatedPortfolio,
-                  lastUpdated: new Date(),
+                  // Only update timestamp if equity changed significantly to reduce re-renders
+                  lastUpdated: equityChanged ? new Date() : prev.lastUpdated,
                 };
               });
 

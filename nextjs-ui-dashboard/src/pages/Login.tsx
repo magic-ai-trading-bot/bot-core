@@ -67,8 +67,12 @@ const Login = () => {
       <div className="relative z-10 w-full max-w-sm md:max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-6 md:mb-8">
-          <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-lg md:text-2xl">
+          <div
+            className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4"
+            role="img"
+            aria-label="Bot Core Trading Bot Logo"
+          >
+            <span className="text-primary-foreground font-bold text-lg md:text-2xl" aria-hidden="true">
               BT
             </span>
           </div>
@@ -89,7 +93,7 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@tradingbot.com"
+                  placeholder="trader@botcore.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-background/50"
@@ -137,11 +141,33 @@ const Login = () => {
               </p>
               <div className="text-xs space-y-1">
                 <p>
-                  <strong>Email:</strong> admin@tradingbot.com
+                  <strong>Email:</strong> trader@botcore.com
                 </p>
                 <p>
-                  <strong>Password:</strong> Admin@123456
+                  <strong>Password:</strong> password123
                 </p>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('trader@botcore.com');
+                    setPassword('password123');
+                  }}
+                  className="flex-1 px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 rounded border border-primary/30 transition-colors"
+                >
+                  Use Trader
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@botcore.com');
+                    setPassword('password123');
+                  }}
+                  className="flex-1 px-3 py-1.5 text-xs bg-accent/10 hover:bg-accent/20 rounded border border-accent/30 transition-colors"
+                >
+                  Use Admin
+                </button>
               </div>
             </div>
 

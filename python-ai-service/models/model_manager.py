@@ -1,10 +1,8 @@
 import os
 import joblib
-import numpy as np
 import pandas as pd
-from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, Union, Tuple
+from typing import Dict, Any, Optional
 from config.config import config
 from utils.logger import get_logger
 from utils.helpers import ensure_directory_exists, get_current_timestamp
@@ -111,7 +109,7 @@ class ModelManager:
             self._save_feature_engineer(timestamp)
             self._save_metadata(timestamp)
 
-            logger.info(f"Model training completed successfully")
+            logger.info("Model training completed successfully")
             return training_results
 
         except Exception as e:

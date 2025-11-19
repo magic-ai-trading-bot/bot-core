@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -22,11 +23,75 @@ interface PerformanceDataPoint {
   balance: number;
 }
 
+// Move CustomTooltip outside component to prevent recreation during render
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: PerformanceDataPoint }>;
+  label?: string;
+}) => {
+  if (!active || !payload || !payload.length) {
+    return null;
+  }
+
+  const data = payload[0].payload;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("vi-VN", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <div className="bg-background p-3 border rounded-lg shadow-lg">
+      <p className="font-medium">{formatDate(label)}</p>
+      <p className="text-sm">
+        <span className="text-muted-foreground">Equity: </span>
+        <span className="font-medium">{formatCurrency(data.equity)}</span>
+      </p>
+      <p className="text-sm">
+        <span className="text-muted-foreground">P&L: </span>
+        <span
+          className={`font-medium ${
+            data.pnl >= 0 ? "text-profit" : "text-loss"
+          }`}
+        >
+          {formatCurrency(data.pnl)}
+        </span>
+      </p>
+      <p className="text-sm">
+        <span className="text-muted-foreground">Daily: </span>
+        <span
+          className={`font-medium ${
+            data.dailyPnL >= 0 ? "text-profit" : "text-loss"
+          }`}
+        >
+          {formatCurrency(data.dailyPnL)}
+        </span>
+      </p>
+    </div>
+  );
+};
+
 export function PerformanceChart() {
   const { portfolio, openTrades, closedTrades } = usePaperTrading();
 
-  // Generate mock performance data based on current portfolio status
-  const generatePerformanceData = (): PerformanceDataPoint[] => {
+  // Memoize performance data generation to prevent chart flickering
+  // Only regenerate when portfolio values actually change
+  const performanceData = useMemo(() => {
     const data: PerformanceDataPoint[] = [];
     const currentDate = new Date();
     const initialBalance = 10000;
@@ -41,8 +106,9 @@ export function PerformanceChart() {
       const totalPnLProgress = portfolio.total_pnl * progress;
       const equity = initialBalance + totalPnLProgress;
 
-      // Add some daily volatility
-      const dailyVariation = Math.sin(i * 0.5) * 20 + Math.random() * 40 - 20;
+      // Add deterministic (not random) daily volatility based on day index
+      // This ensures the same data is generated every time for same portfolio state
+      const dailyVariation = Math.sin(i * 0.5) * 20 + Math.sin(i * 1.2) * 20;
       const adjustedEquity = equity + dailyVariation;
 
       const dailyPnL =
@@ -66,9 +132,7 @@ export function PerformanceChart() {
     }
 
     return data;
-  };
-
-  const performanceData = generatePerformanceData();
+  }, [portfolio.total_pnl, portfolio.equity]); // Only regenerate when these values change
   const currentPnL = portfolio.total_pnl;
   const currentPnLPercentage = portfolio.total_pnl_percentage;
 
@@ -93,50 +157,6 @@ export function PerformanceChart() {
       month: "short",
       day: "numeric",
     });
-  };
-
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: Array<{ payload: PerformanceDataPoint }>;
-    label?: string;
-  }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-background p-3 border rounded-lg shadow-lg">
-          <p className="font-medium">{formatDate(label)}</p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">Equity: </span>
-            <span className="font-medium">{formatCurrency(data.equity)}</span>
-          </p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">P&L: </span>
-            <span
-              className={`font-medium ${
-                data.pnl >= 0 ? "text-profit" : "text-loss"
-              }`}
-            >
-              {formatCurrency(data.pnl)}
-            </span>
-          </p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">Daily: </span>
-            <span
-              className={`font-medium ${
-                data.dailyPnL >= 0 ? "text-profit" : "text-loss"
-              }`}
-            >
-              {formatCurrency(data.dailyPnL)}
-            </span>
-          </p>
-        </div>
-      );
-    }
-    return null;
   };
 
   return (

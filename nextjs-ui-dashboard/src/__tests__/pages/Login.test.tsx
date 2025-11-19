@@ -94,8 +94,8 @@ describe('Login', () => {
     render(<Login />)
 
     expect(screen.getByText('Demo credentials:')).toBeInTheDocument()
-    expect(screen.getByText(/admin@tradingbot.com/i)).toBeInTheDocument()
-    expect(screen.getByText(/Admin@123456/i)).toBeInTheDocument()
+    expect(screen.getByText(/trader@botcore.com/i)).toBeInTheDocument()
+    expect(screen.getByText(/password123/i)).toBeInTheDocument()
   })
 
   it('has link to register page', () => {

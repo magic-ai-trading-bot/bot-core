@@ -243,7 +243,12 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
             {strategyName === "RSI Strategy" && (
               <div className="space-y-4">
                 <div className="w-full h-64 bg-muted/10 rounded-lg p-4">
-                  <svg viewBox="0 0 400 200" className="w-full h-full">
+                  <svg
+                    viewBox="0 0 400 200"
+                    className="w-full h-full"
+                    role="img"
+                    aria-label="RSI Strategy visualization showing overbought zone above 70 and oversold zone below 30"
+                  >
                     <defs>
                       <pattern
                         id="grid"
@@ -365,7 +370,12 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
             {strategyName === "MACD Strategy" && (
               <div className="space-y-4">
                 <div className="w-full h-64 bg-muted/10 rounded-lg p-4">
-                  <svg viewBox="0 0 400 200" className="w-full h-full">
+                  <svg
+                    viewBox="0 0 400 200"
+                    className="w-full h-full"
+                    role="img"
+                    aria-label="MACD Strategy visualization showing MACD line crossing signal line for buy and sell signals"
+                  >
                     {/* Grid */}
                     <rect width="400" height="200" fill="url(#grid)" />
 
@@ -499,7 +509,12 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
             {strategyName === "Volume Strategy" && (
               <div className="space-y-4">
                 <div className="w-full h-64 bg-muted/10 rounded-lg p-4">
-                  <svg viewBox="0 0 400 200" className="w-full h-full">
+                  <svg
+                    viewBox="0 0 400 200"
+                    className="w-full h-full"
+                    role="img"
+                    aria-label="Volume Strategy visualization showing price movement with volume bars indicating high and normal trading volume"
+                  >
                     <rect width="400" height="200" fill="url(#grid)" />
 
                     {/* Price line (top half) */}
@@ -604,7 +619,12 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
             {strategyName === "Bollinger Bands Strategy" && (
               <div className="space-y-4">
                 <div className="w-full h-64 bg-muted/10 rounded-lg p-4">
-                  <svg viewBox="0 0 400 200" className="w-full h-full">
+                  <svg
+                    viewBox="0 0 400 200"
+                    className="w-full h-full"
+                    role="img"
+                    aria-label="Bollinger Bands Strategy visualization showing upper band, middle band, and lower band with price movements"
+                  >
                     <rect width="400" height="200" fill="url(#grid)" />
 
                     {/* Upper Band */}

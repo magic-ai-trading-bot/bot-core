@@ -48,12 +48,59 @@ pub struct MarketDataProcessor {
 }
 
 impl MarketDataProcessor {
+    /// Validate and parse a price string, rejecting invalid prices
+    ///
+    /// @spec:FR-RISK-007 - Price Data Validation
+    /// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#price-validation
+    fn validate_price(price_str: &str, symbol: &str, context: &str) -> Result<f64> {
+        const MIN_VALID_PRICE: f64 = 0.01; // Minimum valid price for crypto (1 cent)
+
+        let price: f64 = price_str.parse().map_err(|_| {
+            anyhow::anyhow!(
+                "Invalid price format for {} ({}): '{}'",
+                symbol,
+                context,
+                price_str
+            )
+        })?;
+
+        if price <= 0.0 {
+            return Err(anyhow::anyhow!(
+                "Zero or negative price for {} ({}): {}",
+                symbol,
+                context,
+                price
+            ));
+        }
+
+        if price < MIN_VALID_PRICE {
+            return Err(anyhow::anyhow!(
+                "Price too low for {} ({}): {} (minimum: {})",
+                symbol,
+                context,
+                price,
+                MIN_VALID_PRICE
+            ));
+        }
+
+        if !price.is_finite() {
+            return Err(anyhow::anyhow!(
+                "Non-finite price for {} ({}): {}",
+                symbol,
+                context,
+                price
+            ));
+        }
+
+        Ok(price)
+    }
+
     pub async fn new(
         binance_config: BinanceConfig,
         config: MarketDataConfig,
         storage: Storage,
     ) -> Result<Self> {
-        let client = BinanceClient::new(binance_config.clone());
+        let client = BinanceClient::new(binance_config.clone())?;
         let cache = MarketDataCache::new(config.cache_size);
         let analyzer = Arc::new(MarketDataAnalyzer::new(
             config.python_ai_service_url.clone(),
@@ -282,7 +329,18 @@ impl MarketDataProcessor {
 
                 // Broadcast price update via WebSocket (compatible with frontend)
                 if let Some(broadcaster) = ws_broadcaster {
-                    let current_price = kline_event.kline.close_price.parse::<f64>().unwrap_or(0.0);
+                    // Validate price instead of silently accepting 0.0
+                    let current_price = match Self::validate_price(
+                        &kline_event.kline.close_price,
+                        &kline_event.symbol,
+                        "kline close",
+                    ) {
+                        Ok(price) => price,
+                        Err(e) => {
+                            error!("Invalid kline price for {}: {}", kline_event.symbol, e);
+                            return Ok(()); // Skip this update
+                        },
+                    };
 
                     // Send MarketData update for immediate price updates
                     let market_data_update = json!({
@@ -300,6 +358,40 @@ impl MarketDataProcessor {
 
                     // Send ChartUpdate if kline is closed (more detailed update)
                     if kline_event.kline.is_this_kline_closed {
+                        // Validate all price data
+                        let (open, high, low, volume) = match (
+                            Self::validate_price(
+                                &kline_event.kline.open_price,
+                                &kline_event.symbol,
+                                "kline open",
+                            ),
+                            Self::validate_price(
+                                &kline_event.kline.high_price,
+                                &kline_event.symbol,
+                                "kline high",
+                            ),
+                            Self::validate_price(
+                                &kline_event.kline.low_price,
+                                &kline_event.symbol,
+                                "kline low",
+                            ),
+                            kline_event
+                                .kline
+                                .base_asset_volume
+                                .parse::<f64>()
+                                .ok()
+                                .filter(|v| v.is_finite() && *v >= 0.0),
+                        ) {
+                            (Ok(o), Ok(h), Ok(l), Some(v)) => (o, h, l, v),
+                            _ => {
+                                error!(
+                                    "Invalid candle data for {}, skipping chart update",
+                                    kline_event.symbol
+                                );
+                                return Ok(());
+                            },
+                        };
+
                         let chart_update = json!({
                             "type": "ChartUpdate",
                             "data": {
@@ -307,11 +399,11 @@ impl MarketDataProcessor {
                                 "timeframe": kline_event.kline.interval,
                                 "candle": {
                                     "timestamp": kline_event.kline.kline_start_time,
-                                    "open": kline_event.kline.open_price.parse::<f64>().unwrap_or(0.0),
-                                    "high": kline_event.kline.high_price.parse::<f64>().unwrap_or(0.0),
-                                    "low": kline_event.kline.low_price.parse::<f64>().unwrap_or(0.0),
+                                    "open": open,
+                                    "high": high,
+                                    "low": low,
                                     "close": current_price,
-                                    "volume": kline_event.kline.base_asset_volume.parse::<f64>().unwrap_or(0.0),
+                                    "volume": volume,
                                     "is_closed": true
                                 },
                                 "latest_price": current_price,
@@ -517,16 +609,28 @@ impl MarketDataProcessor {
             .get_market_data(symbol, timeframe, limit.map(|l| l as i64))
             .await?;
 
-        // Convert Klines to CandleData
+        // Convert Klines to CandleData with validation
         let candle_data: Vec<CandleData> = klines
             .iter()
-            .map(|kline| CandleData {
-                timestamp: kline.open_time,
-                open: kline.open.parse::<f64>().unwrap_or(0.0),
-                high: kline.high.parse::<f64>().unwrap_or(0.0),
-                low: kline.low.parse::<f64>().unwrap_or(0.0),
-                close: kline.close.parse::<f64>().unwrap_or(0.0),
-                volume: kline.volume.parse::<f64>().unwrap_or(0.0),
+            .filter_map(|kline| {
+                let open = Self::validate_price(&kline.open, symbol, "kline open").ok()?;
+                let high = Self::validate_price(&kline.high, symbol, "kline high").ok()?;
+                let low = Self::validate_price(&kline.low, symbol, "kline low").ok()?;
+                let close = Self::validate_price(&kline.close, symbol, "kline close").ok()?;
+                let volume = kline
+                    .volume
+                    .parse()
+                    .ok()
+                    .filter(|v: &f64| v.is_finite() && *v >= 0.0)?;
+
+                Some(CandleData {
+                    timestamp: kline.open_time,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                })
             })
             .collect();
 
@@ -983,11 +1087,11 @@ mod tests {
 
     #[tokio::test]
     #[ignore] // Requires MongoDB
-    async fn test_refresh_timeframe_data() {
+    async fn test_refresh_timeframe_data() -> Result<()> {
         // This test would require a real Binance client connection
         // For unit testing, we'll just verify the function signature
         let binance_config = create_test_binance_config();
-        let client = BinanceClient::new(binance_config);
+        let client = BinanceClient::new(binance_config)?;
         let cache = MarketDataCache::new(100);
 
         // Note: This will fail without real API access, which is expected in unit tests
@@ -996,6 +1100,7 @@ mod tests {
 
         // We accept both success and failure here as this requires external API
         assert!(result.is_ok() || result.is_err());
+        Ok(())
     }
 
     #[test]

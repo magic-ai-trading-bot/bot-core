@@ -39,7 +39,7 @@ impl TradingEngine {
         market_data: MarketDataProcessor,
         storage: Storage,
     ) -> Result<Self> {
-        let client = BinanceClient::new(binance_config.clone());
+        let client = BinanceClient::new(binance_config.clone())?;
         let position_manager = PositionManager::new();
         let risk_manager = RiskManager::new(config.clone());
 

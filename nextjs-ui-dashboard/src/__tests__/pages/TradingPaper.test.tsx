@@ -22,11 +22,14 @@ vi.mock('../../components/ChatBot', () => ({
 // Mock recharts to avoid rendering issues
 vi.mock('recharts', () => ({
   LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  AreaChart: ({ children }: { children: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
   Line: () => <div data-testid="line" />,
+  Area: () => <div data-testid="area" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
+  Legend: () => <div data-testid="legend" />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
 }))
 
@@ -50,9 +53,15 @@ const defaultHookReturn = {
     free_margin: 10000,
     win_rate: 0,
     average_win: 0,
+    average_loss: 0,
     profit_factor: 0,
     max_drawdown: 0,
     max_drawdown_percentage: 0,
+    sharpe_ratio: 0,
+    win_streak: 0,
+    loss_streak: 0,
+    best_trade: 0,
+    worst_trade: 0,
   },
   openTrades: [],
   closedTrades: [],
@@ -105,9 +114,10 @@ describe('TradingPaper', () => {
   it('displays portfolio overview cards', () => {
     render(<TradingPaper />)
 
-    expect(screen.getByText('Số dư hiện tại')).toBeInTheDocument()
-    expect(screen.getByText('Tổng P&L')).toBeInTheDocument()
-    expect(screen.getByText('Tổng số lệnh')).toBeInTheDocument()
+    // These texts may appear multiple times on the page, use getAllByText
+    expect(screen.getAllByText('Số dư hiện tại')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Tổng P&L')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Tổng số lệnh')[0]).toBeInTheDocument()
   })
 
   it('shows correct initial balance', () => {
@@ -278,9 +288,9 @@ describe('TradingPaper', () => {
 
       render(<TradingPaper />)
 
-      // Just check that the sections exist
-      expect(screen.getByText('Số dư hiện tại')).toBeInTheDocument()
-      expect(screen.getByText('Tổng P&L')).toBeInTheDocument()
+      // Just check that the sections exist (may appear multiple times)
+      expect(screen.getAllByText('Số dư hiện tại')[0]).toBeInTheDocument()
+      expect(screen.getAllByText('Tổng P&L')[0]).toBeInTheDocument()
     })
   })
 
@@ -674,7 +684,7 @@ describe('TradingPaper', () => {
 
       render(<TradingPaper />)
 
-      expect(screen.getByText('Tổng P&L')).toBeInTheDocument()
+      expect(screen.getAllByText('Tổng P&L')[0]).toBeInTheDocument()
     })
   })
 
@@ -690,7 +700,7 @@ describe('TradingPaper', () => {
 
       render(<TradingPaper />)
 
-      expect(screen.getByText('Số dư hiện tại')).toBeInTheDocument()
+      expect(screen.getAllByText('Số dư hiện tại')[0]).toBeInTheDocument()
     })
 
     it('displays P&L percentage section', () => {
@@ -705,7 +715,7 @@ describe('TradingPaper', () => {
 
       render(<TradingPaper />)
 
-      expect(screen.getByText('Tổng P&L')).toBeInTheDocument()
+      expect(screen.getAllByText('Tổng P&L')[0]).toBeInTheDocument()
     })
   })
 })

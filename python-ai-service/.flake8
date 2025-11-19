@@ -1,0 +1,26 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203, E501
+exclude =
+    .git,
+    __pycache__,
+    .pytest_cache,
+    venv,
+    env,
+    .venv,
+    dist,
+    build,
+    *.egg-info
+
+# Per-file ignores
+per-file-ignores =
+    # Allow long lines in config files
+    config/*.py:E501
+    # Allow unused imports in __init__.py files
+    __init__.py:F401
+    # Allow long lines and unused imports/variables in tests (test utilities)
+    tests/*.py:E501,F401,F841,E712,F811,E402
+    # Allow long lines and unused imports in examples
+    examples/*.py:E501,F401
+    # Allow unused imports in utils (may be re-exported)
+    utils/*.py:F401
