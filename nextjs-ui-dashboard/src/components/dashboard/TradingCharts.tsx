@@ -345,7 +345,7 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">24h Volume:</span>
               <span className="font-mono">
-                ${chartData.volume_24h.toLocaleString()}
+                ${(chartData.volume_24h || 0).toLocaleString()}
               </span>
             </div>
 
