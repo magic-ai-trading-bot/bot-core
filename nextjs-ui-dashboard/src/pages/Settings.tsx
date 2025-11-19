@@ -1,5 +1,9 @@
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { BotSettings } from "@/components/dashboard/BotSettings";
+import { PerSymbolSettings } from "@/components/dashboard/PerSymbolSettings";
+import { StrategyTuningSettings } from "@/components/dashboard/StrategyTuningSettings";
+import { SystemMonitoring } from "@/components/dashboard/SystemMonitoring";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +12,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { usePaperTrading } from "@/hooks/usePaperTrading";
 import ChatBot from "@/components/ChatBot";
 
 const Settings = () => {
+  const { portfolio } = usePaperTrading();
   const [apiKey, setApiKey] = useState(
     "************************************1234"
   );
@@ -25,8 +31,9 @@ const Settings = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
 
       <div className="p-4 lg:p-6">
         <div className="mb-4 lg:mb-6">
@@ -37,9 +44,18 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="bot" className="space-y-4 lg:space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-1">
             <TabsTrigger value="bot" className="text-xs lg:text-sm">
               Bot Settings
+            </TabsTrigger>
+            <TabsTrigger value="per-symbol" className="text-xs lg:text-sm">
+              Per-Symbol
+            </TabsTrigger>
+            <TabsTrigger value="strategy-tuning" className="text-xs lg:text-sm">
+              Strategy Tuning
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="text-xs lg:text-sm">
+              System Health
             </TabsTrigger>
             <TabsTrigger value="api" className="text-xs lg:text-sm">
               API Keys
@@ -55,6 +71,21 @@ const Settings = () => {
           {/* Bot Configuration Tab */}
           <TabsContent value="bot">
             <BotSettings />
+          </TabsContent>
+
+          {/* Per-Symbol Configuration Tab */}
+          <TabsContent value="per-symbol">
+            <PerSymbolSettings currentBalance={portfolio?.current_balance || 10000} />
+          </TabsContent>
+
+          {/* Strategy Tuning Tab */}
+          <TabsContent value="strategy-tuning">
+            <StrategyTuningSettings />
+          </TabsContent>
+
+          {/* System Monitoring Tab */}
+          <TabsContent value="monitoring">
+            <SystemMonitoring />
           </TabsContent>
 
           {/* API Keys Tab */}
@@ -321,9 +352,10 @@ const Settings = () => {
         </Tabs>
       </div>
 
-      {/* Chatbot Widget */}
-      <ChatBot />
-    </div>
+        {/* Chatbot Widget */}
+        <ChatBot />
+      </div>
+    </ErrorBoundary>
   );
 };
 
