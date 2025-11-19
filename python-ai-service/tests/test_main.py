@@ -2,6 +2,7 @@
 Test main FastAPI application and endpoints.
 """
 
+import os
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock, Mock
 from datetime import datetime, timezone, timedelta
