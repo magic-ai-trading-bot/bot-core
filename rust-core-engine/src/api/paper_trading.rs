@@ -942,7 +942,8 @@ mod tests {
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
         };
-        let binance_client = BinanceClient::new(binance_config)?;
+        let binance_client =
+            BinanceClient::new(binance_config).expect("Failed to create binance client");
 
         let ai_config = crate::ai::AIServiceConfig {
             python_service_url: "http://localhost:8000".to_string(),

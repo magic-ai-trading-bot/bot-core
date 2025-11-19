@@ -1087,7 +1087,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore] // Requires MongoDB
-    async fn test_refresh_timeframe_data() {
+    async fn test_refresh_timeframe_data() -> Result<()> {
         // This test would require a real Binance client connection
         // For unit testing, we'll just verify the function signature
         let binance_config = create_test_binance_config();
@@ -1100,6 +1100,7 @@ mod tests {
 
         // We accept both success and failure here as this requires external API
         assert!(result.is_ok() || result.is_err());
+        Ok(())
     }
 
     #[test]

@@ -1350,7 +1350,7 @@ mod tests {
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
         };
-        BinanceClient::new(config)
+        BinanceClient::new(config).expect("Failed to create mock binance client")
     }
 
     fn create_mock_ai_service() -> AIService {
