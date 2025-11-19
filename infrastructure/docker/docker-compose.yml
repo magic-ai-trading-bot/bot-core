@@ -2,7 +2,7 @@ services:
   # Python AI Service
   python-ai-service:
     build:
-      context: ./python-ai-service
+      context: ../../python-ai-service
       dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: python-ai-service
     restart: unless-stopped
@@ -44,7 +44,7 @@ services:
   # Python AI Service - Development mode
   python-ai-service-dev:
     build:
-      context: ./python-ai-service
+      context: ../../python-ai-service
       dockerfile: Dockerfile.dev
       target: development
     container_name: python-ai-service-dev
@@ -95,7 +95,7 @@ services:
   # Rust Core Engine
   rust-core-engine:
     build:
-      context: ./rust-core-engine
+      context: ../../rust-core-engine
       dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: rust-core-engine
     restart: unless-stopped
@@ -142,7 +142,7 @@ services:
   # Rust Core Engine - Development mode
   rust-core-engine-dev:
     build:
-      context: ./rust-core-engine
+      context: ../../rust-core-engine
       dockerfile: Dockerfile.dev
     container_name: rust-core-engine-dev
     restart: unless-stopped
@@ -191,7 +191,7 @@ services:
   # Next.js UI Dashboard
   nextjs-ui-dashboard:
     build:
-      context: ./nextjs-ui-dashboard
+      context: ../../nextjs-ui-dashboard
       dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: nextjs-ui-dashboard
     restart: unless-stopped
@@ -233,7 +233,7 @@ services:
   # Frontend Development mode
   nextjs-ui-dashboard-dev:
     build:
-      context: ./nextjs-ui-dashboard
+      context: ../../nextjs-ui-dashboard
       dockerfile: Dockerfile.dev
       target: development
     container_name: nextjs-ui-dashboard-dev
