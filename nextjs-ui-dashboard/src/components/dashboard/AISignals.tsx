@@ -1192,8 +1192,8 @@ export function AISignals() {
 
   // Combine signals from both AI analysis and WebSocket
   const allSignalsRaw = [
-    ...aiState.signals.map((s) => ({ ...s, source: "api" })),
-    ...wsState.aiSignals.map((s) => ({
+    ...(aiState.signals || []).map((s) => ({ ...s, source: "api" })),
+    ...(wsState.aiSignals || []).map((s) => ({
       ...s,
       source: "websocket",
       reasoning: `WebSocket signal from ${s.model_type}`,
