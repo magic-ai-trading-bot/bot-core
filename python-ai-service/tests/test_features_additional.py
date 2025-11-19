@@ -19,9 +19,7 @@ class TestFeatureEngineerAdditional:
         fe = FeatureEngineer()
 
         # Create df without required columns
-        df = pd.DataFrame({
-            "data": [1, 2, 3]
-        })
+        df = pd.DataFrame({"data": [1, 2, 3]})
 
         with patch("features.feature_engineering.logger") as mock_logger:
             result = fe._add_volatility_features(df)
@@ -46,13 +44,15 @@ class TestFeatureEngineerAdditional:
         fe = FeatureEngineer()
 
         # Only 2 rows - not enough for many rolling calculations
-        df = pd.DataFrame({
-            "open": [100.0, 101.0],
-            "high": [102.0, 103.0],
-            "low": [99.0, 100.0],
-            "close": [101.0, 102.0],
-            "volume": [1000.0, 1100.0],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0, 101.0],
+                "high": [102.0, 103.0],
+                "low": [99.0, 100.0],
+                "close": [101.0, 102.0],
+                "volume": [1000.0, 1100.0],
+            }
+        )
 
         result = fe.prepare_features(df)
 
@@ -64,13 +64,15 @@ class TestFeatureEngineerAdditional:
         fe = FeatureEngineer()
 
         # DataFrame with NaN values
-        df = pd.DataFrame({
-            "open": [100.0, np.nan, 102.0, 103.0, 104.0],
-            "high": [102.0, 103.0, np.nan, 105.0, 106.0],
-            "low": [99.0, 100.0, 101.0, 102.0, 103.0],
-            "close": [101.0, 102.0, 103.0, 104.0, 105.0],
-            "volume": [1000.0, 1100.0, 1200.0, 1300.0, 1400.0],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0, np.nan, 102.0, 103.0, 104.0],
+                "high": [102.0, 103.0, np.nan, 105.0, 106.0],
+                "low": [99.0, 100.0, 101.0, 102.0, 103.0],
+                "close": [101.0, 102.0, 103.0, 104.0, 105.0],
+                "volume": [1000.0, 1100.0, 1200.0, 1300.0, 1400.0],
+            }
+        )
 
         result = fe.prepare_features(df)
 
@@ -86,12 +88,14 @@ class TestTechnicalIndicatorsAdditional:
         ti = TechnicalIndicators()
 
         # DataFrame without volume column
-        df = pd.DataFrame({
-            "close": [100, 101, 102],
-            "open": [99, 100, 101],
-            "high": [102, 103, 104],
-            "low": [98, 99, 100],
-        })
+        df = pd.DataFrame(
+            {
+                "close": [100, 101, 102],
+                "open": [99, 100, 101],
+                "high": [102, 103, 104],
+                "low": [98, 99, 100],
+            }
+        )
 
         with patch("features.technical_indicators.logger") as mock_logger:
             indicators = ti.calculate_volume_indicators(df)
@@ -108,9 +112,7 @@ class TestTechnicalIndicatorsAdditional:
         ti = TechnicalIndicators()
 
         # Create df that might cause errors
-        df = pd.DataFrame({
-            "close": [np.nan, np.nan, np.nan]
-        })
+        df = pd.DataFrame({"close": [np.nan, np.nan, np.nan]})
 
         with patch("features.technical_indicators.logger") as mock_logger:
             # Try to calculate - should handle errors gracefully
@@ -126,13 +128,15 @@ class TestTechnicalIndicatorsAdditional:
         ti = TechnicalIndicators()
 
         # Only 3 data points - not enough for many indicators
-        df = pd.DataFrame({
-            "open": [100.0, 101.0, 102.0],
-            "high": [102.0, 103.0, 104.0],
-            "low": [99.0, 100.0, 101.0],
-            "close": [101.0, 102.0, 103.0],
-            "volume": [1000.0, 1100.0, 1200.0],
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0, 101.0, 102.0],
+                "high": [102.0, 103.0, 104.0],
+                "low": [99.0, 100.0, 101.0],
+                "close": [101.0, 102.0, 103.0],
+                "volume": [1000.0, 1100.0, 1200.0],
+            }
+        )
 
         result = ti.calculate_all_indicators(df)
 
@@ -144,13 +148,15 @@ class TestTechnicalIndicatorsAdditional:
         ti = TechnicalIndicators()
 
         # All prices the same
-        df = pd.DataFrame({
-            "open": [100.0] * 50,
-            "high": [100.0] * 50,
-            "low": [100.0] * 50,
-            "close": [100.0] * 50,
-            "volume": [1000.0] * 50,
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0] * 50,
+                "high": [100.0] * 50,
+                "low": [100.0] * 50,
+                "close": [100.0] * 50,
+                "volume": [1000.0] * 50,
+            }
+        )
 
         result = ti.calculate_all_indicators(df)
 
@@ -163,13 +169,15 @@ class TestTechnicalIndicatorsAdditional:
         ti = TechnicalIndicators()
 
         # Use varying prices instead of constants
-        df = pd.DataFrame({
-            "open": [100.0, 101.0, 102.0, 103.0, 104.0] * 6,
-            "high": [102.0, 103.0, 104.0, 105.0, 106.0] * 6,
-            "low": [99.0, 100.0, 101.0, 102.0, 103.0] * 6,
-            "close": [101.0, 102.0, 103.0, 104.0, 105.0] * 6,
-            "volume": [1000.0, 1100.0, 1200.0, 1300.0, 1400.0] * 6
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100.0, 101.0, 102.0, 103.0, 104.0] * 6,
+                "high": [102.0, 103.0, 104.0, 105.0, 106.0] * 6,
+                "low": [99.0, 100.0, 101.0, 102.0, 103.0] * 6,
+                "close": [101.0, 102.0, 103.0, 104.0, 105.0] * 6,
+                "volume": [1000.0, 1100.0, 1200.0, 1300.0, 1400.0] * 6,
+            }
+        )
 
         indicators = ti.calculate_momentum_indicators(df)
 
@@ -181,9 +189,7 @@ class TestTechnicalIndicatorsAdditional:
         ti = TechnicalIndicators()
 
         # High volatility data
-        df = pd.DataFrame({
-            "close": [100, 200, 50, 150, 75, 175, 90, 190, 60, 180]
-        })
+        df = pd.DataFrame({"close": [100, 200, 50, 150, 75, 175, 90, 190, 60, 180]})
 
         indicators = ti.calculate_bollinger_bands(df)
 
@@ -199,9 +205,7 @@ class TestTechnicalIndicatorsAdditional:
         ti = TechnicalIndicators()
 
         # Only 20 data points - less than MACD slow period (26)
-        df = pd.DataFrame({
-            "close": np.random.uniform(90, 110, 20)
-        })
+        df = pd.DataFrame({"close": np.random.uniform(90, 110, 20)})
 
         indicators = ti.calculate_macd(df)
 
@@ -220,13 +224,15 @@ class TestIntegrationEdgeCases:
         ti = TechnicalIndicators()
 
         # Mix of good and problematic data
-        df = pd.DataFrame({
-            "open": [100, np.nan, 102, 103, 104],
-            "high": [102, 103, np.inf, 105, 106],
-            "low": [99, 100, 101, 102, 103],
-            "close": [101, 102, 103, 104, 105],
-            "volume": [1000, 1100, 1200, 0, 1400],  # Zero volume
-        })
+        df = pd.DataFrame(
+            {
+                "open": [100, np.nan, 102, 103, 104],
+                "high": [102, 103, np.inf, 105, 106],
+                "low": [99, 100, 101, 102, 103],
+                "close": [101, 102, 103, 104, 105],
+                "volume": [1000, 1100, 1200, 0, 1400],  # Zero volume
+            }
+        )
 
         # Should handle problematic data without crashing
         features = fe.prepare_features(df)
@@ -240,13 +246,16 @@ class TestIntegrationEdgeCases:
         fe = FeatureEngineer()
 
         # Create df with custom index
-        df = pd.DataFrame({
-            "open": [100.0, 101.0, 102.0],
-            "high": [102.0, 103.0, 104.0],
-            "low": [99.0, 100.0, 101.0],
-            "close": [101.0, 102.0, 103.0],
-            "volume": [1000.0, 1100.0, 1200.0],
-        }, index=[10, 20, 30])
+        df = pd.DataFrame(
+            {
+                "open": [100.0, 101.0, 102.0],
+                "high": [102.0, 103.0, 104.0],
+                "low": [99.0, 100.0, 101.0],
+                "close": [101.0, 102.0, 103.0],
+                "volume": [1000.0, 1100.0, 1200.0],
+            },
+            index=[10, 20, 30],
+        )
 
         result = fe.prepare_features(df)
 
