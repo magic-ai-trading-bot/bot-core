@@ -112,7 +112,7 @@ async fn main() -> Result<()> {
         paper_trading_settings.set_symbol_settings(symbol.to_string(), symbol_settings);
     }
 
-    let binance_client = binance::BinanceClient::new(config.binance.clone());
+    let binance_client = binance::BinanceClient::new(config.binance.clone())?;
     let ai_service = ai::AIService::new(ai::AIServiceConfig {
         python_service_url: config.market_data.python_ai_service_url.clone(),
         request_timeout_seconds: 30,

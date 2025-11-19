@@ -12,7 +12,7 @@ mod tests {
 
     // Module structure and exports tests
     #[test]
-    fn test_module_exports_client() {
+    fn test_module_exports_client() -> anyhow::Result<()> {
         // Test that BinanceClient is properly exported
         let config = crate::config::BinanceConfig {
             api_key: "test".to_string(),
@@ -24,7 +24,8 @@ mod tests {
             testnet: false,
         };
 
-        let _client = BinanceClient::new(config);
+        let _client = BinanceClient::new(config)?;
+        Ok(())
     }
 
     #[test]
@@ -44,7 +45,7 @@ mod tests {
     }
 
     #[test]
-    fn test_binance_client_with_testnet_config() {
+    fn test_binance_client_with_testnet_config() -> anyhow::Result<()> {
         // Test BinanceClient with testnet configuration
         let config = crate::config::BinanceConfig {
             api_key: "testnet_key".to_string(),
@@ -56,7 +57,8 @@ mod tests {
             testnet: true,
         };
 
-        let _client = BinanceClient::new(config);
+        let _client = BinanceClient::new(config)?;
+        Ok(())
     }
 
     #[test]

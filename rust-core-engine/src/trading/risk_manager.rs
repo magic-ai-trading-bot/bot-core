@@ -84,16 +84,86 @@ impl RiskManager {
         Ok(true)
     }
 
+    /// Calculate position size based on risk management principles
+    ///
+    /// FIXED: Implements proper position sizing that:
+    /// - Uses account_balance
+    /// - Considers stop_loss distance
+    /// - Respects max risk per trade
+    ///
+    /// @spec:FR-RISK-001 - Position Size Calculation
+    /// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#risk-management
+    /// @test:TC-TRADING-004, TC-TRADING-005
     #[allow(dead_code)]
     pub fn calculate_position_size(
         &self,
-        _symbol: &str,
-        _entry_price: f64,
-        _stop_loss: Option<f64>,
-        _account_balance: f64,
+        symbol: &str,
+        entry_price: f64,
+        stop_loss: Option<f64>,
+        account_balance: f64,
     ) -> f64 {
-        // Simple fixed size for now
-        self.config.default_quantity
+        // Validate inputs
+        if entry_price <= 0.0 || account_balance <= 0.0 {
+            debug!(
+                "Invalid input for position sizing: entry_price={}, balance={}",
+                entry_price, account_balance
+            );
+            return self.config.default_quantity;
+        }
+
+        // If no stop loss provided, use default quantity
+        let stop_loss_price = match stop_loss {
+            Some(sl) if sl > 0.0 => sl,
+            _ => {
+                debug!("No valid stop loss for {}, using default quantity", symbol);
+                return self.config.default_quantity;
+            },
+        };
+
+        // Calculate risk amount (risk_percentage of account balance)
+        let risk_amount = account_balance * (self.config.risk_percentage / 100.0);
+
+        // Calculate stop loss distance as percentage
+        let stop_loss_distance_pct = ((entry_price - stop_loss_price).abs() / entry_price) * 100.0;
+
+        // Minimum stop loss threshold to prevent huge positions
+        const MIN_STOP_LOSS_PCT: f64 = 0.5; // 0.5% minimum
+        if stop_loss_distance_pct < MIN_STOP_LOSS_PCT {
+            debug!(
+                "Stop loss too tight for {} ({}%), using default quantity",
+                symbol, stop_loss_distance_pct
+            );
+            return self.config.default_quantity;
+        }
+
+        // Calculate position size: risk_amount / stop_loss_distance
+        let position_value = risk_amount / (stop_loss_distance_pct / 100.0);
+        let position_size = position_value / entry_price;
+
+        // Apply safety limits
+        let max_position_value = account_balance * 0.2; // Maximum 20% of account per trade
+        let max_quantity = max_position_value / entry_price;
+
+        let safe_quantity = position_size.min(max_quantity);
+
+        // Ensure we don't go below minimum or above default
+        if safe_quantity < self.config.default_quantity * 0.1 {
+            debug!(
+                "Calculated position too small for {}, using 10% of default",
+                symbol
+            );
+            return self.config.default_quantity * 0.1;
+        }
+
+        if safe_quantity > self.config.default_quantity * 5.0 {
+            debug!(
+                "Calculated position too large for {}, capping at 5x default",
+                symbol
+            );
+            return self.config.default_quantity * 5.0;
+        }
+
+        safe_quantity
     }
 
     #[allow(dead_code)]
