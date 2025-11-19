@@ -98,7 +98,7 @@ const CandlestickChart: React.FC<{
     };
   });
 
-  if (chartData.length === 0) {
+  if (!chartData || chartData.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         📊 No chart data available
@@ -196,7 +196,7 @@ const CandlestickChart: React.FC<{
 
       {/* Time labels */}
       <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2 py-1 text-xs text-gray-400">
-        {chartData.length > 0 && (
+        {chartData && chartData.length > 0 && (
           <>
             <span>{formatTime(chartData[0].timestamp)}</span>
             <span>{formatTime(chartData[chartData.length - 1].timestamp)}</span>
@@ -351,7 +351,7 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
 
             {/* Candlestick Chart */}
             <div className="mt-4 h-40 bg-gray-900 rounded border">
-              {chartData.candles.length > 0 ? (
+              {chartData.candles && chartData.candles.length > 0 ? (
                 <CandlestickChart
                   candles={chartData.candles}
                   symbol={chartData.symbol}
@@ -367,7 +367,7 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
             </div>
 
             {/* Latest Candle Info */}
-            {chartData.candles.length > 0 && (
+            {chartData.candles && chartData.candles.length > 0 && (
               <div className="text-xs text-muted-foreground space-y-1 p-2 bg-muted/20 rounded">
                 <div className="font-semibold text-foreground mb-1">
                   Latest Candle:
@@ -810,7 +810,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
                   />
                 ))}
               </div>
-            ) : charts.length > 0 ? (
+            ) : charts && charts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {charts.map((chart) => (
                   <ChartCard

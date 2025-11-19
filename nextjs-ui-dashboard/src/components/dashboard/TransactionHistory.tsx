@@ -122,8 +122,8 @@ export function TransactionHistory() {
 
   // Memoize remaining trades count
   const remainingTradesCount = useMemo(() => {
-    return closedTrades.length > 10 ? closedTrades.length - 10 : 0;
-  }, [closedTrades.length]);
+    return closedTrades && closedTrades.length > 10 ? closedTrades.length - 10 : 0;
+  }, [closedTrades]);
 
   if (isLoading) {
     return (
@@ -176,7 +176,7 @@ export function TransactionHistory() {
         </div>
       </CardHeader>
       <CardContent>
-        {closedTrades.length === 0 ? (
+        {!closedTrades || closedTrades.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
               <TrendingUp className="h-8 w-8 text-muted-foreground" />
