@@ -474,7 +474,15 @@ async fn test_risk_manager_position_size_calculation() {
 
     let size = rm.calculate_position_size("BTCUSDT", 50000.0, Some(49000.0), 10000.0);
 
-    assert_eq!(size, 0.01); // Should return default_quantity
+    // Calculation:
+    // - Stop loss distance = (50000 - 49000) / 50000 = 2%
+    // - Risk amount = 10000 * 0.02 = 200
+    // - Position value = 200 / 0.02 = 10000
+    // - Position size = 10000 / 50000 = 0.2 BTC
+    // - Max position value = 10000 * 0.2 = 2000 (20% cap)
+    // - Max quantity = 2000 / 50000 = 0.04 BTC
+    // - Safe quantity = min(0.2, 0.04) = 0.04 BTC
+    assert_eq!(size, 0.04); // Capped at 20% of account balance
 }
 
 #[tokio::test]
