@@ -378,7 +378,7 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
                     <span className="font-mono text-orange-400">
                       $
                       {formatPrice(
-                        chartData.candles[chartData.candles.length - 1]?.open ||
+                        chartData.candles?.[chartData.candles.length - 1]?.open ||
                           0
                       )}
                     </span>
@@ -388,7 +388,7 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
                     <span className="font-mono text-green-400">
                       $
                       {formatPrice(
-                        chartData.candles[chartData.candles.length - 1]?.high ||
+                        chartData.candles?.[chartData.candles.length - 1]?.high ||
                           0
                       )}
                     </span>
@@ -398,7 +398,7 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
                     <span className="font-mono text-red-400">
                       $
                       {formatPrice(
-                        chartData.candles[chartData.candles.length - 1]?.low ||
+                        chartData.candles?.[chartData.candles.length - 1]?.low ||
                           0
                       )}
                     </span>
@@ -407,9 +407,9 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
                     <span>Close:</span>
                     <span
                       className={`font-mono ${
-                        (chartData.candles[chartData.candles.length - 1]
+                        (chartData.candles?.[chartData.candles.length - 1]
                           ?.close || 0) >=
-                        (chartData.candles[chartData.candles.length - 1]
+                        (chartData.candles?.[chartData.candles.length - 1]
                           ?.open || 0)
                           ? "text-green-400"
                           : "text-red-400"
@@ -417,7 +417,7 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
                     >
                       $
                       {formatPrice(
-                        chartData.candles[chartData.candles.length - 1]
+                        chartData.candles?.[chartData.candles.length - 1]
                           ?.close || 0
                       )}
                     </span>
