@@ -552,7 +552,7 @@ impl PaperTradingEngine {
         // Ensure sufficient historical data for accurate indicator calculations
 
         let settings = self.settings.read().await;
-        let timeframe = &settings.backtesting.data_resolution; // Use configured timeframe (default: 15m)
+        let timeframe = &settings.strategy.backtesting.data_resolution; // Use configured timeframe (default: 15m)
         let timeframe_str = timeframe.clone();
         drop(settings);
 
@@ -1001,7 +1001,7 @@ impl PaperTradingEngine {
         // STEP 2: Cache miss - query Binance API (fallback)
         debug!("📡 Cache miss for {}, querying Binance API...", symbol);
         match self.binance_client
-            .get_klines(symbol, timeframe, Some(MIN_CANDLES_REQUIRED as u32))
+            .get_klines(symbol, timeframe, Some(MIN_CANDLES_REQUIRED as u16))
             .await
         {
             Ok(klines) => {
@@ -1041,7 +1041,7 @@ impl PaperTradingEngine {
     /// @doc:docs/features/paper-trading.md#instant-warmup
     async fn preload_historical_data(&self) -> Result<()> {
         let settings = self.settings.read().await;
-        let timeframe = settings.backtesting.data_resolution.clone();
+        let timeframe = settings.strategy.backtesting.data_resolution.clone();
 
         // Get list of symbols to trade (from settings or default list)
         // TODO: Make this configurable via settings
@@ -1053,7 +1053,7 @@ impl PaperTradingEngine {
         let mut failed = 0;
 
         for symbol in &symbols {
-            match self.binance_client.get_klines(symbol, &timeframe, Some(MIN_CANDLES)).await {
+            match self.binance_client.get_klines(symbol, &timeframe, Some(MIN_CANDLES as u16)).await {
                 Ok(klines) => {
                     let count = klines.len();
 
