@@ -431,7 +431,6 @@ export function PerSymbolSettings({
                       </div>
                     </div>
                   </AccordionTrigger>
-                </div>
                 <AccordionContent>
                   <div className="space-y-6 pt-4">
                     {/* Leverage */}
