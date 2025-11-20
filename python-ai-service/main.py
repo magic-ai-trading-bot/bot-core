@@ -1794,7 +1794,7 @@ async def websocket_endpoint(websocket: WebSocket):
 # @ref:specs/02-design/2.3-api/API-PYTHON-AI.md
 # @test:TC-AI-010, TC-AI-011, TC-AI-012
 @app.post("/ai/analyze", response_model=AISignalResponse)
-@limiter.limit("60/minute")  # Rate limit: 60 requests per minute (1 per second)
+@limiter.limit("300/minute")  # Rate limit: 300 requests per minute (5 per second) - increased for multi-symbol monitoring
 async def analyze_trading_signals(
     analysis_request: AIAnalysisRequest, request: Request
 ):
