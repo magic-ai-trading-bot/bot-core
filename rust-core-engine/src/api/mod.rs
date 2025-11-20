@@ -560,16 +560,20 @@ impl ApiServer {
     fn ai_routes(self) -> impl Filter<Extract = impl Reply, Error = warp::Rejection> + Clone {
         let ai_service = self.ai_service.clone();
         let ws_broadcaster = self.ws_broadcaster.clone();
+        let paper_trading = self.paper_trading_engine.clone();
 
-        // AI analysis endpoint with WebSocket broadcasting
+        // AI analysis endpoint with WebSocket broadcasting and paper trading integration
         let ai_analyze = warp::path("analyze")
             .and(warp::post())
             .and(warp::body::json())
             .and(warp::any().map(move || ai_service.clone()))
             .and(warp::any().map(move || ws_broadcaster.clone()))
-            .and_then(|request: crate::ai::AIAnalysisRequest, ai_service: crate::ai::AIService, broadcaster: broadcast::Sender<String>| async move {
+            .and(warp::any().map(move || paper_trading.clone()))
+            .and_then(|request: crate::ai::AIAnalysisRequest, ai_service: crate::ai::AIService, broadcaster: broadcast::Sender<String>, paper_trading: Arc<PaperTradingEngine>| async move {
                 let strategy_context = request.strategy_context.clone();
                 let symbol = request.symbol.clone();
+                let current_price = request.current_price;
+
                 match ai_service.analyze_for_trading_signal(&request.into(), strategy_context).await {
                     Ok(response) => {
                         // Broadcast AI signal via WebSocket
@@ -595,6 +599,27 @@ impl ApiServer {
                                 info!("📡 Broadcasted AI signal for {} via WebSocket", symbol);
                             }
                         }
+
+                        // Send signal to paper trading engine for automatic execution
+                        let stop_loss = response.risk_assessment.stop_loss_suggestion;
+                        let take_profit = response.risk_assessment.take_profit_suggestion;
+
+                        if let Err(e) = paper_trading
+                            .process_external_ai_signal(
+                                symbol.clone(),
+                                response.signal.clone(),
+                                response.confidence,
+                                response.reasoning.clone(),
+                                current_price,
+                                stop_loss,
+                                take_profit,
+                            )
+                            .await
+                        {
+                            // Log but don't fail the API response
+                            info!("Paper trading signal processing: {}", e);
+                        }
+
                         Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(response)))
                     },
                     Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::<()>::error(e.to_string()))),
