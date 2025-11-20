@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { useAIAnalysis } from "@/hooks/useAIAnalysis";
+import { useAIAnalysisContext } from "@/contexts/AIAnalysisContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   AlertCircle,
@@ -17,7 +17,7 @@ import { SignalCard } from "./SignalCard";
 import { DetailedSignalDialog } from "./DetailedSignalDialog";
 
 export function AISignalsDashboard() {
-  const { state: aiState, clearError } = useAIAnalysis();
+  const { state: aiState, clearError } = useAIAnalysisContext();
   const { state: wsState } = useWebSocket();
 
   // Combine signals from both AI analysis and WebSocket

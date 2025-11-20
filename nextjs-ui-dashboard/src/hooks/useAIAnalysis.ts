@@ -36,7 +36,7 @@ export interface AIAnalysisHook {
   clearError: () => void;
 }
 
-const REFRESH_INTERVAL = 300000; // 5 minutes
+const REFRESH_INTERVAL = 600000; // 10 minutes (increased to avoid rate limiting)
 const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 const DEFAULT_STRATEGIES = [
   "RSI Strategy",
@@ -339,7 +339,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
     DEFAULT_SYMBOLS.forEach((symbol, index) => {
       const timeout = setTimeout(() => {
         analyzeSymbol(symbol);
-      }, index * 1000); // Stagger initial requests
+      }, index * 2000); // Stagger initial requests (2 seconds apart to avoid rate limit)
       timeouts.push(timeout);
     });
 
@@ -352,7 +352,8 @@ export const useAIAnalysis = (): AIAnalysisHook => {
       timeouts.forEach(clearTimeout);
       stopAutoRefresh();
     };
-  }, [refreshServiceInfo, analyzeSymbol, startAutoRefresh, stopAutoRefresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   return {
     state,
