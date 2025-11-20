@@ -639,7 +639,7 @@ class RustTradingApiClient extends BaseApiClient {
 
   // Health Check
   async healthCheck(): Promise<{ status: string }> {
-    const response = await this.client.get("/health");
+    const response = await this.client.get("/api/health");
     return response.data;
   }
 }
