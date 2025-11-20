@@ -334,22 +334,28 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   useEffect(() => {
     refreshServiceInfo();
 
-    // Analyze initial symbols
-    const timeouts: NodeJS.Timeout[] = [];
-    DEFAULT_SYMBOLS.forEach((symbol, index) => {
-      const timeout = setTimeout(() => {
-        analyzeSymbol(symbol);
-      }, index * 2000); // Stagger initial requests (2 seconds apart to avoid rate limit)
-      timeouts.push(timeout);
-    });
+    // DISABLED: Auto-analyze symbols on mount
+    // Reason: Paper trading now receives AI signals from frontend via API automatically
+    // The frontend no longer needs to poll for signals - they are pushed via WebSocket
+    // Users can manually trigger analysis if needed
 
-    startAutoRefresh();
+    // Analyze initial symbols (DISABLED to avoid rate limiting)
+    // const timeouts: NodeJS.Timeout[] = [];
+    // DEFAULT_SYMBOLS.forEach((symbol, index) => {
+    //   const timeout = setTimeout(() => {
+    //     analyzeSymbol(symbol);
+    //   }, index * 2000); // Stagger initial requests (2 seconds apart to avoid rate limit)
+    //   timeouts.push(timeout);
+    // });
+
+    // DISABLED: Auto-refresh (can be re-enabled by calling startAutoRefresh manually)
+    // startAutoRefresh();
 
     return () => {
       // Mark as unmounted to prevent state updates
       isMountedRef.current = false;
       // Clear all pending timeouts
-      timeouts.forEach(clearTimeout);
+      // timeouts.forEach(clearTimeout);
       stopAutoRefresh();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
