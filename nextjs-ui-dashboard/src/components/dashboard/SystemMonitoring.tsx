@@ -188,7 +188,7 @@ export function SystemMonitoring() {
                 <Cpu className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">CPU Usage</span>
               </div>
-              <span className="text-sm font-semibold">{metrics.cpu_usage_percent.toFixed(1)}%</span>
+              <span className="text-sm font-semibold">{(metrics?.cpu_usage_percent ?? 0).toFixed(1)}%</span>
             </div>
             <Progress
               value={metrics.cpu_usage_percent}
@@ -204,7 +204,7 @@ export function SystemMonitoring() {
                 <span className="text-sm font-medium">Memory Usage</span>
               </div>
               <span className="text-sm font-semibold">
-                {metrics.memory_used_mb.toFixed(0)}MB / {metrics.memory_total_mb.toFixed(0)}MB
+                {(metrics?.memory_used_mb ?? 0).toFixed(0)}MB / {(metrics?.memory_total_mb ?? 0).toFixed(0)}MB
               </span>
             </div>
             <Progress
@@ -221,7 +221,7 @@ export function SystemMonitoring() {
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Cache Hit Rate</p>
-              <p className="text-sm font-semibold text-profit">{(metrics.cache_hit_rate * 100).toFixed(1)}%</p>
+              <p className="text-sm font-semibold text-profit">{((metrics?.cache_hit_rate ?? 0) * 100).toFixed(1)}%</p>
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Active Connections</p>
@@ -229,7 +229,7 @@ export function SystemMonitoring() {
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Requests/sec</p>
-              <p className="text-sm font-semibold">{metrics.requests_per_second.toFixed(1)}</p>
+              <p className="text-sm font-semibold">{(metrics?.requests_per_second ?? 0).toFixed(1)}</p>
             </div>
           </div>
         </CardContent>
