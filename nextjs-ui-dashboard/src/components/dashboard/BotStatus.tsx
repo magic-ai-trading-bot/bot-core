@@ -6,7 +6,7 @@ import { usePaperTrading } from "@/hooks/usePaperTrading";
 import { useMarketData } from "@/hooks/useMarketData";
 
 export function BotStatus() {
-  const { portfolio, positions, isLoading } = usePaperTrading();
+  const { portfolio, openTrades: positions, isLoading } = usePaperTrading();
   const { data: marketData } = useMarketData("BTCUSDT", "1h", 5000);
 
   if (isLoading) {
@@ -79,7 +79,7 @@ export function BotStatus() {
           <CardTitle className="text-base lg:text-lg">Open Positions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 lg:space-y-4">
-          {positions.length === 0 ? (
+          {!positions || positions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="rounded-full bg-muted p-3 mb-3">
                 <TrendingUp className="h-6 w-6 text-muted-foreground" />
