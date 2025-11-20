@@ -6,10 +6,12 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tokio::time::{interval, Duration};
 use tracing::{debug, error, info, warn};
+use uuid::Uuid;
 
 use crate::ai::AIService;
 use crate::binance::BinanceClient;
 use crate::storage::Storage;
+use crate::strategies::TradingSignal;
 
 use super::{
     // @spec:FR-PAPER-001 - Paper Trading Engine
@@ -20,12 +22,10 @@ use super::{
     strategy_optimizer::StrategyOptimizer,
     trade::{CloseReason, PaperTrade, TradeType},
     AITradingSignal,
-    MarketAnalysisData,
     PaperTradingEvent,
     PerformanceSummary,
     TradeExecutionResult,
 };
-use uuid;
 
 /// Main paper trading engine
 #[derive(Clone)]
@@ -1173,7 +1173,7 @@ impl PaperTradingEngine {
     pub async fn process_external_ai_signal(
         &self,
         symbol: String,
-        signal_type: crate::trading::TradingSignal,
+        signal_type: TradingSignal,
         confidence: f64,
         reasoning: String,
         entry_price: f64,
@@ -1188,16 +1188,16 @@ impl PaperTradingEngine {
             "📥 Received external AI signal: {} {} with {}% confidence",
             symbol,
             match signal_type {
-                crate::trading::TradingSignal::Long => "LONG",
-                crate::trading::TradingSignal::Short => "SHORT",
-                crate::trading::TradingSignal::Neutral => "NEUTRAL",
+                TradingSignal::Long => "LONG",
+                TradingSignal::Short => "SHORT",
+                TradingSignal::Neutral => "NEUTRAL",
             },
             (confidence * 100.0) as i32
         );
 
         // Create AI trading signal
         let ai_signal = AITradingSignal {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: Uuid::new_v4().to_string(),
             symbol: symbol.clone(),
             signal_type,
             confidence,
@@ -1206,11 +1206,11 @@ impl PaperTradingEngine {
             suggested_stop_loss: stop_loss,
             suggested_take_profit: take_profit,
             suggested_leverage: None,
-            market_analysis: super::MarketAnalysisData {
+            market_analysis: crate::paper_trading::MarketAnalysisData {
                 trend_direction: match signal_type {
-                    crate::trading::TradingSignal::Long => "Bullish".to_string(),
-                    crate::trading::TradingSignal::Short => "Bearish".to_string(),
-                    crate::trading::TradingSignal::Neutral => "Neutral".to_string(),
+                    TradingSignal::Long => "Bullish".to_string(),
+                    TradingSignal::Short => "Bearish".to_string(),
+                    TradingSignal::Neutral => "Neutral".to_string(),
                 },
                 trend_strength: confidence,
                 volatility: 0.0,
@@ -1265,8 +1265,9 @@ impl PaperTradingEngine {
                         info!("🎯 Successfully executed trade for external signal");
                         Ok(())
                     } else {
-                        warn!("⚠️ Trade execution failed: {}", result.message);
-                        Err(anyhow::anyhow!("Trade execution failed: {}", result.message))
+                        let error_msg = result.error_message.unwrap_or_else(|| "Unknown error".to_string());
+                        warn!("⚠️ Trade execution failed: {}", error_msg);
+                        Err(anyhow::anyhow!("Trade execution failed: {}", error_msg))
                     }
                 },
                 Err(e) => {
