@@ -494,6 +494,10 @@ impl ApiServer {
         > = Arc::new(tokio::sync::Mutex::new(ws_sender));
         let ws_sender_for_broadcast = ws_sender_clone.clone();
 
+        // Shared flag to track connection state
+        let connection_open = Arc::new(tokio::sync::RwLock::new(true));
+        let connection_open_outgoing = connection_open.clone();
+
         // Task to handle incoming messages
         let incoming_task = tokio::spawn(async move {
             while let Some(result) = ws_receiver.next().await {
@@ -503,11 +507,13 @@ impl ApiServer {
                             debug!("Received WebSocket message: {:?}", msg);
                         } else if msg.is_close() {
                             debug!("WebSocket connection closed by client");
+                            *connection_open.write().await = false;
                             break;
                         }
                     },
                     Err(e) => {
                         error!("WebSocket error: {}", e);
+                        *connection_open.write().await = false;
                         break;
                     },
                 }
@@ -517,9 +523,16 @@ impl ApiServer {
         // Task to handle outgoing broadcasts
         let outgoing_task = tokio::spawn(async move {
             while let Ok(message) = rx.recv().await {
+                // Check if connection is still open before attempting to send
+                if !*connection_open_outgoing.read().await {
+                    debug!("WebSocket connection closed, stopping outgoing messages");
+                    break;
+                }
+
                 let mut sender = ws_sender_for_broadcast.lock().await;
                 if let Err(e) = sender.send(Message::text(message)).await {
-                    error!("Failed to send WebSocket message: {}", e);
+                    debug!("Failed to send WebSocket message (connection likely closed): {}", e);
+                    *connection_open_outgoing.write().await = false;
                     break;
                 }
             }
