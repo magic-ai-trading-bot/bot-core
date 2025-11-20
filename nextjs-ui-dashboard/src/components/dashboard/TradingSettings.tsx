@@ -103,6 +103,7 @@ interface EngineSettings {
   enabled_strategies: string[];
   market_condition: string;
   risk_level: string;
+  data_resolution?: string; // Timeframe for trading signals (1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d)
 }
 
 interface TradingSettingsData {
@@ -178,6 +179,7 @@ const MARKET_PRESETS = {
         ],
         market_condition: "LowVolume",
         risk_level: "Moderate",
+        data_resolution: "15m", // Default timeframe for low volatility
       },
     },
   },
@@ -246,6 +248,7 @@ const MARKET_PRESETS = {
         ],
         market_condition: "Trending",
         risk_level: "Moderate",
+        data_resolution: "15m", // Default timeframe for normal volatility
       },
     },
   },
@@ -314,6 +317,7 @@ const MARKET_PRESETS = {
         ],
         market_condition: "Volatile",
         risk_level: "Conservative",
+        data_resolution: "15m", // Default timeframe for high volatility
       },
     },
   },
@@ -1233,6 +1237,35 @@ export function TradingSettings() {
                           <SelectItem value="Aggressive">Aggressive</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <Label>Data Timeframe / Khung thời gian</Label>
+                      <Select
+                        value={settings.engine.data_resolution || "15m"}
+                        onValueChange={(value) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            engine: { ...prev.engine, data_resolution: value },
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select timeframe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1m">1 phút (1m)</SelectItem>
+                          <SelectItem value="3m">3 phút (3m)</SelectItem>
+                          <SelectItem value="5m">5 phút (5m)</SelectItem>
+                          <SelectItem value="15m">15 phút (15m) - Recommended</SelectItem>
+                          <SelectItem value="30m">30 phút (30m)</SelectItem>
+                          <SelectItem value="1h">1 giờ (1h)</SelectItem>
+                          <SelectItem value="4h">4 giờ (4h)</SelectItem>
+                          <SelectItem value="1d">1 ngày (1d)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Timeframe used for trading signals and technical analysis
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
