@@ -417,7 +417,7 @@ impl Default for AISettings {
         Self {
             service_url: "http://python-ai-service:8000".to_string(),
             request_timeout_seconds: 30,
-            signal_refresh_interval_minutes: 60, // 1 hour - Reduced from 5min to prevent overtrading and improve signal quality
+            signal_refresh_interval_minutes: 15, // 15 minutes - Optimized for crypto day trading with 15m charts
             enable_realtime_signals: true,
             confidence_thresholds,
             enable_feedback_learning: true,
@@ -465,7 +465,7 @@ impl Default for BacktestingSettings {
         Self {
             enabled: true,
             period_days: 90,
-            data_resolution: "1h".to_string(),
+            data_resolution: "15m".to_string(), // Changed from 1h to 15m for better crypto day trading
             min_trades: 20,
             walk_forward_optimization: false,
             out_of_sample_pct: 20.0,
@@ -658,7 +658,7 @@ mod tests {
 
         assert_eq!(settings.service_url, "http://python-ai-service:8000");
         assert_eq!(settings.request_timeout_seconds, 30);
-        assert_eq!(settings.signal_refresh_interval_minutes, 60); // Updated to reflect new 1-hour default
+        assert_eq!(settings.signal_refresh_interval_minutes, 15); // Updated to reflect new 15-minute default for crypto day trading
         assert!(settings.enable_realtime_signals);
         assert!(settings.enable_feedback_learning);
     }

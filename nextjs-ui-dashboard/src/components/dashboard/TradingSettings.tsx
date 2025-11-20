@@ -75,6 +75,15 @@ interface StrategySettings {
     multiplier: number;
     squeeze_threshold: number;
   };
+  stochastic: {
+    enabled: boolean;
+    k_period: number;
+    d_period: number;
+    oversold_threshold: number;
+    overbought_threshold: number;
+    extreme_oversold: number;
+    extreme_overbought: number;
+  };
 }
 
 interface RiskSettings {
@@ -137,6 +146,15 @@ const MARKET_PRESETS = {
           multiplier: 1.8, // Tighter bands
           squeeze_threshold: 0.015, // Lower threshold
         },
+        stochastic: {
+          enabled: true,
+          k_period: 14,
+          d_period: 3,
+          oversold_threshold: 25, // Less sensitive
+          overbought_threshold: 75, // Less sensitive
+          extreme_oversold: 15,
+          extreme_overbought: 85,
+        },
       },
       risk: {
         max_risk_per_trade: 1.5,
@@ -156,6 +174,7 @@ const MARKET_PRESETS = {
           "MACD Strategy",
           "Volume Strategy",
           "Bollinger Bands Strategy",
+          "Stochastic Strategy",
         ],
         market_condition: "LowVolume",
         risk_level: "Moderate",
@@ -195,6 +214,15 @@ const MARKET_PRESETS = {
           multiplier: 2.0,
           squeeze_threshold: 0.02,
         },
+        stochastic: {
+          enabled: true,
+          k_period: 14,
+          d_period: 3,
+          oversold_threshold: 20.0,
+          overbought_threshold: 80.0,
+          extreme_oversold: 10.0,
+          extreme_overbought: 90.0,
+        },
       },
       risk: {
         max_risk_per_trade: 2.0,
@@ -214,6 +242,7 @@ const MARKET_PRESETS = {
           "MACD Strategy",
           "Volume Strategy",
           "Bollinger Bands Strategy",
+          "Stochastic Strategy",
         ],
         market_condition: "Trending",
         risk_level: "Moderate",
@@ -253,6 +282,15 @@ const MARKET_PRESETS = {
           multiplier: 2.2, // Wider bands
           squeeze_threshold: 0.025, // Higher threshold
         },
+        stochastic: {
+          enabled: true,
+          k_period: 14,
+          d_period: 3,
+          oversold_threshold: 15.0, // More extreme
+          overbought_threshold: 85.0, // More extreme
+          extreme_oversold: 5.0,
+          extreme_overbought: 95.0,
+        },
       },
       risk: {
         max_risk_per_trade: 1.0,
@@ -272,6 +310,7 @@ const MARKET_PRESETS = {
           "MACD Strategy",
           "Volume Strategy",
           "Bollinger Bands Strategy",
+          "Stochastic Strategy",
         ],
         market_condition: "Volatile",
         risk_level: "Conservative",
@@ -799,6 +838,131 @@ export function TradingSettings() {
                         min={1.0}
                         max={3.0}
                         step={0.1}
+                        className="w-full"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Stochastic Strategy */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Stochastic Strategy
+                      <Switch
+                        checked={settings.strategies.stochastic.enabled}
+                        onCheckedChange={(checked) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            strategies: {
+                              ...prev.strategies,
+                              stochastic: {
+                                ...prev.strategies.stochastic,
+                                enabled: checked,
+                              },
+                            },
+                          }))
+                        }
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>
+                          K Period: {settings.strategies.stochastic.k_period}
+                        </Label>
+                        <Slider
+                          value={[settings.strategies.stochastic.k_period]}
+                          onValueChange={([value]) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              strategies: {
+                                ...prev.strategies,
+                                stochastic: {
+                                  ...prev.strategies.stochastic,
+                                  k_period: value,
+                                },
+                              },
+                            }))
+                          }
+                          min={5}
+                          max={30}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <Label>
+                          D Period: {settings.strategies.stochastic.d_period}
+                        </Label>
+                        <Slider
+                          value={[settings.strategies.stochastic.d_period]}
+                          onValueChange={([value]) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              strategies: {
+                                ...prev.strategies,
+                                stochastic: {
+                                  ...prev.strategies.stochastic,
+                                  d_period: value,
+                                },
+                              },
+                            }))
+                          }
+                          min={1}
+                          max={10}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>
+                        Oversold: {settings.strategies.stochastic.oversold_threshold.toFixed(1)}
+                      </Label>
+                      <Slider
+                        value={[settings.strategies.stochastic.oversold_threshold]}
+                        onValueChange={([value]) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            strategies: {
+                              ...prev.strategies,
+                              stochastic: {
+                                ...prev.strategies.stochastic,
+                                oversold_threshold: value,
+                              },
+                            },
+                          }))
+                        }
+                        min={10}
+                        max={30}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label>
+                        Overbought: {settings.strategies.stochastic.overbought_threshold.toFixed(1)}
+                      </Label>
+                      <Slider
+                        value={[settings.strategies.stochastic.overbought_threshold]}
+                        onValueChange={([value]) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            strategies: {
+                              ...prev.strategies,
+                              stochastic: {
+                                ...prev.strategies.stochastic,
+                                overbought_threshold: value,
+                              },
+                            },
+                          }))
+                        }
+                        min={70}
+                        max={90}
+                        step={1}
                         className="w-full"
                       />
                     </div>

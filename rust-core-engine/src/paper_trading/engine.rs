@@ -536,6 +536,28 @@ impl PaperTradingEngine {
 
         info!("🔒 Acquired trade execution lock for {}", signal.symbol);
 
+        // ========== PHASE 1: WARMUP PERIOD CHECK ==========
+        // Ensure sufficient historical data for accurate indicator calculations
+
+        let settings = self.settings.read().await;
+        let timeframe = &settings.backtesting.data_resolution; // Use configured timeframe (default: 15m)
+        let timeframe_str = timeframe.clone();
+        drop(settings);
+
+        if !self.check_warmup_period(&signal.symbol, &timeframe_str).await? {
+            return Ok(TradeExecutionResult {
+                success: false,
+                trade_id: None,
+                error_message: Some(format!(
+                    "Warmup period incomplete - insufficient historical data for {} on {} timeframe. \
+                    Need 50 candles (12.5 hours for 15m). Please wait for more data accumulation.",
+                    signal.symbol, timeframe_str
+                )),
+                execution_price: None,
+                fees_paid: None,
+            });
+        }
+
         // ========== PHASE 2: RISK MANAGEMENT CHECKS ==========
 
         // 1. Check daily loss limit
@@ -924,6 +946,50 @@ impl PaperTradingEngine {
             (filled_qty, true) // Partial fill occurred
         } else {
             (quantity, false) // Full fill
+        }
+    }
+
+    /// Check if enough historical data is available for trading (warmup period)
+    /// Indicators like RSI, MACD, Bollinger Bands need sufficient candles to calculate accurately
+    /// For 15m timeframe: 50 candles = 12.5 hours of data required
+    /// @doc:docs/features/paper-trading.md#warmup-period
+    /// @spec:FR-PAPER-001 - Warmup Period Check
+    async fn check_warmup_period(&self, symbol: &str, timeframe: &str) -> Result<bool> {
+        // Minimum candles required for indicators:
+        // - RSI (14): 15 candles minimum
+        // - MACD (26,12,9): 35 candles minimum
+        // - Bollinger Bands (20): 20 candles minimum
+        // - Stochastic (14,3): 17 candles minimum
+        // Safe minimum: 50 candles for all strategies
+        const MIN_CANDLES_REQUIRED: usize = 50;
+
+        // Query Binance for recent klines to verify data availability
+        match self.binance_client
+            .get_klines(symbol, timeframe, Some(MIN_CANDLES_REQUIRED as u32))
+            .await
+        {
+            Ok(klines) => {
+                let candle_count = klines.len();
+
+                if candle_count < MIN_CANDLES_REQUIRED {
+                    warn!(
+                        "⏳ Warmup period: {} only has {}/{} candles for {} timeframe. Waiting for more historical data...",
+                        symbol, candle_count, MIN_CANDLES_REQUIRED, timeframe
+                    );
+                    return Ok(false);
+                }
+
+                debug!(
+                    "✅ Warmup complete: {} has sufficient historical data ({} candles for {} timeframe)",
+                    symbol, candle_count, timeframe
+                );
+                Ok(true)
+            }
+            Err(e) => {
+                error!("❌ Failed to check warmup status for {}: {}", symbol, e);
+                // If we can't verify data availability, assume warmup incomplete (safer approach)
+                Ok(false)
+            }
         }
     }
 
