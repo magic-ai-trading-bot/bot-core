@@ -26,7 +26,7 @@ export function DashboardHeader() {
           </div>
         </div>
       )}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-border gap-4">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 lg:p-6 border-b border-border gap-4">
         <div className="flex items-center gap-4">
         {/* Mobile Hamburger Menu - Only visible on mobile/tablet */}
         <MobileNav />
@@ -56,12 +56,12 @@ export function DashboardHeader() {
       </div>
 
       {/* Navigation Menu - Mobile friendly */}
-      <div className="flex items-center gap-2 order-last lg:order-none">
+      <div className="hidden lg:flex items-center gap-2">
         <Link to="/dashboard">
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground text-xs lg:text-sm"
+            className="text-muted-foreground hover:text-foreground text-sm"
           >
             Dashboard
           </Button>
@@ -70,7 +70,7 @@ export function DashboardHeader() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground text-xs lg:text-sm"
+            className="text-muted-foreground hover:text-foreground text-sm"
           >
             Trading Paper
           </Button>
@@ -79,14 +79,14 @@ export function DashboardHeader() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground text-xs lg:text-sm"
+            className="text-muted-foreground hover:text-foreground text-sm"
           >
             Settings
           </Button>
         </Link>
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
+      <div className="flex flex-row items-center gap-2 lg:gap-4 ml-auto lg:ml-0">
         <Badge
           variant="outline"
           className="bg-profit/10 text-profit border-profit/20 text-xs lg:text-sm w-fit"
