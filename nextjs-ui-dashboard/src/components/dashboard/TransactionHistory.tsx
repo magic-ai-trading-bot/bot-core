@@ -35,7 +35,7 @@ const TradeRow = memo(({ trade }: TradeRowProps) => {
   }, []);
 
   const progressWidth = useMemo(() => {
-    return Math.min(Math.abs(trade.realized_pnl_percent) * 10, 100);
+    return Math.min(Math.abs(trade.realized_pnl_percent || 0) * 10, 100);
   }, [trade.realized_pnl_percent]);
 
   return (
@@ -52,16 +52,16 @@ const TradeRow = memo(({ trade }: TradeRowProps) => {
             </div>
           </div>
           <Badge variant="outline" className="text-xs">
-            {trade.leverage}x
+            {trade.leverage || 1}x
           </Badge>
         </div>
 
         <div className="text-right">
-          <div className={`font-bold text-lg ${getPnLColor(trade.realized_pnl)}`}>
-            {trade.realized_pnl >= 0 ? '+' : ''}${trade.realized_pnl.toFixed(2)}
+          <div className={`font-bold text-lg ${getPnLColor(trade.realized_pnl || 0)}`}>
+            {(trade.realized_pnl || 0) >= 0 ? '+' : ''}${(trade.realized_pnl || 0).toFixed(2)}
           </div>
-          <div className={`text-sm ${getPnLColor(trade.realized_pnl)}`}>
-            {trade.realized_pnl_percent >= 0 ? '+' : ''}{trade.realized_pnl_percent.toFixed(2)}%
+          <div className={`text-sm ${getPnLColor(trade.realized_pnl || 0)}`}>
+            {(trade.realized_pnl_percent || 0) >= 0 ? '+' : ''}{(trade.realized_pnl_percent || 0).toFixed(2)}%
           </div>
         </div>
       </div>
@@ -77,7 +77,7 @@ const TradeRow = memo(({ trade }: TradeRowProps) => {
         </div>
         <div>
           <span className="text-muted-foreground">Size: </span>
-          <span className="font-mono">{trade.quantity}</span>
+          <span className="font-mono">{trade.quantity || 0}</span>
         </div>
         <div>
           <Badge
@@ -94,7 +94,7 @@ const TradeRow = memo(({ trade }: TradeRowProps) => {
         <div className="w-full bg-muted rounded-full h-1">
           <div
             className={`h-1 rounded-full transition-all duration-500 ${
-              trade.realized_pnl >= 0 ? 'bg-profit' : 'bg-loss'
+              (trade.realized_pnl || 0) >= 0 ? 'bg-profit' : 'bg-loss'
             }`}
             style={{ width: `${progressWidth}%` }}
           ></div>
