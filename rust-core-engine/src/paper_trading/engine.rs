@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use rand::Rng;
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -379,6 +380,15 @@ impl PaperTradingEngine {
             prices.extend(new_prices.clone());
         }
 
+        // Log price updates for monitoring
+        debug!(
+            "💰 Market prices updated: BTCUSDT=${:.2}, ETHUSDT=${:.2}, BNBUSDT=${:.2}, SOLUSDT=${:.2}",
+            new_prices.get("BTCUSDT").unwrap_or(&0.0),
+            new_prices.get("ETHUSDT").unwrap_or(&0.0),
+            new_prices.get("BNBUSDT").unwrap_or(&0.0),
+            new_prices.get("SOLUSDT").unwrap_or(&0.0)
+        );
+
         // Broadcast price update
         let _ = self.event_broadcaster.send(PaperTradingEvent {
             event_type: "price_update".to_string(),
@@ -500,6 +510,57 @@ impl PaperTradingEngine {
         &self,
         signal: AITradingSignal,
     ) -> Result<TradeExecutionResult> {
+        // ========== PHASE 2: RISK MANAGEMENT CHECKS ==========
+
+        // 1. Check daily loss limit
+        if !self.check_daily_loss_limit().await? {
+            return Ok(TradeExecutionResult {
+                success: false,
+                trade_id: None,
+                error_message: Some("Daily loss limit reached - trading disabled".to_string()),
+                execution_price: None,
+                fees_paid: None,
+            });
+        }
+
+        // 2. Check cool-down period
+        if self.is_in_cooldown().await {
+            return Ok(TradeExecutionResult {
+                success: false,
+                trade_id: None,
+                error_message: Some("In cool-down period after consecutive losses".to_string()),
+                execution_price: None,
+                fees_paid: None,
+            });
+        }
+
+        // 3. Check position correlation limits
+        let trade_type = match signal.signal_type {
+            crate::strategies::TradingSignal::Long => TradeType::Long,
+            crate::strategies::TradingSignal::Short => TradeType::Short,
+            _ => {
+                return Ok(TradeExecutionResult {
+                    success: false,
+                    trade_id: None,
+                    error_message: Some("Neutral signal cannot be executed".to_string()),
+                    execution_price: None,
+                    fees_paid: None,
+                })
+            }
+        };
+
+        if !self.check_position_correlation(trade_type).await? {
+            return Ok(TradeExecutionResult {
+                success: false,
+                trade_id: None,
+                error_message: Some("Position correlation limit exceeded".to_string()),
+                execution_price: None,
+                fees_paid: None,
+            });
+        }
+
+        // ========== EXISTING CHECKS ==========
+
         // Check if we can trade this symbol
         let settings = self.settings.read().await;
         let symbol_settings = settings.get_symbol_settings(&signal.symbol);
@@ -535,7 +596,21 @@ impl PaperTradingEngine {
 
         // Calculate position parameters
         let leverage = symbol_settings.leverage;
-        let entry_price = signal.entry_price;
+
+        // Get REAL current price from Binance instead of using signal.entry_price
+        let entry_price = self
+            .current_prices
+            .read()
+            .await
+            .get(&signal.symbol)
+            .copied()
+            .unwrap_or_else(|| {
+                warn!(
+                    "No current price for {}, using signal price as fallback",
+                    signal.symbol
+                );
+                signal.entry_price
+            });
 
         // @spec:FR-RISK-002 - Dynamic ATR-based Stop Loss (FIXED)
         // Calculate stop loss using ATR for dynamic volatility-adjusted risk management
@@ -711,7 +786,323 @@ impl PaperTradingEngine {
         Ok(())
     }
 
+    /// Apply slippage to execution price
+    /// Simulates real market conditions where orders don't execute at exact prices
+    /// @doc:docs/features/paper-trading.md#execution-simulation
+    /// @spec:FR-PAPER-001 - Execution Realism
+    async fn apply_slippage(&self, price: f64, trade_type: TradeType) -> f64 {
+        let settings = self.settings.read().await;
+
+        if !settings.execution.simulate_slippage {
+            return price;
+        }
+
+        let max_slippage = settings.execution.max_slippage_pct;
+        drop(settings);
+
+        // Random slippage between 0 and max_slippage_pct
+        let mut rng = rand::thread_rng();
+        let slippage_pct = rng.gen::<f64>() * max_slippage;
+
+        let slipped_price = match trade_type {
+            TradeType::Long => price * (1.0 + slippage_pct / 100.0),  // Buy at higher price
+            TradeType::Short => price * (1.0 - slippage_pct / 100.0), // Sell at lower price
+        };
+
+        debug!(
+            "💸 Slippage applied: {} -> {} ({:.4}% {} slippage)",
+            price,
+            slipped_price,
+            slippage_pct,
+            match trade_type {
+                TradeType::Long => "positive",
+                TradeType::Short => "negative",
+            }
+        );
+
+        slipped_price
+    }
+
+    /// Calculate market impact based on order size
+    /// Large orders move the market and get worse execution prices
+    /// @doc:docs/features/paper-trading.md#execution-simulation
+    /// @spec:FR-PAPER-001 - Execution Realism
+    async fn calculate_market_impact(&self, symbol: &str, quantity: f64, price: f64) -> f64 {
+        let settings = self.settings.read().await;
+
+        if !settings.execution.simulate_market_impact {
+            return 0.0;
+        }
+
+        let impact_factor = settings.execution.market_impact_factor;
+        drop(settings);
+
+        // Typical 1-hour volumes for major pairs (in USD)
+        let typical_volumes: HashMap<&str, f64> = [
+            ("BTCUSDT", 50_000_000.0),
+            ("ETHUSDT", 20_000_000.0),
+            ("BNBUSDT", 10_000_000.0),
+            ("SOLUSDT", 5_000_000.0),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        let order_value = quantity * price;
+        let typical_volume = typical_volumes.get(symbol).unwrap_or(&10_000_000.0);
+
+        // Market impact = (order_value / typical_volume) * impact_factor
+        // Capped at 1% maximum
+        let impact_pct = ((order_value / typical_volume) * impact_factor).min(1.0);
+
+        if impact_pct > 0.001 {
+            debug!(
+                "📊 Market impact for {} order of ${:.2}: {:.4}%",
+                symbol,
+                order_value,
+                impact_pct * 100.0
+            );
+        }
+
+        impact_pct
+    }
+
+    /// Simulate partial fills
+    /// Real Binance orders sometimes fill only partially, especially in volatile markets
+    /// @doc:docs/features/paper-trading.md#execution-simulation
+    /// @spec:FR-PAPER-001 - Execution Realism
+    async fn simulate_partial_fill(&self, quantity: f64) -> (f64, bool) {
+        let settings = self.settings.read().await;
+
+        if !settings.execution.simulate_partial_fills {
+            return (quantity, false); // Full fill
+        }
+
+        let partial_prob = settings.execution.partial_fill_probability;
+        drop(settings);
+
+        let mut rng = rand::thread_rng();
+
+        if rng.gen::<f64>() < partial_prob {
+            // Partial fill: 30-90% of requested quantity
+            let fill_pct = 0.3 + (rng.gen::<f64>() * 0.6);
+            let filled_qty = quantity * fill_pct;
+
+            warn!(
+                "⚠️ Partial fill: requested {:.6}, filled {:.6} ({:.1}%)",
+                quantity,
+                filled_qty,
+                fill_pct * 100.0
+            );
+
+            (filled_qty, true) // Partial fill occurred
+        } else {
+            (quantity, false) // Full fill
+        }
+    }
+
+    /// Check daily loss limit
+    /// Prevents catastrophic losses by stopping trading if daily loss exceeds limit
+    /// @doc:docs/features/paper-trading.md#risk-management
+    /// @spec:FR-RISK-001 - Daily Loss Limit
+    async fn check_daily_loss_limit(&self) -> Result<bool> {
+        let settings = self.settings.read().await;
+        let daily_limit_pct = settings.risk.daily_loss_limit_pct;
+        drop(settings);
+
+        let portfolio = self.portfolio.read().await;
+
+        // Get today's starting equity (use equity from last daily performance entry)
+        let today_start_equity = portfolio
+            .daily_performance
+            .last()
+            .map(|d| d.equity)
+            .unwrap_or(portfolio.initial_balance);
+
+        let current_equity = portfolio.equity;
+        let daily_loss = today_start_equity - current_equity;
+        let daily_loss_pct = (daily_loss / today_start_equity) * 100.0;
+
+        drop(portfolio);
+
+        if daily_loss_pct >= daily_limit_pct {
+            error!(
+                "🛑 DAILY LOSS LIMIT REACHED: {:.2}% (limit: {:.2}%) - Trading disabled for today",
+                daily_loss_pct, daily_limit_pct
+            );
+
+            // Broadcast risk event
+            let _ = self.event_broadcaster.send(PaperTradingEvent {
+                event_type: "daily_loss_limit_reached".to_string(),
+                data: serde_json::json!({
+                    "daily_loss_pct": daily_loss_pct,
+                    "daily_limit_pct": daily_limit_pct,
+                    "daily_loss_usd": daily_loss,
+                }),
+                timestamp: Utc::now(),
+            });
+
+            return Ok(false); // Block new trades
+        }
+
+        Ok(true) // Allow trading
+    }
+
+    /// Check if in cool-down period
+    /// After consecutive losses, bot pauses to prevent emotional trading
+    async fn is_in_cooldown(&self) -> bool {
+        let portfolio = self.portfolio.read().await;
+
+        if let Some(cool_down_until) = portfolio.cool_down_until {
+            if Utc::now() < cool_down_until {
+                let remaining = (cool_down_until - Utc::now()).num_minutes();
+                warn!(
+                    "🧊 Cool-down active: {} minutes remaining (consecutive losses: {})",
+                    remaining, portfolio.consecutive_losses
+                );
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Update consecutive losses and trigger cool-down if needed
+    /// Call this after closing a trade
+    async fn update_consecutive_losses(&self, pnl: f64) {
+        let mut portfolio = self.portfolio.write().await;
+        let settings = self.settings.read().await;
+
+        if pnl < 0.0 {
+            portfolio.consecutive_losses += 1;
+
+            info!(
+                "📉 Consecutive losses: {} (max: {})",
+                portfolio.consecutive_losses, settings.risk.max_consecutive_losses
+            );
+
+            if portfolio.consecutive_losses >= settings.risk.max_consecutive_losses {
+                let cool_down = settings.risk.cool_down_minutes;
+                portfolio.cool_down_until =
+                    Some(Utc::now() + chrono::Duration::minutes(cool_down as i64));
+
+                error!(
+                    "🛑 {} consecutive losses reached. Cool-down for {} minutes.",
+                    portfolio.consecutive_losses, cool_down
+                );
+
+                // Broadcast cool-down event
+                let _ = self.event_broadcaster.send(PaperTradingEvent {
+                    event_type: "cooldown_activated".to_string(),
+                    data: serde_json::json!({
+                        "consecutive_losses": portfolio.consecutive_losses,
+                        "cool_down_minutes": cool_down,
+                        "cool_down_until": portfolio.cool_down_until,
+                    }),
+                    timestamp: Utc::now(),
+                });
+            }
+        } else {
+            // Reset on profitable trade
+            if portfolio.consecutive_losses > 0 {
+                info!(
+                    "✅ Profitable trade - resetting consecutive losses counter (was {})",
+                    portfolio.consecutive_losses
+                );
+            }
+            portfolio.consecutive_losses = 0;
+            portfolio.cool_down_until = None;
+        }
+    }
+
+    /// Check position correlation limits
+    /// Prevents too many positions in the same direction (risk concentration)
+    async fn check_position_correlation(&self, new_type: TradeType) -> Result<bool> {
+        let settings = self.settings.read().await;
+        let correlation_limit = settings.risk.correlation_limit;
+        drop(settings);
+
+        let portfolio = self.portfolio.read().await;
+        let open_trades = portfolio.get_open_trades();
+
+        if open_trades.is_empty() {
+            return Ok(true); // First position always OK
+        }
+
+        // Count positions by direction
+        let mut long_exposure = 0.0;
+        let mut short_exposure = 0.0;
+
+        for trade in open_trades {
+            let position_value = trade.quantity * trade.entry_price;
+            match trade.trade_type {
+                TradeType::Long => long_exposure += position_value,
+                TradeType::Short => short_exposure += position_value,
+            }
+        }
+
+        let total_exposure = long_exposure + short_exposure;
+
+        if total_exposure == 0.0 {
+            return Ok(true);
+        }
+
+        // Calculate directional exposure ratios
+        let long_ratio = long_exposure / total_exposure;
+        let short_ratio = short_exposure / total_exposure;
+
+        // Check if new position would exceed correlation limit
+        match new_type {
+            TradeType::Long if long_ratio > correlation_limit => {
+                warn!(
+                    "⚠️ Position correlation limit: {:.1}% long exposure exceeds {:.0}% limit",
+                    long_ratio * 100.0,
+                    correlation_limit * 100.0
+                );
+
+                // Broadcast correlation warning
+                let _ = self.event_broadcaster.send(PaperTradingEvent {
+                    event_type: "correlation_limit_exceeded".to_string(),
+                    data: serde_json::json!({
+                        "direction": "long",
+                        "current_ratio": long_ratio,
+                        "limit": correlation_limit,
+                    }),
+                    timestamp: Utc::now(),
+                });
+
+                return Ok(false);
+            }
+            TradeType::Short if short_ratio > correlation_limit => {
+                warn!(
+                    "⚠️ Position correlation limit: {:.1}% short exposure exceeds {:.0}% limit",
+                    short_ratio * 100.0,
+                    correlation_limit * 100.0
+                );
+
+                // Broadcast correlation warning
+                let _ = self.event_broadcaster.send(PaperTradingEvent {
+                    event_type: "correlation_limit_exceeded".to_string(),
+                    data: serde_json::json!({
+                        "direction": "short",
+                        "current_ratio": short_ratio,
+                        "limit": correlation_limit,
+                    }),
+                    timestamp: Utc::now(),
+                });
+
+                return Ok(false);
+            }
+            _ => Ok(true),
+        }
+    }
+
     /// Execute a single trade
+    /// Includes full execution simulation (delay, slippage, market impact, partial fills)
+    /// and performance tracking (latency metrics)
+    /// @doc:docs/features/paper-trading.md#execution-simulation
+    /// @spec:FR-PAPER-001 - Execution Realism (Phase 1)
+    /// @spec:FR-PAPER-004 - Performance Metrics (Phase 4)
     async fn execute_trade(&self, pending_trade: PendingTrade) -> Result<TradeExecutionResult> {
         let signal = &pending_trade.signal;
 
@@ -730,23 +1121,93 @@ impl PaperTradingEngine {
             },
         };
 
-        // Get current settings
+        // ========== PHASE 1: EXECUTION REALISM SIMULATION ==========
+
+        // 1. Simulate execution delay (network latency)
         let settings = self.settings.read().await;
+        let execution_delay_ms = settings.execution.execution_delay_ms;
         let trading_fee_rate = settings.basic.trading_fee_rate;
         drop(settings);
 
-        // Create paper trade
+        if execution_delay_ms > 0 {
+            debug!(
+                "⏳ Simulating execution delay: {}ms",
+                execution_delay_ms
+            );
+            tokio::time::sleep(Duration::from_millis(execution_delay_ms as u64)).await;
+        }
+
+        // 2. Re-fetch current price after delay (price may have moved!)
+        let current_price = self
+            .current_prices
+            .read()
+            .await
+            .get(&signal.symbol)
+            .copied()
+            .unwrap_or(signal.entry_price);
+
+        // 3. Calculate market impact based on order size
+        let market_impact_pct = self
+            .calculate_market_impact(
+                &signal.symbol,
+                pending_trade.calculated_quantity,
+                current_price,
+            )
+            .await;
+
+        // 4. Apply market impact to price
+        let price_with_impact = current_price * (1.0 + market_impact_pct / 100.0);
+
+        // 5. Apply slippage simulation
+        let execution_price = self.apply_slippage(price_with_impact, trade_type).await;
+
+        // 6. Simulate partial fills
+        let (filled_quantity, _is_partial) = self
+            .simulate_partial_fill(pending_trade.calculated_quantity)
+            .await;
+
+        info!(
+            "🎯 Execution simulation complete for {}: base={:.2}, impact={:.4}%, slippage applied, fill={:.1}%",
+            signal.symbol,
+            current_price,
+            market_impact_pct * 100.0,
+            (filled_quantity / pending_trade.calculated_quantity) * 100.0
+        );
+
+        // ========== CREATE PAPER TRADE WITH REALISTIC EXECUTION ==========
+
+        // Create paper trade with realistic execution price
         let mut paper_trade = PaperTrade::new(
             signal.symbol.clone(),
             trade_type,
-            signal.entry_price,
-            pending_trade.calculated_quantity,
+            execution_price,  // Use realistic execution price (not signal price!)
+            filled_quantity,  // Use actual filled quantity (may be partial)
             pending_trade.calculated_leverage,
             trading_fee_rate,
             Some(signal.id.clone()),
             Some(signal.confidence),
             Some(signal.reasoning.clone()),
         );
+
+        // ========== PHASE 4: PERFORMANCE METRICS ==========
+
+        // Set signal timestamp and calculate execution latency
+        paper_trade.signal_timestamp = Some(signal.timestamp);
+        paper_trade.execution_timestamp = Utc::now();
+
+        if let Some(signal_ts) = paper_trade.signal_timestamp {
+            let latency = (paper_trade.execution_timestamp - signal_ts)
+                .num_milliseconds()
+                .max(0) as u64;
+            paper_trade.execution_latency_ms = Some(latency);
+
+            debug!(
+                "⚡ Execution latency: {}ms (signal: {}, execution: {})",
+                latency,
+                signal_ts.format("%H:%M:%S%.3f"),
+                paper_trade.execution_timestamp.format("%H:%M:%S%.3f")
+            );
+        }
 
         // Set stop loss and take profit
         if let Err(e) = paper_trade.set_stop_loss(pending_trade.stop_loss) {
@@ -997,6 +1458,12 @@ impl PaperTradingEngine {
         let mut portfolio = self.portfolio.write().await;
         portfolio.close_trade(trade_id, current_price, CloseReason::Manual)?;
 
+        // Get the closed trade PnL for consecutive loss tracking
+        let trade_pnl = portfolio
+            .get_trade(trade_id)
+            .and_then(|t| t.realized_pnl)
+            .unwrap_or(0.0);
+
         // Get the closed trade and update in database
         if let Some(trade) = portfolio.get_trade(trade_id) {
             if let Err(e) = self.storage.update_paper_trade(trade).await {
@@ -1011,6 +1478,11 @@ impl PaperTradingEngine {
                 );
             }
         }
+
+        drop(portfolio); // Release lock before calling update_consecutive_losses
+
+        // Update consecutive losses counter and check cool-down
+        self.update_consecutive_losses(trade_pnl).await;
 
         // Broadcast trade closure event
         let _ = self.event_broadcaster.send(PaperTradingEvent {

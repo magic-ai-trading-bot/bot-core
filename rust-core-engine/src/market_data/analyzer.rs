@@ -10,10 +10,22 @@ use super::cache::{CandleData, MarketDataCache};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalysisRequest {
     pub symbol: String,
-    pub timeframe: String,
-    pub candles: Vec<CandleDataForAnalysis>,
-    pub analysis_type: String,
-    pub parameters: HashMap<String, serde_json::Value>,
+    pub timeframe_data: HashMap<String, Vec<CandleDataForAnalysis>>,
+    pub current_price: f64,
+    pub volume_24h: f64,
+    pub timestamp: i64,
+    pub strategy_context: StrategyContext,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StrategyContext {
+    pub active_strategies: Vec<String>,
+    pub portfolio_size: f64,
+    pub risk_tolerance: String,
+    pub market_condition: String,
+    pub risk_level: String,
+    pub user_preferences: HashMap<String, serde_json::Value>,
+    pub technical_indicators: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,12 +129,37 @@ impl MarketDataAnalyzer {
         let analysis_candles: Vec<CandleDataForAnalysis> =
             candles.iter().map(CandleDataForAnalysis::from).collect();
 
+        // Get current price from latest candle
+        let current_price = self
+            .cache
+            .get_latest_price(symbol)
+            .unwrap_or_else(|| candles.last().map(|c| c.close).unwrap_or(0.0));
+
+        // Calculate 24h volume from recent candles
+        let volume_24h: f64 = candles.iter().take(1440).map(|c| c.volume).sum(); // ~24h for 1m candles
+
+        // Build timeframe_data map
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert(timeframe.to_string(), analysis_candles);
+
+        // Build strategy context with defaults
+        let strategy_context = StrategyContext {
+            active_strategies: vec![analysis_type.to_string()],
+            portfolio_size: 10000.0, // Default portfolio size
+            risk_tolerance: "moderate".to_string(),
+            market_condition: "Unknown".to_string(),
+            risk_level: "Moderate".to_string(),
+            user_preferences: HashMap::new(),
+            technical_indicators: HashMap::new(),
+        };
+
         let request = AnalysisRequest {
             symbol: symbol.to_uppercase(),
-            timeframe: timeframe.to_string(),
-            candles: analysis_candles,
-            analysis_type: analysis_type.to_string(),
-            parameters: HashMap::new(),
+            timeframe_data,
+            current_price,
+            volume_24h,
+            timestamp: chrono::Utc::now().timestamp_millis(),
+            strategy_context,
         };
 
         let ai_service_url = &self.ai_service_url;

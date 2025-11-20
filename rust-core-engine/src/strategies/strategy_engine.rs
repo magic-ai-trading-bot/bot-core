@@ -12,9 +12,65 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// Enum to hold different strategy types (workaround for async trait + dyn compatibility)
+#[derive(Clone)]
+pub enum StrategyType {
+    Rsi(RsiStrategy),
+    Macd(MacdStrategy),
+    Bollinger(BollingerStrategy),
+    Volume(VolumeStrategy),
+}
+
+impl StrategyType {
+    pub async fn analyze(&self, data: &StrategyInput) -> Result<StrategyOutput, StrategyError> {
+        match self {
+            StrategyType::Rsi(s) => s.analyze(data).await,
+            StrategyType::Macd(s) => s.analyze(data).await,
+            StrategyType::Bollinger(s) => s.analyze(data).await,
+            StrategyType::Volume(s) => s.analyze(data).await,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            StrategyType::Rsi(s) => s.name(),
+            StrategyType::Macd(s) => s.name(),
+            StrategyType::Bollinger(s) => s.name(),
+            StrategyType::Volume(s) => s.name(),
+        }
+    }
+
+    pub fn config(&self) -> &StrategyConfig {
+        match self {
+            StrategyType::Rsi(s) => s.config(),
+            StrategyType::Macd(s) => s.config(),
+            StrategyType::Bollinger(s) => s.config(),
+            StrategyType::Volume(s) => s.config(),
+        }
+    }
+
+    pub fn update_config(&mut self, config: StrategyConfig) {
+        match self {
+            StrategyType::Rsi(s) => s.update_config(config),
+            StrategyType::Macd(s) => s.update_config(config),
+            StrategyType::Bollinger(s) => s.update_config(config),
+            StrategyType::Volume(s) => s.update_config(config),
+        }
+    }
+
+    pub fn validate_data(&self, data: &StrategyInput) -> Result<(), StrategyError> {
+        match self {
+            StrategyType::Rsi(s) => s.validate_data(data),
+            StrategyType::Macd(s) => s.validate_data(data),
+            StrategyType::Bollinger(s) => s.validate_data(data),
+            StrategyType::Volume(s) => s.validate_data(data),
+        }
+    }
+}
+
 /// Main strategy engine that manages and executes multiple strategies
 pub struct StrategyEngine {
-    strategies: Vec<Box<dyn Strategy>>,
+    strategies: Vec<StrategyType>,
     config: StrategyEngineConfig,
     signal_history: Arc<RwLock<Vec<CombinedSignal>>>,
 }
@@ -63,17 +119,16 @@ pub struct StrategySignalResult {
 impl StrategyEngine {
     pub fn new() -> Self {
         let config = StrategyEngineConfig::default();
-        let mut engine = Self {
-            strategies: Vec::new(),
+        let engine = Self {
+            strategies: vec![
+                StrategyType::Rsi(RsiStrategy::new()),
+                StrategyType::Macd(MacdStrategy::new()),
+                StrategyType::Volume(VolumeStrategy::new()),
+                StrategyType::Bollinger(BollingerStrategy::new()),
+            ],
             config,
             signal_history: Arc::new(RwLock::new(Vec::new())),
         };
-
-        // Add default strategies
-        engine.add_strategy(Box::new(RsiStrategy::new()));
-        engine.add_strategy(Box::new(MacdStrategy::new()));
-        engine.add_strategy(Box::new(VolumeStrategy::new()));
-        engine.add_strategy(Box::new(BollingerStrategy::new()));
 
         engine
     }
@@ -84,7 +139,7 @@ impl StrategyEngine {
         engine
     }
 
-    pub fn add_strategy(&mut self, strategy: Box<dyn Strategy>) {
+    pub fn add_strategy(&mut self, strategy: StrategyType) {
         self.strategies.push(strategy);
     }
 

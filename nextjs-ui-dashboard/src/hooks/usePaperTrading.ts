@@ -255,25 +255,53 @@ export const usePaperTrading = () => {
     }
   }, [API_BASE]);
 
+  // Helper: Fetch with retry logic
+  const fetchWithRetry = useCallback(async (url: string, retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        if (i === retries - 1) throw error; // Last attempt failed
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+      }
+    }
+  }, []);
+
   // Fetch closed trades
   const fetchClosedTrades = useCallback(async () => {
     try {
-      const response = await fetch(
+      const data: RustPaperTradingResponse<PaperTrade[]> = await fetchWithRetry(
         `${API_BASE}/api/paper-trading/trades/closed`
       );
-      const data: RustPaperTradingResponse<PaperTrade[]> =
-        await response.json();
 
       if (data.success && data.data) {
         setState((prev) => ({
           ...prev,
           closedTrades: data.data!,
         }));
+      } else {
+        logger.warn("Empty or failed response for closed trades:", data.error);
+        toast({
+          title: "Warning",
+          description: `Failed to fetch trades: ${data.error || "Unknown error"}`,
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      logger.error("Failed to fetch closed trades:", error);
+      logger.error("Failed to fetch closed trades after retries:", error);
+      toast({
+        title: "Error",
+        description: "Unable to connect to trading service. Please try again.",
+        variant: "destructive",
+      });
     }
-  }, [API_BASE]);
+  }, [API_BASE, fetchWithRetry, toast]);
 
   // Fetch current settings from backend
   const fetchCurrentSettings = useCallback(async () => {

@@ -382,7 +382,7 @@ impl Default for StrategySettings {
 
         Self {
             enabled_strategies,
-            min_ai_confidence: 0.7,
+            min_ai_confidence: 0.5, // Lowered for testnet to get more trading activity
             combination_method: StrategyCombinationMethod::AIEnsemble,
             enable_optimization: true,
             optimization_period_days: 30,
