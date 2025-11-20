@@ -151,6 +151,15 @@ pub struct PaperTrade {
     /// Execution latency in milliseconds (signal to execution time)
     pub execution_latency_ms: Option<u64>,
 
+    /// Highest price achieved (for trailing stop calculation)
+    /// For Long: tracks highest price reached
+    /// For Short: tracks lowest price reached
+    pub highest_price_achieved: Option<f64>,
+
+    /// Trailing stop activated flag
+    /// True once profit threshold is met and trailing begins
+    pub trailing_stop_active: bool,
+
     /// Custom metadata
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -223,6 +232,8 @@ impl PaperTrade {
             signal_timestamp: None,
             execution_timestamp: Utc::now(),
             execution_latency_ms: None,
+            highest_price_achieved: None,
+            trailing_stop_active: false,
             metadata: std::collections::HashMap::new(),
         }
     }
@@ -299,6 +310,125 @@ impl PaperTrade {
             }
         } else {
             false
+        }
+    }
+
+    /// Update trailing stop based on current price
+    ///
+    /// This method implements a trailing stop-loss that moves with price in favorable direction
+    /// but never moves back. It only activates after a minimum profit threshold is reached.
+    ///
+    /// # Arguments
+    /// * `current_price` - Current market price
+    /// * `trailing_pct` - Percentage to trail behind high/low (e.g., 3.0 = 3%)
+    /// * `activation_pct` - Minimum profit % before trailing activates (e.g., 5.0 = 5%)
+    ///
+    /// # Behavior
+    /// - For Long: Stop trails below highest price achieved
+    /// - For Short: Stop trails above lowest price achieved
+    /// - Stop only moves in favorable direction (never moves back)
+    /// - Activates only after profit >= activation_pct
+    ///
+    /// @spec:FR-RISK-008 - Trailing Stop Loss
+    /// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#trailing-stops
+    pub fn update_trailing_stop(
+        &mut self,
+        current_price: f64,
+        trailing_pct: f64,
+        activation_pct: f64,
+    ) {
+        // Only for open trades
+        if self.status != TradeStatus::Open {
+            return;
+        }
+
+        // Calculate profit percentage
+        let profit_pct = match self.trade_type {
+            TradeType::Long => ((current_price - self.entry_price) / self.entry_price) * 100.0,
+            TradeType::Short => ((self.entry_price - current_price) / self.entry_price) * 100.0,
+        };
+
+        // Check if profit threshold met to activate trailing
+        if !self.trailing_stop_active && profit_pct >= activation_pct {
+            self.trailing_stop_active = true;
+            self.highest_price_achieved = Some(current_price);
+            tracing::info!(
+                "🎯 Trailing stop ACTIVATED for {} at ${:.2} (+{:.2}%)",
+                self.symbol,
+                current_price,
+                profit_pct
+            );
+        }
+
+        // Update highest/lowest price achieved
+        match self.trade_type {
+            TradeType::Long => {
+                // Track highest price for long positions
+                if let Some(highest) = self.highest_price_achieved {
+                    if current_price > highest {
+                        self.highest_price_achieved = Some(current_price);
+                    }
+                }
+            }
+            TradeType::Short => {
+                // Track lowest price for short positions
+                if let Some(lowest) = self.highest_price_achieved {
+                    if current_price < lowest {
+                        self.highest_price_achieved = Some(current_price);
+                    }
+                }
+            }
+        }
+
+        // Update stop loss if trailing is active
+        if self.trailing_stop_active {
+            if let Some(best_price) = self.highest_price_achieved {
+                let new_stop = match self.trade_type {
+                    TradeType::Long => {
+                        // Stop trails below high by trailing_pct
+                        let trail_stop = best_price * (1.0 - trailing_pct / 100.0);
+
+                        // Only move stop UP, never down
+                        if let Some(current_stop) = self.stop_loss {
+                            if trail_stop > current_stop {
+                                Some(trail_stop)
+                            } else {
+                                Some(current_stop) // Keep current
+                            }
+                        } else {
+                            Some(trail_stop) // Set initial trailing stop
+                        }
+                    }
+                    TradeType::Short => {
+                        // Stop trails above low by trailing_pct
+                        let trail_stop = best_price * (1.0 + trailing_pct / 100.0);
+
+                        // Only move stop DOWN, never up
+                        if let Some(current_stop) = self.stop_loss {
+                            if trail_stop < current_stop {
+                                Some(trail_stop)
+                            } else {
+                                Some(current_stop) // Keep current
+                            }
+                        } else {
+                            Some(trail_stop) // Set initial trailing stop
+                        }
+                    }
+                };
+
+                // Update if changed
+                if new_stop != self.stop_loss {
+                    let old_stop = self.stop_loss.unwrap_or(0.0);
+                    self.stop_loss = new_stop;
+                    tracing::info!(
+                        "📈 Trailing SL updated: {} ${:.2} → ${:.2} (best: ${:.2})",
+                        self.symbol,
+                        old_stop,
+                        new_stop.unwrap_or(0.0),
+                        best_price
+                    );
+                }
+            }
         }
     }
 

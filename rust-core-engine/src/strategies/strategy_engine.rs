@@ -6,6 +6,7 @@ use crate::strategies::{
     bollinger_strategy::BollingerStrategy,
     macd_strategy::MacdStrategy,
     rsi_strategy::RsiStrategy,
+    stochastic_strategy::StochasticStrategy,
     volume_strategy::VolumeStrategy,
 };
 use serde_json::json;
@@ -18,6 +19,7 @@ pub enum StrategyType {
     Rsi(RsiStrategy),
     Macd(MacdStrategy),
     Bollinger(BollingerStrategy),
+    Stochastic(StochasticStrategy),
     Volume(VolumeStrategy),
 }
 
@@ -27,6 +29,7 @@ impl StrategyType {
             StrategyType::Rsi(s) => s.analyze(data).await,
             StrategyType::Macd(s) => s.analyze(data).await,
             StrategyType::Bollinger(s) => s.analyze(data).await,
+            StrategyType::Stochastic(s) => s.analyze(data).await,
             StrategyType::Volume(s) => s.analyze(data).await,
         }
     }
@@ -36,6 +39,7 @@ impl StrategyType {
             StrategyType::Rsi(s) => s.name(),
             StrategyType::Macd(s) => s.name(),
             StrategyType::Bollinger(s) => s.name(),
+            StrategyType::Stochastic(s) => s.name(),
             StrategyType::Volume(s) => s.name(),
         }
     }
@@ -45,6 +49,7 @@ impl StrategyType {
             StrategyType::Rsi(s) => s.config(),
             StrategyType::Macd(s) => s.config(),
             StrategyType::Bollinger(s) => s.config(),
+            StrategyType::Stochastic(s) => s.config(),
             StrategyType::Volume(s) => s.config(),
         }
     }
@@ -54,6 +59,7 @@ impl StrategyType {
             StrategyType::Rsi(s) => s.update_config(config),
             StrategyType::Macd(s) => s.update_config(config),
             StrategyType::Bollinger(s) => s.update_config(config),
+            StrategyType::Stochastic(s) => s.update_config(config),
             StrategyType::Volume(s) => s.update_config(config),
         }
     }
@@ -63,6 +69,7 @@ impl StrategyType {
             StrategyType::Rsi(s) => s.validate_data(data),
             StrategyType::Macd(s) => s.validate_data(data),
             StrategyType::Bollinger(s) => s.validate_data(data),
+            StrategyType::Stochastic(s) => s.validate_data(data),
             StrategyType::Volume(s) => s.validate_data(data),
         }
     }
@@ -123,8 +130,9 @@ impl StrategyEngine {
             strategies: vec![
                 StrategyType::Rsi(RsiStrategy::new()),
                 StrategyType::Macd(MacdStrategy::new()),
-                StrategyType::Volume(VolumeStrategy::new()),
                 StrategyType::Bollinger(BollingerStrategy::new()),
+                StrategyType::Stochastic(StochasticStrategy::new()),
+                StrategyType::Volume(VolumeStrategy::new()),
             ],
             config,
             signal_history: Arc::new(RwLock::new(Vec::new())),
@@ -615,7 +623,7 @@ mod tests {
         let mut engine = StrategyEngine::new();
         let initial_count = engine.get_strategy_names().len();
 
-        engine.add_strategy(Box::new(RsiStrategy::new()));
+        engine.add_strategy(StrategyType::Rsi(RsiStrategy::new()));
         assert_eq!(engine.get_strategy_names().len(), initial_count + 1);
 
         engine.remove_strategy("RSI Strategy");

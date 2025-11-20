@@ -38,6 +38,7 @@ pub struct StrategyConfigCollection {
     pub macd: MacdConfig,
     pub volume: VolumeConfig,
     pub bollinger: BollingerConfig,
+    pub stochastic: StochasticConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -73,6 +74,17 @@ pub struct BollingerConfig {
     pub period: u32,
     pub multiplier: f64,
     pub squeeze_threshold: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StochasticConfig {
+    pub enabled: bool,
+    pub k_period: u32,
+    pub d_period: u32,
+    pub oversold_threshold: f64,
+    pub overbought_threshold: f64,
+    pub extreme_oversold: f64,
+    pub extreme_overbought: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -562,6 +574,15 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
                 multiplier: 2.0,
                 squeeze_threshold: 0.02,
             },
+            stochastic: StochasticConfig {
+                enabled: true,
+                k_period: 14,
+                d_period: 3,
+                oversold_threshold: 20.0,
+                overbought_threshold: 80.0,
+                extreme_oversold: 10.0,
+                extreme_overbought: 90.0,
+            },
         },
         risk: RiskSettings {
             max_risk_per_trade: engine_settings.risk.max_risk_per_trade_pct,
@@ -581,6 +602,7 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
                 "MACD Strategy".to_string(),
                 "Volume Strategy".to_string(),
                 "Bollinger Bands Strategy".to_string(),
+                "Stochastic Strategy".to_string(),
             ],
             market_condition: "Trending".to_string(),
             risk_level: "Moderate".to_string(),
@@ -1316,6 +1338,15 @@ mod tests {
                     multiplier: 2.0,
                     squeeze_threshold: 0.02,
                 },
+                stochastic: StochasticConfig {
+                    enabled: true,
+                    k_period: 14,
+                    d_period: 3,
+                    oversold_threshold: 20.0,
+                    overbought_threshold: 80.0,
+                    extreme_oversold: 10.0,
+                    extreme_overbought: 90.0,
+                },
             },
             risk: RiskSettings {
                 max_risk_per_trade: 2.0,
@@ -1938,6 +1969,15 @@ mod tests {
                         multiplier: 2.0,
                         squeeze_threshold: 0.02,
                     },
+                    stochastic: StochasticConfig {
+                        enabled: true,
+                        k_period: 14,
+                        d_period: 3,
+                        oversold_threshold: 20.0,
+                        overbought_threshold: 80.0,
+                        extreme_oversold: 10.0,
+                        extreme_overbought: 90.0,
+                    },
                 },
                 risk: RiskSettings {
                     max_risk_per_trade: 2.0,
@@ -2509,6 +2549,15 @@ mod tests {
                     period: 20,
                     multiplier: 2.0,
                     squeeze_threshold: 0.02,
+                },
+                stochastic: StochasticConfig {
+                    enabled: true,
+                    k_period: 14,
+                    d_period: 3,
+                    oversold_threshold: 20.0,
+                    overbought_threshold: 80.0,
+                    extreme_oversold: 10.0,
+                    extreme_overbought: 90.0,
                 },
             },
             risk: RiskSettings {

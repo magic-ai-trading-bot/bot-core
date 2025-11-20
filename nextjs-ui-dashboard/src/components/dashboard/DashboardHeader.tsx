@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { MobileNav } from "./MobileNav";
-import { WifiOff } from "lucide-react";
+import { WifiOff, LayoutDashboard, TrendingUp, BookOpen, Settings as SettingsIcon } from "lucide-react";
 
 export function DashboardHeader() {
   const { logout, user } = useAuth();
@@ -61,8 +61,9 @@ export function DashboardHeader() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground text-sm"
+            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
+            <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Button>
         </Link>
@@ -70,17 +71,29 @@ export function DashboardHeader() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground text-sm"
+            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
+            <TrendingUp className="h-4 w-4" />
             Trading Paper
+          </Button>
+        </Link>
+        <Link to="/how-it-works">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
+          >
+            <BookOpen className="h-4 w-4" />
+            Hướng Dẫn
           </Button>
         </Link>
         <Link to="/settings">
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground text-sm"
+            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
+            <SettingsIcon className="h-4 w-4" />
             Settings
           </Button>
         </Link>

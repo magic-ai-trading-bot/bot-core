@@ -74,11 +74,22 @@ interface VolumeConfig {
   correlation_period: number;
 }
 
+interface StochasticConfig {
+  enabled: boolean;
+  k_period: number;
+  d_period: number;
+  oversold_threshold: number;
+  overbought_threshold: number;
+  extreme_oversold: number;
+  extreme_overbought: number;
+}
+
 interface StrategyConfigCollection {
   rsi: RsiConfig;
   macd: MacdConfig;
   bollinger: BollingerConfig;
   volume: VolumeConfig;
+  stochastic: StochasticConfig;
 }
 
 interface RiskSettings {
@@ -138,10 +149,20 @@ const DEFAULT_VOLUME: VolumeConfig = {
   correlation_period: 10,
 };
 
+const DEFAULT_STOCHASTIC: StochasticConfig = {
+  enabled: true,
+  k_period: 14,
+  d_period: 3,
+  oversold_threshold: 20,
+  overbought_threshold: 80,
+  extreme_oversold: 10,
+  extreme_overbought: 90,
+};
+
 const DEFAULT_ENGINE: EngineSettings = {
   min_confidence_threshold: 0.65,
   signal_combination_mode: "WeightedAverage",
-  enabled_strategies: ["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy", "Volume Strategy"],
+  enabled_strategies: ["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy", "Volume Strategy", "Stochastic Strategy"],
   market_condition: "Trending",
   risk_level: "Moderate",
 };
@@ -161,6 +182,7 @@ export function StrategyTuningSettings() {
   const [macdConfig, setMacdConfig] = useState<MacdConfig>(DEFAULT_MACD);
   const [bollingerConfig, setBollingerConfig] = useState<BollingerConfig>(DEFAULT_BOLLINGER);
   const [volumeConfig, setVolumeConfig] = useState<VolumeConfig>(DEFAULT_VOLUME);
+  const [stochasticConfig, setStochasticConfig] = useState<StochasticConfig>(DEFAULT_STOCHASTIC);
   const [engineConfig, setEngineConfig] = useState<EngineSettings>(DEFAULT_ENGINE);
 
   // Validation state
@@ -180,6 +202,7 @@ export function StrategyTuningSettings() {
           setMacdConfig(settings.strategies.macd);
           setBollingerConfig(settings.strategies.bollinger);
           setVolumeConfig(settings.strategies.volume);
+          setStochasticConfig(settings.strategies.stochastic || DEFAULT_STOCHASTIC);
           setEngineConfig(settings.engine);
         }
       } catch (error) {
@@ -253,6 +276,25 @@ export function StrategyTuningSettings() {
       }
     }
 
+    // Stochastic validation
+    if (stochasticConfig.enabled) {
+      if (stochasticConfig.k_period < 5 || stochasticConfig.k_period > 30) {
+        errors.push("Stochastic K period must be between 5 and 30");
+      }
+      if (stochasticConfig.d_period < 1 || stochasticConfig.d_period > 10) {
+        errors.push("Stochastic D period must be between 1 and 10");
+      }
+      if (stochasticConfig.oversold_threshold >= stochasticConfig.overbought_threshold) {
+        errors.push("Stochastic oversold threshold must be less than overbought threshold");
+      }
+      if (stochasticConfig.extreme_oversold >= stochasticConfig.oversold_threshold) {
+        errors.push("Stochastic extreme oversold must be less than oversold threshold");
+      }
+      if (stochasticConfig.extreme_overbought <= stochasticConfig.overbought_threshold) {
+        errors.push("Stochastic extreme overbought must be greater than overbought threshold");
+      }
+    }
+
     // Engine validation
     if (engineConfig.min_confidence_threshold < 0.4 || engineConfig.min_confidence_threshold > 0.9) {
       errors.push("Confidence threshold must be between 0.4 and 0.9");
@@ -281,6 +323,7 @@ export function StrategyTuningSettings() {
           macd: macdConfig,
           bollinger: bollingerConfig,
           volume: volumeConfig,
+          stochastic: stochasticConfig,
         },
         risk: {
           max_risk_per_trade: 2.0,
@@ -332,6 +375,7 @@ export function StrategyTuningSettings() {
     setMacdConfig(DEFAULT_MACD);
     setBollingerConfig(DEFAULT_BOLLINGER);
     setVolumeConfig(DEFAULT_VOLUME);
+    setStochasticConfig(DEFAULT_STOCHASTIC);
     setEngineConfig(DEFAULT_ENGINE);
     setHasChanges(true);
     setValidationErrors([]);
@@ -348,6 +392,7 @@ export function StrategyTuningSettings() {
       macd: macdConfig,
       bollinger: bollingerConfig,
       volume: volumeConfig,
+      stochastic: stochasticConfig,
       engine: engineConfig,
     };
 
@@ -378,6 +423,7 @@ export function StrategyTuningSettings() {
         setMacdConfig(config.macd || DEFAULT_MACD);
         setBollingerConfig(config.bollinger || DEFAULT_BOLLINGER);
         setVolumeConfig(config.volume || DEFAULT_VOLUME);
+        setStochasticConfig(config.stochastic || DEFAULT_STOCHASTIC);
         setEngineConfig(config.engine || DEFAULT_ENGINE);
         setHasChanges(true);
         toast({
@@ -397,7 +443,7 @@ export function StrategyTuningSettings() {
 
   // Helper to count enabled strategies
   const getEnabledStrategiesCount = () => {
-    return [rsiConfig.enabled, macdConfig.enabled, bollingerConfig.enabled, volumeConfig.enabled].filter(
+    return [rsiConfig.enabled, macdConfig.enabled, bollingerConfig.enabled, volumeConfig.enabled, stochasticConfig.enabled].filter(
       Boolean
     ).length;
   };
@@ -427,7 +473,7 @@ export function StrategyTuningSettings() {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={getEnabledStrategiesCount() > 0 ? "default" : "secondary"}>
-              {getEnabledStrategiesCount()} / 4 Active
+              {getEnabledStrategiesCount()} / 5 Active
             </Badge>
             {hasChanges && (
               <Badge variant="outline" className="bg-warning/10 text-warning border-warning">
@@ -455,7 +501,7 @@ export function StrategyTuningSettings() {
 
         {/* Tabs for each strategy */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="rsi" className="flex items-center gap-1">
               <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">RSI</span>
@@ -471,6 +517,10 @@ export function StrategyTuningSettings() {
             <TabsTrigger value="volume" className="flex items-center gap-1">
               <Volume2 className="h-4 w-4" />
               <span className="hidden sm:inline">Volume</span>
+            </TabsTrigger>
+            <TabsTrigger value="stochastic" className="flex items-center gap-1">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Stochastic</span>
             </TabsTrigger>
             <TabsTrigger value="engine" className="flex items-center gap-1">
               <Settings2 className="h-4 w-4" />
@@ -985,6 +1035,189 @@ export function StrategyTuningSettings() {
             )}
           </TabsContent>
 
+          {/* Stochastic Strategy Tab */}
+          <TabsContent value="stochastic" className="space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border">
+              <div>
+                <h3 className="font-semibold">Stochastic Strategy</h3>
+                <p className="text-sm text-muted-foreground">
+                  Stochastic Oscillator - Momentum indicator
+                </p>
+              </div>
+              <Switch
+                checked={stochasticConfig.enabled}
+                onCheckedChange={(checked) => {
+                  setStochasticConfig({ ...stochasticConfig, enabled: checked });
+                  setHasChanges(true);
+                }}
+                className="data-[state=checked]:bg-profit"
+              />
+            </div>
+
+            {stochasticConfig.enabled && (
+              <div className="space-y-6">
+                {/* K Period */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>%K Period</Label>
+                    <span className="text-sm font-semibold text-profit">{stochasticConfig.k_period}</span>
+                  </div>
+                  <Slider
+                    value={[stochasticConfig.k_period]}
+                    onValueChange={([value]) => {
+                      setStochasticConfig({ ...stochasticConfig, k_period: value });
+                      setHasChanges(true);
+                    }}
+                    min={5}
+                    max={30}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>5 (Fast)</span>
+                    <span className="text-profit font-medium">14 (Default)</span>
+                    <span>30 (Slow)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Number of periods for %K calculation. Lower = more sensitive
+                  </p>
+                </div>
+
+                {/* D Period */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>%D Period (Signal Line)</Label>
+                    <span className="text-sm font-semibold text-info">{stochasticConfig.d_period}</span>
+                  </div>
+                  <Slider
+                    value={[stochasticConfig.d_period]}
+                    onValueChange={([value]) => {
+                      setStochasticConfig({ ...stochasticConfig, d_period: value });
+                      setHasChanges(true);
+                    }}
+                    min={1}
+                    max={10}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1 (Fast)</span>
+                    <span className="text-info font-medium">3 (Default)</span>
+                    <span>10 (Smooth)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Smoothing period for %D line (moving average of %K)
+                  </p>
+                </div>
+
+                {/* Oversold Threshold */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Oversold Threshold</Label>
+                    <span className="text-sm font-semibold text-profit">{stochasticConfig.oversold_threshold}</span>
+                  </div>
+                  <Slider
+                    value={[stochasticConfig.oversold_threshold]}
+                    onValueChange={([value]) => {
+                      setStochasticConfig({ ...stochasticConfig, oversold_threshold: value });
+                      setHasChanges(true);
+                    }}
+                    min={10}
+                    max={30}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>10 (Extreme)</span>
+                    <span className="text-profit font-medium">20 (Default)</span>
+                    <span>30 (Conservative)</span>
+                  </div>
+                </div>
+
+                {/* Overbought Threshold */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Overbought Threshold</Label>
+                    <span className="text-sm font-semibold text-loss">{stochasticConfig.overbought_threshold}</span>
+                  </div>
+                  <Slider
+                    value={[stochasticConfig.overbought_threshold]}
+                    onValueChange={([value]) => {
+                      setStochasticConfig({ ...stochasticConfig, overbought_threshold: value });
+                      setHasChanges(true);
+                    }}
+                    min={70}
+                    max={90}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>70 (Conservative)</span>
+                    <span className="text-loss font-medium">80 (Default)</span>
+                    <span>90 (Extreme)</span>
+                  </div>
+                </div>
+
+                {/* Extreme Oversold */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Extreme Oversold</Label>
+                    <span className="text-sm font-semibold text-profit">{stochasticConfig.extreme_oversold}</span>
+                  </div>
+                  <Slider
+                    value={[stochasticConfig.extreme_oversold]}
+                    onValueChange={([value]) => {
+                      setStochasticConfig({ ...stochasticConfig, extreme_oversold: value });
+                      setHasChanges(true);
+                    }}
+                    min={5}
+                    max={20}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>5 (Ultra-extreme)</span>
+                    <span className="text-profit font-medium">10 (Default)</span>
+                    <span>20</span>
+                  </div>
+                </div>
+
+                {/* Extreme Overbought */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Extreme Overbought</Label>
+                    <span className="text-sm font-semibold text-loss">{stochasticConfig.extreme_overbought}</span>
+                  </div>
+                  <Slider
+                    value={[stochasticConfig.extreme_overbought]}
+                    onValueChange={([value]) => {
+                      setStochasticConfig({ ...stochasticConfig, extreme_overbought: value });
+                      setHasChanges(true);
+                    }}
+                    min={80}
+                    max={95}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>80</span>
+                    <span className="text-loss font-medium">90 (Default)</span>
+                    <span>95 (Ultra-extreme)</span>
+                  </div>
+                </div>
+
+                {/* Helper Info */}
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    <strong>Tip:</strong> Stochastic above 80 indicates overbought (potential sell), below 20 indicates
+                    oversold (potential buy). %K crossing %D generates entry/exit signals.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+          </TabsContent>
+
           {/* Engine Settings Tab */}
           <TabsContent value="engine" className="space-y-6">
             <div className="p-4 rounded-lg bg-secondary/50 border">
@@ -1114,6 +1347,15 @@ export function StrategyTuningSettings() {
                       <span className="text-sm font-medium">Volume</span>
                     </div>
                     {volumeConfig.enabled && (
+                      <CheckCircle2 className="h-4 w-4 text-profit mt-1" />
+                    )}
+                  </div>
+                  <div className={`p-3 rounded-lg border ${stochasticConfig.enabled ? "bg-profit/10 border-profit" : "bg-muted"}`}>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      <span className="text-sm font-medium">Stochastic</span>
+                    </div>
+                    {stochasticConfig.enabled && (
                       <CheckCircle2 className="h-4 w-4 text-profit mt-1" />
                     )}
                   </div>

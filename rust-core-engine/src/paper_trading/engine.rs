@@ -4,7 +4,7 @@ use rand::Rng;
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, Mutex, RwLock};
 use tokio::time::{interval, Duration};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -60,6 +60,9 @@ pub struct PaperTradingEngine {
 
     /// Trade execution queue
     execution_queue: Arc<RwLock<Vec<PendingTrade>>>,
+
+    /// Mutex to prevent concurrent trade execution (race condition fix)
+    trade_execution_lock: Arc<Mutex<()>>,
 }
 
 /// Pending trade for execution
@@ -119,6 +122,7 @@ impl PaperTradingEngine {
             current_prices: Arc::new(RwLock::new(HashMap::new())),
             is_running: Arc::new(RwLock::new(false)),
             execution_queue: Arc::new(RwLock::new(Vec::new())),
+            trade_execution_lock: Arc::new(Mutex::new(())),
         })
     }
 
@@ -372,6 +376,22 @@ impl PaperTradingEngine {
         {
             let mut portfolio = self.portfolio.write().await;
             portfolio.update_prices(new_prices.clone(), Some(funding_rates));
+
+            // Update trailing stops for open trades if enabled
+            let settings = self.settings.read().await;
+            if settings.risk.trailing_stop_enabled {
+                let trailing_pct = settings.risk.trailing_stop_pct;
+                let activation_pct = settings.risk.trailing_activation_pct;
+
+                // Update trailing stops for all open trades
+                for trade_id in &portfolio.open_trade_ids.clone() {
+                    if let Some(trade) = portfolio.trades.get_mut(trade_id) {
+                        if let Some(current_price) = new_prices.get(&trade.symbol) {
+                            trade.update_trailing_stop(*current_price, trailing_pct, activation_pct);
+                        }
+                    }
+                }
+            }
         }
 
         // Update cached prices
@@ -510,6 +530,12 @@ impl PaperTradingEngine {
         &self,
         signal: AITradingSignal,
     ) -> Result<TradeExecutionResult> {
+        // 🔒 CRITICAL: Acquire lock to prevent race condition (duplicate orders)
+        // This ensures only ONE signal can be processed at a time
+        let _lock = self.trade_execution_lock.lock().await;
+
+        info!("🔒 Acquired trade execution lock for {}", signal.symbol);
+
         // ========== PHASE 2: RISK MANAGEMENT CHECKS ==========
 
         // 1. Check daily loss limit
@@ -1766,6 +1792,7 @@ mod tests {
         AISettings, BasicSettings, ExecutionSettings, NotificationSettings, RiskSettings,
         StrategySettings, SymbolSettings,
     };
+    use crate::paper_trading::MarketAnalysisData;
     use std::sync::Arc;
     use tokio::sync::broadcast;
 

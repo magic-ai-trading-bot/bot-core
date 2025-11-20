@@ -115,6 +115,30 @@ const STRATEGY_INFO = {
     chart_description:
       "3 đường bands tạo kênh price, squeeze/expansion patterns",
   },
+  "Stochastic Strategy": {
+    name: "Stochastic Strategy",
+    description:
+      "Stochastic Oscillator - Xác định momentum và điều kiện quá mua/quá bán",
+    how_it_works:
+      "So sánh giá đóng cửa với khoảng giá trong N kỳ. %K (fast line) và %D (slow line) dao động 0-100. Crossover tạo tín hiệu mua/bán",
+    signals: {
+      buy: "%K cắt lên %D trong vùng oversold (<15)",
+      sell: "%K cắt xuống %D trong vùng overbought (>85)",
+    },
+    advantages: [
+      "Tín hiệu sớm hơn RSI",
+      "Phát hiện divergence tốt",
+      "Hiệu quả trong ranging market",
+    ],
+    disadvantages: [
+      "Nhiều false signals trong strong trend",
+      "Whipsaw trong choppy market",
+      "Cần kết hợp trend filter",
+    ],
+    best_timeframe: "1h, 4h, 1d",
+    chart_description:
+      "%K (fast line) và %D (signal line) với vùng oversold/overbought",
+  },
 };
 
 // Strategy Explanation Dialog Component
@@ -835,6 +859,12 @@ const STRATEGY_CONFIGS = {
     description: "Volatility bands - mean reversion and breakout detection",
     color: "bg-orange-500",
     defaultParams: { period: 20, stdDev: 2 },
+  },
+  "Stochastic Strategy": {
+    icon: Target,
+    description: "Stochastic Oscillator - momentum and overbought/oversold detection",
+    color: "bg-pink-500",
+    defaultParams: { kPeriod: 10, dPeriod: 2, oversold: 15, overbought: 85 },
   },
 };
 
