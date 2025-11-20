@@ -341,9 +341,9 @@ impl Default for BasicSettings {
     fn default() -> Self {
         Self {
             initial_balance: 10000.0,
-            max_positions: 10,
-            default_position_size_pct: 5.0,
-            default_leverage: 10,
+            max_positions: 5,         // OPTIMIZED: Down from 10 - better focus
+            default_position_size_pct: 2.0, // OPTIMIZED: Down from 5% - conservative sizing
+            default_leverage: 3,      // OPTIMIZED: Down from 10x - CRITICAL CHANGE!
             trading_fee_rate: 0.0004, // 0.04% Binance Futures
             funding_fee_rate: 0.0001, // 0.01% every 8 hours
             slippage_pct: 0.01,       // 0.01% average slippage
@@ -356,18 +356,18 @@ impl Default for BasicSettings {
 impl Default for RiskSettings {
     fn default() -> Self {
         Self {
-            max_risk_per_trade_pct: 2.0,
-            max_portfolio_risk_pct: 20.0,
-            default_stop_loss_pct: 2.0,
-            default_take_profit_pct: 4.0,
-            max_leverage: 50,
-            min_margin_level: 200.0,
-            max_drawdown_pct: 15.0,
-            daily_loss_limit_pct: 5.0,
-            max_consecutive_losses: 5,
-            cool_down_minutes: 60,
+            max_risk_per_trade_pct: 1.0,   // OPTIMIZED: Down from 2% - max 1% loss/trade
+            max_portfolio_risk_pct: 10.0,  // OPTIMIZED: Down from 20% - safer limit
+            default_stop_loss_pct: 5.0,    // OPTIMIZED: Up from 2% - avoid market noise!
+            default_take_profit_pct: 10.0, // OPTIMIZED: Up from 4% - better R:R (2:1)
+            max_leverage: 5,               // OPTIMIZED: Down from 50x - safety cap
+            min_margin_level: 300.0,       // OPTIMIZED: Up from 200% - extra buffer
+            max_drawdown_pct: 10.0,        // OPTIMIZED: Down from 15% - stop earlier
+            daily_loss_limit_pct: 3.0,     // OPTIMIZED: Down from 5% - protect capital
+            max_consecutive_losses: 3,     // OPTIMIZED: Down from 5 - stop faster
+            cool_down_minutes: 30,         // OPTIMIZED: Down from 60 - faster recovery
             position_sizing_method: PositionSizingMethod::RiskBased,
-            min_risk_reward_ratio: 1.5,
+            min_risk_reward_ratio: 2.0,    // OPTIMIZED: Up from 1.5 - quality trades only
             correlation_limit: 0.7,
             dynamic_sizing: true,
             volatility_lookback_hours: 24,
