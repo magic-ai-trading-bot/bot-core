@@ -106,17 +106,17 @@ export function BotStatus() {
                     <span className="text-xs lg:text-sm text-muted-foreground">{position.leverage}x</span>
                   </div>
                   <div className="text-left sm:text-right">
-                    <div className={`font-semibold text-base lg:text-lg flex items-center gap-1 ${position.unrealized_pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                      {position.unrealized_pnl >= 0 ? (
+                    <div className={`font-semibold text-base lg:text-lg flex items-center gap-1 ${(position.unrealized_pnl || 0) >= 0 ? 'text-profit' : 'text-loss'}`}>
+                      {(position.unrealized_pnl || 0) >= 0 ? (
                         <TrendingUp className="h-4 w-4" aria-hidden="true" />
                       ) : (
                         <TrendingDown className="h-4 w-4" aria-hidden="true" />
                       )}
-                      <span>{position.unrealized_pnl >= 0 ? '+' : ''}${position.unrealized_pnl.toFixed(2)}</span>
-                      <span className="sr-only">{position.unrealized_pnl >= 0 ? 'Profit' : 'Loss'}</span>
+                      <span>{(position.unrealized_pnl || 0) >= 0 ? '+' : ''}${(position.unrealized_pnl || 0).toFixed(2)}</span>
+                      <span className="sr-only">{(position.unrealized_pnl || 0) >= 0 ? 'Profit' : 'Loss'}</span>
                     </div>
-                    <div className={`text-xs lg:text-sm flex items-center gap-1 ${position.unrealized_pnl_percent >= 0 ? 'text-profit' : 'text-loss'}`}>
-                      <span>{position.unrealized_pnl_percent >= 0 ? '+' : ''}{position.unrealized_pnl_percent.toFixed(2)}%</span>
+                    <div className={`text-xs lg:text-sm flex items-center gap-1 ${(position.unrealized_pnl_percent || 0) >= 0 ? 'text-profit' : 'text-loss'}`}>
+                      <span>{(position.unrealized_pnl_percent || 0) >= 0 ? '+' : ''}{(position.unrealized_pnl_percent || 0).toFixed(2)}%</span>
                     </div>
                   </div>
                 </div>
