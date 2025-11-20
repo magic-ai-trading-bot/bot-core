@@ -160,6 +160,18 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         setLoading(true);
         setError(null);
 
+        // CRITICAL FIX: Fetch REAL price from Binance API instead of using fake generated data
+        let currentPrice = 0;
+        try {
+          const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+          const priceData = await response.json();
+          currentPrice = parseFloat(priceData.price);
+        } catch (e) {
+          logger.error("Failed to fetch real price from Binance:", e);
+          // Fallback to estimated prices if API fails
+          currentPrice = symbol === "BTCUSDT" ? 95000 : symbol === "ETHUSDT" ? 3500 : symbol === "BNBUSDT" ? 650 : 600;
+        }
+
         const timeframeData = generateSampleCandles(symbol);
         const latestCandle =
           timeframeData["1h"] && timeframeData["1h"].length > 0
@@ -169,7 +181,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         const request = {
           symbol,
           timeframe_data: timeframeData,
-          current_price: latestCandle.close,
+          current_price: currentPrice, // FIXED: Use real price from Binance API!
           volume_24h: timeframeData["1h"].reduce(
             (sum, candle) => sum + candle.volume,
             0
@@ -211,6 +223,17 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   const getStrategyRecommendations = useCallback(
     async (symbol: string) => {
       try {
+        // CRITICAL FIX: Fetch REAL price from Binance API
+        let currentPrice = 0;
+        try {
+          const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+          const priceData = await response.json();
+          currentPrice = parseFloat(priceData.price);
+        } catch (e) {
+          logger.error("Failed to fetch real price:", e);
+          currentPrice = symbol === "BTCUSDT" ? 95000 : symbol === "ETHUSDT" ? 3500 : symbol === "BNBUSDT" ? 650 : 600;
+        }
+
         const timeframeData = generateSampleCandles(symbol);
         const latestCandle =
           timeframeData["1h"] && timeframeData["1h"].length > 0
@@ -220,7 +243,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         const data = {
           symbol,
           timeframe_data: timeframeData,
-          current_price: latestCandle.close,
+          current_price: currentPrice, // FIXED: Use real price!
           available_strategies: DEFAULT_STRATEGIES,
           timestamp: Date.now(),
         };
@@ -249,6 +272,17 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   const analyzeMarketCondition = useCallback(
     async (symbol: string) => {
       try {
+        // CRITICAL FIX: Fetch REAL price from Binance API
+        let currentPrice = 0;
+        try {
+          const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+          const priceData = await response.json();
+          currentPrice = parseFloat(priceData.price);
+        } catch (e) {
+          logger.error("Failed to fetch real price:", e);
+          currentPrice = symbol === "BTCUSDT" ? 95000 : symbol === "ETHUSDT" ? 3500 : symbol === "BNBUSDT" ? 650 : 600;
+        }
+
         const timeframeData = generateSampleCandles(symbol);
         const latestCandle =
           timeframeData["1h"] && timeframeData["1h"].length > 0
@@ -258,7 +292,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         const data = {
           symbol,
           timeframe_data: timeframeData,
-          current_price: latestCandle.close,
+          current_price: currentPrice, // FIXED: Use real price!
           volume_24h: timeframeData["1h"].reduce(
             (sum, candle) => sum + candle.volume,
             0
