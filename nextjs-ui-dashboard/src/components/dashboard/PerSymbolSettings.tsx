@@ -391,15 +391,19 @@ export function PerSymbolSettings({
 
             return (
               <AccordionItem key={config.symbol} value={config.symbol}>
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-4 w-full pr-4">
+                <div className="flex items-center gap-0">
+                  <div
+                    className="px-4 py-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Switch
                       checked={config.enabled}
                       onCheckedChange={(checked) =>
                         updateSymbolConfig(config.symbol, { enabled: checked })
                       }
-                      onClick={(e) => e.stopPropagation()}
                     />
+                  </div>
+                  <AccordionTrigger className="hover:no-underline flex-1 py-4 pl-0 pr-4">
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{config.symbol}</span>
@@ -426,8 +430,8 @@ export function PerSymbolSettings({
                         </div>
                       </div>
                     </div>
-                  </div>
-                </AccordionTrigger>
+                  </AccordionTrigger>
+                </div>
                 <AccordionContent>
                   <div className="space-y-6 pt-4">
                     {/* Leverage */}
