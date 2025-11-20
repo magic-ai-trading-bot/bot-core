@@ -63,6 +63,11 @@ pub struct PaperTradingEngine {
 
     /// Mutex to prevent concurrent trade execution (race condition fix)
     trade_execution_lock: Arc<Mutex<()>>,
+
+    /// Historical kline data cache for warmup period validation
+    /// Key: symbol (e.g., "BTCUSDT"), Value: Vec of recent klines
+    /// Pre-loaded at startup to enable immediate trading without waiting
+    historical_data_cache: Arc<RwLock<HashMap<String, Vec<crate::binance::types::Kline>>>>,
 }
 
 /// Pending trade for execution
@@ -123,6 +128,7 @@ impl PaperTradingEngine {
             is_running: Arc::new(RwLock::new(false)),
             execution_queue: Arc::new(RwLock::new(Vec::new())),
             trade_execution_lock: Arc::new(Mutex::new(())),
+            historical_data_cache: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
@@ -141,6 +147,12 @@ impl PaperTradingEngine {
         // Load portfolio from storage if exists
         if let Err(e) = self.load_portfolio_from_storage().await {
             warn!("Failed to load portfolio from storage: {}", e);
+        }
+
+        // Pre-load historical data for instant warmup (no more 12.5 hour wait!)
+        info!("📊 Pre-loading historical data for all symbols...");
+        if let Err(e) = self.preload_historical_data().await {
+            warn!("⚠️ Failed to preload historical data: {}. Warmup will use API queries instead.", e);
         }
 
         // Start background tasks
@@ -963,7 +975,31 @@ impl PaperTradingEngine {
         // Safe minimum: 50 candles for all strategies
         const MIN_CANDLES_REQUIRED: usize = 50;
 
-        // Query Binance for recent klines to verify data availability
+        // STEP 1: Check cache first (instant, no API call needed!)
+        {
+            let cache = self.historical_data_cache.read().await;
+            if let Some(klines) = cache.get(symbol) {
+                let candle_count = klines.len();
+
+                if candle_count >= MIN_CANDLES_REQUIRED {
+                    // Cache has sufficient data - instant warmup complete!
+                    debug!(
+                        "✅ Warmup complete (cached): {} has {} candles for {} timeframe",
+                        symbol, candle_count, timeframe
+                    );
+                    return Ok(true);
+                } else {
+                    warn!(
+                        "⏳ Warmup pending (cached): {} only has {}/{} candles",
+                        symbol, candle_count, MIN_CANDLES_REQUIRED
+                    );
+                    return Ok(false);
+                }
+            }
+        }
+
+        // STEP 2: Cache miss - query Binance API (fallback)
+        debug!("📡 Cache miss for {}, querying Binance API...", symbol);
         match self.binance_client
             .get_klines(symbol, timeframe, Some(MIN_CANDLES_REQUIRED as u32))
             .await
@@ -971,17 +1007,23 @@ impl PaperTradingEngine {
             Ok(klines) => {
                 let candle_count = klines.len();
 
+                // Update cache with fresh data
+                {
+                    let mut cache = self.historical_data_cache.write().await;
+                    cache.insert(symbol.to_string(), klines);
+                }
+
                 if candle_count < MIN_CANDLES_REQUIRED {
                     warn!(
-                        "⏳ Warmup period: {} only has {}/{} candles for {} timeframe. Waiting for more historical data...",
+                        "⏳ Warmup period: {} only has {}/{} candles for {} timeframe",
                         symbol, candle_count, MIN_CANDLES_REQUIRED, timeframe
                     );
                     return Ok(false);
                 }
 
-                debug!(
-                    "✅ Warmup complete: {} has sufficient historical data ({} candles for {} timeframe)",
-                    symbol, candle_count, timeframe
+                info!(
+                    "✅ Warmup complete (API): {} has sufficient data ({} candles)",
+                    symbol, candle_count
                 );
                 Ok(true)
             }
@@ -991,6 +1033,54 @@ impl PaperTradingEngine {
                 Ok(false)
             }
         }
+    }
+
+    /// Pre-load historical data for all trading symbols at startup
+    /// This eliminates the 12.5 hour warmup wait by fetching data immediately
+    /// WebSocket will then keep cache updated with real-time data
+    /// @doc:docs/features/paper-trading.md#instant-warmup
+    async fn preload_historical_data(&self) -> Result<()> {
+        let settings = self.settings.read().await;
+        let timeframe = settings.backtesting.data_resolution.clone();
+
+        // Get list of symbols to trade (from settings or default list)
+        // TODO: Make this configurable via settings
+        let symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+        drop(settings);
+
+        const MIN_CANDLES: u32 = 50;
+        let mut total_loaded = 0;
+        let mut failed = 0;
+
+        for symbol in &symbols {
+            match self.binance_client.get_klines(symbol, &timeframe, Some(MIN_CANDLES)).await {
+                Ok(klines) => {
+                    let count = klines.len();
+
+                    // Store in cache
+                    let mut cache = self.historical_data_cache.write().await;
+                    cache.insert(symbol.to_string(), klines);
+                    drop(cache);
+
+                    total_loaded += count;
+                    info!("   ✅ Pre-loaded {} candles for {} ({})", count, symbol, timeframe);
+                }
+                Err(e) => {
+                    warn!("   ⚠️ Failed to preload data for {}: {}", symbol, e);
+                    failed += 1;
+                }
+            }
+        }
+
+        if failed == 0 {
+            info!("🎉 Successfully pre-loaded {} candles for {} symbols! Trading ready immediately.",
+                total_loaded, symbols.len());
+        } else {
+            warn!("⚠️ Pre-loaded {}/{} symbols successfully ({} failed)",
+                symbols.len() - failed, symbols.len(), failed);
+        }
+
+        Ok(())
     }
 
     /// Check daily loss limit
