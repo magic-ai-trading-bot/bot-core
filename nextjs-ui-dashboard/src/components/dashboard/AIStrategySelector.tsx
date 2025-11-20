@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useAIAnalysis } from "@/hooks/useAIAnalysis";
+import { useAIAnalysisContext } from "@/contexts/AIAnalysisContext";
 import {
   Settings,
   TrendingUp,
@@ -857,7 +857,7 @@ const RISK_LEVELS = [
 ];
 
 export function AIStrategySelector() {
-  const { state, analyzeSymbol } = useAIAnalysis();
+  const { state, analyzeSymbol } = useAIAnalysisContext();
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>([
     "RSI Strategy",
     "MACD Strategy",

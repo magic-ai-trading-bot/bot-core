@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useAIAnalysis } from "@/hooks/useAIAnalysis";
+import { useAIAnalysisContext } from "@/contexts/AIAnalysisContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { AIMarketAnalysis, AIRiskAssessment } from "@/services/api";
 import {
@@ -1187,7 +1187,7 @@ function DetailedSignalDialog({ signal }: { signal: FormattedSignal }) {
 }
 
 export function AISignals() {
-  const { state: aiState, analyzeSymbol, clearError } = useAIAnalysis();
+  const { state: aiState, analyzeSymbol, clearError } = useAIAnalysisContext();
   const { state: wsState } = useWebSocket();
 
   // Combine signals from both AI analysis and WebSocket
