@@ -464,14 +464,13 @@ impl MarketDataProcessor {
                 // Periodically refresh data to ensure we don't miss anything
                 for symbol in &symbols {
                     for timeframe in &timeframes {
-                        // Only update longer timeframes periodically (not 1m which updates via WebSocket)
-                        if matches!(timeframe.as_str(), "1h" | "4h" | "1d") {
-                            if let Err(e) =
-                                Self::refresh_timeframe_data(&client, &cache, symbol, timeframe)
-                                    .await
-                            {
-                                warn!("Failed to refresh {} {}: {}", symbol, timeframe, e);
-                            }
+                        // Refresh all timeframes from config
+                        // WebSocket provides real-time updates, periodic refresh ensures data integrity
+                        if let Err(e) =
+                            Self::refresh_timeframe_data(&client, &cache, symbol, timeframe)
+                                .await
+                        {
+                            warn!("Failed to refresh {} {}: {}", symbol, timeframe, e);
                         }
                     }
                 }
