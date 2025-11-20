@@ -106,6 +106,12 @@ pub struct EngineSettings {
     pub enabled_strategies: Vec<String>,
     pub market_condition: String,
     pub risk_level: String,
+    #[serde(default = "default_data_resolution")]
+    pub data_resolution: String, // Timeframe for trading signals (1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d)
+}
+
+fn default_data_resolution() -> String {
+    "15m".to_string()
 }
 
 /// Request to update strategy settings
@@ -606,6 +612,7 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
             ],
             market_condition: "Trending".to_string(),
             risk_level: "Moderate".to_string(),
+            data_resolution: engine_settings.strategy.backtesting.data_resolution.clone(), // Current timeframe
         },
     };
 
@@ -630,20 +637,33 @@ async fn update_strategy_settings(
     let confidence_threshold = request.settings.engine.min_confidence_threshold;
     log::info!("Applying confidence threshold: {confidence_threshold}");
 
+    // Update data resolution/timeframe if provided
+    let data_resolution = request.settings.engine.data_resolution.clone();
+    log::info!("Applying data resolution: {data_resolution}");
+
     // Update engine confidence threshold (this affects trade creation)
-    // We need to update the internal engine configuration
-    match api
+    let confidence_result = api
         .engine
         .update_confidence_threshold(confidence_threshold)
-        .await
-    {
-        Ok(_) => {
+        .await;
+
+    // Update data resolution (this affects which timeframe is used for trading signals)
+    let resolution_result = api
+        .engine
+        .update_data_resolution(data_resolution.clone())
+        .await;
+
+    // Check both results
+    match (confidence_result, resolution_result) {
+        (Ok(_), Ok(_)) => {
             log::info!("✅ Confidence threshold updated to: {confidence_threshold}");
+            log::info!("✅ Data resolution updated to: {data_resolution}");
 
             let response = serde_json::json!({
                 "message": "Strategy settings updated successfully",
                 "applied_settings": {
                     "confidence_threshold": confidence_threshold,
+                    "data_resolution": data_resolution,
                     "market_condition": request.settings.engine.market_condition,
                     "risk_level": request.settings.engine.risk_level,
                 },
@@ -654,8 +674,8 @@ async fn update_strategy_settings(
                 StatusCode::OK,
             ))
         },
-        Err(e) => {
-            log::error!("❌ Failed to update confidence threshold: {e}");
+        (Err(e), _) | (_, Err(e)) => {
+            log::error!("❌ Failed to update settings: {e}");
 
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(format!(

@@ -152,7 +152,10 @@ impl PaperTradingEngine {
         // Pre-load historical data for instant warmup (no more 12.5 hour wait!)
         info!("📊 Pre-loading historical data for all symbols...");
         if let Err(e) = self.preload_historical_data().await {
-            warn!("⚠️ Failed to preload historical data: {}. Warmup will use API queries instead.", e);
+            warn!(
+                "⚠️ Failed to preload historical data: {}. Warmup will use API queries instead.",
+                e
+            );
         }
 
         // Start background tasks
@@ -399,7 +402,11 @@ impl PaperTradingEngine {
                 for trade_id in &portfolio.open_trade_ids.clone() {
                     if let Some(trade) = portfolio.trades.get_mut(trade_id) {
                         if let Some(current_price) = new_prices.get(&trade.symbol) {
-                            trade.update_trailing_stop(*current_price, trailing_pct, activation_pct);
+                            trade.update_trailing_stop(
+                                *current_price,
+                                trailing_pct,
+                                activation_pct,
+                            );
                         }
                     }
                 }
@@ -556,7 +563,10 @@ impl PaperTradingEngine {
         let timeframe_str = timeframe.clone();
         drop(settings);
 
-        if !self.check_warmup_period(&signal.symbol, &timeframe_str).await? {
+        if !self
+            .check_warmup_period(&signal.symbol, &timeframe_str)
+            .await?
+        {
             return Ok(TradeExecutionResult {
                 success: false,
                 trade_id: None,
@@ -606,7 +616,7 @@ impl PaperTradingEngine {
                     execution_price: None,
                     fees_paid: None,
                 })
-            }
+            },
         };
 
         if !self.check_position_correlation(trade_type).await? {
@@ -865,7 +875,7 @@ impl PaperTradingEngine {
         let slippage_pct = rng.gen::<f64>() * max_slippage;
 
         let slipped_price = match trade_type {
-            TradeType::Long => price * (1.0 + slippage_pct / 100.0),  // Buy at higher price
+            TradeType::Long => price * (1.0 + slippage_pct / 100.0), // Buy at higher price
             TradeType::Short => price * (1.0 - slippage_pct / 100.0), // Sell at lower price
         };
 
@@ -1000,7 +1010,8 @@ impl PaperTradingEngine {
 
         // STEP 2: Cache miss - query Binance API (fallback)
         debug!("📡 Cache miss for {}, querying Binance API...", symbol);
-        match self.binance_client
+        match self
+            .binance_client
             .get_klines(symbol, timeframe, Some(MIN_CANDLES_REQUIRED as u16))
             .await
         {
@@ -1026,12 +1037,12 @@ impl PaperTradingEngine {
                     symbol, candle_count
                 );
                 Ok(true)
-            }
+            },
             Err(e) => {
                 error!("❌ Failed to check warmup status for {}: {}", symbol, e);
                 // If we can't verify data availability, assume warmup incomplete (safer approach)
                 Ok(false)
-            }
+            },
         }
     }
 
@@ -1053,7 +1064,11 @@ impl PaperTradingEngine {
         let mut failed = 0;
 
         for symbol in &symbols {
-            match self.binance_client.get_klines(symbol, &timeframe, Some(MIN_CANDLES as u16)).await {
+            match self
+                .binance_client
+                .get_klines(symbol, &timeframe, Some(MIN_CANDLES as u16))
+                .await
+            {
                 Ok(klines) => {
                     let count = klines.len();
 
@@ -1063,21 +1078,31 @@ impl PaperTradingEngine {
                     drop(cache);
 
                     total_loaded += count;
-                    info!("   ✅ Pre-loaded {} candles for {} ({})", count, symbol, timeframe);
-                }
+                    info!(
+                        "   ✅ Pre-loaded {} candles for {} ({})",
+                        count, symbol, timeframe
+                    );
+                },
                 Err(e) => {
                     warn!("   ⚠️ Failed to preload data for {}: {}", symbol, e);
                     failed += 1;
-                }
+                },
             }
         }
 
         if failed == 0 {
-            info!("🎉 Successfully pre-loaded {} candles for {} symbols! Trading ready immediately.",
-                total_loaded, symbols.len());
+            info!(
+                "🎉 Successfully pre-loaded {} candles for {} symbols! Trading ready immediately.",
+                total_loaded,
+                symbols.len()
+            );
         } else {
-            warn!("⚠️ Pre-loaded {}/{} symbols successfully ({} failed)",
-                symbols.len() - failed, symbols.len(), failed);
+            warn!(
+                "⚠️ Pre-loaded {}/{} symbols successfully ({} failed)",
+                symbols.len() - failed,
+                symbols.len(),
+                failed
+            );
         }
 
         Ok(())
@@ -1254,7 +1279,7 @@ impl PaperTradingEngine {
                 });
 
                 return Ok(false);
-            }
+            },
             TradeType::Short if short_ratio > correlation_limit => {
                 warn!(
                     "⚠️ Position correlation limit: {:.1}% short exposure exceeds {:.0}% limit",
@@ -1274,7 +1299,7 @@ impl PaperTradingEngine {
                 });
 
                 return Ok(false);
-            }
+            },
             _ => Ok(true),
         }
     }
@@ -1312,10 +1337,7 @@ impl PaperTradingEngine {
         drop(settings);
 
         if execution_delay_ms > 0 {
-            debug!(
-                "⏳ Simulating execution delay: {}ms",
-                execution_delay_ms
-            );
+            debug!("⏳ Simulating execution delay: {}ms", execution_delay_ms);
             tokio::time::sleep(Duration::from_millis(execution_delay_ms as u64)).await;
         }
 
@@ -1362,8 +1384,8 @@ impl PaperTradingEngine {
         let mut paper_trade = PaperTrade::new(
             signal.symbol.clone(),
             trade_type,
-            execution_price,  // Use realistic execution price (not signal price!)
-            filled_quantity,  // Use actual filled quantity (may be partial)
+            execution_price, // Use realistic execution price (not signal price!)
+            filled_quantity, // Use actual filled quantity (may be partial)
             pending_trade.calculated_leverage,
             trading_fee_rate,
             Some(signal.id.clone()),
@@ -1800,6 +1822,45 @@ impl PaperTradingEngine {
         Ok(())
     }
 
+    /// Update data resolution/timeframe for trading signals
+    pub async fn update_data_resolution(&self, timeframe: String) -> Result<()> {
+        // Validate timeframe
+        let valid_timeframes = ["1m", "3m", "5m", "15m", "30m", "1h", "4h", "1d"];
+        if !valid_timeframes.contains(&timeframe.as_str()) {
+            return Err(anyhow::anyhow!(
+                "Invalid timeframe. Must be one of: {}",
+                valid_timeframes.join(", ")
+            ));
+        }
+
+        let mut settings = self.settings.write().await;
+
+        // Update the data resolution in backtesting settings
+        settings.strategy.backtesting.data_resolution = timeframe.clone();
+
+        // Save updated settings to database
+        if let Err(e) = self.storage.save_paper_trading_settings(&settings).await {
+            error!("❌ Failed to save settings to database: {}", e);
+            // Continue anyway - settings are still updated in memory
+        }
+
+        // Broadcast settings update
+        let _ = self.event_broadcaster.send(PaperTradingEvent {
+            event_type: "settings_updated".to_string(),
+            data: serde_json::json!({
+                "data_resolution": timeframe,
+                "timestamp": Utc::now()
+            }),
+            timestamp: Utc::now(),
+        });
+
+        info!(
+            "✅ Data resolution/timeframe updated to: {} and saved to database",
+            timeframe
+        );
+        Ok(())
+    }
+
     /// Trigger manual AI analysis and trade execution
     pub async fn trigger_manual_analysis(&self) -> Result<()> {
         if !*self.is_running.read().await {
@@ -1919,7 +1980,9 @@ impl PaperTradingEngine {
                         info!("🎯 Successfully executed trade for external signal");
                         Ok(())
                     } else {
-                        let error_msg = result.error_message.unwrap_or_else(|| "Unknown error".to_string());
+                        let error_msg = result
+                            .error_message
+                            .unwrap_or_else(|| "Unknown error".to_string());
                         warn!("⚠️ Trade execution failed: {}", error_msg);
                         Err(anyhow::anyhow!("Trade execution failed: {}", error_msg))
                     }
@@ -1938,7 +2001,6 @@ impl PaperTradingEngine {
             Ok(())
         }
     }
-
 }
 
 #[cfg(test)]
