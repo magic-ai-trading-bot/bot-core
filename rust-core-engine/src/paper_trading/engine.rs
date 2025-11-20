@@ -20,10 +20,12 @@ use super::{
     strategy_optimizer::StrategyOptimizer,
     trade::{CloseReason, PaperTrade, TradeType},
     AITradingSignal,
+    MarketAnalysisData,
     PaperTradingEvent,
     PerformanceSummary,
     TradeExecutionResult,
 };
+use uuid;
 
 /// Main paper trading engine
 #[derive(Clone)]
@@ -1162,6 +1164,123 @@ impl PaperTradingEngine {
                 error!("❌ Manual AI analysis failed: {}", e);
                 Err(e)
             },
+        }
+    }
+
+    /// Process an external AI signal (from frontend or API)
+    /// This method allows paper trading to receive AI signals from external sources
+    /// without needing to fetch market data from Binance.
+    pub async fn process_external_ai_signal(
+        &self,
+        symbol: String,
+        signal_type: crate::trading::TradingSignal,
+        confidence: f64,
+        reasoning: String,
+        entry_price: f64,
+        stop_loss: Option<f64>,
+        take_profit: Option<f64>,
+    ) -> Result<()> {
+        if !*self.is_running.read().await {
+            return Err(anyhow::anyhow!("Engine is not running"));
+        }
+
+        info!(
+            "📥 Received external AI signal: {} {} with {}% confidence",
+            symbol,
+            match signal_type {
+                crate::trading::TradingSignal::Long => "LONG",
+                crate::trading::TradingSignal::Short => "SHORT",
+                crate::trading::TradingSignal::Neutral => "NEUTRAL",
+            },
+            (confidence * 100.0) as i32
+        );
+
+        // Create AI trading signal
+        let ai_signal = AITradingSignal {
+            id: uuid::Uuid::new_v4().to_string(),
+            symbol: symbol.clone(),
+            signal_type,
+            confidence,
+            reasoning,
+            entry_price,
+            suggested_stop_loss: stop_loss,
+            suggested_take_profit: take_profit,
+            suggested_leverage: None,
+            market_analysis: super::MarketAnalysisData {
+                trend_direction: match signal_type {
+                    crate::trading::TradingSignal::Long => "Bullish".to_string(),
+                    crate::trading::TradingSignal::Short => "Bearish".to_string(),
+                    crate::trading::TradingSignal::Neutral => "Neutral".to_string(),
+                },
+                trend_strength: confidence,
+                volatility: 0.0,
+                support_levels: vec![],
+                resistance_levels: vec![],
+                volume_analysis: "External signal".to_string(),
+                risk_score: 1.0 - confidence,
+            },
+            timestamp: Utc::now(),
+        };
+
+        // Save signal to database
+        let settings = self.settings.read().await;
+        let min_confidence = settings.strategy.min_ai_confidence;
+        drop(settings);
+
+        let executed = confidence >= min_confidence;
+        if let Err(e) = self
+            .storage
+            .save_ai_signal(&ai_signal, executed, None)
+            .await
+        {
+            error!("Failed to save external AI signal to database: {}", e);
+        }
+
+        // Broadcast signal via WebSocket
+        let _ = self.event_broadcaster.send(PaperTradingEvent {
+            event_type: "AISignalReceived".to_string(),
+            data: serde_json::json!({
+                "symbol": ai_signal.symbol,
+                "signal": format!("{:?}", ai_signal.signal_type).to_lowercase(),
+                "confidence": ai_signal.confidence,
+                "timestamp": ai_signal.timestamp,
+                "reasoning": ai_signal.reasoning,
+                "entry_price": ai_signal.entry_price,
+                "source": "external",
+            }),
+            timestamp: Utc::now(),
+        });
+
+        // Process trading signal if confidence is high enough
+        if confidence >= min_confidence {
+            info!(
+                "✅ External signal confidence {:.1}% >= threshold {:.1}%, executing trade",
+                confidence * 100.0,
+                min_confidence * 100.0
+            );
+
+            match self.process_trading_signal(ai_signal.clone()).await {
+                Ok(result) => {
+                    if result.success {
+                        info!("🎯 Successfully executed trade for external signal");
+                        Ok(())
+                    } else {
+                        warn!("⚠️ Trade execution failed: {}", result.message);
+                        Err(anyhow::anyhow!("Trade execution failed: {}", result.message))
+                    }
+                },
+                Err(e) => {
+                    error!("❌ Failed to process external trading signal: {}", e);
+                    Err(e)
+                },
+            }
+        } else {
+            info!(
+                "ℹ️ External signal confidence {:.1}% below threshold {:.1}%, not executing",
+                confidence * 100.0,
+                min_confidence * 100.0
+            );
+            Ok(())
         }
     }
 
