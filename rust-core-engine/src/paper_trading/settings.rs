@@ -105,6 +105,15 @@ pub struct RiskSettings {
 
     /// Volatility lookback period for dynamic sizing
     pub volatility_lookback_hours: u32,
+
+    /// Enable trailing stop-loss
+    pub trailing_stop_enabled: bool,
+
+    /// Trailing stop distance (percentage below high for long, above low for short)
+    pub trailing_stop_pct: f64,
+
+    /// Minimum profit before trailing activates (percentage)
+    pub trailing_activation_pct: f64,
 }
 
 /// Strategy configuration
@@ -371,6 +380,9 @@ impl Default for RiskSettings {
             correlation_limit: 0.7,
             dynamic_sizing: true,
             volatility_lookback_hours: 24,
+            trailing_stop_enabled: true,   // NEW: Enable trailing stops
+            trailing_stop_pct: 3.0,        // NEW: Trail 3% below high/above low
+            trailing_activation_pct: 5.0,  // NEW: Start after 5% profit
         }
     }
 }
@@ -405,7 +417,7 @@ impl Default for AISettings {
         Self {
             service_url: "http://python-ai-service:8000".to_string(),
             request_timeout_seconds: 30,
-            signal_refresh_interval_minutes: 5, // Changed from 30 to 5 minutes for faster signal processing
+            signal_refresh_interval_minutes: 60, // 1 hour - Reduced from 5min to prevent overtrading and improve signal quality
             enable_realtime_signals: true,
             confidence_thresholds,
             enable_feedback_learning: true,
@@ -610,9 +622,9 @@ mod tests {
         let settings = BasicSettings::default();
 
         assert_eq!(settings.initial_balance, 10000.0);
-        assert_eq!(settings.max_positions, 10);
-        assert_eq!(settings.default_position_size_pct, 5.0);
-        assert_eq!(settings.default_leverage, 10);
+        assert_eq!(settings.max_positions, 5);              // FIXED: Down from 10 - better focus
+        assert_eq!(settings.default_position_size_pct, 2.0); // FIXED: Down from 5% - conservative
+        assert_eq!(settings.default_leverage, 3);            // FIXED: Down from 10x - CRITICAL!
         assert_eq!(settings.trading_fee_rate, 0.0004);
         assert!(settings.enabled);
     }
@@ -621,20 +633,20 @@ mod tests {
     fn test_default_risk_settings() {
         let settings = RiskSettings::default();
 
-        assert_eq!(settings.max_risk_per_trade_pct, 2.0);
-        assert_eq!(settings.max_portfolio_risk_pct, 20.0);
-        assert_eq!(settings.default_stop_loss_pct, 2.0);
-        assert_eq!(settings.default_take_profit_pct, 4.0);
-        assert_eq!(settings.max_leverage, 50);
-        assert_eq!(settings.min_margin_level, 200.0);
-        assert_eq!(settings.max_consecutive_losses, 5);
+        assert_eq!(settings.max_risk_per_trade_pct, 1.0);    // FIXED: Down from 2% - max 1% loss/trade
+        assert_eq!(settings.max_portfolio_risk_pct, 10.0);   // FIXED: Down from 20% - safer limit
+        assert_eq!(settings.default_stop_loss_pct, 5.0);     // FIXED: Up from 2% - avoid market noise!
+        assert_eq!(settings.default_take_profit_pct, 10.0);  // FIXED: Up from 4% - better R:R (2:1)
+        assert_eq!(settings.max_leverage, 5);                // FIXED: Down from 50x - safety cap
+        assert_eq!(settings.min_margin_level, 300.0);        // FIXED: Up from 200% - extra buffer
+        assert_eq!(settings.max_consecutive_losses, 3);      // FIXED: Down from 5 - stop faster
     }
 
     #[test]
     fn test_default_strategy_settings() {
         let settings = StrategySettings::default();
 
-        assert_eq!(settings.min_ai_confidence, 0.7);
+        assert_eq!(settings.min_ai_confidence, 0.5);  // FIXED: Lowered from 0.7 for testnet activity
         assert!(settings.enable_optimization);
         assert_eq!(settings.optimization_period_days, 30);
         assert_eq!(settings.min_trades_for_optimization, 50);
@@ -646,7 +658,7 @@ mod tests {
 
         assert_eq!(settings.service_url, "http://python-ai-service:8000");
         assert_eq!(settings.request_timeout_seconds, 30);
-        assert_eq!(settings.signal_refresh_interval_minutes, 5);
+        assert_eq!(settings.signal_refresh_interval_minutes, 60); // Updated to reflect new 1-hour default
         assert!(settings.enable_realtime_signals);
         assert!(settings.enable_feedback_learning);
     }
@@ -681,7 +693,7 @@ mod tests {
         settings.basic.default_leverage = 150;
         assert!(settings.validate().is_err());
 
-        settings.basic.default_leverage = 10;
+        settings.basic.default_leverage = 3;  // FIXED: Reset to new default
 
         // Invalid fee rate
         settings.basic.trading_fee_rate = -0.01;
@@ -702,7 +714,7 @@ mod tests {
         settings.risk.max_risk_per_trade_pct = 60.0;
         assert!(settings.validate().is_err());
 
-        settings.risk.max_risk_per_trade_pct = 2.0;
+        settings.risk.max_risk_per_trade_pct = 1.0;  // FIXED: Reset to new default
 
         // Invalid max portfolio risk
         settings.risk.max_portfolio_risk_pct = 0.0;
@@ -711,13 +723,13 @@ mod tests {
         settings.risk.max_portfolio_risk_pct = 150.0;
         assert!(settings.validate().is_err());
 
-        settings.risk.max_portfolio_risk_pct = 20.0;
+        settings.risk.max_portfolio_risk_pct = 10.0;  // FIXED: Reset to new default
 
         // Invalid max leverage
         settings.risk.max_leverage = 130;
         assert!(settings.validate().is_err());
 
-        settings.risk.max_leverage = 50;
+        settings.risk.max_leverage = 5;  // FIXED: Reset to new default
 
         // Invalid min margin level
         settings.risk.min_margin_level = 50.0;
@@ -888,6 +900,9 @@ mod tests {
             correlation_limit: 0.8,
             dynamic_sizing: false,
             volatility_lookback_hours: 12,
+            trailing_stop_enabled: true,
+            trailing_stop_pct: 3.0,
+            trailing_activation_pct: 5.0,
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -1081,8 +1096,8 @@ mod tests {
 
         assert!(settings.basic.enabled);
         assert_eq!(settings.basic.initial_balance, 10000.0);
-        assert_eq!(settings.risk.max_leverage, 50);
-        assert_eq!(settings.strategy.min_ai_confidence, 0.7);
+        assert_eq!(settings.risk.max_leverage, 5);           // FIXED: Down from 50x
+        assert_eq!(settings.strategy.min_ai_confidence, 0.5); // FIXED: Down from 0.7
         assert!(settings.ai.enable_realtime_signals);
         assert!(settings.execution.auto_execution);
         assert!(settings.notifications.enable_trade_notifications);
@@ -1443,6 +1458,9 @@ mod tests {
             correlation_limit: 0.6,
             dynamic_sizing: false,
             volatility_lookback_hours: 48,
+            trailing_stop_enabled: true,
+            trailing_stop_pct: 3.0,
+            trailing_activation_pct: 5.0,
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -1817,6 +1835,9 @@ mod tests {
             correlation_limit: 0.75,
             dynamic_sizing: true,
             volatility_lookback_hours: 36,
+            trailing_stop_enabled: true,
+            trailing_stop_pct: 3.0,
+            trailing_activation_pct: 5.0,
         };
 
         assert_eq!(settings.max_risk_per_trade_pct, 1.5);

@@ -237,6 +237,8 @@ impl PaperPortfolio {
         }
 
         // Update margin calculations
+        // Deduct margin from cash balance (locked as collateral)
+        self.cash_balance -= trade.initial_margin;
         self.margin_used += trade.initial_margin;
         self.free_margin = self.equity - self.margin_used;
 

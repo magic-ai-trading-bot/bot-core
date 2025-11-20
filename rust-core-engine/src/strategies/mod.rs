@@ -2,6 +2,7 @@ pub mod bollinger_strategy;
 pub mod indicators;
 pub mod macd_strategy;
 pub mod rsi_strategy;
+pub mod stochastic_strategy;
 pub mod strategy_engine;
 pub mod types;
 pub mod volume_strategy;

@@ -43,6 +43,7 @@ const DEFAULT_STRATEGIES = [
   "MACD Strategy",
   "Volume Strategy",
   "Bollinger Bands Strategy",
+  "Stochastic Strategy",
 ];
 
 export const useAIAnalysis = (): AIAnalysisHook => {

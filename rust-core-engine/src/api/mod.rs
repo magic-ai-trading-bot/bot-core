@@ -493,6 +493,7 @@ impl ApiServer {
             tokio::sync::Mutex<futures::stream::SplitSink<WebSocket, Message>>,
         > = Arc::new(tokio::sync::Mutex::new(ws_sender));
         let ws_sender_for_broadcast = ws_sender_clone.clone();
+        let ws_sender_for_incoming = ws_sender_clone.clone();
 
         // Shared flag to track connection state
         let connection_open = Arc::new(tokio::sync::RwLock::new(true));
@@ -504,7 +505,37 @@ impl ApiServer {
                 match result {
                     Ok(msg) => {
                         if msg.is_text() {
-                            debug!("Received WebSocket message: {:?}", msg);
+                            let text = msg.to_str().unwrap_or("");
+                            debug!("Received WebSocket message: {}", text);
+
+                            // Parse message and check if it's a ping
+                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(text) {
+                                if let Some(msg_type) = json.get("type").and_then(|t| t.as_str()) {
+                                    if msg_type == "Ping" {
+                                        // Respond with Pong
+                                        let pong_response = serde_json::json!({
+                                            "type": "Pong",
+                                            "timestamp": json.get("timestamp")
+                                                .and_then(|t| t.as_str())
+                                                .unwrap_or(""),
+                                        });
+
+                                        if let Ok(pong_str) = serde_json::to_string(&pong_response)
+                                        {
+                                            let mut sender = ws_sender_for_incoming.lock().await;
+                                            if let Err(e) =
+                                                sender.send(Message::text(pong_str)).await
+                                            {
+                                                debug!("Failed to send Pong response: {}", e);
+                                                *connection_open.write().await = false;
+                                                break;
+                                            } else {
+                                                debug!("✅ Sent Pong response to client");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         } else if msg.is_close() {
                             debug!("WebSocket connection closed by client");
                             *connection_open.write().await = false;
@@ -531,7 +562,10 @@ impl ApiServer {
 
                 let mut sender = ws_sender_for_broadcast.lock().await;
                 if let Err(e) = sender.send(Message::text(message)).await {
-                    debug!("Failed to send WebSocket message (connection likely closed): {}", e);
+                    debug!(
+                        "Failed to send WebSocket message (connection likely closed): {}",
+                        e
+                    );
                     *connection_open_outgoing.write().await = false;
                     break;
                 }

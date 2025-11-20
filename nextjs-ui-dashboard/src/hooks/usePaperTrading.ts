@@ -727,22 +727,22 @@ export const usePaperTrading = () => {
                   return trade;
                 });
 
-                // Update portfolio equity with real-time price changes
-                const newEquity = prev.portfolio.current_balance + totalUnrealizedPnl;
-                const equityChanged = Math.abs(newEquity - prev.portfolio.equity) > 0.01;
-
+                // 🔧 PROPER FIX: Don't recalculate portfolio-level metrics on frontend
+                // Frontend doesn't have access to realized P&L from closed trades
+                // Let backend handle all portfolio metrics (total_pnl, equity)
+                // Only update individual trade P&L for real-time display
                 const updatedPortfolio = {
                   ...prev.portfolio,
-                  equity: newEquity,
-                  total_pnl: totalUnrealizedPnl,
+                  // Don't update equity or total_pnl - keep backend values
+                  // These require realized P&L which frontend doesn't have
                 };
 
                 return {
                   ...prev,
                   openTrades: updatedOpenTrades,
                   portfolio: updatedPortfolio,
-                  // Only update timestamp if equity changed significantly to reduce re-renders
-                  lastUpdated: equityChanged ? new Date() : prev.lastUpdated,
+                  // Update timestamp to reflect latest price update
+                  lastUpdated: new Date(),
                 };
               });
 

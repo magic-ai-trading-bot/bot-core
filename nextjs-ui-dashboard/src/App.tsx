@@ -15,6 +15,7 @@ const Register = lazy(() => import("./pages/Register"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Settings = lazy(() => import("./pages/Settings"));
 const TradingPaper = lazy(() => import("./pages/TradingPaper"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -63,6 +64,10 @@ const App = () => (
                       <TradingPaper />
                     </ProtectedRoute>
                   }
+                />
+                <Route
+                  path="/how-it-works"
+                  element={<HowItWorks />}
                 />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

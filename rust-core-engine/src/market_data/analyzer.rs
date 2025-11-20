@@ -512,18 +512,33 @@ mod tests {
             volume: 1000.0,
         }];
 
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1m".to_string(), candles.clone());
+
+        let mut user_prefs = HashMap::new();
+        user_prefs.insert("risk_level".to_string(), serde_json::json!("medium"));
+
         let request = AnalysisRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframe: "1m".to_string(),
-            candles: candles.clone(),
-            analysis_type: "trend_analysis".to_string(),
-            parameters: HashMap::new(),
+            timeframe_data: timeframe_data.clone(),
+            current_price: 50250.0,
+            volume_24h: 1000000.0,
+            timestamp: 1609459200000,
+            strategy_context: StrategyContext {
+                active_strategies: vec!["rsi".to_string()],
+                portfolio_size: 10000.0,
+                risk_tolerance: "medium".to_string(),
+                market_condition: "trending".to_string(),
+                risk_level: "medium".to_string(),
+                user_preferences: user_prefs,
+                technical_indicators: HashMap::new(),
+            },
         };
 
         assert_eq!(request.symbol, "BTCUSDT");
-        assert_eq!(request.timeframe, "1m");
-        assert_eq!(request.candles.len(), 1);
-        assert_eq!(request.analysis_type, "trend_analysis");
+        assert_eq!(request.timeframe_data.len(), 1);
+        assert_eq!(request.timeframe_data.get("1m").unwrap().len(), 1);
+        assert_eq!(request.current_price, 50250.0);
     }
 
     #[test]
@@ -1397,21 +1412,33 @@ mod tests {
 
     #[test]
     fn test_analysis_request_with_parameters() {
-        let mut params = HashMap::new();
-        params.insert("rsi_period".to_string(), serde_json::json!(14));
-        params.insert("macd_fast".to_string(), serde_json::json!(12));
+        let mut technical_indicators = HashMap::new();
+        technical_indicators.insert("rsi_period".to_string(), serde_json::json!(14));
+        technical_indicators.insert("macd_fast".to_string(), serde_json::json!(12));
+
+        let mut user_prefs = HashMap::new();
+        user_prefs.insert("risk_level".to_string(), serde_json::json!("medium"));
 
         let request = AnalysisRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframe: "1h".to_string(),
-            candles: vec![],
-            analysis_type: "technical".to_string(),
-            parameters: params.clone(),
+            timeframe_data: HashMap::new(),
+            current_price: 50000.0,
+            volume_24h: 1000000.0,
+            timestamp: 1609459200000,
+            strategy_context: StrategyContext {
+                active_strategies: vec!["rsi".to_string()],
+                portfolio_size: 10000.0,
+                risk_tolerance: "medium".to_string(),
+                market_condition: "trending".to_string(),
+                risk_level: "medium".to_string(),
+                user_preferences: user_prefs,
+                technical_indicators: technical_indicators.clone(),
+            },
         };
 
-        assert_eq!(request.parameters.len(), 2);
+        assert_eq!(request.strategy_context.technical_indicators.len(), 2);
         assert_eq!(
-            request.parameters.get("rsi_period"),
+            request.strategy_context.technical_indicators.get("rsi_period"),
             Some(&serde_json::json!(14))
         );
     }

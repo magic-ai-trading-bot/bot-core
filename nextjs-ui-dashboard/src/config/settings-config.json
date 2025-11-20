@@ -1,0 +1,590 @@
+{
+  "version": "2.0",
+  "lastUpdated": "2025-11-20",
+  "categories": [
+    {
+      "id": "basic",
+      "name": "Cài Đặt Cơ Bản",
+      "icon": "settings",
+      "description": "Các cài đặt cơ bản cho bot trading",
+      "settings": [
+        {
+          "id": "initial_balance",
+          "name": "Số Dư Ban Đầu",
+          "type": "number",
+          "default": 10000,
+          "min": 1000,
+          "max": 1000000,
+          "step": 1000,
+          "unit": "USD",
+          "description": "Số tiền bạn muốn bot quản lý",
+          "help": "Đây là số dư giả lập trong chế độ Paper Trading, hoặc số tiền thật trong chế độ Live Trading",
+          "validation": {
+            "required": true,
+            "min": 1000,
+            "message": "Số dư tối thiểu là $1,000"
+          }
+        },
+        {
+          "id": "trading_enabled",
+          "name": "Bật Giao Dịch",
+          "type": "toggle",
+          "default": true,
+          "description": "Bật/tắt chức năng giao dịch tự động",
+          "help": "Khi TẮT, bot chỉ phân tích mà không thực hiện giao dịch",
+          "states": {
+            "on": "Bot sẽ giao dịch tự động",
+            "off": "Bot chỉ phân tích, không giao dịch"
+          }
+        },
+        {
+          "id": "paper_trading_mode",
+          "name": "Chế Độ Paper Trading",
+          "type": "toggle",
+          "default": true,
+          "description": "Giao dịch giả lập (không dùng tiền thật)",
+          "help": "KHUYẾN NGHỊ BẬT cho người mới bắt đầu",
+          "warning": "Tắt chế độ này để sử dụng tiền thật - RỦI RO CAO!",
+          "states": {
+            "on": "Giao dịch giả lập (an toàn)",
+            "off": "Giao dịch thật (rủi ro)"
+          }
+        },
+        {
+          "id": "symbols",
+          "name": "Cặp Tiền Giao Dịch",
+          "type": "multiselect",
+          "default": ["BTCUSDT", "ETHUSDT"],
+          "options": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "BNBUSDT",
+            "ADAUSDT",
+            "DOGEUSDT",
+            "SOLUSDT",
+            "XRPUSDT",
+            "DOTUSDT",
+            "MATICUSDT",
+            "AVAXUSDT"
+          ],
+          "description": "Chọn các cặp tiền muốn bot giao dịch",
+          "help": "Có thể chọn nhiều cặp, bot sẽ phân tích và giao dịch tất cả",
+          "validation": {
+            "minItems": 1,
+            "maxItems": 10,
+            "message": "Chọn từ 1 đến 10 cặp tiền"
+          }
+        }
+      ]
+    },
+    {
+      "id": "risk",
+      "name": "Quản Lý Rủi Ro",
+      "icon": "shield",
+      "description": "Cài đặt các thông số kiểm soát rủi ro",
+      "settings": [
+        {
+          "id": "max_risk_per_trade",
+          "name": "Rủi Ro Tối Đa Mỗi Lệnh",
+          "type": "slider",
+          "default": 2,
+          "min": 0.5,
+          "max": 5,
+          "step": 0.5,
+          "unit": "%",
+          "description": "Phần trăm tài khoản có thể mất trong 1 lệnh",
+          "help": "Ví dụ: 2% của $10,000 = $200 rủi ro tối đa/lệnh",
+          "recommendation": {
+            "conservative": 1,
+            "moderate": 2,
+            "aggressive": 3
+          },
+          "validation": {
+            "max": 5,
+            "message": "Không khuyến nghị rủi ro >5%"
+          }
+        },
+        {
+          "id": "max_portfolio_risk",
+          "name": "Rủi Ro Tối Đa Danh Mục",
+          "type": "slider",
+          "default": 10,
+          "min": 5,
+          "max": 20,
+          "step": 1,
+          "unit": "%",
+          "description": "Tổng rủi ro của tất cả các lệnh đang mở",
+          "help": "Bot sẽ không mở lệnh mới nếu tổng rủi ro vượt quá mức này",
+          "recommendation": {
+            "conservative": 10,
+            "moderate": 15,
+            "aggressive": 20
+          }
+        },
+        {
+          "id": "stop_loss_pct",
+          "name": "Stop Loss",
+          "type": "slider",
+          "default": 2,
+          "min": 1,
+          "max": 5,
+          "step": 0.1,
+          "unit": "%",
+          "description": "Khoảng cách stop loss từ giá vào lệnh",
+          "help": "Ví dụ: Giá vào $45,000, SL 2% → Stop loss tại $44,100",
+          "recommendation": {
+            "conservative": 2,
+            "moderate": 2.5,
+            "aggressive": 3
+          }
+        },
+        {
+          "id": "take_profit_pct",
+          "name": "Take Profit",
+          "type": "slider",
+          "default": 4,
+          "min": 2,
+          "max": 10,
+          "step": 0.5,
+          "unit": "%",
+          "description": "Mục tiêu lợi nhuận cho mỗi lệnh",
+          "help": "Ví dụ: Giá vào $45,000, TP 4% → Take profit tại $46,800",
+          "recommendation": {
+            "conservative": 4,
+            "moderate": 5,
+            "aggressive": 6
+          }
+        },
+        {
+          "id": "max_leverage",
+          "name": "Đòn Bẩy Tối Đa",
+          "type": "slider",
+          "default": 3,
+          "min": 1,
+          "max": 10,
+          "step": 1,
+          "unit": "x",
+          "description": "Đòn bẩy tối đa cho giao dịch",
+          "help": "Đòn bẩy càng cao, lợi nhuận và rủi ro càng lớn",
+          "warning": "Đòn bẩy >5x có rủi ro thanh lý cao!",
+          "recommendation": {
+            "conservative": 3,
+            "moderate": 5,
+            "aggressive": 10
+          }
+        },
+        {
+          "id": "daily_loss_limit",
+          "name": "Giới Hạn Thua Lỗ Trong Ngày",
+          "type": "slider",
+          "default": 5,
+          "min": 3,
+          "max": 10,
+          "step": 1,
+          "unit": "%",
+          "description": "Bot dừng giao dịch nếu thua lỗ đạt mức này",
+          "help": "Ví dụ: 5% của $10,000 = $500. Nếu thua $500 trong ngày → Bot nghỉ đến ngày hôm sau",
+          "recommendation": {
+            "conservative": 5,
+            "moderate": 7,
+            "aggressive": 10
+          }
+        },
+        {
+          "id": "max_consecutive_losses",
+          "name": "Giới Hạn Thua Lỗ Liên Tiếp",
+          "type": "number",
+          "default": 5,
+          "min": 3,
+          "max": 10,
+          "step": 1,
+          "unit": "lệnh",
+          "description": "Số lệnh thua liên tiếp trước khi bot nghỉ",
+          "help": "Sau N lệnh thua liên tiếp, bot nghỉ trong thời gian cool-down",
+          "recommendation": {
+            "conservative": 3,
+            "moderate": 5,
+            "aggressive": 7
+          }
+        },
+        {
+          "id": "cool_down_minutes",
+          "name": "Thời Gian Cool-Down",
+          "type": "slider",
+          "default": 60,
+          "min": 15,
+          "max": 180,
+          "step": 15,
+          "unit": "phút",
+          "description": "Thời gian nghỉ sau khi đạt giới hạn thua lỗ",
+          "help": "Bot sẽ tạm dừng giao dịch trong khoảng thời gian này để tránh giao dịch cảm tính",
+          "recommendation": {
+            "conservative": 60,
+            "moderate": 90,
+            "aggressive": 120
+          }
+        }
+      ]
+    },
+    {
+      "id": "trailing_stop",
+      "name": "Trailing Stop Loss",
+      "icon": "trending-up",
+      "description": "Bảo vệ lợi nhuận tự động",
+      "settings": [
+        {
+          "id": "trailing_stop_enabled",
+          "name": "Bật Trailing Stop",
+          "type": "toggle",
+          "default": true,
+          "description": "Tự động nâng stop loss theo giá tăng",
+          "help": "KHUYẾN NGHỊ BẬT để bảo vệ lợi nhuận",
+          "states": {
+            "on": "Tự động bảo vệ lợi nhuận",
+            "off": "Chỉ dùng stop loss cố định"
+          }
+        },
+        {
+          "id": "activation_threshold",
+          "name": "Ngưỡng Kích Hoạt",
+          "type": "slider",
+          "default": 5,
+          "min": 2,
+          "max": 10,
+          "step": 0.5,
+          "unit": "%",
+          "description": "Lợi nhuận tối thiểu để kích hoạt trailing stop",
+          "help": "Ví dụ: 5% → Trailing stop kích hoạt khi lãi ≥5%",
+          "recommendation": {
+            "conservative": 5,
+            "moderate": 4,
+            "aggressive": 3
+          },
+          "example": "Giá vào $45,000 → Kích hoạt tại $47,250 (+5%)"
+        },
+        {
+          "id": "trail_distance",
+          "name": "Khoảng Cách Trailing",
+          "type": "slider",
+          "default": 3,
+          "min": 1,
+          "max": 5,
+          "step": 0.5,
+          "unit": "%",
+          "description": "Khoảng cách stop loss với giá đỉnh",
+          "help": "Ví dụ: 3% → Stop loss luôn cách giá đỉnh 3%",
+          "recommendation": {
+            "conservative": 3,
+            "moderate": 2.5,
+            "aggressive": 2
+          },
+          "example": "Giá đỉnh $49,000 → Stop loss tại $47,530 (-3%)"
+        }
+      ]
+    },
+    {
+      "id": "ai",
+      "name": "Cài Đặt AI & Tín Hiệu",
+      "icon": "brain",
+      "description": "Cấu hình AI và tần suất tạo tín hiệu",
+      "settings": [
+        {
+          "id": "signal_refresh_interval",
+          "name": "Tần Suất Tạo Tín Hiệu",
+          "type": "select",
+          "default": 60,
+          "options": [
+            {
+              "value": 15,
+              "label": "15 phút (Tích cực)",
+              "signals_per_day": 96,
+              "description": "Nhiều cơ hội nhưng có thể overtrading",
+              "recommendation": "⚠️ Không khuyến nghị cho người mới"
+            },
+            {
+              "value": 30,
+              "label": "30 phút (Trung bình)",
+              "signals_per_day": 48,
+              "description": "Cân bằng giữa cơ hội và chất lượng",
+              "recommendation": "✅ Phù hợp với trader có kinh nghiệm"
+            },
+            {
+              "value": 60,
+              "label": "60 phút (Bảo thủ)",
+              "signals_per_day": 24,
+              "description": "Chất lượng cao, ít nhiễu",
+              "recommendation": "✅ KHUYẾN NGHỊ cho người mới"
+            },
+            {
+              "value": 120,
+              "label": "2 giờ (Rất bảo thủ)",
+              "signals_per_day": 12,
+              "description": "Chỉ tín hiệu chất lượng cao nhất",
+              "recommendation": "✅ Phù hợp với thị trường biến động cao"
+            },
+            {
+              "value": 240,
+              "label": "4 giờ (Cực kỳ bảo thủ)",
+              "signals_per_day": 6,
+              "description": "Rất ít tín hiệu nhưng chất lượng tốt nhất",
+              "recommendation": "Chỉ cho trader rất thận trọng"
+            }
+          ],
+          "unit": "phút",
+          "description": "Khoảng thời gian giữa các lần phân tích",
+          "help": "Tần suất càng thấp, chất lượng tín hiệu càng cao"
+        },
+        {
+          "id": "min_confidence_threshold",
+          "name": "Ngưỡng Tin Cậy Tối Thiểu",
+          "type": "slider",
+          "default": 60,
+          "min": 40,
+          "max": 90,
+          "step": 5,
+          "unit": "%",
+          "description": "Mức độ tin cậy tối thiểu để vào lệnh",
+          "help": "Ví dụ: 60% → Chỉ vào lệnh khi ≥3/5 chiến lược đồng ý",
+          "recommendation": {
+            "conservative": 70,
+            "moderate": 60,
+            "aggressive": 50
+          }
+        },
+        {
+          "id": "enable_ai_analysis",
+          "name": "Bật Phân Tích AI",
+          "type": "toggle",
+          "default": true,
+          "description": "Sử dụng AI để dự đoán giá",
+          "help": "AI sử dụng LSTM, GRU, Transformer để dự đoán (72% độ chính xác)",
+          "states": {
+            "on": "Sử dụng dự đoán AI (72% accuracy)",
+            "off": "Chỉ dùng chiến lược kỹ thuật"
+          }
+        },
+        {
+          "id": "enable_gpt4_analysis",
+          "name": "Bật Phân Tích GPT-4",
+          "type": "toggle",
+          "default": true,
+          "description": "Sử dụng GPT-4 để phân tích tin tức và sentiment",
+          "help": "GPT-4 phân tích tin tức thị trường và đưa ra nhận định",
+          "states": {
+            "on": "Phân tích tin tức với GPT-4",
+            "off": "Không phân tích tin tức"
+          }
+        }
+      ]
+    },
+    {
+      "id": "strategies",
+      "name": "Chiến Lược Giao Dịch",
+      "icon": "chart-line",
+      "description": "Bật/tắt các chiến lược giao dịch",
+      "settings": [
+        {
+          "id": "rsi_enabled",
+          "name": "Chiến Lược RSI",
+          "type": "toggle",
+          "default": true,
+          "winRate": 62,
+          "description": "Phát hiện quá mua/quá bán",
+          "help": "Tỷ lệ thắng: 62% - HIỆU QUẢ NHẤT",
+          "recommendation": "✅ KHUYẾN NGHỊ BẬT",
+          "states": {
+            "on": "Sử dụng tín hiệu RSI (62% win rate)",
+            "off": "Không sử dụng RSI"
+          }
+        },
+        {
+          "id": "macd_enabled",
+          "name": "Chiến Lược MACD",
+          "type": "toggle",
+          "default": true,
+          "winRate": 58,
+          "description": "Phát hiện xu hướng và đảo chiều",
+          "help": "Tỷ lệ thắng: 58%",
+          "recommendation": "✅ KHUYẾN NGHỊ BẬT",
+          "states": {
+            "on": "Sử dụng tín hiệu MACD (58% win rate)",
+            "off": "Không sử dụng MACD"
+          }
+        },
+        {
+          "id": "bollinger_enabled",
+          "name": "Chiến Lược Bollinger Bands",
+          "type": "toggle",
+          "default": true,
+          "winRate": 60,
+          "description": "Phát hiện biến động và breakout",
+          "help": "Tỷ lệ thắng: 60%",
+          "recommendation": "✅ KHUYẾN NGHỊ BẬT",
+          "states": {
+            "on": "Sử dụng tín hiệu Bollinger (60% win rate)",
+            "off": "Không sử dụng Bollinger"
+          }
+        },
+        {
+          "id": "volume_enabled",
+          "name": "Chiến Lược Volume",
+          "type": "toggle",
+          "default": true,
+          "winRate": 52,
+          "description": "Xác nhận độ mạnh xu hướng",
+          "help": "Tỷ lệ thắng: 52%",
+          "recommendation": "TÙY CHỌN",
+          "states": {
+            "on": "Sử dụng tín hiệu Volume (52% win rate)",
+            "off": "Không sử dụng Volume"
+          }
+        },
+        {
+          "id": "multi_confirmation",
+          "name": "Số Chiến Lược Đồng Ý Tối Thiểu",
+          "type": "slider",
+          "default": 3,
+          "min": 2,
+          "max": 4,
+          "step": 1,
+          "unit": "chiến lược",
+          "description": "Số chiến lược phải đồng ý để vào lệnh",
+          "help": "Ví dụ: 3/4 → Cần ít nhất 3 trong 4 chiến lược đồng ý",
+          "recommendation": {
+            "conservative": 4,
+            "moderate": 3,
+            "aggressive": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "name": "Thông Báo",
+      "icon": "bell",
+      "description": "Cấu hình thông báo và cảnh báo",
+      "settings": [
+        {
+          "id": "notify_trade_opened",
+          "name": "Thông Báo Mở Lệnh",
+          "type": "toggle",
+          "default": true,
+          "description": "Nhận thông báo khi bot mở lệnh mới",
+          "channels": ["email", "telegram", "push"]
+        },
+        {
+          "id": "notify_trade_closed",
+          "name": "Thông Báo Đóng Lệnh",
+          "type": "toggle",
+          "default": true,
+          "description": "Nhận thông báo khi bot đóng lệnh",
+          "channels": ["email", "telegram", "push"]
+        },
+        {
+          "id": "notify_daily_summary",
+          "name": "Tóm Tắt Hàng Ngày",
+          "type": "toggle",
+          "default": true,
+          "description": "Nhận báo cáo hiệu suất hàng ngày",
+          "channels": ["email"]
+        },
+        {
+          "id": "notify_risk_alerts",
+          "name": "Cảnh Báo Rủi Ro",
+          "type": "toggle",
+          "default": true,
+          "description": "Nhận cảnh báo khi vượt giới hạn rủi ro",
+          "channels": ["email", "telegram", "push"]
+        }
+      ]
+    }
+  ],
+  "presets": {
+    "conservative": {
+      "name": "Bảo Thủ (Người Mới)",
+      "description": "Cài đặt an toàn cho người mới bắt đầu",
+      "icon": "shield-check",
+      "values": {
+        "max_risk_per_trade": 1,
+        "max_portfolio_risk": 10,
+        "stop_loss_pct": 2,
+        "take_profit_pct": 4,
+        "max_leverage": 3,
+        "daily_loss_limit": 5,
+        "signal_refresh_interval": 60,
+        "min_confidence_threshold": 70,
+        "multi_confirmation": 4
+      }
+    },
+    "moderate": {
+      "name": "Trung Bình (Có Kinh Nghiệm)",
+      "description": "Cài đặt cân bằng giữa rủi ro và lợi nhuận",
+      "icon": "balance-scale",
+      "values": {
+        "max_risk_per_trade": 2,
+        "max_portfolio_risk": 15,
+        "stop_loss_pct": 2,
+        "take_profit_pct": 5,
+        "max_leverage": 5,
+        "daily_loss_limit": 7,
+        "signal_refresh_interval": 30,
+        "min_confidence_threshold": 60,
+        "multi_confirmation": 3
+      }
+    },
+    "aggressive": {
+      "name": "Tích Cực (Chuyên Nghiệp)",
+      "description": "Cài đặt cho trader có kinh nghiệm, rủi ro cao",
+      "icon": "rocket",
+      "values": {
+        "max_risk_per_trade": 3,
+        "max_portfolio_risk": 20,
+        "stop_loss_pct": 1.5,
+        "take_profit_pct": 6,
+        "max_leverage": 10,
+        "daily_loss_limit": 10,
+        "signal_refresh_interval": 15,
+        "min_confidence_threshold": 50,
+        "multi_confirmation": 2
+      },
+      "warning": "⚠️ Cài đặt này có rủi ro cao. Chỉ dành cho trader chuyên nghiệp."
+    }
+  },
+  "glossary": {
+    "stop_loss": {
+      "term": "Stop Loss",
+      "definition": "Mức giá tự động đóng lệnh để cắt lỗ",
+      "example": "Giá vào $45,000, SL 2% → Đóng lệnh tại $44,100 nếu giá giảm"
+    },
+    "take_profit": {
+      "term": "Take Profit",
+      "definition": "Mức giá tự động đóng lệnh để chốt lãi",
+      "example": "Giá vào $45,000, TP 4% → Đóng lệnh tại $46,800 nếu giá tăng"
+    },
+    "leverage": {
+      "term": "Leverage (Đòn bẩy)",
+      "definition": "Tỷ lệ vay vốn để giao dịch, tăng cả lợi nhuận và rủi ro",
+      "example": "Leverage 3x → $1,000 vốn = $3,000 sức mua"
+    },
+    "trailing_stop": {
+      "term": "Trailing Stop Loss",
+      "definition": "Stop loss tự động di chuyển theo giá, bảo vệ lợi nhuận",
+      "example": "Giá tăng từ $45k → $49k → Stop loss tự động nâng từ $44.1k → $47.5k"
+    },
+    "paper_trading": {
+      "term": "Paper Trading",
+      "definition": "Giao dịch giả lập không dùng tiền thật",
+      "example": "Test bot với $10,000 giả lập trước khi dùng tiền thật"
+    },
+    "win_rate": {
+      "term": "Win Rate (Tỷ lệ thắng)",
+      "definition": "Phần trăm số lệnh thắng trên tổng số lệnh",
+      "example": "60 lệnh thắng / 100 lệnh = 60% win rate"
+    },
+    "drawdown": {
+      "term": "Drawdown (Sụt giảm)",
+      "definition": "Mức sụt giảm từ đỉnh đến đáy của tài khoản",
+      "example": "Tài khoản từ $12,000 xuống $10,800 = 10% drawdown"
+    }
+  }
+}
