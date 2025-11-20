@@ -142,6 +142,15 @@ pub struct PaperTrade {
     /// Slippage experienced
     pub slippage: f64,
 
+    /// Signal timestamp (when AI signal was generated)
+    pub signal_timestamp: Option<DateTime<Utc>>,
+
+    /// Execution timestamp (when trade was actually executed)
+    pub execution_timestamp: DateTime<Utc>,
+
+    /// Execution latency in milliseconds (signal to execution time)
+    pub execution_latency_ms: Option<u64>,
+
     /// Custom metadata
     pub metadata: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -211,6 +220,9 @@ impl PaperTrade {
             max_favorable_excursion: 0.0,
             max_adverse_excursion: 0.0,
             slippage: 0.0,
+            signal_timestamp: None,
+            execution_timestamp: Utc::now(),
+            execution_latency_ms: None,
             metadata: std::collections::HashMap::new(),
         }
     }

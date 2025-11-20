@@ -391,6 +391,7 @@ dependencies = [
  "log",
  "mongodb",
  "parking_lot",
+ "rand 0.8.5",
  "reqwest",
  "rust_decimal",
  "serde",

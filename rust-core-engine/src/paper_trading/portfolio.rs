@@ -73,6 +73,12 @@ pub struct PaperPortfolio {
 
     /// Daily performance history
     pub daily_performance: Vec<DailyPerformance>,
+
+    /// Consecutive losses counter for cool-down mechanism
+    pub consecutive_losses: u32,
+
+    /// Cool-down end time (after consecutive losses)
+    pub cool_down_until: Option<DateTime<Utc>>,
 }
 
 /// Comprehensive portfolio metrics
@@ -214,6 +220,8 @@ impl PaperPortfolio {
             last_updated: now,
             metrics: PortfolioMetrics::default(),
             daily_performance: Vec::new(),
+            consecutive_losses: 0,
+            cool_down_until: None,
         }
     }
 
