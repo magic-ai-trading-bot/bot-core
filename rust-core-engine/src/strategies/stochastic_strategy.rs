@@ -252,7 +252,7 @@ impl StochasticStrategy {
         k_1h: f64,
         d_1h: f64,
         k_4h: f64,
-        d_4h: f64,
+        _d_4h: f64,
         prev_k_1h: f64,
         prev_d_1h: f64,
         _prev_k_4h: f64,
