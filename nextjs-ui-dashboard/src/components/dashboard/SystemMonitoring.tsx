@@ -251,13 +251,13 @@ export function SystemMonitoring() {
               <div>
                 <p className="font-medium">Rust Trading Engine</p>
                 <p className="text-xs text-muted-foreground">
-                  Latency: <span className={getLatencyColor(health.rust_api.latency_ms)}>
-                    {health.rust_api.latency_ms}ms
+                  Latency: <span className={getLatencyColor(health?.rust_api?.latency_ms ?? 0)}>
+                    {health?.rust_api?.latency_ms ?? 0}ms
                   </span>
                 </p>
               </div>
             </div>
-            {getHealthBadge(health.rust_api.healthy)}
+            {getHealthBadge(health?.rust_api?.healthy ?? false)}
           </div>
 
           {/* Python AI */}
@@ -267,16 +267,16 @@ export function SystemMonitoring() {
               <div>
                 <p className="font-medium">Python AI Service</p>
                 <p className="text-xs text-muted-foreground">
-                  Latency: <span className={getLatencyColor(health.python_ai.latency_ms)}>
-                    {health.python_ai.latency_ms}ms
+                  Latency: <span className={getLatencyColor(health?.python_ai?.latency_ms ?? 0)}>
+                    {health?.python_ai?.latency_ms ?? 0}ms
                   </span>
-                  {health.python_ai.model_loaded && (
+                  {health?.python_ai?.model_loaded && (
                     <span className="ml-2 text-profit">• Model Loaded</span>
                   )}
                 </p>
               </div>
             </div>
-            {getHealthBadge(health.python_ai.healthy)}
+            {getHealthBadge(health?.python_ai?.healthy ?? false)}
           </div>
 
           {/* WebSocket */}
@@ -286,14 +286,14 @@ export function SystemMonitoring() {
               <div>
                 <p className="font-medium">WebSocket</p>
                 <p className="text-xs text-muted-foreground">
-                  Reconnects: {health.websocket.reconnect_count}
-                  {health.websocket.last_message && (
+                  Reconnects: {health?.websocket?.reconnect_count ?? 0}
+                  {health?.websocket?.last_message && (
                     <span className="ml-2">• Last: {new Date(health.websocket.last_message).toLocaleTimeString()}</span>
                   )}
                 </p>
               </div>
             </div>
-            {getHealthBadge(health.websocket.connected)}
+            {getHealthBadge(health?.websocket?.connected ?? false)}
           </div>
 
           {/* Database */}
@@ -303,14 +303,14 @@ export function SystemMonitoring() {
               <div>
                 <p className="font-medium">MongoDB</p>
                 <p className="text-xs text-muted-foreground">
-                  Latency: <span className={getLatencyColor(health.database.latency_ms)}>
-                    {health.database.latency_ms}ms
+                  Latency: <span className={getLatencyColor(health?.database?.latency_ms ?? 0)}>
+                    {health?.database?.latency_ms ?? 0}ms
                   </span>
-                  <span className="ml-2">• Pool: {health.database.pool_size}</span>
+                  <span className="ml-2">• Pool: {health?.database?.pool_size ?? 0}</span>
                 </p>
               </div>
             </div>
-            {getHealthBadge(health.database.connected)}
+            {getHealthBadge(health?.database?.connected ?? false)}
           </div>
         </CardContent>
       </Card>
@@ -327,7 +327,7 @@ export function SystemMonitoring() {
               variant="default"
               className="bg-profit text-lg px-4 py-2"
             >
-              {health.rust_api.healthy && health.python_ai.healthy && health.websocket.connected && health.database.connected
+              {health?.rust_api?.healthy && health?.python_ai?.healthy && health?.websocket?.connected && health?.database?.connected
                 ? "All Systems Operational"
                 : "Degraded Performance"}
             </Badge>
