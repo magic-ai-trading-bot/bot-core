@@ -2,8 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use futures::stream::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 #[cfg(feature = "database")]
 use bson::{doc, Bson, Document};

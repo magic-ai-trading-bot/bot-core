@@ -641,7 +641,7 @@ impl ApiServer {
                         if let Err(e) = paper_trading
                             .process_external_ai_signal(
                                 symbol.clone(),
-                                response.signal.clone(),
+                                response.signal,
                                 response.confidence,
                                 response.reasoning.clone(),
                                 current_price,

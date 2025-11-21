@@ -126,7 +126,7 @@ pub struct StrategySignalResult {
 impl StrategyEngine {
     pub fn new() -> Self {
         let config = StrategyEngineConfig::default();
-        let engine = Self {
+        Self {
             strategies: vec![
                 StrategyType::Rsi(RsiStrategy::new()),
                 StrategyType::Macd(MacdStrategy::new()),
@@ -136,9 +136,7 @@ impl StrategyEngine {
             ],
             config,
             signal_history: Arc::new(RwLock::new(Vec::new())),
-        };
-
-        engine
+        }
     }
 
     pub fn with_config(config: StrategyEngineConfig) -> Self {
