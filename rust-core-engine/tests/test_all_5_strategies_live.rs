@@ -11,6 +11,7 @@
  * Run with: cargo test --test test_all_5_strategies_live -- --nocapture
  */
 use binance_trading_bot::binance::client::BinanceClient;
+use binance_trading_bot::config::BinanceConfig;
 use binance_trading_bot::market_data::cache::CandleData;
 use binance_trading_bot::strategies::{
     bollinger_strategy::BollingerStrategy, macd_strategy::MacdStrategy, rsi_strategy::RsiStrategy,
@@ -30,11 +31,17 @@ async fn test_all_5_strategies_with_real_binance_data() {
     // Step 1: Fetch real market data from Binance
     println!("📊 Step 1: Fetching real market data from Binance...");
 
-    let client = BinanceClient::new(
-        "".to_string(), // No API key needed for public data
-        "".to_string(),
-        true, // testnet doesn't matter for klines
-    );
+    let config = BinanceConfig {
+        api_key: "".to_string(),
+        secret_key: "".to_string(),
+        testnet: false,
+        base_url: "https://api.binance.com".to_string(),
+        ws_url: "wss://stream.binance.com:9443".to_string(),
+        futures_base_url: "https://fapi.binance.com".to_string(),
+        futures_ws_url: "wss://fstream.binance.com".to_string(),
+    };
+
+    let client = BinanceClient::new(config).expect("Failed to create Binance client");
 
     let symbol = "BTCUSDT";
     let intervals = vec!["1h", "4h"];
