@@ -49,13 +49,15 @@ async fn test_all_5_strategies_with_real_binance_data() {
     let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
 
     for interval in &intervals {
-        match client.get_klines(symbol, interval, 100).await {
-            Ok(candles) => {
+        match client.get_klines(symbol, interval, Some(100)).await {
+            Ok(klines) => {
                 println!(
                     "   ✅ Fetched {} candles for {} timeframe",
-                    candles.len(),
+                    klines.len(),
                     interval
                 );
+                // Convert Vec<Kline> to Vec<CandleData>
+                let candles: Vec<CandleData> = klines.iter().map(|k| CandleData::from(k)).collect();
                 timeframe_data.insert(interval.to_string(), candles);
             },
             Err(e) => {
