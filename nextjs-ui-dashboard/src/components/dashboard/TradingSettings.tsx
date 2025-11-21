@@ -8,13 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-
-
 // @spec:FR-DASHBOARD-004 - Settings Management
 // @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
 // @test:TC-INTEGRATION-039
-
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -859,14 +856,21 @@ export function TradingSettings() {
                       <TrendingUp className="h-4 w-4" />
                       Stochastic Strategy
                       <Switch
-                        checked={settings.strategies.stochastic.enabled}
+                        checked={settings.strategies.stochastic?.enabled ?? false}
                         onCheckedChange={(checked) =>
                           setSettings((prev) => ({
                             ...prev,
                             strategies: {
                               ...prev.strategies,
                               stochastic: {
-                                ...prev.strategies.stochastic,
+                                ...(prev.strategies.stochastic ?? {
+                                  k_period: 14,
+                                  d_period: 3,
+                                  oversold_threshold: 20.0,
+                                  overbought_threshold: 80.0,
+                                  extreme_oversold: 10.0,
+                                  extreme_overbought: 90.0,
+                                }),
                                 enabled: checked,
                               },
                             },
@@ -879,17 +883,25 @@ export function TradingSettings() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>
-                          K Period: {settings.strategies.stochastic.k_period}
+                          K Period: {settings.strategies.stochastic?.k_period ?? 14}
                         </Label>
                         <Slider
-                          value={[settings.strategies.stochastic.k_period]}
+                          value={[settings.strategies.stochastic?.k_period ?? 14]}
                           onValueChange={([value]) =>
                             setSettings((prev) => ({
                               ...prev,
                               strategies: {
                                 ...prev.strategies,
                                 stochastic: {
-                                  ...prev.strategies.stochastic,
+                                  ...(prev.strategies.stochastic ?? {
+                                    enabled: true,
+                                    k_period: 14,
+                                    d_period: 3,
+                                    oversold_threshold: 20.0,
+                                    overbought_threshold: 80.0,
+                                    extreme_oversold: 10.0,
+                                    extreme_overbought: 90.0,
+                                  }),
                                   k_period: value,
                                 },
                               },
@@ -903,17 +915,25 @@ export function TradingSettings() {
                       </div>
                       <div>
                         <Label>
-                          D Period: {settings.strategies.stochastic.d_period}
+                          D Period: {settings.strategies.stochastic?.d_period ?? 3}
                         </Label>
                         <Slider
-                          value={[settings.strategies.stochastic.d_period]}
+                          value={[settings.strategies.stochastic?.d_period ?? 3]}
                           onValueChange={([value]) =>
                             setSettings((prev) => ({
                               ...prev,
                               strategies: {
                                 ...prev.strategies,
                                 stochastic: {
-                                  ...prev.strategies.stochastic,
+                                  ...(prev.strategies.stochastic ?? {
+                                    enabled: true,
+                                    k_period: 14,
+                                    d_period: 3,
+                                    oversold_threshold: 20.0,
+                                    overbought_threshold: 80.0,
+                                    extreme_oversold: 10.0,
+                                    extreme_overbought: 90.0,
+                                  }),
                                   d_period: value,
                                 },
                               },
@@ -928,17 +948,25 @@ export function TradingSettings() {
                     </div>
                     <div>
                       <Label>
-                        Oversold: {settings.strategies.stochastic.oversold_threshold.toFixed(1)}
+                        Oversold: {(settings.strategies.stochastic?.oversold_threshold ?? 20.0).toFixed(1)}
                       </Label>
                       <Slider
-                        value={[settings.strategies.stochastic.oversold_threshold]}
+                        value={[settings.strategies.stochastic?.oversold_threshold ?? 20.0]}
                         onValueChange={([value]) =>
                           setSettings((prev) => ({
                             ...prev,
                             strategies: {
                               ...prev.strategies,
                               stochastic: {
-                                ...prev.strategies.stochastic,
+                                ...(prev.strategies.stochastic ?? {
+                                  enabled: true,
+                                  k_period: 14,
+                                  d_period: 3,
+                                  oversold_threshold: 20.0,
+                                  overbought_threshold: 80.0,
+                                  extreme_oversold: 10.0,
+                                  extreme_overbought: 90.0,
+                                }),
                                 oversold_threshold: value,
                               },
                             },
@@ -952,17 +980,25 @@ export function TradingSettings() {
                     </div>
                     <div>
                       <Label>
-                        Overbought: {settings.strategies.stochastic.overbought_threshold.toFixed(1)}
+                        Overbought: {(settings.strategies.stochastic?.overbought_threshold ?? 80.0).toFixed(1)}
                       </Label>
                       <Slider
-                        value={[settings.strategies.stochastic.overbought_threshold]}
+                        value={[settings.strategies.stochastic?.overbought_threshold ?? 80.0]}
                         onValueChange={([value]) =>
                           setSettings((prev) => ({
                             ...prev,
                             strategies: {
                               ...prev.strategies,
                               stochastic: {
-                                ...prev.strategies.stochastic,
+                                ...(prev.strategies.stochastic ?? {
+                                  enabled: true,
+                                  k_period: 14,
+                                  d_period: 3,
+                                  oversold_threshold: 20.0,
+                                  overbought_threshold: 80.0,
+                                  extreme_oversold: 10.0,
+                                  extreme_overbought: 90.0,
+                                }),
                                 overbought_threshold: value,
                               },
                             },
