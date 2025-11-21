@@ -2,7 +2,8 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use futures::stream::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use std::error::Error;
+use tracing::{debug, error, info};
 
 #[cfg(feature = "database")]
 use bson::{doc, Bson, Document};
@@ -459,7 +460,7 @@ impl Storage {
     }
 
     /// Get paper trading settings collection
-    pub fn paper_trading_settings(&self) -> Result<Collection<PaperTradingSettingsRecord>> {
+    pub fn paper_trading_settings(&self) -> Result<Collection<Document>> {
         self.db
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
@@ -665,29 +666,21 @@ impl Storage {
         #[cfg(feature = "database")]
         {
             if let Some(_db) = &self.db {
-                // Convert settings to BSON document
-                let settings_bson = bson::to_bson(settings)?;
-                let settings_doc = settings_bson
-                    .as_document()
-                    .ok_or_else(|| anyhow::anyhow!("Failed to convert settings to document"))?
-                    .clone();
+                // Convert settings to JSON string to avoid BSON type conversion issues
+                // (especially with serde_json::Value fields that don't map well to BSON DateTime)
+                let settings_json = serde_json::to_string(settings)?;
 
-                let record = PaperTradingSettingsRecord {
-                    id: None,
-                    settings_data: settings_doc,
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
+                let record = doc! {
+                    "settings_json": settings_json,
+                    "updated_at": Utc::now(),
                 };
 
                 // Use upsert to update existing or create new
                 let filter = doc! {}; // Only one settings record
                 let update = doc! {
-                    "$set": {
-                        "settings_data": &record.settings_data,
-                        "updated_at": &record.updated_at
-                    },
+                    "$set": record,
                     "$setOnInsert": {
-                        "created_at": &record.created_at
+                        "created_at": Utc::now()
                     }
                 };
                 self.paper_trading_settings()?
@@ -711,18 +704,23 @@ impl Storage {
         #[cfg(feature = "database")]
         {
             if let Some(_db) = &self.db {
-                let record = self.paper_trading_settings()?.find_one(doc! {}).await?;
+                let record: Option<Document> = self.paper_trading_settings()?.find_one(doc! {}).await?;
 
                 if let Some(record) = record {
-                    // Convert BSON document back to settings
-                    let settings_bson = bson::Bson::Document(record.settings_data);
-                    let settings = bson::from_bson::<crate::paper_trading::PaperTradingSettings>(
-                        settings_bson,
-                    )?;
+                    // Get the JSON string from the document
+                    let settings_json = record.get_str("settings_json")
+                        .map_err(|e| anyhow::anyhow!("Failed to get settings_json field: {}", e))?;
+
+                    let updated_at = record.get_datetime("updated_at")
+                        .map_err(|e| anyhow::anyhow!("Failed to get updated_at field: {}", e))?;
+
+                    // Deserialize from JSON string
+                    let settings: crate::paper_trading::PaperTradingSettings =
+                        serde_json::from_str(settings_json)?;
 
                     info!(
                         "📖 Paper trading settings loaded from database (updated: {})",
-                        record.updated_at
+                        updated_at
                     );
                     return Ok(Some(settings));
                 }

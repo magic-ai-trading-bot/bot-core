@@ -53,7 +53,7 @@ daily_loss_limit_pct = 3.0  # Down from 5% - protect daily capital
 
 # Loss streak protection
 max_consecutive_losses = 3  # Down from 5 - stop faster on bad streaks
-cool_down_minutes = 30  # Cool down after loss streaks
+cool_down_minutes = 60  # Cool down after loss streaks (optimal for emotional recovery)
 
 # Position sizing strategy
 position_sizing_method = "RiskBased"  # Size based on risk, not fixed %
@@ -61,7 +61,7 @@ position_sizing_method = "RiskBased"  # Size based on risk, not fixed %
 # Risk/Reward requirement
 min_risk_reward_ratio = 2.0  # Up from 1.5 - only take high-quality trades
 
-# Correlation protection
+# Correlation protection - Adjustable from UI (0.7 = 70% max same direction)
 correlation_limit = 0.7
 dynamic_sizing = true
 volatility_lookback_hours = 24
@@ -137,3 +137,4 @@ max_notifications_per_hour = 20
 # 3. Take Profit 10% (was 4%) → 2:1 risk/reward
 # 4. Position Size 2% (was 5%) → Better capital preservation
 # 5. Max Positions 5 (was 10) → Better focus, less correlation risk
+# 6. Correlation Limit 70% (adjustable from UI) → Directional balance
