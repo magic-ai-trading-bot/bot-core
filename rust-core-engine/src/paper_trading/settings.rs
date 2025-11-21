@@ -350,12 +350,12 @@ impl Default for BasicSettings {
     fn default() -> Self {
         Self {
             initial_balance: 10000.0,
-            max_positions: 5,         // OPTIMIZED: Down from 10 - better focus
+            max_positions: 5,               // OPTIMIZED: Down from 10 - better focus
             default_position_size_pct: 2.0, // OPTIMIZED: Down from 5% - conservative sizing
-            default_leverage: 3,      // OPTIMIZED: Down from 10x - CRITICAL CHANGE!
-            trading_fee_rate: 0.0004, // 0.04% Binance Futures
-            funding_fee_rate: 0.0001, // 0.01% every 8 hours
-            slippage_pct: 0.01,       // 0.01% average slippage
+            default_leverage: 3,            // OPTIMIZED: Down from 10x - CRITICAL CHANGE!
+            trading_fee_rate: 0.0004,       // 0.04% Binance Futures
+            funding_fee_rate: 0.0001,       // 0.01% every 8 hours
+            slippage_pct: 0.01,             // 0.01% average slippage
             enabled: true,
             auto_restart: false,
         }
@@ -365,24 +365,24 @@ impl Default for BasicSettings {
 impl Default for RiskSettings {
     fn default() -> Self {
         Self {
-            max_risk_per_trade_pct: 1.0,   // OPTIMIZED: Down from 2% - max 1% loss/trade
-            max_portfolio_risk_pct: 10.0,  // OPTIMIZED: Down from 20% - safer limit
-            default_stop_loss_pct: 5.0,    // OPTIMIZED: Up from 2% - avoid market noise!
+            max_risk_per_trade_pct: 1.0, // OPTIMIZED: Down from 2% - max 1% loss/trade
+            max_portfolio_risk_pct: 10.0, // OPTIMIZED: Down from 20% - safer limit
+            default_stop_loss_pct: 5.0,  // OPTIMIZED: Up from 2% - avoid market noise!
             default_take_profit_pct: 10.0, // OPTIMIZED: Up from 4% - better R:R (2:1)
-            max_leverage: 5,               // OPTIMIZED: Down from 50x - safety cap
-            min_margin_level: 300.0,       // OPTIMIZED: Up from 200% - extra buffer
-            max_drawdown_pct: 10.0,        // OPTIMIZED: Down from 15% - stop earlier
-            daily_loss_limit_pct: 3.0,     // OPTIMIZED: Down from 5% - protect capital
-            max_consecutive_losses: 3,     // OPTIMIZED: Down from 5 - stop faster
-            cool_down_minutes: 30,         // OPTIMIZED: Down from 60 - faster recovery
+            max_leverage: 5,             // OPTIMIZED: Down from 50x - safety cap
+            min_margin_level: 300.0,     // OPTIMIZED: Up from 200% - extra buffer
+            max_drawdown_pct: 10.0,      // OPTIMIZED: Down from 15% - stop earlier
+            daily_loss_limit_pct: 3.0,   // OPTIMIZED: Down from 5% - protect capital
+            max_consecutive_losses: 3,   // OPTIMIZED: Down from 5 - stop faster
+            cool_down_minutes: 30,       // OPTIMIZED: Down from 60 - faster recovery
             position_sizing_method: PositionSizingMethod::RiskBased,
-            min_risk_reward_ratio: 2.0,    // OPTIMIZED: Up from 1.5 - quality trades only
+            min_risk_reward_ratio: 2.0, // OPTIMIZED: Up from 1.5 - quality trades only
             correlation_limit: 0.7,
             dynamic_sizing: true,
             volatility_lookback_hours: 24,
-            trailing_stop_enabled: true,   // NEW: Enable trailing stops
-            trailing_stop_pct: 3.0,        // NEW: Trail 3% below high/above low
-            trailing_activation_pct: 5.0,  // NEW: Start after 5% profit
+            trailing_stop_enabled: true,  // NEW: Enable trailing stops
+            trailing_stop_pct: 3.0,       // NEW: Trail 3% below high/above low
+            trailing_activation_pct: 5.0, // NEW: Start after 5% profit
         }
     }
 }
@@ -622,9 +622,9 @@ mod tests {
         let settings = BasicSettings::default();
 
         assert_eq!(settings.initial_balance, 10000.0);
-        assert_eq!(settings.max_positions, 5);              // FIXED: Down from 10 - better focus
+        assert_eq!(settings.max_positions, 5); // FIXED: Down from 10 - better focus
         assert_eq!(settings.default_position_size_pct, 2.0); // FIXED: Down from 5% - conservative
-        assert_eq!(settings.default_leverage, 3);            // FIXED: Down from 10x - CRITICAL!
+        assert_eq!(settings.default_leverage, 3); // FIXED: Down from 10x - CRITICAL!
         assert_eq!(settings.trading_fee_rate, 0.0004);
         assert!(settings.enabled);
     }
@@ -633,20 +633,20 @@ mod tests {
     fn test_default_risk_settings() {
         let settings = RiskSettings::default();
 
-        assert_eq!(settings.max_risk_per_trade_pct, 1.0);    // FIXED: Down from 2% - max 1% loss/trade
-        assert_eq!(settings.max_portfolio_risk_pct, 10.0);   // FIXED: Down from 20% - safer limit
-        assert_eq!(settings.default_stop_loss_pct, 5.0);     // FIXED: Up from 2% - avoid market noise!
-        assert_eq!(settings.default_take_profit_pct, 10.0);  // FIXED: Up from 4% - better R:R (2:1)
-        assert_eq!(settings.max_leverage, 5);                // FIXED: Down from 50x - safety cap
-        assert_eq!(settings.min_margin_level, 300.0);        // FIXED: Up from 200% - extra buffer
-        assert_eq!(settings.max_consecutive_losses, 3);      // FIXED: Down from 5 - stop faster
+        assert_eq!(settings.max_risk_per_trade_pct, 1.0); // FIXED: Down from 2% - max 1% loss/trade
+        assert_eq!(settings.max_portfolio_risk_pct, 10.0); // FIXED: Down from 20% - safer limit
+        assert_eq!(settings.default_stop_loss_pct, 5.0); // FIXED: Up from 2% - avoid market noise!
+        assert_eq!(settings.default_take_profit_pct, 10.0); // FIXED: Up from 4% - better R:R (2:1)
+        assert_eq!(settings.max_leverage, 5); // FIXED: Down from 50x - safety cap
+        assert_eq!(settings.min_margin_level, 300.0); // FIXED: Up from 200% - extra buffer
+        assert_eq!(settings.max_consecutive_losses, 3); // FIXED: Down from 5 - stop faster
     }
 
     #[test]
     fn test_default_strategy_settings() {
         let settings = StrategySettings::default();
 
-        assert_eq!(settings.min_ai_confidence, 0.5);  // FIXED: Lowered from 0.7 for testnet activity
+        assert_eq!(settings.min_ai_confidence, 0.5); // FIXED: Lowered from 0.7 for testnet activity
         assert!(settings.enable_optimization);
         assert_eq!(settings.optimization_period_days, 30);
         assert_eq!(settings.min_trades_for_optimization, 50);
@@ -693,7 +693,7 @@ mod tests {
         settings.basic.default_leverage = 150;
         assert!(settings.validate().is_err());
 
-        settings.basic.default_leverage = 3;  // FIXED: Reset to new default
+        settings.basic.default_leverage = 3; // FIXED: Reset to new default
 
         // Invalid fee rate
         settings.basic.trading_fee_rate = -0.01;
@@ -714,7 +714,7 @@ mod tests {
         settings.risk.max_risk_per_trade_pct = 60.0;
         assert!(settings.validate().is_err());
 
-        settings.risk.max_risk_per_trade_pct = 1.0;  // FIXED: Reset to new default
+        settings.risk.max_risk_per_trade_pct = 1.0; // FIXED: Reset to new default
 
         // Invalid max portfolio risk
         settings.risk.max_portfolio_risk_pct = 0.0;
@@ -723,13 +723,13 @@ mod tests {
         settings.risk.max_portfolio_risk_pct = 150.0;
         assert!(settings.validate().is_err());
 
-        settings.risk.max_portfolio_risk_pct = 10.0;  // FIXED: Reset to new default
+        settings.risk.max_portfolio_risk_pct = 10.0; // FIXED: Reset to new default
 
         // Invalid max leverage
         settings.risk.max_leverage = 130;
         assert!(settings.validate().is_err());
 
-        settings.risk.max_leverage = 5;  // FIXED: Reset to new default
+        settings.risk.max_leverage = 5; // FIXED: Reset to new default
 
         // Invalid min margin level
         settings.risk.min_margin_level = 50.0;
@@ -1096,7 +1096,7 @@ mod tests {
 
         assert!(settings.basic.enabled);
         assert_eq!(settings.basic.initial_balance, 10000.0);
-        assert_eq!(settings.risk.max_leverage, 5);           // FIXED: Down from 50x
+        assert_eq!(settings.risk.max_leverage, 5); // FIXED: Down from 50x
         assert_eq!(settings.strategy.min_ai_confidence, 0.5); // FIXED: Down from 0.7
         assert!(settings.ai.enable_realtime_signals);
         assert!(settings.execution.auto_execution);

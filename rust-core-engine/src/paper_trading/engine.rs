@@ -686,8 +686,9 @@ impl PaperTradingEngine {
         // REMOVED ATR: Always use fixed percentage from settings for predictability
         // ATR was causing 46%+ stop loss instead of 5% for volatile assets like BTC
         // Fixed percentage ensures 100% respect for user settings
-        let stop_loss = signal.suggested_stop_loss.unwrap_or_else(|| {
-            match signal.signal_type {
+        let stop_loss = signal
+            .suggested_stop_loss
+            .unwrap_or_else(|| match signal.signal_type {
                 crate::strategies::TradingSignal::Long => {
                     entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0)
                 },
@@ -695,8 +696,7 @@ impl PaperTradingEngine {
                     entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0)
                 },
                 _ => entry_price,
-            }
-        });
+            });
 
         let take_profit = signal.suggested_take_profit.unwrap_or_else(|| {
             match signal.signal_type {

@@ -20,12 +20,8 @@ pub struct StochasticStrategy {
 impl StochasticStrategy {
     pub fn new() -> Self {
         let mut config = StrategyConfig::default();
-        config
-            .parameters
-            .insert("k_period".to_string(), json!(14));
-        config
-            .parameters
-            .insert("d_period".to_string(), json!(3));
+        config.parameters.insert("k_period".to_string(), json!(14));
+        config.parameters.insert("d_period".to_string(), json!(3));
         config
             .parameters
             .insert("oversold_threshold".to_string(), json!(20.0));
@@ -422,7 +418,10 @@ mod tests {
 
         assert!(result.is_ok());
         let output = result.unwrap();
-        assert!(matches!(output.signal, TradingSignal::Long | TradingSignal::Neutral));
+        assert!(matches!(
+            output.signal,
+            TradingSignal::Long | TradingSignal::Neutral
+        ));
         assert!(output.confidence > 0.4);
     }
 
@@ -442,7 +441,10 @@ mod tests {
 
         assert!(result.is_ok());
         let output = result.unwrap();
-        assert!(matches!(output.signal, TradingSignal::Short | TradingSignal::Neutral));
+        assert!(matches!(
+            output.signal,
+            TradingSignal::Short | TradingSignal::Neutral
+        ));
         assert!(output.confidence > 0.4);
     }
 

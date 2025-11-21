@@ -10,16 +10,12 @@
  *
  * Run with: cargo test --test test_all_5_strategies_live -- --nocapture
  */
-
 use binance_trading_bot::binance::client::BinanceClient;
 use binance_trading_bot::market_data::cache::CandleData;
 use binance_trading_bot::strategies::{
-    bollinger_strategy::BollingerStrategy,
-    macd_strategy::MacdStrategy,
-    rsi_strategy::RsiStrategy,
-    stochastic_strategy::StochasticStrategy,
-    volume_strategy::VolumeStrategy,
-    Strategy, StrategyInput, TradingSignal,
+    bollinger_strategy::BollingerStrategy, macd_strategy::MacdStrategy, rsi_strategy::RsiStrategy,
+    stochastic_strategy::StochasticStrategy, volume_strategy::VolumeStrategy, Strategy,
+    StrategyInput, TradingSignal,
 };
 use std::collections::HashMap;
 
@@ -48,13 +44,17 @@ async fn test_all_5_strategies_with_real_binance_data() {
     for interval in &intervals {
         match client.get_klines(symbol, interval, 100).await {
             Ok(candles) => {
-                println!("   ✅ Fetched {} candles for {} timeframe", candles.len(), interval);
+                println!(
+                    "   ✅ Fetched {} candles for {} timeframe",
+                    candles.len(),
+                    interval
+                );
                 timeframe_data.insert(interval.to_string(), candles);
-            }
+            },
             Err(e) => {
                 println!("   ❌ Failed to fetch {} data: {}", interval, e);
                 panic!("Cannot continue without market data");
-            }
+            },
         }
     }
 
@@ -68,14 +68,7 @@ async fn test_all_5_strategies_with_real_binance_data() {
     // Calculate 24h volume
     let volume_24h: f64 = timeframe_data
         .get("1h")
-        .map(|candles| {
-            candles
-                .iter()
-                .rev()
-                .take(24)
-                .map(|c| c.volume)
-                .sum()
-        })
+        .map(|candles| candles.iter().rev().take(24).map(|c| c.volume).sum())
         .unwrap_or(1000000.0);
 
     println!("   ✅ Current Price: ${:.2}", current_price);
@@ -121,15 +114,24 @@ async fn test_all_5_strategies_with_real_binance_data() {
     match rsi_strategy.analyze(&strategy_input).await {
         Ok(output) => {
             let emoji = match output.signal {
-                TradingSignal::Long => { long_count += 1; "🟢" },
-                TradingSignal::Short => { short_count += 1; "🔴" },
-                TradingSignal::Neutral => { neutral_count += 1; "⚪" },
+                TradingSignal::Long => {
+                    long_count += 1;
+                    "🟢"
+                },
+                TradingSignal::Short => {
+                    short_count += 1;
+                    "🔴"
+                },
+                TradingSignal::Neutral => {
+                    neutral_count += 1;
+                    "⚪"
+                },
             };
             println!("   Signal:     {} {:?}", emoji, output.signal);
             println!("   Confidence: {:.2}%", output.confidence * 100.0);
             println!("   Reasoning:  {}", output.reasoning);
             println!("   Timeframe:  {}", output.timeframe);
-        }
+        },
         Err(e) => println!("   ❌ Error: {}", e),
     }
     println!();
@@ -139,15 +141,24 @@ async fn test_all_5_strategies_with_real_binance_data() {
     match macd_strategy.analyze(&strategy_input).await {
         Ok(output) => {
             let emoji = match output.signal {
-                TradingSignal::Long => { long_count += 1; "🟢" },
-                TradingSignal::Short => { short_count += 1; "🔴" },
-                TradingSignal::Neutral => { neutral_count += 1; "⚪" },
+                TradingSignal::Long => {
+                    long_count += 1;
+                    "🟢"
+                },
+                TradingSignal::Short => {
+                    short_count += 1;
+                    "🔴"
+                },
+                TradingSignal::Neutral => {
+                    neutral_count += 1;
+                    "⚪"
+                },
             };
             println!("   Signal:     {} {:?}", emoji, output.signal);
             println!("   Confidence: {:.2}%", output.confidence * 100.0);
             println!("   Reasoning:  {}", output.reasoning);
             println!("   Timeframe:  {}", output.timeframe);
-        }
+        },
         Err(e) => println!("   ❌ Error: {}", e),
     }
     println!();
@@ -157,15 +168,24 @@ async fn test_all_5_strategies_with_real_binance_data() {
     match bollinger_strategy.analyze(&strategy_input).await {
         Ok(output) => {
             let emoji = match output.signal {
-                TradingSignal::Long => { long_count += 1; "🟢" },
-                TradingSignal::Short => { short_count += 1; "🔴" },
-                TradingSignal::Neutral => { neutral_count += 1; "⚪" },
+                TradingSignal::Long => {
+                    long_count += 1;
+                    "🟢"
+                },
+                TradingSignal::Short => {
+                    short_count += 1;
+                    "🔴"
+                },
+                TradingSignal::Neutral => {
+                    neutral_count += 1;
+                    "⚪"
+                },
             };
             println!("   Signal:     {} {:?}", emoji, output.signal);
             println!("   Confidence: {:.2}%", output.confidence * 100.0);
             println!("   Reasoning:  {}", output.reasoning);
             println!("   Timeframe:  {}", output.timeframe);
-        }
+        },
         Err(e) => println!("   ❌ Error: {}", e),
     }
     println!();
@@ -175,15 +195,24 @@ async fn test_all_5_strategies_with_real_binance_data() {
     match volume_strategy.analyze(&strategy_input).await {
         Ok(output) => {
             let emoji = match output.signal {
-                TradingSignal::Long => { long_count += 1; "🟢" },
-                TradingSignal::Short => { short_count += 1; "🔴" },
-                TradingSignal::Neutral => { neutral_count += 1; "⚪" },
+                TradingSignal::Long => {
+                    long_count += 1;
+                    "🟢"
+                },
+                TradingSignal::Short => {
+                    short_count += 1;
+                    "🔴"
+                },
+                TradingSignal::Neutral => {
+                    neutral_count += 1;
+                    "⚪"
+                },
             };
             println!("   Signal:     {} {:?}", emoji, output.signal);
             println!("   Confidence: {:.2}%", output.confidence * 100.0);
             println!("   Reasoning:  {}", output.reasoning);
             println!("   Timeframe:  {}", output.timeframe);
-        }
+        },
         Err(e) => println!("   ❌ Error: {}", e),
     }
     println!();
@@ -193,15 +222,24 @@ async fn test_all_5_strategies_with_real_binance_data() {
     match stochastic_strategy.analyze(&strategy_input).await {
         Ok(output) => {
             let emoji = match output.signal {
-                TradingSignal::Long => { long_count += 1; "🟢" },
-                TradingSignal::Short => { short_count += 1; "🔴" },
-                TradingSignal::Neutral => { neutral_count += 1; "⚪" },
+                TradingSignal::Long => {
+                    long_count += 1;
+                    "🟢"
+                },
+                TradingSignal::Short => {
+                    short_count += 1;
+                    "🔴"
+                },
+                TradingSignal::Neutral => {
+                    neutral_count += 1;
+                    "⚪"
+                },
             };
             println!("   Signal:     {} {:?}", emoji, output.signal);
             println!("   Confidence: {:.2}%", output.confidence * 100.0);
             println!("   Reasoning:  {}", output.reasoning);
             println!("   Timeframe:  {}", output.timeframe);
-        }
+        },
         Err(e) => println!("   ❌ Error: {}", e),
     }
     println!();
@@ -214,9 +252,24 @@ async fn test_all_5_strategies_with_real_binance_data() {
 
     let total = long_count + short_count + neutral_count;
     println!("📊 Vote Breakdown:");
-    println!("   🟢 LONG:    {}/{} strategies ({:.0}%)", long_count, total, (long_count as f64 / total as f64) * 100.0);
-    println!("   🔴 SHORT:   {}/{} strategies ({:.0}%)", short_count, total, (short_count as f64 / total as f64) * 100.0);
-    println!("   ⚪ NEUTRAL: {}/{} strategies ({:.0}%)", neutral_count, total, (neutral_count as f64 / total as f64) * 100.0);
+    println!(
+        "   🟢 LONG:    {}/{} strategies ({:.0}%)",
+        long_count,
+        total,
+        (long_count as f64 / total as f64) * 100.0
+    );
+    println!(
+        "   🔴 SHORT:   {}/{} strategies ({:.0}%)",
+        short_count,
+        total,
+        (short_count as f64 / total as f64) * 100.0
+    );
+    println!(
+        "   ⚪ NEUTRAL: {}/{} strategies ({:.0}%)",
+        neutral_count,
+        total,
+        (neutral_count as f64 / total as f64) * 100.0
+    );
     println!();
 
     let consensus = if long_count > short_count && long_count > neutral_count {
@@ -227,11 +280,17 @@ async fn test_all_5_strategies_with_real_binance_data() {
         "⚪ NEUTRAL"
     };
 
-    let agreement = *[long_count, short_count, neutral_count].iter().max().unwrap();
+    let agreement = *[long_count, short_count, neutral_count]
+        .iter()
+        .max()
+        .unwrap();
     let agreement_pct = (agreement as f64 / total as f64) * 100.0;
 
     println!("🎯 Final Consensus: {}", consensus);
-    println!("📈 Agreement Level: {:.0}% ({}/{} strategies agree)", agreement_pct, agreement, total);
+    println!(
+        "📈 Agreement Level: {:.0}% ({}/{} strategies agree)",
+        agreement_pct, agreement, total
+    );
     println!();
 
     if agreement_pct >= 80.0 {

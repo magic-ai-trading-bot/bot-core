@@ -1438,7 +1438,10 @@ mod tests {
 
         assert_eq!(request.strategy_context.technical_indicators.len(), 2);
         assert_eq!(
-            request.strategy_context.technical_indicators.get("rsi_period"),
+            request
+                .strategy_context
+                .technical_indicators
+                .get("rsi_period"),
             Some(&serde_json::json!(14))
         );
     }
