@@ -237,17 +237,16 @@ impl PaperPortfolio {
         }
 
         // Update margin calculations
-        // Deduct margin from cash balance (locked as collateral)
-        self.cash_balance -= trade.initial_margin;
+        // Note: margin is locked but cash_balance remains unchanged
+        // cash_balance only changes when fees are paid or PnL is realized
         self.margin_used += trade.initial_margin;
-        self.free_margin = self.equity - self.margin_used;
 
         // Add trade
         let trade_id = trade.id.clone();
         self.open_trade_ids.push(trade_id.clone());
         self.trades.insert(trade_id, trade);
 
-        self.update_portfolio_values(); // Update margin_level after adding trade
+        self.update_portfolio_values(); // Update margin_level and free_margin after adding trade
         self.update_metrics();
         self.last_updated = Utc::now();
 
@@ -282,8 +281,10 @@ impl PaperPortfolio {
         trade.close(exit_price, close_reason, exit_fees)?;
 
         // Update portfolio
+        // Only adjust cash_balance by realized PnL (profit/loss)
+        // The margin was never deducted from cash_balance, so don't add it back
         if let Some(realized_pnl) = trade.realized_pnl {
-            self.cash_balance += trade.initial_margin + realized_pnl;
+            self.cash_balance += realized_pnl;
         }
 
         self.margin_used -= trade.initial_margin;

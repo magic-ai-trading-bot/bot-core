@@ -521,6 +521,7 @@ impl Default for StrategyEngineConfig {
                 "MACD Strategy".to_string(),
                 "Volume Strategy".to_string(),
                 "Bollinger Bands Strategy".to_string(),
+                "Stochastic Strategy".to_string(),
             ],
             min_confidence_threshold: 0.65,
             signal_combination_mode: SignalCombinationMode::WeightedAverage,
@@ -608,11 +609,12 @@ mod tests {
         let engine = StrategyEngine::new();
         let names = engine.get_strategy_names();
 
-        assert_eq!(names.len(), 4);
+        assert_eq!(names.len(), 5);
         assert!(names.contains(&"RSI Strategy"));
         assert!(names.contains(&"MACD Strategy"));
         assert!(names.contains(&"Volume Strategy"));
         assert!(names.contains(&"Bollinger Bands Strategy"));
+        assert!(names.contains(&"Stochastic Strategy"));
     }
 
     #[test]
@@ -632,7 +634,7 @@ mod tests {
     fn test_strategy_engine_config_default() {
         let config = StrategyEngineConfig::default();
 
-        assert_eq!(config.enabled_strategies.len(), 4);
+        assert_eq!(config.enabled_strategies.len(), 5);
         assert_eq!(config.min_confidence_threshold, 0.65);
         assert_eq!(config.max_history_size, 1000);
     }
