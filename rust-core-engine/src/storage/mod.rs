@@ -704,14 +704,17 @@ impl Storage {
         #[cfg(feature = "database")]
         {
             if let Some(_db) = &self.db {
-                let record: Option<Document> = self.paper_trading_settings()?.find_one(doc! {}).await?;
+                let record: Option<Document> =
+                    self.paper_trading_settings()?.find_one(doc! {}).await?;
 
                 if let Some(record) = record {
                     // Get the JSON string from the document
-                    let settings_json = record.get_str("settings_json")
+                    let settings_json = record
+                        .get_str("settings_json")
                         .map_err(|e| anyhow::anyhow!("Failed to get settings_json field: {}", e))?;
 
-                    let updated_at = record.get_datetime("updated_at")
+                    let updated_at = record
+                        .get_datetime("updated_at")
                         .map_err(|e| anyhow::anyhow!("Failed to get updated_at field: {}", e))?;
 
                     // Deserialize from JSON string

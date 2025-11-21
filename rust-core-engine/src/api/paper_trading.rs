@@ -642,7 +642,8 @@ async fn update_strategy_settings(
 
     // Update risk settings from request
     let risk_settings = &request.settings.risk;
-    log::info!("Applying risk settings: correlation_limit={}, stop_loss={}, take_profit={}",
+    log::info!(
+        "Applying risk settings: correlation_limit={}, stop_loss={}, take_profit={}",
         risk_settings.correlation_limit,
         risk_settings.stop_loss_percent,
         risk_settings.take_profit_percent
