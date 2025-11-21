@@ -3,6 +3,7 @@ import { render, RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '../contexts/AuthContext'
+import { AIAnalysisProvider } from '../contexts/AIAnalysisContext'
 // ThemeProvider removed - not needed for tests
 
 // Create a test query client
@@ -24,15 +25,17 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   queryClient?: QueryClient
 }
 
-const AllTheProviders: React.FC<{ children: React.ReactNode; queryClient: QueryClient }> = ({ 
-  children, 
-  queryClient 
+const AllTheProviders: React.FC<{ children: React.ReactNode; queryClient: QueryClient }> = ({
+  children,
+  queryClient
 }) => {
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          {children}
+          <AIAnalysisProvider>
+            {children}
+          </AIAnalysisProvider>
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>

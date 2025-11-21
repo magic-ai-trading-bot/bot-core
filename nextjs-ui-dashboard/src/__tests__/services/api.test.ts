@@ -700,7 +700,7 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
       const result = await client.rust.healthCheck()
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/health')
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/api/health')
       expect(result).toEqual(mockHealth)
     })
   })
