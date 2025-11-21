@@ -682,74 +682,20 @@ impl PaperTradingEngine {
                 signal.entry_price
             });
 
-        // @spec:FR-RISK-002 - Dynamic ATR-based Stop Loss (FIXED)
-        // Calculate stop loss using ATR for dynamic volatility-adjusted risk management
+        // @spec:FR-RISK-002 - Fixed Percentage Stop Loss (SIMPLIFIED)
+        // REMOVED ATR: Always use fixed percentage from settings for predictability
+        // ATR was causing 46%+ stop loss instead of 5% for volatile assets like BTC
+        // Fixed percentage ensures 100% respect for user settings
         let stop_loss = signal.suggested_stop_loss.unwrap_or_else(|| {
-            // Fetch recent candles for ATR calculation
-            let atr_stop_loss = async {
-                // Get recent 30 candles for ATR calculation
-                match self
-                    .binance_client
-                    .get_klines(&signal.symbol, "1h", Some(30))
-                    .await
-                {
-                    Ok(klines) => {
-                        let candles: Vec<crate::market_data::cache::CandleData> = klines
-                            .into_iter()
-                            .map(|kline| crate::market_data::cache::CandleData {
-                                open_time: kline.open_time,
-                                close_time: kline.close_time,
-                                open: kline.open.parse().unwrap_or(0.0),
-                                high: kline.high.parse().unwrap_or(0.0),
-                                low: kline.low.parse().unwrap_or(0.0),
-                                close: kline.close.parse().unwrap_or(0.0),
-                                volume: kline.volume.parse().unwrap_or(0.0),
-                                quote_volume: kline.quote_asset_volume.parse().unwrap_or(0.0),
-                                trades: kline.number_of_trades,
-                                is_closed: true,
-                            })
-                            .collect();
-
-                        // Calculate ATR with 14-period
-                        if let Ok(atr_values) =
-                            crate::strategies::indicators::calculate_atr(&candles, 14)
-                        {
-                            if let Some(current_atr) = atr_values.last() {
-                                // Use 2x ATR as stop loss distance (industry standard)
-                                let atr_stop_distance = current_atr * 2.0;
-                                return match signal.signal_type {
-                                    crate::strategies::TradingSignal::Long => {
-                                        entry_price - atr_stop_distance
-                                    },
-                                    crate::strategies::TradingSignal::Short => {
-                                        entry_price + atr_stop_distance
-                                    },
-                                    _ => entry_price,
-                                };
-                            }
-                        }
-                    },
-                    Err(e) => {
-                        warn!("Failed to fetch candles for ATR calculation: {}", e);
-                    },
-                }
-
-                // Fallback to fixed percentage if ATR calculation fails
-                match signal.signal_type {
-                    crate::strategies::TradingSignal::Long => {
-                        entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0)
-                    },
-                    crate::strategies::TradingSignal::Short => {
-                        entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0)
-                    },
-                    _ => entry_price,
-                }
-            };
-
-            // Block on the async operation
-            tokio::task::block_in_place(|| {
-                tokio::runtime::Handle::current().block_on(atr_stop_loss)
-            })
+            match signal.signal_type {
+                crate::strategies::TradingSignal::Long => {
+                    entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0)
+                },
+                crate::strategies::TradingSignal::Short => {
+                    entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0)
+                },
+                _ => entry_price,
+            }
         });
 
         let take_profit = signal.suggested_take_profit.unwrap_or_else(|| {

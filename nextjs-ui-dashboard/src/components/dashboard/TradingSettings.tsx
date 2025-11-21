@@ -95,6 +95,7 @@ interface RiskSettings {
   max_drawdown: number;
   daily_loss_limit: number;
   max_consecutive_losses: number;
+  correlation_limit: number; // Position correlation limit (0.0-1.0, e.g., 0.7 = 70% max same direction)
 }
 
 interface EngineSettings {
@@ -166,6 +167,7 @@ const MARKET_PRESETS = {
         max_drawdown: 12,
         daily_loss_limit: 4,
         max_consecutive_losses: 4,
+        correlation_limit: 0.7, // Default 70% max directional exposure
       },
       engine: {
         min_confidence_threshold: 0.45, // Lower threshold
@@ -235,6 +237,7 @@ const MARKET_PRESETS = {
         max_drawdown: 15,
         daily_loss_limit: 5,
         max_consecutive_losses: 5,
+        correlation_limit: 0.7, // Default 70% max directional exposure
       },
       engine: {
         min_confidence_threshold: 0.65,
@@ -304,6 +307,7 @@ const MARKET_PRESETS = {
         max_drawdown: 8,
         daily_loss_limit: 3,
         max_consecutive_losses: 3,
+        correlation_limit: 0.7, // Default 70% max directional exposure
       },
       engine: {
         min_confidence_threshold: 0.75, // Higher threshold
@@ -1104,6 +1108,31 @@ export function TradingSettings() {
                         min={2}
                         max={10}
                         step={1}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label>
+                        Position Correlation Limit:{" "}
+                        {(settings.risk.correlation_limit * 100).toFixed(0)}%
+                      </Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Maximum % of positions in same direction (LONG or SHORT)
+                      </p>
+                      <Slider
+                        value={[settings.risk.correlation_limit * 100]}
+                        onValueChange={([value]) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            risk: {
+                              ...prev.risk,
+                              correlation_limit: value / 100,
+                            },
+                          }))
+                        }
+                        min={50}
+                        max={100}
+                        step={5}
                         className="w-full"
                       />
                     </div>

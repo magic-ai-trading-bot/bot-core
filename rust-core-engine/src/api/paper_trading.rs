@@ -97,6 +97,7 @@ pub struct RiskSettings {
     pub max_drawdown: f64,
     pub daily_loss_limit: f64,
     pub max_consecutive_losses: u32,
+    pub correlation_limit: f64, // Position correlation limit (0.0-1.0)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -599,6 +600,7 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
             max_drawdown: engine_settings.risk.max_drawdown_pct,
             daily_loss_limit: engine_settings.risk.daily_loss_limit_pct,
             max_consecutive_losses: engine_settings.risk.max_consecutive_losses,
+            correlation_limit: engine_settings.risk.correlation_limit,
         },
         engine: EngineSettings {
             min_confidence_threshold: engine_settings.strategy.min_ai_confidence, // 🎯 ACTUAL THRESHOLD
@@ -629,41 +631,54 @@ async fn update_strategy_settings(
 ) -> Result<impl Reply, Rejection> {
     log::info!("Updating strategy settings: {:?}", request.settings);
 
-    // Get current settings and update with new values
-    let current_settings = api.engine.get_settings().await;
-    let _new_settings = current_settings.clone();
+    // Get current settings to preserve unchanged values
+    let mut current_settings = api.engine.get_settings().await;
 
-    // Update confidence threshold - this is the key setting!
+    // Update engine settings (confidence threshold and data resolution)
     let confidence_threshold = request.settings.engine.min_confidence_threshold;
-    log::info!("Applying confidence threshold: {confidence_threshold}");
-
-    // Update data resolution/timeframe if provided
     let data_resolution = request.settings.engine.data_resolution.clone();
+    log::info!("Applying confidence threshold: {confidence_threshold}");
     log::info!("Applying data resolution: {data_resolution}");
 
-    // Update engine confidence threshold (this affects trade creation)
-    let confidence_result = api
-        .engine
-        .update_confidence_threshold(confidence_threshold)
-        .await;
+    // Update risk settings from request
+    let risk_settings = &request.settings.risk;
+    log::info!("Applying risk settings: correlation_limit={}, stop_loss={}, take_profit={}",
+        risk_settings.correlation_limit,
+        risk_settings.stop_loss_percent,
+        risk_settings.take_profit_percent
+    );
 
-    // Update data resolution (this affects which timeframe is used for trading signals)
-    let resolution_result = api
-        .engine
-        .update_data_resolution(data_resolution.clone())
-        .await;
+    // Update all settings in current_settings
+    current_settings.strategy.min_ai_confidence = confidence_threshold;
+    current_settings.strategy.backtesting.data_resolution = data_resolution.clone();
 
-    // Check both results
-    match (confidence_result, resolution_result) {
-        (Ok(_), Ok(_)) => {
-            log::info!("✅ Confidence threshold updated to: {confidence_threshold}");
-            log::info!("✅ Data resolution updated to: {data_resolution}");
+    // Update risk settings - ALL fields from request
+    current_settings.risk.max_risk_per_trade_pct = risk_settings.max_risk_per_trade;
+    current_settings.risk.max_portfolio_risk_pct = risk_settings.max_portfolio_risk;
+    current_settings.risk.default_stop_loss_pct = risk_settings.stop_loss_percent;
+    current_settings.risk.default_take_profit_pct = risk_settings.take_profit_percent;
+    current_settings.risk.max_leverage = risk_settings.max_leverage as u8;
+    current_settings.risk.max_drawdown_pct = risk_settings.max_drawdown;
+    current_settings.risk.daily_loss_limit_pct = risk_settings.daily_loss_limit;
+    current_settings.risk.max_consecutive_losses = risk_settings.max_consecutive_losses;
+    current_settings.risk.correlation_limit = risk_settings.correlation_limit; // KEY FIX!
+
+    // Save all settings to database and memory using the engine's update_settings method
+    match api.engine.update_settings(current_settings).await {
+        Ok(_) => {
+            log::info!("✅ All settings updated successfully and saved to database");
+            log::info!("✅ Confidence threshold: {confidence_threshold}");
+            log::info!("✅ Data resolution: {data_resolution}");
+            log::info!("✅ Correlation limit: {}", risk_settings.correlation_limit);
 
             let response = serde_json::json!({
                 "message": "Strategy settings updated successfully",
                 "applied_settings": {
                     "confidence_threshold": confidence_threshold,
                     "data_resolution": data_resolution,
+                    "correlation_limit": risk_settings.correlation_limit,
+                    "stop_loss_percent": risk_settings.stop_loss_percent,
+                    "take_profit_percent": risk_settings.take_profit_percent,
                     "market_condition": request.settings.engine.market_condition,
                     "risk_level": request.settings.engine.risk_level,
                 },
@@ -674,7 +689,7 @@ async fn update_strategy_settings(
                 StatusCode::OK,
             ))
         },
-        (Err(e), _) | (_, Err(e)) => {
+        Err(e) => {
             log::error!("❌ Failed to update settings: {e}");
 
             Ok(warp::reply::with_status(
@@ -1230,6 +1245,7 @@ mod tests {
             max_drawdown: 20.0,
             daily_loss_limit: 5.0,
             max_consecutive_losses: 3,
+            correlation_limit: 0.7,
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -2448,6 +2464,7 @@ mod tests {
             max_drawdown: 20.0,
             daily_loss_limit: 5.0,
             max_consecutive_losses: 3,
+            correlation_limit: 0.7,
         };
 
         assert!(settings.max_risk_per_trade > 0.0);

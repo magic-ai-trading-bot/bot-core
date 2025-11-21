@@ -82,10 +82,10 @@ const HowItWorks = () => {
       color: 'text-destructive',
       description: 'Bot kiểm tra 7 lớp rủi ro trước khi vào lệnh',
       details: [
-        '✅ Rủi ro mỗi lệnh ≤2%',
+        '✅ Rủi ro mỗi lệnh ≤1%',
         '✅ Rủi ro danh mục ≤10%',
-        '✅ Stop loss bắt buộc',
-        '✅ Daily loss limit 5%',
+        '✅ Stop loss bắt buộc (5%)',
+        '✅ Daily loss limit 3%',
         '✅ Cool-down sau thua lỗ',
         '✅ Position correlation 70%',
         '✅ Trailing stop tự động'
@@ -150,32 +150,32 @@ const HowItWorks = () => {
     {
       layer: 1,
       name: 'Position Size',
-      description: 'Rủi ro mỗi lệnh ≤2%',
-      example: 'Tài khoản $10,000 → Rủi ro tối đa $200/lệnh'
+      description: 'Rủi ro mỗi lệnh ≤1%',
+      example: 'Tài khoản $10,000 → Rủi ro tối đa $100/lệnh'
     },
     {
       layer: 2,
       name: 'Stop Loss',
-      description: 'Stop loss bắt buộc (2%)',
-      example: 'Giá vào $45,000 → SL tại $44,100'
+      description: 'Stop loss bắt buộc (5%)',
+      example: 'Giá vào $45,000 → SL tại $42,750 (tránh noise trigger)'
     },
     {
       layer: 3,
       name: 'Portfolio Risk',
       description: 'Rủi ro tổng ≤10%',
-      example: 'Tối đa 5 lệnh mở cùng lúc (2% × 5 = 10%)'
+      example: 'Tối đa 10 lệnh mở cùng lúc (1% × 10 = 10%)'
     },
     {
       layer: 4,
       name: 'Daily Loss Limit',
-      description: 'Thua lỗ trong ngày ≤5%',
-      example: 'Thua $500 → Bot nghỉ đến ngày mai'
+      description: 'Thua lỗ trong ngày ≤3%',
+      example: 'Thua $300 → Bot nghỉ đến ngày mai (bảo vệ vốn)'
     },
     {
       layer: 5,
       name: 'Consecutive Losses',
-      description: 'Tối đa 5 lệnh thua liên tiếp',
-      example: 'Sau 5 lệnh thua → Cool-down 60 phút'
+      description: 'Tối đa 3 lệnh thua liên tiếp',
+      example: 'Sau 3 lệnh thua → Cool-down 60 phút (tránh tilt)'
     },
     {
       layer: 6,
