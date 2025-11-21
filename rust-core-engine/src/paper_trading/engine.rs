@@ -1831,6 +1831,7 @@ impl PaperTradingEngine {
     /// Process an external AI signal (from frontend or API)
     /// This method allows paper trading to receive AI signals from external sources
     /// without needing to fetch market data from Binance.
+    #[allow(clippy::too_many_arguments)]
     pub async fn process_external_ai_signal(
         &self,
         symbol: String,
