@@ -369,7 +369,7 @@ impl PaperTrade {
                         self.highest_price_achieved = Some(current_price);
                     }
                 }
-            }
+            },
             TradeType::Short => {
                 // Track lowest price for short positions
                 if let Some(lowest) = self.highest_price_achieved {
@@ -377,7 +377,7 @@ impl PaperTrade {
                         self.highest_price_achieved = Some(current_price);
                     }
                 }
-            }
+            },
         }
 
         // Update stop loss if trailing is active
@@ -398,7 +398,7 @@ impl PaperTrade {
                         } else {
                             Some(trail_stop) // Set initial trailing stop
                         }
-                    }
+                    },
                     TradeType::Short => {
                         // Stop trails above low by trailing_pct
                         let trail_stop = best_price * (1.0 + trailing_pct / 100.0);
@@ -413,7 +413,7 @@ impl PaperTrade {
                         } else {
                             Some(trail_stop) // Set initial trailing stop
                         }
-                    }
+                    },
                 };
 
                 // Update if changed
