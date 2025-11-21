@@ -57,7 +57,7 @@ async fn test_all_5_strategies_with_real_binance_data() {
                     interval
                 );
                 // Convert Vec<Kline> to Vec<CandleData>
-                let candles: Vec<CandleData> = klines.iter().map(|k| CandleData::from(k)).collect();
+                let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
                 timeframe_data.insert(interval.to_string(), candles);
             },
             Err(e) => {
