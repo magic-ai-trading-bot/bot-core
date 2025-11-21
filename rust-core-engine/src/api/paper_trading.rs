@@ -1281,6 +1281,7 @@ mod tests {
             enabled_strategies: vec!["RSI".to_string(), "MACD".to_string()],
             market_condition: "Trending".to_string(),
             risk_level: "Moderate".to_string(),
+            data_resolution: "15m".to_string(),
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -1334,6 +1335,15 @@ mod tests {
                 period: 20,
                 multiplier: 2.0,
                 squeeze_threshold: 0.02,
+            },
+            stochastic: StochasticConfig {
+                enabled: true,
+                k_period: 14,
+                d_period: 3,
+                oversold_threshold: 20.0,
+                overbought_threshold: 80.0,
+                extreme_oversold: 10.0,
+                extreme_overbought: 90.0,
             },
         };
 
@@ -1394,6 +1404,7 @@ mod tests {
                 max_drawdown: 20.0,
                 daily_loss_limit: 5.0,
                 max_consecutive_losses: 3,
+                correlation_limit: 0.7,
             },
             engine: EngineSettings {
                 min_confidence_threshold: 0.7,
@@ -1401,6 +1412,7 @@ mod tests {
                 enabled_strategies: vec!["RSI".to_string()],
                 market_condition: "Trending".to_string(),
                 risk_level: "Moderate".to_string(),
+                data_resolution: "15m".to_string(),
             },
         };
 
@@ -1662,6 +1674,7 @@ mod tests {
             enabled_strategies: vec![],
             market_condition: "Unknown".to_string(),
             risk_level: "Low".to_string(),
+            data_resolution: "15m".to_string(),
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -2025,6 +2038,7 @@ mod tests {
                     max_drawdown: 20.0,
                     daily_loss_limit: 5.0,
                     max_consecutive_losses: 3,
+                    correlation_limit: 0.7,
                 },
                 engine: EngineSettings {
                     min_confidence_threshold: 0.7,
@@ -2032,6 +2046,7 @@ mod tests {
                     enabled_strategies: vec!["RSI".to_string(), "MACD".to_string()],
                     market_condition: "Trending".to_string(),
                     risk_level: "Moderate".to_string(),
+                    data_resolution: "15m".to_string(),
                 },
             },
         };
@@ -2447,6 +2462,7 @@ mod tests {
                 enabled_strategies: vec![],
                 market_condition: "Trending".to_string(),
                 risk_level: "Moderate".to_string(),
+                data_resolution: "15m".to_string(),
             };
 
             assert!(settings.min_confidence_threshold >= 0.0);
@@ -2519,6 +2535,15 @@ mod tests {
                 period: 20,
                 multiplier: 2.0,
                 squeeze_threshold: 0.02,
+            },
+            stochastic: StochasticConfig {
+                enabled: true,
+                k_period: 14,
+                d_period: 3,
+                oversold_threshold: 20.0,
+                overbought_threshold: 80.0,
+                extreme_oversold: 10.0,
+                extreme_overbought: 90.0,
             },
         };
 
@@ -2607,6 +2632,7 @@ mod tests {
                 max_drawdown: 20.0,
                 daily_loss_limit: 5.0,
                 max_consecutive_losses: 3,
+                correlation_limit: 0.7,
             },
             engine: EngineSettings {
                 min_confidence_threshold: 0.7,
@@ -2614,6 +2640,7 @@ mod tests {
                 enabled_strategies: vec!["RSI".to_string()],
                 market_condition: "Trending".to_string(),
                 risk_level: "Moderate".to_string(),
+                data_resolution: "15m".to_string(),
             },
         };
 
@@ -2703,6 +2730,7 @@ mod tests {
                 enabled_strategies: vec![],
                 market_condition: "Trending".to_string(),
                 risk_level: "Moderate".to_string(),
+                data_resolution: "15m".to_string(),
             };
 
             assert_eq!(settings.signal_combination_mode, mode);
