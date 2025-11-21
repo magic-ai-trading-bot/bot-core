@@ -269,3 +269,12 @@ websockets==13.1
 Werkzeug==3.1.1
 widgetsnbextension==4.0.14
 wrapt==1.14.2
+
+# Async Task Queue (Celery + RabbitMQ)
+celery==5.4.0
+celery[redis]==5.4.0
+kombu==5.4.2
+amqp==5.2.0
+vine==5.1.0
+redis==5.2.1
+flower==2.0.1
