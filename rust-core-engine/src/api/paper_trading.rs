@@ -1264,13 +1264,15 @@ mod tests {
             "max_leverage": 5,
             "max_drawdown": 15.0,
             "daily_loss_limit": 4.0,
-            "max_consecutive_losses": 5
+            "max_consecutive_losses": 5,
+            "correlation_limit": 0.7
         }"#;
 
         let settings: RiskSettings = serde_json::from_str(json).unwrap();
         assert_eq!(settings.max_risk_per_trade, 1.5);
         assert_eq!(settings.max_leverage, 5);
         assert_eq!(settings.max_consecutive_losses, 5);
+        assert_eq!(settings.correlation_limit, 0.7);
     }
 
     #[test]
@@ -1725,6 +1727,15 @@ mod tests {
                         "period": 20,
                         "multiplier": 2.0,
                         "squeeze_threshold": 0.02
+                    },
+                    "stochastic": {
+                        "enabled": true,
+                        "k_period": 14,
+                        "d_period": 3,
+                        "oversold_threshold": 20.0,
+                        "overbought_threshold": 80.0,
+                        "extreme_oversold": 10.0,
+                        "extreme_overbought": 90.0
                     }
                 },
                 "risk": {
@@ -1735,14 +1746,16 @@ mod tests {
                     "max_leverage": 10,
                     "max_drawdown": 20.0,
                     "daily_loss_limit": 5.0,
-                    "max_consecutive_losses": 3
+                    "max_consecutive_losses": 3,
+                    "correlation_limit": 0.7
                 },
                 "engine": {
                     "min_confidence_threshold": 0.7,
                     "signal_combination_mode": "WeightedAverage",
                     "enabled_strategies": ["RSI", "MACD"],
                     "market_condition": "Trending",
-                    "risk_level": "Moderate"
+                    "risk_level": "Moderate",
+                    "data_resolution": "15m"
                 }
             }
         }"#;
