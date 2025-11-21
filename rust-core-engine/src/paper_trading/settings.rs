@@ -977,7 +977,7 @@ mod tests {
 
         assert!(settings.enabled);
         assert_eq!(settings.period_days, 90);
-        assert_eq!(settings.data_resolution, "1h");
+        assert_eq!(settings.data_resolution, "15m"); // Changed from 1h to 15m
         assert_eq!(settings.min_trades, 20);
         assert!(!settings.walk_forward_optimization);
         assert_eq!(settings.out_of_sample_pct, 20.0);
