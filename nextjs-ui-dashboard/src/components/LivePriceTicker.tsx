@@ -27,6 +27,7 @@ export function LivePriceTicker() {
         if (message.type === 'price_update' && message.data) {
           const priceUpdates: Record<string, number> = message.data;
 
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setPrices(prev => {
             const updated = { ...prev };
             Object.entries(priceUpdates).forEach(([symbol, price]) => {
@@ -47,6 +48,7 @@ export function LivePriceTicker() {
           });
         }
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Error parsing price update:', error);
       }
     }

@@ -18,21 +18,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Info, AlertTriangle, CheckCircle, TrendingUp, Shield, Brain, ChartLine, Bell } from 'lucide-react';
 import settingsConfig from '@/config/settings-config.json';
+import { useCallback } from 'react';
 
 interface SettingsValues {
-  [key: string]: any;
+  [key: string]: string | number | boolean;
+}
+
+interface SettingOption {
+  label: string;
+  value: string | number;
+  signals_per_day?: number;
+}
+
+interface Setting {
+  id: string;
+  name: string;
+  type: string;
+  default: string | number | boolean;
+  description?: string;
+  help?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+  options?: SettingOption[];
 }
 
 export function SettingsUI() {
   const [values, setValues] = useState<SettingsValues>({});
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Load initial values from API or use defaults
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const response = await fetch('/api/paper-trading/settings');
       const data = await response.json();
@@ -47,9 +63,15 @@ export function SettingsUI() {
       });
       setValues(defaults);
     }
-  };
+  }, []);
 
-  const handleChange = (id: string, value: any) => {
+  // Load initial values from API or use defaults
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadSettings();
+  }, [loadSettings]);
+
+  const handleChange = (id: string, value: string | number | boolean) => {
     setValues(prev => ({ ...prev, [id]: value }));
     setHasChanges(true);
   };
@@ -99,7 +121,7 @@ export function SettingsUI() {
     return icons[icon] || <Info className="h-5 w-5" />;
   };
 
-  const renderSetting = (setting: any) => {
+  const renderSetting = (setting: Setting) => {
     const value = values[setting.id] ?? setting.default;
 
     switch (setting.type) {
@@ -206,7 +228,7 @@ export function SettingsUI() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {setting.options.map((option: any) => (
+                {setting.options?.map((option: SettingOption) => (
                   <SelectItem key={option.value} value={option.value.toString()}>
                     <div className="flex flex-col">
                       <span>{option.label}</span>

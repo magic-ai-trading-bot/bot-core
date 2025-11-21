@@ -422,8 +422,8 @@ export const useWebSocket = (): WebSocketHook => {
         connectWebSocket();
       }, delay);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [stopHeartbeat]
   ); // connectWebSocket intentionally excluded to prevent infinite reconnection loop
 
