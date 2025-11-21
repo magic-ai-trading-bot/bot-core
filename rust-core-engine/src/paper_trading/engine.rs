@@ -1224,7 +1224,7 @@ impl PaperTradingEngine {
                     timestamp: Utc::now(),
                 });
 
-                return Ok(false);
+                Ok(false)
             },
             TradeType::Short if short_ratio > correlation_limit => {
                 warn!(
@@ -1244,7 +1244,7 @@ impl PaperTradingEngine {
                     timestamp: Utc::now(),
                 });
 
-                return Ok(false);
+                Ok(false)
             },
             _ => Ok(true),
         }
