@@ -407,15 +407,18 @@ mod tests {
         let strategy = StochasticStrategy::new();
 
         // Create strong downtrend then reversal
-        let prices_1h: Vec<f64> = (0..20).map(|i| 100.0 - (i as f64 * 3.0)).collect();
+        let prices_1h: Vec<f64> = (0..30).map(|i| 100.0 - (i as f64 * 3.0)).collect();
         let mut recovery_prices = prices_1h.clone();
-        recovery_prices.extend((0..5).map(|i| 40.0 + (i as f64 * 2.0)));
+        recovery_prices.extend((0..5).map(|i| -90.0 + (i as f64 * 2.0)));
 
-        let prices_4h: Vec<f64> = (0..20).map(|i| 100.0 - (i as f64 * 2.0)).collect();
+        let prices_4h: Vec<f64> = (0..25).map(|i| 100.0 - (i as f64 * 2.0)).collect();
 
         let input = create_test_input(recovery_prices, prices_4h);
         let result = strategy.analyze(&input).await;
 
+        if let Err(e) = &result {
+            eprintln!("Error in test: {:?}", e);
+        }
         assert!(result.is_ok());
         let output = result.unwrap();
         assert!(matches!(
@@ -430,15 +433,18 @@ mod tests {
         let strategy = StochasticStrategy::new();
 
         // Create strong uptrend then reversal
-        let prices_1h: Vec<f64> = (0..20).map(|i| 100.0 + (i as f64 * 3.0)).collect();
+        let prices_1h: Vec<f64> = (0..30).map(|i| 100.0 + (i as f64 * 3.0)).collect();
         let mut decline_prices = prices_1h.clone();
-        decline_prices.extend((0..5).map(|i| 160.0 - (i as f64 * 2.0)));
+        decline_prices.extend((0..5).map(|i| 190.0 - (i as f64 * 2.0)));
 
-        let prices_4h: Vec<f64> = (0..20).map(|i| 100.0 + (i as f64 * 2.0)).collect();
+        let prices_4h: Vec<f64> = (0..25).map(|i| 100.0 + (i as f64 * 2.0)).collect();
 
         let input = create_test_input(decline_prices, prices_4h);
         let result = strategy.analyze(&input).await;
 
+        if let Err(e) = &result {
+            eprintln!("Error in test: {:?}", e);
+        }
         assert!(result.is_ok());
         let output = result.unwrap();
         assert!(matches!(
