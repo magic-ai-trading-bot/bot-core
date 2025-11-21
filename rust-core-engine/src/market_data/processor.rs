@@ -467,8 +467,7 @@ impl MarketDataProcessor {
                         // Refresh all timeframes from config
                         // WebSocket provides real-time updates, periodic refresh ensures data integrity
                         if let Err(e) =
-                            Self::refresh_timeframe_data(&client, &cache, symbol, timeframe)
-                                .await
+                            Self::refresh_timeframe_data(&client, &cache, symbol, timeframe).await
                         {
                             warn!("Failed to refresh {} {}: {}", symbol, timeframe, e);
                         }
