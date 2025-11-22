@@ -30,8 +30,8 @@ class TestNotificationConfiguration:
             result = notifications.send_notification(
                 title="Test", message="Test message", level="info"
             )
-            # Should return early without error
-            assert result is None or result == {"status": "disabled"}
+            # Should return early without error (returns {"skipped": True})
+            assert result is not None and result.get("skipped") == True
 
         finally:
             # Restore original
@@ -340,6 +340,7 @@ class TestTelegramNotifications:
 class TestUnifiedNotificationSystem:
     """Test unified notification functions"""
 
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "email,slack,discord,telegram"})
     @patch("utils.notifications.send_email")
     @patch("utils.notifications.send_slack")
     @patch("utils.notifications.send_discord")
@@ -354,13 +355,17 @@ class TestUnifiedNotificationSystem:
         for mock in [mock_email, mock_slack, mock_discord, mock_telegram]:
             mock.return_value = {"status": "success"}
 
-        send_notification(
+        result = send_notification(
             title="Multi-Channel Alert", message="Testing all channels", level="warning"
         )
 
-        # Should attempt to send to configured channels
-        # (Actual channels depend on NOTIFICATION_CHANNELS env var)
+        # Should attempt to send to all configured channels
+        assert mock_email.called
+        assert mock_slack.called
+        assert mock_discord.called
+        assert mock_telegram.called
 
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
     @patch("utils.notifications.send_slack")
     def test_send_critical_uses_critical_level(self, mock_slack):
         """Test send_critical helper uses critical level"""
@@ -379,6 +384,7 @@ class TestUnifiedNotificationSystem:
         call_args = mock_slack.call_args
         assert call_args[0][2] == "critical" or call_args[1].get("level") == "critical"
 
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
     @patch("utils.notifications.send_slack")
     def test_send_warning_uses_warning_level(self, mock_slack):
         """Test send_warning helper uses warning level"""
@@ -390,6 +396,7 @@ class TestUnifiedNotificationSystem:
 
         assert mock_slack.called
 
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
     @patch("utils.notifications.send_slack")
     def test_send_info_uses_info_level(self, mock_slack):
         """Test send_info helper uses info level"""
