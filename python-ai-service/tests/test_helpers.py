@@ -79,6 +79,28 @@ class TestValidateOHLCVData:
         }
         assert validate_ohlcv_data(invalid_data) == False
 
+    def test_candle_missing_required_field(self):
+        """Test with candle missing a required field"""
+        invalid_data = {
+            "open": 100,
+            "high": 110,
+            "low": 90,
+            "close": 105,
+            "volume": 1000,
+            "timestamp": 1234567890,
+            "candles": [
+                {
+                    "open": 100,
+                    "high": 110,
+                    # Missing "low" field
+                    "close": 105,
+                    "volume": 1000,
+                    "timestamp": 1234567890,
+                }
+            ],
+        }
+        assert validate_ohlcv_data(invalid_data) == False
+
     def test_invalid_price_range(self):
         """Test with invalid price range (high < low)"""
         invalid_data = {
