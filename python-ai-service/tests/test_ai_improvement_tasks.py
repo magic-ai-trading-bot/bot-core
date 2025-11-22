@@ -13,6 +13,7 @@ import json
 class TestGPT4SelfAnalysis:
     """Test gpt4_self_analysis task"""
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
@@ -78,6 +79,7 @@ class TestGPT4SelfAnalysis:
         assert result["trigger_retrain"] is True
         assert "lstm" in result["analysis"]["models_to_retrain"]
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
@@ -141,6 +143,7 @@ class TestGPT4SelfAnalysis:
         assert result["analysis"]["confidence"] == 0.90
         assert result["trigger_retrain"] is False
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
