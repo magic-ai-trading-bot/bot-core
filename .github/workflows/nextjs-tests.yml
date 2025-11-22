@@ -80,7 +80,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Next.js E2E Tests
     needs: nextjs-tests
-    if: false  # Disabled: Playwright not configured yet
 
     steps:
     - name: Checkout code
@@ -131,7 +130,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Visual Regression Tests
     needs: nextjs-tests
-    if: false  # Disabled: Visual regression tests not implemented yet
 
     steps:
     - name: Checkout code
@@ -169,7 +167,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Next.js Security Scan
     needs: nextjs-tests
-    if: false  # Disabled: Security scan config not implemented yet
 
     steps:
     - name: Checkout code
@@ -185,17 +182,20 @@ jobs:
         cd nextjs-ui-dashboard
         bun install
 
-    - name: Run ESLint security rules
-      continue-on-error: true
+    - name: Run npm audit
       run: |
         cd nextjs-ui-dashboard
-        bunx eslint . --ext .ts,.tsx --config .eslintrc.security.js || echo "ESLint security config not found, skipping..."
+        npm run audit:security
+
+    - name: Run ESLint
+      run: |
+        cd nextjs-ui-dashboard
+        npm run lint
 
     - name: Bundle analyzer
-      continue-on-error: true
       run: |
         cd nextjs-ui-dashboard
-        bun run build:analyze || echo "Bundle analyzer not configured, skipping..."
+        npm run build:analyze
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload bundle analysis
