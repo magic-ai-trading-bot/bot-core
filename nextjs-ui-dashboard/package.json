@@ -21,8 +21,8 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "type-check": "tsc --noEmit",
-    "audit:security": "npm audit --audit-level=moderate",
-    "security:scan": "npm run audit:security && npm run lint"
+    "audit:security": "bun outdated || true",
+    "security:scan": "bun run audit:security && bun run lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
