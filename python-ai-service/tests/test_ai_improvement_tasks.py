@@ -248,9 +248,12 @@ class TestGPT4SelfAnalysis:
             if old_key:
                 os.environ["OPENAI_API_KEY"] = old_key
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
+    @patch("tasks.ai_improvement.adaptive_retrain")
     @patch("tasks.ai_improvement.requests.get")
+    @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
-    def test_gpt4_analysis_insufficient_data(self, mock_storage, mock_requests):
+    def test_gpt4_analysis_insufficient_data(self, mock_storage, mock_openai, mock_requests, mock_adaptive_retrain):
         """Test GPT-4 analysis with insufficient historical data"""
         from tasks.ai_improvement import gpt4_self_analysis
 
@@ -266,6 +269,24 @@ class TestGPT4SelfAnalysis:
         ]
 
         mock_storage.get_model_accuracy_history.return_value = []
+
+        # Mock GPT-4 response (even though we expect insufficient data, provide a valid response)
+        mock_openai.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content=json.dumps({
+                            "recommendation": "wait",
+                            "confidence": 0.50,
+                            "reasoning": "Insufficient data for analysis",
+                            "urgency": "low",
+                            "suggested_actions": ["gather_more_data"],
+                        })
+                    )
+                )
+            ],
+            usage=MagicMock(prompt_tokens=500, completion_tokens=100, total_tokens=600),
+        )
 
         result = gpt4_self_analysis(force_analysis=False)
 
