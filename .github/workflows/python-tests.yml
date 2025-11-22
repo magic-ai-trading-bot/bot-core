@@ -107,7 +107,10 @@ jobs:
     - name: Run tests with coverage
       env:
         DATABASE_URL: mongodb://root:password@localhost:27017/test_trading_bot
+        MONGODB_URI: mongodb://root:password@localhost:27017/test_trading_bot
+        MONGODB_DB: test_trading_bot
         OPENAI_API_KEYS: test_key_1,test_key_2,test_key_3
+        OPENAI_API_KEY: test_key_1  # For GPT-4 tests
         ENVIRONMENT: test
         LOG_LEVEL: INFO
         SKIP_ML_TESTS: "true"  # Skip TensorFlow/PyTorch tests in CI
@@ -121,6 +124,25 @@ jobs:
         REDIS_HOST: localhost
         REDIS_PORT: 6379
         REDIS_PASSWORD: ""  # No password for test Redis
+        # Celery configuration
+        CELERY_BROKER_URL: amqp://admin:rabbitmq_default_password@localhost:5672/bot-core
+        CELERY_RESULT_BACKEND: redis://localhost:6379/0
+        # Notification settings (for tests)
+        NOTIFICATIONS_ENABLED: "false"
+        SMTP_HOST: smtp.gmail.com
+        SMTP_PORT: 587
+        SMTP_USER: test@example.com
+        SMTP_PASSWORD: test_password
+        EMAIL_FROM: test@example.com
+        EMAIL_TO: test@example.com
+        SLACK_WEBHOOK_URL: https://hooks.slack.com/test
+        DISCORD_WEBHOOK_URL: https://discord.com/api/webhooks/test
+        TELEGRAM_BOT_TOKEN: test_bot_token
+        TELEGRAM_CHAT_ID: test_chat_id
+        # Service URLs (for tests)
+        RUST_API_URL: http://localhost:8080
+        PYTHON_API_URL: http://localhost:8000
+        FRONTEND_URL: http://localhost:3000
       run: |
         cd python-ai-service
         # Run tests excluding ML tests (require TensorFlow/PyTorch)

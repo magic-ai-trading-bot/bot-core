@@ -95,11 +95,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
         # Check if OpenAI API key is configured
         if not OPENAI_API_KEY:
             logger.error("❌ OPENAI_API_KEY not configured - cannot run GPT-4 analysis")
-            return {
-                "status": "error",
-                "error": "OPENAI_API_KEY not configured",
-                "task_id": self.request.id,
-            }
+            raise Exception("OPENAI_API_KEY not configured")
 
         # STEP 1: Fetch last 7 days performance data
         logger.info("📊 Fetching 7-day performance data...")
@@ -235,11 +231,13 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
 
                 analysis_result["retrain_task_id"] = retrain_task.id
                 analysis_result["retrain_triggered"] = True
+                trigger_retrain = True
             else:
                 logger.info(
                     f"✅ No immediate retraining needed (recommendation: {recommendation}, confidence: {confidence:.0%})"
                 )
                 analysis_result["retrain_triggered"] = False
+                trigger_retrain = False
 
             # STEP 8: Send GPT-4 analysis notification
             notifications.send_gpt4_analysis(analysis_result)
@@ -250,6 +248,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
             return {
                 "status": "success",
                 "analysis": analysis_result,
+                "trigger_retrain": trigger_retrain,
                 "task_id": self.request.id,
             }
 
@@ -377,15 +376,14 @@ def adaptive_retrain(
         notifications.send_retrain_complete(results)
 
         # Store retrain results in MongoDB
-        storage.store_retrain_result(
-            results=results,
+        storage.store_retrain_history(
+            retrain_data=results,
             task_id=self.request.id,
-            trigger_type="gpt4_recommendation",
-            trigger_data={"analysis_reasoning": analysis_result.get("reasoning")},
         )
 
         return {
             "status": "success",
+            "retrain_results": [results["models"][m] for m in results["models"]],
             "results": results,
             "task_id": self.request.id,
         }
@@ -452,6 +450,7 @@ def emergency_strategy_disable(
         return {
             "status": "success",
             "strategy": strategy_name,
+            "strategy_disabled": strategy_name,
             "reason": reason,
             "disabled_at": datetime.utcnow().isoformat(),
             "task_id": self.request.id,
