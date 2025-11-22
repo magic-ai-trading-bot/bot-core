@@ -212,8 +212,6 @@ export const usePaperTrading = () => {
   // Fetch portfolio status from Rust backend
   const fetchPortfolioStatus = useCallback(async () => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
-
       const response = await fetch(`${API_BASE}/api/paper-trading/portfolio`);
       const data: RustPaperTradingResponse<PortfolioMetrics> =
         await response.json();
@@ -222,18 +220,13 @@ export const usePaperTrading = () => {
         setState((prev) => ({
           ...prev,
           portfolio: data.data!,
-          isLoading: false,
           lastUpdated: new Date(),
         }));
       } else {
-        throw new Error(data.error || "Failed to fetch portfolio status");
+        logger.error("Failed to fetch portfolio status:", data.error);
       }
     } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }));
+      logger.error("Failed to fetch portfolio status:", error);
     }
   }, [API_BASE]);
 
@@ -301,7 +294,8 @@ export const usePaperTrading = () => {
         variant: "destructive",
       });
     }
-  }, [API_BASE, fetchWithRetry, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_BASE, fetchWithRetry]); // toast is stable, don't include in deps
 
   // Fetch current settings from backend
   const fetchCurrentSettings = useCallback(async () => {
@@ -512,6 +506,8 @@ export const usePaperTrading = () => {
   const closeTrade = useCallback(
     async (tradeId: string) => {
       try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
         const response = await fetch(
           `${API_BASE}/api/paper-trading/trades/${tradeId}/close`,
           {
@@ -534,12 +530,14 @@ export const usePaperTrading = () => {
           await fetchOpenTrades();
           await fetchClosedTrades();
           await fetchPortfolioStatus();
+          setState((prev) => ({ ...prev, isLoading: false }));
         } else {
           throw new Error(data.error || "Failed to close trade");
         }
       } catch (error) {
         setState((prev) => ({
           ...prev,
+          isLoading: false,
           error: error instanceof Error ? error.message : "Unknown error",
         }));
       }
