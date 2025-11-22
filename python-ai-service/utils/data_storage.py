@@ -586,22 +586,6 @@ class DataStorage:
         )
 
 
-# Lazy singleton instance (created on first access to allow test mocking)
-_storage_instance = None
-
-
-def get_storage() -> DataStorage:
-    """Get or create the DataStorage singleton instance"""
-    global _storage_instance
-    if _storage_instance is None:
-        _storage_instance = DataStorage()
-    return _storage_instance
-
-
-# For backward compatibility, create a property-like accessor
-class _StorageAccessor:
-    def __getattr__(self, name):
-        return getattr(get_storage(), name)
-
-
-storage = _StorageAccessor()
+# Singleton instance (created at module load for backward compatibility)
+# Tests can use DataStorage.reset_instance() to reset if needed
+storage = DataStorage()
