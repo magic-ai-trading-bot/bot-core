@@ -456,6 +456,66 @@ class TestNotificationErrorHandling:
         assert mock_email.called
         assert mock_slack.called
 
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack,discord"})
+    @patch("utils.notifications.send_slack")
+    @patch("utils.notifications.send_discord")
+    def test_notification_slack_exception_caught(self, mock_discord, mock_slack):
+        """Test that Slack exceptions are caught and logged."""
+        from utils.notifications import send_notification
+
+        # Slack raises exception
+        mock_slack.side_effect = Exception("Slack API error")
+        mock_discord.return_value = {"status": "success"}
+
+        result = send_notification("Test", "Message", "info")
+
+        # Both should have been attempted
+        assert mock_slack.called
+        assert mock_discord.called
+        # Result should contain error for Slack
+        assert result["slack"]["status"] == "failed"
+        assert "error" in result["slack"]
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "discord,telegram"})
+    @patch("utils.notifications.send_discord")
+    @patch("utils.notifications.send_telegram")
+    def test_notification_discord_exception_caught(self, mock_telegram, mock_discord):
+        """Test that Discord exceptions are caught and logged."""
+        from utils.notifications import send_notification
+
+        # Discord raises exception
+        mock_discord.side_effect = Exception("Discord webhook error")
+        mock_telegram.return_value = {"status": "success"}
+
+        result = send_notification("Test", "Message", "info")
+
+        # Both should have been attempted
+        assert mock_discord.called
+        assert mock_telegram.called
+        # Result should contain error for Discord
+        assert result["discord"]["status"] == "failed"
+        assert "error" in result["discord"]
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack,telegram"})
+    @patch("utils.notifications.send_telegram")
+    @patch("utils.notifications.send_slack")
+    def test_notification_telegram_exception_caught(self, mock_slack, mock_telegram):
+        """Test that Telegram exceptions are caught and logged."""
+        from utils.notifications import send_notification
+
+        # Telegram raises exception
+        mock_telegram.side_effect = Exception("Telegram bot error")
+        mock_slack.return_value = {"status": "success"}
+
+        result = send_notification("Test", "Message", "info")
+
+        # Both should have been attempted
+        assert mock_slack.called
+        assert mock_telegram.called
+        # Result should contain error for Telegram
+        assert result["telegram"]["status"] == "failed"
+        assert "error" in result["telegram"]
+
     def test_notification_with_invalid_level(self):
         """Test notification with invalid severity level"""
         from utils.notifications import send_notification
@@ -482,6 +542,110 @@ class TestNotificationErrorHandling:
 
         assert result["status"] == "failed"
         assert "timeout" in str(result.get("error", "")).lower()
+
+
+@pytest.mark.unit
+class TestConvenienceNotificationFunctions:
+    """Test convenience wrapper functions."""
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch("utils.notifications.send_slack")
+    def test_send_error_function(self, mock_slack):
+        """Test send_error convenience function."""
+        from utils.notifications import send_error
+
+        mock_slack.return_value = {"status": "success"}
+
+        result = send_error("Error occurred", "System error details", {"code": 500})
+
+        assert mock_slack.called
+        # Verify error level was used
+        call_args = mock_slack.call_args
+        assert call_args[0][2] == "error" or call_args[1].get("level") == "error"
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch("utils.notifications.send_slack")
+    def test_send_health_alert_function(self, mock_slack):
+        """Test send_health_alert convenience function."""
+        from utils.notifications import send_health_alert
+
+        mock_slack.return_value = {"status": "success"}
+
+        result = send_health_alert("MongoDB", "Connection timeout")
+
+        assert mock_slack.called
+        # Should use critical level
+        call_args = mock_slack.call_args
+        assert call_args[0][2] == "critical" or call_args[1].get("level") == "critical"
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch("utils.notifications.send_slack")
+    def test_send_performance_alert_function(self, mock_slack):
+        """Test send_performance_alert convenience function."""
+        from utils.notifications import send_performance_alert
+
+        mock_slack.return_value = {"status": "success"}
+
+        metrics = {"win_rate": 45.0, "sharpe_ratio": 0.5}
+        result = send_performance_alert(metrics)
+
+        assert mock_slack.called
+        # Should use warning level
+        call_args = mock_slack.call_args
+        assert call_args[0][2] == "warning" or call_args[1].get("level") == "warning"
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch("utils.notifications.send_slack")
+    def test_send_cost_alert_function(self, mock_slack):
+        """Test send_cost_alert convenience function."""
+        from utils.notifications import send_cost_alert
+
+        mock_slack.return_value = {"status": "success"}
+
+        cost_data = {"daily_cost": 15.50, "threshold": 10.0}
+        result = send_cost_alert(cost_data)
+
+        assert mock_slack.called
+        # Should use warning level
+        call_args = mock_slack.call_args
+        assert call_args[0][2] == "warning" or call_args[1].get("level") == "warning"
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch("utils.notifications.send_slack")
+    def test_send_retrain_complete_function(self, mock_slack):
+        """Test send_retrain_complete convenience function."""
+        from utils.notifications import send_retrain_complete
+
+        mock_slack.return_value = {"status": "success"}
+
+        results = {
+            "models": {
+                "lstm": {"status": "success", "accuracy": 75.0},
+                "gru": {"status": "success", "accuracy": 72.0},
+                "transformer": {"status": "failed", "error": "Training error"},
+            }
+        }
+
+        result = send_retrain_complete(results)
+
+        assert mock_slack.called
+        # Should use info level
+        call_args = mock_slack.call_args
+        assert call_args[0][2] == "info" or call_args[1].get("level") == "info"
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch("utils.notifications.send_slack")
+    def test_send_retrain_complete_empty_models(self, mock_slack):
+        """Test send_retrain_complete with empty models dict."""
+        from utils.notifications import send_retrain_complete
+
+        mock_slack.return_value = {"status": "success"}
+
+        results = {"models": {}}
+
+        result = send_retrain_complete(results)
+
+        assert mock_slack.called
 
 
 if __name__ == "__main__":

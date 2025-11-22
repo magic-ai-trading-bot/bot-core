@@ -4,6 +4,7 @@ Test main FastAPI application and endpoints.
 
 import os
 import pytest
+import asyncio
 from unittest.mock import patch, AsyncMock, MagicMock, Mock
 from datetime import datetime, timezone, timedelta
 import json
@@ -2253,3 +2254,191 @@ class TestDebugEndpointEdgeCases:
             data = response.json()
             assert data["status"] == "failed"
             assert "rate limit" in data["diagnosis"].lower()
+
+
+@pytest.mark.unit
+class TestCostStatisticsEndpoint:
+    """Test /ai/cost/statistics endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_cost_statistics_with_usage(self, client):
+        """Test cost statistics with usage data."""
+        # Mock global variables with actual usage
+        with patch("main.total_requests_count", 100):
+            with patch("main.total_input_tokens", 50000):
+                with patch("main.total_output_tokens", 25000):
+                    with patch("main.total_cost_usd", 0.5):
+                        response = await client.get("/ai/cost/statistics")
+                        assert response.status_code == 200
+                        data = response.json()
+
+                        # Check session statistics
+                        assert data["session_statistics"]["total_requests"] == 100
+                        assert data["session_statistics"]["total_input_tokens"] == 50000
+                        assert data["session_statistics"]["total_output_tokens"] == 25000
+                        assert data["session_statistics"]["total_cost_usd"] == 0.5
+
+                        # Check projections exist
+                        assert "estimated_daily_cost_usd" in data["projections"]
+                        assert "estimated_monthly_cost_usd" in data["projections"]
+
+                        # Check configuration
+                        assert data["configuration"]["model"] == "gpt-4o-mini"
+                        assert data["configuration"]["symbols_tracked"] == 8
+
+                        # Check optimization status
+                        assert data["optimization_status"]["cache_optimized"] is True
+
+    @pytest.mark.asyncio
+    async def test_cost_statistics_no_usage(self, client):
+        """Test cost statistics with no usage yet."""
+        with patch("main.total_requests_count", 0):
+            with patch("main.total_input_tokens", 0):
+                with patch("main.total_output_tokens", 0):
+                    with patch("main.total_cost_usd", 0.0):
+                        response = await client.get("/ai/cost/statistics")
+                        assert response.status_code == 200
+                        data = response.json()
+
+                        assert data["session_statistics"]["total_requests"] == 0
+                        assert data["session_statistics"]["total_cost_usd"] == 0.0
+                        # Should handle division by zero gracefully
+                        assert data["projections"]["estimated_daily_cost_usd"] == 0.0
+
+
+@pytest.mark.unit
+class TestSecurityHeadersMiddleware:
+    """Test security headers middleware."""
+
+    @pytest.mark.asyncio
+    async def test_security_headers_development(self, client):
+        """Test security headers in development environment."""
+        with patch.dict(os.environ, {"ENVIRONMENT": "development"}):
+            response = await client.get("/health")
+            assert response.status_code == 200
+
+            # Check security headers are present
+            assert response.headers.get("X-Frame-Options") == "DENY"
+            assert response.headers.get("X-Content-Type-Options") == "nosniff"
+            assert response.headers.get("X-XSS-Protection") == "1; mode=block"
+            assert "Content-Security-Policy" in response.headers
+            assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+            assert "Permissions-Policy" in response.headers
+
+            # HSTS should NOT be present in development
+            assert "Strict-Transport-Security" not in response.headers
+
+    @pytest.mark.asyncio
+    async def test_security_headers_production(self, client):
+        """Test security headers in production environment."""
+        with patch.dict(os.environ, {"ENVIRONMENT": "production"}):
+            response = await client.get("/health")
+            assert response.status_code == 200
+
+            # HSTS should be present in production
+            assert "Strict-Transport-Security" in response.headers
+            assert "max-age=31536000" in response.headers["Strict-Transport-Security"]
+
+
+@pytest.mark.unit
+class TestPeriodicAnalysisRunner:
+    """Test periodic analysis background task."""
+
+    @pytest.mark.asyncio
+    async def test_periodic_analysis_runner_one_cycle(self):
+        """Test one cycle of periodic analysis."""
+        from main import periodic_analysis_runner, generate_dummy_market_data
+
+        # Mock the global openai_client and mongodb_db
+        mock_gpt_client = AsyncMock()
+        mock_gpt_client.chat_completions_create = AsyncMock(
+            return_value={
+                "choices": [{
+                    "message": {
+                        "content": json.dumps({
+                            "signal": "Long",
+                            "confidence": 0.75,
+                            "reasoning": "Test",
+                            "strategy_scores": {},
+                            "market_analysis": {
+                                "trend_direction": "Bullish",
+                                "trend_strength": 0.8,
+                                "support_levels": [],
+                                "resistance_levels": [],
+                                "volatility_level": "Medium",
+                                "volume_analysis": "Normal"
+                            },
+                            "risk_assessment": {
+                                "overall_risk": "Medium",
+                                "technical_risk": 0.5,
+                                "market_risk": 0.5,
+                                "recommended_position_size": 0.02
+                            }
+                        })
+                    }
+                }],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
+            }
+        )
+
+        # Create a task that will run one iteration then stop
+        task = None
+        try:
+            with patch("main.openai_client", mock_gpt_client):
+                with patch("main.mongodb_db", None):  # Disable storage for test
+                    with patch("main.ANALYSIS_INTERVAL_MINUTES", 0.001):  # Very short interval
+                        # Create task
+                        task = asyncio.create_task(periodic_analysis_runner())
+
+                        # Let it run for a short time
+                        await asyncio.sleep(0.1)
+
+                        # Cancel the task
+                        task.cancel()
+
+                        # Wait for cancellation
+                        try:
+                            await task
+                        except asyncio.CancelledError:
+                            pass  # Expected
+        finally:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+    @pytest.mark.asyncio
+    async def test_periodic_analysis_runner_with_error(self):
+        """Test periodic analysis handles errors gracefully."""
+        from main import periodic_analysis_runner
+
+        # Mock analyze function to raise error
+        mock_gpt_client = AsyncMock()
+        mock_gpt_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("API Error")
+        )
+
+        task = None
+        try:
+            with patch("main.openai_client", mock_gpt_client):
+                with patch("main.ANALYSIS_INTERVAL_MINUTES", 0.001):
+                    task = asyncio.create_task(periodic_analysis_runner())
+
+                    # Let it run briefly
+                    await asyncio.sleep(0.1)
+
+                    # Cancel
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass  # Expected - should handle errors and continue
+        finally:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
