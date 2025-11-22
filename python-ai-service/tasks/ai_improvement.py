@@ -169,7 +169,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
         # STEP 5: Prepare GPT-4 prompt
         logger.info("🤖 Preparing GPT-4 analysis prompt...")
 
-        prompt = _build_gpt4_analysis_prompt(daily_metrics, model_accuracy, market_data)
+        prompt = _build_gpt4_analysis_prompt()
 
         # STEP 6: Call GPT-4 for analysis
         logger.info("🤖 Calling GPT-4 for deep analysis...")
@@ -519,17 +519,35 @@ def calculate_daily_metrics(trades: List[Dict]) -> List[Dict]:
     return daily_metrics
 
 
-def _build_gpt4_analysis_prompt(
-    daily_metrics: List[Dict],
-    model_accuracy: Dict[str, Any],
-    market_data: Dict[str, Any],
-) -> str:
-    """Build GPT-4 analysis prompt with performance data (private helper)"""
+def _build_gpt4_analysis_prompt() -> str:
+    """
+    Build GPT-4 analysis prompt with performance data (private helper)
+    Gets data from storage and API automatically
+    """
+    # Fetch data from storage
+    daily_metrics = storage.get_performance_metrics_history(days=7) or []
+    model_accuracy_history = storage.get_model_accuracy_history(days=7) or []
+
+    # Try to get market data from Binance
+    try:
+        response = requests.get(
+            "https://api.binance.com/api/v3/ticker/24hr",
+            params={"symbol": "BTCUSDT"},
+            timeout=10,
+        )
+        market_data = response.json() if response.status_code == 200 else {}
+    except Exception:
+        market_data = {}
+
+    # Convert model accuracy history to dict format
+    model_accuracy = {
+        "models": model_accuracy_history
+    }
 
     # Extract trends
-    win_rates = [m["win_rate"] for m in daily_metrics] if daily_metrics else []
-    profits = [m["avg_profit"] for m in daily_metrics] if daily_metrics else []
-    sharpes = [m["sharpe_ratio"] for m in daily_metrics] if daily_metrics else []
+    win_rates = [m.get("win_rate", 0) for m in daily_metrics] if daily_metrics else []
+    profits = [m.get("avg_profit", 0) for m in daily_metrics] if daily_metrics else []
+    sharpes = [m.get("sharpe_ratio", 0) for m in daily_metrics] if daily_metrics else []
 
     current_win_rate = win_rates[-1] if win_rates else 0
     current_profit = profits[-1] if profits else 0
