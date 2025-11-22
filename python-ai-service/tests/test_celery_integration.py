@@ -26,16 +26,16 @@ class TestCeleryConfiguration:
         from celery_app import app
 
         broker = app.conf.broker_url
-        assert broker.startswith('amqp://') or broker.startswith('pyamqp://')
-        assert 'rabbitmq' in broker or 'localhost' in broker
+        assert broker.startswith("amqp://") or broker.startswith("pyamqp://")
+        assert "rabbitmq" in broker or "localhost" in broker
 
     def test_celery_result_backend(self):
         """Test that result backend is configured for Redis"""
         from celery_app import app
 
         backend = app.conf.result_backend
-        assert backend.startswith('redis://')
-        assert 'redis' in backend or 'localhost' in backend
+        assert backend.startswith("redis://")
+        assert "redis" in backend or "localhost" in backend
 
     def test_celery_timezone(self):
         """Test that timezone is configured"""
@@ -43,16 +43,16 @@ class TestCeleryConfiguration:
 
         assert app.conf.timezone is not None
         # Should be UTC or valid timezone
-        assert app.conf.timezone in ['UTC', 'Asia/Ho_Chi_Minh', 'America/New_York']
+        assert app.conf.timezone in ["UTC", "Asia/Ho_Chi_Minh", "America/New_York"]
 
     def test_celery_task_serializer(self):
         """Test task serialization settings"""
         from celery_app import app
 
         # Should use JSON for security
-        assert app.conf.task_serializer == 'json'
-        assert app.conf.accept_content == ['json']
-        assert app.conf.result_serializer == 'json'
+        assert app.conf.task_serializer == "json"
+        assert app.conf.accept_content == ["json"]
+        assert app.conf.result_serializer == "json"
 
 
 class TestTaskRegistration:
@@ -65,10 +65,10 @@ class TestTaskRegistration:
         registered = list(app.tasks.keys())
 
         monitoring_tasks = [
-            'tasks.monitoring.system_health_check',
-            'tasks.monitoring.daily_portfolio_report',
-            'tasks.monitoring.daily_api_cost_report',
-            'tasks.monitoring.daily_performance_analysis'
+            "tasks.monitoring.system_health_check",
+            "tasks.monitoring.daily_portfolio_report",
+            "tasks.monitoring.daily_api_cost_report",
+            "tasks.monitoring.daily_performance_analysis",
         ]
 
         for task_name in monitoring_tasks:
@@ -81,9 +81,9 @@ class TestTaskRegistration:
         registered = list(app.tasks.keys())
 
         ai_tasks = [
-            'tasks.ai_improvement.gpt4_self_analysis',
-            'tasks.ai_improvement.adaptive_retrain',
-            'tasks.ai_improvement.emergency_strategy_disable'
+            "tasks.ai_improvement.gpt4_self_analysis",
+            "tasks.ai_improvement.adaptive_retrain",
+            "tasks.ai_improvement.emergency_strategy_disable",
         ]
 
         for task_name in ai_tasks:
@@ -96,11 +96,11 @@ class TestTaskRegistration:
         registered = list(app.tasks.keys())
 
         ml_tasks = [
-            'tasks.ml_tasks.train_model',
-            'tasks.ml_tasks.predict_price',
-            'tasks.ml_tasks.bulk_analysis',
-            'tasks.backtest_tasks.backtest_strategy',
-            'tasks.backtest_tasks.optimize_strategy'
+            "tasks.ml_tasks.train_model",
+            "tasks.ml_tasks.predict_price",
+            "tasks.ml_tasks.bulk_analysis",
+            "tasks.backtest_tasks.backtest_strategy",
+            "tasks.backtest_tasks.optimize_strategy",
         ]
 
         for task_name in ml_tasks:
@@ -114,7 +114,7 @@ class TestTaskRegistration:
 
         # Should have at least 12 custom tasks
         # (4 monitoring + 3 AI + 2 ML + 3 backtest)
-        custom_tasks = [t for t in registered if t.startswith('tasks.')]
+        custom_tasks = [t for t in registered if t.startswith("tasks.")]
 
         assert len(custom_tasks) >= 12, f"Expected 12+ tasks, found {len(custom_tasks)}"
 
@@ -129,15 +129,15 @@ class TestTaskRouting:
         routes = app.conf.task_routes
 
         monitoring_tasks = [
-            'tasks.monitoring.system_health_check',
-            'tasks.monitoring.daily_portfolio_report',
-            'tasks.monitoring.daily_api_cost_report',
-            'tasks.monitoring.daily_performance_analysis'
+            "tasks.monitoring.system_health_check",
+            "tasks.monitoring.daily_portfolio_report",
+            "tasks.monitoring.daily_api_cost_report",
+            "tasks.monitoring.daily_performance_analysis",
         ]
 
         for task_name in monitoring_tasks:
             if task_name in routes:
-                assert routes[task_name]['queue'] == 'scheduled'
+                assert routes[task_name]["queue"] == "scheduled"
 
     def test_ml_tasks_routed_correctly(self):
         """Test ML tasks use appropriate queues"""
@@ -146,12 +146,12 @@ class TestTaskRouting:
         routes = app.conf.task_routes
 
         # ML training should use ml_training queue
-        if 'tasks.ml_tasks.train_model' in routes:
-            assert routes['tasks.ml_tasks.train_model']['queue'] == 'ml_training'
+        if "tasks.ml_tasks.train_model" in routes:
+            assert routes["tasks.ml_tasks.train_model"]["queue"] == "ml_training"
 
         # Bulk analysis should use bulk_analysis queue
-        if 'tasks.ml_tasks.bulk_analysis' in routes:
-            assert routes['tasks.ml_tasks.bulk_analysis']['queue'] == 'bulk_analysis'
+        if "tasks.ml_tasks.bulk_analysis" in routes:
+            assert routes["tasks.ml_tasks.bulk_analysis"]["queue"] == "bulk_analysis"
 
     def test_backtest_tasks_routed_correctly(self):
         """Test backtest tasks use appropriate queues"""
@@ -159,11 +159,17 @@ class TestTaskRouting:
 
         routes = app.conf.task_routes
 
-        if 'tasks.backtest_tasks.backtest_strategy' in routes:
-            assert routes['tasks.backtest_tasks.backtest_strategy']['queue'] == 'backtesting'
+        if "tasks.backtest_tasks.backtest_strategy" in routes:
+            assert (
+                routes["tasks.backtest_tasks.backtest_strategy"]["queue"]
+                == "backtesting"
+            )
 
-        if 'tasks.backtest_tasks.optimize_strategy' in routes:
-            assert routes['tasks.backtest_tasks.optimize_strategy']['queue'] == 'optimization'
+        if "tasks.backtest_tasks.optimize_strategy" in routes:
+            assert (
+                routes["tasks.backtest_tasks.optimize_strategy"]["queue"]
+                == "optimization"
+            )
 
 
 class TestBeatSchedule:
@@ -173,7 +179,7 @@ class TestBeatSchedule:
         """Test that beat schedule is configured"""
         from celery_app import app
 
-        assert hasattr(app.conf, 'beat_schedule')
+        assert hasattr(app.conf, "beat_schedule")
         assert app.conf.beat_schedule is not None
         assert len(app.conf.beat_schedule) > 0
 
@@ -184,11 +190,11 @@ class TestBeatSchedule:
         schedule = app.conf.beat_schedule
 
         expected_schedules = [
-            'system-health-check',
-            'daily-portfolio-report',
-            'daily-api-cost-report',
-            'daily-performance-analysis',
-            'gpt4-self-analysis'
+            "system-health-check",
+            "daily-portfolio-report",
+            "daily-api-cost-report",
+            "daily-performance-analysis",
+            "gpt4-self-analysis",
         ]
 
         for schedule_name in expected_schedules:
@@ -201,19 +207,19 @@ class TestBeatSchedule:
         schedule = app.conf.beat_schedule
 
         for name, config in schedule.items():
-            assert 'task' in config, f"Schedule {name} missing 'task' field"
-            assert 'schedule' in config, f"Schedule {name} missing 'schedule' field"
+            assert "task" in config, f"Schedule {name} missing 'task' field"
+            assert "schedule" in config, f"Schedule {name} missing 'schedule' field"
 
     def test_health_check_frequency(self):
         """Test that health check runs every 15 minutes"""
         from celery_app import app
         from celery.schedules import crontab
 
-        schedule = app.conf.beat_schedule.get('system-health-check')
+        schedule = app.conf.beat_schedule.get("system-health-check")
 
         assert schedule is not None
         # Should run every 15 minutes
-        assert isinstance(schedule['schedule'], crontab)
+        assert isinstance(schedule["schedule"], crontab)
 
     def test_daily_tasks_scheduled_correctly(self):
         """Test that daily tasks have appropriate schedules"""
@@ -221,22 +227,22 @@ class TestBeatSchedule:
         from celery.schedules import crontab
 
         daily_tasks = [
-            'daily-portfolio-report',
-            'daily-api-cost-report',
-            'daily-performance-analysis',
-            'gpt4-self-analysis'
+            "daily-portfolio-report",
+            "daily-api-cost-report",
+            "daily-performance-analysis",
+            "gpt4-self-analysis",
         ]
 
         for task_name in daily_tasks:
             schedule = app.conf.beat_schedule.get(task_name)
             assert schedule is not None
-            assert isinstance(schedule['schedule'], crontab)
+            assert isinstance(schedule["schedule"], crontab)
 
 
 class TestTaskExecution:
     """Test task execution and error handling"""
 
-    @patch('tasks.monitoring.requests.get')
+    @patch("tasks.monitoring.requests.get")
     def test_task_execution_returns_result(self, mock_get):
         """Test that tasks return results properly"""
         from tasks.monitoring import system_health_check
@@ -249,17 +255,17 @@ class TestTaskExecution:
         result = system_health_check()
 
         assert result is not None
-        assert 'status' in result
+        assert "status" in result
 
     def test_task_has_bind_parameter(self):
         """Test that tasks have bind=True for self parameter"""
         from tasks.monitoring import system_health_check
 
         # Task should have access to self (task instance)
-        assert hasattr(system_health_check, 'name')
-        assert hasattr(system_health_check, 'run')
+        assert hasattr(system_health_check, "name")
+        assert hasattr(system_health_check, "run")
 
-    @patch('tasks.monitoring.requests.get')
+    @patch("tasks.monitoring.requests.get")
     def test_task_retry_on_failure(self, mock_get):
         """Test that tasks can retry on failure"""
         from tasks.monitoring import daily_portfolio_report
@@ -276,9 +282,9 @@ class TestTaskExecution:
 class TestTaskChaining:
     """Test task chaining and workflows"""
 
-    @patch('tasks.ai_improvement.openai.ChatCompletion.create')
-    @patch('tasks.ai_improvement.storage')
-    @patch('tasks.ai_improvement.adaptive_retrain')
+    @patch("tasks.ai_improvement.openai.ChatCompletion.create")
+    @patch("tasks.ai_improvement.storage")
+    @patch("tasks.ai_improvement.adaptive_retrain")
     def test_gpt4_can_trigger_retrain(self, mock_retrain, mock_storage, mock_openai):
         """Test GPT-4 analysis can trigger adaptive retrain"""
         from tasks.ai_improvement import gpt4_self_analysis
@@ -289,28 +295,30 @@ class TestTaskChaining:
             choices=[
                 MagicMock(
                     message=MagicMock(
-                        content=json.dumps({
-                            'recommendation': 'retrain',
-                            'confidence': 85,
-                            'models_to_retrain': ['lstm']
-                        })
+                        content=json.dumps(
+                            {
+                                "recommendation": "retrain",
+                                "confidence": 85,
+                                "models_to_retrain": ["lstm"],
+                            }
+                        )
                     )
                 )
             ],
-            usage=MagicMock(prompt_tokens=1000, completion_tokens=400, total_tokens=1400)
+            usage=MagicMock(
+                prompt_tokens=1000, completion_tokens=400, total_tokens=1400
+            ),
         )
 
-        mock_storage.get_performance_metrics_history.return_value = [
-            {'win_rate': 45.0}
-        ]
+        mock_storage.get_performance_metrics_history.return_value = [{"win_rate": 45.0}]
         mock_storage.get_model_accuracy_history.return_value = [
-            {'model_type': 'lstm', 'accuracy': 60.0}
+            {"model_type": "lstm", "accuracy": 60.0}
         ]
 
         result = gpt4_self_analysis()
 
         # Should indicate retrain should be triggered
-        assert result['trigger_retrain'] is True
+        assert result["trigger_retrain"] is True
 
     def test_task_signature_creation(self):
         """Test creating task signatures for chaining"""
@@ -320,7 +328,7 @@ class TestTaskChaining:
         sig = system_health_check.s()
 
         assert sig is not None
-        assert hasattr(sig, 'apply_async')
+        assert hasattr(sig, "apply_async")
 
 
 class TestWorkerConfiguration:
@@ -331,14 +339,14 @@ class TestWorkerConfiguration:
         from celery_app import app
 
         # Should have max_tasks_per_child to prevent memory leaks
-        assert hasattr(app.conf, 'worker_max_tasks_per_child')
+        assert hasattr(app.conf, "worker_max_tasks_per_child")
 
     def test_worker_prefetch_multiplier(self):
         """Test worker prefetch multiplier"""
         from celery_app import app
 
         # Should have reasonable prefetch multiplier
-        if hasattr(app.conf, 'worker_prefetch_multiplier'):
+        if hasattr(app.conf, "worker_prefetch_multiplier"):
             assert app.conf.worker_prefetch_multiplier > 0
 
     def test_task_acks_late(self):
@@ -346,15 +354,15 @@ class TestWorkerConfiguration:
         from celery_app import app
 
         # For reliability, tasks should ack late
-        if hasattr(app.conf, 'task_acks_late'):
+        if hasattr(app.conf, "task_acks_late"):
             assert isinstance(app.conf.task_acks_late, bool)
 
 
 class TestIntegrationWorkflows:
     """End-to-end integration tests"""
 
-    @patch('tasks.monitoring.storage')
-    @patch('tasks.monitoring.notifications')
+    @patch("tasks.monitoring.storage")
+    @patch("tasks.monitoring.notifications")
     def test_complete_monitoring_workflow(self, mock_notifications, mock_storage):
         """Test complete monitoring workflow"""
         from tasks.monitoring import daily_performance_analysis
@@ -362,21 +370,21 @@ class TestIntegrationWorkflows:
         # Mock poor performance
         mock_storage.get_performance_metrics_history.return_value = [
             {
-                'date': datetime.now().date(),
-                'win_rate': 35.0,
-                'avg_profit': -1.0,
-                'sharpe_ratio': 0.3
+                "date": datetime.now().date(),
+                "win_rate": 35.0,
+                "avg_profit": -1.0,
+                "sharpe_ratio": 0.3,
             }
         ]
 
         result = daily_performance_analysis()
 
         # Should analyze, detect issue, and notify
-        assert result['status'] == 'success'
-        assert result['analysis']['performance_status'] in ['warning', 'critical']
+        assert result["status"] == "success"
+        assert result["analysis"]["performance_status"] in ["warning", "critical"]
 
-    @patch('tasks.ai_improvement.storage')
-    @patch('tasks.ai_improvement.requests.post')
+    @patch("tasks.ai_improvement.storage")
+    @patch("tasks.ai_improvement.requests.post")
     def test_complete_retrain_workflow(self, mock_post, mock_storage):
         """Test complete retrain workflow"""
         from tasks.ai_improvement import adaptive_retrain
@@ -385,24 +393,24 @@ class TestIntegrationWorkflows:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            'status': 'success',
-            'model': 'lstm',
-            'accuracy_after': 75.0,
-            'improvement': 10.0
+            "status": "success",
+            "model": "lstm",
+            "accuracy_after": 75.0,
+            "improvement": 10.0,
         }
         mock_post.return_value = mock_response
 
         analysis = {
-            'recommendation': 'retrain',
-            'confidence': 85,
-            'models_to_retrain': ['lstm']
+            "recommendation": "retrain",
+            "confidence": 85,
+            "models_to_retrain": ["lstm"],
         }
 
-        result = adaptive_retrain(model_types=['lstm'], analysis_result=analysis)
+        result = adaptive_retrain(model_types=["lstm"], analysis_result=analysis)
 
         # Should train, store results, and notify
-        assert result['status'] == 'success'
-        assert len(result['retrain_results']) == 1
+        assert result["status"] == "success"
+        assert len(result["retrain_results"]) == 1
 
     def test_celery_app_can_start(self):
         """Test that Celery app can initialize without errors"""
@@ -416,5 +424,5 @@ class TestIntegrationWorkflows:
         assert len(list(app.tasks.keys())) > 0
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

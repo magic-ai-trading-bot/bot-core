@@ -48,25 +48,21 @@ app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
-
     # Task execution
     task_track_started=True,
     task_time_limit=3600,  # 1 hour max
     task_soft_time_limit=3300,  # 55 minutes soft limit
     task_acks_late=True,  # Acknowledge after task completes
     worker_prefetch_multiplier=1,  # One task at a time per worker
-
     # Result backend
     result_expires=86400,  # Results expire after 24 hours
     result_backend_transport_options={
         "master_name": "mymaster",
     },
-
     # Broker settings
     broker_connection_retry_on_startup=True,
     broker_connection_retry=True,
     broker_connection_max_retries=10,
-
     # Task routes - route different tasks to different queues
     task_routes={
         "tasks.ml_tasks.train_model": {"queue": "ml_training"},
@@ -76,11 +72,9 @@ app.conf.update(
         "tasks.monitoring.*": {"queue": "scheduled"},
         "tasks.ai_improvement.*": {"queue": "scheduled"},
     },
-
     # Task priority
     task_default_priority=5,
     task_inherit_parent_priority=True,
-
     # Monitoring
     worker_send_task_events=True,
     task_send_sent_event=True,
@@ -98,7 +92,6 @@ app.conf.task_queues = (
             "x-max-length": 100,
         },
     ),
-
     # Bulk Analysis queue - parallel analysis tasks
     Queue(
         "bulk_analysis",
@@ -109,7 +102,6 @@ app.conf.task_queues = (
             "x-max-length": 500,
         },
     ),
-
     # Backtesting queue
     Queue(
         "backtesting",
@@ -120,7 +112,6 @@ app.conf.task_queues = (
             "x-max-length": 50,
         },
     ),
-
     # Strategy Optimization queue
     Queue(
         "optimization",
@@ -131,7 +122,6 @@ app.conf.task_queues = (
             "x-max-length": 50,
         },
     ),
-
     # Scheduled tasks queue
     Queue(
         "scheduled",
@@ -151,25 +141,21 @@ app.conf.beat_schedule = {
         "task": "tasks.monitoring.system_health_check",
         "schedule": crontab(minute="*/15"),  # Every 15 minutes
     },
-
     # Daily portfolio report (8 AM UTC)
     "daily-portfolio-report": {
         "task": "tasks.monitoring.daily_portfolio_report",
         "schedule": crontab(hour=8, minute=0),  # 8:00 AM daily
     },
-
     # Daily API cost report (9 AM UTC)
     "daily-api-cost-report": {
         "task": "tasks.monitoring.daily_api_cost_report",
         "schedule": crontab(hour=9, minute=0),  # 9:00 AM daily
     },
-
     # Daily performance analysis (1 AM UTC)
     "daily-performance-analysis": {
         "task": "tasks.monitoring.daily_performance_analysis",
         "schedule": crontab(hour=1, minute=0),  # 1:00 AM daily
     },
-
     # GPT-4 self-analysis for adaptive retraining (3 AM UTC)
     "gpt4-self-analysis": {
         "task": "tasks.ai_improvement.gpt4_self_analysis",

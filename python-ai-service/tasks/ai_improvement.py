@@ -149,12 +149,20 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
             latest_win_rate = daily_metrics[-1]["win_rate"] if daily_metrics else 0
             latest_sharpe = daily_metrics[-1]["sharpe_ratio"] if daily_metrics else 0
 
-            if latest_win_rate >= CRITICAL_WIN_RATE and latest_sharpe >= CRITICAL_SHARPE:
-                logger.info(f"✅ Performance is acceptable (WR: {latest_win_rate:.1f}%, Sharpe: {latest_sharpe:.2f}) - skipping GPT-4 analysis")
+            if (
+                latest_win_rate >= CRITICAL_WIN_RATE
+                and latest_sharpe >= CRITICAL_SHARPE
+            ):
+                logger.info(
+                    f"✅ Performance is acceptable (WR: {latest_win_rate:.1f}%, Sharpe: {latest_sharpe:.2f}) - skipping GPT-4 analysis"
+                )
                 return {
                     "status": "skipped",
                     "reason": "Performance is acceptable, no analysis needed",
-                    "metrics": {"win_rate": latest_win_rate, "sharpe_ratio": latest_sharpe},
+                    "metrics": {
+                        "win_rate": latest_win_rate,
+                        "sharpe_ratio": latest_sharpe,
+                    },
                     "task_id": self.request.id,
                 }
 
@@ -189,10 +197,14 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
             analysis_result = json.loads(gpt4_response)
 
             logger.info(f"🤖 GPT-4 Analysis Complete:")
-            logger.info(f"  📋 Recommendation: {analysis_result.get('recommendation', 'N/A')}")
+            logger.info(
+                f"  📋 Recommendation: {analysis_result.get('recommendation', 'N/A')}"
+            )
             logger.info(f"  🎯 Confidence: {analysis_result.get('confidence', 0):.2%}")
             logger.info(f"  ⚡ Urgency: {analysis_result.get('urgency', 'N/A')}")
-            logger.info(f"  💡 Reasoning: {analysis_result.get('reasoning', 'N/A')[:100]}...")
+            logger.info(
+                f"  💡 Reasoning: {analysis_result.get('reasoning', 'N/A')[:100]}..."
+            )
 
             # STEP 7: Decide if adaptive retraining should be triggered
             recommendation = analysis_result.get("recommendation", "wait")
@@ -206,7 +218,9 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
             )
 
             if should_retrain:
-                logger.warning(f"🚨 GPT-4 recommends RETRAIN with {confidence:.0%} confidence (urgency: {urgency})")
+                logger.warning(
+                    f"🚨 GPT-4 recommends RETRAIN with {confidence:.0%} confidence (urgency: {urgency})"
+                )
                 logger.info(f"🚀 Triggering adaptive retraining task...")
 
                 # Queue adaptive retraining task
@@ -222,7 +236,9 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                 analysis_result["retrain_task_id"] = retrain_task.id
                 analysis_result["retrain_triggered"] = True
             else:
-                logger.info(f"✅ No immediate retraining needed (recommendation: {recommendation}, confidence: {confidence:.0%})")
+                logger.info(
+                    f"✅ No immediate retraining needed (recommendation: {recommendation}, confidence: {confidence:.0%})"
+                )
                 analysis_result["retrain_triggered"] = False
 
             # STEP 8: Send GPT-4 analysis notification
@@ -289,7 +305,9 @@ def adaptive_retrain(
         Retraining results with before/after comparison
     """
     logger.info(f"🚀 Starting adaptive retraining for {len(model_types)} models...")
-    logger.info(f"📋 Triggered by GPT-4 recommendation: {analysis_result.get('reasoning', 'N/A')[:100]}...")
+    logger.info(
+        f"📋 Triggered by GPT-4 recommendation: {analysis_result.get('reasoning', 'N/A')[:100]}..."
+    )
 
     try:
         results = {
@@ -332,7 +350,9 @@ def adaptive_retrain(
                     "deployed": retrain_result.get("deployed", False),
                 }
 
-                logger.info(f"✅ {model_type.upper()}: {retrain_result.get('new_accuracy', 0):.2%} accuracy")
+                logger.info(
+                    f"✅ {model_type.upper()}: {retrain_result.get('new_accuracy', 0):.2%} accuracy"
+                )
 
             except Exception as e:
                 logger.error(f"❌ Failed to retrain {model_type}: {e}")
@@ -342,8 +362,12 @@ def adaptive_retrain(
                 }
 
         # Summary
-        successful_retrains = sum(1 for m in results["models"].values() if m.get("status") == "success")
-        deployed_models = sum(1 for m in results["models"].values() if m.get("deployed", False))
+        successful_retrains = sum(
+            1 for m in results["models"].values() if m.get("status") == "success"
+        )
+        deployed_models = sum(
+            1 for m in results["models"].values() if m.get("deployed", False)
+        )
 
         logger.info(f"✅ Adaptive retraining complete:")
         logger.info(f"  📊 Successful: {successful_retrains}/{len(model_types)} models")
@@ -450,6 +474,7 @@ def calculate_daily_metrics(trades: List[Dict]) -> List[Dict]:
 
     # Group trades by date
     from collections import defaultdict
+
     daily_trades = defaultdict(list)
 
     for trade in trades:
@@ -471,16 +496,22 @@ def calculate_daily_metrics(trades: List[Dict]) -> List[Dict]:
         # Simple Sharpe approximation
         returns = [p / 100 for p in profits]
         avg_return = sum(returns) / len(returns) if returns else 0
-        std_dev = (sum((r - avg_return) ** 2 for r in returns) / len(returns)) ** 0.5 if returns else 1
-        sharpe = (avg_return / std_dev) * (252 ** 0.5) if std_dev > 0 else 0
+        std_dev = (
+            (sum((r - avg_return) ** 2 for r in returns) / len(returns)) ** 0.5
+            if returns
+            else 1
+        )
+        sharpe = (avg_return / std_dev) * (252**0.5) if std_dev > 0 else 0
 
-        daily_metrics.append({
-            "date": date,
-            "total_trades": total,
-            "win_rate": round(win_rate, 2),
-            "avg_profit": round(avg_profit, 2),
-            "sharpe_ratio": round(sharpe, 2),
-        })
+        daily_metrics.append(
+            {
+                "date": date,
+                "total_trades": total,
+                "win_rate": round(win_rate, 2),
+                "avg_profit": round(avg_profit, 2),
+                "sharpe_ratio": round(sharpe, 2),
+            }
+        )
 
     return daily_metrics
 

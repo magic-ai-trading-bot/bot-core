@@ -87,15 +87,19 @@ def train_model(
 
         # TODO: Fetch real data from MongoDB
         # For now, generate dummy data
-        dates = pd.date_range(end=pd.Timestamp.now(), periods=days_of_data * 24, freq="h")
-        df = pd.DataFrame({
-            "timestamp": dates,
-            "open": np.random.uniform(30000, 50000, len(dates)),
-            "high": np.random.uniform(30000, 50000, len(dates)),
-            "low": np.random.uniform(30000, 50000, len(dates)),
-            "close": np.random.uniform(30000, 50000, len(dates)),
-            "volume": np.random.uniform(1000, 10000, len(dates)),
-        })
+        dates = pd.date_range(
+            end=pd.Timestamp.now(), periods=days_of_data * 24, freq="h"
+        )
+        df = pd.DataFrame(
+            {
+                "timestamp": dates,
+                "open": np.random.uniform(30000, 50000, len(dates)),
+                "high": np.random.uniform(30000, 50000, len(dates)),
+                "low": np.random.uniform(30000, 50000, len(dates)),
+                "close": np.random.uniform(30000, 50000, len(dates)),
+                "volume": np.random.uniform(1000, 10000, len(dates)),
+            }
+        )
 
         # Update progress: Training
         self.update_state(
@@ -120,7 +124,9 @@ def train_model(
             },
         )
 
-        logger.info(f"✅ Training complete: {model_type} - Accuracy: {training_results.get('val_accuracy', 0):.2%}")
+        logger.info(
+            f"✅ Training complete: {model_type} - Accuracy: {training_results.get('val_accuracy', 0):.2%}"
+        )
 
         return {
             "status": "success",
@@ -228,7 +234,9 @@ def predict_price(
     Returns:
         Price predictions
     """
-    logger.info(f"📊 Predicting {symbol} price for next {horizon_hours} hours using {model_type}")
+    logger.info(
+        f"📊 Predicting {symbol} price for next {horizon_hours} hours using {model_type}"
+    )
 
     try:
         # TODO: Load model and make predictions
@@ -239,12 +247,14 @@ def predict_price(
         for h in range(horizon_hours):
             # Random walk prediction
             change = np.random.uniform(-0.02, 0.02)
-            current_price *= (1 + change)
-            predictions.append({
-                "hour": h + 1,
-                "predicted_price": round(current_price, 2),
-                "confidence": np.random.uniform(0.6, 0.9),
-            })
+            current_price *= 1 + change
+            predictions.append(
+                {
+                    "hour": h + 1,
+                    "predicted_price": round(current_price, 2),
+                    "confidence": np.random.uniform(0.6, 0.9),
+                }
+            )
 
         logger.info(f"✅ Prediction complete: {symbol}")
 

@@ -109,15 +109,21 @@ def system_health_check(self) -> Dict[str, Any]:
                     "status": "healthy",
                     "response_time_ms": response.elapsed.total_seconds() * 1000,
                 }
-                logger.info(f"  ✅ {service_name}: OK ({response.elapsed.total_seconds()*1000:.0f}ms)")
+                logger.info(
+                    f"  ✅ {service_name}: OK ({response.elapsed.total_seconds()*1000:.0f}ms)"
+                )
             else:
                 health_report["services"][service_name] = {
                     "status": "unhealthy",
                     "error": f"HTTP {response.status_code}",
                 }
-                health_report["alerts"].append(f"⚠️ {service_name} returned {response.status_code}")
+                health_report["alerts"].append(
+                    f"⚠️ {service_name} returned {response.status_code}"
+                )
                 health_report["overall_status"] = "degraded"
-                logger.warning(f"  ⚠️ {service_name}: Unhealthy (HTTP {response.status_code})")
+                logger.warning(
+                    f"  ⚠️ {service_name}: Unhealthy (HTTP {response.status_code})"
+                )
         except Exception as e:
             health_report["services"][service_name] = {
                 "status": "down",
@@ -131,7 +137,12 @@ def system_health_check(self) -> Dict[str, Any]:
     try:
         # Try to connect and ping
         result = subprocess.run(
-            ["mongosh", f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}", "--eval", "db.adminCommand('ping')"],
+            [
+                "mongosh",
+                f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}",
+                "--eval",
+                "db.adminCommand('ping')",
+            ],
             capture_output=True,
             timeout=5,
         )
@@ -181,11 +192,15 @@ def system_health_check(self) -> Dict[str, Any]:
                 if len(parts) >= 5:
                     usage_pct = int(parts[4].rstrip("%"))
                     if usage_pct > 90:
-                        health_report["alerts"].append(f"❌ Disk usage critical: {usage_pct}%")
+                        health_report["alerts"].append(
+                            f"❌ Disk usage critical: {usage_pct}%"
+                        )
                         health_report["overall_status"] = "critical"
                         logger.error(f"  ❌ Disk usage: {usage_pct}% (critical)")
                     elif usage_pct > 80:
-                        health_report["alerts"].append(f"⚠️ Disk usage high: {usage_pct}%")
+                        health_report["alerts"].append(
+                            f"⚠️ Disk usage high: {usage_pct}%"
+                        )
                         health_report["overall_status"] = "degraded"
                         logger.warning(f"  ⚠️ Disk usage: {usage_pct}% (high)")
                     else:
@@ -196,14 +211,19 @@ def system_health_check(self) -> Dict[str, Any]:
     # Summary
     alert_count = len(health_report["alerts"])
     if alert_count > 0:
-        logger.warning(f"🏥 Health check complete: {health_report['overall_status']} ({alert_count} alerts)")
+        logger.warning(
+            f"🏥 Health check complete: {health_report['overall_status']} ({alert_count} alerts)"
+        )
 
         # Send notifications for critical/degraded status
         if health_report["overall_status"] == "critical":
             notifications.send_critical(
                 title="System Health Critical",
                 message=f"{alert_count} critical issues detected",
-                data={"alerts": health_report["alerts"], "services": health_report["services"]},
+                data={
+                    "alerts": health_report["alerts"],
+                    "services": health_report["services"],
+                },
             )
         elif health_report["overall_status"] == "degraded":
             notifications.send_warning(
@@ -373,24 +393,46 @@ def daily_api_cost_report(self) -> Dict[str, Any]:
 
         # Check thresholds and generate alerts
         if daily_cost_usd > DAILY_COST_CRITICAL_USD:
-            report["alerts"].append(f"🔴 CRITICAL: Daily cost ${daily_cost_usd:.2f} exceeds ${DAILY_COST_CRITICAL_USD} limit!")
-            logger.error(f"  🔴 CRITICAL: Daily cost ${daily_cost_usd:.2f} > ${DAILY_COST_CRITICAL_USD}")
+            report["alerts"].append(
+                f"🔴 CRITICAL: Daily cost ${daily_cost_usd:.2f} exceeds ${DAILY_COST_CRITICAL_USD} limit!"
+            )
+            logger.error(
+                f"  🔴 CRITICAL: Daily cost ${daily_cost_usd:.2f} > ${DAILY_COST_CRITICAL_USD}"
+            )
         elif daily_cost_usd > DAILY_COST_WARNING_USD:
-            report["alerts"].append(f"⚠️ WARNING: Daily cost ${daily_cost_usd:.2f} exceeds ${DAILY_COST_WARNING_USD} warning!")
-            logger.warning(f"  ⚠️ WARNING: Daily cost ${daily_cost_usd:.2f} > ${DAILY_COST_WARNING_USD}")
+            report["alerts"].append(
+                f"⚠️ WARNING: Daily cost ${daily_cost_usd:.2f} exceeds ${DAILY_COST_WARNING_USD} warning!"
+            )
+            logger.warning(
+                f"  ⚠️ WARNING: Daily cost ${daily_cost_usd:.2f} > ${DAILY_COST_WARNING_USD}"
+            )
 
         if monthly_cost_usd > MONTHLY_COST_CRITICAL_USD:
-            report["alerts"].append(f"🔴 CRITICAL: Monthly cost ${monthly_cost_usd:.2f} exceeds ${MONTHLY_COST_CRITICAL_USD} limit!")
-            logger.error(f"  🔴 CRITICAL: Monthly cost ${monthly_cost_usd:.2f} > ${MONTHLY_COST_CRITICAL_USD}")
+            report["alerts"].append(
+                f"🔴 CRITICAL: Monthly cost ${monthly_cost_usd:.2f} exceeds ${MONTHLY_COST_CRITICAL_USD} limit!"
+            )
+            logger.error(
+                f"  🔴 CRITICAL: Monthly cost ${monthly_cost_usd:.2f} > ${MONTHLY_COST_CRITICAL_USD}"
+            )
         elif monthly_cost_usd > MONTHLY_COST_WARNING_USD:
-            report["alerts"].append(f"⚠️ WARNING: Monthly cost ${monthly_cost_usd:.2f} exceeds ${MONTHLY_COST_WARNING_USD} warning!")
-            logger.warning(f"  ⚠️ WARNING: Monthly cost ${monthly_cost_usd:.2f} > ${MONTHLY_COST_WARNING_USD}")
+            report["alerts"].append(
+                f"⚠️ WARNING: Monthly cost ${monthly_cost_usd:.2f} exceeds ${MONTHLY_COST_WARNING_USD} warning!"
+            )
+            logger.warning(
+                f"  ⚠️ WARNING: Monthly cost ${monthly_cost_usd:.2f} > ${MONTHLY_COST_WARNING_USD}"
+            )
 
         logger.info(f"💰 API Cost Report:")
         logger.info(f"  📊 Total Requests: {total_requests}")
-        logger.info(f"  💵 Session Cost: ${total_cost_usd:.2f} ({total_cost_vnd:,} VNĐ)")
-        logger.info(f"  📅 Daily Projection: ${daily_cost_usd:.2f} ({daily_cost_vnd:,} VNĐ)")
-        logger.info(f"  📆 Monthly Projection: ${monthly_cost_usd:.2f} ({monthly_cost_vnd:,} VNĐ)")
+        logger.info(
+            f"  💵 Session Cost: ${total_cost_usd:.2f} ({total_cost_vnd:,} VNĐ)"
+        )
+        logger.info(
+            f"  📅 Daily Projection: ${daily_cost_usd:.2f} ({daily_cost_vnd:,} VNĐ)"
+        )
+        logger.info(
+            f"  📆 Monthly Projection: ${monthly_cost_usd:.2f} ({monthly_cost_vnd:,} VNĐ)"
+        )
 
         if report["alerts"]:
             logger.warning(f"  ⚠️ {len(report['alerts'])} cost alerts triggered!")
@@ -465,7 +507,9 @@ def daily_performance_analysis(self) -> Dict[str, Any]:
         trades = response.json()
 
         if not trades or len(trades) < MIN_TRADES:
-            logger.warning(f"⚠️ Not enough trades for analysis (need {MIN_TRADES}, got {len(trades)})")
+            logger.warning(
+                f"⚠️ Not enough trades for analysis (need {MIN_TRADES}, got {len(trades)})"
+            )
             return {
                 "status": "insufficient_data",
                 "message": f"Not enough trades (need {MIN_TRADES}, got {len(trades)})",
@@ -483,8 +527,14 @@ def daily_performance_analysis(self) -> Dict[str, Any]:
         # Simple Sharpe ratio approximation (using daily returns)
         returns = [p / 100 for p in profits]  # Convert to decimal
         avg_return = sum(returns) / len(returns) if returns else 0
-        std_dev = (sum((r - avg_return) ** 2 for r in returns) / len(returns)) ** 0.5 if returns else 1
-        sharpe_ratio = (avg_return / std_dev) * (252 ** 0.5) if std_dev > 0 else 0  # Annualized
+        std_dev = (
+            (sum((r - avg_return) ** 2 for r in returns) / len(returns)) ** 0.5
+            if returns
+            else 1
+        )
+        sharpe_ratio = (
+            (avg_return / std_dev) * (252**0.5) if std_dev > 0 else 0
+        )  # Annualized
 
         analysis = {
             "date": datetime.utcnow().strftime("%Y-%m-%d"),
@@ -500,9 +550,21 @@ def daily_performance_analysis(self) -> Dict[str, Any]:
                 "sharpe_ratio": TARGET_SHARPE,
             },
             "performance": {
-                "win_rate_status": "good" if win_rate >= TARGET_WIN_RATE else "warning" if win_rate >= 55 else "critical",
-                "avg_profit_status": "good" if avg_profit >= TARGET_AVG_PROFIT else "warning" if avg_profit >= 1.5 else "critical",
-                "sharpe_status": "good" if sharpe_ratio >= TARGET_SHARPE else "warning" if sharpe_ratio >= 1.0 else "critical",
+                "win_rate_status": (
+                    "good"
+                    if win_rate >= TARGET_WIN_RATE
+                    else "warning" if win_rate >= 55 else "critical"
+                ),
+                "avg_profit_status": (
+                    "good"
+                    if avg_profit >= TARGET_AVG_PROFIT
+                    else "warning" if avg_profit >= 1.5 else "critical"
+                ),
+                "sharpe_status": (
+                    "good"
+                    if sharpe_ratio >= TARGET_SHARPE
+                    else "warning" if sharpe_ratio >= 1.0 else "critical"
+                ),
             },
             "alerts": [],
             "trigger_ai_analysis": False,
@@ -510,42 +572,66 @@ def daily_performance_analysis(self) -> Dict[str, Any]:
 
         # Check thresholds and generate alerts
         if win_rate < 55:
-            analysis["alerts"].append(f"🔴 CRITICAL: Win rate {win_rate:.1f}% below 55% threshold!")
+            analysis["alerts"].append(
+                f"🔴 CRITICAL: Win rate {win_rate:.1f}% below 55% threshold!"
+            )
             analysis["trigger_ai_analysis"] = True
             logger.error(f"  🔴 CRITICAL: Win rate {win_rate:.1f}% < 55%")
         elif win_rate < TARGET_WIN_RATE:
-            analysis["alerts"].append(f"⚠️ WARNING: Win rate {win_rate:.1f}% below {TARGET_WIN_RATE}% target")
-            logger.warning(f"  ⚠️ WARNING: Win rate {win_rate:.1f}% < {TARGET_WIN_RATE}%")
+            analysis["alerts"].append(
+                f"⚠️ WARNING: Win rate {win_rate:.1f}% below {TARGET_WIN_RATE}% target"
+            )
+            logger.warning(
+                f"  ⚠️ WARNING: Win rate {win_rate:.1f}% < {TARGET_WIN_RATE}%"
+            )
 
         if sharpe_ratio < 1.0:
-            analysis["alerts"].append(f"🔴 CRITICAL: Sharpe ratio {sharpe_ratio:.2f} below 1.0 threshold!")
+            analysis["alerts"].append(
+                f"🔴 CRITICAL: Sharpe ratio {sharpe_ratio:.2f} below 1.0 threshold!"
+            )
             analysis["trigger_ai_analysis"] = True
             logger.error(f"  🔴 CRITICAL: Sharpe ratio {sharpe_ratio:.2f} < 1.0")
         elif sharpe_ratio < TARGET_SHARPE:
-            analysis["alerts"].append(f"⚠️ WARNING: Sharpe ratio {sharpe_ratio:.2f} below {TARGET_SHARPE} target")
-            logger.warning(f"  ⚠️ WARNING: Sharpe ratio {sharpe_ratio:.2f} < {TARGET_SHARPE}")
+            analysis["alerts"].append(
+                f"⚠️ WARNING: Sharpe ratio {sharpe_ratio:.2f} below {TARGET_SHARPE} target"
+            )
+            logger.warning(
+                f"  ⚠️ WARNING: Sharpe ratio {sharpe_ratio:.2f} < {TARGET_SHARPE}"
+            )
 
         if avg_profit < 1.5:
-            analysis["alerts"].append(f"🔴 CRITICAL: Avg profit {avg_profit:.2f}% below 1.5% threshold!")
+            analysis["alerts"].append(
+                f"🔴 CRITICAL: Avg profit {avg_profit:.2f}% below 1.5% threshold!"
+            )
             analysis["trigger_ai_analysis"] = True
             logger.error(f"  🔴 CRITICAL: Avg profit {avg_profit:.2f}% < 1.5%")
         elif avg_profit < TARGET_AVG_PROFIT:
-            analysis["alerts"].append(f"⚠️ WARNING: Avg profit {avg_profit:.2f}% below {TARGET_AVG_PROFIT}% target")
-            logger.warning(f"  ⚠️ WARNING: Avg profit {avg_profit:.2f}% < {TARGET_AVG_PROFIT}%")
+            analysis["alerts"].append(
+                f"⚠️ WARNING: Avg profit {avg_profit:.2f}% below {TARGET_AVG_PROFIT}% target"
+            )
+            logger.warning(
+                f"  ⚠️ WARNING: Avg profit {avg_profit:.2f}% < {TARGET_AVG_PROFIT}%"
+            )
 
         logger.info(f"📈 Performance Analysis:")
         logger.info(f"  🎯 Win Rate: {win_rate:.2f}% (target: {TARGET_WIN_RATE}%)")
-        logger.info(f"  💵 Avg Profit: {avg_profit:.2f}% (target: {TARGET_AVG_PROFIT}%)")
+        logger.info(
+            f"  💵 Avg Profit: {avg_profit:.2f}% (target: {TARGET_AVG_PROFIT}%)"
+        )
         logger.info(f"  📊 Sharpe Ratio: {sharpe_ratio:.2f} (target: {TARGET_SHARPE})")
 
         if analysis["trigger_ai_analysis"]:
-            logger.warning(f"  🤖 Performance degradation detected → Will trigger GPT-4 analysis at 3 AM")
+            logger.warning(
+                f"  🤖 Performance degradation detected → Will trigger GPT-4 analysis at 3 AM"
+            )
 
             # Store performance metrics in MongoDB for GPT-4 to access
             storage.store_performance_metrics(analysis, self.request.id)
 
         if analysis["alerts"]:
-            logger.warning(f"  ⚠️ {len(analysis['alerts'])} performance alerts triggered!")
+            logger.warning(
+                f"  ⚠️ {len(analysis['alerts'])} performance alerts triggered!"
+            )
 
             # Send performance alert notification
             notifications.send_performance_alert(
