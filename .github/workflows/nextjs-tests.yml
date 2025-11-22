@@ -188,9 +188,7 @@ jobs:
         bun install
 
     - name: Generate package-lock.json for npm audit
-      run: |
-        cd nextjs-ui-dashboard
-        npm i --package-lock-only
+      run: npm i --package-lock-only
 
     - name: Run npm audit
       run: |
