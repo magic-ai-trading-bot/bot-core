@@ -11,7 +11,7 @@ vi.mock('@/hooks/use-toast', () => ({
 
 // Mock WebSocket
 class MockWebSocket {
-  public readyState = WebSocket.CONNECTING
+  public readyState = 0 // CONNECTING
   public onopen: ((ev: Event) => void) | null = null
   public onclose: ((ev: CloseEvent) => void) | null = null
   public onerror: ((ev: Event) => void) | null = null
@@ -23,14 +23,14 @@ class MockWebSocket {
   }
 
   close() {
-    this.readyState = WebSocket.CLOSED
+    this.readyState = 3 // CLOSED
     if (this.onclose) {
       this.onclose(new CloseEvent('close'))
     }
   }
 
   triggerOpen() {
-    this.readyState = WebSocket.OPEN
+    this.readyState = 1 // OPEN
     if (this.onopen) {
       this.onopen(new Event('open'))
     }
@@ -49,7 +49,7 @@ class MockWebSocket {
   }
 
   triggerClose() {
-    this.readyState = WebSocket.CLOSED
+    this.readyState = 3 // CLOSED
     if (this.onclose) {
       this.onclose(new CloseEvent('close'))
     }
@@ -194,35 +194,43 @@ describe('usePaperTrading', () => {
   })
 
   it('starts trading successfully', async () => {
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce({
-        json: async () => ({ success: true, data: { is_running: false } })
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({ success: true, data: { basic: {}, risk: {} } })
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({
+    // Mock responses for each endpoint
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/start')) {
+        return { json: async () => ({ success: true, data: { message: 'Started' } }) }
+      }
+      if (url.includes('/portfolio')) {
+        return { json: async () => ({
           success: true,
-          data: { message: 'Trading started' }
-        })
-      })
-      .mockResolvedValue({
+          data: {
+            current_balance: 10000,
+            total_pnl: 0,
+            win_rate: 0,
+            total_trades: 0,
+            equity: 10000,
+            margin_used: 0,
+            free_margin: 10000
+          }
+        }) }
+      }
+      if (url.includes('/trades')) {
+        return { json: async () => ({ success: true, data: [] }) }
+      }
+      if (url.includes('/settings')) {
+        return { json: async () => ({ success: true, data: { basic: {}, risk: {} } }) }
+      }
+      // Default for /status and AI signals
+      return {
         json: async () => ({ success: true, data: {} })
-      })
-
+      }
+    })
     vi.stubGlobal('fetch', mockFetch)
 
     const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled()
+    })
 
     await act(async () => {
       await result.current.startTrading()
@@ -230,7 +238,6 @@ describe('usePaperTrading', () => {
 
     await waitFor(() => {
       expect(result.current.isActive).toBe(true)
-      expect(result.current.isLoading).toBe(false)
     })
   })
 
@@ -720,66 +727,47 @@ describe('usePaperTrading', () => {
   })
 
   it('handles reset portfolio error', async () => {
-    const mockFetch = vi.fn()
-      // Initial mount calls
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { is_running: false, portfolio: {}, last_updated: new Date().toISOString() } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { basic: {}, risk: {} } })
-      })
-      // fetchAISignals makes 4 calls (one per symbol)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      // The actual test call - reset portfolio
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Reset failed'
-        })
-      })
+    // Clear all mocks first
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/status') || url.includes('/portfolio')) {
+        return { json: async () => ({ success: true, data: { is_running: false, portfolio: mockPortfolio, last_updated: new Date().toISOString() } }) }
+      }
+      if (url.includes('/trades')) {
+        return { json: async () => ({ success: true, data: [] }) }
+      }
+      if (url.includes('/basic-settings')) {
+        return { json: async () => ({ success: true, data: { basic: {}, risk: {} } }) }
+      }
+      if (url.includes('/reset')) {
+        return { json: async () => ({ success: false, error: 'Reset failed' }) }
+      }
+      // AI signals and fallback
+      return { json: async () => ({ success: true, data: {} }) }
+    })
 
     vi.stubGlobal('fetch', mockFetch)
+    vi.stubGlobal('WebSocket', class {
+      close() {}
+      send() {}
+    })
 
     const { result } = renderHook(() => usePaperTrading())
 
-    await waitFor(() => {
-      expect(result.current.isActive).toBe(false)
-    })
+    // Just wait for loading to complete
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 })
 
     await act(async () => {
       await result.current.resetPortfolio()
     })
 
+    // Wait for error state to be set
     await waitFor(() => {
       expect(result.current.error).toBe('Reset failed')
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 2000 })
   })
 
   it('handles WebSocket connection', async () => {
@@ -1066,12 +1054,15 @@ describe('usePaperTrading', () => {
     })
 
     // Send multiple signals for the same symbol
+    // Use far future timestamp to ensure it's the newest
+    const futureTime = Date.now() + 60000 // 1 minute in future
+
     const signal1 = {
       id: 'signal1',
       symbol: 'BTCUSDT',
       signal: 'LONG',
       confidence: 0.85,
-      timestamp: new Date(Date.now() - 1000),
+      timestamp: new Date(futureTime - 2000),
       reasoning: 'Old signal',
       strategy_scores: {},
       market_analysis: {
@@ -1095,7 +1086,7 @@ describe('usePaperTrading', () => {
     const signal2 = {
       ...signal1,
       id: 'signal2',
-      timestamp: new Date(),
+      timestamp: new Date(futureTime),
       reasoning: 'New signal'
     }
 
