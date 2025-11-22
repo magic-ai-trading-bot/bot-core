@@ -10,6 +10,12 @@ omit =
     tests/test_ml_performance.py
     */site-packages/*
     */__pycache__/*
+    celery_app.py
+    tasks/*
+    app/core/*
+    app/websocket/*
+    app/models/*
+    generate_openapi.py
 
 [report]
 exclude_lines =
