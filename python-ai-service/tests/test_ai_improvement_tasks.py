@@ -197,10 +197,23 @@ class TestGPT4SelfAnalysis:
         assert result["analysis"]["recommendation"] == "optimize_parameters"
         assert result["trigger_retrain"] is False
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
+    @patch("tasks.ai_improvement.requests.get")
+    @patch("tasks.ai_improvement.storage")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
-    def test_gpt4_analysis_openai_error(self, mock_openai):
+    def test_gpt4_analysis_openai_error(self, mock_openai, mock_storage, mock_requests):
         """Test GPT-4 analysis handles OpenAI API errors"""
         from tasks.ai_improvement import gpt4_self_analysis
+
+        # Mock HTTP requests
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        mock_requests.return_value = mock_response
+
+        # Mock storage
+        mock_storage.get_performance_metrics_history.return_value = []
+        mock_storage.get_model_accuracy_history.return_value = []
 
         # Mock OpenAI API error
         mock_openai.side_effect = Exception("OpenAI API rate limit exceeded")
@@ -336,9 +349,10 @@ class TestAdaptiveRetrain:
         assert result["status"] == "success"
         assert len(result["retrain_results"]) == 2
 
+    @patch("tasks.ai_improvement.storage")
     @patch("tasks.ai_improvement.requests.post")
-    def test_adaptive_retrain_api_failure(self, mock_post):
-        """Test adaptive retrain handles training API failures"""
+    def test_adaptive_retrain_api_failure(self, mock_post, mock_storage):
+        """Test adaptive retrain handles training API failures gracefully"""
         from tasks.ai_improvement import adaptive_retrain
 
         # Mock API failure
@@ -346,8 +360,13 @@ class TestAdaptiveRetrain:
 
         analysis_result = {"recommendation": "retrain", "models_to_retrain": ["lstm"]}
 
-        with pytest.raises(Exception):
-            adaptive_retrain(model_types=["lstm"], analysis_result=analysis_result)
+        result = adaptive_retrain(model_types=["lstm"], analysis_result=analysis_result)
+
+        # Should return success status but with failed model
+        assert result["status"] == "success"
+        assert len(result["retrain_results"]) == 1
+        assert result["retrain_results"][0]["status"] == "failed"
+        assert "Training API unavailable" in result["retrain_results"][0]["error"]
 
     @patch("tasks.ai_improvement.requests.post")
     @patch("tasks.ai_improvement.storage")
@@ -491,10 +510,18 @@ class TestAIImprovementTasksIntegration:
         assert hasattr(gpt4_self_analysis, "run")
         assert hasattr(adaptive_retrain, "run")
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
+    @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.storage")
-    def test_ai_tasks_use_data_storage(self, mock_storage):
+    def test_ai_tasks_use_data_storage(self, mock_storage, mock_requests):
         """Test that AI tasks properly use data storage"""
         from tasks.ai_improvement import gpt4_self_analysis
+
+        # Mock HTTP requests
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        mock_requests.return_value = mock_response
 
         # Mock data
         mock_storage.get_performance_metrics_history.return_value = []
@@ -504,7 +531,7 @@ class TestAIImprovementTasksIntegration:
         try:
             gpt4_self_analysis(force_analysis=False)
         except Exception:
-            pass  # Expected to fail without OpenAI key
+            pass  # Expected to fail without proper mocks
 
         assert mock_storage.get_performance_metrics_history.called
         assert mock_storage.get_model_accuracy_history.called

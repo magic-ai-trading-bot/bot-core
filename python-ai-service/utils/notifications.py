@@ -90,18 +90,34 @@ Time: {timestamp}
     # Check notification channels dynamically (for test compatibility)
     channels = os.getenv("NOTIFICATION_CHANNELS", "").split(",")
 
-    # Send to each enabled channel
+    # Send to each enabled channel (with error handling to continue on failure)
     if "email" in channels:
-        results["email"] = send_email(title, full_message, level)
+        try:
+            results["email"] = send_email(title, full_message, level)
+        except Exception as e:
+            logger.error(f"Failed to send email notification: {e}")
+            results["email"] = {"status": "failed", "error": str(e)}
 
     if "slack" in channels:
-        results["slack"] = send_slack(title, message, level, data)
+        try:
+            results["slack"] = send_slack(title, message, level, data)
+        except Exception as e:
+            logger.error(f"Failed to send Slack notification: {e}")
+            results["slack"] = {"status": "failed", "error": str(e)}
 
     if "discord" in channels:
-        results["discord"] = send_discord(title, message, level, data)
+        try:
+            results["discord"] = send_discord(title, message, level, data)
+        except Exception as e:
+            logger.error(f"Failed to send Discord notification: {e}")
+            results["discord"] = {"status": "failed", "error": str(e)}
 
     if "telegram" in channels:
-        results["telegram"] = send_telegram(title, message, level, data)
+        try:
+            results["telegram"] = send_telegram(title, message, level, data)
+        except Exception as e:
+            logger.error(f"Failed to send Telegram notification: {e}")
+            results["telegram"] = {"status": "failed", "error": str(e)}
 
     return results
 
