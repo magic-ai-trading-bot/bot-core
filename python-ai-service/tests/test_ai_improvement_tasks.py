@@ -14,12 +14,18 @@ class TestGPT4SelfAnalysis:
     """Test gpt4_self_analysis task"""
 
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
+    @patch("tasks.ai_improvement.adaptive_retrain")
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
-    def test_gpt4_analysis_recommends_retrain(self, mock_storage, mock_openai, mock_requests):
+    def test_gpt4_analysis_recommends_retrain(self, mock_storage, mock_openai, mock_requests, mock_adaptive_retrain):
         """Test GPT-4 analysis recommending retraining"""
         from tasks.ai_improvement import gpt4_self_analysis
+
+        # Mock adaptive_retrain.delay() to prevent Celery/Redis connection
+        mock_task = MagicMock()
+        mock_task.id = "test-task-id-123"
+        mock_adaptive_retrain.delay.return_value = mock_task
 
         # Mock HTTP requests
         mock_response = MagicMock()
