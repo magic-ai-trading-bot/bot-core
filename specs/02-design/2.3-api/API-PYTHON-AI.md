@@ -1,6 +1,6 @@
 # API-PYTHON-AI.md - Python AI Service API Specification
 
-**Version:** 2.0.0
+**Version:** 3.0.0
 **Base URL:** `http://localhost:8000`
 **Service:** GPT-4 Trading AI
 **Port:** 8000
@@ -13,21 +13,27 @@
 4. [AI Analysis Endpoints](#ai-analysis-endpoints)
 5. [Strategy & Recommendations](#strategy--recommendations)
 6. [Storage & Analytics](#storage--analytics)
-7. [WebSocket Real-time Updates](#websocket-real-time-updates)
-8. [Error Codes](#error-codes)
-9. [Rate Limiting](#rate-limiting)
+7. [Async Task Management](#async-task-management)
+8. [Training Management](#training-management)
+9. [Backtest Management](#backtest-management)
+10. [Monitoring & Alerts](#monitoring--alerts)
+11. [WebSocket Real-time Updates](#websocket-real-time-updates)
+12. [Error Codes](#error-codes)
+13. [Rate Limiting](#rate-limiting)
 
 ---
 
 ## Overview
 
-The Python AI Service provides GPT-4 powered trading signal generation, technical analysis, strategy recommendations, and market condition analysis. It integrates with OpenAI's GPT-4o-mini model for intelligent trading decisions.
+The Python AI Service provides GPT-4 powered trading signal generation, technical analysis, strategy recommendations, and market condition analysis. It integrates with OpenAI's GPT-4o-mini model for intelligent trading decisions and supports asynchronous task execution via RabbitMQ and Celery.
 
 **Service Architecture:**
 - **Language:** Python 3.11+
 - **Framework:** FastAPI
 - **AI Model:** GPT-4o-mini (OpenAI)
 - **Database:** MongoDB (for caching analysis results)
+- **Task Queue:** RabbitMQ + Celery (async task execution)
+- **Result Backend:** Redis (task result storage)
 - **WebSocket:** Real-time signal broadcasting
 - **Background Tasks:** Periodic analysis every 5 minutes
 
@@ -42,6 +48,10 @@ The Python AI Service provides GPT-4 powered trading signal generation, technica
 - MongoDB caching for 5-minute intervals
 - Real-time WebSocket broadcasting
 - Automatic API key fallback on rate limits
+- Async task execution for long-running operations (training, backtesting)
+- Task status tracking and progress monitoring
+- Training job management with deployment capabilities
+- Strategy backtest execution and result analysis
 
 ---
 
@@ -630,6 +640,1156 @@ Content-Type: application/json
 
 ---
 
+## Async Task Management
+
+### POST /api/tasks/train
+
+**Description:** Trigger async model training job
+
+**Authentication:** Optional (Bearer JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "model_type": "lstm",
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "epochs": 100,
+  "batch_size": 64,
+  "learning_rate": 0.001
+}
+```
+
+**Request Parameters:**
+- `model_type` (required): Model architecture - `lstm`, `gru`, `transformer`, `ensemble`
+- `symbol` (required): Trading pair - `BTCUSDT`, `ETHUSDT`, etc.
+- `timeframe` (required): Candle timeframe - `1m`, `5m`, `15m`, `1h`, `4h`, `1d`
+- `epochs` (optional): Training epochs (default: 100)
+- `batch_size` (optional): Batch size (default: 64)
+- `learning_rate` (optional): Learning rate (default: 0.001)
+
+**Success Response (202 Accepted):**
+```json
+{
+  "task_id": "abc-123-def-456",
+  "status": "PENDING",
+  "estimated_completion": "2025-11-22T15:30:00Z",
+  "estimated_duration_seconds": 3600,
+  "check_status_url": "/api/tasks/abc-123-def-456"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "detail": "Invalid model_type. Supported: lstm, gru, transformer, ensemble"
+}
+```
+
+**Error Response (429 Too Many Requests):**
+```json
+{
+  "detail": "Training task limit reached. Maximum 10 tasks per day."
+}
+```
+
+**Code Location:** `python-ai-service/api/tasks.py:train_model_endpoint`
+**Related FR:** FR-ASYNC-TRAIN-001
+**Rate Limit:** 10 tasks per day per user
+
+---
+
+### GET /api/tasks/{task_id}
+
+**Description:** Check task status and retrieve results
+
+**Authentication:** Optional (Bearer JWT)
+
+**Path Parameters:**
+- `task_id` (required): Task identifier returned from task creation
+
+**Success Response (200 OK) - PENDING:**
+```json
+{
+  "task_id": "abc-123-def-456",
+  "task_name": "ml_tasks.train_model_async",
+  "status": "PENDING",
+  "progress": 0,
+  "created_at": "2025-11-22T12:00:00Z",
+  "started_at": null,
+  "estimated_completion": "2025-11-22T15:30:00Z",
+  "queue_position": 3
+}
+```
+
+**Success Response (200 OK) - STARTED:**
+```json
+{
+  "task_id": "abc-123-def-456",
+  "task_name": "ml_tasks.train_model_async",
+  "status": "STARTED",
+  "progress": 45,
+  "created_at": "2025-11-22T12:00:00Z",
+  "started_at": "2025-11-22T12:05:00Z",
+  "estimated_completion": "2025-11-22T13:00:00Z",
+  "current_operation": "Training epoch 45/100",
+  "metrics": {
+    "current_epoch": 45,
+    "current_loss": 0.0345,
+    "current_accuracy": 0.68
+  }
+}
+```
+
+**Success Response (200 OK) - SUCCESS:**
+```json
+{
+  "task_id": "abc-123-def-456",
+  "task_name": "ml_tasks.train_model_async",
+  "status": "SUCCESS",
+  "progress": 100,
+  "result": {
+    "model_id": "lstm_BTCUSDT_15m_20251122",
+    "accuracy": 0.72,
+    "precision": 0.70,
+    "recall": 0.68,
+    "f1_score": 0.69,
+    "final_loss": 0.0234,
+    "training_time_seconds": 3600,
+    "epochs_completed": 100,
+    "best_epoch": 87,
+    "model_path": "/models/lstm_BTCUSDT_15m_20251122.h5"
+  },
+  "created_at": "2025-11-22T12:00:00Z",
+  "started_at": "2025-11-22T12:05:00Z",
+  "completed_at": "2025-11-22T13:05:00Z",
+  "execution_time_seconds": 3600
+}
+```
+
+**Success Response (200 OK) - FAILURE:**
+```json
+{
+  "task_id": "abc-123-def-456",
+  "task_name": "ml_tasks.train_model_async",
+  "status": "FAILURE",
+  "progress": 47,
+  "error": "Out of memory during training at epoch 47",
+  "error_type": "MemoryError",
+  "traceback": "Traceback (most recent call last):\n  File \"/app/ml_tasks.py\", line 234...",
+  "retries": 3,
+  "max_retries": 3,
+  "created_at": "2025-11-22T12:00:00Z",
+  "started_at": "2025-11-22T12:05:00Z",
+  "failed_at": "2025-11-22T12:30:00Z",
+  "execution_time_seconds": 1500
+}
+```
+
+**Success Response (200 OK) - REVOKED:**
+```json
+{
+  "task_id": "abc-123-def-456",
+  "task_name": "ml_tasks.train_model_async",
+  "status": "REVOKED",
+  "progress": 25,
+  "created_at": "2025-11-22T12:00:00Z",
+  "started_at": "2025-11-22T12:05:00Z",
+  "revoked_at": "2025-11-22T12:15:00Z",
+  "message": "Task cancelled by user"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "detail": "Task not found: abc-123-def-456"
+}
+```
+
+**Task Status Values:**
+- `PENDING` - Task queued, waiting to start
+- `STARTED` - Task currently executing
+- `SUCCESS` - Task completed successfully
+- `FAILURE` - Task failed with error
+- `RETRY` - Task failed, retrying
+- `REVOKED` - Task cancelled by user
+
+**Code Location:** `python-ai-service/api/tasks.py:get_task_status`
+**Related FR:** FR-ASYNC-STATUS-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### DELETE /api/tasks/{task_id}
+
+**Description:** Cancel a running or pending task
+
+**Authentication:** Optional (Bearer JWT)
+
+**Path Parameters:**
+- `task_id` (required): Task identifier to cancel
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "task_id": "abc-123-def-456",
+  "status": "REVOKED",
+  "message": "Task cancelled successfully",
+  "cancelled_at": "2025-11-22T14:00:00Z"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "task_id": "abc-123-def-456",
+  "status": "SUCCESS",
+  "message": "Cannot cancel completed task"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "detail": "Task not found: abc-123-def-456"
+}
+```
+
+**Note:** Only tasks with status PENDING or STARTED can be cancelled.
+
+**Code Location:** `python-ai-service/api/tasks.py:cancel_task`
+**Related FR:** FR-ASYNC-CANCEL-001
+**Rate Limit:** 20 requests per minute
+
+---
+
+### GET /api/tasks
+
+**Description:** List all tasks with optional filtering and pagination
+
+**Authentication:** Optional (Bearer JWT)
+
+**Query Parameters:**
+- `status` (optional): Filter by status - `PENDING`, `STARTED`, `SUCCESS`, `FAILURE`, `REVOKED`
+- `task_name` (optional): Filter by task name - `ml_tasks.train_model_async`, `backtest_tasks.run_backtest_async`
+- `limit` (optional): Maximum results per page (default: 50, max: 200)
+- `offset` (optional): Pagination offset (default: 0)
+- `sort_by` (optional): Sort field - `created_at`, `started_at`, `completed_at` (default: `created_at`)
+- `sort_order` (optional): Sort order - `asc`, `desc` (default: `desc`)
+
+**Success Response (200 OK):**
+```json
+{
+  "total": 150,
+  "limit": 50,
+  "offset": 0,
+  "tasks": [
+    {
+      "task_id": "abc-123",
+      "task_name": "ml_tasks.train_model_async",
+      "status": "SUCCESS",
+      "progress": 100,
+      "created_at": "2025-11-22T10:00:00Z",
+      "started_at": "2025-11-22T10:05:00Z",
+      "completed_at": "2025-11-22T11:05:00Z",
+      "execution_time_seconds": 3600
+    },
+    {
+      "task_id": "def-456",
+      "task_name": "backtest_tasks.run_backtest_async",
+      "status": "STARTED",
+      "progress": 60,
+      "created_at": "2025-11-22T11:00:00Z",
+      "started_at": "2025-11-22T11:02:00Z",
+      "estimated_completion": "2025-11-22T11:20:00Z"
+    },
+    {
+      "task_id": "ghi-789",
+      "task_name": "ml_tasks.train_model_async",
+      "status": "FAILURE",
+      "progress": 23,
+      "error": "Insufficient training data",
+      "created_at": "2025-11-22T09:00:00Z",
+      "failed_at": "2025-11-22T09:15:00Z"
+    }
+  ]
+}
+```
+
+**Code Location:** `python-ai-service/api/tasks.py:list_tasks`
+**Related FR:** FR-ASYNC-LIST-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### POST /api/tasks/retry/{task_id}
+
+**Description:** Retry a failed task with a new task ID
+
+**Authentication:** Optional (Bearer JWT)
+
+**Path Parameters:**
+- `task_id` (required): Failed task identifier to retry
+
+**Success Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "new_task_id": "xyz-789-abc-012",
+  "original_task_id": "abc-123-def-456",
+  "status": "PENDING",
+  "message": "Task retried with new ID",
+  "check_status_url": "/api/tasks/xyz-789-abc-012",
+  "created_at": "2025-11-22T14:30:00Z"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "detail": "Cannot retry task with status SUCCESS. Only FAILURE tasks can be retried."
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "detail": "Task not found: abc-123-def-456"
+}
+```
+
+**Note:** Only tasks with status FAILURE can be retried. The retry creates a new task with the same parameters.
+
+**Code Location:** `python-ai-service/api/tasks.py:retry_task`
+**Related FR:** FR-ASYNC-RETRY-001
+**Rate Limit:** 10 requests per minute
+
+---
+
+### GET /api/tasks/stats
+
+**Description:** Get task execution statistics and system metrics
+
+**Authentication:** Optional (Bearer JWT)
+
+**Success Response (200 OK):**
+```json
+{
+  "total_tasks": 1234,
+  "pending": 5,
+  "running": 2,
+  "successful": 1150,
+  "failed": 77,
+  "revoked": 0,
+  "success_rate": 0.937,
+  "failure_rate": 0.063,
+  "avg_execution_time_seconds": 1800,
+  "median_execution_time_seconds": 1650,
+  "min_execution_time_seconds": 120,
+  "max_execution_time_seconds": 7200,
+  "last_24h": {
+    "total": 48,
+    "successful": 46,
+    "failed": 2,
+    "success_rate": 0.958
+  },
+  "last_7d": {
+    "total": 312,
+    "successful": 295,
+    "failed": 17,
+    "success_rate": 0.945
+  },
+  "by_task_type": {
+    "ml_tasks.train_model_async": {
+      "total": 856,
+      "successful": 812,
+      "failed": 44,
+      "success_rate": 0.949
+    },
+    "backtest_tasks.run_backtest_async": {
+      "total": 378,
+      "successful": 338,
+      "failed": 33,
+      "success_rate": 0.895
+    }
+  },
+  "system_health": {
+    "celery_workers_active": 4,
+    "queue_depth": 5,
+    "avg_queue_wait_time_seconds": 15
+  },
+  "last_updated": "2025-11-22T14:30:00Z"
+}
+```
+
+**Code Location:** `python-ai-service/api/tasks.py:get_task_stats`
+**Related FR:** FR-ASYNC-STATS-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+## Training Management
+
+### GET /api/training/jobs
+
+**Description:** List all training jobs with their results and status
+
+**Authentication:** Optional (Bearer JWT)
+
+**Query Parameters:**
+- `status` (optional): Filter by status - `PENDING`, `TRAINING`, `COMPLETED`, `FAILED`, `DEPLOYED`
+- `model_type` (optional): Filter by model type - `lstm`, `gru`, `transformer`, `ensemble`
+- `symbol` (optional): Filter by trading pair - `BTCUSDT`, `ETHUSDT`
+- `limit` (optional): Maximum results (default: 50)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Success Response (200 OK):**
+```json
+{
+  "total": 25,
+  "limit": 50,
+  "offset": 0,
+  "jobs": [
+    {
+      "job_id": "training_lstm_BTCUSDT_20251122",
+      "model_type": "lstm",
+      "symbol": "BTCUSDT",
+      "timeframe": "15m",
+      "status": "COMPLETED",
+      "accuracy": 0.72,
+      "precision": 0.70,
+      "recall": 0.68,
+      "f1_score": 0.69,
+      "deployed": true,
+      "task_id": "abc-123-def-456",
+      "created_at": "2025-11-22T10:00:00Z",
+      "started_at": "2025-11-22T10:05:00Z",
+      "completed_at": "2025-11-22T11:05:00Z",
+      "training_time_seconds": 3600
+    },
+    {
+      "job_id": "training_gru_ETHUSDT_20251122",
+      "model_type": "gru",
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "status": "TRAINING",
+      "progress": 65,
+      "deployed": false,
+      "task_id": "def-456-ghi-789",
+      "created_at": "2025-11-22T12:00:00Z",
+      "started_at": "2025-11-22T12:05:00Z",
+      "estimated_completion": "2025-11-22T13:30:00Z"
+    },
+    {
+      "job_id": "training_transformer_BTCUSDT_20251121",
+      "model_type": "transformer",
+      "symbol": "BTCUSDT",
+      "timeframe": "4h",
+      "status": "FAILED",
+      "error": "Out of memory during training",
+      "deployed": false,
+      "task_id": "ghi-789-jkl-012",
+      "created_at": "2025-11-21T14:00:00Z",
+      "failed_at": "2025-11-21T14:30:00Z"
+    }
+  ]
+}
+```
+
+**Code Location:** `python-ai-service/api/training.py:list_training_jobs`
+**Related FR:** FR-TRAIN-LIST-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### GET /api/training/jobs/{job_id}
+
+**Description:** Get detailed information about a specific training job
+
+**Authentication:** Optional (Bearer JWT)
+
+**Path Parameters:**
+- `job_id` (required): Training job identifier
+
+**Success Response (200 OK):**
+```json
+{
+  "job_id": "training_lstm_BTCUSDT_20251122",
+  "model_type": "lstm",
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "status": "COMPLETED",
+  "task_id": "abc-123-def-456",
+  "parameters": {
+    "epochs": 100,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "hidden_units": 128,
+    "dropout_rate": 0.2,
+    "sequence_length": 60
+  },
+  "metrics": {
+    "accuracy": 0.72,
+    "precision": 0.70,
+    "recall": 0.68,
+    "f1_score": 0.69,
+    "final_loss": 0.0234,
+    "best_epoch": 87,
+    "best_validation_accuracy": 0.73,
+    "training_samples": 45000,
+    "validation_samples": 5000,
+    "test_samples": 10000
+  },
+  "performance": {
+    "sharpe_ratio": 1.85,
+    "max_drawdown": 0.12,
+    "win_rate": 0.68,
+    "profit_factor": 2.1
+  },
+  "model_info": {
+    "model_id": "lstm_BTCUSDT_15m_20251122",
+    "model_path": "/models/lstm_BTCUSDT_15m_20251122.h5",
+    "model_size_mb": 15.4,
+    "parameters_count": 2450000
+  },
+  "deployment": {
+    "deployed": true,
+    "deployed_at": "2025-11-22T14:00:00Z",
+    "deployed_by": "admin@example.com",
+    "previous_model": "lstm_BTCUSDT_15m_20251115",
+    "is_active": true
+  },
+  "created_at": "2025-11-22T10:00:00Z",
+  "started_at": "2025-11-22T10:05:00Z",
+  "completed_at": "2025-11-22T11:05:00Z",
+  "training_time_seconds": 3600
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "detail": "Training job not found: training_lstm_BTCUSDT_20251122"
+}
+```
+
+**Code Location:** `python-ai-service/api/training.py:get_training_job`
+**Related FR:** FR-TRAIN-GET-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### POST /api/training/jobs/{job_id}/deploy
+
+**Description:** Deploy a completed training job to production
+
+**Authentication:** Required (Bearer JWT with admin role)
+
+**Path Parameters:**
+- `job_id` (required): Training job identifier to deploy
+
+**Request Body (Optional):**
+```json
+{
+  "force_deploy": false,
+  "activate_immediately": true,
+  "notes": "Deploying improved LSTM model with 72% accuracy"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "job_id": "training_lstm_BTCUSDT_20251122",
+  "model_id": "lstm_BTCUSDT_15m_20251122",
+  "deployed_at": "2025-11-22T14:00:00Z",
+  "previous_model": "lstm_BTCUSDT_15m_20251115",
+  "previous_accuracy": 0.68,
+  "new_accuracy": 0.72,
+  "accuracy_improvement": 0.04,
+  "is_active": true,
+  "message": "Model deployed to production successfully"
+}
+```
+
+**Error Response (400 Bad Request) - Not Completed:**
+```json
+{
+  "success": false,
+  "detail": "Cannot deploy incomplete training job. Status: TRAINING"
+}
+```
+
+**Error Response (400 Bad Request) - Low Accuracy:**
+```json
+{
+  "success": false,
+  "detail": "Model accuracy (0.55) below minimum threshold (0.60). Use force_deploy=true to override."
+}
+```
+
+**Error Response (403 Forbidden):**
+```json
+{
+  "detail": "Insufficient permissions. Admin role required for model deployment."
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "detail": "Training job not found: training_lstm_BTCUSDT_20251122"
+}
+```
+
+**Deployment Rules:**
+- Minimum accuracy threshold: 0.60 (can be overridden with `force_deploy`)
+- Only COMPLETED jobs can be deployed
+- Previous model is automatically archived
+- Deployment triggers WebSocket notification
+
+**Code Location:** `python-ai-service/api/training.py:deploy_training_job`
+**Related FR:** FR-TRAIN-DEPLOY-001
+**Rate Limit:** 5 requests per minute
+
+---
+
+## Backtest Management
+
+### POST /api/backtests
+
+**Description:** Trigger async strategy backtest execution
+
+**Authentication:** Optional (Bearer JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "strategy_name": "stochastic",
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "start_date": "2025-05-22",
+  "end_date": "2025-11-22",
+  "parameters": {
+    "k_period": 14,
+    "d_period": 3,
+    "overbought": 80,
+    "oversold": 20
+  },
+  "initial_capital": 10000.0,
+  "position_size": 0.1,
+  "commission": 0.001
+}
+```
+
+**Request Parameters:**
+- `strategy_name` (required): Strategy identifier - `stochastic`, `rsi`, `macd`, `bollinger`, `volume`
+- `symbol` (required): Trading pair
+- `timeframe` (required): Candle timeframe
+- `start_date` (required): Backtest start date (YYYY-MM-DD)
+- `end_date` (required): Backtest end date (YYYY-MM-DD)
+- `parameters` (required): Strategy-specific parameters
+- `initial_capital` (optional): Starting capital (default: 10000.0)
+- `position_size` (optional): Position size as fraction (default: 0.1)
+- `commission` (optional): Trading commission rate (default: 0.001)
+
+**Success Response (202 Accepted):**
+```json
+{
+  "backtest_id": "backtest_stochastic_BTCUSDT_20251122",
+  "task_id": "xyz-789-abc-012",
+  "status": "PENDING",
+  "estimated_completion_minutes": 15,
+  "check_status_url": "/api/tasks/xyz-789-abc-012",
+  "check_results_url": "/api/backtests/backtest_stochastic_BTCUSDT_20251122",
+  "created_at": "2025-11-22T14:00:00Z"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "detail": "Invalid date range. start_date must be before end_date."
+}
+```
+
+**Error Response (429 Too Many Requests):**
+```json
+{
+  "detail": "Backtest limit reached. Maximum 20 backtests per day."
+}
+```
+
+**Code Location:** `python-ai-service/api/backtests.py:create_backtest`
+**Related FR:** FR-BACKTEST-CREATE-001
+**Rate Limit:** 20 backtests per day per user
+
+---
+
+### GET /api/backtests/{backtest_id}
+
+**Description:** Get detailed backtest results and performance metrics
+
+**Authentication:** Optional (Bearer JWT)
+
+**Path Parameters:**
+- `backtest_id` (required): Backtest identifier
+
+**Success Response (200 OK):**
+```json
+{
+  "backtest_id": "backtest_stochastic_BTCUSDT_20251122",
+  "strategy_name": "stochastic",
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "status": "COMPLETED",
+  "task_id": "xyz-789-abc-012",
+  "parameters": {
+    "k_period": 14,
+    "d_period": 3,
+    "overbought": 80,
+    "oversold": 20,
+    "initial_capital": 10000.0,
+    "position_size": 0.1,
+    "commission": 0.001
+  },
+  "date_range": {
+    "start_date": "2025-05-22",
+    "end_date": "2025-11-22",
+    "total_days": 184
+  },
+  "performance": {
+    "total_trades": 156,
+    "winning_trades": 88,
+    "losing_trades": 68,
+    "win_rate": 0.564,
+    "total_profit": 1840.50,
+    "total_loss": -842.30,
+    "net_profit": 998.20,
+    "net_profit_percent": 9.98,
+    "gross_profit": 1840.50,
+    "gross_loss": -842.30,
+    "profit_factor": 2.18,
+    "average_win": 20.91,
+    "average_loss": -12.39,
+    "largest_win": 145.60,
+    "largest_loss": -78.20,
+    "avg_trade": 6.40,
+    "max_consecutive_wins": 8,
+    "max_consecutive_losses": 5
+  },
+  "risk_metrics": {
+    "sharpe_ratio": 1.52,
+    "sortino_ratio": 2.14,
+    "max_drawdown": 0.084,
+    "max_drawdown_duration_days": 12,
+    "calmar_ratio": 1.89,
+    "recovery_factor": 11.88,
+    "risk_reward_ratio": 1.69
+  },
+  "execution": {
+    "total_candles_analyzed": 17760,
+    "signals_generated": 312,
+    "trades_executed": 156,
+    "signal_to_trade_ratio": 0.5,
+    "execution_time_seconds": 245
+  },
+  "equity_curve": [
+    {
+      "date": "2025-05-22",
+      "equity": 10000.00,
+      "drawdown": 0.0
+    },
+    {
+      "date": "2025-05-23",
+      "equity": 10085.40,
+      "drawdown": 0.0
+    }
+  ],
+  "trades": [
+    {
+      "trade_id": 1,
+      "entry_date": "2025-05-22T10:30:00Z",
+      "exit_date": "2025-05-22T14:15:00Z",
+      "direction": "LONG",
+      "entry_price": 67500.00,
+      "exit_price": 67850.50,
+      "quantity": 0.0148,
+      "profit": 5.19,
+      "profit_percent": 0.52,
+      "commission": 1.00,
+      "net_profit": 4.19
+    }
+  ],
+  "created_at": "2025-11-22T14:00:00Z",
+  "started_at": "2025-11-22T14:02:00Z",
+  "completed_at": "2025-11-22T14:06:05Z"
+}
+```
+
+**Success Response (200 OK) - PENDING/RUNNING:**
+```json
+{
+  "backtest_id": "backtest_stochastic_BTCUSDT_20251122",
+  "strategy_name": "stochastic",
+  "symbol": "BTCUSDT",
+  "status": "RUNNING",
+  "task_id": "xyz-789-abc-012",
+  "progress": 68,
+  "current_operation": "Analyzing candles 12000/17760",
+  "created_at": "2025-11-22T14:00:00Z",
+  "started_at": "2025-11-22T14:02:00Z",
+  "estimated_completion": "2025-11-22T14:15:00Z"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "detail": "Backtest not found: backtest_stochastic_BTCUSDT_20251122"
+}
+```
+
+**Code Location:** `python-ai-service/api/backtests.py:get_backtest`
+**Related FR:** FR-BACKTEST-GET-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### GET /api/backtests
+
+**Description:** List all backtests with summary information
+
+**Authentication:** Optional (Bearer JWT)
+
+**Query Parameters:**
+- `strategy_name` (optional): Filter by strategy
+- `symbol` (optional): Filter by trading pair
+- `status` (optional): Filter by status - `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`
+- `limit` (optional): Maximum results (default: 50)
+- `offset` (optional): Pagination offset (default: 0)
+- `sort_by` (optional): Sort field - `created_at`, `win_rate`, `sharpe_ratio`, `net_profit` (default: `created_at`)
+- `sort_order` (optional): Sort order - `asc`, `desc` (default: `desc`)
+
+**Success Response (200 OK):**
+```json
+{
+  "total": 85,
+  "limit": 50,
+  "offset": 0,
+  "backtests": [
+    {
+      "backtest_id": "backtest_stochastic_BTCUSDT_20251122",
+      "strategy_name": "stochastic",
+      "symbol": "BTCUSDT",
+      "timeframe": "15m",
+      "status": "COMPLETED",
+      "date_range": {
+        "start_date": "2025-05-22",
+        "end_date": "2025-11-22",
+        "total_days": 184
+      },
+      "performance_summary": {
+        "total_trades": 156,
+        "win_rate": 0.564,
+        "net_profit": 998.20,
+        "net_profit_percent": 9.98,
+        "sharpe_ratio": 1.52,
+        "max_drawdown": 0.084
+      },
+      "created_at": "2025-11-22T14:00:00Z",
+      "completed_at": "2025-11-22T14:06:05Z"
+    },
+    {
+      "backtest_id": "backtest_rsi_ETHUSDT_20251121",
+      "strategy_name": "rsi",
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "status": "COMPLETED",
+      "date_range": {
+        "start_date": "2025-04-01",
+        "end_date": "2025-11-21",
+        "total_days": 234
+      },
+      "performance_summary": {
+        "total_trades": 89,
+        "win_rate": 0.618,
+        "net_profit": 1245.80,
+        "net_profit_percent": 12.46,
+        "sharpe_ratio": 1.87,
+        "max_drawdown": 0.056
+      },
+      "created_at": "2025-11-21T10:00:00Z",
+      "completed_at": "2025-11-21T10:12:30Z"
+    },
+    {
+      "backtest_id": "backtest_macd_BTCUSDT_20251120",
+      "strategy_name": "macd",
+      "symbol": "BTCUSDT",
+      "timeframe": "4h",
+      "status": "FAILED",
+      "error": "Insufficient historical data for date range",
+      "created_at": "2025-11-20T15:00:00Z",
+      "failed_at": "2025-11-20T15:02:45Z"
+    }
+  ]
+}
+```
+
+**Code Location:** `python-ai-service/api/backtests.py:list_backtests`
+**Related FR:** FR-BACKTEST-LIST-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+## Monitoring & Alerts
+
+### GET /api/monitoring/health
+
+**Description:** Get comprehensive system health status including all services
+
+**Authentication:** None
+
+**Success Response (200 OK):**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-11-22T14:30:00Z",
+  "services": {
+    "celery_workers": {
+      "status": "healthy",
+      "active_workers": 4,
+      "queued_tasks": 5,
+      "processed_tasks_total": 12456,
+      "failed_tasks_total": 234,
+      "workers": [
+        {
+          "worker_id": "celery@worker1",
+          "status": "online",
+          "current_task": "ml_tasks.train_model_async",
+          "tasks_processed": 3245
+        },
+        {
+          "worker_id": "celery@worker2",
+          "status": "online",
+          "current_task": null,
+          "tasks_processed": 3102
+        }
+      ]
+    },
+    "rabbitmq": {
+      "status": "healthy",
+      "queue_depth": 5,
+      "messages_ready": 5,
+      "messages_unacknowledged": 2,
+      "consumers": 4,
+      "connection_status": "connected"
+    },
+    "mongodb": {
+      "status": "healthy",
+      "connections": 12,
+      "connections_available": 88,
+      "operations_per_second": 145,
+      "replication_lag_ms": 5,
+      "database_size_mb": 2450
+    },
+    "redis": {
+      "status": "healthy",
+      "memory_usage_mb": 256,
+      "memory_max_mb": 2048,
+      "memory_utilization": 0.125,
+      "connected_clients": 8,
+      "keys_count": 1245,
+      "hit_rate": 0.94
+    },
+    "openai": {
+      "status": "healthy",
+      "api_key_configured": true,
+      "rate_limit_status": "ok",
+      "requests_last_hour": 45,
+      "requests_remaining": 955
+    }
+  },
+  "system_resources": {
+    "cpu_usage_percent": 45.2,
+    "memory_usage_percent": 62.8,
+    "disk_usage_percent": 38.5,
+    "network_io_mbps": 12.4
+  },
+  "performance_metrics": {
+    "avg_task_execution_time_seconds": 1800,
+    "avg_queue_wait_time_seconds": 15,
+    "tasks_per_hour": 24,
+    "error_rate": 0.019
+  },
+  "last_check": "2025-11-22T14:30:00Z"
+}
+```
+
+**Degraded Response (200 OK):**
+```json
+{
+  "status": "degraded",
+  "timestamp": "2025-11-22T14:30:00Z",
+  "services": {
+    "celery_workers": {
+      "status": "degraded",
+      "active_workers": 2,
+      "queued_tasks": 45,
+      "warning": "Only 2 of 4 workers active, queue depth high"
+    },
+    "rabbitmq": {
+      "status": "healthy",
+      "queue_depth": 45
+    }
+  },
+  "warnings": [
+    "High queue depth (45 tasks)",
+    "Reduced worker capacity (2/4 workers)"
+  ],
+  "last_check": "2025-11-22T14:30:00Z"
+}
+```
+
+**Unhealthy Response (503 Service Unavailable):**
+```json
+{
+  "status": "unhealthy",
+  "timestamp": "2025-11-22T14:30:00Z",
+  "services": {
+    "celery_workers": {
+      "status": "unhealthy",
+      "active_workers": 0,
+      "error": "No workers available"
+    },
+    "rabbitmq": {
+      "status": "unhealthy",
+      "error": "Connection refused"
+    }
+  },
+  "errors": [
+    "No Celery workers available",
+    "RabbitMQ connection failed"
+  ],
+  "last_check": "2025-11-22T14:30:00Z"
+}
+```
+
+**Health Status Values:**
+- `healthy` - All systems operational
+- `degraded` - Some issues but service operational
+- `unhealthy` - Critical issues affecting service
+
+**Code Location:** `python-ai-service/api/monitoring.py:get_health`
+**Related FR:** FR-MONITOR-HEALTH-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### GET /api/monitoring/alerts
+
+**Description:** Get recent system alerts and warnings
+
+**Authentication:** Optional (Bearer JWT)
+
+**Query Parameters:**
+- `severity` (optional): Filter by severity - `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
+- `status` (optional): Filter by status - `OPEN`, `ACKNOWLEDGED`, `RESOLVED`
+- `limit` (optional): Maximum results (default: 50)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Success Response (200 OK):**
+```json
+{
+  "total": 12,
+  "limit": 50,
+  "offset": 0,
+  "alerts": [
+    {
+      "alert_id": "alert_high_cpu_20251122_143000",
+      "severity": "HIGH",
+      "title": "High CPU Usage",
+      "description": "CPU usage exceeded 85% threshold (current: 92.4%)",
+      "status": "OPEN",
+      "service": "celery_workers",
+      "metric": "cpu_usage_percent",
+      "current_value": 92.4,
+      "threshold": 85.0,
+      "created_at": "2025-11-22T14:30:00Z",
+      "acknowledged_at": null,
+      "resolved_at": null
+    },
+    {
+      "alert_id": "alert_queue_depth_20251122_142500",
+      "severity": "MEDIUM",
+      "title": "High Queue Depth",
+      "description": "RabbitMQ queue depth exceeded 30 tasks (current: 45)",
+      "status": "ACKNOWLEDGED",
+      "service": "rabbitmq",
+      "metric": "queue_depth",
+      "current_value": 45,
+      "threshold": 30,
+      "created_at": "2025-11-22T14:25:00Z",
+      "acknowledged_at": "2025-11-22T14:26:00Z",
+      "acknowledged_by": "admin@example.com",
+      "resolved_at": null
+    },
+    {
+      "alert_id": "alert_memory_20251122_140000",
+      "severity": "LOW",
+      "title": "Elevated Memory Usage",
+      "description": "Memory usage exceeded 70% threshold (current: 75.2%)",
+      "status": "RESOLVED",
+      "service": "redis",
+      "metric": "memory_usage_percent",
+      "current_value": 68.5,
+      "threshold": 70.0,
+      "created_at": "2025-11-22T14:00:00Z",
+      "acknowledged_at": "2025-11-22T14:02:00Z",
+      "resolved_at": "2025-11-22T14:15:00Z",
+      "resolution_notes": "Memory usage returned to normal after cache cleanup"
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 1,
+    "medium": 3,
+    "low": 8,
+    "open": 4,
+    "acknowledged": 5,
+    "resolved": 3
+  }
+}
+```
+
+**Alert Severity Levels:**
+- `CRITICAL` - Immediate action required, service disruption
+- `HIGH` - Urgent attention needed, potential service impact
+- `MEDIUM` - Should be addressed soon, minor impact
+- `LOW` - Informational, monitor situation
+
+**Code Location:** `python-ai-service/api/monitoring.py:get_alerts`
+**Related FR:** FR-MONITOR-ALERTS-001
+**Rate Limit:** 60 requests per minute
+
+---
+
 ## WebSocket Real-time Updates
 
 ### WS /ws
@@ -746,10 +1906,13 @@ The AI service calculates the following technical indicators:
 | Status Code | Meaning | Usage |
 |-------------|---------|-------|
 | 200 | OK | Successful request |
+| 202 | Accepted | Async task created successfully |
 | 400 | Bad Request | Invalid request parameters |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource not found |
 | 429 | Too Many Requests | Rate limit exceeded |
 | 500 | Internal Server Error | Server-side error |
-| 503 | Service Unavailable | OpenAI API unavailable |
+| 503 | Service Unavailable | Service or dependency unavailable |
 
 ### Common Error Messages
 
@@ -760,6 +1923,17 @@ The AI service calculates the following technical indicators:
 | `MongoDB not connected` | Database unavailable | Check MongoDB connection |
 | `GPT-4 client not initialized` | OpenAI client setup failed | Verify API key configuration |
 | `All API keys exhausted or rate limited` | All backup keys rate limited | Wait 1 hour or add more keys |
+| `Task not found: <task_id>` | Task ID does not exist | Verify task ID is correct |
+| `Cannot cancel completed task` | Task already finished | Only PENDING/STARTED tasks can be cancelled |
+| `Training task limit reached` | Daily training limit exceeded | Wait for limit reset or request increase |
+| `Backtest limit reached` | Daily backtest limit exceeded | Wait for limit reset or request increase |
+| `Invalid model_type` | Unsupported model architecture | Use: lstm, gru, transformer, ensemble |
+| `Invalid date range` | Backtest date range invalid | Ensure start_date < end_date |
+| `Cannot deploy incomplete training job` | Training not finished | Wait for training completion |
+| `Model accuracy below minimum threshold` | Trained model accuracy too low | Use force_deploy or retrain with better parameters |
+| `Insufficient permissions` | Admin role required | Contact administrator for permissions |
+| `No workers available` | All Celery workers offline | Check Celery worker status |
+| `RabbitMQ connection failed` | Message queue unavailable | Check RabbitMQ service status |
 
 ---
 
@@ -775,6 +1949,20 @@ The AI service calculates the following technical indicators:
 | `/ai/market-condition` | 5 requests | 1 minute |
 | `/ai/feedback` | 20 requests | 1 minute |
 | `/ai/storage/clear` | 1 request | 1 minute |
+| `/api/tasks/train` | 10 tasks | 1 day |
+| `/api/tasks/{task_id}` (GET) | 60 requests | 1 minute |
+| `/api/tasks/{task_id}` (DELETE) | 20 requests | 1 minute |
+| `/api/tasks` (GET) | 60 requests | 1 minute |
+| `/api/tasks/retry/{task_id}` | 10 requests | 1 minute |
+| `/api/tasks/stats` | 60 requests | 1 minute |
+| `/api/training/jobs` (GET) | 60 requests | 1 minute |
+| `/api/training/jobs/{job_id}` (GET) | 60 requests | 1 minute |
+| `/api/training/jobs/{job_id}/deploy` | 5 requests | 1 minute |
+| `/api/backtests` (POST) | 20 tasks | 1 day |
+| `/api/backtests/{backtest_id}` (GET) | 60 requests | 1 minute |
+| `/api/backtests` (GET) | 60 requests | 1 minute |
+| `/api/monitoring/health` | 60 requests | 1 minute |
+| `/api/monitoring/alerts` | 60 requests | 1 minute |
 | Other endpoints | 60 requests | 1 minute |
 
 ### OpenAI Rate Limiting
@@ -910,7 +2098,7 @@ db.ai_analysis_results.createIndex({ "symbol": 1, "timestamp": 1 })
 
 ---
 
-**Document Version:** 2.0.0
-**Last Updated:** 2025-10-10
+**Document Version:** 3.0.0
+**Last Updated:** 2025-11-22
 **Author:** Claude Code
 **Status:** Complete

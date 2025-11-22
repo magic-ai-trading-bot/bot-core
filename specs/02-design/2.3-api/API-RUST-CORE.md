@@ -1,9 +1,10 @@
 # API-RUST-CORE.md - Rust Core Engine API Specification
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Base URL:** `http://localhost:8080`
 **Service:** Rust Core Engine
 **Port:** 8080
+**Total Endpoints:** 37
 
 ## Table of Contents
 
@@ -13,11 +14,12 @@
 4. [Market Data Endpoints](#market-data-endpoints)
 5. [Trading Endpoints](#trading-endpoints)
 6. [Paper Trading Endpoints](#paper-trading-endpoints)
-7. [AI Integration Endpoints](#ai-integration-endpoints)
-8. [Monitoring Endpoints](#monitoring-endpoints)
-9. [WebSocket](#websocket)
-10. [Error Codes](#error-codes)
-11. [Rate Limiting](#rate-limiting)
+7. [Paper Trading - Advanced Features](#paper-trading---advanced-features)
+8. [AI Integration Endpoints](#ai-integration-endpoints)
+9. [Monitoring Endpoints](#monitoring-endpoints)
+10. [WebSocket](#websocket)
+11. [Error Codes](#error-codes)
+12. [Rate Limiting](#rate-limiting)
 
 ---
 
@@ -1300,6 +1302,507 @@ GET /api/market/candles/BTCUSDT/1h?limit=200
 
 ---
 
+## Paper Trading - Advanced Features
+
+### Trailing Stop Management
+
+#### GET /api/paper-trading/trailing-stops
+
+**Description:** Get trailing stop configuration and current status for all positions
+
+**Authentication:** Optional
+
+**Request:**
+```http
+GET /api/paper-trading/trailing-stops HTTP/1.1
+Authorization: Bearer <jwt_token>
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "global_settings": {
+      "enabled": true,
+      "trailing_pct": 1.5,
+      "activation_pct": 2.0
+    },
+    "active_trailing_stops": [
+      {
+        "position_id": "pos_12345",
+        "symbol": "BTCUSDT",
+        "direction": "LONG",
+        "entry_price": 50000.0,
+        "current_price": 53000.0,
+        "highest_price": 53500.0,
+        "trailing_stop_price": 52705.0,
+        "profit_pct": 6.0,
+        "activated_at": "2025-11-22T14:30:00Z",
+        "updates_count": 15
+      }
+    ],
+    "inactive_positions": []
+  }
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "error": "Invalid or expired token"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to fetch trailing stops"
+}
+```
+
+**Code Location:** `rust-core-engine/src/api/paper_trading.rs`
+**Related FR:** FR-PAPER-018
+**Rate Limit:** 10 requests per second
+
+---
+
+#### PUT /api/paper-trading/trailing-stops/settings
+
+**Description:** Update global trailing stop settings
+
+**Authentication:** Optional
+
+**Request:**
+```http
+PUT /api/paper-trading/trailing-stops/settings HTTP/1.1
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "enabled": true,
+  "trailing_pct": 1.8,
+  "activation_pct": 2.5
+}
+```
+
+**Validation Rules:**
+- `enabled`: boolean (required)
+- `trailing_pct`: float, 0.5-5.0 (required)
+- `activation_pct`: float, 0.5-10.0 (required)
+- `activation_pct` must be >= `trailing_pct`
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "enabled": true,
+      "trailing_pct": 1.8,
+      "activation_pct": 2.5
+    },
+    "affected_positions": 3,
+    "message": "Trailing stop settings updated. 3 positions affected."
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "Validation error: activation_pct must be >= trailing_pct"
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "error": "Invalid or expired token"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to update trailing stop settings"
+}
+```
+
+**Code Location:** `rust-core-engine/src/api/paper_trading.rs`
+**Related FR:** FR-PAPER-019
+**Rate Limit:** 100 requests per minute
+
+---
+
+#### POST /api/paper-trading/positions/:id/trailing-stop/manual-adjust
+
+**Description:** Manually adjust trailing stop for a specific position
+
+**Authentication:** Optional
+
+**Path Parameters:**
+- `id`: Position ID
+
+**Request:**
+```http
+POST /api/paper-trading/positions/pos_12345/trailing-stop/manual-adjust HTTP/1.1
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "new_stop_price": 52500.0,
+  "reason": "Manual risk adjustment"
+}
+```
+
+**Validation Rules:**
+- `new_stop_price`: float (required), must be reasonable relative to current price
+- `reason`: string (optional)
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "position_id": "pos_12345",
+    "old_stop_price": 52705.0,
+    "new_stop_price": 52500.0,
+    "distance_from_current": 0.94,
+    "message": "Trailing stop manually adjusted"
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "Invalid stop price: must be below current price for LONG positions"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "error": "Position not found: pos_12345"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to adjust trailing stop"
+}
+```
+
+**Code Location:** `rust-core-engine/src/api/paper_trading.rs`
+**Related FR:** FR-PAPER-020
+**Rate Limit:** 100 requests per minute
+
+---
+
+### AI Signal Processing
+
+#### POST /api/paper-trading/process-ai-signal
+
+**Description:** Process external AI signal from frontend (triggers GPT-4 analysis)
+
+**Authentication:** Optional
+
+**Request:**
+```http
+POST /api/paper-trading/process-ai-signal HTTP/1.1
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "trigger_source": "frontend_button",
+  "user_id": "user_123"
+}
+```
+
+**Validation Rules:**
+- `symbol`: string (required), must be a tracked symbol
+- `timeframe`: string (required), must be one of: 1m, 5m, 15m, 1h, 4h, 1d
+- `trigger_source`: string (optional), default: "manual"
+- `user_id`: string (optional)
+
+**Success Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "AI signal analysis queued",
+    "analysis_id": "ai_analysis_20251122_143000",
+    "estimated_completion_seconds": 15,
+    "status_endpoint": "/api/ai-analysis/status/ai_analysis_20251122_143000"
+  }
+}
+```
+
+**Error Response (400 Bad Request - Analysis In Progress):**
+```json
+{
+  "success": false,
+  "error": "AI_ANALYSIS_IN_PROGRESS",
+  "message": "AI analysis already in progress for BTCUSDT. Please wait.",
+  "retry_after_seconds": 10
+}
+```
+
+**Error Response (400 Bad Request - Invalid Symbol):**
+```json
+{
+  "success": false,
+  "error": "Invalid symbol: INVALIDUSDT"
+}
+```
+
+**Error Response (429 Too Many Requests):**
+```json
+{
+  "success": false,
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Max 6 AI analyses per hour exceeded. Try again later.",
+  "retry_after_seconds": 600
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to queue AI signal analysis"
+}
+```
+
+**Code Location:** `rust-core-engine/src/api/paper_trading.rs`
+**Related FR:** FR-PAPER-021
+**Rate Limit:** 6 requests per hour
+
+---
+
+### Data Resolution Management
+
+#### GET /api/paper-trading/data-resolutions
+
+**Description:** Get available data resolutions and current setting
+
+**Authentication:** Optional
+
+**Request:**
+```http
+GET /api/paper-trading/data-resolutions HTTP/1.1
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "available_resolutions": ["1m", "5m", "15m", "1h", "4h", "1d"],
+    "current_resolution": "15m",
+    "recommended": "15m",
+    "reason": "Optimal for crypto day trading"
+  }
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to fetch data resolutions"
+}
+```
+
+**Code Location:** `rust-core-engine/src/api/paper_trading.rs`
+**Related FR:** FR-PAPER-022
+**Rate Limit:** 10 requests per second
+
+---
+
+#### PUT /api/paper-trading/data-resolution
+
+**Description:** Change data resolution for trading
+
+**Authentication:** Optional
+
+**Request:**
+```http
+PUT /api/paper-trading/data-resolution HTTP/1.1
+Content-Type: application/json
+
+{
+  "resolution": "15m"
+}
+```
+
+**Validation Rules:**
+- `resolution`: string (required), must be one of: 1m, 5m, 15m, 1h, 4h, 1d
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "old_resolution": "1h",
+    "new_resolution": "15m",
+    "requires_restart": false,
+    "warmup_required": true,
+    "estimated_warmup_minutes": 1,
+    "message": "Data resolution updated to 15m. Warmup in progress."
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "Invalid resolution: 3m. Must be one of: 1m, 5m, 15m, 1h, 4h, 1d"
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to update data resolution"
+}
+```
+
+**Code Location:** `rust-core-engine/src/api/paper_trading.rs`
+**Related FR:** FR-PAPER-023
+**Rate Limit:** 10 requests per minute
+
+---
+
+### Position Correlation Analysis
+
+#### GET /api/paper-trading/correlation-analysis
+
+**Description:** Get current position correlation analysis
+
+**Authentication:** Optional
+
+**Request:**
+```http
+GET /api/paper-trading/correlation-analysis HTTP/1.1
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "total_positions": 5,
+    "long_positions": 3,
+    "short_positions": 2,
+    "directional_correlation": 0.68,
+    "correlation_limit": 0.70,
+    "within_limit": true,
+    "can_open_long": true,
+    "can_open_short": true,
+    "positions": [
+      {
+        "symbol": "BTCUSDT",
+        "direction": "LONG",
+        "correlation_with_others": 0.85
+      },
+      {
+        "symbol": "ETHUSDT",
+        "direction": "LONG",
+        "correlation_with_others": 0.72
+      },
+      {
+        "symbol": "BNBUSDT",
+        "direction": "LONG",
+        "correlation_with_others": 0.65
+      },
+      {
+        "symbol": "SOLUSDT",
+        "direction": "SHORT",
+        "correlation_with_others": -0.45
+      },
+      {
+        "symbol": "ADAUSDT",
+        "direction": "SHORT",
+        "correlation_with_others": -0.38
+      }
+    ],
+    "warnings": []
+  }
+}
+```
+
+**Success Response (200 OK - With Warnings):**
+```json
+{
+  "success": true,
+  "data": {
+    "total_positions": 4,
+    "long_positions": 4,
+    "short_positions": 0,
+    "directional_correlation": 0.85,
+    "correlation_limit": 0.70,
+    "within_limit": false,
+    "can_open_long": false,
+    "can_open_short": true,
+    "positions": [
+      {
+        "symbol": "BTCUSDT",
+        "direction": "LONG",
+        "correlation_with_others": 0.95
+      },
+      {
+        "symbol": "ETHUSDT",
+        "direction": "LONG",
+        "correlation_with_others": 0.88
+      },
+      {
+        "symbol": "BNBUSDT",
+        "direction": "LONG",
+        "correlation_with_others": 0.82
+      },
+      {
+        "symbol": "SOLUSDT",
+        "direction": "LONG",
+        "correlation_with_others": 0.75
+      }
+    ],
+    "warnings": [
+      "High directional correlation (85%). Opening new LONG positions is restricted.",
+      "Consider closing some correlated positions or opening SHORT positions for balance."
+    ]
+  }
+}
+```
+
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": "Failed to calculate correlation analysis"
+}
+```
+
+**Code Location:** `rust-core-engine/src/api/paper_trading.rs`
+**Related FR:** FR-PAPER-024
+**Rate Limit:** 10 requests per second
+
+---
+
 ## AI Integration Endpoints
 
 ### POST /api/ai/analyze
@@ -1697,6 +2200,116 @@ ws.onclose = () => {
 
 **Message Types:**
 
+#### price_update
+Real-time price updates for tracked symbols.
+
+```json
+{
+  "event": "price_update",
+  "data": {
+    "symbol": "BTCUSDT",
+    "price": 67500.50,
+    "timestamp": 1697234567000
+  }
+}
+```
+
+#### signal_generated
+New trading signal generated by AI or strategies.
+
+```json
+{
+  "event": "signal_generated",
+  "data": {
+    "symbol": "BTCUSDT",
+    "signal": "LONG",
+    "confidence": 0.75,
+    "strategy": "RSI Strategy",
+    "timestamp": 1697234567000
+  }
+}
+```
+
+#### trade_executed
+Paper trade executed.
+
+```json
+{
+  "event": "trade_executed",
+  "data": {
+    "trade_id": "trade_123456",
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "entry_price": 67500.00,
+    "quantity": 0.001,
+    "timestamp": 1697234567000
+  }
+}
+```
+
+#### portfolio_update
+Portfolio balance or position update.
+
+```json
+{
+  "event": "portfolio_update",
+  "data": {
+    "current_balance": 10500.50,
+    "total_pnl": 500.50,
+    "open_positions": 2,
+    "timestamp": 1697234567000
+  }
+}
+```
+
+#### risk_event
+Risk management event (daily loss limit, cool-down, etc.).
+
+```json
+{
+  "event": "risk_event",
+  "data": {
+    "type": "COOLDOWN_ACTIVATED",
+    "message": "Trading paused: 5 consecutive losses",
+    "cooldown_until": 1697238167000,
+    "timestamp": 1697234567000
+  }
+}
+```
+
+#### trailing_stop_updated
+Trailing stop price updated for a position.
+
+```json
+{
+  "event": "trailing_stop_updated",
+  "data": {
+    "position_id": "pos_12345",
+    "symbol": "BTCUSDT",
+    "new_stop_price": 52705.0,
+    "profit_pct": 5.4,
+    "timestamp": 1697234567000
+  }
+}
+```
+
+#### ai_signal_completed
+AI signal analysis completed (GPT-4 analysis).
+
+```json
+{
+  "event": "ai_signal_completed",
+  "data": {
+    "analysis_id": "ai_analysis_20251122_143000",
+    "symbol": "BTCUSDT",
+    "signal": "BUY",
+    "confidence": 0.85,
+    "reasoning": "Strong bullish momentum...",
+    "timestamp": 1697234567000
+  }
+}
+```
+
 See [API-WEBSOCKET.md](./API-WEBSOCKET.md) for complete WebSocket protocol documentation.
 
 **Code Location:** `rust-core-engine/src/api/mod.rs:486-534`
@@ -1721,6 +2334,7 @@ All error responses follow this structure:
 |-------------|---------|-------|
 | 200 | OK | Successful GET, PUT, POST request |
 | 201 | Created | Successful resource creation |
+| 202 | Accepted | Request accepted for async processing |
 | 400 | Bad Request | Invalid request parameters or validation error |
 | 401 | Unauthorized | Missing or invalid authentication token |
 | 403 | Forbidden | User doesn't have required permissions |
@@ -1744,6 +2358,7 @@ All error responses follow this structure:
 | INSUFFICIENT_BALANCE | Insufficient balance | Not enough balance for operation |
 | RATE_LIMIT_EXCEEDED | Too many requests | API rate limit exceeded |
 | AI_SERVICE_ERROR | AI service unavailable | Python AI service is down or unreachable |
+| AI_ANALYSIS_IN_PROGRESS | AI analysis already in progress | Duplicate AI analysis request |
 | MARKET_DATA_ERROR | Failed to fetch market data | Market data retrieval failed |
 
 ---
@@ -1775,6 +2390,8 @@ X-RateLimit-Reset: 1697234567
 | Paper Trading (read) | 10 requests | 1 second |
 | Paper Trading (write) | 10 requests | 1 minute |
 | AI Analysis | 10 requests | 1 minute |
+| AI Signal Processing | 6 requests | 1 hour |
+| Trailing Stop Updates | 100 requests | 1 minute |
 | Monitoring | 10 requests | 1 second |
 
 ### Rate Limit Exceeded Response
@@ -1795,7 +2412,7 @@ When rate limit is exceeded:
 
 ## Versioning
 
-**Current Version:** 1.0.0
+**Current Version:** 2.0.0
 
 API versioning is not currently implemented. Future versions will use URL-based versioning:
 
@@ -1840,7 +2457,32 @@ CORS is enabled for the following origins:
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** 2025-10-10
+## Changelog
+
+### Version 2.0.0 (2025-11-22)
+
+**New Endpoints (7):**
+1. `GET /api/paper-trading/trailing-stops` - Get trailing stop status
+2. `PUT /api/paper-trading/trailing-stops/settings` - Update trailing stop settings
+3. `POST /api/paper-trading/positions/:id/trailing-stop/manual-adjust` - Manual trailing stop adjustment
+4. `POST /api/paper-trading/process-ai-signal` - Process external AI signal
+5. `GET /api/paper-trading/data-resolutions` - Get available data resolutions
+6. `PUT /api/paper-trading/data-resolution` - Update data resolution
+7. `GET /api/paper-trading/correlation-analysis` - Get position correlation analysis
+
+**New WebSocket Events (2):**
+- `trailing_stop_updated` - Trailing stop price updated
+- `ai_signal_completed` - AI signal analysis completed
+
+**Rate Limit Updates:**
+- AI signal processing: 6 requests/hour
+- Trailing stop updates: 100 requests/minute
+
+**Total Endpoints:** 37 (30 → 37)
+
+---
+
+**Document Version:** 2.0.0
+**Last Updated:** 2025-11-22
 **Author:** Claude Code
 **Status:** Complete

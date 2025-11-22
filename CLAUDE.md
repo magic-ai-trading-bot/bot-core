@@ -4,6 +4,291 @@
 
 ---
 
+## ⚠️ CRITICAL: SPEC-DRIVEN DEVELOPMENT WORKFLOW
+
+**THIS IS A FINANCE PROJECT - MISTAKES = MONEY LOSS**
+
+### Mandatory Workflow for ALL New Features
+
+```
+USER REQUEST → CREATE SPEC → USE AGENTS → UPDATE SPECS → DONE
+```
+
+#### Step 1: CREATE SPEC FIRST (Before ANY code)
+
+When user requests a new feature:
+
+1. **Search existing specs** to understand current system:
+   ```bash
+   # Read relevant existing specs first
+   specs/01-requirements/1.1-functional-requirements/FR-*.md
+   specs/02-design/2.3-api/API-*.md
+   specs/02-design/2.5-components/COMP-*.md
+   ```
+
+2. **Create new requirement spec** using template:
+   - Location: `specs/01-requirements/1.1-functional-requirements/FR-XXX.md`
+   - Use: `specs/_SPEC_TEMPLATE.md` as base
+   - Include: Acceptance criteria (☐ checkboxes), examples, edge cases
+   - Reference: Related specs, design docs, dependencies
+
+3. **Add to TRACEABILITY_MATRIX.md**:
+   - Add new FR-XXX entry to appropriate module section
+   - Link to design docs, test cases, code locations
+   - Maintain 100% traceability
+
+4. **Create test cases** (TC-XXX.md):
+   - Location: `specs/03-testing/3.2-test-cases/TC-XXX.md`
+   - Format: Gherkin (Given/When/Then)
+   - Coverage: Happy path + edge cases + errors
+
+**DO NOT write ANY code until specs are complete and reviewed!**
+
+#### Step 2: USE AGENTS FOR IMPLEMENTATION (MANDATORY)
+
+**NEVER code manually for complex features. ALWAYS use specialized agents:**
+
+```bash
+# For planning & architecture
+/plan [feature-description]  # Creates implementation plan
+
+# For actual implementation
+/cook [step-by-step-tasks]   # Implements feature following spec
+
+# For testing
+/test                        # Runs all tests, verifies coverage
+
+# For code review
+# Automatic after significant code changes
+
+# For documentation
+/docs:update                 # Updates docs after implementation
+```
+
+**Agent Selection Guide:**
+
+| Feature Type | Use This Agent | Example |
+|--------------|----------------|---------|
+| **New trading strategy** | `/plan` → `/cook` | "Add MACD strategy" |
+| **API endpoint** | `/plan` → `/cook` | "Add /api/positions endpoint" |
+| **Database change** | `/plan` → `/cook` | "Add trailing_stops collection" |
+| **Frontend feature** | `/design:good` → `/cook` | "Add dark mode toggle" |
+| **Bug fix** | `/fix:fast` or `/fix:hard` | "Fix order execution bug" |
+| **Performance issue** | `/debug` | "Optimize slow queries" |
+
+**Why agents are MANDATORY:**
+- ✅ Follow specs precisely
+- ✅ Add proper @spec tags automatically
+- ✅ Run tests and validation
+- ✅ Update documentation
+- ✅ Maintain code quality standards
+- ✅ Prevent finance-critical mistakes
+
+#### Step 3: ADD @spec TAGS TO CODE (REQUIRED)
+
+After implementation, verify ALL code has @spec tags:
+
+**Python:**
+```python
+# @spec:FR-ASYNC-001 - Async ML Model Training
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md
+# @test:TC-ASYNC-001, TC-ASYNC-002, TC-ASYNC-003
+async def train_model(...):
+    ...
+```
+
+**Rust:**
+```rust
+// @spec:FR-RISK-007 - Trailing Stop Loss (Long Positions)
+// @ref:specs/01-requirements/1.1-functional-requirements/FR-RISK.md
+// @test:TC-TRADING-054, TC-TRADING-055, TC-TRADING-056
+pub fn update_trailing_stop(...) -> Result<...> {
+    ...
+}
+```
+
+**TypeScript:**
+```typescript
+// @spec:FR-DASHBOARD-006 - WebSocket Integration
+// @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
+// @test:TC-INTEGRATION-040
+export function useWebSocket() {
+  ...
+}
+```
+
+#### Step 4: UPDATE SPECS & DOCS (Mark Complete)
+
+After implementation is tested and working:
+
+1. **Update requirement spec**:
+   - Change checkboxes: `- [ ]` → `- [x]`
+   - Add implementation notes
+   - Update code locations
+
+2. **Update TRACEABILITY_MATRIX.md**:
+   - Verify FR-XXX entry has correct code location
+   - Update status: "Pending" → "✅ Implemented"
+   - Add actual test case IDs
+
+3. **Update feature documentation**:
+   - Update `docs/features/*.md` if needed
+   - Add to `CHANGELOG.md`
+   - Update `README.md` if user-facing
+
+4. **Run validation**:
+   ```bash
+   python3 scripts/validate-specs.py
+   # Must show 0 errors for new requirement
+   ```
+
+#### Step 5: VERIFY TRACEABILITY (100% Required)
+
+Before marking feature complete, verify:
+
+```bash
+# Check: Requirement exists
+grep -r "FR-XXX-YYY" specs/01-requirements/
+
+# Check: In traceability matrix
+grep "FR-XXX-YYY" specs/TRACEABILITY_MATRIX.md
+
+# Check: Has @spec tag in code
+grep -r "@spec:FR-XXX-YYY" {rust-core-engine,python-ai-service,nextjs-ui-dashboard}/
+
+# Check: Test cases exist
+grep "TC-XXX-YYY" specs/03-testing/3.2-test-cases/
+
+# Run validation
+python3 scripts/validate-specs.py
+```
+
+**All checks must pass ✅**
+
+---
+
+## 📖 HOW CLAUDE SHOULD UNDERSTAND THE PROJECT
+
+### ALWAYS Read Specs First (Before ANY task)
+
+**When user asks about existing feature:**
+
+1. **Check specs first** (NOT code):
+   ```bash
+   # Search requirements
+   grep -r "feature-name" specs/01-requirements/
+
+   # Read full spec
+   cat specs/01-requirements/1.1-functional-requirements/FR-XXX.md
+
+   # Check traceability
+   grep "FR-XXX" specs/TRACEABILITY_MATRIX.md
+   ```
+
+2. **Then read code** (to verify implementation):
+   - Use code location from TRACEABILITY_MATRIX.md
+   - Verify @spec tags match
+   - Check implementation matches spec
+
+3. **Answer based on SPEC** (not just code):
+   - Spec = source of truth
+   - Code should match spec
+   - If mismatch → code is wrong, not spec
+
+**When user asks to modify existing feature:**
+
+1. **Read current spec** to understand requirements
+2. **Plan changes** (what needs updating in spec)
+3. **Update spec FIRST** (before code)
+4. **Then use agents** to update code
+5. **Verify** code matches updated spec
+
+**When explaining how system works:**
+
+1. **Reference specs** for authoritative info
+2. **Use code locations** from TRACEABILITY_MATRIX.md
+3. **Cite specific FR-XXX** requirement IDs
+4. **Show examples** from spec, not just code
+
+### Spec File Reading Order
+
+**For new features:**
+```
+1. FR-XXX.md (requirement) → understand WHAT to build
+2. COMP-XXX.md (component) → understand HOW it's architected
+3. API-XXX.md (API design) → understand interface
+4. DB-SCHEMA.md (database) → understand data model
+5. TC-XXX.md (test cases) → understand validation
+6. Code (implementation) → see actual code
+```
+
+**For bug fixes:**
+```
+1. TRACEABILITY_MATRIX.md → find which FR-XXX covers this
+2. FR-XXX.md → understand intended behavior
+3. TC-XXX.md → understand test cases
+4. Code → identify bug
+5. Fix code to match spec (not vice versa)
+```
+
+**For questions:**
+```
+1. Search specs: grep -r "keyword" specs/
+2. Read matched FR-XXX.md files
+3. Check TRACEABILITY_MATRIX.md for code location
+4. Read code to verify
+5. Answer based on spec + code verification
+```
+
+---
+
+## 🎯 VALIDATION RULES (Must Follow)
+
+### Before Starting ANY Task
+
+```bash
+# 1. Validate current state
+python3 scripts/validate-specs.py
+
+# 2. Read relevant specs
+cat specs/01-requirements/1.1-functional-requirements/FR-*.md
+
+# 3. Check traceability
+cat specs/TRACEABILITY_MATRIX.md | grep "FR-XXX"
+```
+
+### After Completing ANY Task
+
+```bash
+# 1. Verify @spec tags added
+grep -r "@spec:FR-XXX" .
+
+# 2. Update traceability matrix
+# Edit: specs/TRACEABILITY_MATRIX.md
+
+# 3. Run validation
+python3 scripts/validate-specs.py
+# Must show 0 new errors
+
+# 4. Verify 100% traceability maintained
+# Check: All new FRs in matrix
+# Check: All code has @spec tags
+```
+
+### Continuous Validation
+
+- ✅ Specs must be written BEFORE code
+- ✅ All code must have @spec tags
+- ✅ TRACEABILITY_MATRIX.md must be 100% complete
+- ✅ Validation script must pass (0 critical errors)
+- ✅ Finance-critical features must have A+ safety grade
+
+**If any validation fails → DO NOT PROCEED until fixed**
+
+---
+
+---
+
 ## 🎯 QUICK FEATURE LOCATION MAP
 
 ### Paper Trading (Execution + Risk Management)
@@ -191,30 +476,34 @@
 
 ## 📚 DOCUMENTATION STRUCTURE
 
-### Quick References (Read these first!)
-- `docs/features/` - **Feature-specific guides** (5 docs, <500 lines each)
+**Two main directories** - Clean and organized:
+
+### 1️⃣ `/docs/` - Operational Documentation (for users & developers)
+- **`features/`** - Feature-specific guides (5 docs, <500 lines each)
   - `paper-trading.md` - Paper trading system
   - `authentication.md` - Auth & JWT
   - `ai-integration.md` - ML models & GPT-4
   - `trading-strategies.md` - RSI, MACD, Bollinger, Volume
   - `websocket-realtime.md` - Real-time communication
+- **`guides/`** - User guides & how-to documents
+- **`reports/`** - Implementation reports, phase summaries
+- **`plans/`** - Planning documents, validation guides
+- **`testing/`** - Testing documentation
+- **`certificates/`** - Quality certificates & achievements
+- **`archive/`** - Legacy documentation (old `/documents` content)
+- **Root docs**: `CONTRIBUTING.md`, `TESTING_GUIDE.md`, `TROUBLESHOOTING.md`, `PRODUCTION_DEPLOYMENT_GUIDE.md`
 
-### Deep Dives
-- `specs/` - **Complete specifications** (75 docs, 2.6MB)
-  - `01-requirements/` - 24 docs (194 requirements, 63 user stories)
-  - `02-design/` - 20 docs (Architecture, API, DB schema)
-  - `03-testing/` - 12 docs (186 test cases, 45 scenarios)
-  - `04-deployment/` - 7 docs (Infrastructure, CI/CD)
-  - `05-operations/` - 3 docs (Operations, DR plan)
+### 2️⃣ `/specs/` - Technical Specifications (for spec-driven development)
+- **`01-requirements/`** - 24 docs (194 requirements, 63 user stories)
+- **`02-design/`** - 20 docs (Architecture, API, DB schema)
+- **`03-testing/`** - 12 docs (186 test cases, 45 scenarios)
+- **`04-deployment/`** - 7 docs (Infrastructure, CI/CD)
+- **`05-operations/`** - 3 docs (Operations, DR plan)
+- **Root specs**: `TRACEABILITY_MATRIX.md`, `TASK_TRACKER.md`, `README.md`
 
-### Guides & Reports
-- `docs/` - **Operational documentation**
-  - `CONTRIBUTING.md` - How to contribute
-  - `TESTING_GUIDE.md` - Testing standards
-  - `TROUBLESHOOTING.md` - Common issues
-  - `PRODUCTION_DEPLOYMENT_GUIDE.md` - Deployment steps
-  - `reports/` - Implementation reports (moved from root)
-  - `certificates/` - Quality certificates
+**Why 2 directories?**
+- `/docs` = Operational docs for **daily use** (guides, troubleshooting, reports)
+- `/specs` = Formal specifications for **development** (requirements, design, traceability)
 
 ---
 
@@ -432,6 +721,15 @@ async fn execute_trade(...) { ... }
 
 ---
 
-**Last Updated**: 2025-11-20
-**Status**: PRODUCTION-READY | WORLD-CLASS QUALITY
-**Version**: 2.0 (Smart Navigation Hub)
+**Last Updated**: 2025-11-22
+**Status**: PRODUCTION-READY | WORLD-CLASS QUALITY | SPEC-DRIVEN
+**Version**: 3.0 (Spec-Driven Development Workflow + 100% Traceability)
+
+**Major Changes in v3.0**:
+- ✅ Added MANDATORY spec-driven development workflow
+- ✅ Specs MUST be written BEFORE code
+- ✅ All code MUST use agents for implementation
+- ✅ All code MUST have @spec tags
+- ✅ 100% traceability REQUIRED (256 requirements tracked)
+- ✅ Validation script enforces quality standards
+- ✅ Claude MUST read specs first (not just code)

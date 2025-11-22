@@ -24,6 +24,9 @@ class BacktestTask(Task):
         logger.info(f"Backtest task {task_id} completed")
 
 
+# @spec:FR-ASYNC-011 - Async Strategy Backtesting
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-011
+# @test:TC-ASYNC-076, TC-ASYNC-077, TC-ASYNC-078, TC-ASYNC-079, TC-ASYNC-080
 @app.task(
     bind=True,
     base=BacktestTask,
@@ -139,6 +142,9 @@ def backtest_strategy(
         raise
 
 
+# @spec:FR-ASYNC-012 - Async Strategy Optimization
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-012
+# @test:TC-ASYNC-091, TC-ASYNC-092, TC-ASYNC-093, TC-ASYNC-094, TC-ASYNC-095
 @app.task(
     bind=True,
     base=BacktestTask,

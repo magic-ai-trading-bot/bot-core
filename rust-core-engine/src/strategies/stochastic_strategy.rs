@@ -8,9 +8,10 @@ use serde_json::json;
 /// Uses %K and %D lines to identify overbought/oversold conditions
 /// and generate trading signals based on crossovers
 
-// @spec:FR-STRATEGY-006 - Stochastic Strategy
+// @spec:FR-STRATEGIES-005 - Stochastic Oscillator Trading Strategy
+// @ref:specs/01-requirements/1.1-functional-requirements/FR-STRATEGIES.md#fr-strategies-005
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
-// @test:TC-TRADING-030, TC-TRADING-031
+// @test:TC-AI-016
 
 #[derive(Debug, Clone)]
 pub struct StochasticStrategy {
@@ -105,6 +106,9 @@ impl Strategy for StochasticStrategy {
         vec!["1h", "4h"]
     }
 
+    // @spec:FR-STRATEGIES-005 - Stochastic Oscillator Trading Strategy (Multi-Timeframe Analysis)
+    // @ref:specs/01-requirements/1.1-functional-requirements/FR-STRATEGIES.md#fr-strategies-005
+    // @test:TC-AI-016
     async fn analyze(&self, data: &StrategyInput) -> Result<StrategyOutput, StrategyError> {
         self.validate_data(data)?;
 

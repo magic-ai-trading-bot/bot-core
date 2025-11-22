@@ -63,6 +63,9 @@ class MonitoringTask(Task):
 # =============================================================================
 
 
+# @spec:FR-ASYNC-004 - System Health Check
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-004
+# @test:TC-ASYNC-021, TC-ASYNC-022, TC-ASYNC-023, TC-ASYNC-024, TC-ASYNC-025
 @app.task(
     bind=True,
     base=MonitoringTask,
@@ -224,6 +227,9 @@ def system_health_check(self) -> Dict[str, Any]:
 # =============================================================================
 
 
+# @spec:FR-ASYNC-005 - Daily Portfolio Report
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-005
+# @test:TC-ASYNC-031, TC-ASYNC-032, TC-ASYNC-033
 @app.task(
     bind=True,
     base=MonitoringTask,
@@ -303,6 +309,9 @@ def daily_portfolio_report(self) -> Dict[str, Any]:
 # =============================================================================
 
 
+# @spec:FR-ASYNC-006 - Daily API Cost Report
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-006
+# @test:TC-ASYNC-036, TC-ASYNC-037, TC-ASYNC-038
 @app.task(
     bind=True,
     base=MonitoringTask,
@@ -415,6 +424,9 @@ def daily_api_cost_report(self) -> Dict[str, Any]:
 # =============================================================================
 
 
+# @spec:FR-ASYNC-007 - Daily Performance Analysis
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-007
+# @test:TC-ASYNC-041, TC-ASYNC-042, TC-ASYNC-043, TC-ASYNC-044
 @app.task(
     bind=True,
     base=MonitoringTask,

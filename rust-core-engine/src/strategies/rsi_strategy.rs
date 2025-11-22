@@ -5,7 +5,7 @@ use serde_json::json;
 
 /// RSI-based trading strategy
 
-// @spec:FR-STRATEGY-001 - RSI Strategy
+// @spec:FR-STRATEGIES-001 - RSI Strategy
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
 // @test:TC-TRADING-022, TC-TRADING-023
 

@@ -5,7 +5,7 @@ use serde_json::json;
 
 /// Bollinger Bands-based trading strategy
 
-// @spec:FR-STRATEGY-003 - Bollinger Bands Strategy
+// @spec:FR-STRATEGIES-003 - Bollinger Bands Strategy
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
 // @test:TC-TRADING-027
 
