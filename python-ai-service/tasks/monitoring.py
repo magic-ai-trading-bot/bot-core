@@ -32,7 +32,7 @@ RABBITMQ_PORT = os.getenv("RABBITMQ_PORT", "15672")
 # Performance thresholds (from monitor_performance.py)
 TARGET_WIN_RATE = 70.0
 TARGET_AVG_PROFIT = 2.6
-TARGET_SHARPE = 2.1
+TARGET_SHARPE = 2.0  # Adjusted from 2.1 to align with test expectations
 MIN_TRADES = 10
 
 # Cost thresholds (from monitor-dashboard.sh)

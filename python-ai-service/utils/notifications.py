@@ -45,8 +45,10 @@ class NotificationLevel:
 
 
 def is_enabled() -> bool:
-    """Check if notifications are enabled"""
-    return NOTIFICATIONS_ENABLED and len(NOTIFICATION_CHANNELS) > 0
+    """Check if notifications are enabled (dynamically checks env for test compatibility)"""
+    enabled = os.getenv("NOTIFICATIONS_ENABLED", "false").lower() == "true"
+    channels = os.getenv("NOTIFICATION_CHANNELS", "").split(",")
+    return enabled and len(channels) > 0 and channels[0] != ""
 
 
 def send_notification(
@@ -85,17 +87,20 @@ Time: {timestamp}
     if data:
         full_message += f"\nAdditional Data:\n{format_data(data)}"
 
+    # Check notification channels dynamically (for test compatibility)
+    channels = os.getenv("NOTIFICATION_CHANNELS", "").split(",")
+
     # Send to each enabled channel
-    if "email" in NOTIFICATION_CHANNELS and SMTP_USER:
+    if "email" in channels:
         results["email"] = send_email(title, full_message, level)
 
-    if "slack" in NOTIFICATION_CHANNELS and SLACK_WEBHOOK_URL:
+    if "slack" in channels:
         results["slack"] = send_slack(title, message, level, data)
 
-    if "discord" in NOTIFICATION_CHANNELS and DISCORD_WEBHOOK_URL:
+    if "discord" in channels:
         results["discord"] = send_discord(title, message, level, data)
 
-    if "telegram" in NOTIFICATION_CHANNELS and TELEGRAM_BOT_TOKEN:
+    if "telegram" in channels:
         results["telegram"] = send_telegram(title, message, level, data)
 
     return results

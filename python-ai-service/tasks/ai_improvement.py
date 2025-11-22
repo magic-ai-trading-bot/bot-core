@@ -92,10 +92,14 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
     logger.info("🤖 Starting GPT-4 self-analysis...")
 
     try:
-        # Check if OpenAI API key is configured
-        if not OPENAI_API_KEY:
+        # Check if OpenAI API key is configured (check dynamically for test compatibility)
+        api_key = os.getenv("OPENAI_API_KEY", OPENAI_API_KEY)
+        if not api_key:
             logger.error("❌ OPENAI_API_KEY not configured - cannot run GPT-4 analysis")
             raise Exception("OPENAI_API_KEY not configured")
+
+        # Set OpenAI API key for this request
+        openai.api_key = api_key
 
         # STEP 1: Fetch last 7 days performance data
         logger.info("📊 Fetching 7-day performance data...")
@@ -165,7 +169,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
         # STEP 5: Prepare GPT-4 prompt
         logger.info("🤖 Preparing GPT-4 analysis prompt...")
 
-        prompt = build_gpt4_analysis_prompt(daily_metrics, model_accuracy, market_data)
+        prompt = _build_gpt4_analysis_prompt(daily_metrics, model_accuracy, market_data)
 
         # STEP 6: Call GPT-4 for analysis
         logger.info("🤖 Calling GPT-4 for deep analysis...")
@@ -515,12 +519,12 @@ def calculate_daily_metrics(trades: List[Dict]) -> List[Dict]:
     return daily_metrics
 
 
-def build_gpt4_analysis_prompt(
+def _build_gpt4_analysis_prompt(
     daily_metrics: List[Dict],
     model_accuracy: Dict[str, Any],
     market_data: Dict[str, Any],
 ) -> str:
-    """Build GPT-4 analysis prompt with performance data"""
+    """Build GPT-4 analysis prompt with performance data (private helper)"""
 
     # Extract trends
     win_rates = [m["win_rate"] for m in daily_metrics] if daily_metrics else []
@@ -574,3 +578,55 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 """
 
     return prompt
+
+
+def _calculate_model_metrics(
+    accuracy_data: List[Dict[str, Any]], model_type: str
+) -> Dict[str, Any]:
+    """
+    Calculate model metrics from accuracy history (private helper)
+
+    Args:
+        accuracy_data: List of dicts with accuracy history
+        model_type: Model type to filter for (e.g., 'lstm', 'gru')
+
+    Returns:
+        Dict with avg_accuracy and trend
+    """
+    # Filter for the specific model type
+    model_data = [
+        d for d in accuracy_data if d.get("model_type") == model_type
+    ]
+
+    if not model_data:
+        return {
+            "avg_accuracy": 0.0,
+            "trend": "unknown",
+            "count": 0,
+        }
+
+    # Calculate average accuracy
+    accuracies = [d.get("accuracy", 0) for d in model_data]
+    avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 0.0
+
+    # Determine trend (simple: compare first half vs second half)
+    if len(accuracies) >= 2:
+        mid = len(accuracies) // 2
+        first_half_avg = sum(accuracies[:mid]) / mid
+        second_half_avg = sum(accuracies[mid:]) / (len(accuracies) - mid)
+
+        if second_half_avg > first_half_avg + 2:
+            trend = "improving"
+        elif second_half_avg < first_half_avg - 2:
+            trend = "declining"
+        else:
+            trend = "stable"
+    else:
+        trend = "unknown"
+
+    return {
+        "avg_accuracy": avg_accuracy,
+        "trend": trend,
+        "count": len(model_data),
+        "latest_accuracy": accuracies[-1] if accuracies else 0.0,
+    }

@@ -56,6 +56,13 @@ class DataStorage:
             cls._instance._initialize()
         return cls._instance
 
+    @classmethod
+    def reset_instance(cls):
+        """Reset singleton instance (for testing purposes)"""
+        cls._instance = None
+        cls._client = None
+        cls._db = None
+
     def _initialize(self):
         """Initialize MongoDB connection"""
         try:
@@ -484,7 +491,7 @@ class DataStorage:
     def store_retrain_result(
         self,
         results: Dict[str, Any],
-        task_id: str,
+        task_id: Optional[str] = None,
         trigger_type: str = "gpt4_recommendation",
         trigger_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
@@ -493,7 +500,7 @@ class DataStorage:
 
         Args:
             results: Retrain results from adaptive_retrain task
-            task_id: Celery task ID
+            task_id: Celery task ID (optional, defaults to "unknown" for tests)
             trigger_type: What triggered the retrain
             trigger_data: Additional trigger information
 
@@ -507,7 +514,7 @@ class DataStorage:
         try:
             document = {
                 "timestamp": datetime.utcnow(),
-                "task_id": task_id,
+                "task_id": task_id or "unknown",
                 "trigger_type": trigger_type,
                 "trigger_data": trigger_data or {},
                 "models": results.get("models", {}),
@@ -559,14 +566,14 @@ class DataStorage:
     def store_retrain_history(
         self,
         retrain_data: Dict[str, Any],
-        task_id: str,
+        task_id: Optional[str] = None,
     ) -> Optional[str]:
         """
         Store model retraining results (alias for store_retrain_result)
 
         Args:
             retrain_data: Retrain results dict
-            task_id: Celery task ID
+            task_id: Celery task ID (optional, defaults to "unknown" for tests)
 
         Returns:
             Document ID if successful, None otherwise
@@ -579,5 +586,22 @@ class DataStorage:
         )
 
 
-# Singleton instance
-storage = DataStorage()
+# Lazy singleton instance (created on first access to allow test mocking)
+_storage_instance = None
+
+
+def get_storage() -> DataStorage:
+    """Get or create the DataStorage singleton instance"""
+    global _storage_instance
+    if _storage_instance is None:
+        _storage_instance = DataStorage()
+    return _storage_instance
+
+
+# For backward compatibility, create a property-like accessor
+class _StorageAccessor:
+    def __getattr__(self, name):
+        return getattr(get_storage(), name)
+
+
+storage = _StorageAccessor()
