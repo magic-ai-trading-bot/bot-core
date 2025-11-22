@@ -16,7 +16,7 @@ services:
       - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_inter_service_token}
       - PYTHON_API_KEY=${PYTHON_API_KEY:-default_python_api_key}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:password@mongodb:27017/bot_core}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
     volumes:
       - ./python-ai-service/models:/app/models
       - ./python-ai-service/logs:/app/logs
@@ -103,7 +103,7 @@ services:
       - "8080:8080"
     environment:
       - RUST_LOG=${RUST_LOG:-info}
-      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:password@mongodb:27017/bot_core}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-default_binance_api_key}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-default_binance_secret}
@@ -151,7 +151,7 @@ services:
     environment:
       - RUST_LOG=debug
       - RUST_BACKTRACE=1
-      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:password@mongodb:27017/bot_core}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service-dev:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-default_binance_api_key}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-default_binance_secret}
@@ -365,6 +365,7 @@ services:
       retries: 3
       start_period: 30s
     profiles:
+      - messaging
       - redis
 
   # RabbitMQ service - Message queue for async processing
@@ -413,7 +414,7 @@ services:
       - RABBITMQ_VHOST=bot-core
       - REDIS_HOST=redis
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
-      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:password@mongodb:27017/bot_core}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./python-ai-service:/app
@@ -458,6 +459,8 @@ services:
       - RABBITMQ_VHOST=bot-core
       - REDIS_HOST=redis
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
@@ -490,6 +493,8 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - REDIS_HOST=redis
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - "5555:5555"  # Flower web UI
     networks:

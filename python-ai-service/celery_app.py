@@ -32,7 +32,12 @@ app = Celery(
     "bot_core",
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
-    include=["tasks.ml_tasks", "tasks.backtest_tasks", "tasks.scheduled_tasks"],
+    include=[
+        "tasks.ml_tasks",
+        "tasks.backtest_tasks",
+        "tasks.monitoring",
+        "tasks.ai_improvement",
+    ],
 )
 
 # Configure Celery
@@ -68,7 +73,8 @@ app.conf.update(
         "tasks.ml_tasks.bulk_analysis": {"queue": "bulk_analysis"},
         "tasks.backtest_tasks.backtest_strategy": {"queue": "backtesting"},
         "tasks.backtest_tasks.optimize_strategy": {"queue": "optimization"},
-        "tasks.scheduled_tasks.*": {"queue": "scheduled"},
+        "tasks.monitoring.*": {"queue": "scheduled"},
+        "tasks.ai_improvement.*": {"queue": "scheduled"},
     },
 
     # Task priority
@@ -138,33 +144,36 @@ app.conf.task_queues = (
     ),
 )
 
-# Celery Beat schedule - for periodic tasks
+# Celery Beat schedule - NEW INTELLIGENT JOBS (replaced 4 bad time-based jobs)
 app.conf.beat_schedule = {
-    # Hourly data collection
-    "hourly-data-collection": {
-        "task": "tasks.scheduled_tasks.collect_market_data",
-        "schedule": crontab(minute=0),  # Every hour at :00
-        "kwargs": {"symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT"]},
+    # System health monitoring (every 15 minutes)
+    "system-health-check": {
+        "task": "tasks.monitoring.system_health_check",
+        "schedule": crontab(minute="*/15"),  # Every 15 minutes
     },
 
-    # Daily model retrain (2 AM UTC)
-    "daily-model-retrain": {
-        "task": "tasks.scheduled_tasks.daily_retrain_models",
-        "schedule": crontab(hour=2, minute=0),  # 2:00 AM daily
-        "kwargs": {"model_types": ["lstm", "gru", "transformer"]},
+    # Daily portfolio report (8 AM UTC)
+    "daily-portfolio-report": {
+        "task": "tasks.monitoring.daily_portfolio_report",
+        "schedule": crontab(hour=8, minute=0),  # 8:00 AM daily
     },
 
-    # Weekly strategy optimization (Sunday 3 AM UTC)
-    "weekly-strategy-optimize": {
-        "task": "tasks.scheduled_tasks.weekly_optimize_strategies",
-        "schedule": crontab(hour=3, minute=0, day_of_week=0),  # Sunday 3:00 AM
-        "kwargs": {"lookback_days": 7},
+    # Daily API cost report (9 AM UTC)
+    "daily-api-cost-report": {
+        "task": "tasks.monitoring.daily_api_cost_report",
+        "schedule": crontab(hour=9, minute=0),  # 9:00 AM daily
     },
 
-    # Monthly portfolio review (1st day of month, 4 AM UTC)
-    "monthly-portfolio-review": {
-        "task": "tasks.scheduled_tasks.monthly_portfolio_review",
-        "schedule": crontab(hour=4, minute=0, day_of_month=1),  # 1st day 4:00 AM
+    # Daily performance analysis (1 AM UTC)
+    "daily-performance-analysis": {
+        "task": "tasks.monitoring.daily_performance_analysis",
+        "schedule": crontab(hour=1, minute=0),  # 1:00 AM daily
+    },
+
+    # GPT-4 self-analysis for adaptive retraining (3 AM UTC)
+    "gpt4-self-analysis": {
+        "task": "tasks.ai_improvement.gpt4_self_analysis",
+        "schedule": crontab(hour=3, minute=0),  # 3:00 AM daily
     },
 }
 

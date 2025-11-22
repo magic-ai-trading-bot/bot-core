@@ -31,6 +31,7 @@ print_usage() {
     echo "  stop      - Stop all services"
     echo "  restart   - Restart all services"
     echo "  build     - Build all services"
+    echo "  test      - Run test suite"
     echo "  status    - Show service status"
     echo "  logs      - Show logs for all services"
     echo "  clean     - Clean up containers and volumes"
@@ -39,19 +40,27 @@ print_usage() {
     echo ""
     echo -e "${YELLOW}Options:${NC}"
     echo "  --memory-optimized  - Use memory optimized settings"
-    echo "  --with-enterprise   - Include enterprise features (Redis, RabbitMQ, Kong, Monitoring)"
-    echo "  --with-redis        - Include Redis cache"
-    echo "  --with-rabbitmq     - Include RabbitMQ message queue"
-    echo "  --with-kong         - Include Kong API Gateway"
-    echo "  --with-monitoring   - Include Prometheus & Grafana"
+    echo "  --with-enterprise   - Explicitly enable all enterprise features (Redis, RabbitMQ, Kong, Monitoring)"
     echo "  --service SERVICE   - Target specific service"
+    echo "  --coverage          - Run tests with coverage report (test command only)"
+    echo "  --all               - Run all test files including comprehensive tests (test command only)"
+    echo ""
+    echo -e "${GREEN}⭐ DEFAULT SERVICES (Always Started):${NC}"
+    echo "  ✅ Core Services: MongoDB, Rust Engine, Python AI, Frontend"
+    echo "  ✅ Redis Cache"
+    echo "  ✅ RabbitMQ + Celery Worker + Celery Beat + Flower (Async Jobs)"
+    echo "  ✅ Kong API Gateway"
+    echo "  ✅ Prometheus + Grafana (Monitoring)"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
-    echo "  $0 start                      # Start core services only"
-    echo "  $0 start --with-enterprise    # Start all services including enterprise features"
-    echo "  $0 start --with-redis --with-monitoring  # Start with specific features"
-    echo "  $0 dev                        # Start in development mode"
-    echo "  $0 logs --service python-ai-service  # Show logs for specific service"
+    echo "  $0 start                      # Start ALL services (full stack)"
+    echo "  $0 start --memory-optimized   # Start all services with optimized memory"
+    echo "  $0 dev                        # Start in development mode (all features)"
+    echo "  $0 test                       # Run simplified test suite (24 tests)"
+    echo "  $0 test --coverage            # Run tests with coverage report"
+    echo "  $0 test --all                 # Run all test files (138 tests)"
+    echo "  $0 logs --service celery-worker  # Show logs for Celery worker"
+    echo "  $0 status                     # Check all services status"
 }
 
 print_status() {
@@ -240,7 +249,7 @@ show_urls() {
     echo -e "  📊 Frontend Dashboard: ${CYAN}http://localhost:3000${NC}"
     echo -e "  🦀 Rust Core Engine: ${CYAN}http://localhost:8080/api/health${NC}"
     echo -e "  🐍 Python AI Service: ${CYAN}http://localhost:8000/health${NC}"
-    
+
     # Check if enterprise features are running
     if docker ps --format '{{.Names}}' | grep -q "rabbitmq"; then
         echo -e "\n${GREEN}Enterprise Features:${NC}"
@@ -261,20 +270,61 @@ show_urls() {
     echo ""
 }
 
+run_tests() {
+    print_status "Running test suite..."
+
+    # Check if celery-worker is running
+    if ! docker ps --format '{{.Names}}' | grep -q "celery-worker"; then
+        print_error "celery-worker container is not running"
+        print_status "Start services first with: ./scripts/bot.sh start --with-rabbitmq"
+        exit 1
+    fi
+
+    if [[ "$RUN_ALL_TESTS" == "true" ]]; then
+        print_status "Running ALL test files (138 tests)..."
+        if [[ "$WITH_COVERAGE" == "true" ]]; then
+            docker exec celery-worker pytest tests/ -v \
+                --cov=tasks --cov=utils --cov=celery_app \
+                --cov-report=html --cov-report=term-missing
+        else
+            docker exec celery-worker pytest tests/ -v
+        fi
+    else
+        print_status "Running simplified test suite (24 tests)..."
+        if [[ "$WITH_COVERAGE" == "true" ]]; then
+            docker exec celery-worker pytest tests/test_async_tasks_simple.py -v \
+                --cov=tasks --cov=utils --cov=celery_app \
+                --cov-report=html --cov-report=term-missing
+            print_success "Coverage report generated at: python-ai-service/htmlcov/index.html"
+        else
+            docker exec celery-worker pytest tests/test_async_tasks_simple.py -v
+        fi
+    fi
+
+    if [[ $? -eq 0 ]]; then
+        print_success "All tests passed! ✅"
+    else
+        print_error "Some tests failed! ❌"
+        exit 1
+    fi
+}
+
 # Parse arguments
 COMMAND=""
 MEMORY_OPTIMIZED="false"
 DEV_MODE="false"
 SERVICE=""
 WITH_ENTERPRISE="false"
-WITH_REDIS="false"
-WITH_RABBITMQ="false"
-WITH_KONG="false"
-WITH_MONITORING="false"
+WITH_REDIS="true"           # ⭐ Default: true (always start Redis)
+WITH_RABBITMQ="true"        # ⭐ Default: true (always start async jobs)
+WITH_KONG="true"            # ⭐ Default: true (always start API Gateway)
+WITH_MONITORING="true"      # ⭐ Default: true (always start monitoring)
+WITH_COVERAGE="false"
+RUN_ALL_TESTS="false"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        start|dev|stop|restart|build|status|logs|clean|verify|help)
+        start|dev|stop|restart|build|test|status|logs|clean|verify|help)
             COMMAND="$1"
             if [[ "$1" == "dev" ]]; then
                 DEV_MODE="true"
@@ -303,6 +353,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --with-monitoring)
             WITH_MONITORING="true"
+            shift
+            ;;
+        --coverage)
+            WITH_COVERAGE="true"
+            shift
+            ;;
+        --all)
+            RUN_ALL_TESTS="true"
             shift
             ;;
         --service)
@@ -343,6 +401,9 @@ case $COMMAND in
         ;;
     build)
         build_services
+        ;;
+    test)
+        run_tests
         ;;
     status)
         show_status
