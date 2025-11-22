@@ -174,6 +174,10 @@ def send_slack(
         # Get webhook URL (check env vars dynamically for tests)
         webhook_url = os.getenv("SLACK_WEBHOOK_URL", SLACK_WEBHOOK_URL)
 
+        # Check if webhook URL is configured
+        if not webhook_url:
+            return {"status": "failed", "error": "SLACK_WEBHOOK_URL not configured"}
+
         # Color based on level
         color_map = {
             NotificationLevel.INFO: "#36a64f",  # Green
@@ -250,6 +254,10 @@ def send_discord(
     try:
         # Get webhook URL (check env vars dynamically for tests)
         webhook_url = os.getenv("DISCORD_WEBHOOK_URL", DISCORD_WEBHOOK_URL)
+
+        # Check if webhook URL is configured
+        if not webhook_url:
+            return {"status": "failed", "error": "DISCORD_WEBHOOK_URL not configured"}
 
         # Color based on level (Discord uses integer colors)
         color_map = {
@@ -332,6 +340,10 @@ def send_telegram(
         # Get Telegram config (check env vars dynamically for tests)
         bot_token = os.getenv("TELEGRAM_BOT_TOKEN", TELEGRAM_BOT_TOKEN)
         chat_id = os.getenv("TELEGRAM_CHAT_ID", TELEGRAM_CHAT_ID)
+
+        # Check if Telegram credentials are configured
+        if not bot_token or not chat_id:
+            return {"status": "failed", "error": "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured"}
 
         # Emoji based on level
         emoji_map = {
