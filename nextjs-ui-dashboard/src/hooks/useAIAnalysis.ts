@@ -167,6 +167,11 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
           const priceData = await response.json();
           currentPrice = parseFloat(priceData.price);
+
+          // Check if parsing resulted in NaN (invalid data)
+          if (isNaN(currentPrice)) {
+            throw new Error("Invalid price data from API");
+          }
         } catch (e) {
           logger.error("Failed to fetch real price from Binance:", e);
           // Fallback to estimated prices if API fails
