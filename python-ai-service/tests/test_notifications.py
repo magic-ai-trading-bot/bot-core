@@ -193,25 +193,17 @@ class TestSlackNotifications:
         # Slack uses 'text', 'blocks', or 'attachments' field
         assert "text" in payload or "blocks" in payload or "attachments" in payload
 
+    @patch.dict(os.environ, {"SLACK_WEBHOOK_URL": ""}, clear=False)
     def test_send_slack_requires_webhook_url(self):
         """Test that Slack requires webhook URL"""
         from utils.notifications import send_slack
 
-        # Save original
-        webhook = os.environ.get("SLACK_WEBHOOK_URL")
+        result = send_slack("Test", "Message", "info")
 
-        try:
-            # Remove webhook
-            os.environ.pop("SLACK_WEBHOOK_URL", None)
-
-            result = send_slack("Test", "Message", "info")
-
-            # Should fail gracefully
-            assert result["status"] == "failed" or "error" in result
-
-        finally:
-            if webhook:
-                os.environ["SLACK_WEBHOOK_URL"] = webhook
+        # Should fail gracefully
+        assert result["status"] == "failed"
+        assert "error" in result
+        assert "not configured" in result["error"]
 
 
 class TestDiscordNotifications:

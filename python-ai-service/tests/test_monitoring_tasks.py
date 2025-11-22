@@ -36,13 +36,18 @@ class TestSystemHealthCheck:
         assert "services" in result["health_report"]
         assert "timestamp" in result["health_report"]
 
+    @patch("tasks.monitoring.subprocess.run")
     @patch("tasks.monitoring.requests.get")
-    def test_health_check_service_down(self, mock_get):
+    def test_health_check_service_down(self, mock_get, mock_subprocess):
         """Test health check when services are down"""
         from tasks.monitoring import system_health_check
+        import subprocess
 
         # Mock service connection refused
         mock_get.side_effect = requests.exceptions.ConnectionError("Connection refused")
+
+        # Mock subprocess calls to raise exceptions (simulating MongoDB/Redis DOWN)
+        mock_subprocess.side_effect = subprocess.TimeoutExpired("mongosh", 5)
 
         result = system_health_check()
 
