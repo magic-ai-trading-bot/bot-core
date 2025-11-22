@@ -181,6 +181,21 @@ class DataStorage:
             logger.error(f"❌ Failed to retrieve GPT-4 history: {e}")
             return []
 
+    def get_latest_gpt4_analysis(self) -> Optional[Dict[str, Any]]:
+        """Get the most recent GPT-4 analysis"""
+        if not self.is_connected():
+            return None
+
+        try:
+            result = self._db[COLLECTION_GPT4_ANALYSIS].find_one(
+                sort=[("timestamp", DESCENDING)]
+            )
+            return result
+
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve latest GPT-4 analysis: {e}")
+            return None
+
     # =========================================================================
     # PERFORMANCE METRICS STORAGE
     # =========================================================================
@@ -213,7 +228,8 @@ class DataStorage:
                 "task_id": task_id,
                 "total_trades": metrics.get("total_trades"),
                 "win_rate": metrics.get("win_rate"),
-                "avg_profit_per_trade": metrics.get("avg_profit_per_trade"),
+                "avg_profit_per_trade": metrics.get("avg_profit_per_trade") or metrics.get("avg_profit"),
+                "avg_profit": metrics.get("avg_profit") or metrics.get("avg_profit_per_trade"),
                 "sharpe_ratio": metrics.get("sharpe_ratio"),
                 "performance_status": {
                     "win_rate_status": metrics.get("performance", {}).get(
@@ -261,23 +277,80 @@ class DataStorage:
             logger.error(f"❌ Failed to retrieve performance history: {e}")
             return []
 
+    def get_performance_trend(
+        self,
+        days: int = 7,
+        metric: str = "win_rate",
+    ) -> str:
+        """
+        Calculate trend for a specific metric
+
+        Args:
+            days: Number of days to analyze
+            metric: Metric to analyze (win_rate, avg_profit, sharpe_ratio)
+
+        Returns:
+            Trend: "improving", "stable", or "declining"
+        """
+        if not self.is_connected():
+            return "unknown"
+
+        try:
+            since = datetime.utcnow() - timedelta(days=days)
+            cursor = (
+                self._db[COLLECTION_PERFORMANCE_METRICS]
+                .find({"timestamp": {"$gte": since}})
+                .sort("timestamp", DESCENDING)
+                .limit(days)
+            )
+
+            data = list(cursor)
+            if len(data) < 3:
+                return "insufficient_data"
+
+            # Extract metric values (most recent first, so reverse for trend calculation)
+            values = [d.get(metric, 0) for d in reversed(data)]
+
+            # Simple linear regression to detect trend
+            n = len(values)
+            x = list(range(n))
+            mean_x = sum(x) / n
+            mean_y = sum(values) / n
+
+            # Calculate slope
+            numerator = sum((x[i] - mean_x) * (values[i] - mean_y) for i in range(n))
+            denominator = sum((x[i] - mean_x) ** 2 for i in range(n))
+
+            if denominator == 0:
+                return "stable"
+
+            slope = numerator / denominator
+
+            # Determine trend based on slope
+            if slope > 0.5:
+                return "improving"
+            elif slope < -0.5:
+                return "declining"
+            else:
+                return "stable"
+
+        except Exception as e:
+            logger.error(f"❌ Failed to calculate performance trend: {e}")
+            return "error"
+
     # =========================================================================
     # MODEL ACCURACY TRACKING
     # =========================================================================
 
     def store_model_accuracy(
         self,
-        model_type: str,
-        accuracy: float,
-        additional_metrics: Optional[Dict[str, Any]] = None,
+        accuracy_data: Dict[str, Any],
     ) -> Optional[str]:
         """
         Store model accuracy for tracking model performance over time
 
         Args:
-            model_type: Model type (lstm, gru, transformer)
-            accuracy: Model accuracy (0.0-1.0)
-            additional_metrics: Additional metrics (loss, f1_score, etc.)
+            accuracy_data: Dict containing model_type, accuracy, and optional additional metrics
 
         Returns:
             Document ID if successful, None otherwise
@@ -287,11 +360,16 @@ class DataStorage:
             return None
 
         try:
+            model_type = accuracy_data.get("model_type")
+            accuracy = accuracy_data.get("accuracy")
+
             document = {
                 "timestamp": datetime.utcnow(),
                 "model_type": model_type,
                 "accuracy": accuracy,
-                "additional_metrics": additional_metrics or {},
+                "loss": accuracy_data.get("loss"),
+                "f1_score": accuracy_data.get("f1_score"),
+                "training_samples": accuracy_data.get("training_samples"),
             }
 
             result = self._db[COLLECTION_MODEL_ACCURACY].insert_one(document)
@@ -337,14 +415,14 @@ class DataStorage:
     def store_api_cost(
         self,
         cost_data: Dict[str, Any],
-        task_id: str,
+        task_id: Optional[str] = None,
     ) -> Optional[str]:
         """
         Store API cost data for tracking GPT-4 usage
 
         Args:
-            cost_data: Cost data from daily_api_cost_report
-            task_id: Celery task ID
+            cost_data: Cost data dict with session_id, input_tokens, output_tokens, total_cost, model
+            task_id: Optional Celery task ID
 
         Returns:
             Document ID if successful, None otherwise
@@ -357,7 +435,12 @@ class DataStorage:
             document = {
                 "timestamp": datetime.utcnow(),
                 "date": cost_data.get("date", datetime.utcnow().strftime("%Y-%m-%d")),
-                "task_id": task_id,
+                "task_id": task_id or cost_data.get("task_id"),
+                "session_id": cost_data.get("session_id"),
+                "input_tokens": cost_data.get("input_tokens"),
+                "output_tokens": cost_data.get("output_tokens"),
+                "total_cost": cost_data.get("total_cost"),
+                "model": cost_data.get("model"),
                 "session": cost_data.get("session", {}),
                 "projections": cost_data.get("projections", {}),
                 "alerts": cost_data.get("alerts", []),
@@ -472,6 +555,28 @@ class DataStorage:
         except Exception as e:
             logger.error(f"❌ Failed to retrieve retrain history: {e}")
             return []
+
+    def store_retrain_history(
+        self,
+        retrain_data: Dict[str, Any],
+        task_id: str,
+    ) -> Optional[str]:
+        """
+        Store model retraining results (alias for store_retrain_result)
+
+        Args:
+            retrain_data: Retrain results dict
+            task_id: Celery task ID
+
+        Returns:
+            Document ID if successful, None otherwise
+        """
+        return self.store_retrain_result(
+            results=retrain_data,
+            task_id=task_id,
+            trigger_type=retrain_data.get("trigger", "unknown"),
+            trigger_data={},
+        )
 
 
 # Singleton instance

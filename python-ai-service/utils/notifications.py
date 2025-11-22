@@ -106,29 +106,35 @@ Time: {timestamp}
 # =============================================================================
 
 
-def send_email(title: str, message: str, level: str) -> bool:
+def send_email(title: str, message: str, level: str) -> Dict[str, Any]:
     """Send email notification via SMTP"""
     try:
+        # Get SMTP config (check env vars dynamically for tests)
+        smtp_user = os.getenv("SMTP_USER", SMTP_USER)
+        smtp_password = os.getenv("SMTP_PASSWORD", SMTP_PASSWORD)
+        smtp_host = os.getenv("SMTP_HOST", SMTP_HOST)
+        smtp_port = int(os.getenv("SMTP_PORT", SMTP_PORT))
+
         msg = MIMEMultipart()
-        msg["From"] = EMAIL_FROM
-        msg["To"] = ", ".join(EMAIL_TO)
+        msg["From"] = EMAIL_FROM or smtp_user
+        msg["To"] = ", ".join(EMAIL_TO) if EMAIL_TO else ""
         msg["Subject"] = f"[{level.upper()}] {title}"
 
         # Add message body
         msg.attach(MIMEText(message, "plain"))
 
         # Connect to SMTP server
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
             server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.login(smtp_user, smtp_password)
             server.send_message(msg)
 
         logger.info(f"📧 Email sent: {title}")
-        return True
+        return {"status": "success"}
 
     except Exception as e:
         logger.error(f"❌ Failed to send email: {e}")
-        return False
+        return {"status": "failed", "error": str(e)}
 
 
 # =============================================================================
@@ -141,9 +147,12 @@ def send_slack(
     message: str,
     level: str,
     data: Optional[Dict[str, Any]] = None,
-) -> bool:
+) -> Dict[str, Any]:
     """Send notification to Slack via webhook"""
     try:
+        # Get webhook URL (check env vars dynamically for tests)
+        webhook_url = os.getenv("SLACK_WEBHOOK_URL", SLACK_WEBHOOK_URL)
+
         # Color based on level
         color_map = {
             NotificationLevel.INFO: "#36a64f",  # Green
@@ -189,18 +198,20 @@ def send_slack(
 
         # Send to Slack
         response = requests.post(
-            SLACK_WEBHOOK_URL,
+            webhook_url,
             json=payload,
             timeout=10,
         )
-        response.raise_for_status()
+
+        if response.status_code != 200:
+            return {"status": "failed", "error": f"HTTP {response.status_code}"}
 
         logger.info(f"📢 Slack notification sent: {title}")
-        return True
+        return {"status": "success"}
 
     except Exception as e:
         logger.error(f"❌ Failed to send Slack notification: {e}")
-        return False
+        return {"status": "failed", "error": str(e)}
 
 
 # =============================================================================
@@ -213,9 +224,12 @@ def send_discord(
     message: str,
     level: str,
     data: Optional[Dict[str, Any]] = None,
-) -> bool:
+) -> Dict[str, Any]:
     """Send notification to Discord via webhook"""
     try:
+        # Get webhook URL (check env vars dynamically for tests)
+        webhook_url = os.getenv("DISCORD_WEBHOOK_URL", DISCORD_WEBHOOK_URL)
+
         # Color based on level (Discord uses integer colors)
         color_map = {
             NotificationLevel.INFO: 3447003,  # Blue
@@ -261,18 +275,24 @@ def send_discord(
 
         # Send to Discord
         response = requests.post(
-            DISCORD_WEBHOOK_URL,
+            webhook_url,
             json=payload,
             timeout=10,
         )
-        response.raise_for_status()
+
+        if response.status_code == 429:
+            retry_after = response.json().get("retry_after", 1.5)
+            return {"status": "failed", "error": f"Rate limited, retry after {retry_after}s"}
+
+        if response.status_code not in [200, 204]:
+            return {"status": "failed", "error": f"HTTP {response.status_code}"}
 
         logger.info(f"📢 Discord notification sent: {title}")
-        return True
+        return {"status": "success"}
 
     except Exception as e:
         logger.error(f"❌ Failed to send Discord notification: {e}")
-        return False
+        return {"status": "failed", "error": str(e)}
 
 
 # =============================================================================
@@ -285,9 +305,13 @@ def send_telegram(
     message: str,
     level: str,
     data: Optional[Dict[str, Any]] = None,
-) -> bool:
+) -> Dict[str, Any]:
     """Send notification to Telegram via bot API"""
     try:
+        # Get Telegram config (check env vars dynamically for tests)
+        bot_token = os.getenv("TELEGRAM_BOT_TOKEN", TELEGRAM_BOT_TOKEN)
+        chat_id = os.getenv("TELEGRAM_CHAT_ID", TELEGRAM_CHAT_ID)
+
         # Emoji based on level
         emoji_map = {
             NotificationLevel.INFO: "ℹ️",
@@ -306,22 +330,24 @@ def send_telegram(
                 telegram_message += f"\n• {key.replace('_', ' ').title()}: {value}"
 
         # Send to Telegram
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
         payload = {
-            "chat_id": TELEGRAM_CHAT_ID,
+            "chat_id": chat_id,
             "text": telegram_message,
             "parse_mode": "HTML",
         }
 
         response = requests.post(url, json=payload, timeout=10)
-        response.raise_for_status()
+
+        if response.status_code != 200:
+            return {"status": "failed", "error": f"HTTP {response.status_code}"}
 
         logger.info(f"📢 Telegram notification sent: {title}")
-        return True
+        return {"status": "success"}
 
     except Exception as e:
         logger.error(f"❌ Failed to send Telegram notification: {e}")
-        return False
+        return {"status": "failed", "error": str(e)}
 
 
 # =============================================================================
