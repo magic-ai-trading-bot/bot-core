@@ -166,6 +166,7 @@ class TestSlackNotifications:
 
         assert result["status"] == "failed"
 
+    @patch.dict(os.environ, {"SLACK_WEBHOOK_URL": "https://hooks.slack.com/test"})
     @patch("utils.notifications.requests.post")
     def test_send_slack_formatting(self, mock_post):
         """Test Slack notification uses correct formatting"""
@@ -187,8 +188,8 @@ class TestSlackNotifications:
         call_args = mock_post.call_args
         payload = call_args[1].get("json", {})
 
-        # Slack uses 'text' or 'blocks' field
-        assert "text" in payload or "blocks" in payload
+        # Slack uses 'text', 'blocks', or 'attachments' field
+        assert "text" in payload or "blocks" in payload or "attachments" in payload
 
     def test_send_slack_requires_webhook_url(self):
         """Test that Slack requires webhook URL"""
@@ -430,6 +431,7 @@ class TestUnifiedNotificationSystem:
 class TestNotificationErrorHandling:
     """Test notification error handling"""
 
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "email,slack"})
     @patch("utils.notifications.send_email")
     @patch("utils.notifications.send_slack")
     def test_notification_continues_on_channel_failure(self, mock_slack, mock_email):

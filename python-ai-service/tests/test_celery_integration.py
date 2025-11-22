@@ -282,15 +282,23 @@ class TestTaskExecution:
 class TestTaskChaining:
     """Test task chaining and workflows"""
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
+    @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
     @patch("tasks.ai_improvement.adaptive_retrain")
-    def test_gpt4_can_trigger_retrain(self, mock_retrain, mock_storage, mock_openai):
+    def test_gpt4_can_trigger_retrain(self, mock_retrain, mock_storage, mock_openai, mock_requests):
         """Test GPT-4 analysis can trigger adaptive retrain"""
         from tasks.ai_improvement import gpt4_self_analysis
         import json
 
-        # Mock GPT-4 recommending retrain
+        # Mock HTTP requests
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        mock_requests.return_value = mock_response
+
+        # Mock GPT-4 recommending retrain with correct format
         mock_openai.return_value = MagicMock(
             choices=[
                 MagicMock(
@@ -298,8 +306,11 @@ class TestTaskChaining:
                         content=json.dumps(
                             {
                                 "recommendation": "retrain",
-                                "confidence": 85,
-                                "models_to_retrain": ["lstm"],
+                                "confidence": 0.85,
+                                "urgency": "high",
+                                "reasoning": "Model accuracy dropped significantly",
+                                "suggested_actions": ["retrain_lstm"],
+                                "estimated_improvement": "10-15%",
                             }
                         )
                     )

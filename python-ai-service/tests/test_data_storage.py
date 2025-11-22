@@ -220,6 +220,10 @@ class TestPerformanceMetricsStorage:
         """Test retrieving performance metrics history"""
         from utils.data_storage import storage
 
+        # Reset singleton and create new instance with mock
+        from utils.data_storage import DataStorage
+        DataStorage.reset_instance()
+
         mock_db = MagicMock()
         mock_collection = MagicMock()
 
@@ -232,13 +236,20 @@ class TestPerformanceMetricsStorage:
             },
         ]
 
-        mock_collection.find.return_value.sort.return_value.limit.return_value = (
-            mock_data
-        )
-        mock_db.__getitem__.return_value = mock_collection
-        storage._db = mock_db
+        # Mock the cursor to return data when list() is called
+        mock_cursor = MagicMock()
+        mock_cursor.__iter__ = Mock(return_value=iter(mock_data))
+        mock_collection.find.return_value.sort.return_value = mock_cursor
 
-        history = storage.get_performance_metrics_history(days=7)
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.return_value.server_info.return_value = {"version": "7.0"}
+        mock_client.return_value.__getitem__.return_value = mock_db
+
+        # Create new storage instance
+        test_storage = DataStorage()
+        test_storage._db = mock_db
+
+        history = test_storage.get_performance_metrics_history(days=7)
 
         assert len(history) == 2
         assert history[0]["win_rate"] == 72.0
@@ -301,6 +312,10 @@ class TestModelAccuracyStorage:
         """Test retrieving model accuracy history"""
         from utils.data_storage import storage
 
+        # Reset singleton
+        from utils.data_storage import DataStorage
+        DataStorage.reset_instance()
+
         mock_db = MagicMock()
         mock_collection = MagicMock()
 
@@ -313,13 +328,20 @@ class TestModelAccuracyStorage:
             },
         ]
 
-        mock_collection.find.return_value.sort.return_value.limit.return_value = (
-            mock_data
-        )
-        mock_db.__getitem__.return_value = mock_collection
-        storage._db = mock_db
+        # Mock the cursor to return data when list() is called
+        mock_cursor = MagicMock()
+        mock_cursor.__iter__ = Mock(return_value=iter(mock_data))
+        mock_collection.find.return_value.sort.return_value = mock_cursor
 
-        history = storage.get_model_accuracy_history(model_type="lstm", days=7)
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.return_value.server_info.return_value = {"version": "7.0"}
+        mock_client.return_value.__getitem__.return_value = mock_db
+
+        # Create new storage instance
+        test_storage = DataStorage()
+        test_storage._db = mock_db
+
+        history = test_storage.get_model_accuracy_history(model_type="lstm", days=7)
 
         assert len(history) == 2
         assert history[0]["model_type"] == "lstm"
@@ -359,6 +381,10 @@ class TestAPICostStorage:
         """Test retrieving API cost history"""
         from utils.data_storage import storage
 
+        # Reset singleton
+        from utils.data_storage import DataStorage
+        DataStorage.reset_instance()
+
         mock_db = MagicMock()
         mock_collection = MagicMock()
 
@@ -367,13 +393,20 @@ class TestAPICostStorage:
             {"total_cost": 0.032, "timestamp": datetime.now() - timedelta(hours=2)},
         ]
 
-        mock_collection.find.return_value.sort.return_value.limit.return_value = (
-            mock_data
-        )
-        mock_db.__getitem__.return_value = mock_collection
-        storage._db = mock_db
+        # Mock the cursor to return data when list() is called
+        mock_cursor = MagicMock()
+        mock_cursor.__iter__ = Mock(return_value=iter(mock_data))
+        mock_collection.find.return_value.sort.return_value = mock_cursor
 
-        history = storage.get_api_cost_history(days=1)
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.return_value.server_info.return_value = {"version": "7.0"}
+        mock_client.return_value.__getitem__.return_value = mock_db
+
+        # Create new storage instance
+        test_storage = DataStorage()
+        test_storage._db = mock_db
+
+        history = test_storage.get_api_cost_history(days=1)
 
         assert len(history) == 2
         assert sum(item["total_cost"] for item in history) == 0.060
