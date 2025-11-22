@@ -459,12 +459,12 @@ class TestPerformanceMetricsStorage:
         mock_cursor = MagicMock()
         mock_cursor.sort.return_value = mock_cursor
         # Reversed data (will be reversed again in function)
-        # After reverse: [0.2, 0.4, 0.6, 0.8] - perfect linear increase, slope = 0.2/0.5 = 1.0
+        # After reverse: [0.0, 0.6, 1.2, 1.8] - steep linear increase, slope = 0.6 > 0.5
         mock_cursor.limit.return_value = [
-            {"win_rate": 0.8},
+            {"win_rate": 1.8},
+            {"win_rate": 1.2},
             {"win_rate": 0.6},
-            {"win_rate": 0.4},
-            {"win_rate": 0.2},
+            {"win_rate": 0.0},
         ]
         mock_collection.find.return_value = mock_cursor
         mock_db.__getitem__.return_value = mock_collection
@@ -486,12 +486,12 @@ class TestPerformanceMetricsStorage:
         mock_cursor = MagicMock()
         mock_cursor.sort.return_value = mock_cursor
         # Reversed data (will be reversed again in function)
-        # After reverse: [0.8, 0.6, 0.4, 0.2] - perfect linear decrease, slope = -1.0
+        # After reverse: [1.8, 1.2, 0.6, 0.0] - steep linear decrease, slope = -0.6 < -0.5
         mock_cursor.limit.return_value = [
-            {"win_rate": 0.2},
-            {"win_rate": 0.4},
+            {"win_rate": 0.0},
             {"win_rate": 0.6},
-            {"win_rate": 0.8},
+            {"win_rate": 1.2},
+            {"win_rate": 1.8},
         ]
         mock_collection.find.return_value = mock_cursor
         mock_db.__getitem__.return_value = mock_collection
@@ -665,3 +665,550 @@ class TestModelAccuracyStorage:
         result = storage.store_model_accuracy({"model_type": "LSTM", "accuracy": 0.85})
 
         assert result is None
+
+
+@pytest.mark.unit
+class TestModelAccuracyHistoryRetrieval:
+    """Test model accuracy history retrieval methods"""
+
+    def setup_method(self):
+        """Reset singleton before each test"""
+        DataStorage.reset_instance()
+
+    def teardown_method(self):
+        """Reset singleton after each test"""
+        DataStorage.reset_instance()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_model_accuracy_history_with_model_type_filter(self, mock_mongo_client):
+        """Test retrieving model accuracy history with model_type filter"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+
+        # Mock accuracy history data
+        mock_cursor.__iter__.return_value = iter([
+            {"model_type": "LSTM", "accuracy": 0.85, "timestamp": datetime.utcnow()},
+            {"model_type": "LSTM", "accuracy": 0.83, "timestamp": datetime.utcnow() - timedelta(days=1)},
+        ])
+
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_model_accuracy_history(model_type="LSTM", days=7)
+
+        assert len(history) == 2
+        assert history[0]["model_type"] == "LSTM"
+        assert history[0]["accuracy"] == 0.85
+
+        # Verify query includes model_type filter
+        call_args = mock_collection.find.call_args
+        query = call_args[0][0]
+        assert "model_type" in query
+        assert query["model_type"] == "LSTM"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_model_accuracy_history_without_filter(self, mock_mongo_client):
+        """Test retrieving model accuracy history without model_type filter"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+
+        # Mock accuracy history data for multiple models
+        mock_cursor.__iter__.return_value = iter([
+            {"model_type": "LSTM", "accuracy": 0.85, "timestamp": datetime.utcnow()},
+            {"model_type": "GRU", "accuracy": 0.82, "timestamp": datetime.utcnow()},
+            {"model_type": "Transformer", "accuracy": 0.88, "timestamp": datetime.utcnow()},
+        ])
+
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_model_accuracy_history(days=7)
+
+        assert len(history) == 3
+        # Verify query does NOT include model_type filter
+        call_args = mock_collection.find.call_args
+        query = call_args[0][0]
+        assert "model_type" not in query
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_model_accuracy_history_not_connected(self, mock_mongo_client):
+        """Test retrieving history when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        history = storage.get_model_accuracy_history(days=7)
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_model_accuracy_history_query_failure(self, mock_mongo_client):
+        """Test handling query failure"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_model_accuracy_history(days=7)
+
+        assert history == []
+
+
+@pytest.mark.unit
+class TestAPICostTracking:
+    """Test API cost tracking methods"""
+
+    def setup_method(self):
+        """Reset singleton before each test"""
+        DataStorage.reset_instance()
+
+    def teardown_method(self):
+        """Reset singleton after each test"""
+        DataStorage.reset_instance()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_api_cost_success_with_full_data(self, mock_mongo_client):
+        """Test storing API cost with full cost data structure"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "cost_id_123"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        cost_data = {
+            "session_id": "session_123",
+            "input_tokens": 500,
+            "output_tokens": 300,
+            "total_cost": 0.012,
+            "model": "gpt-4",
+            "session": {
+                "total_requests": 10,
+                "total_cost_usd": 0.50,
+                "total_cost_vnd": 12500,
+            },
+            "projections": {
+                "estimated_daily_cost_usd": 1.20,
+                "estimated_monthly_cost_usd": 36.00,
+            },
+            "alerts": ["Warning: approaching daily limit"],
+        }
+
+        result = storage.store_api_cost(cost_data, task_id="task_456")
+
+        assert result == "cost_id_123"
+
+        # Verify document structure
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert document["task_id"] == "task_456"
+        assert document["session_id"] == "session_123"
+        assert document["input_tokens"] == 500
+        assert document["output_tokens"] == 300
+        assert document["total_cost"] == 0.012
+        assert document["model"] == "gpt-4"
+        assert document["session"]["total_requests"] == 10
+        assert document["projections"]["estimated_daily_cost_usd"] == 1.20
+        assert len(document["alerts"]) == 1
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_api_cost_without_task_id(self, mock_mongo_client):
+        """Test storing API cost without explicit task_id"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "cost_id_456"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        cost_data = {
+            "task_id": "task_from_data",
+            "session_id": "session_789",
+            "total_cost": 0.008,
+        }
+
+        result = storage.store_api_cost(cost_data)
+
+        assert result == "cost_id_456"
+
+        # Verify task_id comes from cost_data
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert document["task_id"] == "task_from_data"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_api_cost_not_connected(self, mock_mongo_client):
+        """Test storing API cost when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        cost_data = {"session_id": "session_123", "total_cost": 0.01}
+        result = storage.store_api_cost(cost_data)
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_api_cost_insert_failure(self, mock_mongo_client):
+        """Test handling insert failure for API cost"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.insert_one.side_effect = Exception("Insert failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        cost_data = {"session_id": "session_123", "total_cost": 0.01}
+        result = storage.store_api_cost(cost_data)
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_api_cost_history_success(self, mock_mongo_client):
+        """Test retrieving API cost history"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+
+        # Mock cost history data
+        mock_cursor.__iter__.return_value = iter([
+            {"session_id": "session_1", "total_cost": 0.50, "timestamp": datetime.utcnow()},
+            {"session_id": "session_2", "total_cost": 0.30, "timestamp": datetime.utcnow() - timedelta(days=1)},
+            {"session_id": "session_3", "total_cost": 0.20, "timestamp": datetime.utcnow() - timedelta(days=2)},
+        ])
+
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_api_cost_history(days=30)
+
+        assert len(history) == 3
+        assert history[0]["total_cost"] == 0.50
+        assert history[1]["total_cost"] == 0.30
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_api_cost_history_custom_days(self, mock_mongo_client):
+        """Test retrieving API cost history with custom days parameter"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.__iter__.return_value = iter([])
+
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_api_cost_history(days=7)
+
+        # Verify timestamp query uses 7 days
+        call_args = mock_collection.find.call_args
+        query = call_args[0][0]
+        assert "timestamp" in query
+        assert "$gte" in query["timestamp"]
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_api_cost_history_not_connected(self, mock_mongo_client):
+        """Test retrieving history when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        history = storage.get_api_cost_history(days=30)
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_api_cost_history_query_failure(self, mock_mongo_client):
+        """Test handling query failure"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_api_cost_history(days=30)
+
+        assert history == []
+
+
+@pytest.mark.unit
+class TestRetrainHistoryTracking:
+    """Test retrain history tracking methods"""
+
+    def setup_method(self):
+        """Reset singleton before each test"""
+        DataStorage.reset_instance()
+
+    def teardown_method(self):
+        """Reset singleton after each test"""
+        DataStorage.reset_instance()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_retrain_result_with_success_counting(self, mock_mongo_client):
+        """Test storing retrain result with successful model counting"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "retrain_id_123"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        results = {
+            "models": {
+                "LSTM": {"status": "success", "accuracy": 0.85, "deployed": True},
+                "GRU": {"status": "success", "accuracy": 0.82, "deployed": False},
+                "Transformer": {"status": "failed", "error": "Training error"},
+            }
+        }
+
+        result = storage.store_retrain_result(
+            results=results,
+            task_id="task_retrain_1",
+            trigger_type="gpt4_recommendation",
+            trigger_data={"reason": "Poor performance detected"},
+        )
+
+        assert result == "retrain_id_123"
+
+        # Verify successful_count and deployed_count
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert document["successful_count"] == 2  # LSTM and GRU
+        assert document["deployed_count"] == 1  # Only LSTM
+        assert document["trigger_type"] == "gpt4_recommendation"
+        assert document["trigger_data"]["reason"] == "Poor performance detected"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_retrain_result_all_failed(self, mock_mongo_client):
+        """Test storing retrain result when all models failed"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "retrain_id_456"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        results = {
+            "models": {
+                "LSTM": {"status": "failed", "error": "Training error"},
+                "GRU": {"status": "failed", "error": "Data error"},
+            }
+        }
+
+        result = storage.store_retrain_result(results=results)
+
+        assert result == "retrain_id_456"
+
+        # Verify counts are 0
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert document["successful_count"] == 0
+        assert document["deployed_count"] == 0
+        assert document["task_id"] == "unknown"  # Default when not provided
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_retrain_result_not_connected(self, mock_mongo_client):
+        """Test storing retrain result when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        results = {"models": {"LSTM": {"status": "success"}}}
+        result = storage.store_retrain_result(results=results)
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_retrain_result_insert_failure(self, mock_mongo_client):
+        """Test handling insert failure for retrain result"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.insert_one.side_effect = Exception("Insert failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        results = {"models": {"LSTM": {"status": "success"}}}
+        result = storage.store_retrain_result(results=results)
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_retrain_history_success(self, mock_mongo_client):
+        """Test retrieving retrain history"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = mock_cursor
+
+        # Mock retrain history data
+        mock_cursor.__iter__.return_value = iter([
+            {
+                "task_id": "task_1",
+                "successful_count": 2,
+                "deployed_count": 1,
+                "timestamp": datetime.utcnow(),
+            },
+            {
+                "task_id": "task_2",
+                "successful_count": 3,
+                "deployed_count": 2,
+                "timestamp": datetime.utcnow() - timedelta(days=1),
+            },
+        ])
+
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_retrain_history(days=30, limit=50)
+
+        assert len(history) == 2
+        assert history[0]["successful_count"] == 2
+        assert history[1]["successful_count"] == 3
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_retrain_history_custom_limit(self, mock_mongo_client):
+        """Test retrieving retrain history with custom limit"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = mock_cursor
+        mock_cursor.__iter__.return_value = iter([])
+
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_retrain_history(days=7, limit=10)
+
+        # Verify limit is applied
+        assert mock_cursor.limit.called
+        assert mock_cursor.limit.call_args[0][0] == 10
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_retrain_history_not_connected(self, mock_mongo_client):
+        """Test retrieving history when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        history = storage.get_retrain_history(days=30)
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_retrain_history_query_failure(self, mock_mongo_client):
+        """Test handling query failure"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_retrain_history(days=30)
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_retrain_history_alias_method(self, mock_mongo_client):
+        """Test store_retrain_history as alias for store_retrain_result"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "retrain_alias_id"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        retrain_data = {
+            "trigger": "manual",
+            "models": {
+                "LSTM": {"status": "success", "deployed": True},
+            },
+        }
+
+        result = storage.store_retrain_history(retrain_data, task_id="task_alias")
+
+        assert result == "retrain_alias_id"
+
+        # Verify it calls store_retrain_result with correct parameters
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert document["task_id"] == "task_alias"
+        assert document["trigger_type"] == "manual"
+        assert document["successful_count"] == 1
+        assert document["deployed_count"] == 1
