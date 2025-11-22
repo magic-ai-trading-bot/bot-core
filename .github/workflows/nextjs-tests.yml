@@ -145,6 +145,11 @@ jobs:
         cd nextjs-ui-dashboard
         bun install
 
+    - name: Install Playwright browsers
+      run: |
+        cd nextjs-ui-dashboard
+        bunx playwright install --with-deps chromium
+
     - name: Build application
       run: |
         cd nextjs-ui-dashboard
@@ -182,20 +187,25 @@ jobs:
         cd nextjs-ui-dashboard
         bun install
 
+    - name: Generate package-lock.json for npm audit
+      run: |
+        cd nextjs-ui-dashboard
+        npm i --package-lock-only
+
     - name: Run npm audit
       run: |
         cd nextjs-ui-dashboard
-        npm run audit:security
+        npm audit --audit-level=moderate
 
     - name: Run ESLint
       run: |
         cd nextjs-ui-dashboard
-        npm run lint
+        bun run lint
 
     - name: Bundle analyzer
       run: |
         cd nextjs-ui-dashboard
-        npm run build:analyze
+        bun run build:analyze
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload bundle analysis
