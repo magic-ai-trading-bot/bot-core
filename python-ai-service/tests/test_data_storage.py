@@ -13,6 +13,11 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 class TestDataStorageConnection:
     """Test MongoDB connection and initialization"""
 
+    def setup_method(self):
+        """Reset singleton before each test"""
+        from utils.data_storage import DataStorage
+        DataStorage.reset_instance()
+
     @patch("utils.data_storage.MongoClient")
     def test_storage_singleton_pattern(self, mock_client):
         """Test that DataStorage implements singleton pattern"""
@@ -32,6 +37,9 @@ class TestDataStorageConnection:
         """Test successful MongoDB connection"""
         from utils.data_storage import DataStorage
 
+        # Reset singleton before test
+        DataStorage.reset_instance()
+
         # Mock successful connection
         mock_client.return_value.server_info.return_value = {"version": "7.0"}
 
@@ -44,6 +52,9 @@ class TestDataStorageConnection:
     def test_storage_connection_failure(self, mock_client):
         """Test MongoDB connection failure handling"""
         from utils.data_storage import DataStorage
+
+        # Reset singleton before test
+        DataStorage.reset_instance()
 
         # Mock connection failure
         mock_client.return_value.server_info.side_effect = ConnectionFailure(
@@ -59,6 +70,9 @@ class TestDataStorageConnection:
     def test_storage_creates_indexes(self, mock_client):
         """Test that storage creates necessary indexes"""
         from utils.data_storage import DataStorage
+
+        # Reset singleton before test
+        DataStorage.reset_instance()
 
         mock_db = MagicMock()
         mock_client.return_value.__getitem__.return_value = mock_db
@@ -431,6 +445,11 @@ class TestRetrainHistoryStorage:
 class TestDataStorageErrorHandling:
     """Test data storage error handling"""
 
+    def setup_method(self):
+        """Reset singleton before each test"""
+        from utils.data_storage import DataStorage
+        DataStorage.reset_instance()
+
     @patch("utils.data_storage.MongoClient")
     def test_storage_handles_insert_failure(self, mock_client):
         """Test storage handles insert failures gracefully"""
@@ -484,6 +503,11 @@ class TestDataStorageErrorHandling:
 
 class TestDataStorageIntegration:
     """Integration tests for data storage"""
+
+    def setup_method(self):
+        """Reset singleton before each test"""
+        from utils.data_storage import DataStorage
+        DataStorage.reset_instance()
 
     @patch("utils.data_storage.MongoClient")
     def test_complete_workflow_gpt4_analysis(self, mock_client):

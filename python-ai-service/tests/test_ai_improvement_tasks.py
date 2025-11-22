@@ -13,11 +13,18 @@ import json
 class TestGPT4SelfAnalysis:
     """Test gpt4_self_analysis task"""
 
+    @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
-    def test_gpt4_analysis_recommends_retrain(self, mock_storage, mock_openai):
+    def test_gpt4_analysis_recommends_retrain(self, mock_storage, mock_openai, mock_requests):
         """Test GPT-4 analysis recommending retraining"""
         from tasks.ai_improvement import gpt4_self_analysis
+
+        # Mock HTTP requests
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []  # Empty trades list
+        mock_requests.return_value = mock_response
 
         # Mock performance data showing decline
         mock_storage.get_performance_metrics_history.return_value = [
@@ -47,9 +54,10 @@ class TestGPT4SelfAnalysis:
                         content=json.dumps(
                             {
                                 "recommendation": "retrain",
-                                "confidence": 85,
+                                "confidence": 0.85,
                                 "reasoning": "Model accuracy has dropped below 65%, win rate declining",
-                                "priority": "high",
+                                "urgency": "high",
+                                "suggested_actions": ["retrain_models"],
                                 "models_to_retrain": ["lstm", "gru"],
                                 "estimated_improvement": "8-12%",
                             }
@@ -66,15 +74,22 @@ class TestGPT4SelfAnalysis:
 
         assert result["status"] == "success"
         assert result["analysis"]["recommendation"] == "retrain"
-        assert result["analysis"]["confidence"] == 85
+        assert result["analysis"]["confidence"] == 0.85
         assert result["trigger_retrain"] is True
         assert "lstm" in result["analysis"]["models_to_retrain"]
 
+    @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
-    def test_gpt4_analysis_recommends_wait(self, mock_storage, mock_openai):
+    def test_gpt4_analysis_recommends_wait(self, mock_storage, mock_openai, mock_requests):
         """Test GPT-4 analysis recommending to wait"""
         from tasks.ai_improvement import gpt4_self_analysis
+
+        # Mock HTTP requests
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        mock_requests.return_value = mock_response
 
         # Mock good performance data
         mock_storage.get_performance_metrics_history.return_value = [
@@ -104,11 +119,11 @@ class TestGPT4SelfAnalysis:
                         content=json.dumps(
                             {
                                 "recommendation": "wait",
-                                "confidence": 90,
+                                "confidence": 0.90,
                                 "reasoning": "Performance is strong, no retraining needed",
-                                "priority": "low",
-                                "models_to_retrain": [],
-                                "next_check": "7 days",
+                                "urgency": "low",
+                                "suggested_actions": ["continue_monitoring"],
+                                "estimated_improvement": "N/A",
                             }
                         )
                     )
@@ -123,14 +138,21 @@ class TestGPT4SelfAnalysis:
 
         assert result["status"] == "success"
         assert result["analysis"]["recommendation"] == "wait"
-        assert result["analysis"]["confidence"] == 90
+        assert result["analysis"]["confidence"] == 0.90
         assert result["trigger_retrain"] is False
 
+    @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.openai.ChatCompletion.create")
     @patch("tasks.ai_improvement.storage")
-    def test_gpt4_analysis_recommends_optimize(self, mock_storage, mock_openai):
+    def test_gpt4_analysis_recommends_optimize(self, mock_storage, mock_openai, mock_requests):
         """Test GPT-4 analysis recommending parameter optimization"""
         from tasks.ai_improvement import gpt4_self_analysis
+
+        # Mock HTTP requests
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        mock_requests.return_value = mock_response
 
         mock_storage.get_performance_metrics_history.return_value = [
             {"win_rate": 68.0, "avg_profit": 1.8, "sharpe_ratio": 1.5}
@@ -185,7 +207,7 @@ class TestGPT4SelfAnalysis:
 
     @patch("tasks.ai_improvement.storage")
     def test_gpt4_analysis_no_api_key(self, mock_storage):
-        """Test GPT-4 analysis fails gracefully without API key"""
+        """Test GPT-4 analysis skips when API key is missing"""
         from tasks.ai_improvement import gpt4_self_analysis
         import os
 
@@ -195,17 +217,26 @@ class TestGPT4SelfAnalysis:
             del os.environ["OPENAI_API_KEY"]
 
         try:
-            with pytest.raises(Exception):
-                gpt4_self_analysis()
+            result = gpt4_self_analysis()
+            # Should return skipped status instead of raising exception
+            assert result["status"] == "skipped"
+            assert result["reason"] == "OPENAI_API_KEY not configured"
         finally:
             # Restore API key
             if old_key:
                 os.environ["OPENAI_API_KEY"] = old_key
 
+    @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.storage")
-    def test_gpt4_analysis_insufficient_data(self, mock_storage):
+    def test_gpt4_analysis_insufficient_data(self, mock_storage, mock_requests):
         """Test GPT-4 analysis with insufficient historical data"""
         from tasks.ai_improvement import gpt4_self_analysis
+
+        # Mock HTTP requests
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        mock_requests.return_value = mock_response
 
         # Mock insufficient data (less than 3 days)
         mock_storage.get_performance_metrics_history.return_value = [
