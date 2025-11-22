@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// @spec:FR-PAPER-002 - Per-Symbol Configuration
+// @spec:FR-TRADING-015 - Per-Symbol Configuration
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#symbol-settings
 // @test:TC-PAPER-005, TC-PAPER-006
 

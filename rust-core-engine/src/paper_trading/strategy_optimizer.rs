@@ -9,7 +9,7 @@ use super::portfolio::PortfolioMetrics;
 
 /// Strategy optimization engine
 
-// @spec:FR-STRATEGY-007 - Strategy Optimizer
+// @spec:FR-STRATEGIES-007 - Strategy Optimizer
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
 // @test:TC-TRADING-037, TC-TRADING-038
 

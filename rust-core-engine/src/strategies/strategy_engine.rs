@@ -1,6 +1,6 @@
 use super::*;
 use crate::strategies::{
-    // @spec:FR-STRATEGY-005 - Strategy Parameters
+    // @spec:FR-STRATEGIES-005 - Strategy Parameters
     // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
     // @test:TC-TRADING-029
     bollinger_strategy::BollingerStrategy,

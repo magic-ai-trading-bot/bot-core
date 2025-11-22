@@ -61,6 +61,10 @@ class AIImprovementTask(Task):
 # =============================================================================
 
 
+# @spec:FR-ASYNC-008 - GPT-4 Self-Analysis for Retraining Decisions
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-008
+# @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md#gpt4-self-analysis
+# @test:TC-ASYNC-046, TC-ASYNC-047, TC-ASYNC-048, TC-ASYNC-049, TC-ASYNC-050
 @app.task(
     bind=True,
     base=AIImprovementTask,
@@ -251,6 +255,9 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
 # =============================================================================
 
 
+# @spec:FR-ASYNC-009 - Adaptive Model Retraining
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-009
+# @test:TC-ASYNC-061, TC-ASYNC-062, TC-ASYNC-063, TC-ASYNC-064, TC-ASYNC-065
 @app.task(
     bind=True,
     base=AIImprovementTask,
@@ -369,6 +376,9 @@ def adaptive_retrain(
 # =============================================================================
 
 
+# @spec:FR-ASYNC-010 - Emergency Strategy Disable
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-010
+# @test:TC-ASYNC-071, TC-ASYNC-072, TC-ASYNC-073
 @app.task(
     bind=True,
     base=AIImprovementTask,

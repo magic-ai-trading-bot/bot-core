@@ -29,6 +29,9 @@ class MLTask(Task):
         logger.info(f"Task {task_id} completed successfully")
 
 
+# @spec:FR-ASYNC-001 - Async ML Model Training
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-001
+# @test:TC-ASYNC-001, TC-ASYNC-002, TC-ASYNC-003, TC-ASYNC-004, TC-ASYNC-005
 @app.task(
     bind=True,
     base=MLTask,
@@ -133,6 +136,9 @@ def train_model(
         raise self.retry(exc=e)
 
 
+# @spec:FR-ASYNC-002 - Batch Symbol Prediction
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-002
+# @test:TC-ASYNC-011, TC-ASYNC-012, TC-ASYNC-013
 @app.task(
     bind=True,
     base=MLTask,
@@ -197,6 +203,9 @@ def bulk_analysis(
     }
 
 
+# @spec:FR-ASYNC-003 - Model Evaluation
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-003
+# @test:TC-ASYNC-016, TC-ASYNC-017, TC-ASYNC-018
 @app.task(
     bind=True,
     base=MLTask,

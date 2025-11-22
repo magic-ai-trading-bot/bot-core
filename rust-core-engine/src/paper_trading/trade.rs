@@ -329,8 +329,12 @@ impl PaperTrade {
     /// - Stop only moves in favorable direction (never moves back)
     /// - Activates only after profit >= activation_pct
     ///
-    /// @spec:FR-RISK-008 - Trailing Stop Loss
-    /// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#trailing-stops
+    /// @spec:FR-RISK-007 - Trailing Stop Loss for Long Positions
+    /// @spec:FR-RISK-008 - Trailing Stop Loss for Short Positions
+    /// @ref:specs/01-requirements/1.1-functional-requirements/FR-RISK.md#fr-risk-007
+    /// @ref:specs/01-requirements/1.1-functional-requirements/FR-RISK.md#fr-risk-008
+    /// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#trailing-stop-component
+    /// @test:TC-TRADING-015
     pub fn update_trailing_stop(
         &mut self,
         current_price: f64,

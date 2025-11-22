@@ -1,13 +1,13 @@
 # Database Schema Specification
 
-**Version:** 1.0.0
-**Last Updated:** 2025-10-10
+**Version:** 2.0.0
+**Last Updated:** 2025-11-22
 **Database:** MongoDB 7.0+
 **Author:** Bot Core Team
 
 ## Overview
 
-This document defines the complete MongoDB database schema for the Bot Core trading platform. The database supports high-frequency trading operations, AI-driven analysis, paper trading simulations, and comprehensive user management.
+This document defines the complete MongoDB database schema for the Bot Core trading platform. The database supports high-frequency trading operations, AI-driven analysis, paper trading simulations, comprehensive user management, and asynchronous task execution.
 
 ### Key Design Principles
 
@@ -16,6 +16,7 @@ This document defines the complete MongoDB database schema for the Bot Core trad
 3. **Flexible Schema** - Metadata fields allow extensibility without migrations
 4. **Audit Trail** - All user actions and trades maintain comprehensive audit logs
 5. **Scalability** - Sharding-ready design for horizontal scaling
+6. **Async Task Management** - Celery-based task tracking with RabbitMQ and Redis
 
 ### Database Architecture
 
@@ -39,8 +40,26 @@ bot_core_db/
 ├── sessions                       # Active user sessions (optional)
 ├── notifications                  # User notifications queue
 ├── system_config                  # Global system settings
-└── api_keys                       # User API keys for exchanges
+├── api_keys                       # User API keys for exchanges
+├── celery_task_meta               # Celery task execution metadata ← NEW
+├── training_jobs                  # ML model training jobs ← NEW
+├── backtest_results               # Strategy backtest results ← NEW
+├── monitoring_alerts              # System monitoring alerts ← NEW
+└── task_schedules                 # Scheduled/periodic tasks ← NEW
 ```
+
+**Total Collections:** 22 (up from 17)
+
+### Collection Categories
+
+- **Authentication:** 1 collection (users)
+- **Trading:** 4 collections (trades, positions, strategy_configs, api_keys)
+- **Paper Trading:** 3 collections (paper_trading_accounts, paper_trading_trades, paper_trading_settings)
+- **Market Data:** 2 collections (market_data, portfolio_history)
+- **AI/ML:** 3 collections (ai_analysis_results, ai_signals, performance_metrics)
+- **Async Tasks:** 5 collections (celery_task_meta, training_jobs, backtest_results, monitoring_alerts, task_schedules) ← NEW
+- **Monitoring:** 2 collections (audit_logs, risk_metrics)
+- **Configuration:** 2 collections (system_config, sessions, notifications)
 
 ---
 
@@ -1096,19 +1115,710 @@ User-stored API keys for exchange integrations (encrypted).
 
 ---
 
+## Async Task Collections
+
+### 18. celery_task_meta Collection
+
+**Purpose:** Store Celery task execution metadata and results (managed by Celery)
+
+**Schema:**
+```typescript
+{
+  _id: ObjectId,                    // Primary key
+  task_id: string,                  // UUID, unique, indexed
+  task_name: string,                // Full task name (e.g., "tasks.ml_tasks.train_model")
+  status: enum,                     // "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "RETRY"
+
+  // Task Arguments
+  args: any[],                      // Task positional arguments
+  kwargs: object,                   // Task keyword arguments
+
+  // Task Results
+  result: any | null,               // Task execution result (null if not completed)
+  error: string | null,             // Error message if FAILURE (null otherwise)
+  traceback: string | null,         // Full stacktrace if FAILURE
+
+  // Timestamps
+  created_at: DateTime,             // Task creation time
+  started_at: DateTime | null,      // Task start time
+  completed_at: DateTime | null,    // Task completion time
+
+  // Execution Metadata
+  worker_hostname: string | null,   // Worker that executed the task
+  retries: number,                  // Number of retry attempts
+  eta: DateTime | null,             // Estimated time of arrival (for delayed tasks)
+  expires: DateTime | null,         // Task expiration
+
+  // Performance
+  runtime: number | null,           // Execution time in seconds
+
+  // Task Hierarchy
+  parent_id: string | null,         // Parent task if this is a subtask
+  children: string[],               // Child task IDs
+
+  // Indexing
+  indexed_at: DateTime              // Database insertion time
+}
+```
+
+**Indexes:**
+```javascript
+db.celery_task_meta.createIndex({ "task_id": 1 }, { unique: true })
+db.celery_task_meta.createIndex({ "status": 1 })
+db.celery_task_meta.createIndex({ "task_name": 1 })
+db.celery_task_meta.createIndex({ "created_at": -1 })
+db.celery_task_meta.createIndex({ "worker_hostname": 1 })
+db.celery_task_meta.createIndex({ "status": 1, "task_name": 1 })  // Compound
+```
+
+**Constraints:**
+- `task_id`: Required, unique, UUID format
+- `task_name`: Required
+- `status`: Required, enum [PENDING, STARTED, SUCCESS, FAILURE, RETRY]
+- `created_at`: Required, auto-set
+
+**Example Document:**
+```json
+{
+  "_id": ObjectId("507f1f77bcf86cd799439022"),
+  "task_id": "abc-123-def-456-ghi-789",
+  "task_name": "tasks.ml_tasks.train_model",
+  "status": "SUCCESS",
+  "args": ["lstm", "BTCUSDT", "15m"],
+  "kwargs": {
+    "epochs": 100,
+    "batch_size": 64,
+    "learning_rate": 0.001
+  },
+  "result": {
+    "model_id": "lstm_BTCUSDT_15m_20251122",
+    "final_loss": 0.0234,
+    "accuracy": 0.72,
+    "training_time_seconds": 3600
+  },
+  "error": null,
+  "traceback": null,
+  "created_at": ISODate("2025-11-22T10:00:00Z"),
+  "started_at": ISODate("2025-11-22T10:00:05Z"),
+  "completed_at": ISODate("2025-11-22T11:00:05Z"),
+  "worker_hostname": "worker-ml-01",
+  "retries": 0,
+  "eta": null,
+  "expires": ISODate("2025-11-23T10:00:00Z"),
+  "runtime": 3600.5,
+  "parent_id": null,
+  "children": [],
+  "indexed_at": ISODate("2025-11-22T11:00:06Z")
+}
+```
+
+**Growth Projections:**
+- Expected: ~5,000 tasks per day
+- Storage: ~2KB per task
+- Retention: 30 days (SUCCESS only), keep FAILURE forever
+- Total: 150K documents = ~300MB
+
+---
+
+### 19. training_jobs Collection
+
+**Purpose:** Track ML model training jobs with detailed metadata
+
+**Schema:**
+```typescript
+{
+  _id: ObjectId,                    // Primary key
+  job_id: string,                   // Unique identifier (e.g., "training_lstm_BTCUSDT_20251122_v1")
+  celery_task_id: string | null,    // Reference to celery_task_meta
+
+  // Model Info
+  model_type: enum,                 // "lstm" | "gru" | "transformer"
+  symbol: string,                   // Trading pair (e.g., "BTCUSDT")
+  timeframe: string,                // Timeframe (e.g., "15m")
+  version: string,                  // Model version (e.g., "v1.2.3")
+
+  // Training Parameters
+  parameters: {
+    epochs: number,                 // Number of training epochs
+    batch_size: number,             // Batch size
+    learning_rate: number,          // Learning rate
+    validation_split: number,       // Validation split ratio (0-1)
+    optimizer: string,              // Optimizer name (e.g., "adam")
+    loss_function: string,          // Loss function (e.g., "mse")
+    early_stopping: boolean,        // Whether early stopping is enabled
+    patience: number                // Early stopping patience
+  },
+
+  // Dataset Info
+  dataset: {
+    start_date: DateTime,           // Dataset start date
+    end_date: DateTime,             // Dataset end date
+    total_samples: number,          // Total number of samples
+    train_samples: number,          // Training samples
+    validation_samples: number,     // Validation samples
+    features: string[],             // Feature names
+    feature_count: number           // Number of features
+  },
+
+  // Training Results
+  results: {
+    final_loss: number | null,      // Final training loss
+    final_val_loss: number | null,  // Final validation loss
+    best_epoch: number | null,      // Best epoch number
+    accuracy: number | null,        // Model accuracy
+    precision: number | null,       // Precision score
+    recall: number | null,          // Recall score
+    f1_score: number | null,        // F1 score
+
+    // Loss History (sampled every 10 epochs)
+    loss_history: number[],         // Training loss per epoch
+    val_loss_history: number[],     // Validation loss per epoch
+
+    // Confusion Matrix
+    confusion_matrix: number[][] | null,
+
+    // Training Time
+    training_duration_seconds: number | null,
+    avg_epoch_time_seconds: number | null
+  },
+
+  // Model Artifact
+  model_file: {
+    path: string | null,            // File path to saved model
+    size_bytes: number | null,      // File size in bytes
+    checksum_md5: string | null     // MD5 checksum
+  },
+
+  // Status Tracking
+  status: enum,                     // "PENDING" | "TRAINING" | "COMPLETED" | "FAILED"
+  error: string | null,             // Error message if failed
+
+  // Timestamps
+  created_at: DateTime,             // Job creation time
+  started_at: DateTime | null,      // Training start time
+  completed_at: DateTime | null,    // Training completion time
+
+  // Deployment
+  deployed: boolean,                // Whether model is deployed
+  deployed_at: DateTime | null,     // Deployment timestamp
+  production_performance: object | null, // Production metrics
+
+  // Metadata
+  created_by: string,               // User or task that triggered training
+  notes: string | null              // Additional notes
+}
+```
+
+**Indexes:**
+```javascript
+db.training_jobs.createIndex({ "job_id": 1 }, { unique: true })
+db.training_jobs.createIndex({ "model_type": 1, "symbol": 1, "timeframe": 1 })
+db.training_jobs.createIndex({ "status": 1 })
+db.training_jobs.createIndex({ "created_at": -1 })
+db.training_jobs.createIndex({ "deployed": 1 })
+db.training_jobs.createIndex({ "results.accuracy": -1 })  // Find best models
+db.training_jobs.createIndex({ "celery_task_id": 1 }, { sparse: true })
+```
+
+**Example Document:**
+```json
+{
+  "_id": ObjectId("507f1f77bcf86cd799439033"),
+  "job_id": "training_lstm_BTCUSDT_20251122_v1",
+  "celery_task_id": "abc-123-def-456",
+  "model_type": "lstm",
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "version": "v1.2.3",
+  "parameters": {
+    "epochs": 100,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "validation_split": 0.2,
+    "optimizer": "adam",
+    "loss_function": "mse",
+    "early_stopping": true,
+    "patience": 10
+  },
+  "dataset": {
+    "start_date": ISODate("2025-05-22T00:00:00Z"),
+    "end_date": ISODate("2025-11-22T00:00:00Z"),
+    "total_samples": 24000,
+    "train_samples": 19200,
+    "validation_samples": 4800,
+    "features": ["close", "volume", "rsi", "macd", "bb_upper", "bb_lower"],
+    "feature_count": 6
+  },
+  "results": {
+    "final_loss": 0.0234,
+    "final_val_loss": 0.0256,
+    "best_epoch": 87,
+    "accuracy": 0.72,
+    "precision": 0.69,
+    "recall": 0.75,
+    "f1_score": 0.72,
+    "loss_history": [0.15, 0.08, 0.05, 0.04, 0.03, 0.025, 0.024, 0.0234],
+    "val_loss_history": [0.16, 0.09, 0.06, 0.045, 0.035, 0.028, 0.026, 0.0256],
+    "confusion_matrix": [[150, 50], [40, 160]],
+    "training_duration_seconds": 3600,
+    "avg_epoch_time_seconds": 36
+  },
+  "model_file": {
+    "path": "/models/lstm_BTCUSDT_15m_20251122_v1.h5",
+    "size_bytes": 5242880,
+    "checksum_md5": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "status": "COMPLETED",
+  "error": null,
+  "created_at": ISODate("2025-11-22T10:00:00Z"),
+  "started_at": ISODate("2025-11-22T10:00:05Z"),
+  "completed_at": ISODate("2025-11-22T11:00:05Z"),
+  "deployed": false,
+  "deployed_at": null,
+  "production_performance": null,
+  "created_by": "auto_retraining_task",
+  "notes": "Scheduled weekly retraining"
+}
+```
+
+**Growth Projections:**
+- Expected: ~10 training jobs per day
+- Storage: ~5KB per job + model files (~5MB each)
+- Total: 300 jobs/month = ~1.5GB/month (with model files)
+
+---
+
+### 20. backtest_results Collection
+
+**Purpose:** Store strategy backtest results
+
+**Schema:**
+```typescript
+{
+  _id: ObjectId,                    // Primary key
+  backtest_id: string,              // Unique identifier
+  celery_task_id: string | null,    // Reference to celery_task_meta
+
+  // Strategy Info
+  strategy_name: string,            // Strategy name (e.g., "stochastic")
+  symbol: string,                   // Trading pair
+  timeframe: string,                // Timeframe
+
+  // Backtest Period
+  start_date: DateTime,             // Backtest start date
+  end_date: DateTime,               // Backtest end date
+  duration_days: number,            // Period duration in days
+
+  // Strategy Parameters (for this backtest)
+  parameters: object,               // Strategy-specific parameters
+
+  // Results
+  results: {
+    // Trade Statistics
+    total_trades: number,           // Total number of trades
+    winning_trades: number,         // Number of winning trades
+    losing_trades: number,          // Number of losing trades
+    win_rate: number,               // Win rate percentage (0-100)
+
+    // Profit/Loss
+    gross_profit: number,           // Gross profit percentage
+    gross_loss: number,             // Gross loss percentage
+    net_profit: number,             // Net profit percentage
+    avg_win: number,                // Average win percentage
+    avg_loss: number,               // Average loss percentage
+    largest_win: number,            // Largest win percentage
+    largest_loss: number,           // Largest loss percentage
+
+    // Risk Metrics
+    sharpe_ratio: number,           // Sharpe ratio
+    sortino_ratio: number,          // Sortino ratio
+    max_drawdown: number,           // Maximum drawdown percentage
+    max_drawdown_duration_days: number, // Max drawdown duration
+
+    // Other Metrics
+    profit_factor: number,          // Gross profit / abs(gross loss)
+    recovery_factor: number,        // Net profit / abs(max drawdown)
+    win_loss_ratio: number,         // Avg win / abs(avg loss)
+
+    // Equity Curve (sampled daily)
+    equity_curve: number[],         // Daily equity values
+
+    // Drawdown Curve
+    drawdown_curve: number[],       // Daily drawdown values
+
+    // Trade Distribution
+    trades_per_month: number[],     // Trades per month
+
+    // Best/Worst Periods
+    best_month_return: number,      // Best monthly return
+    worst_month_return: number      // Worst monthly return
+  },
+
+  // Sample Trades (first/last 10 trades)
+  sample_trades: [{
+    entry_date: DateTime,
+    exit_date: DateTime,
+    direction: enum,                // "LONG" | "SHORT"
+    entry_price: number,
+    exit_price: number,
+    profit_pct: number,
+    reason: string                  // Exit reason
+  }],
+
+  // Status
+  status: enum,                     // "PENDING" | "RUNNING" | "COMPLETED" | "FAILED"
+  error: string | null,             // Error message if failed
+
+  // Timestamps
+  created_at: DateTime,             // Backtest creation time
+  completed_at: DateTime | null,    // Backtest completion time
+
+  // Metadata
+  created_by: string,               // User who initiated backtest
+  notes: string | null              // Additional notes
+}
+```
+
+**Indexes:**
+```javascript
+db.backtest_results.createIndex({ "backtest_id": 1 }, { unique: true })
+db.backtest_results.createIndex({ "strategy_name": 1 })
+db.backtest_results.createIndex({ "symbol": 1 })
+db.backtest_results.createIndex({ "created_at": -1 })
+db.backtest_results.createIndex({ "results.sharpe_ratio": -1 })
+db.backtest_results.createIndex({ "results.win_rate": -1 })
+db.backtest_results.createIndex({ "celery_task_id": 1 }, { sparse: true })
+```
+
+**Example Document:**
+```json
+{
+  "_id": ObjectId("507f1f77bcf86cd799439044"),
+  "backtest_id": "backtest_stochastic_BTCUSDT_20251122",
+  "celery_task_id": "xyz-789-abc-123",
+  "strategy_name": "stochastic",
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "start_date": ISODate("2025-05-22T00:00:00Z"),
+  "end_date": ISODate("2025-11-22T00:00:00Z"),
+  "duration_days": 184,
+  "parameters": {
+    "k_period": 14,
+    "d_period": 3,
+    "overbought_level": 70,
+    "oversold_level": 30,
+    "stop_loss_pct": 2.0,
+    "take_profit_pct": 4.0
+  },
+  "results": {
+    "total_trades": 324,
+    "winning_trades": 182,
+    "losing_trades": 142,
+    "win_rate": 56.2,
+    "gross_profit": 67.8,
+    "gross_loss": -49.4,
+    "net_profit": 18.4,
+    "avg_win": 2.1,
+    "avg_loss": -1.8,
+    "largest_win": 8.5,
+    "largest_loss": -4.2,
+    "sharpe_ratio": 1.52,
+    "sortino_ratio": 2.14,
+    "max_drawdown": -7.2,
+    "max_drawdown_duration_days": 12,
+    "profit_factor": 1.37,
+    "recovery_factor": 2.56,
+    "win_loss_ratio": 1.17,
+    "equity_curve": [10000, 10200, 10150, 11840],
+    "drawdown_curve": [0, 0, -50, 0],
+    "trades_per_month": [12, 15, 18, 14, 16, 19],
+    "best_month_return": 8.5,
+    "worst_month_return": -3.2
+  },
+  "sample_trades": [
+    {
+      "entry_date": ISODate("2025-05-22T08:30:00Z"),
+      "exit_date": ISODate("2025-05-22T10:15:00Z"),
+      "direction": "LONG",
+      "entry_price": 50100,
+      "exit_price": 51150,
+      "profit_pct": 2.1,
+      "reason": "take_profit"
+    }
+  ],
+  "status": "COMPLETED",
+  "error": null,
+  "created_at": ISODate("2025-11-22T12:00:00Z"),
+  "completed_at": ISODate("2025-11-22T12:15:00Z"),
+  "created_by": "admin_user",
+  "notes": "Testing stochastic strategy parameters"
+}
+```
+
+**Growth Projections:**
+- Expected: ~50 backtests per month
+- Storage: ~10KB per backtest
+- Total: 600 backtests/year = ~6MB/year
+
+---
+
+### 21. monitoring_alerts Collection
+
+**Purpose:** Store system monitoring alerts and notifications
+
+**Schema:**
+```typescript
+{
+  _id: ObjectId,                    // Primary key
+  alert_id: string,                 // Unique alert identifier
+
+  // Alert Details
+  alert_type: enum,                 // "SYSTEM_HEALTH" | "PERFORMANCE" | "COST" | "SECURITY"
+  severity: enum,                   // "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+  title: string,                    // Alert title
+  message: string,                  // Detailed alert message
+
+  // Metrics
+  metrics: object,                  // Alert-specific metrics
+
+  // Source
+  source: {
+    hostname: string | null,        // Source hostname
+    service: string | null,         // Source service name
+    process_id: number | null       // Process ID
+  },
+
+  // Status
+  status: enum,                     // "OPEN" | "ACKNOWLEDGED" | "RESOLVED" | "IGNORED"
+  acknowledged_by: string | null,   // User who acknowledged
+  acknowledged_at: DateTime | null, // Acknowledgment time
+  resolved_at: DateTime | null,     // Resolution time
+  resolution_notes: string | null,  // Resolution notes
+
+  // Notifications Sent
+  notifications: [{
+    channel: string,                // Notification channel (e.g., "email", "slack")
+    recipient: string,              // Recipient identifier
+    sent_at: DateTime,              // Send timestamp
+    status: string                  // Delivery status
+  }],
+
+  // Timestamps
+  created_at: DateTime,             // Alert creation time
+  updated_at: DateTime              // Last update time
+}
+```
+
+**Indexes:**
+```javascript
+db.monitoring_alerts.createIndex({ "alert_id": 1 }, { unique: true })
+db.monitoring_alerts.createIndex({ "status": 1 })
+db.monitoring_alerts.createIndex({ "severity": 1 })
+db.monitoring_alerts.createIndex({ "created_at": -1 })
+db.monitoring_alerts.createIndex({ "alert_type": 1, "status": 1 })
+db.monitoring_alerts.createIndex({ "source.hostname": 1 })
+```
+
+**Example Document:**
+```json
+{
+  "_id": ObjectId("507f1f77bcf86cd799439055"),
+  "alert_id": "alert_high_cpu_20251122_143000",
+  "alert_type": "SYSTEM_HEALTH",
+  "severity": "HIGH",
+  "title": "High CPU Usage Detected",
+  "message": "CPU usage exceeded 90% for 5 minutes on worker-ml-01",
+  "metrics": {
+    "cpu_usage_pct": 95.5,
+    "memory_usage_pct": 78.2,
+    "disk_usage_pct": 65.3,
+    "threshold": 90.0
+  },
+  "source": {
+    "hostname": "worker-ml-01",
+    "service": "celery_worker",
+    "process_id": 12345
+  },
+  "status": "OPEN",
+  "acknowledged_by": null,
+  "acknowledged_at": null,
+  "resolved_at": null,
+  "resolution_notes": null,
+  "notifications": [
+    {
+      "channel": "email",
+      "recipient": "admin@example.com",
+      "sent_at": ISODate("2025-11-22T14:30:05Z"),
+      "status": "delivered"
+    },
+    {
+      "channel": "slack",
+      "recipient": "#alerts",
+      "sent_at": ISODate("2025-11-22T14:30:06Z"),
+      "status": "delivered"
+    }
+  ],
+  "created_at": ISODate("2025-11-22T14:30:00Z"),
+  "updated_at": ISODate("2025-11-22T14:30:00Z")
+}
+```
+
+**Growth Projections:**
+- Expected: ~100 alerts per day
+- Storage: ~1KB per alert
+- Retention: 90 days (RESOLVED), keep CRITICAL forever
+- Total: 9,000 documents = ~9MB
+
+---
+
+### 22. task_schedules Collection
+
+**Purpose:** Define scheduled/periodic Celery tasks (Celery Beat)
+
+**Schema:**
+```typescript
+{
+  _id: ObjectId,                    // Primary key
+  schedule_id: string,              // Unique schedule identifier
+
+  // Task Info
+  task_name: string,                // Full task name (e.g., "tasks.ml_tasks.evaluate_all_models")
+  description: string,              // Human-readable description
+
+  // Schedule Configuration
+  schedule_type: enum,              // "interval" | "crontab"
+  crontab: {                        // For crontab schedule
+    minute: string,                 // Minute (0-59 or *)
+    hour: string,                   // Hour (0-23 or *)
+    day_of_week: string,            // Day of week (0-6 or *)
+    day_of_month: string,           // Day of month (1-31 or *)
+    month_of_year: string           // Month (1-12 or *)
+  } | null,
+  interval: {                       // For interval schedule
+    every: number,                  // Interval value
+    period: enum                    // "seconds" | "minutes" | "hours" | "days"
+  } | null,
+
+  // Task Arguments
+  args: any[],                      // Positional arguments
+  kwargs: object,                   // Keyword arguments
+
+  // Configuration
+  enabled: boolean,                 // Whether schedule is active
+  expires: DateTime | null,         // Task expiration (null = never)
+  one_off: boolean,                 // Run only once
+
+  // Execution Tracking
+  last_run_at: DateTime | null,     // Last execution time
+  total_run_count: number,          // Total executions
+
+  // Metadata
+  created_at: DateTime,             // Schedule creation time
+  updated_at: DateTime,             // Last update time
+  created_by: string,               // User or system that created schedule
+
+  // Status
+  is_active: boolean,               // Whether schedule is currently active
+  notes: string | null              // Additional notes
+}
+```
+
+**Indexes:**
+```javascript
+db.task_schedules.createIndex({ "schedule_id": 1 }, { unique: true })
+db.task_schedules.createIndex({ "enabled": 1 })
+db.task_schedules.createIndex({ "task_name": 1 })
+db.task_schedules.createIndex({ "last_run_at": -1 })
+db.task_schedules.createIndex({ "schedule_type": 1 })
+```
+
+**Example Document:**
+```json
+{
+  "_id": ObjectId("507f1f77bcf86cd799439066"),
+  "schedule_id": "daily_model_evaluation",
+  "task_name": "tasks.ml_tasks.evaluate_all_models",
+  "description": "Evaluate all deployed models daily",
+  "schedule_type": "crontab",
+  "crontab": {
+    "minute": "0",
+    "hour": "2",
+    "day_of_week": "*",
+    "day_of_month": "*",
+    "month_of_year": "*"
+  },
+  "interval": null,
+  "args": [],
+  "kwargs": {
+    "include_inactive": false
+  },
+  "enabled": true,
+  "expires": null,
+  "one_off": false,
+  "last_run_at": ISODate("2025-11-22T02:00:00Z"),
+  "total_run_count": 180,
+  "created_at": ISODate("2025-05-22T00:00:00Z"),
+  "updated_at": ISODate("2025-11-22T02:00:00Z"),
+  "created_by": "system",
+  "is_active": true,
+  "notes": "Critical daily task"
+}
+```
+
+**Growth Projections:**
+- Expected: ~20 scheduled tasks
+- Storage: <1KB per schedule
+- Total: <20KB (minimal)
+
+---
+
+## Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    users ||--o{ trades : "places"
+    users ||--o{ positions : "holds"
+    users ||--o{ paper_trading_accounts : "owns"
+    users ||--o{ portfolio_snapshots : "tracks"
+    users ||--o{ audit_logs : "generates"
+
+    paper_trading_accounts ||--o{ paper_trading_trades : "executes"
+
+    trades }o--|| ai_analysis_results : "based on"
+    paper_trading_trades }o--|| ai_analysis_results : "based on"
+
+    market_data ||--o{ ai_analysis_results : "analyzed by"
+
+    celery_task_meta ||--o| training_jobs : "tracks"
+    celery_task_meta ||--o| backtest_results : "tracks"
+
+    training_jobs ||--o{ ai_analysis_results : "generates signals"
+
+    task_schedules ||--o{ celery_task_meta : "creates"
+```
+
+---
+
 ## Data Retention Policies
 
-| Collection | Retention Period | Mechanism |
-|-----------|-----------------|-----------|
-| users | Permanent | Manual deletion only |
-| trades | 1 year | TTL index |
-| positions | Until closed | Manual deletion on close |
-| market_data | 90 days | TTL index + time-series |
-| ai_analysis_results | 30 days | TTL index |
-| portfolio_snapshots | 90 days | TTL index |
-| paper_trading_trades | Permanent | User-controlled reset |
-| audit_logs | 180 days | TTL index |
-| notifications | 7 days | TTL index |
+| Collection | Retention Period | Mechanism | Estimated Size |
+|-----------|-----------------|-----------|----------------|
+| users | Permanent | Manual deletion only | 20MB |
+| trades | 1 year | TTL index | ~2GB |
+| positions | Until closed | Manual deletion on close | ~750MB |
+| market_data | 90 days | TTL index + time-series | ~6.2GB |
+| ai_analysis_results | 30 days | TTL index | ~900MB |
+| portfolio_snapshots | 90 days | TTL index | ~35GB |
+| paper_trading_trades | Permanent | User-controlled reset | ~9GB/year |
+| audit_logs | 180 days | TTL index | ~2.5GB |
+| notifications | 7 days | TTL index | <100MB |
+| **celery_task_meta** | **30 days (SUCCESS), Forever (FAILURE)** | **Manual cleanup** | **~300MB** |
+| **training_jobs** | **Forever (metadata), 90 days (model files)** | **Archival process** | **~1.5GB/month** |
+| **backtest_results** | **Forever (results), 30 days (full trades)** | **Summarization** | **~6MB/year** |
+| **monitoring_alerts** | **90 days (RESOLVED), Forever (CRITICAL)** | **Manual cleanup** | **~9MB** |
+| **task_schedules** | **Permanent** | **Manual deletion only** | **<1MB** |
+
+**Total Estimated Storage:** ~60GB (with retention policies applied)
 
 ---
 
@@ -1121,6 +1831,7 @@ User-stored API keys for exchange integrations (encrypted).
 
 ---
 
-**Document Version:** 1.0.0
-**Schema Version:** 1.0.0
-**Last Updated:** 2025-10-10
+**Document Version:** 2.0.0
+**Schema Version:** 2.0.0
+**Last Updated:** 2025-11-22
+**Changes:** Added 5 async task collections (celery_task_meta, training_jobs, backtest_results, monitoring_alerts, task_schedules)

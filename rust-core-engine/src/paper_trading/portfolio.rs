@@ -23,7 +23,7 @@ use super::trade::{CloseReason, PaperTrade, TradeStatus};
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#portfolio
 // @test:TC-TRADING-019
 
-// @spec:FR-PAPER-002 - Virtual Portfolio
+// @spec:FR-TRADING-015 - Virtual Portfolio
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#paper-trading
 // @test:TC-INTEGRATION-027, TC-INTEGRATION-028
 
