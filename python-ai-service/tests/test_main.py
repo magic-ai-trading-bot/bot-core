@@ -2442,3 +2442,80 @@ class TestPeriodicAnalysisRunner:
                     await task
                 except asyncio.CancelledError:
                     pass
+
+
+@pytest.mark.unit
+class TestAnalysisStorageErrorHandling:
+    """Test error handling in analysis storage functions."""
+
+    @pytest.mark.asyncio
+    async def test_store_analysis_result_exception(self):
+        """Test store_analysis_result handles exceptions gracefully."""
+        from main import store_analysis_result
+        import main
+
+        # Mock MongoDB to raise exception
+        mock_db = AsyncMock()
+        mock_collection = AsyncMock()
+        mock_collection.insert_one = AsyncMock(side_effect=Exception("Database error"))
+        mock_db.__getitem__.return_value = mock_collection
+
+        with patch("main.mongodb_db", mock_db):
+            # Should log error but not raise (lines 169-170)
+            await store_analysis_result("BTCUSDT", {"signal": "Long"})
+            # If we get here, exception was handled correctly
+
+    @pytest.mark.asyncio
+    async def test_get_latest_analysis_exception(self):
+        """Test get_latest_analysis handles exceptions gracefully."""
+        from main import get_latest_analysis
+        import main
+
+        # Mock MongoDB to raise exception  
+        mock_db = AsyncMock()
+        mock_collection = AsyncMock()
+        mock_collection.find_one = AsyncMock(side_effect=Exception("Database error"))
+        mock_db.__getitem__.return_value = mock_collection
+
+        with patch("main.mongodb_db", mock_db):
+            # Should return None on error (lines 187-189)
+            result = await get_latest_analysis("BTCUSDT")
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_periodic_analysis_symbol_level_exception(self):
+        """Test periodic analysis handles symbol-level exceptions."""
+        from main import periodic_analysis_runner
+        import main
+
+        # Mock GPT client that raises exception for specific symbol
+        mock_gpt_client = AsyncMock()
+        mock_gpt_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("Symbol analysis failed")
+        )
+
+        with patch("main.ANALYSIS_SYMBOLS", ["BTCUSDT"]):  # Just one symbol
+            with patch("main.ANALYSIS_INTERVAL_MINUTES", 0.001):  # Very short interval
+                with patch("main.openai_client", mock_gpt_client):
+                    with patch("main.mongodb_db", None):
+                        task = None
+                        try:
+                            task = asyncio.create_task(periodic_analysis_runner())
+                            await asyncio.sleep(0.1)  # Let it run briefly
+
+                            # Exception should be logged but not crash (lines 235-236)
+                            # Task should continue running
+                            assert not task.done()
+
+                            task.cancel()
+                            try:
+                                await task
+                            except asyncio.CancelledError:
+                                pass  # Expected
+                        finally:
+                            if task and not task.done():
+                                task.cancel()
+                                try:
+                                    await task
+                                except asyncio.CancelledError:
+                                    pass
