@@ -15,7 +15,10 @@ logger = get_logger("DataStorage")
 
 # MongoDB connection
 # Try DATABASE_URL first (used in docker-compose), fallback to MONGODB_URI
-MONGODB_URI = os.getenv("DATABASE_URL") or os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+MONGODB_URI = os.getenv("DATABASE_URL") or os.getenv(
+    "MONGODB_URI", "mongodb://localhost:27017"
+)
+
 
 # Extract database name from URI or use environment variable or default
 def _extract_db_name(uri: str) -> str:
@@ -28,6 +31,7 @@ def _extract_db_name(uri: str) -> str:
             if db_name:
                 return db_name
     return os.getenv("MONGODB_DB", "bot_core")
+
 
 MONGODB_DB = _extract_db_name(MONGODB_URI)
 
@@ -77,18 +81,26 @@ class DataStorage:
             self._db[COLLECTION_GPT4_ANALYSIS].create_index("recommendation")
 
             # Performance metrics indexes
-            self._db[COLLECTION_PERFORMANCE_METRICS].create_index([("timestamp", DESCENDING)])
-            self._db[COLLECTION_PERFORMANCE_METRICS].create_index([("date", DESCENDING)])
+            self._db[COLLECTION_PERFORMANCE_METRICS].create_index(
+                [("timestamp", DESCENDING)]
+            )
+            self._db[COLLECTION_PERFORMANCE_METRICS].create_index(
+                [("date", DESCENDING)]
+            )
 
             # Model accuracy indexes
-            self._db[COLLECTION_MODEL_ACCURACY].create_index([("timestamp", DESCENDING)])
+            self._db[COLLECTION_MODEL_ACCURACY].create_index(
+                [("timestamp", DESCENDING)]
+            )
             self._db[COLLECTION_MODEL_ACCURACY].create_index("model_type")
 
             # API cost indexes
             self._db[COLLECTION_API_COSTS].create_index([("timestamp", DESCENDING)])
 
             # Retrain history indexes
-            self._db[COLLECTION_RETRAIN_HISTORY].create_index([("timestamp", DESCENDING)])
+            self._db[COLLECTION_RETRAIN_HISTORY].create_index(
+                [("timestamp", DESCENDING)]
+            )
             self._db[COLLECTION_RETRAIN_HISTORY].create_index("trigger_type")
 
             logger.info("✅ MongoDB indexes created")
@@ -156,9 +168,12 @@ class DataStorage:
 
         try:
             since = datetime.utcnow() - timedelta(days=days)
-            cursor = self._db[COLLECTION_GPT4_ANALYSIS].find(
-                {"timestamp": {"$gte": since}}
-            ).sort("timestamp", DESCENDING).limit(limit)
+            cursor = (
+                self._db[COLLECTION_GPT4_ANALYSIS]
+                .find({"timestamp": {"$gte": since}})
+                .sort("timestamp", DESCENDING)
+                .limit(limit)
+            )
 
             return list(cursor)
 
@@ -186,7 +201,9 @@ class DataStorage:
             Document ID if successful, None otherwise
         """
         if not self.is_connected():
-            logger.warning("⚠️ MongoDB not connected, skipping performance metrics storage")
+            logger.warning(
+                "⚠️ MongoDB not connected, skipping performance metrics storage"
+            )
             return None
 
         try:
@@ -199,9 +216,15 @@ class DataStorage:
                 "avg_profit_per_trade": metrics.get("avg_profit_per_trade"),
                 "sharpe_ratio": metrics.get("sharpe_ratio"),
                 "performance_status": {
-                    "win_rate_status": metrics.get("performance", {}).get("win_rate_status"),
-                    "avg_profit_status": metrics.get("performance", {}).get("avg_profit_status"),
-                    "sharpe_status": metrics.get("performance", {}).get("sharpe_status"),
+                    "win_rate_status": metrics.get("performance", {}).get(
+                        "win_rate_status"
+                    ),
+                    "avg_profit_status": metrics.get("performance", {}).get(
+                        "avg_profit_status"
+                    ),
+                    "sharpe_status": metrics.get("performance", {}).get(
+                        "sharpe_status"
+                    ),
                 },
                 "alerts": metrics.get("alerts", []),
                 "trigger_ai_analysis": metrics.get("trigger_ai_analysis", False),
@@ -226,9 +249,11 @@ class DataStorage:
 
         try:
             since = datetime.utcnow() - timedelta(days=days)
-            cursor = self._db[COLLECTION_PERFORMANCE_METRICS].find(
-                {"timestamp": {"$gte": since}}
-            ).sort("timestamp", DESCENDING)
+            cursor = (
+                self._db[COLLECTION_PERFORMANCE_METRICS]
+                .find({"timestamp": {"$gte": since}})
+                .sort("timestamp", DESCENDING)
+            )
 
             return list(cursor)
 
@@ -293,7 +318,11 @@ class DataStorage:
             if model_type:
                 query["model_type"] = model_type
 
-            cursor = self._db[COLLECTION_MODEL_ACCURACY].find(query).sort("timestamp", DESCENDING)
+            cursor = (
+                self._db[COLLECTION_MODEL_ACCURACY]
+                .find(query)
+                .sort("timestamp", DESCENDING)
+            )
 
             return list(cursor)
 
@@ -353,9 +382,11 @@ class DataStorage:
 
         try:
             since = datetime.utcnow() - timedelta(days=days)
-            cursor = self._db[COLLECTION_API_COSTS].find(
-                {"timestamp": {"$gte": since}}
-            ).sort("timestamp", DESCENDING)
+            cursor = (
+                self._db[COLLECTION_API_COSTS]
+                .find({"timestamp": {"$gte": since}})
+                .sort("timestamp", DESCENDING)
+            )
 
             return list(cursor)
 
@@ -398,11 +429,13 @@ class DataStorage:
                 "trigger_data": trigger_data or {},
                 "models": results.get("models", {}),
                 "successful_count": sum(
-                    1 for m in results.get("models", {}).values()
+                    1
+                    for m in results.get("models", {}).values()
                     if m.get("status") == "success"
                 ),
                 "deployed_count": sum(
-                    1 for m in results.get("models", {}).values()
+                    1
+                    for m in results.get("models", {}).values()
                     if m.get("deployed", False)
                 ),
                 "full_results": results,
@@ -427,9 +460,12 @@ class DataStorage:
 
         try:
             since = datetime.utcnow() - timedelta(days=days)
-            cursor = self._db[COLLECTION_RETRAIN_HISTORY].find(
-                {"timestamp": {"$gte": since}}
-            ).sort("timestamp", DESCENDING).limit(limit)
+            cursor = (
+                self._db[COLLECTION_RETRAIN_HISTORY]
+                .find({"timestamp": {"$gte": since}})
+                .sort("timestamp", DESCENDING)
+                .limit(limit)
+            )
 
             return list(cursor)
 

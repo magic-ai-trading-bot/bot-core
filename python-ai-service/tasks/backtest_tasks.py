@@ -54,7 +54,9 @@ def backtest_strategy(
     Returns:
         Backtest results with performance metrics
     """
-    logger.info(f"📈 Starting backtest: {strategy_name} on {symbol} from {start_date} to {end_date}")
+    logger.info(
+        f"📈 Starting backtest: {strategy_name} on {symbol} from {start_date} to {end_date}"
+    )
 
     try:
         # Update progress
@@ -91,7 +93,10 @@ def backtest_strategy(
 
         # TODO: Run backtest
         # For now, generate dummy results
-        days = (datetime.strptime(end_date, "%Y-%m-%d") - datetime.strptime(start_date, "%Y-%m-%d")).days
+        days = (
+            datetime.strptime(end_date, "%Y-%m-%d")
+            - datetime.strptime(start_date, "%Y-%m-%d")
+        ).days
         total_trades = np.random.randint(50, 200)
         winning_trades = int(total_trades * np.random.uniform(0.55, 0.75))
 
@@ -129,7 +134,9 @@ def backtest_strategy(
             },
         )
 
-        logger.info(f"✅ Backtest complete: Win rate {results['win_rate']}%, Total return {results['total_return']}%")
+        logger.info(
+            f"✅ Backtest complete: Win rate {results['win_rate']}%, Total return {results['total_return']}%"
+        )
 
         return {
             "status": "success",
@@ -172,7 +179,9 @@ def optimize_strategy(
     Returns:
         Best parameters and performance comparison
     """
-    logger.info(f"🔧 Optimizing {strategy_name} with {parameter_variations} parameter variations")
+    logger.info(
+        f"🔧 Optimizing {strategy_name} with {parameter_variations} parameter variations"
+    )
 
     try:
         all_results = []
@@ -213,7 +222,9 @@ def optimize_strategy(
         all_results.sort(key=lambda x: x["total_return"], reverse=True)
         best_result = all_results[0]
 
-        logger.info(f"✅ Optimization complete: Best return {best_result['total_return']:.2f}%")
+        logger.info(
+            f"✅ Optimization complete: Best return {best_result['total_return']:.2f}%"
+        )
 
         return {
             "status": "success",

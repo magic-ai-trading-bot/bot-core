@@ -30,11 +30,14 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # Notification settings
 NOTIFICATIONS_ENABLED = os.getenv("NOTIFICATIONS_ENABLED", "false").lower() == "true"
-NOTIFICATION_CHANNELS = os.getenv("NOTIFICATION_CHANNELS", "").split(",")  # email,slack,discord,telegram
+NOTIFICATION_CHANNELS = os.getenv("NOTIFICATION_CHANNELS", "").split(
+    ","
+)  # email,slack,discord,telegram
 
 
 class NotificationLevel:
     """Notification severity levels"""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -102,6 +105,7 @@ Time: {timestamp}
 # EMAIL NOTIFICATIONS
 # =============================================================================
 
+
 def send_email(title: str, message: str, level: str) -> bool:
     """Send email notification via SMTP"""
     try:
@@ -131,6 +135,7 @@ def send_email(title: str, message: str, level: str) -> bool:
 # SLACK NOTIFICATIONS
 # =============================================================================
 
+
 def send_slack(
     title: str,
     message: str,
@@ -141,9 +146,9 @@ def send_slack(
     try:
         # Color based on level
         color_map = {
-            NotificationLevel.INFO: "#36a64f",      # Green
-            NotificationLevel.WARNING: "#ff9900",   # Orange
-            NotificationLevel.ERROR: "#ff0000",     # Red
+            NotificationLevel.INFO: "#36a64f",  # Green
+            NotificationLevel.WARNING: "#ff9900",  # Orange
+            NotificationLevel.ERROR: "#ff0000",  # Red
             NotificationLevel.CRITICAL: "#990000",  # Dark red
         }
         color = color_map.get(level, "#808080")
@@ -174,11 +179,13 @@ def send_slack(
         # Add data fields
         if data:
             for key, value in data.items():
-                payload["attachments"][0]["fields"].append({
-                    "title": key.replace("_", " ").title(),
-                    "value": str(value),
-                    "short": True,
-                })
+                payload["attachments"][0]["fields"].append(
+                    {
+                        "title": key.replace("_", " ").title(),
+                        "value": str(value),
+                        "short": True,
+                    }
+                )
 
         # Send to Slack
         response = requests.post(
@@ -200,6 +207,7 @@ def send_slack(
 # DISCORD NOTIFICATIONS
 # =============================================================================
 
+
 def send_discord(
     title: str,
     message: str,
@@ -210,10 +218,10 @@ def send_discord(
     try:
         # Color based on level (Discord uses integer colors)
         color_map = {
-            NotificationLevel.INFO: 3447003,      # Blue
+            NotificationLevel.INFO: 3447003,  # Blue
             NotificationLevel.WARNING: 16776960,  # Yellow
-            NotificationLevel.ERROR: 16711680,    # Red
-            NotificationLevel.CRITICAL: 10038562, # Dark red
+            NotificationLevel.ERROR: 16711680,  # Red
+            NotificationLevel.CRITICAL: 10038562,  # Dark red
         }
         color = color_map.get(level, 8421504)
 
@@ -241,15 +249,15 @@ def send_discord(
         # Add data fields
         if data:
             for key, value in data.items():
-                embed["fields"].append({
-                    "name": key.replace("_", " ").title(),
-                    "value": str(value),
-                    "inline": True,
-                })
+                embed["fields"].append(
+                    {
+                        "name": key.replace("_", " ").title(),
+                        "value": str(value),
+                        "inline": True,
+                    }
+                )
 
-        payload = {
-            "embeds": [embed]
-        }
+        payload = {"embeds": [embed]}
 
         # Send to Discord
         response = requests.post(
@@ -270,6 +278,7 @@ def send_discord(
 # =============================================================================
 # TELEGRAM NOTIFICATIONS
 # =============================================================================
+
 
 def send_telegram(
     title: str,
@@ -319,6 +328,7 @@ def send_telegram(
 # HELPER FUNCTIONS
 # =============================================================================
 
+
 def format_data(data: Dict[str, Any], indent: int = 0) -> str:
     """Format data dict for display"""
     lines = []
@@ -340,22 +350,29 @@ def format_data(data: Dict[str, Any], indent: int = 0) -> str:
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
+
 def send_info(title: str, message: str, data: Optional[Dict] = None) -> Dict[str, bool]:
     """Send INFO notification"""
     return send_notification(title, message, NotificationLevel.INFO, data)
 
 
-def send_warning(title: str, message: str, data: Optional[Dict] = None) -> Dict[str, bool]:
+def send_warning(
+    title: str, message: str, data: Optional[Dict] = None
+) -> Dict[str, bool]:
     """Send WARNING notification"""
     return send_notification(title, message, NotificationLevel.WARNING, data)
 
 
-def send_error(title: str, message: str, data: Optional[Dict] = None) -> Dict[str, bool]:
+def send_error(
+    title: str, message: str, data: Optional[Dict] = None
+) -> Dict[str, bool]:
     """Send ERROR notification"""
     return send_notification(title, message, NotificationLevel.ERROR, data)
 
 
-def send_critical(title: str, message: str, data: Optional[Dict] = None) -> Dict[str, bool]:
+def send_critical(
+    title: str, message: str, data: Optional[Dict] = None
+) -> Dict[str, bool]:
     """Send CRITICAL notification"""
     return send_notification(title, message, NotificationLevel.CRITICAL, data)
 
@@ -389,13 +406,17 @@ def send_cost_alert(cost_data: Dict[str, Any]) -> Dict[str, bool]:
 
 def send_gpt4_analysis(analysis: Dict[str, Any]) -> Dict[str, bool]:
     """Send GPT-4 analysis result"""
-    level = NotificationLevel.WARNING if analysis.get("recommendation") == "retrain" else NotificationLevel.INFO
+    level = (
+        NotificationLevel.WARNING
+        if analysis.get("recommendation") == "retrain"
+        else NotificationLevel.INFO
+    )
 
     return send_notification(
         title="GPT-4 Self-Analysis Complete",
         message=f"Recommendation: {analysis.get('recommendation', 'N/A').upper()}\n"
-                f"Confidence: {analysis.get('confidence', 0):.0%}\n"
-                f"Reasoning: {analysis.get('reasoning', 'N/A')[:200]}...",
+        f"Confidence: {analysis.get('confidence', 0):.0%}\n"
+        f"Reasoning: {analysis.get('reasoning', 'N/A')[:200]}...",
         level=level,
         data={
             "urgency": analysis.get("urgency", "low"),
@@ -407,7 +428,9 @@ def send_gpt4_analysis(analysis: Dict[str, Any]) -> Dict[str, bool]:
 
 def send_retrain_complete(results: Dict[str, Any]) -> Dict[str, bool]:
     """Send model retraining completion notification"""
-    successful = sum(1 for m in results.get("models", {}).values() if m.get("status") == "success")
+    successful = sum(
+        1 for m in results.get("models", {}).values() if m.get("status") == "success"
+    )
     total = len(results.get("models", {}))
 
     return send_info(
