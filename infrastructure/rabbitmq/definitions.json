@@ -3,7 +3,14 @@
   "rabbitmq_version": "3.12",
   "product_name": "RabbitMQ",
   "product_version": "3.12",
-  "users": [],
+  "users": [
+    {
+      "name": "admin",
+      "password_hash": "YTRiOGY3OTY4YjA5ZGRmNzM3YmFhMGE5ZmY5NGU5OGQ0MmJhYTc3Mw==",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"]
+    }
+  ],
   "vhosts": [
     {
       "name": "bot-core",
@@ -11,7 +18,15 @@
       "tags": []
     }
   ],
-  "permissions": [],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "bot-core",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
   "exchanges": [
     {
       "name": "trading.events",
