@@ -402,3 +402,266 @@ class TestPerformanceMetricsStorage:
         result = storage.store_performance_metrics({"test": "data"}, "task_456")
 
         assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_metrics_history_success(self, mock_mongo_client):
+        """Test retrieving performance metrics history"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = [{"metric": "1"}, {"metric": "2"}]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_performance_metrics_history(days=7)
+
+        assert len(history) == 2
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_metrics_history_not_connected(self, mock_mongo_client):
+        """Test retrieving metrics history when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        history = storage.get_performance_metrics_history()
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_metrics_history_query_failure(self, mock_mongo_client):
+        """Test handling query failure for metrics history"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_performance_metrics_history()
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_trend_improving(self, mock_mongo_client):
+        """Test calculating improving performance trend"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        # Reversed data (will be reversed again in function)
+        # After reverse: [0.2, 0.4, 0.6, 0.8] - perfect linear increase, slope = 0.2/0.5 = 1.0
+        mock_cursor.limit.return_value = [
+            {"win_rate": 0.8},
+            {"win_rate": 0.6},
+            {"win_rate": 0.4},
+            {"win_rate": 0.2},
+        ]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trend = storage.get_performance_trend(days=7, metric="win_rate")
+
+        assert trend == "improving"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_trend_declining(self, mock_mongo_client):
+        """Test calculating declining performance trend"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        # Reversed data (will be reversed again in function)
+        # After reverse: [0.8, 0.6, 0.4, 0.2] - perfect linear decrease, slope = -1.0
+        mock_cursor.limit.return_value = [
+            {"win_rate": 0.2},
+            {"win_rate": 0.4},
+            {"win_rate": 0.6},
+            {"win_rate": 0.8},
+        ]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trend = storage.get_performance_trend(days=7, metric="win_rate")
+
+        assert trend == "declining"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_trend_stable(self, mock_mongo_client):
+        """Test calculating stable performance trend"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = [
+            {"win_rate": 0.65},
+            {"win_rate": 0.66},
+            {"win_rate": 0.65},
+            {"win_rate": 0.64},
+        ]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trend = storage.get_performance_trend(days=7, metric="win_rate")
+
+        assert trend == "stable"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_trend_insufficient_data(self, mock_mongo_client):
+        """Test trend calculation with insufficient data"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = [{"win_rate": 0.5}]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trend = storage.get_performance_trend(days=7)
+
+        assert trend == "insufficient_data"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_trend_not_connected(self, mock_mongo_client):
+        """Test trend calculation when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        trend = storage.get_performance_trend()
+
+        assert trend == "unknown"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_trend_query_failure(self, mock_mongo_client):
+        """Test handling query failure in trend calculation"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trend = storage.get_performance_trend()
+
+        assert trend == "error"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_performance_trend_zero_denominator(self, mock_mongo_client):
+        """Test trend calculation with zero denominator"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        # All same values to create zero denominator
+        mock_cursor.limit.return_value = [
+            {"win_rate": 0.5},
+            {"win_rate": 0.5},
+            {"win_rate": 0.5},
+        ]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trend = storage.get_performance_trend()
+
+        assert trend == "stable"
+
+
+@pytest.mark.unit
+class TestModelAccuracyStorage:
+    """Test model accuracy tracking methods"""
+
+    def setup_method(self):
+        """Reset singleton before each test"""
+        DataStorage.reset_instance()
+
+    def teardown_method(self):
+        """Reset singleton after each test"""
+        DataStorage.reset_instance()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_model_accuracy_success(self, mock_mongo_client):
+        """Test storing model accuracy"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "accuracy_id_123"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        accuracy_data = {
+            "model_type": "LSTM",
+            "accuracy": 0.85,
+            "loss": 0.15,
+            "f1_score": 0.82,
+        }
+
+        result = storage.store_model_accuracy(accuracy_data)
+
+        assert result == "accuracy_id_123"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_model_accuracy_not_connected(self, mock_mongo_client):
+        """Test storing accuracy when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        result = storage.store_model_accuracy({"model_type": "LSTM", "accuracy": 0.85})
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_model_accuracy_insert_failure(self, mock_mongo_client):
+        """Test handling insert failure for model accuracy"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.insert_one.side_effect = Exception("Insert failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        result = storage.store_model_accuracy({"model_type": "LSTM", "accuracy": 0.85})
+
+        assert result is None
