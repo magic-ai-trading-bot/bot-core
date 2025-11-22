@@ -133,6 +133,7 @@ class TestEmailNotifications:
 class TestSlackNotifications:
     """Test Slack webhook notifications"""
 
+    @patch.dict(os.environ, {"SLACK_WEBHOOK_URL": "https://hooks.slack.com/test"})
     @patch("utils.notifications.requests.post")
     def test_send_slack_success(self, mock_post):
         """Test successful Slack notification"""
@@ -151,6 +152,7 @@ class TestSlackNotifications:
         assert result["status"] == "success"
         assert mock_post.called
 
+    @patch.dict(os.environ, {"SLACK_WEBHOOK_URL": "https://hooks.slack.com/test"})
     @patch("utils.notifications.requests.post")
     def test_send_slack_webhook_error(self, mock_post):
         """Test Slack notification with webhook error"""
@@ -215,6 +217,7 @@ class TestSlackNotifications:
 class TestDiscordNotifications:
     """Test Discord webhook notifications"""
 
+    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
     @patch("utils.notifications.requests.post")
     def test_send_discord_success(self, mock_post):
         """Test successful Discord notification"""
@@ -231,6 +234,7 @@ class TestDiscordNotifications:
         assert result["status"] == "success"
         assert mock_post.called
 
+    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
     @patch("utils.notifications.requests.post")
     def test_send_discord_with_embed(self, mock_post):
         """Test Discord notification uses embed format"""
@@ -253,6 +257,7 @@ class TestDiscordNotifications:
         # Discord uses 'embeds' field
         assert "embeds" in payload or "content" in payload
 
+    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
     @patch("utils.notifications.requests.post")
     def test_send_discord_rate_limit(self, mock_post):
         """Test Discord notification handles rate limiting"""
@@ -273,6 +278,7 @@ class TestDiscordNotifications:
 class TestTelegramNotifications:
     """Test Telegram bot notifications"""
 
+    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
     @patch("utils.notifications.requests.post")
     def test_send_telegram_success(self, mock_post):
         """Test successful Telegram notification"""
@@ -290,6 +296,7 @@ class TestTelegramNotifications:
         assert result["status"] == "success"
         assert mock_post.called
 
+    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
     @patch("utils.notifications.requests.post")
     def test_send_telegram_with_markdown(self, mock_post):
         """Test Telegram notification supports markdown"""
@@ -461,6 +468,7 @@ class TestNotificationErrorHandling:
         # Should default to 'info' or handle gracefully
         assert result is None or isinstance(result, dict)
 
+    @patch.dict(os.environ, {"SLACK_WEBHOOK_URL": "https://hooks.slack.com/test"})
     @patch("utils.notifications.requests.post")
     def test_notification_with_timeout(self, mock_post):
         """Test notification handles request timeout"""
