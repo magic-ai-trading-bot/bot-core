@@ -21,6 +21,15 @@ pymongo==4.15.4
 motor==3.7.1
 slowapi==0.1.9
 
+# Async Task Queue (Celery + RabbitMQ)
+celery==5.4.0
+celery[redis]==5.4.0
+kombu==5.4.2
+amqp==5.2.0
+vine==5.1.0
+redis==5.2.1
+flower==2.0.1
+
 # Testing dependencies
 pytest>=8.0.0
 pytest-cov>=4.1.0
