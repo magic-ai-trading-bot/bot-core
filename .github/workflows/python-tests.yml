@@ -34,6 +34,31 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      rabbitmq:
+        image: rabbitmq:3.13-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: rabbitmq_default_password
+          RABBITMQ_DEFAULT_VHOST: bot-core
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+
     steps:
     - name: Free Disk Space
       run: |
@@ -86,6 +111,16 @@ jobs:
         ENVIRONMENT: test
         LOG_LEVEL: INFO
         SKIP_ML_TESTS: "true"  # Skip TensorFlow/PyTorch tests in CI
+        # RabbitMQ configuration
+        RABBITMQ_HOST: localhost
+        RABBITMQ_PORT: 5672
+        RABBITMQ_USER: admin
+        RABBITMQ_PASSWORD: rabbitmq_default_password
+        RABBITMQ_VHOST: bot-core
+        # Redis configuration
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        REDIS_PASSWORD: ""  # No password for test Redis
       run: |
         cd python-ai-service
         # Run tests excluding ML tests (require TensorFlow/PyTorch)
