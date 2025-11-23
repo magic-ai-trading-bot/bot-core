@@ -52,10 +52,10 @@ class FeatureEngineer:
     def _add_price_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add price-based features."""
         try:
-            # Price returns
-            df["price_return_1"] = df["close"].pct_change(1)
-            df["price_return_5"] = df["close"].pct_change(5)
-            df["price_return_10"] = df["close"].pct_change(10)
+            # Price returns (fill_method=None to avoid FutureWarning)
+            df["price_return_1"] = df["close"].pct_change(1, fill_method=None)
+            df["price_return_5"] = df["close"].pct_change(5, fill_method=None)
+            df["price_return_10"] = df["close"].pct_change(10, fill_method=None)
 
             # Price position within range
             df["price_position"] = (df["close"] - df["low"]) / (df["high"] - df["low"])
@@ -96,9 +96,7 @@ class FeatureEngineer:
             df["month_cos"] = np.cos(2 * np.pi * df["month"] / 12)
 
             # Drop original time features
-            df.drop(
-                ["hour", "day_of_week", "day_of_month", "month"], axis=1, inplace=True
-            )
+            df.drop(["hour", "day_of_week", "day_of_month", "month"], axis=1, inplace=True)
 
             return df
         except Exception as e:
@@ -263,9 +261,7 @@ class FeatureEngineer:
             if not self.feature_columns:
                 # If feature columns not set, use all except target columns
                 feature_cols = [
-                    col
-                    for col in processed_df.columns
-                    if col not in ["target", "signal"]
+                    col for col in processed_df.columns if col not in ["target", "signal"]
                 ]
             else:
                 feature_cols = self.feature_columns
@@ -296,9 +292,7 @@ class FeatureEngineer:
             processed_df["target"] = target
 
             # Calculate correlations
-            correlations = (
-                processed_df.corr()["target"].abs().sort_values(ascending=False)
-            )
+            correlations = processed_df.corr()["target"].abs().sort_values(ascending=False)
 
             # Convert to dictionary
             feature_importance = correlations.drop("target").to_dict()
