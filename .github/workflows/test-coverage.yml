@@ -144,6 +144,7 @@ jobs:
             --ignore=tests/test_ml_performance.py \
             --ignore=tests/test_main.py \
             --cov=. \
+            --cov-config=.coveragerc \
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing
@@ -154,6 +155,7 @@ jobs:
           python -m pytest tests/test_main.py \
             -v \
             --cov=. \
+            --cov-config=.coveragerc \
             --cov-append \
             --cov-report=xml \
             --cov-report=html \
@@ -165,6 +167,7 @@ jobs:
           python -m pytest tests/test_ml_compatibility.py tests/test_ml_performance.py \
             -v \
             --cov=. \
+            --cov-config=.coveragerc \
             --cov-append \
             --cov-report=xml \
             --cov-report=html \
