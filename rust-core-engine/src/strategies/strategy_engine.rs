@@ -4,9 +4,12 @@ use crate::strategies::{
     // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#strategies
     // @test:TC-TRADING-029
     bollinger_strategy::BollingerStrategy,
+    hybrid_filter::{HybridFilter, HybridFilterConfig},
     macd_strategy::MacdStrategy,
+    ml_trend_predictor::{MLPredictorConfig, MLTrendPredictor},
     rsi_strategy::RsiStrategy,
     stochastic_strategy::StochasticStrategy,
+    trend_filter::{TrendFilter, TrendFilterConfig},
     volume_strategy::VolumeStrategy,
 };
 use serde_json::json;
@@ -80,6 +83,7 @@ pub struct StrategyEngine {
     strategies: Vec<StrategyType>,
     config: StrategyEngineConfig,
     signal_history: Arc<RwLock<Vec<CombinedSignal>>>,
+    hybrid_filter: Option<Arc<HybridFilter>>,
 }
 
 /// Configuration for the strategy engine
@@ -136,7 +140,35 @@ impl StrategyEngine {
             ],
             config,
             signal_history: Arc::new(RwLock::new(Vec::new())),
+            hybrid_filter: None,
         }
+    }
+
+    /// Initialize strategy engine with hybrid trend filter
+    pub fn with_hybrid_filter(
+        trend_filter_config: TrendFilterConfig,
+        ml_predictor_config: Option<MLPredictorConfig>,
+        hybrid_config: HybridFilterConfig,
+    ) -> Self {
+        let mut engine = Self::new();
+
+        // Create trend filter
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+
+        // Create ML predictor if config provided
+        let ml_predictor = ml_predictor_config.map(|config| {
+            Arc::new(MLTrendPredictor::new(config))
+        });
+
+        // Create hybrid filter
+        let hybrid_filter = Arc::new(HybridFilter::new(
+            hybrid_config,
+            trend_filter,
+            ml_predictor,
+        ));
+
+        engine.hybrid_filter = Some(hybrid_filter);
+        engine
     }
 
     pub fn with_config(config: StrategyEngineConfig) -> Self {
@@ -198,7 +230,49 @@ impl StrategyEngine {
 
             // Execute strategy analysis
             match strategy.analyze(data).await {
-                Ok(output) => {
+                Ok(mut output) => {
+                    // Apply hybrid filter if enabled
+                    if let Some(ref filter) = self.hybrid_filter {
+                        // Get candle data for filtering
+                        let candles_1d = data.timeframe_data.get("1d");
+                        let candles_4h = data.timeframe_data.get("4h");
+                        let candles_1h = data.timeframe_data.get("1h");
+
+                        // Apply filter if we have required timeframes
+                        if let (Some(c_4h), Some(c_1h)) = (candles_4h, candles_1h) {
+                            match filter
+                                .apply_filter(
+                                    output.signal,
+                                    output.confidence,
+                                    &data.symbol,
+                                    candles_1d.map(|c| c.as_slice()),
+                                    c_4h,
+                                    c_1h,
+                                )
+                                .await
+                            {
+                                Ok(filter_result) => {
+                                    info!(
+                                        "Hybrid filter applied: {} (confidence: {:.2} -> {:.2})",
+                                        if filter_result.should_block {
+                                            "BLOCKED"
+                                        } else {
+                                            "PASSED"
+                                        },
+                                        output.confidence,
+                                        filter_result.adjusted_confidence
+                                    );
+                                    output = filter.apply_to_output(output, filter_result);
+                                }
+                                Err(e) => {
+                                    warn!("Hybrid filter error: {} - continuing without filter", e);
+                                }
+                            }
+                        } else {
+                            warn!("Missing required timeframes (4h, 1h) for hybrid filter");
+                        }
+                    }
+
                     let weight = strategy.config().weight;
                     let result = StrategySignalResult {
                         strategy_name: strategy_name.clone(),
@@ -211,14 +285,14 @@ impl StrategyEngine {
                     strategy_results.push(result);
 
                     info!(
-                        "Strategy '{}' signal: {:?} (confidence: {:.2})",
+                        "Strategy '{}' final signal: {:?} (confidence: {:.2})",
                         strategy_name, output.signal, output.confidence
                     );
-                },
+                }
                 Err(e) => {
                     warn!("Strategy '{strategy_name}' analysis failed: {e}");
                     continue;
-                },
+                }
             }
         }
 
