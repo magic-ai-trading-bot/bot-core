@@ -18,7 +18,8 @@ omit =
     generate_openapi.py
 
 [report]
-fail_under = 93
+# Note: fail_under removed - threshold check happens in CI workflow after all test steps complete
+# Individual test steps (step 1, 2, 3) may have <93% coverage, only final merged coverage matters
 exclude_lines =
     pragma: no cover
     def __repr__
