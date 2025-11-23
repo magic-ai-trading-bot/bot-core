@@ -1,5 +1,5 @@
 use crate::market_data::cache::CandleData;
-use crate::strategies::ml_trend_predictor::{MLTrendPredictor, MLTrendPrediction};
+use crate::strategies::ml_trend_predictor::{MLTrendPrediction, MLTrendPredictor};
 use crate::strategies::trend_filter::{TrendAlignment, TrendDirection, TrendFilter};
 use crate::strategies::{StrategyOutput, TradingSignal};
 use std::sync::Arc;
@@ -9,7 +9,7 @@ use std::sync::Arc;
 pub struct HybridFilterConfig {
     pub enabled: bool,
     pub use_ml: bool,
-    pub ml_weight: f64, // Weight for ML prediction (0.0 - 1.0)
+    pub ml_weight: f64,  // Weight for ML prediction (0.0 - 1.0)
     pub mtf_weight: f64, // Weight for MTF alignment (0.0 - 1.0)
     pub block_counter_trend: bool,
 }
@@ -93,12 +93,8 @@ impl HybridFilter {
         };
 
         // Step 3: Combine signals
-        let filter_result = self.combine_signals(
-            signal,
-            confidence,
-            &mtf_alignment,
-            ml_prediction.as_ref(),
-        );
+        let filter_result =
+            self.combine_signals(signal, confidence, &mtf_alignment, ml_prediction.as_ref());
 
         Ok(filter_result)
     }
@@ -145,7 +141,7 @@ impl HybridFilter {
                                 "ML confirms Uptrend ({:.0}% confidence)",
                                 ml.confidence * 100.0
                             ));
-                        }
+                        },
                         TrendDirection::Downtrend => {
                             // ML predicts opposite direction
                             if self.config.block_counter_trend {
@@ -156,14 +152,16 @@ impl HybridFilter {
                                 ));
                             } else {
                                 adjusted_confidence *= 0.2;
-                                reasoning_parts.push("ML conflict - confidence penalized".to_string());
+                                reasoning_parts
+                                    .push("ML conflict - confidence penalized".to_string());
                             }
-                        }
+                        },
                         TrendDirection::Neutral => {
                             // ML is neutral - slight penalty
                             adjusted_confidence *= 0.85;
-                            reasoning_parts.push("ML neutral - minor confidence reduction".to_string());
-                        }
+                            reasoning_parts
+                                .push("ML neutral - minor confidence reduction".to_string());
+                        },
                     }
                 } else {
                     // No ML prediction - rely on MTF only
@@ -173,7 +171,7 @@ impl HybridFilter {
                         mtf_alignment.alignment_score * 100.0
                     ));
                 }
-            }
+            },
 
             TradingSignal::Short => {
                 // Check MTF alignment for SHORT
@@ -202,7 +200,7 @@ impl HybridFilter {
                                 "ML confirms Downtrend ({:.0}% confidence)",
                                 ml.confidence * 100.0
                             ));
-                        }
+                        },
                         TrendDirection::Uptrend => {
                             // ML predicts opposite direction
                             if self.config.block_counter_trend {
@@ -213,13 +211,15 @@ impl HybridFilter {
                                 ));
                             } else {
                                 adjusted_confidence *= 0.2;
-                                reasoning_parts.push("ML conflict - confidence penalized".to_string());
+                                reasoning_parts
+                                    .push("ML conflict - confidence penalized".to_string());
                             }
-                        }
+                        },
                         TrendDirection::Neutral => {
                             adjusted_confidence *= 0.85;
-                            reasoning_parts.push("ML neutral - minor confidence reduction".to_string());
-                        }
+                            reasoning_parts
+                                .push("ML neutral - minor confidence reduction".to_string());
+                        },
                     }
                 } else {
                     adjusted_confidence *= mtf_alignment.alignment_score;
@@ -228,12 +228,12 @@ impl HybridFilter {
                         mtf_alignment.alignment_score * 100.0
                     ));
                 }
-            }
+            },
 
             TradingSignal::Neutral => {
                 // No filtering for neutral signals
                 reasoning_parts.push("Neutral signal - no filtering applied".to_string());
-            }
+            },
         }
 
         FilterResult {
@@ -264,10 +264,7 @@ impl HybridFilter {
                 signal: output.signal,
                 confidence: filter.adjusted_confidence,
                 reasoning: if output.confidence != filter.adjusted_confidence {
-                    format!(
-                        "{}. Filter: {}",
-                        output.reasoning, filter.reasoning
-                    )
+                    format!("{}. Filter: {}", output.reasoning, filter.reasoning)
                 } else {
                     output.reasoning
                 },
@@ -339,12 +336,7 @@ mod tests {
             is_aligned: true,
         };
 
-        let result = filter.combine_signals(
-            TradingSignal::Long,
-            0.75,
-            &alignment,
-            None,
-        );
+        let result = filter.combine_signals(TradingSignal::Long, 0.75, &alignment, None);
 
         assert!(!result.should_block);
         assert!(result.adjusted_confidence > 0.5);
@@ -362,12 +354,7 @@ mod tests {
             is_aligned: false,
         };
 
-        let result = filter.combine_signals(
-            TradingSignal::Long,
-            0.75,
-            &alignment,
-            None,
-        );
+        let result = filter.combine_signals(TradingSignal::Long, 0.75, &alignment, None);
 
         assert!(result.should_block); // Should block counter-trend
     }
@@ -384,12 +371,7 @@ mod tests {
             is_aligned: false,
         };
 
-        let result = filter.combine_signals(
-            TradingSignal::Neutral,
-            0.5,
-            &alignment,
-            None,
-        );
+        let result = filter.combine_signals(TradingSignal::Neutral, 0.5, &alignment, None);
 
         assert!(!result.should_block);
         assert_eq!(result.adjusted_confidence, 0.5);

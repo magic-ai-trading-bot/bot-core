@@ -70,10 +70,7 @@ impl MLTrendPredictor {
             .map_err(|e| format!("HTTP request failed: {}", e))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "ML service returned error: {}",
-                response.status()
-            ));
+            return Err(format!("ML service returned error: {}", response.status()));
         }
 
         let prediction: MLTrendPrediction = response
@@ -108,7 +105,7 @@ impl MLTrendPredictor {
                     log::error!("ML prediction failed (no fallback): {}", e);
                     None
                 }
-            }
+            },
         }
     }
 
@@ -214,10 +211,7 @@ mod tests {
     async fn test_ml_predictor_creation() {
         let config = MLPredictorConfig::default();
         let predictor = MLTrendPredictor::new(config);
-        assert_eq!(
-            predictor.config().service_url,
-            "http://localhost:8000"
-        );
+        assert_eq!(predictor.config().service_url, "http://localhost:8000");
     }
 
     // Note: Integration tests with actual ML service should be in separate test file

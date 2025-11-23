@@ -156,16 +156,11 @@ impl StrategyEngine {
         let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
 
         // Create ML predictor if config provided
-        let ml_predictor = ml_predictor_config.map(|config| {
-            Arc::new(MLTrendPredictor::new(config))
-        });
+        let ml_predictor =
+            ml_predictor_config.map(|config| Arc::new(MLTrendPredictor::new(config)));
 
         // Create hybrid filter
-        let hybrid_filter = Arc::new(HybridFilter::new(
-            hybrid_config,
-            trend_filter,
-            ml_predictor,
-        ));
+        let hybrid_filter = Arc::new(HybridFilter::new(hybrid_config, trend_filter, ml_predictor));
 
         engine.hybrid_filter = Some(hybrid_filter);
         engine
@@ -263,10 +258,10 @@ impl StrategyEngine {
                                         filter_result.adjusted_confidence
                                     );
                                     output = filter.apply_to_output(output, filter_result);
-                                }
+                                },
                                 Err(e) => {
                                     warn!("Hybrid filter error: {} - continuing without filter", e);
-                                }
+                                },
                             }
                         } else {
                             warn!("Missing required timeframes (4h, 1h) for hybrid filter");
@@ -288,11 +283,11 @@ impl StrategyEngine {
                         "Strategy '{}' final signal: {:?} (confidence: {:.2})",
                         strategy_name, output.signal, output.confidence
                     );
-                }
+                },
                 Err(e) => {
                     warn!("Strategy '{strategy_name}' analysis failed: {e}");
                     continue;
-                }
+                },
             }
         }
 
