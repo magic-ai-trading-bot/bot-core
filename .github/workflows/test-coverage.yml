@@ -149,10 +149,10 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing
 
-      - name: Run test_main.py separately (MongoDB tests have state pollution issues)
+      - name: Run test_main.py and test_main_comprehensive.py separately (MongoDB tests have state pollution issues)
         working-directory: ./python-ai-service
         run: |
-          python -m pytest tests/test_main.py \
+          python -m pytest tests/test_main.py tests/test_main_comprehensive.py \
             -v \
             --cov=. \
             --cov-config=.coveragerc \
