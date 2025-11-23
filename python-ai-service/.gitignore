@@ -86,6 +86,10 @@ dmypy.json
 # Redis dumps
 dump.rdb
 
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
 # Temporary files
 *.tmp
 *.temp
