@@ -18,15 +18,15 @@ import subprocess
 
 logger = get_logger("MonitoringTasks")
 
-# Service URLs
-RUST_API_URL = os.getenv("RUST_API_URL", "http://localhost:8080")
-PYTHON_API_URL = os.getenv("PYTHON_API_URL", "http://localhost:8000")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-MONGODB_HOST = os.getenv("MONGODB_HOST", "localhost")
+# Service URLs (using Docker container hostnames)
+RUST_API_URL = os.getenv("RUST_API_URL", "http://rust-core-engine-dev:8080")
+PYTHON_API_URL = os.getenv("PYTHON_API_URL", "http://python-ai-service-dev:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://nextjs-ui-dashboard-dev:3000")
+MONGODB_HOST = os.getenv("MONGODB_HOST", "mongodb")
 MONGODB_PORT = os.getenv("MONGODB_PORT", "27017")
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_HOST = os.getenv("REDIS_HOST", "redis-cache")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
-RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 RABBITMQ_PORT = os.getenv("RABBITMQ_PORT", "15672")
 
 # Performance thresholds (from monitor_performance.py)
@@ -104,7 +104,8 @@ def system_health_check(self) -> Dict[str, Any]:
     for service_name, url in services_to_check:
         try:
             response = requests.get(url, timeout=5)
-            if response.status_code == 200:
+            # 200 = OK, 403 = Forbidden but service is running (auth required)
+            if response.status_code in [200, 403]:
                 health_report["services"][service_name] = {
                     "status": "healthy",
                     "response_time_ms": response.elapsed.total_seconds() * 1000,
@@ -133,53 +134,67 @@ def system_health_check(self) -> Dict[str, Any]:
             health_report["overall_status"] = "critical"
             logger.error(f"  ❌ {service_name}: DOWN ({e})")
 
-    # Check MongoDB (simple connection test)
+    # Check MongoDB (using pymongo driver)
     try:
-        # Try to connect and ping
-        result = subprocess.run(
-            [
-                "mongosh",
-                f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}",
-                "--eval",
-                "db.adminCommand('ping')",
-            ],
-            capture_output=True,
-            timeout=5,
+        from pymongo import MongoClient
+        from pymongo.errors import ConnectionFailure
+
+        # Connect and ping MongoDB
+        client = MongoClient(
+            f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}",
+            serverSelectionTimeoutMS=5000
         )
-        if result.returncode == 0:
-            health_report["services"]["MongoDB"] = {"status": "healthy"}
-            logger.info("  ✅ MongoDB: OK")
-        else:
-            health_report["services"]["MongoDB"] = {"status": "unhealthy"}
-            health_report["alerts"].append("⚠️ MongoDB connection issue")
-            health_report["overall_status"] = "degraded"
-            logger.warning("  ⚠️ MongoDB: Unhealthy")
-    except Exception as e:
+        # Ping command
+        client.admin.command('ping')
+        health_report["services"]["MongoDB"] = {"status": "healthy"}
+        logger.info("  ✅ MongoDB: OK")
+        client.close()
+    except ConnectionFailure as e:
         health_report["services"]["MongoDB"] = {"status": "down", "error": str(e)}
         health_report["alerts"].append(f"❌ MongoDB is DOWN: {e}")
         health_report["overall_status"] = "critical"
         logger.error(f"  ❌ MongoDB: DOWN ({e})")
+    except Exception as e:
+        health_report["services"]["MongoDB"] = {"status": "unhealthy", "error": str(e)}
+        health_report["alerts"].append(f"⚠️ MongoDB connection issue: {e}")
+        health_report["overall_status"] = "degraded"
+        logger.warning(f"  ⚠️ MongoDB: Unhealthy ({e})")
 
-    # Check Redis (simple ping)
+    # Check Redis (using redis-py driver)
     try:
-        result = subprocess.run(
-            ["redis-cli", "-h", REDIS_HOST, "-p", str(REDIS_PORT), "ping"],
-            capture_output=True,
-            timeout=5,
+        import redis
+
+        # Get Redis password from environment
+        redis_password = os.getenv("REDIS_PASSWORD", "")
+
+        # Connect and ping Redis
+        r = redis.Redis(
+            host=REDIS_HOST,
+            port=int(REDIS_PORT),
+            password=redis_password,
+            socket_timeout=5,
+            socket_connect_timeout=5
         )
-        if result.returncode == 0 and b"PONG" in result.stdout:
+        # Ping command
+        if r.ping():
             health_report["services"]["Redis"] = {"status": "healthy"}
             logger.info("  ✅ Redis: OK")
         else:
             health_report["services"]["Redis"] = {"status": "unhealthy"}
-            health_report["alerts"].append("⚠️ Redis connection issue")
+            health_report["alerts"].append("⚠️ Redis ping failed")
             health_report["overall_status"] = "degraded"
             logger.warning("  ⚠️ Redis: Unhealthy")
-    except Exception as e:
+        r.close()
+    except redis.ConnectionError as e:
         health_report["services"]["Redis"] = {"status": "down", "error": str(e)}
         health_report["alerts"].append(f"❌ Redis is DOWN: {e}")
         health_report["overall_status"] = "critical"
         logger.error(f"  ❌ Redis: DOWN ({e})")
+    except Exception as e:
+        health_report["services"]["Redis"] = {"status": "unhealthy", "error": str(e)}
+        health_report["alerts"].append(f"⚠️ Redis connection issue: {e}")
+        health_report["overall_status"] = "degraded"
+        logger.warning(f"  ⚠️ Redis: Unhealthy ({e})")
 
     # System resource checks (disk space, memory)
     try:

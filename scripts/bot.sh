@@ -169,6 +169,14 @@ start_services() {
     print_status "Waiting for services to be ready..."
     sleep 5
 
+    # Initialize enterprise services (RabbitMQ, Grafana, Kong)
+    if [[ "$WITH_ENTERPRISE" == "true" ]] || [[ "$WITH_RABBITMQ" == "true" ]] || [[ "$WITH_MONITORING" == "true" ]] || [[ "$WITH_KONG" == "true" ]]; then
+        if [[ -f "scripts/init-all-services.sh" ]]; then
+            print_status "Initializing enterprise services (RabbitMQ, Grafana, Kong)..."
+            bash scripts/init-all-services.sh || print_warning "Some initializations failed (services may already be configured)"
+        fi
+    fi
+
     # Auto-seed MongoDB with sample data (only on first run)
     if [[ -f "scripts/init-mongodb-seed.sh" ]]; then
         print_status "Checking MongoDB seed data..."
@@ -254,17 +262,23 @@ show_urls() {
     if docker ps --format '{{.Names}}' | grep -q "rabbitmq"; then
         echo -e "\n${GREEN}Enterprise Features:${NC}"
         if docker ps --format '{{.Names}}' | grep -q "rabbitmq"; then
-            echo -e "  🐰 RabbitMQ Management: ${CYAN}http://localhost:15672${NC} (admin/admin)"
+            echo -e "  🐰 RabbitMQ Management: ${CYAN}http://localhost:15672${NC} (mgmt/admin123)"
         fi
         if docker ps --format '{{.Names}}' | grep -q "kong"; then
             echo -e "  👑 Kong Admin API: ${CYAN}http://localhost:8001${NC}"
             echo -e "  🔀 Kong Proxy: ${CYAN}http://localhost:8100${NC}"
+            echo -e "     - Rust API: ${CYAN}http://localhost:8100/api/health${NC}"
+            echo -e "     - Python AI: ${CYAN}http://localhost:8100/ai/health${NC}"
         fi
         if docker ps --format '{{.Names}}' | grep -q "prometheus"; then
             echo -e "  📈 Prometheus: ${CYAN}http://localhost:9090${NC}"
         fi
         if docker ps --format '{{.Names}}' | grep -q "grafana"; then
-            echo -e "  📊 Grafana: ${CYAN}http://localhost:3001${NC} (admin/admin)"
+            GRAFANA_PASS=${GRAFANA_PASSWORD:-admin123}
+            echo -e "  📊 Grafana: ${CYAN}http://localhost:3001${NC} (admin/$GRAFANA_PASS)"
+        fi
+        if docker ps --format '{{.Names}}' | grep -q "flower"; then
+            echo -e "  🌸 Flower (Celery): ${CYAN}http://localhost:5555${NC}"
         fi
     fi
     echo ""

@@ -1,9 +1,12 @@
 pub mod bollinger_strategy;
+pub mod hybrid_filter;
 pub mod indicators;
 pub mod macd_strategy;
+pub mod ml_trend_predictor;
 pub mod rsi_strategy;
 pub mod stochastic_strategy;
 pub mod strategy_engine;
+pub mod trend_filter;
 pub mod types;
 pub mod volume_strategy;
 

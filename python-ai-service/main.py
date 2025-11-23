@@ -572,6 +572,26 @@ class PerformanceFeedback(BaseModel):
     timestamp: int = Field(..., description="Feedback timestamp")
 
 
+class TrendPredictionRequest(BaseModel):
+    """Trend prediction request model."""
+
+    symbol: str = Field(..., description="Trading symbol (e.g., BTCUSDT)")
+    timeframe: str = Field(
+        default="4h", description="Timeframe for trend analysis (1h, 4h, 1d)"
+    )
+
+
+class TrendPredictionResponse(BaseModel):
+    """Trend prediction response model."""
+
+    trend: str = Field(..., description="Predicted trend direction (Uptrend/Downtrend/Neutral)")
+    confidence: float = Field(
+        ..., ge=0, le=1, description="Confidence in prediction (0.0-1.0)"
+    )
+    model: str = Field(..., description="ML model used for prediction")
+    timestamp: int = Field(..., description="Prediction timestamp")
+
+
 class AIServiceInfo(BaseModel):
     """AI service information."""
 
@@ -2008,6 +2028,292 @@ async def send_performance_feedback(feedback: PerformanceFeedback):
         "message": "Feedback received successfully",
         "signal_id": feedback.signal_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/predict-trend", response_model=TrendPredictionResponse)
+async def predict_trend(request: TrendPredictionRequest):
+    """
+    Predict trend direction using GPT-4 powered multi-timeframe analysis.
+
+    This endpoint uses GPT-4 to analyze market data across multiple timeframes:
+    - Daily (1d): Major trend direction
+    - 4H: Intermediate trend
+    - Requested timeframe: Short-term signals
+
+    GPT-4 considers: EMA200, momentum, RSI, MACD, volume, and price action.
+    Falls back to technical analysis if GPT-4 unavailable.
+    """
+    logger.info(f"🔮 GPT-4 trend prediction request for {request.symbol} on {request.timeframe}")
+
+    try:
+        # Fetch market data from MongoDB
+        if mongodb_db is None:
+            raise HTTPException(status_code=503, detail="Database not available")
+
+        candles_collection = mongodb_db.market_data
+
+        # Fetch multi-timeframe data for comprehensive analysis
+        timeframes = {
+            "1d": 250,   # Daily for major trend
+            "4h": 250,   # 4H for intermediate trend
+            request.timeframe: 250  # Requested timeframe
+        }
+
+        candles_by_tf = {}
+        for tf, limit in timeframes.items():
+            cursor = candles_collection.find(
+                {"symbol": request.symbol, "timeframe": tf},
+                {"_id": 0}
+            ).sort("open_time", ASCENDING).limit(limit)
+
+            candles = await cursor.to_list(length=limit)
+            if len(candles) >= 50:  # Minimum data requirement
+                candles_by_tf[tf] = candles
+
+        if len(candles_by_tf) == 0:
+            logger.warning(f"⚠️ Insufficient data for {request.symbol}")
+            return TrendPredictionResponse(
+                trend="Neutral",
+                confidence=0.3,
+                model="Insufficient Data",
+                timestamp=int(datetime.now(timezone.utc).timestamp())
+            )
+
+        # Try GPT-4 analysis first
+        if openai_client is not None:
+            try:
+                result = await _predict_trend_gpt4(request.symbol, candles_by_tf)
+                logger.info(
+                    f"✅ GPT-4 trend prediction for {request.symbol}: {result['trend']} "
+                    f"(confidence: {result['confidence']:.2f})"
+                )
+                return TrendPredictionResponse(
+                    trend=result["trend"],
+                    confidence=result["confidence"],
+                    model="GPT-4o-mini",
+                    timestamp=int(datetime.now(timezone.utc).timestamp())
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ GPT-4 analysis failed, falling back to technical: {e}")
+
+        # Fallback to technical analysis
+        result = _predict_trend_technical(request.symbol, candles_by_tf, request.timeframe)
+        logger.info(
+            f"✅ Technical trend prediction for {request.symbol}: {result['trend']} "
+            f"(confidence: {result['confidence']:.2f})"
+        )
+
+        return TrendPredictionResponse(
+            trend=result["trend"],
+            confidence=result["confidence"],
+            model="EMA200-Technical-Fallback",
+            timestamp=int(datetime.now(timezone.utc).timestamp())
+        )
+
+    except Exception as e:
+        logger.error(f"❌ Error predicting trend for {request.symbol}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to predict trend: {str(e)}"
+        )
+
+
+async def _predict_trend_gpt4(symbol: str, candles_by_tf: Dict[str, List]) -> Dict[str, Any]:
+    """
+    Use GPT-4 to predict trend direction based on multi-timeframe analysis.
+
+    Args:
+        symbol: Trading symbol (e.g., BTCUSDT)
+        candles_by_tf: Dict of timeframe -> candles data
+
+    Returns:
+        Dict with trend, confidence, reasoning
+    """
+    # Calculate indicators for each timeframe
+    indicators_by_tf = {}
+
+    for tf, candles in candles_by_tf.items():
+        df = pd.DataFrame(candles)
+        df = df.sort_values("open_time")
+
+        # Calculate key indicators
+        df["ema_200"] = df["close"].ewm(span=200, adjust=False).mean() if len(df) >= 200 else df["close"]
+        df["ema_50"] = df["close"].ewm(span=50, adjust=False).mean() if len(df) >= 50 else df["close"]
+
+        current_price = df["close"].iloc[-1]
+        ema_200 = df["ema_200"].iloc[-1] if len(df) >= 200 else current_price
+        ema_50 = df["ema_50"].iloc[-1] if len(df) >= 50 else current_price
+
+        # Price distance from EMAs
+        distance_200 = ((current_price - ema_200) / ema_200) * 100 if ema_200 > 0 else 0
+        distance_50 = ((current_price - ema_50) / ema_50) * 100 if ema_50 > 0 else 0
+
+        # Momentum (last 20 periods)
+        momentum_20 = ((df["close"].iloc[-1] / df["close"].iloc[-20]) - 1) * 100 if len(df) >= 20 else 0
+
+        # Volume trend
+        volume_ma = df["volume"].rolling(20).mean().iloc[-1] if len(df) >= 20 else df["volume"].iloc[-1]
+        volume_ratio = df["volume"].iloc[-1] / volume_ma if volume_ma > 0 else 1.0
+
+        # RSI if enough data
+        if len(df) >= 14:
+            delta = df["close"].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            rsi = 100 - (100 / (1 + rs))
+            current_rsi = rsi.iloc[-1]
+        else:
+            current_rsi = 50.0
+
+        indicators_by_tf[tf] = {
+            "current_price": float(current_price),
+            "ema_200": float(ema_200),
+            "ema_50": float(ema_50),
+            "distance_from_ema200": float(distance_200),
+            "distance_from_ema50": float(distance_50),
+            "momentum_20": float(momentum_20),
+            "volume_ratio": float(volume_ratio),
+            "rsi": float(current_rsi),
+            "last_5_closes": [float(x) for x in df["close"].tail(5).tolist()]
+        }
+
+    # Build GPT-4 prompt
+    prompt = f"""Analyze the multi-timeframe trend for {symbol}:
+
+DAILY (1d) TIMEFRAME:
+{_format_tf_data("Daily", indicators_by_tf.get("1d", {}))}
+
+4-HOUR (4h) TIMEFRAME:
+{_format_tf_data("4-Hour", indicators_by_tf.get("4h", {}))}
+
+PRIMARY TIMEFRAME:
+{_format_tf_data("Primary", indicators_by_tf.get(list(candles_by_tf.keys())[-1], {}))}
+
+INSTRUCTIONS:
+1. Determine the PRIMARY trend direction considering all timeframes
+2. Daily timeframe is most important (60% weight)
+3. 4H timeframe is moderately important (30% weight)
+4. Primary timeframe fine-tunes the signal (10% weight)
+5. Consider: EMA200 position, momentum, RSI, volume
+6. Be conservative - only strong signals should get high confidence
+
+OUTPUT FORMAT (JSON only, no markdown):
+{{
+  "trend": "Uptrend" | "Downtrend" | "Neutral",
+  "confidence": 0.0-1.0,
+  "reasoning": "Explain in 1-2 sentences why you chose this trend",
+  "timeframe_alignment": {{
+    "daily": "up" | "down" | "neutral",
+    "4h": "up" | "down" | "neutral",
+    "primary": "up" | "down" | "neutral"
+  }}
+}}"""
+
+    # Call GPT-4
+    response = await openai_client.chat_completions_create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an expert cryptocurrency technical analyst. Analyze trends conservatively and explain your reasoning clearly. Always respond with valid JSON."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.0,  # Deterministic
+        max_tokens=400,   # Short response = cheaper
+    )
+
+    # Parse response
+    response_content = response["choices"][0]["message"]["content"]
+
+    # Track cost
+    usage = response.get("usage", {})
+    if usage:
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        cost = (input_tokens / 1_000_000) * 0.15 + (output_tokens / 1_000_000) * 0.60
+
+        global total_input_tokens, total_output_tokens, total_requests_count, total_cost_usd
+        total_input_tokens += input_tokens
+        total_output_tokens += output_tokens
+        total_requests_count += 1
+        total_cost_usd += cost
+
+        logger.info(f"💰 Trend prediction cost: ${cost:.5f} | Tokens: {input_tokens}+{output_tokens} | Total: ${total_cost_usd:.3f}")
+
+    # Parse JSON from response (handle markdown code blocks if present)
+    import re
+    json_match = re.search(r'\{.*\}', response_content, re.DOTALL)
+    if json_match:
+        result = json.loads(json_match.group())
+    else:
+        result = json.loads(response_content)
+
+    return result
+
+
+def _format_tf_data(tf_name: str, indicators: Dict) -> str:
+    """Format timeframe data for GPT-4 prompt."""
+    if not indicators:
+        return f"{tf_name}: No data available"
+
+    return f"""- Current Price: ${indicators.get('current_price', 0):.2f}
+- EMA200: ${indicators.get('ema_200', 0):.2f} (distance: {indicators.get('distance_from_ema200', 0):+.2f}%)
+- EMA50: ${indicators.get('ema_50', 0):.2f} (distance: {indicators.get('distance_from_ema50', 0):+.2f}%)
+- Momentum (20 periods): {indicators.get('momentum_20', 0):+.2f}%
+- RSI: {indicators.get('rsi', 50):.1f}
+- Volume Ratio: {indicators.get('volume_ratio', 1.0):.2f}x
+- Last 5 closes: {indicators.get('last_5_closes', [])}"""
+
+
+def _predict_trend_technical(symbol: str, candles_by_tf: Dict[str, List], primary_tf: str) -> Dict[str, Any]:
+    """
+    Fallback technical analysis when GPT-4 is unavailable.
+    Uses simple EMA200 + momentum logic.
+    """
+    # Use primary timeframe or fallback to first available
+    tf = primary_tf if primary_tf in candles_by_tf else list(candles_by_tf.keys())[0]
+    candles = candles_by_tf[tf]
+
+    df = pd.DataFrame(candles)
+    df = df.sort_values("open_time")
+
+    if len(df) < 200:
+        return {"trend": "Neutral", "confidence": 0.3, "reasoning": "Insufficient data"}
+
+    # Calculate EMA200
+    df["ema_200"] = df["close"].ewm(span=200, adjust=False).mean()
+
+    current_price = df["close"].iloc[-1]
+    current_ema = df["ema_200"].iloc[-1]
+    distance_pct = ((current_price - current_ema) / current_ema) * 100
+
+    # Calculate momentum
+    price_change_20 = ((df["close"].iloc[-1] / df["close"].iloc[-20]) - 1) * 100
+
+    # Determine trend
+    if distance_pct > 1.0 and price_change_20 > 2.0:
+        trend = "Uptrend"
+        confidence = min(0.75 + (abs(distance_pct) / 10), 0.95)
+        reasoning = f"Price {distance_pct:.1f}% above EMA200 with {price_change_20:.1f}% upward momentum"
+    elif distance_pct < -1.0 and price_change_20 < -2.0:
+        trend = "Downtrend"
+        confidence = min(0.75 + (abs(distance_pct) / 10), 0.95)
+        reasoning = f"Price {distance_pct:.1f}% below EMA200 with {price_change_20:.1f}% downward momentum"
+    else:
+        trend = "Neutral"
+        confidence = 0.50
+        reasoning = "Mixed signals - price near EMA200 or conflicting momentum"
+
+    return {
+        "trend": trend,
+        "confidence": confidence,
+        "reasoning": reasoning
     }
 
 
