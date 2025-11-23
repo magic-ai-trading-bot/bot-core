@@ -138,6 +138,8 @@ jobs:
       - name: Run Python tests (excluding ML and test_main*.py)
         working-directory: ./python-ai-service
         run: |
+          # Run tests and capture results
+          set +e  # Don't exit immediately on error
           python -m pytest tests/ \
             -v \
             --ignore=tests/test_ml_compatibility.py \
@@ -149,10 +151,20 @@ jobs:
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing
+          TEST_EXIT_CODE=$?
+          set -e
+
+          # Fail if tests failed
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "❌ Tests failed with exit code $TEST_EXIT_CODE"
+            exit $TEST_EXIT_CODE
+          fi
 
       - name: Run test_main.py and test_main_comprehensive.py separately (MongoDB tests have state pollution issues)
         working-directory: ./python-ai-service
         run: |
+          # Run tests and capture results
+          set +e  # Don't exit immediately on error
           python -m pytest tests/test_main.py tests/test_main_comprehensive.py \
             -v \
             --cov=. \
@@ -161,10 +173,20 @@ jobs:
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing
+          TEST_EXIT_CODE=$?
+          set -e
+
+          # Fail if tests failed
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "❌ Tests failed with exit code $TEST_EXIT_CODE"
+            exit $TEST_EXIT_CODE
+          fi
 
       - name: Run ML tests separately
         working-directory: ./python-ai-service
         run: |
+          # Run tests and capture results
+          set +e  # Don't exit immediately on error
           python -m pytest tests/test_ml_compatibility.py tests/test_ml_performance.py \
             -v \
             --cov=. \
@@ -173,6 +195,14 @@ jobs:
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing
+          TEST_EXIT_CODE=$?
+          set -e
+
+          # Fail if tests failed
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "❌ Tests failed with exit code $TEST_EXIT_CODE"
+            exit $TEST_EXIT_CODE
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
