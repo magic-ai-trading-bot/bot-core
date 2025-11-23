@@ -86,10 +86,7 @@ impl TrendFilter {
     }
 
     /// Calculate trend direction using EMA
-    pub fn calculate_ema_trend(
-        &self,
-        candles: &[CandleData],
-    ) -> Result<TrendDirection, String> {
+    pub fn calculate_ema_trend(&self, candles: &[CandleData]) -> Result<TrendDirection, String> {
         if candles.len() < self.config.ema_period {
             return Err(format!(
                 "Insufficient candles: need {} got {}",
@@ -159,7 +156,7 @@ impl TrendFilter {
             (TrendDirection::Uptrend, TrendDirection::Uptrend, TrendDirection::Uptrend)
             | (TrendDirection::Downtrend, TrendDirection::Downtrend, TrendDirection::Downtrend) => {
                 1.0
-            }
+            },
 
             // Strong alignment (Daily + 4H)
             (TrendDirection::Uptrend, TrendDirection::Uptrend, _)
