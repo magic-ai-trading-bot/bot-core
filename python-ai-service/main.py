@@ -14,6 +14,9 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional, Set
 from contextlib import asynccontextmanager
 
+# Load configuration
+from config_loader import AI_CACHE_DURATION_MINUTES, AI_CACHE_ENABLED
+
 import pandas as pd
 import numpy as np
 import fastapi
@@ -65,9 +68,8 @@ total_cost_usd = 0.0
 
 # MongoDB storage for AI analysis results
 AI_ANALYSIS_COLLECTION = "ai_analysis_results"
-ANALYSIS_INTERVAL_MINUTES = (
-    10  # Run analysis every 10 minutes (optimized from 5 for cost saving)
-)
+# Load from config.yaml (default: 2 minutes)
+ANALYSIS_INTERVAL_MINUTES = AI_CACHE_DURATION_MINUTES
 
 # === WEBSOCKET MANAGER ===
 

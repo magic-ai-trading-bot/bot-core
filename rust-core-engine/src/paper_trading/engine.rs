@@ -1383,9 +1383,32 @@ impl PaperTradingEngine {
             portfolio.add_trade(paper_trade.clone())?;
         }
 
-        // Save trade to database
-        if let Err(e) = self.storage.save_paper_trade(&paper_trade).await {
-            error!("Failed to save paper trade to database: {}", e);
+        // Save trade to database with full audit trail
+        {
+            // Create settings snapshot at trade creation time
+            let settings = self.settings.read().await;
+            let settings_snapshot = Some(crate::storage::EffectiveSettingsSnapshot::from_settings(
+                &settings,
+                &signal.symbol,
+            ));
+            drop(settings);
+
+            // Extract AI suggestions for audit trail
+            let ai_suggestions = Some((
+                signal.suggested_stop_loss,
+                signal.suggested_take_profit,
+                None, // TODO: Add suggested_quantity to AITradingSignal struct
+                signal.suggested_leverage,
+            ));
+
+            // Persist trade with complete audit trail
+            if let Err(e) = self
+                .storage
+                .save_paper_trade(&paper_trade, settings_snapshot, ai_suggestions)
+                .await
+            {
+                error!("Failed to save paper trade to database: {}", e);
+            }
         }
 
         // Save portfolio snapshot
@@ -1403,19 +1426,22 @@ impl PaperTradingEngine {
                 "trade_id": trade_id,
                 "symbol": signal.symbol,
                 "type": trade_type.to_string(),
-                "quantity": pending_trade.calculated_quantity,
-                "entry_price": signal.entry_price,
+                "quantity": filled_quantity,  // FIXED: Use actual filled quantity
+                "entry_price": execution_price,  // FIXED: Use actual execution price after simulation
+                "signal_price": signal.entry_price,  // Original signal price for reference
                 "leverage": pending_trade.calculated_leverage,
+                "slippage_pct": ((execution_price - signal.entry_price) / signal.entry_price * 100.0).abs(),
             }),
             timestamp: Utc::now(),
         });
 
         info!(
-            "Executed paper trade: {} {} {} @ {} with {}x leverage",
+            "Executed paper trade: {} {} {} @ {:.2} (signal: {:.2}) with {}x leverage",
             trade_type.to_string(),
-            pending_trade.calculated_quantity,
+            filled_quantity,
             signal.symbol,
-            signal.entry_price,
+            execution_price,  // FIXED: Show actual execution price after simulation
+            signal.entry_price,  // Show original signal price for comparison
             pending_trade.calculated_leverage
         );
 
@@ -1423,7 +1449,7 @@ impl PaperTradingEngine {
             success: true,
             trade_id: Some(trade_id),
             error_message: None,
-            execution_price: Some(signal.entry_price),
+            execution_price: Some(execution_price),  // FIXED: Return actual execution price
             fees_paid: Some(fees_paid),
         })
     }

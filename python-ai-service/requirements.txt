@@ -278,3 +278,4 @@ amqp==5.2.0
 vine==5.1.0
 redis==5.2.1
 flower==2.0.1
+pyyaml>=6.0.1
