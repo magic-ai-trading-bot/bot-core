@@ -97,8 +97,9 @@ class TestAIAnalysisEndpoint:
     ):
         """Test analysis returns cached result."""
         # Mock cached result with proper timestamp format (milliseconds)
+        # Use 1 minute ago to be safely within 2-minute cache window
         timestamp_ms = int(
-            (datetime.now(timezone.utc) - timedelta(minutes=2)).timestamp() * 1000
+            (datetime.now(timezone.utc) - timedelta(minutes=1)).timestamp() * 1000
         )
         cached_result = {
             "symbol": "BTCUSDT",
