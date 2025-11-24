@@ -39,7 +39,7 @@ bcrypt = "0.17"
 validator = { version = "0.20", features = ["derive"] }
 async-trait = "0.1"
 slab = "0.4.11"
-rand = "0.8"
+rand = "0.9"
 
 [features]
 default = ["database"]
