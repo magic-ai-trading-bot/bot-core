@@ -1383,32 +1383,9 @@ impl PaperTradingEngine {
             portfolio.add_trade(paper_trade.clone())?;
         }
 
-        // Save trade to database with full audit trail
-        {
-            // Create settings snapshot at trade creation time
-            let settings = self.settings.read().await;
-            let settings_snapshot = Some(crate::storage::EffectiveSettingsSnapshot::from_settings(
-                &settings,
-                &signal.symbol,
-            ));
-            drop(settings);
-
-            // Extract AI suggestions for audit trail
-            let ai_suggestions = Some((
-                signal.suggested_stop_loss,
-                signal.suggested_take_profit,
-                None, // TODO: Add suggested_quantity to AITradingSignal struct
-                signal.suggested_leverage,
-            ));
-
-            // Persist trade with complete audit trail
-            if let Err(e) = self
-                .storage
-                .save_paper_trade(&paper_trade, settings_snapshot, ai_suggestions)
-                .await
-            {
-                error!("Failed to save paper trade to database: {}", e);
-            }
+        // Save trade to database
+        if let Err(e) = self.storage.save_paper_trade(&paper_trade).await {
+            error!("Failed to save paper trade to database: {}", e);
         }
 
         // Save portfolio snapshot
