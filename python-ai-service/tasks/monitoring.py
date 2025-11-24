@@ -103,7 +103,9 @@ def system_health_check(self) -> Dict[str, Any]:
 
     for service_name, url in services_to_check:
         try:
-            response = requests.get(url, timeout=5)
+            # Frontend may close connection quickly, use shorter timeout and disable keep-alive
+            headers = {"Connection": "close"} if "Frontend" in service_name else {}
+            response = requests.get(url, timeout=3, headers=headers)
             # 200 = OK, 403 = Forbidden but service is running (auth required)
             if response.status_code in [200, 403]:
                 health_report["services"][service_name] = {
@@ -125,6 +127,29 @@ def system_health_check(self) -> Dict[str, Any]:
                 logger.warning(
                     f"  ⚠️ {service_name}: Unhealthy (HTTP {response.status_code})"
                 )
+        except requests.exceptions.ConnectionError as e:
+            # For frontend, connection reset is common with Vite dev server
+            # Try one more time with fresh connection
+            if "Frontend" in service_name:
+                try:
+                    response = requests.get(url, timeout=2, headers={"Connection": "close"})
+                    if response.status_code == 200:
+                        health_report["services"][service_name] = {
+                            "status": "healthy",
+                            "note": "Recovered after connection reset"
+                        }
+                        logger.info(f"  ✅ {service_name}: OK (recovered)")
+                        continue
+                except:
+                    pass
+
+            health_report["services"][service_name] = {
+                "status": "down",
+                "error": str(e),
+            }
+            health_report["alerts"].append(f"❌ {service_name} is DOWN: {e}")
+            health_report["overall_status"] = "critical"
+            logger.error(f"  ❌ {service_name}: DOWN ({e})")
         except Exception as e:
             health_report["services"][service_name] = {
                 "status": "down",
