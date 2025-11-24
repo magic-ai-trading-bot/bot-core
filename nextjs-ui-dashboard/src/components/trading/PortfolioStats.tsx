@@ -35,7 +35,7 @@ export function PortfolioStats({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {formatCurrency(portfolio.current_balance)}
+            {formatCurrency(portfolio.free_margin)}
           </div>
           <p className="text-xs text-muted-foreground">
             Equity: {formatCurrency(portfolio.equity)}

@@ -16,10 +16,11 @@ Comprehensive troubleshooting guide for **Bot-Core** cryptocurrency trading plat
 8. [Build Failures](#build-failures)
 9. [Performance Issues](#performance-issues)
 10. [Security Scan Issues](#security-scan-issues)
-11. [WebSocket Connection Issues](#websocket-connection-issues)
-12. [Trading Execution Issues](#trading-execution-issues)
-13. [CI/CD Pipeline Failures](#cicd-pipeline-failures)
-14. [Diagnostic Commands](#diagnostic-commands)
+11. [RabbitMQ & Celery Issues](#rabbitmq--celery-issues)
+12. [WebSocket Connection Issues](#websocket-connection-issues)
+13. [Trading Execution Issues](#trading-execution-issues)
+14. [CI/CD Pipeline Failures](#cicd-pipeline-failures)
+15. [Diagnostic Commands](#diagnostic-commands)
 
 ---
 
@@ -772,6 +773,112 @@ git filter-branch --force --index-filter \
 # Regenerate secrets
 ./scripts/generate-secrets.sh
 ```
+
+---
+
+## RabbitMQ & Celery Issues
+
+### Symptom: Celery Worker & Flower Fail to Start
+
+**Error Messages:**
+```
+ACCESS_REFUSED - Login was refused using authentication mechanism PLAIN
+celery-worker: (unhealthy)
+flower: (unhealthy)
+```
+
+**Diagnosis:**
+```bash
+# Check service status
+docker ps | grep -E "rabbitmq|celery|flower"
+
+# Check logs for authentication errors
+docker logs celery-worker 2>&1 | grep -E "REFUSED|ERROR"
+docker logs flower 2>&1 | grep -E "REFUSED|ERROR"
+docker logs rabbitmq 2>&1 | grep -E "REFUSED|invalid credentials"
+
+# Verify RabbitMQ users
+docker exec rabbitmq rabbitmqctl list_users
+```
+
+### Root Cause: Password Hash Conflict
+
+**Issue**: `definitions.json` contains hardcoded password hash that overrides `.env` password.
+
+See detailed analysis: [docs/fixes/RABBITMQ_PASSWORD_FIX.md](./fixes/RABBITMQ_PASSWORD_FIX.md)
+
+### Solution: Use Environment Variables Only
+
+**Step 1: Disable definitions.json**
+
+Already fixed in latest version:
+- `docker-compose.yml` (line 388): definitions.json mount commented out
+- `infrastructure/rabbitmq/rabbitmq.conf` (line 27): load_definitions disabled
+
+**Step 2: Clean RabbitMQ State**
+
+```bash
+# Stop all messaging services
+docker stop rabbitmq celery-worker flower celery-beat
+
+# Remove containers
+docker rm rabbitmq celery-worker flower celery-beat
+
+# IMPORTANT: Remove old RabbitMQ data volume
+docker volume rm bot-core_rabbitmq_data
+
+# Restart services
+docker compose --profile messaging up -d
+```
+
+**Step 3: Verify Fix**
+
+```bash
+# Wait 30 seconds for health checks
+sleep 30
+
+# All should show (healthy) or (health: starting)
+docker ps | grep -E "rabbitmq|celery|flower"
+
+# Should show "Connected" and "ready"
+docker logs celery-worker 2>&1 | tail -20
+
+# Should show "Connected"
+docker logs flower 2>&1 | tail -10
+
+# Should only have 'admin' user (no 'mgmt')
+docker exec rabbitmq rabbitmqctl list_users
+```
+
+### Expected Output (Success):
+
+```
+✅ rabbitmq         (healthy)
+✅ celery-worker    (healthy)
+✅ flower           (healthy)
+✅ celery-beat      (healthy)
+
+[INFO/MainProcess] Connected to amqp://admin:**@rabbitmq:5672/bot-core
+[INFO/MainProcess] celery@0bcf14904da9 ready.
+```
+
+### Prevention
+
+1. **Always use `.env` for passwords** - Never hardcode in config files
+2. **Generate secure secrets**: `./scripts/generate-secrets.sh`
+3. **Clean slate on password change**:
+   ```bash
+   docker compose down
+   docker volume rm bot-core_rabbitmq_data
+   docker compose --profile messaging up -d
+   ```
+4. **Let Celery auto-create queues** - No need for static definitions
+
+### Related Issues
+
+- If RabbitMQ shows "file does not exist" error → rabbitmq.conf has `load_definitions` enabled
+- If password change doesn't work → Volume still has old auth database, must remove volume
+- If queues missing → Normal, Celery creates them on first connection
 
 ---
 

@@ -383,7 +383,9 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./infrastructure/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-      - ./infrastructure/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      # DISABLED: definitions.json has hardcoded password hash that conflicts with .env
+      # Exchanges/queues will be auto-created by Celery on first connection
+      # - ./infrastructure/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
       - ./infrastructure/rabbitmq/init-rabbitmq.sh:/etc/rabbitmq/init-rabbitmq.sh:ro
     networks:
       - bot-network
