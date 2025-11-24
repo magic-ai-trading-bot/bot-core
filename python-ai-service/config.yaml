@@ -38,7 +38,7 @@ data:
 
 ai_cache:
   enabled: true
-  duration_minutes: 15 # Cache AI analysis for 15 minutes to save tokens (optimized from 5)
+  duration_minutes: 2 # Cache AI analysis for 2 minutes (reduced from 15 for fresh trading signals)
   max_entries: 100 # Maximum number of cache entries
 
 model_management:
