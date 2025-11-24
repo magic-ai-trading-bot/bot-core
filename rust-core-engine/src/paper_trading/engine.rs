@@ -1440,8 +1440,8 @@ impl PaperTradingEngine {
             trade_type.to_string(),
             filled_quantity,
             signal.symbol,
-            execution_price,  // FIXED: Show actual execution price after simulation
-            signal.entry_price,  // Show original signal price for comparison
+            execution_price,    // FIXED: Show actual execution price after simulation
+            signal.entry_price, // Show original signal price for comparison
             pending_trade.calculated_leverage
         );
 
@@ -1449,7 +1449,7 @@ impl PaperTradingEngine {
             success: true,
             trade_id: Some(trade_id),
             error_message: None,
-            execution_price: Some(execution_price),  // FIXED: Return actual execution price
+            execution_price: Some(execution_price), // FIXED: Return actual execution price
             fees_paid: Some(fees_paid),
         })
     }
