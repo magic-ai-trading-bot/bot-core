@@ -56,7 +56,7 @@ export function TradingDashboardWithSymbolSettings() {
 
       {/* Per-Symbol Settings Component */}
       <PerSymbolSettings
-        currentBalance={portfolio.current_balance}
+        currentBalance={portfolio.equity}
         onSettingsUpdate={handleSymbolSettingsUpdate}
       />
     </div>
@@ -79,7 +79,7 @@ export function SettingsPageExample() {
       </div>
 
       <PerSymbolSettings
-        currentBalance={portfolio.current_balance}
+        currentBalance={portfolio.equity}
         onSettingsUpdate={(configs) => {
           // Settings updated: configs
         }}
