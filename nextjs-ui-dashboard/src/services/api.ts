@@ -500,12 +500,14 @@ class RustTradingApiClient extends BaseApiClient {
   async getChartData(
     symbol: string,
     timeframe: string,
-    limit?: number
+    limit?: number,
+    signal?: AbortSignal
   ): Promise<ChartData> {
     return this.requestWithRetry(async () => {
       const params = limit ? `?limit=${limit}` : "";
       const response = await this.client.get(
-        `/api/market/chart/${symbol}/${timeframe}${params}`
+        `/api/market/chart/${symbol}/${timeframe}${params}`,
+        { signal }
       );
       // Extract data from {success, data, error} wrapper
       return response.data.data || response.data;
@@ -529,9 +531,9 @@ class RustTradingApiClient extends BaseApiClient {
     });
   }
 
-  async getSupportedSymbols(): Promise<SupportedSymbols> {
+  async getSupportedSymbols(signal?: AbortSignal): Promise<SupportedSymbols> {
     return this.requestWithRetry(async () => {
-      const response = await this.client.get("/api/market/symbols");
+      const response = await this.client.get("/api/market/symbols", { signal });
       // Extract data from {success, data, error} wrapper
       return response.data.data || response.data;
     });
