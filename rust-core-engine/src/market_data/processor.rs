@@ -590,6 +590,22 @@ impl MarketDataProcessor {
         self.config.symbols.clone()
     }
 
+    /// Get all supported symbols (config + user-added from database)
+    pub async fn get_all_supported_symbols(&self) -> Vec<String> {
+        let mut symbols = self.config.symbols.clone();
+
+        // Load user-added symbols from database
+        if let Ok(user_symbols) = self.storage.load_user_symbols().await {
+            for symbol in user_symbols {
+                if !symbols.contains(&symbol) {
+                    symbols.push(symbol);
+                }
+            }
+        }
+
+        symbols
+    }
+
     pub fn get_supported_timeframes(&self) -> Vec<String> {
         self.config.timeframes.clone()
     }
@@ -697,12 +713,14 @@ impl MarketDataProcessor {
             symbol, timeframes
         );
 
-        // Add symbol to config (this will persist it)
-        if !self.config.symbols.contains(&symbol) {
-            // Note: This is a temporary fix. In production, you'd want to update persistent config
-            let mut config_symbols = self.config.symbols.clone();
-            config_symbols.push(symbol.clone());
-            info!("Added {} to supported symbols list", symbol);
+        // Check if symbol already exists in config or user symbols
+        let user_symbols = self.storage.load_user_symbols().await.unwrap_or_default();
+        if self.config.symbols.contains(&symbol) || user_symbols.contains(&symbol) {
+            info!("Symbol {} already exists", symbol);
+        } else {
+            // Persist to database
+            self.storage.add_user_symbol(&symbol).await?;
+            info!("💾 Persisted {} to user symbols in database", symbol);
         }
 
         // Load historical data for the new symbol
@@ -726,11 +744,8 @@ impl MarketDataProcessor {
             sleep(Duration::from_millis(100)).await;
         }
 
-        // TODO: For full dynamic support, we need to:
-        // 1. Restart WebSocket connections with new symbol
-        // 2. Update persistent configuration
-        // For now, users need to restart the service to get WebSocket updates for new symbols
-        warn!("New symbol {} added to historical data. Restart service to get real-time updates via WebSocket.", symbol);
+        // Note: WebSocket subscription requires service restart for now
+        info!("✅ Symbol {} added successfully. Real-time updates will start after service restart.", symbol);
 
         Ok(())
     }
@@ -741,10 +756,13 @@ impl MarketDataProcessor {
         // Remove from cache
         self.cache.remove_symbol(symbol);
 
-        // Note: In a real implementation, you would also need to:
-        // 1. Update the WebSocket streams to exclude the symbol
-        // 2. Update the configuration to remove the symbol
-        // 3. Restart WebSocket connections without the symbol
+        // Remove from database (only if it's a user-added symbol, not config symbol)
+        if !self.config.symbols.contains(&symbol.to_string()) {
+            self.storage.remove_user_symbol(symbol).await?;
+            info!("💾 Removed {} from user symbols in database", symbol);
+        } else {
+            warn!("Cannot remove {} - it's a config symbol, not user-added", symbol);
+        }
 
         Ok(())
     }

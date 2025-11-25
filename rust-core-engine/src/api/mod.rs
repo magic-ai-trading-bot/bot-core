@@ -337,19 +337,20 @@ impl ApiServer {
                 },
             );
 
-        // NEW: Get all supported symbols and timeframes
+        // NEW: Get all supported symbols and timeframes (including user-added from database)
         let market_data_clone7 = self.market_data.clone();
         let symbols_info = warp::path("symbols")
             .and(warp::get())
             .and(warp::any().map(move || market_data_clone7.clone()))
-            .map(|market_data: MarketDataProcessor| {
-                let symbols = market_data.get_supported_symbols();
+            .and_then(|market_data: MarketDataProcessor| async move {
+                // Use async method to include user-added symbols from database
+                let symbols = market_data.get_all_supported_symbols().await;
                 let timeframes = market_data.get_supported_timeframes();
                 let response = SupportedSymbols {
                     symbols,
                     available_timeframes: timeframes,
                 };
-                warp::reply::json(&ApiResponse::success(response))
+                Ok::<_, Infallible>(warp::reply::json(&ApiResponse::success(response)))
             });
 
         warp::path("market").and(
