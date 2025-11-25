@@ -567,26 +567,34 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
     const [selectedTimeframe, setSelectedTimeframe] = useState("1m");
     const { state: wsState, connect: connectWs } = useWebSocket();
     const lastPriceUpdateRef = useRef<Record<string, number>>({});
-    const isMountedRef = useRef(true);
-    const retryCountRef = useRef(0);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const loadChartData = useCallback(async () => {
+      // Cancel any pending requests from previous loads
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new AbortController for this load
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       try {
         setLoading(true);
 
-        // Small delay to let browser settle after F5 (avoid race conditions)
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        if (!isMountedRef.current) return;
-
         // Get supported symbols first
-        const supportedSymbols = await apiClient.rust.getSupportedSymbols();
-
-        if (!isMountedRef.current) return;
+        const supportedSymbols = await apiClient.rust.getSupportedSymbols(
+          abortController.signal
+        );
 
         // Load chart data for all symbols
         const chartPromises = supportedSymbols.symbols.map((symbol) =>
-          apiClient.rust.getChartData(symbol, selectedTimeframe, 100)
+          apiClient.rust.getChartData(
+            symbol,
+            selectedTimeframe,
+            100,
+            abortController.signal
+          )
         );
 
         const chartResults = await Promise.allSettled(chartPromises);
@@ -597,36 +605,24 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           )
           .map((result) => result.value);
 
-        if (!isMountedRef.current) return;
-
-        if (successfulCharts.length === 0 && retryCountRef.current < 3) {
-          // Auto-retry silently
-          retryCountRef.current++;
-          logger.warn(`No chart data loaded, auto-retry ${retryCountRef.current}/3`);
-          setTimeout(() => {
-            if (isMountedRef.current) loadChartData();
-          }, 500 * retryCountRef.current);
-          return;
+        // Only update state if this request wasn't aborted
+        if (!abortController.signal.aborted) {
+          setCharts(successfulCharts);
         }
-
-        retryCountRef.current = 0;
-        setCharts(successfulCharts);
       } catch (error) {
-        if (!isMountedRef.current) return;
-
-        // Auto-retry on error (max 3 times)
-        if (retryCountRef.current < 3) {
-          retryCountRef.current++;
-          logger.warn(`Chart load failed, auto-retry ${retryCountRef.current}/3`);
-          setTimeout(() => {
-            if (isMountedRef.current) loadChartData();
-          }, 500 * retryCountRef.current);
+        // Ignore abort errors (expected when component unmounts or new load starts)
+        if (error instanceof Error && error.name === "CanceledError") {
+          return;
+        }
+        // Also check axios cancel
+        if ((error as { code?: string })?.code === "ERR_CANCELED") {
           return;
         }
 
-        logger.error("Failed to load chart data after retries:", error);
+        logger.error("Failed to load chart data:", error);
       } finally {
-        if (isMountedRef.current) {
+        // Only update loading state if not aborted
+        if (!abortController.signal.aborted) {
           setLoading(false);
         }
       }
@@ -701,20 +697,19 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       }
     };
 
-    // Cleanup on unmount
-    useEffect(() => {
-      isMountedRef.current = true;
-      return () => {
-        isMountedRef.current = false;
-      };
-    }, []);
-
     useEffect(() => {
       loadChartData();
       // Connect WebSocket for real-time updates
       if (!wsState.isConnected && !wsState.isConnecting) {
         connectWs();
       }
+
+      // Cleanup: abort pending requests on unmount or timeframe change
+      return () => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTimeframe]); // Only depend on selectedTimeframe to avoid infinite loops
 
