@@ -567,13 +567,22 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
     const [selectedTimeframe, setSelectedTimeframe] = useState("1m");
     const { state: wsState, connect: connectWs } = useWebSocket();
     const lastPriceUpdateRef = useRef<Record<string, number>>({});
+    const isMountedRef = useRef(true);
+    const retryCountRef = useRef(0);
 
     const loadChartData = useCallback(async () => {
       try {
         setLoading(true);
 
+        // Small delay to let browser settle after F5 (avoid race conditions)
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        if (!isMountedRef.current) return;
+
         // Get supported symbols first
         const supportedSymbols = await apiClient.rust.getSupportedSymbols();
+
+        if (!isMountedRef.current) return;
 
         // Load chart data for all symbols
         const chartPromises = supportedSymbols.symbols.map((symbol) =>
@@ -588,12 +597,38 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           )
           .map((result) => result.value);
 
+        if (!isMountedRef.current) return;
+
+        if (successfulCharts.length === 0 && retryCountRef.current < 3) {
+          // Auto-retry silently
+          retryCountRef.current++;
+          logger.warn(`No chart data loaded, auto-retry ${retryCountRef.current}/3`);
+          setTimeout(() => {
+            if (isMountedRef.current) loadChartData();
+          }, 500 * retryCountRef.current);
+          return;
+        }
+
+        retryCountRef.current = 0;
         setCharts(successfulCharts);
       } catch (error) {
-        logger.error("Failed to load chart data:", error);
-        toast.error("Failed to load chart data");
+        if (!isMountedRef.current) return;
+
+        // Auto-retry on error (max 3 times)
+        if (retryCountRef.current < 3) {
+          retryCountRef.current++;
+          logger.warn(`Chart load failed, auto-retry ${retryCountRef.current}/3`);
+          setTimeout(() => {
+            if (isMountedRef.current) loadChartData();
+          }, 500 * retryCountRef.current);
+          return;
+        }
+
+        logger.error("Failed to load chart data after retries:", error);
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     }, [selectedTimeframe]);
 
@@ -665,6 +700,14 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
         toast.error("Failed to remove symbol");
       }
     };
+
+    // Cleanup on unmount
+    useEffect(() => {
+      isMountedRef.current = true;
+      return () => {
+        isMountedRef.current = false;
+      };
+    }, []);
 
     useEffect(() => {
       loadChartData();
