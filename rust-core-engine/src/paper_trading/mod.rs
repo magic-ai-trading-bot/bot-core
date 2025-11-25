@@ -9,7 +9,7 @@ pub mod trade;
 pub use engine::PaperTradingEngine;
 pub use portfolio::PaperPortfolio;
 pub use settings::PaperTradingSettings;
-pub use trade::PaperTrade;
+pub use trade::{CloseReason, PaperTrade, TradeType};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

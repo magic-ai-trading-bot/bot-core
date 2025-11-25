@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -343,21 +344,38 @@ impl PaperPortfolio {
 
                     // Check stop loss
                     if trade.should_stop_loss(*current_price) {
+                        info!("🚨 STOP LOSS TRIGGERED: Trade {} ({} {:?})", trade_id, trade.symbol, trade.trade_type);
+                        info!("   Current price: ${:.2}, Stop loss: ${:.2}, Entry: ${:.2}",
+                            current_price, trade.stop_loss.unwrap_or(0.0), trade.entry_price);
                         should_close = true;
                         close_reason = CloseReason::StopLoss;
                     }
                     // Check take profit
                     else if trade.should_take_profit(*current_price) {
+                        info!("✅ TAKE PROFIT TRIGGERED: Trade {} ({} {:?})", trade_id, trade.symbol, trade.trade_type);
+                        info!("   Current price: ${:.2}, Take profit: ${:.2}, Entry: ${:.2}",
+                            current_price, trade.take_profit.unwrap_or(0.0), trade.entry_price);
                         should_close = true;
                         close_reason = CloseReason::TakeProfit;
                     }
                     // Check liquidation risk
                     else if trade.is_at_liquidation_risk(*current_price) {
+                        warn!("⚠️ LIQUIDATION RISK: Trade {} ({} {:?})", trade_id, trade.symbol, trade.trade_type);
+                        warn!("   Current price: ${:.2}, Margin ratio too low!", current_price);
                         should_close = true;
                         close_reason = CloseReason::MarginCall;
                     }
+                    else {
+                        // Log periodic price checks for debugging (only for BTC for now to avoid spam)
+                        if trade.symbol == "BTCUSDT" {
+                            debug!("💹 Price check: {} {:?} - Current: ${:.2}, Entry: ${:.2}, SL: ${:.2}, TP: ${:.2}",
+                                trade.symbol, trade.trade_type, current_price, trade.entry_price,
+                                trade.stop_loss.unwrap_or(0.0), trade.take_profit.unwrap_or(0.0));
+                        }
+                    }
 
                     if should_close {
+                        info!("🔒 Closing trade {} at ${:.2} due to {:?}", trade_id, current_price, close_reason);
                         if let Ok(()) = self.close_trade(trade_id, *current_price, close_reason) {
                             closed_trades.push(trade_id.clone());
                         }
@@ -655,6 +673,11 @@ impl PaperPortfolio {
     /// Get trade by ID
     pub fn get_trade(&self, trade_id: &str) -> Option<&PaperTrade> {
         self.trades.get(trade_id)
+    }
+
+    /// Get all trades (both open and closed)
+    pub fn get_all_trades(&self) -> Vec<PaperTrade> {
+        self.trades.values().cloned().collect()
     }
 
     /// Check if we can open a new position

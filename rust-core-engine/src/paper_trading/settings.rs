@@ -114,6 +114,23 @@ pub struct RiskSettings {
 
     /// Minimum profit before trailing activates (percentage)
     pub trailing_activation_pct: f64,
+
+    /// Enable automatic position reversal on opposite signals
+    pub enable_signal_reversal: bool,
+
+    /// Let AI automatically decide when to enable/disable reversal based on conditions
+    /// When true, AI analyzes: accuracy history, market regime, win rate, volatility
+    /// Overrides enable_signal_reversal setting when conditions are favorable
+    pub ai_auto_enable_reversal: bool,
+
+    /// Minimum AI confidence required for signal reversal (0.0 - 1.0)
+    pub reversal_min_confidence: f64,
+
+    /// Maximum position P&L percentage before disabling reversal (use trailing stop instead)
+    pub reversal_max_pnl_pct: f64,
+
+    /// Allowed market regimes for reversal (e.g., ["trending"])
+    pub reversal_allowed_regimes: Vec<String>,
 }
 
 /// Strategy configuration
@@ -383,6 +400,11 @@ impl Default for RiskSettings {
             trailing_stop_enabled: true,  // NEW: Enable trailing stops
             trailing_stop_pct: 3.0,       // NEW: Trail 3% below high/above low
             trailing_activation_pct: 5.0, // NEW: Start after 5% profit
+            enable_signal_reversal: false, // NEW: Disabled by default (manual control)
+            ai_auto_enable_reversal: true, // NEW: Let AI decide automatically ✨
+            reversal_min_confidence: 0.75, // NEW: 75% minimum confidence
+            reversal_max_pnl_pct: 10.0,    // NEW: 10% max profit before using trailing stop
+            reversal_allowed_regimes: vec!["trending".to_string()], // NEW: Only in trending markets
         }
     }
 }
@@ -640,6 +662,12 @@ mod tests {
         assert_eq!(settings.max_leverage, 5); // FIXED: Down from 50x - safety cap
         assert_eq!(settings.min_margin_level, 300.0); // FIXED: Up from 200% - extra buffer
         assert_eq!(settings.max_consecutive_losses, 3); // FIXED: Down from 5 - stop faster
+
+        // NEW: Signal reversal defaults
+        assert!(!settings.enable_signal_reversal); // Disabled by default for safety
+        assert_eq!(settings.reversal_min_confidence, 0.75); // 75% minimum
+        assert_eq!(settings.reversal_max_pnl_pct, 10.0); // 10% max P&L
+        assert_eq!(settings.reversal_allowed_regimes, vec!["trending"]); // Only trending
     }
 
     #[test]
@@ -903,6 +931,11 @@ mod tests {
             trailing_stop_enabled: true,
             trailing_stop_pct: 3.0,
             trailing_activation_pct: 5.0,
+            enable_signal_reversal: false,
+            ai_auto_enable_reversal: false,
+            reversal_min_confidence: 0.75,
+            reversal_max_pnl_pct: 10.0,
+            reversal_allowed_regimes: vec!["trending".to_string()],
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -1461,6 +1494,11 @@ mod tests {
             trailing_stop_enabled: true,
             trailing_stop_pct: 3.0,
             trailing_activation_pct: 5.0,
+            enable_signal_reversal: false,
+            ai_auto_enable_reversal: false,
+            reversal_min_confidence: 0.75,
+            reversal_max_pnl_pct: 10.0,
+            reversal_allowed_regimes: vec!["trending".to_string()],
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -1838,6 +1876,11 @@ mod tests {
             trailing_stop_enabled: true,
             trailing_stop_pct: 3.0,
             trailing_activation_pct: 5.0,
+            enable_signal_reversal: false,
+            ai_auto_enable_reversal: false,
+            reversal_min_confidence: 0.75,
+            reversal_max_pnl_pct: 10.0,
+            reversal_allowed_regimes: vec!["trending".to_string()],
         };
 
         assert_eq!(settings.max_risk_per_trade_pct, 1.5);

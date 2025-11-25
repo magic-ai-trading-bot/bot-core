@@ -444,7 +444,9 @@ async fn close_trade(
     _request: CloseTradeRequest,
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
-    match api.engine.close_trade(&trade_id).await {
+    use crate::paper_trading::CloseReason;
+
+    match api.engine.close_trade(&trade_id, CloseReason::Manual).await {
         Ok(_) => {
             let response = serde_json::json!({
                 "trade_id": trade_id,
