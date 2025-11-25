@@ -7,7 +7,7 @@ const RUST_API_URL =
   import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
 const PYTHON_AI_URL =
   import.meta.env.VITE_PYTHON_AI_URL || "http://localhost:8000";
-const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || "10000");
+const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || "3000");
 
 // Type definitions for API responses
 export interface BotStatus {
@@ -360,8 +360,8 @@ class BaseApiClient {
 
   protected async requestWithRetry<T>(
     request: () => Promise<T>,
-    maxRetries: number = 3,
-    backoffMs: number = 1000
+    maxRetries: number = 2,
+    backoffMs: number = 200
   ): Promise<T> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -371,7 +371,7 @@ class BaseApiClient {
           throw error;
         }
 
-        // Exponential backoff
+        // Fast exponential backoff: 200ms → 400ms (total 600ms max)
         const delay = backoffMs * Math.pow(2, attempt - 1);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
@@ -546,12 +546,10 @@ class RustTradingApiClient extends BaseApiClient {
     });
   }
 
+  // No retry - fast path for initial load
   async getSupportedSymbols(signal?: AbortSignal): Promise<SupportedSymbols> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.get("/api/market/symbols", { signal });
-      // Extract data from {success, data, error} wrapper
-      return response.data.data || response.data;
-    });
+    const response = await this.client.get("/api/market/symbols", { signal });
+    return response.data.data || response.data;
   }
 
   async addSymbol(request: AddSymbolRequest): Promise<{ message: string }> {
@@ -572,12 +570,10 @@ class RustTradingApiClient extends BaseApiClient {
     });
   }
 
+  // No retry - polling call, should fail fast
   async getLatestPrices(): Promise<Record<string, number>> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.get("/api/market/prices");
-      // Extract data from {success, data, error} wrapper
-      return response.data.data || response.data;
-    });
+    const response = await this.client.get("/api/market/prices");
+    return response.data.data || response.data;
   }
 
   async getMarketOverview(): Promise<MarketOverview> {
