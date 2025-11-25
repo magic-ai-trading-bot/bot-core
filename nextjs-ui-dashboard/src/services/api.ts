@@ -514,6 +514,21 @@ class RustTradingApiClient extends BaseApiClient {
     });
   }
 
+  // Fast chart data loading without retry (for initial page load)
+  async getChartDataFast(
+    symbol: string,
+    timeframe: string,
+    limit?: number,
+    signal?: AbortSignal
+  ): Promise<ChartData> {
+    const params = limit ? `?limit=${limit}` : "";
+    const response = await this.client.get(
+      `/api/market/chart/${symbol}/${timeframe}${params}`,
+      { signal }
+    );
+    return response.data.data || response.data;
+  }
+
   async getMultiChartData(
     symbols: string[],
     timeframes: string[],
