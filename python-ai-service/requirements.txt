@@ -249,7 +249,7 @@ tornado==6.5.2
 tqdm==4.67.1
 traitlets==5.14.3
 types-python-dateutil==2.9.0.20250822
-types-PyYAML==6.0.12.11
+types-PyYAML==6.0.12.20250915
 types-requests==2.31.0.2
 types-urllib3==1.26.25.14
 typing-inspection==0.4.2
