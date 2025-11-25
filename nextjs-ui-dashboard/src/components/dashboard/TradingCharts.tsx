@@ -266,6 +266,18 @@ function formatPercent(percent: number): string {
 const ChartCard: React.FC<ChartCardProps> = React.memo(
   ({ chartData, onRemove }) => {
     const isPositive = chartData.price_change_percent_24h >= 0;
+    const [isPriceUpdating, setIsPriceUpdating] = useState(false);
+    const prevPriceRef = useRef(chartData.latest_price);
+
+    // Detect price change and show pulse effect
+    useEffect(() => {
+      if (prevPriceRef.current !== chartData.latest_price) {
+        setIsPriceUpdating(true);
+        const timer = setTimeout(() => setIsPriceUpdating(false), 1000);
+        prevPriceRef.current = chartData.latest_price;
+        return () => clearTimeout(timer);
+      }
+    }, [chartData.latest_price]);
 
     return (
       <Card className="relative">
@@ -292,7 +304,15 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold font-mono">
+              <div
+                className={`text-2xl font-bold font-mono transition-all ${
+                  isPriceUpdating
+                    ? "text-yellow-400 scale-110"
+                    : isPositive
+                    ? "text-profit"
+                    : "text-destructive"
+                }`}
+              >
                 ${formatPrice(chartData.latest_price)}
               </div>
               <div
@@ -655,22 +675,13 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTimeframe]); // Only depend on selectedTimeframe to avoid infinite loops
 
-    // Auto-refresh full charts every 60 seconds (less frequent to prevent price override)
+    // Real-time price polling every 2 seconds as backup (in case WebSocket is delayed)
     useEffect(() => {
       const interval = setInterval(() => {
-        // Skip auto-refresh to prevent overriding recent price updates
-        // loadChartData();
-      }, 60000);
+        updatePricesOnly();
+      }, 2000); // Poll every 2 seconds for smooth updates
       return () => clearInterval(interval);
-    }, [selectedTimeframe]);
-
-    // DISABLED: HTTP polling replaced with WebSocket real-time updates
-    // useEffect(() => {
-    //   const interval = setInterval(() => {
-    //     updatePricesOnly(); // ← DISABLED - Now using WebSocket
-    //   }, 1000);
-    //   return () => clearInterval(interval);
-    // }, []);
+    }, [updatePricesOnly]);
 
     // Handle WebSocket updates (both ChartUpdate and MarketData)
     useEffect(() => {
@@ -790,18 +801,6 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
                   </SelectContent>
                 </Select>
                 <AddSymbolDialog onAddSymbol={handleAddSymbol} />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={updatePricesOnly}
-                >
-                  Update Prices
-                </Button>
-                <Button variant="outline" size="sm" onClick={loadChartData}>
-                  Refresh Charts
-                </Button>
               </div>
             </div>
             {loading ? (

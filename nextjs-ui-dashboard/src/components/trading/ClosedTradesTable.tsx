@@ -119,7 +119,17 @@ export function ClosedTradesTable({
                         : "N/A"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{"Manual"}</Badge>
+                      <Badge
+                        variant={
+                          trade.close_reason === "StopLoss" || trade.close_reason === "MarginCall"
+                            ? "destructive"
+                            : trade.close_reason === "TakeProfit"
+                            ? "default"
+                            : "outline"
+                        }
+                      >
+                        {trade.close_reason || "Unknown"}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))}

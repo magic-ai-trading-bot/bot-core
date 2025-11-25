@@ -81,6 +81,13 @@ pub struct PendingTrade {
     pub timestamp: DateTime<Utc>,
 }
 
+/// Consecutive wins/losses streak for AI decision-making
+#[derive(Debug, Clone, Copy, Default)]
+struct ConsecutiveStreak {
+    wins: u32,
+    losses: u32,
+}
+
 impl PaperTradingEngine {
     /// Create a new paper trading engine
     pub async fn new(
@@ -366,10 +373,11 @@ impl PaperTradingEngine {
             match self.binance_client.get_symbol_price(symbol).await {
                 Ok(price_info) => {
                     let price: f64 = price_info.price.parse().unwrap_or(0.0);
+                    debug!("📊 Price update: {} = ${:.2} (source: Binance API)", symbol, price);
                     new_prices.insert(symbol.clone(), price);
                 },
                 Err(e) => {
-                    warn!("Failed to get price for {}: {}", symbol, e);
+                    warn!("⚠️ Failed to get price for {}: {}", symbol, e);
                 },
             }
 
@@ -652,22 +660,56 @@ impl PaperTradingEngine {
         }
 
         // Check if we already have a position for this symbol
-        let portfolio = self.portfolio.read().await;
-        let existing_positions = portfolio
-            .get_open_trades()
-            .iter()
-            .filter(|trade| trade.symbol == signal.symbol)
-            .count();
+        let existing_trades: Vec<PaperTrade> = {
+            let portfolio = self.portfolio.read().await;
+            portfolio
+                .get_open_trades()
+                .into_iter()
+                .filter(|trade| trade.symbol == signal.symbol)
+                .map(|trade| trade.clone())
+                .collect()
+        };
 
-        if existing_positions >= symbol_settings.max_positions as usize {
-            debug!("Maximum positions reached for {}", signal.symbol);
-            return Ok(TradeExecutionResult {
-                success: false,
-                trade_id: None,
-                error_message: Some("Maximum positions reached".to_string()),
-                execution_price: None,
-                fees_paid: None,
-            });
+        // Check for position reversal opportunity
+        if !existing_trades.is_empty() {
+            // @spec:FR-RISK-009 - AI Auto-Enable Reversal
+            // @ref:docs/features/ai-auto-reversal.md
+            // @test:TC-TRADING-060, TC-TRADING-061, TC-TRADING-062
+            // AI automatically decides whether to enable reversal based on real-time conditions
+            let reversal_enabled = if settings.risk.ai_auto_enable_reversal {
+                // Let AI decide based on accuracy, win rate, market regime, momentum, volatility
+                self.should_ai_enable_reversal().await
+            } else {
+                // Use manual setting
+                settings.risk.enable_signal_reversal
+            };
+
+            // Check if any existing position should be reversed (only if reversal enabled)
+            if reversal_enabled {
+                for existing_trade in &existing_trades {
+                    if self.should_close_on_reversal(existing_trade, &signal).await {
+                        // Drop settings lock before reversal (avoid deadlock)
+                        drop(settings);
+
+                        // Execute reversal (close old + open new)
+                        return self
+                            .close_and_reverse_position(existing_trade, signal)
+                            .await;
+                    }
+                }
+            }
+
+            // No reversal, check max positions limit
+            if existing_trades.len() >= symbol_settings.max_positions as usize {
+                debug!("Maximum positions reached for {}", signal.symbol);
+                return Ok(TradeExecutionResult {
+                    success: false,
+                    trade_id: None,
+                    error_message: Some("Maximum positions reached".to_string()),
+                    execution_price: None,
+                    fees_paid: None,
+                });
+            }
         }
 
         // Calculate position parameters
@@ -718,33 +760,36 @@ impl PaperTradingEngine {
 
         // Calculate position size with PROPER risk-based formula
         // @spec:FR-RISK-001 - Position Size Calculation (FIXED)
-        let risk_amount = portfolio.equity * (symbol_settings.position_size_pct / 100.0);
+        let quantity = {
+            let portfolio = self.portfolio.read().await;
+            let risk_amount = portfolio.equity * (symbol_settings.position_size_pct / 100.0);
 
-        // Calculate stop loss percentage
-        let stop_loss_pct = ((entry_price - stop_loss).abs() / entry_price) * 100.0;
+            // Calculate stop loss percentage
+            let stop_loss_pct = ((entry_price - stop_loss).abs() / entry_price) * 100.0;
 
-        // Calculate max position value based on risk
-        let max_position_value = if stop_loss_pct > 0.0 {
-            risk_amount / (stop_loss_pct / 100.0)
-        } else {
-            risk_amount * 10.0 // Default to 10% SL if none set
+            // Calculate max position value based on risk
+            let max_position_value = if stop_loss_pct > 0.0 {
+                risk_amount / (stop_loss_pct / 100.0)
+            } else {
+                risk_amount * 10.0 // Default to 10% SL if none set
+            };
+
+            // Apply leverage to position value
+            let max_position_value_with_leverage = max_position_value * leverage as f64;
+
+            // Limit by available margin (keep 5% buffer)
+            let available_for_position = portfolio.free_margin * 0.95;
+            let actual_position_value =
+                max_position_value_with_leverage.min(available_for_position);
+
+            // Calculate quantity
+            let max_quantity = actual_position_value / entry_price;
+
+            // Additional safety: limit to max 20% of account per trade
+            let safety_limit = portfolio.equity * 0.2 / entry_price;
+            max_quantity.min(safety_limit)
         };
 
-        // Apply leverage to position value
-        let max_position_value_with_leverage = max_position_value * leverage as f64;
-
-        // Limit by available margin (keep 5% buffer)
-        let available_for_position = portfolio.free_margin * 0.95;
-        let actual_position_value = max_position_value_with_leverage.min(available_for_position);
-
-        // Calculate quantity
-        let max_quantity = actual_position_value / entry_price;
-
-        // Additional safety: limit to max 20% of account per trade
-        let safety_limit = portfolio.equity * 0.2 / entry_price;
-        let quantity = max_quantity.min(safety_limit);
-
-        drop(portfolio);
         drop(settings);
 
         if quantity <= 0.0 {
@@ -1256,6 +1301,366 @@ impl PaperTradingEngine {
         }
     }
 
+    /// Detect market regime from AI signal market analysis
+    /// Uses AI analysis to determine if market is trending, ranging, or volatile
+    /// Falls back to "trending" if no clear indicators (safe default)
+    async fn detect_market_regime(&self, signal: &AITradingSignal) -> String {
+        let analysis = &signal.market_analysis;
+
+        // Check trend_direction and trend_strength for regime classification
+        let trend_lower = analysis.trend_direction.to_lowercase();
+        let strength = analysis.trend_strength;
+
+        // High volatility (> 0.7) = volatile (check first - most dangerous)
+        if analysis.volatility > 0.7 {
+            debug!(
+                "📊 Market regime: volatile (volatility: {:.2})",
+                analysis.volatility
+            );
+            return "volatile".to_string();
+        }
+
+        // Strong trend (strength > 0.6) = trending
+        if strength > 0.6 && (trend_lower.contains("up") || trend_lower.contains("down")) {
+            debug!("📊 Market regime: trending (strength: {:.2})", strength);
+            return "trending".to_string();
+        }
+
+        // Low trend strength (< 0.4) or neutral = ranging
+        if strength < 0.4 || trend_lower.contains("neutral") || trend_lower.contains("sideways") {
+            debug!("📊 Market regime: ranging (strength: {:.2})", strength);
+            return "ranging".to_string();
+        }
+
+        // Default to trending (most conservative for reversal)
+        debug!("📊 Market regime: trending (default)");
+        "trending".to_string()
+    }
+
+    /// Check if we should close existing position and reverse on opposite signal
+    /// Returns true if all conditions are met for reversal
+    async fn should_close_on_reversal(
+        &self,
+        existing_trade: &PaperTrade,
+        new_signal: &AITradingSignal,
+    ) -> bool {
+        let settings = self.settings.read().await;
+
+        // Feature disabled?
+        if !settings.risk.enable_signal_reversal {
+            return false;
+        }
+
+        // Check 1: Is signal confidence high enough?
+        if new_signal.confidence < settings.risk.reversal_min_confidence {
+            debug!(
+                "🔄 Reversal rejected: confidence {:.1}% < {:.1}% threshold",
+                new_signal.confidence * 100.0,
+                settings.risk.reversal_min_confidence * 100.0
+            );
+            return false;
+        }
+
+        // Check 2: Is position P&L below threshold?
+        if existing_trade.pnl_percentage >= settings.risk.reversal_max_pnl_pct {
+            debug!(
+                "🔄 Reversal rejected: P&L {:.1}% >= {:.1}% threshold (use trailing stop)",
+                existing_trade.pnl_percentage, settings.risk.reversal_max_pnl_pct
+            );
+            return false;
+        }
+
+        // Check 3: Is market regime allowed for reversal?
+        let regime = self.detect_market_regime(new_signal).await;
+        if !settings.risk.reversal_allowed_regimes.contains(&regime) {
+            debug!(
+                "🔄 Reversal rejected: market regime '{}' not in allowed list {:?}",
+                regime, settings.risk.reversal_allowed_regimes
+            );
+            return false;
+        }
+
+        // Check 4: Is signal opposite direction?
+        let new_direction = match new_signal.signal_type {
+            crate::strategies::TradingSignal::Long => TradeType::Long,
+            crate::strategies::TradingSignal::Short => TradeType::Short,
+            _ => return false, // Neutral signals don't trigger reversal
+        };
+
+        if existing_trade.trade_type == new_direction {
+            // Same direction, not a reversal
+            return false;
+        }
+
+        // All checks passed!
+        info!(
+            "🔄 Reversal conditions met for {}: {} → {} (confidence: {:.1}%, P&L: {:.1}%, regime: {})",
+            new_signal.symbol,
+            existing_trade.trade_type,
+            new_direction,
+            new_signal.confidence * 100.0,
+            existing_trade.pnl_percentage,
+            regime
+        );
+
+        true
+    }
+
+    /// Close existing position and open new opposite position (atomic operation)
+    async fn close_and_reverse_position(
+        &self,
+        existing_trade: &PaperTrade,
+        new_signal: AITradingSignal,
+    ) -> Result<TradeExecutionResult> {
+        let symbol = &new_signal.symbol;
+        let new_direction = match new_signal.signal_type {
+            crate::strategies::TradingSignal::Long => TradeType::Long,
+            crate::strategies::TradingSignal::Short => TradeType::Short,
+            _ => {
+                return Err(anyhow::anyhow!("Cannot reverse to neutral signal"));
+            },
+        };
+
+        info!(
+            "🔄 Executing reversal for {}: closing {} position, opening {} position",
+            symbol, existing_trade.trade_type, new_direction
+        );
+
+        // Step 1: Close existing position (with AISignal reason for proper tracking)
+        let close_result = self.close_trade(&existing_trade.id, CloseReason::AISignal).await;
+
+        if let Err(e) = close_result {
+            warn!("⚠️ Failed to close position for reversal: {}", e);
+            return Err(anyhow::anyhow!(
+                "Reversal failed: could not close existing position: {}",
+                e
+            ));
+        }
+
+        info!(
+            "✅ Closed {} position for {}: P&L {:.2} ({:.2}%)",
+            existing_trade.trade_type,
+            symbol,
+            existing_trade.unrealized_pnl,
+            existing_trade.pnl_percentage
+        );
+
+        // Step 2: Calculate parameters for new position
+        let settings = self.settings.read().await;
+        let symbol_settings = settings.get_symbol_settings(&symbol);
+        let leverage = symbol_settings.leverage;
+
+        // Get current price
+        let entry_price = self
+            .current_prices
+            .read()
+            .await
+            .get(symbol.as_str())
+            .copied()
+            .unwrap_or(new_signal.entry_price);
+
+        // Calculate stop loss and take profit
+        let stop_loss = match new_direction {
+            TradeType::Long => entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0),
+            TradeType::Short => entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0),
+        };
+
+        let take_profit = match new_direction {
+            TradeType::Long => entry_price * (1.0 + symbol_settings.take_profit_pct / 100.0),
+            TradeType::Short => entry_price * (1.0 - symbol_settings.take_profit_pct / 100.0),
+        };
+
+        // Calculate position size
+        let portfolio = self.portfolio.read().await;
+        let balance = portfolio.cash_balance;
+        drop(portfolio);
+
+        let position_size_pct = symbol_settings.position_size_pct;
+        let notional_value = balance * (position_size_pct / 100.0);
+        let quantity = notional_value / entry_price;
+
+        drop(settings);
+
+        // Create pending trade
+        let pending_trade = PendingTrade {
+            signal: new_signal.clone(),
+            calculated_quantity: quantity,
+            calculated_leverage: leverage,
+            stop_loss,
+            take_profit,
+            timestamp: Utc::now(),
+        };
+
+        let execution_result = self.execute_trade(pending_trade).await?;
+
+        if execution_result.success {
+            info!(
+                "✅ Reversal complete for {}: opened {} position @ {}",
+                symbol,
+                new_direction,
+                execution_result.execution_price.unwrap_or(0.0)
+            );
+
+            // Broadcast reversal event
+            let _ = self.event_broadcaster.send(PaperTradingEvent {
+                event_type: "position_reversed".to_string(),
+                data: serde_json::json!({
+                    "symbol": symbol,
+                    "old_direction": existing_trade.trade_type.as_str(),
+                    "new_direction": new_direction.as_str(),
+                    "old_pnl": existing_trade.unrealized_pnl,
+                    "old_pnl_percentage": existing_trade.pnl_percentage,
+                    "new_entry_price": execution_result.execution_price,
+                    "confidence": new_signal.confidence,
+                }),
+                timestamp: Utc::now(),
+            });
+        } else {
+            warn!(
+                "⚠️ Reversal incomplete for {}: closed position but failed to open new one: {}",
+                symbol,
+                execution_result.error_message.clone().unwrap_or_default()
+            );
+        }
+
+        Ok(execution_result)
+    }
+
+    /// AI automatically decides whether to enable reversal based on real-time conditions
+    /// Analyzes: accuracy, win rate, market regime, momentum, volatility
+    /// Returns true if AI determines conditions are favorable for reversal
+    /// @doc:docs/features/ai-auto-reversal.md
+    async fn should_ai_enable_reversal(&self) -> bool {
+        // Get last 10 closed trades for analysis
+        let recent_trades = {
+            let portfolio = self.portfolio.read().await;
+            let all_trades = portfolio.get_all_trades();
+            all_trades
+                .iter()
+                .filter(|t| t.status == crate::paper_trading::trade::TradeStatus::Closed)
+                .rev()
+                .take(10)
+                .cloned()
+                .collect::<Vec<_>>()
+        };
+
+        // Need at least 5 trades for meaningful analysis
+        if recent_trades.len() < 5 {
+            debug!(
+                "🤖 AI: Not enough trade history ({} trades, need 5+)",
+                recent_trades.len()
+            );
+            return false;
+        }
+
+        // Calculate AI accuracy (trades with ai_signal_id)
+        let ai_accuracy = self.calculate_ai_accuracy(&recent_trades);
+
+        // Calculate win rate
+        let win_rate = self.calculate_win_rate(&recent_trades);
+
+        // Get current volatility from market
+        let volatility = {
+            let portfolio = self.portfolio.read().await;
+            portfolio
+                .get_all_trades()
+                .iter()
+                .filter(|t| t.status == crate::paper_trading::trade::TradeStatus::Open)
+                .map(|t| t.entry_volatility)
+                .next()
+                .unwrap_or(0.5) // Default medium volatility
+        };
+
+        // Get consecutive wins/losses
+        let consecutive = self.get_consecutive_streak(&recent_trades);
+
+        // AI Decision Logic - ALL conditions must be met
+        let conditions_met = ai_accuracy >= 0.65 && win_rate >= 0.55 && consecutive.wins >= 3
+            || (consecutive.losses == 0 && win_rate >= 0.60) && volatility < 0.6;
+
+        if conditions_met {
+            info!(
+                "🤖 AI ENABLED reversal: accuracy={:.1}%, win_rate={:.1}%, streak={}W, volatility={:.2}",
+                ai_accuracy * 100.0,
+                win_rate * 100.0,
+                consecutive.wins,
+                volatility
+            );
+        } else {
+            debug!(
+                "🤖 AI DISABLED reversal: accuracy={:.1}%, win_rate={:.1}%, streak={}W/{}L, volatility={:.2}",
+                ai_accuracy * 100.0,
+                win_rate * 100.0,
+                consecutive.wins,
+                consecutive.losses,
+                volatility
+            );
+        }
+
+        conditions_met
+    }
+
+    /// Calculate AI prediction accuracy from recent trades
+    fn calculate_ai_accuracy(&self, trades: &[PaperTrade]) -> f64 {
+        let ai_trades: Vec<_> = trades
+            .iter()
+            .filter(|t| t.ai_signal_id.is_some() && t.ai_confidence.is_some())
+            .collect();
+
+        if ai_trades.is_empty() {
+            return 0.0;
+        }
+
+        let correct = ai_trades
+            .iter()
+            .filter(|t| {
+                // Consider trade "correct" if it was profitable
+                t.realized_pnl.unwrap_or(0.0) > 0.0
+            })
+            .count();
+
+        correct as f64 / ai_trades.len() as f64
+    }
+
+    /// Calculate win rate from recent trades
+    fn calculate_win_rate(&self, trades: &[PaperTrade]) -> f64 {
+        if trades.is_empty() {
+            return 0.0;
+        }
+
+        let wins = trades
+            .iter()
+            .filter(|t| t.realized_pnl.unwrap_or(0.0) > 0.0)
+            .count();
+
+        wins as f64 / trades.len() as f64
+    }
+
+    /// Get consecutive wins/losses streak
+    fn get_consecutive_streak(&self, trades: &[PaperTrade]) -> ConsecutiveStreak {
+        let mut wins = 0;
+        let mut losses = 0;
+
+        // Iterate from most recent trade
+        for trade in trades.iter().rev() {
+            let pnl = trade.realized_pnl.unwrap_or(0.0);
+
+            if pnl > 0.0 {
+                if losses > 0 {
+                    break; // Streak broken
+                }
+                wins += 1;
+            } else if pnl < 0.0 {
+                if wins > 0 {
+                    break; // Streak broken
+                }
+                losses += 1;
+            }
+        }
+
+        ConsecutiveStreak { wins, losses }
+    }
+
     /// Execute a single trade
     /// Includes full execution simulation (delay, slippage, market impact, partial fills)
     /// and performance tracking (latency metrics)
@@ -1384,15 +1789,31 @@ impl PaperTradingEngine {
         }
 
         // Save trade to database
-        if let Err(e) = self.storage.save_paper_trade(&paper_trade).await {
-            error!("Failed to save paper trade to database: {}", e);
+        info!("💾 Attempting to save paper trade {} to database...", trade_id);
+        match self.storage.save_paper_trade(&paper_trade).await {
+            Ok(_) => {
+                info!("✅ Successfully saved paper trade {} to MongoDB (collection: paper_trades)", trade_id);
+            }
+            Err(e) => {
+                error!("❌ CRITICAL: Failed to save paper trade {} to database: {}", trade_id, e);
+                error!("   Trade details: symbol={}, type={:?}, entry={}, qty={}",
+                    paper_trade.symbol, paper_trade.trade_type, paper_trade.entry_price, paper_trade.quantity);
+            }
         }
 
         // Save portfolio snapshot
         {
+            info!("💾 Attempting to save portfolio snapshot to database...");
             let portfolio = self.portfolio.read().await;
-            if let Err(e) = self.storage.save_portfolio_snapshot(&portfolio).await {
-                error!("Failed to save portfolio snapshot: {}", e);
+            match self.storage.save_portfolio_snapshot(&portfolio).await {
+                Ok(_) => {
+                    info!("✅ Successfully saved portfolio snapshot to MongoDB (collection: portfolio_history)");
+                    info!("   Portfolio: balance={:.2}, equity={:.2}, open_positions={}",
+                        portfolio.cash_balance, portfolio.equity, portfolio.open_trade_ids.len());
+                }
+                Err(e) => {
+                    error!("❌ CRITICAL: Failed to save portfolio snapshot: {}", e);
+                }
             }
         }
 
@@ -1478,15 +1899,234 @@ impl PaperTradingEngine {
 
     /// Load portfolio from storage
     async fn load_portfolio_from_storage(&self) -> Result<()> {
-        // Implementation would load portfolio state from database
-        debug!("Loading portfolio from storage");
+        info!("📂 Loading portfolio from database...");
+
+        // Load all trades from database
+        let all_trades = match self.storage.get_paper_trades_history(Some(10000)).await {
+            Ok(trades) => {
+                info!("✅ Loaded {} trades from database", trades.len());
+                trades
+            }
+            Err(e) => {
+                warn!("⚠️ Failed to load trades from database: {}", e);
+                return Ok(()); // Continue without restoring
+            }
+        };
+
+        // Filter open trades
+        let open_trades: Vec<_> = all_trades
+            .iter()
+            .filter(|t| t.status == "Open")
+            .collect();
+
+        if open_trades.is_empty() {
+            info!("📊 No open positions to restore");
+            return Ok(());
+        }
+
+        info!(
+            "🔄 Restoring {} open positions from database",
+            open_trades.len()
+        );
+
+        // Load latest portfolio snapshot
+        let latest_snapshot = match self.storage.get_portfolio_history(Some(7)).await {
+            Ok(snapshots) => {
+                if let Some(latest) = snapshots.last() {
+                    info!(
+                        "✅ Loaded latest portfolio snapshot (balance: {:.2}, equity: {:.2})",
+                        latest.current_balance, latest.equity
+                    );
+                    Some(latest.clone())
+                } else {
+                    info!("📝 No portfolio snapshot found, using defaults");
+                    None
+                }
+            }
+            Err(e) => {
+                warn!("⚠️ Failed to load portfolio history: {}", e);
+                None
+            }
+        };
+
+        // Restore portfolio state
+        {
+            let mut portfolio = self.portfolio.write().await;
+
+            // Restore balance from snapshot if available
+            if let Some(snapshot) = latest_snapshot {
+                portfolio.cash_balance = snapshot.current_balance;
+                portfolio.equity = snapshot.equity;
+                portfolio.margin_used = snapshot.margin_used;
+                portfolio.free_margin = snapshot.free_margin;
+                portfolio.metrics.total_pnl = snapshot.total_pnl;
+                portfolio.metrics.total_pnl_percentage = snapshot.total_pnl_percentage;
+                portfolio.metrics.total_trades = snapshot.total_trades as u64;
+                portfolio.metrics.win_rate = snapshot.win_rate;
+                portfolio.metrics.profit_factor = snapshot.profit_factor;
+                portfolio.metrics.max_drawdown = snapshot.max_drawdown;
+                portfolio.metrics.max_drawdown_percentage = snapshot.max_drawdown_percentage;
+
+                info!(
+                    "✅ Restored portfolio metrics: balance={:.2}, pnl={:.2} ({:.2}%), trades={}",
+                    snapshot.current_balance,
+                    snapshot.total_pnl,
+                    snapshot.total_pnl_percentage,
+                    snapshot.total_trades
+                );
+            }
+
+            // Restore all trades (open and closed)
+            for trade_record in all_trades {
+                let trade_type = match trade_record.trade_type.as_str() {
+                    "Long" => super::trade::TradeType::Long,
+                    "Short" => super::trade::TradeType::Short,
+                    _ => continue, // Skip invalid trade types
+                };
+
+                let status = match trade_record.status.as_str() {
+                    "Open" => super::trade::TradeStatus::Open,
+                    "Closed" => super::trade::TradeStatus::Closed,
+                    _ => continue,
+                };
+
+                let close_reason = trade_record.close_reason.as_ref().and_then(|r| {
+                    match r.as_str() {
+                        "StopLoss" => Some(CloseReason::StopLoss),
+                        "TakeProfit" => Some(CloseReason::TakeProfit),
+                        "Manual" => Some(CloseReason::Manual),
+                        "AISignal" => Some(CloseReason::AISignal),
+                        "RiskManagement" => Some(CloseReason::RiskManagement),
+                        "MarginCall" => Some(CloseReason::MarginCall),
+                        "TimeBasedExit" => Some(CloseReason::TimeBasedExit),
+                        _ => None,
+                    }
+                });
+
+                let notional_value = trade_record.quantity * trade_record.entry_price;
+                let initial_margin = notional_value / trade_record.leverage as f64;
+                let maintenance_margin_rate = match trade_record.leverage {
+                    1..=5 => 0.01,
+                    6..=10 => 0.025,
+                    11..=20 => 0.05,
+                    21..=50 => 0.1,
+                    51..=100 => 0.125,
+                    _ => 0.15,
+                };
+                let maintenance_margin = notional_value * maintenance_margin_rate;
+
+                let paper_trade = PaperTrade {
+                    id: trade_record.trade_id.clone(),
+                    symbol: trade_record.symbol.clone(),
+                    trade_type,
+                    status,
+                    entry_price: trade_record.entry_price,
+                    exit_price: trade_record.exit_price,
+                    quantity: trade_record.quantity,
+                    leverage: trade_record.leverage,
+                    stop_loss: None, // Will be calculated from settings
+                    take_profit: None, // Will be calculated from settings
+                    unrealized_pnl: 0.0,
+                    realized_pnl: trade_record.pnl,
+                    pnl_percentage: trade_record.pnl_percentage,
+                    trading_fees: trade_record.trading_fees,
+                    funding_fees: trade_record.funding_fees,
+                    initial_margin,
+                    maintenance_margin,
+                    margin_used: initial_margin,
+                    margin_ratio: 1.0, // Will be recalculated
+                    open_time: trade_record.open_time,
+                    close_time: trade_record.close_time,
+                    duration_ms: None,
+                    ai_signal_id: trade_record.ai_signal_id.clone(),
+                    ai_confidence: trade_record.ai_confidence,
+                    ai_reasoning: None,
+                    strategy_name: None,
+                    close_reason,
+                    risk_score: 0.0,
+                    market_regime: None,
+                    entry_volatility: 0.0,
+                    max_favorable_excursion: 0.0,
+                    max_adverse_excursion: 0.0,
+                    slippage: 0.0,
+                    signal_timestamp: None,
+                    execution_timestamp: trade_record.open_time,
+                    execution_latency_ms: None,
+                    highest_price_achieved: None,
+                    trailing_stop_active: false,
+                    metadata: std::collections::HashMap::new(),
+                };
+
+                // Add trade to portfolio
+                portfolio
+                    .trades
+                    .insert(paper_trade.id.clone(), paper_trade.clone());
+
+                // Track trade ID
+                if paper_trade.status == super::trade::TradeStatus::Open {
+                    portfolio.open_trade_ids.push(paper_trade.id.clone());
+                    info!(
+                        "  ✅ Restored OPEN trade: {} {} x{} @ ${:.2}",
+                        paper_trade.symbol,
+                        match paper_trade.trade_type {
+                            super::trade::TradeType::Long => "LONG",
+                            super::trade::TradeType::Short => "SHORT",
+                        },
+                        paper_trade.leverage,
+                        paper_trade.entry_price
+                    );
+                } else {
+                    portfolio.closed_trade_ids.push(paper_trade.id.clone());
+                }
+            }
+
+            info!(
+                "🎉 Portfolio restore complete: {} open, {} closed trades",
+                portfolio.open_trade_ids.len(),
+                portfolio.closed_trade_ids.len()
+            );
+        }
+
         Ok(())
     }
 
     /// Save portfolio to storage
     async fn save_portfolio_to_storage(&self) -> Result<()> {
-        // Implementation would save portfolio state to database
-        debug!("Saving portfolio to storage");
+        info!("💾 Saving portfolio to database...");
+
+        let portfolio = self.portfolio.read().await;
+
+        // Save portfolio snapshot
+        match self.storage.save_portfolio_snapshot(&portfolio).await {
+            Ok(_) => {
+                info!(
+                    "✅ Portfolio snapshot saved (balance: {:.2}, equity: {:.2}, open: {})",
+                    portfolio.cash_balance,
+                    portfolio.equity,
+                    portfolio.open_trade_ids.len()
+                );
+            }
+            Err(e) => {
+                error!("❌ Failed to save portfolio snapshot: {}", e);
+                return Err(e);
+            }
+        }
+
+        // Save/update all open trades
+        for trade_id in &portfolio.open_trade_ids {
+            if let Some(trade) = portfolio.trades.get(trade_id) {
+                match self.storage.update_paper_trade(trade).await {
+                    Ok(_) => {
+                        debug!("✅ Updated trade {} in database", trade_id);
+                    }
+                    Err(e) => {
+                        warn!("⚠️ Failed to update trade {}: {}", trade_id, e);
+                    }
+                }
+            }
+        }
+
+        info!("✅ Portfolio save complete");
         Ok(())
     }
 
@@ -1598,8 +2238,12 @@ impl PaperTradingEngine {
             .collect()
     }
 
-    /// Manually close a trade
-    pub async fn close_trade(&self, trade_id: &str) -> Result<()> {
+    /// Close a trade with specified reason
+    ///
+    /// # Arguments
+    /// * `trade_id` - ID of the trade to close
+    /// * `close_reason` - Reason for closing (Manual, AISignal, StopLoss, etc.)
+    pub async fn close_trade(&self, trade_id: &str, close_reason: CloseReason) -> Result<()> {
         let current_price = {
             let portfolio = self.portfolio.read().await;
             if let Some(trade) = portfolio.get_trade(trade_id) {
@@ -1615,7 +2259,7 @@ impl PaperTradingEngine {
         };
 
         let mut portfolio = self.portfolio.write().await;
-        portfolio.close_trade(trade_id, current_price, CloseReason::Manual)?;
+        portfolio.close_trade(trade_id, current_price, close_reason)?;
 
         // Get the closed trade PnL for consecutive loss tracking
         let trade_pnl = portfolio
@@ -1625,16 +2269,27 @@ impl PaperTradingEngine {
 
         // Get the closed trade and update in database
         if let Some(trade) = portfolio.get_trade(trade_id) {
-            if let Err(e) = self.storage.update_paper_trade(trade).await {
-                error!("Failed to update paper trade in database: {}", e);
+            info!("💾 Updating closed trade {} in database...", trade_id);
+            match self.storage.update_paper_trade(trade).await {
+                Ok(_) => {
+                    info!("✅ Successfully updated trade {} in MongoDB", trade_id);
+                    info!("   Close reason: {:?}, PnL: {:.2}, Exit price: {:.2}",
+                        trade.close_reason, trade.realized_pnl.unwrap_or(0.0), trade.exit_price.unwrap_or(0.0));
+                }
+                Err(e) => {
+                    error!("❌ CRITICAL: Failed to update paper trade {} in database: {}", trade_id, e);
+                }
             }
 
             // Save portfolio snapshot after trade closure
-            if let Err(e) = self.storage.save_portfolio_snapshot(&portfolio).await {
-                error!(
-                    "Failed to save portfolio snapshot after trade closure: {}",
-                    e
-                );
+            info!("💾 Saving portfolio snapshot after trade closure...");
+            match self.storage.save_portfolio_snapshot(&portfolio).await {
+                Ok(_) => {
+                    info!("✅ Successfully saved portfolio snapshot after closing trade {}", trade_id);
+                }
+                Err(e) => {
+                    error!("❌ Failed to save portfolio snapshot after trade closure: {}", e);
+                }
             }
         }
 
@@ -1966,6 +2621,7 @@ mod tests {
         AISettings, BasicSettings, ExecutionSettings, NotificationSettings, RiskSettings,
         StrategySettings, SymbolSettings,
     };
+    use crate::paper_trading::trade::TradeStatus;
     use crate::paper_trading::MarketAnalysisData;
     use std::sync::Arc;
     use tokio::sync::broadcast;
@@ -2956,5 +3612,460 @@ mod tests {
 
         let result = engine.update_settings(new_settings).await;
         assert!(result.is_err());
+    }
+
+    // ========== SIGNAL REVERSAL TESTS ==========
+
+    #[tokio::test]
+    async fn test_reversal_disabled_by_default() {
+        let settings = PaperTradingSettings::default();
+        assert!(!settings.risk.enable_signal_reversal);
+    }
+
+    #[tokio::test]
+    async fn test_market_regime_detection_from_analysis() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let settings = create_test_settings();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Test with strong upward trend
+        let mut signal = create_test_signal("BTCUSDT", TradingSignal::Long);
+        signal.market_analysis.trend_direction = "Upward".to_string();
+        signal.market_analysis.trend_strength = 0.8;
+
+        let regime = engine.detect_market_regime(&signal).await;
+        assert_eq!(regime, "trending");
+
+        // Test with high volatility
+        signal.market_analysis.volatility = 0.75;
+        let regime = engine.detect_market_regime(&signal).await;
+        assert_eq!(regime, "volatile");
+
+        // Test with low trend strength (ranging)
+        signal.market_analysis.trend_strength = 0.3;
+        signal.market_analysis.volatility = 0.5;
+        let regime = engine.detect_market_regime(&signal).await;
+        assert_eq!(regime, "ranging");
+    }
+
+    #[tokio::test]
+    async fn test_should_close_on_reversal_feature_disabled() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.enable_signal_reversal = false; // Disabled
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let existing_trade = create_test_trade("BTCUSDT", TradeType::Long);
+        let signal = create_test_signal("BTCUSDT", TradingSignal::Short);
+
+        let should_reverse = engine
+            .should_close_on_reversal(&existing_trade, &signal)
+            .await;
+        assert!(!should_reverse, "Reversal should be disabled");
+    }
+
+    #[tokio::test]
+    async fn test_should_close_on_reversal_low_confidence() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.enable_signal_reversal = true;
+        settings.risk.reversal_min_confidence = 0.75;
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let existing_trade = create_test_trade("BTCUSDT", TradeType::Long);
+        let mut signal = create_test_signal("BTCUSDT", TradingSignal::Short);
+        signal.confidence = 0.70; // Below threshold
+
+        let should_reverse = engine
+            .should_close_on_reversal(&existing_trade, &signal)
+            .await;
+        assert!(!should_reverse, "Confidence too low for reversal");
+    }
+
+    #[tokio::test]
+    async fn test_should_close_on_reversal_high_pnl() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.enable_signal_reversal = true;
+        settings.risk.reversal_max_pnl_pct = 10.0;
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let mut existing_trade = create_test_trade("BTCUSDT", TradeType::Long);
+        existing_trade.pnl_percentage = 12.0; // Above threshold
+
+        let mut signal = create_test_signal("BTCUSDT", TradingSignal::Short);
+        signal.confidence = 0.80;
+
+        let should_reverse = engine
+            .should_close_on_reversal(&existing_trade, &signal)
+            .await;
+        assert!(
+            !should_reverse,
+            "P&L too high, should use trailing stop instead"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_should_close_on_reversal_wrong_regime() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.enable_signal_reversal = true;
+        settings.risk.reversal_allowed_regimes = vec!["trending".to_string()];
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let existing_trade = create_test_trade("BTCUSDT", TradeType::Long);
+        let mut signal = create_test_signal("BTCUSDT", TradingSignal::Short);
+        signal.confidence = 0.80;
+        // Set to ranging market (low trend strength)
+        signal.market_analysis.trend_strength = 0.3;
+
+        let should_reverse = engine
+            .should_close_on_reversal(&existing_trade, &signal)
+            .await;
+        assert!(!should_reverse, "Market regime not allowed for reversal");
+    }
+
+    #[tokio::test]
+    async fn test_should_close_on_reversal_same_direction() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.enable_signal_reversal = true;
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let existing_trade = create_test_trade("BTCUSDT", TradeType::Long);
+        let mut signal = create_test_signal("BTCUSDT", TradingSignal::Long); // Same direction
+        signal.confidence = 0.80;
+
+        let should_reverse = engine
+            .should_close_on_reversal(&existing_trade, &signal)
+            .await;
+        assert!(!should_reverse, "Same direction, not a reversal");
+    }
+
+    #[tokio::test]
+    async fn test_should_close_on_reversal_all_conditions_met() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.enable_signal_reversal = true;
+        settings.risk.reversal_min_confidence = 0.75;
+        settings.risk.reversal_max_pnl_pct = 10.0;
+        settings.risk.reversal_allowed_regimes = vec!["trending".to_string()];
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let mut existing_trade = create_test_trade("BTCUSDT", TradeType::Long);
+        existing_trade.pnl_percentage = 5.0; // Below threshold
+
+        let mut signal = create_test_signal("BTCUSDT", TradingSignal::Short);
+        signal.confidence = 0.80; // Above threshold
+                                  // Set to trending market (high trend strength)
+        signal.market_analysis.trend_strength = 0.75;
+        signal.market_analysis.trend_direction = "Downward".to_string();
+
+        let should_reverse = engine
+            .should_close_on_reversal(&existing_trade, &signal)
+            .await;
+        assert!(should_reverse, "All reversal conditions met");
+    }
+
+    // ========================================================================
+    // AI AUTO-ENABLE REVERSAL TESTS
+    // ========================================================================
+
+    #[tokio::test]
+    async fn test_ai_enables_reversal_when_conditions_good() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.ai_auto_enable_reversal = true; // AI decides
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Simulate 10 recent winning trades with high AI accuracy
+        {
+            let mut portfolio = engine.portfolio.write().await;
+            for i in 0..10 {
+                let mut trade = create_test_trade("BTCUSDT", TradeType::Long);
+                trade.id = format!("winning-trade-{}", i);
+                trade.status = TradeStatus::Closed;
+                trade.realized_pnl = Some(100.0); // Profitable trade
+                trade.ai_signal_id = Some(format!("ai-signal-{}", i));
+                trade.ai_confidence = Some(0.80);
+                portfolio.trades.push(trade);
+            }
+            portfolio.consecutive_wins = 5;
+            portfolio.consecutive_losses = 0;
+            portfolio.volatility = 0.45; // Low volatility
+        }
+
+        let should_enable = engine.should_ai_enable_reversal().await;
+        assert!(should_enable, "AI should enable reversal with good conditions (70% accuracy, 100% win rate, 5 consecutive wins, 0.45 volatility)");
+    }
+
+    #[tokio::test]
+    async fn test_ai_disables_reversal_when_accuracy_low() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.ai_auto_enable_reversal = true;
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Simulate 10 trades with low AI accuracy (50%)
+        {
+            let mut portfolio = engine.portfolio.write().await;
+            for i in 0..10 {
+                let mut trade = create_test_trade("BTCUSDT", TradeType::Long);
+                trade.id = format!("mixed-trade-{}", i);
+                trade.status = TradeStatus::Closed;
+                trade.realized_pnl = if i % 2 == 0 { Some(50.0) } else { Some(-50.0) };
+                trade.ai_signal_id = Some(format!("ai-signal-{}", i));
+                trade.ai_confidence = Some(0.70);
+                portfolio.trades.push(trade);
+            }
+            portfolio.volatility = 0.50;
+        }
+
+        let should_enable = engine.should_ai_enable_reversal().await;
+        assert!(
+            !should_enable,
+            "AI should disable reversal with 50% AI accuracy (below 65% threshold)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_ai_disables_reversal_when_win_rate_low() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.ai_auto_enable_reversal = true;
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Simulate 10 trades with low win rate (40%)
+        {
+            let mut portfolio = engine.portfolio.write().await;
+            for i in 0..10 {
+                let mut trade = create_test_trade("BTCUSDT", TradeType::Long);
+                trade.id = format!("losing-trade-{}", i);
+                trade.status = TradeStatus::Closed;
+                trade.realized_pnl = if i < 4 { Some(50.0) } else { Some(-50.0) };
+                trade.ai_signal_id = Some(format!("ai-signal-{}", i));
+                trade.ai_confidence = Some(0.75);
+                portfolio.trades.push(trade);
+            }
+            portfolio.consecutive_losses = 2;
+            portfolio.volatility = 0.50;
+        }
+
+        let should_enable = engine.should_ai_enable_reversal().await;
+        assert!(
+            !should_enable,
+            "AI should disable reversal with 40% win rate (below 55% threshold)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_ai_disables_reversal_with_high_volatility() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.ai_auto_enable_reversal = true;
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Simulate good trading performance but high volatility
+        {
+            let mut portfolio = engine.portfolio.write().await;
+            for i in 0..10 {
+                let mut trade = create_test_trade("BTCUSDT", TradeType::Long);
+                trade.id = format!("volatile-trade-{}", i);
+                trade.status = TradeStatus::Closed;
+                trade.realized_pnl = Some(100.0); // All winning
+                trade.ai_signal_id = Some(format!("ai-signal-{}", i));
+                trade.ai_confidence = Some(0.80);
+                portfolio.trades.push(trade);
+            }
+            portfolio.consecutive_wins = 5;
+            portfolio.volatility = 0.75; // High volatility (> 0.6 threshold)
+        }
+
+        let should_enable = engine.should_ai_enable_reversal().await;
+        assert!(
+            !should_enable,
+            "AI should disable reversal with high volatility 0.75 (above 0.6 threshold)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_ai_requires_minimum_trade_history() {
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+        let mut settings = create_test_settings();
+        settings.risk.ai_auto_enable_reversal = true;
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Only 3 trades (less than 5 minimum required)
+        {
+            let mut portfolio = engine.portfolio.write().await;
+            for i in 0..3 {
+                let mut trade = create_test_trade("BTCUSDT", TradeType::Long);
+                trade.id = format!("trade-{}", i);
+                trade.status = TradeStatus::Closed;
+                trade.realized_pnl = Some(100.0);
+                trade.ai_signal_id = Some(format!("ai-signal-{}", i));
+                portfolio.trades.push(trade);
+            }
+        }
+
+        let should_enable = engine.should_ai_enable_reversal().await;
+        assert!(
+            !should_enable,
+            "AI should require at least 5 closed trades before enabling reversal"
+        );
+    }
+
+    // Helper function to create test trade
+    fn create_test_trade(symbol: &str, trade_type: TradeType) -> PaperTrade {
+        PaperTrade {
+            id: "test-trade-id".to_string(),
+            symbol: symbol.to_string(),
+            trade_type,
+            status: TradeStatus::Open,
+            entry_price: 50000.0,
+            exit_price: None,
+            quantity: 0.1,
+            leverage: 3,
+            stop_loss: Some(47500.0),
+            take_profit: Some(55000.0),
+            unrealized_pnl: 250.0,
+            realized_pnl: None,
+            pnl_percentage: 5.0,
+            trading_fees: 10.0,
+            funding_fees: 2.0,
+            initial_margin: 166.67,
+            maintenance_margin: 50.0,
+            margin_used: 166.67,
+            margin_ratio: 150.0,
+            open_time: Utc::now(),
+            close_time: None,
+            duration_ms: None,
+            ai_signal_id: Some("test-signal-id".to_string()),
+            ai_confidence: Some(0.75),
+            ai_reasoning: Some("Test trade".to_string()),
+            strategy_name: Some("test_strategy".to_string()),
+            close_reason: None,
+            risk_score: 0.3,
+            market_regime: Some("trending".to_string()),
+            entry_volatility: 0.5,
+            max_favorable_excursion: 0.0,
+            max_adverse_excursion: 0.0,
+            slippage: 0.01,
+            signal_timestamp: Some(Utc::now()),
+            execution_timestamp: Utc::now(),
+            execution_latency_ms: Some(50),
+            highest_price_achieved: Some(50000.0),
+            trailing_stop_active: false,
+            metadata: std::collections::HashMap::new(),
+        }
+    }
+
+    // Helper function to create test signal
+    fn create_test_signal(symbol: &str, signal_type: TradingSignal) -> AITradingSignal {
+        AITradingSignal {
+            id: format!("test-signal-{}", uuid::Uuid::new_v4()),
+            symbol: symbol.to_string(),
+            signal_type,
+            confidence: 0.75,
+            reasoning: "Test signal for reversal testing".to_string(),
+            entry_price: 50000.0,
+            suggested_stop_loss: Some(47500.0),
+            suggested_take_profit: Some(55000.0),
+            suggested_leverage: Some(3),
+            market_analysis: MarketAnalysisData {
+                trend_direction: "Upward".to_string(),
+                trend_strength: 0.7,
+                volatility: 0.5,
+                support_levels: vec![48000.0, 47000.0],
+                resistance_levels: vec![52000.0, 53000.0],
+                volume_analysis: "Normal volume".to_string(),
+                risk_score: 0.3,
+            },
+            timestamp: Utc::now(),
+        }
     }
 }

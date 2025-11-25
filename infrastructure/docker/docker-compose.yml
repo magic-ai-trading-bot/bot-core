@@ -419,6 +419,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
       - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RUST_API_URL=http://rust-core-engine-dev:8080
     volumes:
       - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
@@ -432,6 +433,12 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -464,6 +471,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
       - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RUST_API_URL=http://rust-core-engine-dev:8080
     volumes:
       - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
@@ -474,6 +482,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -503,6 +517,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
       - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RUST_API_URL=http://rust-core-engine-dev:8080
     volumes:
       - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
@@ -515,7 +530,13 @@ services:
       rabbitmq:
         condition: service_healthy
       celery-worker:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5555/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:

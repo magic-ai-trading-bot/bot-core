@@ -252,9 +252,12 @@ impl PaperTrade {
 
         self.unrealized_pnl = price_diff * self.quantity - self.trading_fees - self.funding_fees;
 
-        // Calculate PnL percentage based on margin (with division-by-zero protection)
-        self.pnl_percentage = if self.initial_margin > 0.0 {
-            (self.unrealized_pnl / self.initial_margin) * 100.0
+        // Calculate PnL percentage based on position value (not margin)
+        // This gives users the traditional crypto exchange view of P&L%
+        // E.g., 10x leverage with -$256 loss on $10,000 position = -2.56% (not -25.6%)
+        let position_value = self.entry_price * self.quantity;
+        self.pnl_percentage = if position_value > 0.0 {
+            (self.unrealized_pnl / position_value) * 100.0
         } else {
             0.0
         };

@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use futures::stream::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 #[cfg(feature = "database")]
 use bson::{doc, Bson, Document};
@@ -509,7 +509,23 @@ impl Storage {
             }
         };
 
-        self.paper_trades()?.update_one(filter, update).await?;
+        let result = self.paper_trades()?.update_one(filter, update).await?;
+
+        // Verify the update actually happened
+        if result.matched_count == 0 {
+            return Err(anyhow::anyhow!(
+                "Failed to update trade {}: No matching document found in database",
+                trade.id
+            ));
+        }
+
+        if result.modified_count == 0 {
+            warn!(
+                "⚠️ Trade {} update matched but didn't modify (document may be identical)",
+                trade.id
+            );
+        }
+
         Ok(())
     }
 

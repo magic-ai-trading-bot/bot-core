@@ -38,4 +38,5 @@ export interface Trade {
   open_time: string | Date;
   close_time?: string | Date;
   status: string;
+  close_reason?: string; // TakeProfit, StopLoss, Manual, AISignal, RiskManagement, MarginCall, TimeBasedExit
 }
