@@ -586,19 +586,30 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
         setLoading(true);
 
         // PHASE 1: Load default symbols immediately for instant display
+        console.log("📊 [TradingCharts] Loading charts for symbols:", DEFAULT_SYMBOLS, "timeframe:", selectedTimeframe);
+
         const chartPromises = DEFAULT_SYMBOLS.map((symbol) =>
           apiClient.rust.getChartDataFast(
             symbol,
             selectedTimeframe,
             100,
             abortController.signal
-          ).catch(() => null)
+          ).then((data) => {
+            console.log(`✅ [TradingCharts] Loaded ${symbol}:`, data ? 'success' : 'null');
+            return data;
+          }).catch((err) => {
+            console.error(`❌ [TradingCharts] Failed to load ${symbol}:`, err?.message || err, err);
+            return null;
+          })
         );
 
         const chartResults = await Promise.all(chartPromises);
+        console.log("📊 [TradingCharts] Chart results:", chartResults.map(c => c ? c.symbol : 'null'));
+
         const successfulCharts = chartResults.filter(
           (chart): chart is ChartData => chart !== null
         );
+        console.log(`📊 [TradingCharts] Successful: ${successfulCharts.length}/${DEFAULT_SYMBOLS.length}`);
 
         if (!abortController.signal.aborted) {
           setCharts(successfulCharts);
