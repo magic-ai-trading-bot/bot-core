@@ -585,15 +585,14 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       try {
         setLoading(true);
 
-        // Load chart data immediately using default symbols (no waiting for getSupportedSymbols)
-        // Use getChartDataFast (no retry) for instant loading
+        // PHASE 1: Load default symbols immediately for instant display
         const chartPromises = DEFAULT_SYMBOLS.map((symbol) =>
           apiClient.rust.getChartDataFast(
             symbol,
             selectedTimeframe,
             100,
             abortController.signal
-          ).catch(() => null) // Don't fail if one symbol fails
+          ).catch(() => null)
         );
 
         const chartResults = await Promise.all(chartPromises);
@@ -601,9 +600,44 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           (chart): chart is ChartData => chart !== null
         );
 
-        // Only update state if this request wasn't aborted
         if (!abortController.signal.aborted) {
           setCharts(successfulCharts);
+          setLoading(false); // End loading after default symbols
+        }
+
+        // PHASE 2: Load any additional symbols from backend (user-added symbols)
+        // This runs in background after initial display
+        try {
+          const supportedSymbols = await apiClient.rust.getSupportedSymbols(abortController.signal);
+          const allSymbols = supportedSymbols.symbols || [];
+
+          // Find symbols not in DEFAULT_SYMBOLS
+          const additionalSymbols = allSymbols.filter(
+            (symbol: string) => !DEFAULT_SYMBOLS.includes(symbol)
+          );
+
+          if (additionalSymbols.length > 0 && !abortController.signal.aborted) {
+            // Load additional symbols in parallel
+            const additionalPromises = additionalSymbols.map((symbol: string) =>
+              apiClient.rust.getChartDataFast(
+                symbol,
+                selectedTimeframe,
+                100,
+                abortController.signal
+              ).catch(() => null)
+            );
+
+            const additionalResults = await Promise.all(additionalPromises);
+            const additionalCharts = additionalResults.filter(
+              (chart): chart is ChartData => chart !== null
+            );
+
+            if (additionalCharts.length > 0 && !abortController.signal.aborted) {
+              setCharts((prev) => [...prev, ...additionalCharts]);
+            }
+          }
+        } catch {
+          // Silently ignore errors in phase 2 - user already has default charts
         }
       } catch (error) {
         // Ignore abort errors (expected when component unmounts or new load starts)
