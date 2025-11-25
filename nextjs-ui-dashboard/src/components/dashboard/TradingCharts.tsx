@@ -462,9 +462,6 @@ const AddSymbolDialog: React.FC<{
 }> = ({ onAddSymbol }) => {
   const [open, setOpen] = useState(false);
   const [symbol, setSymbol] = useState("");
-  const [selectedTimeframes, setSelectedTimeframes] = useState<string[]>([
-    "1h",
-  ]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -474,28 +471,14 @@ const AddSymbolDialog: React.FC<{
       return;
     }
 
-    if (selectedTimeframes.length === 0) {
-      toast.error("Please select at least one timeframe");
-      return;
-    }
-
     const request: AddSymbolRequest = {
       symbol: symbol.toUpperCase().trim(),
-      timeframes: selectedTimeframes,
+      timeframes: AVAILABLE_TIMEFRAMES, // Load all timeframes automatically
     };
 
     onAddSymbol(request);
     setOpen(false);
     setSymbol("");
-    setSelectedTimeframes(["1h"]);
-  };
-
-  const toggleTimeframe = (timeframe: string) => {
-    setSelectedTimeframes((prev) =>
-      prev.includes(timeframe)
-        ? prev.filter((tf) => tf !== timeframe)
-        : [...prev, timeframe]
-    );
   };
 
   return (
@@ -506,42 +489,24 @@ const AddSymbolDialog: React.FC<{
           Add Symbol
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Trading Symbol</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="symbol">Symbol (e.g., BTCUSDT)</Label>
+            <Label htmlFor="symbol">Symbol</Label>
             <Input
               id="symbol"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
-              placeholder="Enter symbol like BTCUSDT, ETHUSDT..."
+              placeholder="BTCUSDT, ETHUSDT, XRPUSDT..."
               className="mt-1"
+              autoFocus
             />
-          </div>
-
-          <div>
-            <Label>Select Timeframes</Label>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {AVAILABLE_TIMEFRAMES.map((timeframe) => (
-                <Button
-                  key={timeframe}
-                  type="button"
-                  variant={
-                    selectedTimeframes.includes(timeframe)
-                      ? "default"
-                      : "outline"
-                  }
-                  size="sm"
-                  onClick={() => toggleTimeframe(timeframe)}
-                  className="text-xs"
-                >
-                  {timeframe}
-                </Button>
-              ))}
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              All timeframes (1m, 5m, 15m, 1h, 4h, 1d) will be loaded automatically
+            </p>
           </div>
 
           <div className="flex justify-end space-x-2">
