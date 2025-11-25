@@ -560,6 +560,9 @@ const AddSymbolDialog: React.FC<{
   );
 };
 
+// Default symbols to load immediately without waiting for API
+const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+
 export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
   ({ className }) => {
     const [charts, setCharts] = useState<ChartData[]>([]);
@@ -582,28 +585,21 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       try {
         setLoading(true);
 
-        // Get supported symbols first
-        const supportedSymbols = await apiClient.rust.getSupportedSymbols(
-          abortController.signal
-        );
-
-        // Load chart data for all symbols
-        const chartPromises = supportedSymbols.symbols.map((symbol) =>
-          apiClient.rust.getChartData(
+        // Load chart data immediately using default symbols (no waiting for getSupportedSymbols)
+        // Use getChartDataFast (no retry) for instant loading
+        const chartPromises = DEFAULT_SYMBOLS.map((symbol) =>
+          apiClient.rust.getChartDataFast(
             symbol,
             selectedTimeframe,
             100,
             abortController.signal
-          )
+          ).catch(() => null) // Don't fail if one symbol fails
         );
 
-        const chartResults = await Promise.allSettled(chartPromises);
-        const successfulCharts = chartResults
-          .filter(
-            (result): result is PromiseFulfilledResult<ChartData> =>
-              result.status === "fulfilled"
-          )
-          .map((result) => result.value);
+        const chartResults = await Promise.all(chartPromises);
+        const successfulCharts = chartResults.filter(
+          (chart): chart is ChartData => chart !== null
+        );
 
         // Only update state if this request wasn't aborted
         if (!abortController.signal.aborted) {
@@ -614,7 +610,6 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
         if (error instanceof Error && error.name === "CanceledError") {
           return;
         }
-        // Also check axios cancel
         if ((error as { code?: string })?.code === "ERR_CANCELED") {
           return;
         }
