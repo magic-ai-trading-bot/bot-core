@@ -748,6 +748,89 @@ impl Storage {
         info!("📖 No saved paper trading settings found, will use defaults");
         Ok(None)
     }
+
+    /// Get user symbols collection
+    pub fn user_symbols(&self) -> Result<Collection<Document>> {
+        self.db
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("user_symbols"))
+    }
+
+    /// Save user-added symbols to database
+    pub async fn save_user_symbols(&self, symbols: &[String]) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let record = doc! {
+                    "symbols": symbols,
+                    "updated_at": Utc::now(),
+                };
+
+                // Use upsert to update existing or create new (only one record)
+                let filter = doc! {};
+                let update = doc! {
+                    "$set": record,
+                    "$setOnInsert": {
+                        "created_at": Utc::now()
+                    }
+                };
+                self.user_symbols()?
+                    .update_one(filter, update)
+                    .upsert(true)
+                    .await?;
+
+                info!("💾 User symbols saved to database: {:?}", symbols);
+                return Ok(());
+            }
+        }
+
+        info!("💾 User symbols saved (in-memory fallback)");
+        Ok(())
+    }
+
+    /// Load user-added symbols from database
+    pub async fn load_user_symbols(&self) -> Result<Vec<String>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let record: Option<Document> = self.user_symbols()?.find_one(doc! {}).await?;
+
+                if let Some(record) = record {
+                    if let Ok(symbols_bson) = record.get_array("symbols") {
+                        let symbols: Vec<String> = symbols_bson
+                            .iter()
+                            .filter_map(|s| s.as_str().map(String::from))
+                            .collect();
+
+                        info!("📖 User symbols loaded from database: {:?}", symbols);
+                        return Ok(symbols);
+                    }
+                }
+            }
+        }
+
+        info!("📖 No saved user symbols found");
+        Ok(vec![])
+    }
+
+    /// Add a single symbol to user symbols
+    pub async fn add_user_symbol(&self, symbol: &str) -> Result<()> {
+        let mut symbols = self.load_user_symbols().await?;
+        if !symbols.contains(&symbol.to_string()) {
+            symbols.push(symbol.to_string());
+            self.save_user_symbols(&symbols).await?;
+        }
+        Ok(())
+    }
+
+    /// Remove a single symbol from user symbols
+    pub async fn remove_user_symbol(&self, symbol: &str) -> Result<()> {
+        let mut symbols = self.load_user_symbols().await?;
+        symbols.retain(|s| s != symbol);
+        self.save_user_symbols(&symbols).await?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
