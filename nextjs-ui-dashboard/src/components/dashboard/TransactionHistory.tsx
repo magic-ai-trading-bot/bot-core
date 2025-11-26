@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
-import { usePaperTrading } from "@/hooks/usePaperTrading";
+import { usePaperTradingContext } from "@/contexts/PaperTradingContext";
 import { useNavigate } from "react-router-dom";
 import { formatTimestamp, formatCurrency } from "@/utils/formatters";
 import { memo, useMemo, useCallback } from "react";
@@ -107,7 +107,7 @@ const TradeRow = memo(({ trade }: TradeRowProps) => {
 TradeRow.displayName = 'TradeRow';
 
 export function TransactionHistory() {
-  const { closedTrades, isLoading } = usePaperTrading();
+  const { closedTrades, isLoading } = usePaperTradingContext();
   const navigate = useNavigate();
 
   // Memoize navigation callback

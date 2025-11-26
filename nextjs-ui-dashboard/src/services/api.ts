@@ -7,7 +7,7 @@ const RUST_API_URL =
   import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
 const PYTHON_AI_URL =
   import.meta.env.VITE_PYTHON_AI_URL || "http://localhost:8000";
-const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || "3000");
+const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || "15000");
 
 // Type definitions for API responses
 export interface BotStatus {
@@ -20,15 +20,23 @@ export interface BotStatus {
 }
 
 export interface Position {
+  id?: string;
   symbol: string;
-  side: "BUY" | "SELL";
-  size: number;
+  side?: "BUY" | "SELL";  // Legacy field
+  trade_type?: "Long" | "Short";  // New API field
+  size?: number;
+  quantity?: number;
   entry_price: number;
-  current_price: number;
-  unrealized_pnl: number;
+  current_price?: number;
+  pnl?: number;  // API field
+  pnl_percentage?: number;  // API field
+  unrealized_pnl?: number;  // Legacy
+  unrealized_pnl_percent?: number;  // Legacy
   stop_loss?: number;
   take_profit?: number;
-  timestamp: string;
+  leverage?: number;
+  timestamp?: string;
+  open_time?: string;
 }
 
 export interface TradeHistory {
@@ -329,7 +337,8 @@ class BaseApiClient {
           token = window.localStorage.getItem("authToken");
         }
       } catch (error) {
-        // Handle SecurityError in test environments
+        // Handle SecurityError in test environments or privacy mode browsers
+        logger.warn(`[${serviceName}] localStorage access denied:`, error);
         token = null;
       }
       if (token) {

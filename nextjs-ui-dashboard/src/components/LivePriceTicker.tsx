@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface PriceData {
@@ -8,15 +8,52 @@ interface PriceData {
   changePercent24h?: number;
 }
 
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
+
 export function LivePriceTicker() {
-  const [prices, setPrices] = useState<Record<string, PriceData>>({
-    BTCUSDT: { symbol: 'BTC', price: 0 },
-    ETHUSDT: { symbol: 'ETH', price: 0 },
-    BNBUSDT: { symbol: 'BNB', price: 0 },
-    SOLUSDT: { symbol: 'SOL', price: 0 },
-  });
+  const [prices, setPrices] = useState<Record<string, PriceData>>({});
+  const [symbols, setSymbols] = useState<string[]>([]);
 
   const { lastMessage } = useWebSocket();
+
+  // Fetch symbols dynamically from API
+  const fetchSymbols = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/market/symbols`);
+      const data = await response.json();
+      // FIX: API returns {success: true, data: {symbols: [...]}} - access data.data.symbols
+      if (data.success && data.data && data.data.symbols) {
+        const symbols = data.data.symbols;
+        setSymbols(symbols);
+        // Initialize prices for all symbols
+        const initialPrices: Record<string, PriceData> = {};
+        symbols.forEach((symbol: string) => {
+          initialPrices[symbol] = {
+            symbol: symbol.replace('USDT', ''),
+            price: 0,
+          };
+        });
+        setPrices(initialPrices);
+      }
+    } catch (error) {
+      // Fallback to default symbols if API fails
+      const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT'];
+      setSymbols(defaultSymbols);
+      const initialPrices: Record<string, PriceData> = {};
+      defaultSymbols.forEach((symbol) => {
+        initialPrices[symbol] = {
+          symbol: symbol.replace('USDT', ''),
+          price: 0,
+        };
+      });
+      setPrices(initialPrices);
+    }
+  }, []);
+
+  // Load symbols on mount
+  useEffect(() => {
+    fetchSymbols();
+  }, [fetchSymbols]);
 
   useEffect(() => {
     if (lastMessage) {
@@ -53,8 +90,6 @@ export function LivePriceTicker() {
       }
     }
   }, [lastMessage]);
-
-  const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT'];
 
   return (
     <div className="flex gap-4 p-4 bg-gray-900 rounded-lg border border-gray-800">

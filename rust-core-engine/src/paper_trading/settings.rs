@@ -391,7 +391,9 @@ impl Default for RiskSettings {
             max_drawdown_pct: 10.0,      // OPTIMIZED: Down from 15% - stop earlier
             daily_loss_limit_pct: 3.0,   // OPTIMIZED: Down from 5% - protect capital
             max_consecutive_losses: 3,   // OPTIMIZED: Down from 5 - stop faster
-            cool_down_minutes: 30,       // OPTIMIZED: Down from 60 - faster recovery
+            // @spec:FR-RISK-006 - Cool-down period 60 minutes after consecutive losses
+            // @ref:docs/features/how-it-works.md - Layer 6: "Nghỉ 60 phút sau thua lỗ"
+            cool_down_minutes: 60,       // FIXED: Match docs - 60 minutes cool-down
             position_sizing_method: PositionSizingMethod::RiskBased,
             min_risk_reward_ratio: 2.0, // OPTIMIZED: Up from 1.5 - quality trades only
             correlation_limit: 0.7,
@@ -922,7 +924,7 @@ mod tests {
             max_drawdown_pct: 10.0,
             daily_loss_limit_pct: 3.0,
             max_consecutive_losses: 3,
-            cool_down_minutes: 30,
+            cool_down_minutes: 60,  // FIXED: Match docs - 60 minutes
             position_sizing_method: PositionSizingMethod::FixedPercentage,
             min_risk_reward_ratio: 2.0,
             correlation_limit: 0.8,

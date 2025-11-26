@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AIAnalysisProvider } from "@/contexts/AIAnalysisContext";
+import { PaperTradingProvider } from "@/contexts/PaperTradingContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Lazy load all pages for code splitting
@@ -32,7 +33,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <AIAnalysisProvider>
-        <TooltipProvider>
+        <PaperTradingProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -74,7 +76,8 @@ const App = () => (
               </Routes>
             </Suspense>
           </BrowserRouter>
-        </TooltipProvider>
+          </TooltipProvider>
+        </PaperTradingProvider>
       </AIAnalysisProvider>
     </AuthProvider>
   </QueryClientProvider>

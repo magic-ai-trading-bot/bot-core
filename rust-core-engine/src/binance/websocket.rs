@@ -1,7 +1,10 @@
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::select;
 use tokio::sync::mpsc;
 use tokio::time::{interval, sleep};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -12,21 +15,63 @@ use super::types::*;
 use crate::config::BinanceConfig;
 
 // @spec:FR-WEBSOCKET-001 - Binance WebSocket Connection
+// @spec:FR-WEBSOCKET-002 - Dynamic Symbol Subscription
 // @ref:specs/02-design/2.3-api/API-WEBSOCKET.md
 // @test:TC-INTEGRATION-008, TC-INTEGRATION-009
+
+/// Commands that can be sent to the WebSocket for dynamic subscription
+#[derive(Debug, Clone)]
+pub enum WebSocketCommand {
+    /// Subscribe to new streams for a symbol
+    Subscribe { symbol: String, timeframes: Vec<String> },
+    /// Unsubscribe from streams for a symbol
+    Unsubscribe { symbol: String, timeframes: Vec<String> },
+}
 
 pub struct BinanceWebSocket {
     config: BinanceConfig,
     sender: mpsc::UnboundedSender<StreamEvent>,
+    /// Channel for receiving subscribe/unsubscribe commands
+    command_sender: mpsc::UnboundedSender<WebSocketCommand>,
+    /// Receiver is wrapped in Mutex for interior mutability (take() in async context)
+    command_receiver: std::sync::Mutex<Option<mpsc::UnboundedReceiver<WebSocketCommand>>>,
+    /// Counter for request IDs
+    request_id: Arc<AtomicU64>,
 }
 
 impl BinanceWebSocket {
     pub fn new(config: BinanceConfig) -> (Self, mpsc::UnboundedReceiver<StreamEvent>) {
         let (sender, receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
 
-        let ws = Self { config, sender };
+        let ws = Self {
+            config,
+            sender,
+            command_sender,
+            command_receiver: std::sync::Mutex::new(Some(command_receiver)),
+            request_id: Arc::new(AtomicU64::new(1)),
+        };
 
         (ws, receiver)
+    }
+
+    /// Get a clone of the command sender for subscribing to new symbols
+    pub fn get_command_sender(&self) -> mpsc::UnboundedSender<WebSocketCommand> {
+        self.command_sender.clone()
+    }
+
+    /// Subscribe to a new symbol's streams dynamically
+    pub fn subscribe_symbol(&self, symbol: String, timeframes: Vec<String>) -> Result<()> {
+        self.command_sender
+            .send(WebSocketCommand::Subscribe { symbol: symbol.clone(), timeframes })
+            .map_err(|e| anyhow::anyhow!("Failed to send subscribe command for {}: {}", symbol, e))
+    }
+
+    /// Unsubscribe from a symbol's streams dynamically
+    pub fn unsubscribe_symbol(&self, symbol: String, timeframes: Vec<String>) -> Result<()> {
+        self.command_sender
+            .send(WebSocketCommand::Unsubscribe { symbol: symbol.clone(), timeframes })
+            .map_err(|e| anyhow::anyhow!("Failed to send unsubscribe command for {}: {}", symbol, e))
     }
 
     pub async fn start(&self, symbols: Vec<String>, timeframes: Vec<String>) -> Result<()> {
@@ -72,36 +117,113 @@ impl BinanceWebSocket {
 
         info!("WebSocket connected successfully");
 
-        // Handle incoming messages
-        while let Some(message) = read.next().await {
-            match message {
-                Ok(Message::Text(text)) => {
-                    if let Err(e) = self.handle_message(&text) {
-                        error!("Error handling message: {e}");
+        // Take the command receiver from self (only first connection gets it)
+        // This receiver is connected to the command_sender, so subscribe_symbol() calls work
+        let mut cmd_rx = self.command_receiver
+            .lock()
+            .expect("Command receiver mutex poisoned")
+            .take();
+
+        loop {
+            select! {
+                // Handle incoming WebSocket messages
+                message = read.next() => {
+                    match message {
+                        Some(Ok(Message::Text(text))) => {
+                            // Check if this is a subscription response
+                            if text.contains("\"result\":null") || text.contains("\"id\":") {
+                                debug!("Subscription response: {text}");
+                                continue;
+                            }
+                            if let Err(e) = self.handle_message(&text) {
+                                error!("Error handling message: {e}");
+                            }
+                        },
+                        Some(Ok(Message::Close(_))) => {
+                            info!("WebSocket connection closed by server");
+                            break;
+                        },
+                        Some(Ok(Message::Ping(data))) => {
+                            debug!("Received ping, sending pong");
+                            if let Err(e) = write.send(Message::Pong(data)).await {
+                                error!("Failed to send pong: {e}");
+                                break;
+                            }
+                        },
+                        Some(Ok(_)) => {
+                            // Ignore other message types (binary, pong, etc.)
+                        },
+                        Some(Err(e)) => {
+                            error!("WebSocket error: {e}");
+                            return Err(e.into());
+                        },
+                        None => {
+                            info!("WebSocket stream ended");
+                            break;
+                        }
                     }
                 },
-                Ok(Message::Close(_)) => {
-                    info!("WebSocket connection closed by server");
-                    break;
-                },
-                Ok(Message::Ping(data)) => {
-                    debug!("Received ping, sending pong");
-                    if let Err(e) = write.send(Message::Pong(data)).await {
-                        error!("Failed to send pong: {e}");
-                        break;
+                // Handle subscribe/unsubscribe commands (only if receiver exists)
+                cmd = async {
+                    if let Some(ref mut rx) = cmd_rx {
+                        rx.recv().await
+                    } else {
+                        // No receiver (reconnect case) - never complete
+                        std::future::pending::<Option<WebSocketCommand>>().await
                     }
-                },
-                Ok(_) => {
-                    // Ignore other message types (binary, pong, etc.)
-                },
-                Err(e) => {
-                    error!("WebSocket error: {e}");
-                    return Err(e.into());
-                },
+                } => {
+                    match cmd {
+                        Some(WebSocketCommand::Subscribe { symbol, timeframes }) => {
+                            let streams = self.build_stream_names(&[symbol.clone()], &timeframes);
+                            let request_id = self.request_id.fetch_add(1, Ordering::SeqCst);
+
+                            let subscribe_msg = serde_json::json!({
+                                "method": "SUBSCRIBE",
+                                "params": streams,
+                                "id": request_id
+                            });
+
+                            info!("📡 Subscribing to new streams for {}: {:?}", symbol, streams);
+
+                            if let Err(e) = write.send(Message::Text(subscribe_msg.to_string().into())).await {
+                                error!("Failed to send subscribe message for {}: {}", symbol, e);
+                            } else {
+                                info!("✅ Subscription request sent for {} (id: {})", symbol, request_id);
+                            }
+                        },
+                        Some(WebSocketCommand::Unsubscribe { symbol, timeframes }) => {
+                            let streams = self.build_stream_names(&[symbol.clone()], &timeframes);
+                            let request_id = self.request_id.fetch_add(1, Ordering::SeqCst);
+
+                            let unsubscribe_msg = serde_json::json!({
+                                "method": "UNSUBSCRIBE",
+                                "params": streams,
+                                "id": request_id
+                            });
+
+                            info!("📡 Unsubscribing from streams for {}: {:?}", symbol, streams);
+
+                            if let Err(e) = write.send(Message::Text(unsubscribe_msg.to_string().into())).await {
+                                error!("Failed to send unsubscribe message for {}: {}", symbol, e);
+                            } else {
+                                info!("✅ Unsubscribe request sent for {} (id: {})", symbol, request_id);
+                            }
+                        },
+                        None => {
+                            debug!("Command channel closed");
+                        }
+                    }
+                }
             }
         }
 
         Ok(())
+    }
+
+    /// Get a reference to the internal command sender for dynamic subscriptions
+    /// This allows external code to send subscribe/unsubscribe commands
+    pub fn create_command_channel(&self) -> mpsc::UnboundedSender<WebSocketCommand> {
+        self.command_sender.clone()
     }
 
     fn build_stream_names(&self, symbols: &[String], timeframes: &[String]) -> Vec<String> {

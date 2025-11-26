@@ -43,6 +43,9 @@ import {
   Info,
 } from "lucide-react";
 
+// API Base URL - using environment variable with fallback
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
+
 // Trading Strategy Settings Types
 interface StrategySettings {
   rsi: {
@@ -338,7 +341,7 @@ export function TradingSettings() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        "http://localhost:8080/api/paper-trading/strategy-settings"
+        `${API_BASE}/api/paper-trading/strategy-settings`
       );
       if (response.ok) {
         const data = await response.json();
@@ -359,7 +362,7 @@ export function TradingSettings() {
     try {
       setIsSaving(true);
       const response = await fetch(
-        "http://localhost:8080/api/paper-trading/strategy-settings",
+        `${API_BASE}/api/paper-trading/strategy-settings`,
         {
           method: "PUT",
           headers: {

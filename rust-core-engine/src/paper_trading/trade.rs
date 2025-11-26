@@ -672,7 +672,8 @@ mod tests {
 
         // Expected: (55000 - 50000) * 0.1 - fees = 500 - 2 = 498
         assert!((trade.unrealized_pnl - 498.0).abs() < 0.01);
-        assert!((trade.pnl_percentage - 99.6).abs() < 0.1); // 498/500 * 100
+        // PnL % is now based on position_value (not margin): 498/5000 * 100 = 9.96%
+        assert!((trade.pnl_percentage - 9.96).abs() < 0.1);
     }
 
     #[test]
@@ -694,7 +695,8 @@ mod tests {
 
         // Expected: (47500 - 50000) * 0.1 - fees = -250 - 2 = -252
         assert!((trade.unrealized_pnl - (-252.0)).abs() < 0.01);
-        assert!((trade.pnl_percentage - (-50.4)).abs() < 0.1);
+        // PnL % is now based on position_value (not margin): -252/5000 * 100 = -5.04%
+        assert!((trade.pnl_percentage - (-5.04)).abs() < 0.1);
     }
 
     #[test]
@@ -1448,8 +1450,8 @@ mod tests {
 
         // PnL: (100000 - 50000) * 0.1 - fees = 5000 - 2 = 4998
         assert!((trade.unrealized_pnl - 4998.0).abs() < 0.01);
-        // 4998 / 500 * 100 = 999.6%
-        assert!(trade.pnl_percentage > 900.0);
+        // PnL % is now based on position_value: 4998/5000 * 100 = 99.96%
+        assert!(trade.pnl_percentage > 95.0);
     }
 
     #[test]
@@ -1471,7 +1473,8 @@ mod tests {
 
         // PnL: (50000 - 25000) * 0.1 - fees = 2500 - 2 = 2498
         assert!((trade.unrealized_pnl - 2498.0).abs() < 0.01);
-        assert!(trade.pnl_percentage > 400.0);
+        // PnL % is now based on position_value: 2498/5000 * 100 = 49.96%
+        assert!(trade.pnl_percentage > 45.0);
     }
 
     #[test]
@@ -2011,12 +2014,13 @@ mod tests {
             None,
         );
 
-        // Massive loss scenario
+        // Massive loss scenario (80% price drop)
         trade.update_with_price(10000.0, None);
 
         // Even with extreme losses, should not panic
         assert!(trade.margin_ratio < 1.0);
-        assert!(trade.pnl_percentage < -100.0);
+        // PnL % is now based on position_value: -4002/5000 * 100 = -80.04%
+        assert!(trade.pnl_percentage < -70.0);
     }
 
     #[test]

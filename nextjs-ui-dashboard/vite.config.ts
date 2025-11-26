@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => ({
     // Proxy API calls to backend services
     proxy: {
       "/api": {
-        target: "http://rust-core-engine-dev:8080",
+        target: process.env.VITE_RUST_API_URL || "http://localhost:8080",
         changeOrigin: true,
         secure: false,
         timeout: 30000,
@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
       "/ws": {
-        target: "ws://rust-core-engine-dev:8080",
+        target: process.env.VITE_WS_URL?.replace('/ws', '') || "ws://localhost:8080",
         ws: true,
         changeOrigin: true,
         secure: false,

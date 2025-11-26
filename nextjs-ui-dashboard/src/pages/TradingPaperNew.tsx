@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { usePaperTrading, PaperTrade } from "@/hooks/usePaperTrading";
+import { usePaperTradingContext, PaperTrade } from "@/contexts/PaperTradingContext";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
@@ -39,6 +39,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// API Base URL - using environment variable with fallback
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
+
 const TradingPaper = () => {
   const {
     portfolio,
@@ -57,7 +60,7 @@ const TradingPaper = () => {
     closeTrade,
     refreshAISignals,
     refreshSettings,
-  } = usePaperTrading();
+  } = usePaperTradingContext();
 
   const [wsConnected, setWsConnected] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -162,7 +165,7 @@ const TradingPaper = () => {
   const loadSymbolSettings = async () => {
     try {
       setIsLoadingSymbols(true);
-      const response = await fetch("http://localhost:8080/api/paper-trading/symbols");
+      const response = await fetch(`${API_BASE}/api/paper-trading/symbols`);
       const data = await response.json();
       if (data.success && data.data) {
         setSymbolSettings(data.data);
@@ -180,7 +183,7 @@ const TradingPaper = () => {
   const updateSymbolSettings = async () => {
     try {
       setIsLoadingSymbols(true);
-      const response = await fetch("http://localhost:8080/api/paper-trading/symbols", {
+      const response = await fetch(`${API_BASE}/api/paper-trading/symbols`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symbols: symbolSettings }),

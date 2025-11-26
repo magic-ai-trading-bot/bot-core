@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -98,7 +99,18 @@ const PRESETS: Record<string, SymbolPreset> = {
   },
 };
 
-const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+// FALLBACK symbols - actual symbols are fetched dynamically from /api/market/symbols
+const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+
+// Default config for symbols not in PRESETS
+const DEFAULT_CONFIG: Omit<SymbolConfig, "symbol"> = {
+  enabled: false,
+  leverage: 5,
+  position_size_pct: 3,
+  stop_loss_pct: 2,
+  take_profit_pct: 4,
+  max_positions: 1,
+};
 
 interface PerSymbolSettingsProps {
   currentBalance?: number;
@@ -113,60 +125,96 @@ export function PerSymbolSettings({
   const [configs, setConfigs] = useState<SymbolConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // Dynamic symbols from API (includes user-added symbols from database)
+  const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+  const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
 
   const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
 
   /**
-   * Load symbol configs from backend
+   * Fetch symbols dynamically from API
+   */
+  const fetchSymbols = useCallback(async (): Promise<string[]> => {
+    setIsLoadingSymbols(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/market/symbols`);
+      const data = await response.json();
+      // FIX: API returns {success: true, data: {symbols: [...]}} - access data.data.symbols
+      if (data.success && data.data && data.data.symbols && data.data.symbols.length > 0) {
+        const symbols = data.data.symbols;
+        setAvailableSymbols(symbols);
+        logger.info(`Loaded ${symbols.length} symbols for per-symbol settings`);
+        return symbols;
+      } else {
+        setAvailableSymbols(FALLBACK_SYMBOLS);
+        logger.warn("Using fallback symbols for per-symbol settings");
+        return FALLBACK_SYMBOLS;
+      }
+    } catch (error) {
+      logger.error("Failed to fetch symbols:", error);
+      setAvailableSymbols(FALLBACK_SYMBOLS);
+      return FALLBACK_SYMBOLS;
+    } finally {
+      setIsLoadingSymbols(false);
+    }
+  }, [API_BASE]);
+
+  /**
+   * Initialize with preset configurations using provided symbols
+   */
+  const initializePresetsWithSymbols = useCallback((symbols: string[]) => {
+    const initialConfigs = symbols.map((symbol) => ({
+      symbol,
+      ...(PRESETS[symbol]?.config || DEFAULT_CONFIG),
+    }));
+    setConfigs(initialConfigs);
+  }, []);
+
+  /**
+   * Load symbols first, then configs from backend
    */
   useEffect(() => {
-    const loadConfigs = async () => {
+    const loadData = async () => {
       setIsLoading(true);
       try {
+        // First, fetch available symbols from API
+        const symbols = await fetchSymbols();
+
+        // Then, try to load configs from backend
         const response = await fetch(
           `${API_BASE}/api/paper-trading/symbol-settings`
         );
 
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.data) {
+          if (data.success && data.data && data.data.length > 0) {
             setConfigs(data.data);
           } else {
-            // Initialize with presets if no data
-            initializePresets();
+            // Initialize with presets using dynamic symbols
+            initializePresetsWithSymbols(symbols);
           }
         } else {
           // Initialize with presets on error
-          initializePresets();
+          initializePresetsWithSymbols(symbols);
         }
       } catch (error) {
-        // Initialize with presets on error
-        initializePresets();
+        // Initialize with presets on error using available symbols
+        initializePresetsWithSymbols(availableSymbols.length > 0 ? availableSymbols : FALLBACK_SYMBOLS);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadConfigs();
-  }, [API_BASE]);
+    loadData();
+  }, [API_BASE, fetchSymbols, initializePresetsWithSymbols]);
 
   /**
-   * Initialize with preset configurations
+   * Reset to default presets using dynamic symbols
    */
-  const initializePresets = () => {
-    const initialConfigs = DEFAULT_SYMBOLS.map((symbol) => ({
-      symbol,
-      ...(PRESETS[symbol]?.config || {
-        enabled: false,
-        leverage: 5,
-        position_size_pct: 3,
-        stop_loss_pct: 2,
-        take_profit_pct: 4,
-        max_positions: 1,
-      }),
-    }));
-    setConfigs(initialConfigs);
-  };
+  const initializePresets = useCallback(() => {
+    const symbols = availableSymbols.length > 0 ? availableSymbols : FALLBACK_SYMBOLS;
+    initializePresetsWithSymbols(symbols);
+  }, [availableSymbols, initializePresetsWithSymbols]);
 
   /**
    * Calculate risk level based on leverage and position size
@@ -656,27 +704,41 @@ export function PerSymbolSettings({
         {/* Quick Preset Actions */}
         <div className="mt-6 p-4 rounded-lg bg-muted/50 border">
           <h4 className="text-sm font-medium mb-3">Quick Presets</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {DEFAULT_SYMBOLS.map((symbol) => (
-              <Button
-                key={symbol}
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const preset = PRESETS[symbol];
-                  if (preset) {
-                    updateSymbolConfig(symbol, preset.config);
-                    toast({
-                      title: "Preset Applied",
-                      description: `${preset.name} settings applied to ${symbol}`,
-                    });
-                  }
-                }}
-              >
-                {PRESETS[symbol]?.name || symbol}
-              </Button>
-            ))}
-          </div>
+          {isLoadingSymbols ? (
+            <div className="flex items-center justify-center p-2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+              <span className="text-sm text-muted-foreground">Loading presets...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {(availableSymbols.length > 0 ? availableSymbols : FALLBACK_SYMBOLS).map((symbol) => (
+                <Button
+                  key={symbol}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const preset = PRESETS[symbol];
+                    if (preset) {
+                      updateSymbolConfig(symbol, preset.config);
+                      toast({
+                        title: "Preset Applied",
+                        description: `${preset.name} settings applied to ${symbol}`,
+                      });
+                    } else {
+                      // Apply default config for symbols without preset
+                      updateSymbolConfig(symbol, DEFAULT_CONFIG);
+                      toast({
+                        title: "Default Applied",
+                        description: `Default settings applied to ${symbol}`,
+                      });
+                    }
+                  }}
+                >
+                  {PRESETS[symbol]?.name || symbol}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

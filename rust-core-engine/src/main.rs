@@ -96,8 +96,27 @@ async fn main() -> Result<()> {
     // Default is 0.65 (65%) but can be updated via API to 0.45 (45%) for Low Volatility
 
     // Setup trading symbols with proper configuration
-    let trading_symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
-    for symbol in trading_symbols {
+    // Load default symbols + user-added symbols from database
+    let mut trading_symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+
+    // Load user-added symbols from database
+    match storage.load_user_symbols().await {
+        Ok(user_symbols) => {
+            for symbol in user_symbols {
+                if !trading_symbols.contains(&symbol.as_str()) {
+                    info!("📊 Loading user-added symbol for AI analysis: {}", symbol);
+                    trading_symbols.push(Box::leak(symbol.into_boxed_str()));
+                }
+            }
+        }
+        Err(e) => {
+            info!("No user symbols found in database (this is normal for first run): {}", e);
+        }
+    }
+
+    info!("🎯 Total symbols for AI analysis: {:?}", trading_symbols);
+
+    for symbol in &trading_symbols {
         let symbol_settings = paper_trading::settings::SymbolSettings {
             enabled: true,
             leverage: Some(10),

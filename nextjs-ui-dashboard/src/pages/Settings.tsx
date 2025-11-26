@@ -12,11 +12,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { usePaperTrading } from "@/hooks/usePaperTrading";
+import { usePaperTradingContext } from "@/contexts/PaperTradingContext";
 import ChatBot from "@/components/ChatBot";
 
 const Settings = () => {
-  const { portfolio } = usePaperTrading();
+  const { portfolio } = usePaperTradingContext();
   const [apiKey, setApiKey] = useState(
     "************************************1234"
   );

@@ -1331,7 +1331,7 @@ export function AISignals() {
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 flex-1 overflow-auto">
+      <CardContent className="space-y-4 flex-1 overflow-y-auto min-h-0">
         {/* WebSocket Connection Status */}
         <div className="flex items-center gap-4 mb-4">
           <div className="flex items-center gap-2">

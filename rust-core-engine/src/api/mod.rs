@@ -42,7 +42,9 @@ struct ApiResponse<T> {
 #[derive(Serialize, Deserialize)]
 struct AddSymbolRequest {
     symbol: String,
-    timeframes: Vec<String>,
+    /// Optional timeframes - if not provided, uses config defaults
+    #[serde(default)]
+    timeframes: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -187,7 +189,8 @@ impl ApiServer {
             .and(warp::get())
             .and(warp::any().map(move || market_data.clone()))
             .and_then(|market_data: MarketDataProcessor| async move {
-                let symbols = market_data.get_supported_symbols();
+                // Use cache's method to get ALL symbols with data (config + user-added)
+                let symbols = market_data.get_cache().get_supported_symbols();
                 let mut prices = std::collections::HashMap::new();
 
                 for symbol in symbols {
@@ -298,19 +301,33 @@ impl ApiServer {
 
         // NEW: Add new symbol to track
         let market_data_clone5 = self.market_data.clone();
+        let paper_trading_for_symbol = self.paper_trading_engine.clone();
         let add_symbol = warp::path("symbols")
             .and(warp::post())
             .and(warp::body::json())
             .and(warp::any().map(move || market_data_clone5.clone()))
+            .and(warp::any().map(move || paper_trading_for_symbol.clone()))
             .and_then(
-                |request: AddSymbolRequest, market_data: MarketDataProcessor| async move {
+                |request: AddSymbolRequest, market_data: MarketDataProcessor, paper_trading: Arc<PaperTradingEngine>| async move {
+                    let symbol = request.symbol.clone();
+
+                    // Use default timeframes from config if not provided
+                    let timeframes = request.timeframes.unwrap_or_else(|| market_data.get_supported_timeframes());
+
+                    // Add to market data
                     match market_data
-                        .add_symbol(request.symbol, request.timeframes)
+                        .add_symbol(request.symbol, timeframes)
                         .await
                     {
-                        Ok(_) => Ok::<_, warp::Rejection>(warp::reply::json(
-                            &ApiResponse::success("Symbol added successfully"),
-                        )),
+                        Ok(_) => {
+                            // Also add to paper trading settings for AI analysis
+                            if let Err(e) = paper_trading.add_symbol_to_settings(symbol.clone()).await {
+                                error!("Failed to add symbol to paper trading: {}", e);
+                            }
+                            Ok::<_, warp::Rejection>(warp::reply::json(
+                                &ApiResponse::success("Symbol added successfully"),
+                            ))
+                        },
                         Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
                             &ApiResponse::<()>::error(e.to_string()),
                         )),
@@ -901,7 +918,7 @@ mod tests {
     fn test_add_symbol_request_serialization() {
         let request = AddSymbolRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframes: vec!["1m".to_string(), "5m".to_string(), "1h".to_string()],
+            timeframes: Some(vec!["1m".to_string(), "5m".to_string(), "1h".to_string()]),
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -920,8 +937,8 @@ mod tests {
 
         let request: AddSymbolRequest = serde_json::from_str(json).unwrap();
         assert_eq!(request.symbol, "ETHUSDT");
-        assert_eq!(request.timeframes.len(), 3);
-        assert_eq!(request.timeframes[0], "15m");
+        assert_eq!(request.timeframes.as_ref().map(|t| t.len()), Some(3));
+        assert_eq!(request.timeframes.as_ref().and_then(|t| t.first()).map(|s| s.as_str()), Some("15m"));
     }
 
     #[test]
@@ -1077,14 +1094,14 @@ mod tests {
     fn test_add_symbol_request_empty_timeframes() {
         let request = AddSymbolRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframes: vec![],
+            timeframes: Some(vec![]), // Empty but present
         };
 
         let json = serde_json::to_string(&request).unwrap();
         let deserialized: AddSymbolRequest = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.symbol, "BTCUSDT");
-        assert!(deserialized.timeframes.is_empty());
+        assert!(deserialized.timeframes.as_ref().map(|t| t.is_empty()).unwrap_or(true));
     }
 
     #[test]
@@ -1281,19 +1298,19 @@ mod tests {
     fn test_add_symbol_request_validation() {
         let request = AddSymbolRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframes: vec!["1m".to_string(), "5m".to_string()],
+            timeframes: Some(vec!["1m".to_string(), "5m".to_string()]),
         };
 
         let json = serde_json::to_string(&request).unwrap();
         let deserialized: AddSymbolRequest = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.symbol, request.symbol);
-        assert_eq!(deserialized.timeframes.len(), request.timeframes.len());
+        assert_eq!(deserialized.timeframes.as_ref().map(|t| t.len()), request.timeframes.as_ref().map(|t| t.len()));
     }
 
     #[test]
     fn test_add_symbol_request_with_many_timeframes() {
-        let timeframes = vec![
+        let timeframes: Vec<String> = vec![
             "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d",
         ]
         .into_iter()
@@ -1302,10 +1319,10 @@ mod tests {
 
         let request = AddSymbolRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframes,
+            timeframes: Some(timeframes),
         };
 
-        assert_eq!(request.timeframes.len(), 12);
+        assert_eq!(request.timeframes.as_ref().map(|t| t.len()), Some(12));
     }
 
     #[test]
@@ -1426,11 +1443,11 @@ mod tests {
     fn test_add_symbol_request_case_sensitivity() {
         let request1 = AddSymbolRequest {
             symbol: "btcusdt".to_string(),
-            timeframes: vec![],
+            timeframes: None, // Optional, use None for empty
         };
         let request2 = AddSymbolRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframes: vec![],
+            timeframes: None,
         };
 
         assert_ne!(request1.symbol, request2.symbol);
@@ -1518,7 +1535,7 @@ mod tests {
         for symbol in symbols {
             let request = AddSymbolRequest {
                 symbol: symbol.to_string(),
-                timeframes: vec!["1h".to_string()],
+                timeframes: Some(vec!["1h".to_string()]),
             };
             let json = serde_json::to_string(&request).unwrap();
             assert!(json.contains(symbol));
@@ -1582,12 +1599,13 @@ mod tests {
     fn test_add_symbol_request_json_structure() {
         let request = AddSymbolRequest {
             symbol: "BTCUSDT".to_string(),
-            timeframes: vec!["1m".to_string()],
+            timeframes: Some(vec!["1m".to_string()]),
         };
 
         let json = serde_json::to_value(&request).unwrap();
         assert!(json.get("symbol").is_some());
         assert!(json.get("timeframes").is_some());
+        // timeframes is Some(vec![...]) so it serializes as an array
         assert!(json.get("timeframes").unwrap().is_array());
     }
 
@@ -1685,7 +1703,7 @@ mod tests {
         let long_symbol = "A".repeat(100);
         let request = AddSymbolRequest {
             symbol: long_symbol.clone(),
-            timeframes: vec!["1h".to_string()],
+            timeframes: Some(vec!["1h".to_string()]),
         };
 
         assert_eq!(request.symbol, long_symbol);
@@ -1712,9 +1730,13 @@ mod tests {
 
     #[test]
     fn test_add_symbol_request_missing_field() {
-        let json = r#"{"symbol": "BTCUSDT"}"#; // missing timeframes
+        let json = r#"{"symbol": "BTCUSDT"}"#; // missing timeframes - but it's Optional now
         let result = serde_json::from_str::<AddSymbolRequest>(json);
-        assert!(result.is_err());
+        // timeframes is Option<Vec<String>>, so missing field is Ok (defaults to None)
+        assert!(result.is_ok());
+        let request = result.unwrap();
+        assert_eq!(request.symbol, "BTCUSDT");
+        assert!(request.timeframes.is_none());
     }
 
     #[test]

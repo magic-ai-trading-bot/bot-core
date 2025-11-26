@@ -829,11 +829,12 @@ async fn get_symbol_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Re
     // Convert internal symbol settings to frontend format
     let mut symbol_configs = std::collections::HashMap::new();
 
-    // Add default symbols with current settings or defaults
-    let default_symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+    // Get ALL symbols: from settings (which includes defaults + user-added)
+    // settings.symbols already contains all configured symbols
+    let all_symbols: Vec<String> = settings.symbols.keys().cloned().collect();
 
-    for symbol in default_symbols {
-        let symbol_setting = settings.symbols.get(symbol);
+    for symbol in all_symbols {
+        let symbol_setting = settings.symbols.get(&symbol);
         let config = if let Some(setting) = symbol_setting {
             SymbolConfig {
                 enabled: setting.enabled,

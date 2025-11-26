@@ -70,9 +70,10 @@ const HowItWorks = () => {
       description: 'Bot tạo tín hiệu MUA/BÁN dựa trên phân tích',
       details: [
         'Tần suất: Mỗi 60 phút (có thể điều chỉnh)',
-        'Yêu cầu: ≥3/5 chiến lược đồng ý',
-        'Độ tin cậy: 60-100%',
-        'Xác nhận đa chiều (multi-confirmation)'
+        'Yêu cầu: ≥4/5 chiến lược đồng ý (STRICT)',
+        'Độ tin cậy: 65-100%',
+        'Xác nhận đa chiều (multi-confirmation)',
+        'Multi-timeframe: 1h + 4h analysis'
       ]
     },
     {
@@ -199,15 +200,15 @@ const HowItWorks = () => {
       color: 'bg-profit/10 text-profit border-profit/20'
     },
     {
-      level: 'Trung Bình',
-      confidence: '60-79%',
-      criteria: '3-4/5 chiến lược đồng ý',
+      level: 'Trung Bình (ĐẶT LỆNH)',
+      confidence: '65-79%',
+      criteria: '4/5 chiến lược đồng ý (min threshold)',
       color: 'bg-warning/10 text-warning border-warning/20'
     },
     {
-      level: 'Yếu',
-      confidence: '<60%',
-      criteria: '<3/5 chiến lược đồng ý',
+      level: 'Yếu (BỎ QUA)',
+      confidence: '<65%',
+      criteria: '<4/5 chiến lược đồng ý → Không đặt lệnh',
       color: 'bg-muted text-muted-foreground border-border'
     }
   ];

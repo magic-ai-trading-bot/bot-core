@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { usePaperTrading, PaperTrade } from "@/hooks/usePaperTrading";
+import { usePaperTradingContext, PaperTrade } from "@/contexts/PaperTradingContext";
 import { useState, useEffect, memo, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -48,6 +48,9 @@ import {
   Clock,
 } from "lucide-react";
 import ChatBot from "@/components/ChatBot";
+
+// API Base URL - using environment variable with fallback
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
 
 // Symbol configuration interface
 interface SymbolConfig {
@@ -291,7 +294,7 @@ const TradingPaper = () => {
     closeTrade,
     refreshAISignals,
     refreshSettings,
-  } = usePaperTrading();
+  } = usePaperTradingContext();
 
   // WebSocket status - simulated based on last update time
   const [wsConnected, setWsConnected] = useState(true);
@@ -482,7 +485,7 @@ const TradingPaper = () => {
     try {
       setIsLoadingSymbols(true);
       const response = await fetch(
-        "http://localhost:8080/api/paper-trading/symbols"
+        `${API_BASE}/api/paper-trading/symbols`
       );
       const data = await response.json();
 
@@ -508,7 +511,7 @@ const TradingPaper = () => {
     try {
       setIsLoadingSymbols(true);
       const response = await fetch(
-        "http://localhost:8080/api/paper-trading/symbols",
+        `${API_BASE}/api/paper-trading/symbols`,
         {
           method: "PUT",
           headers: {

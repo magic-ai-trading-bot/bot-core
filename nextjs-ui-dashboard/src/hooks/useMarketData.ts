@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiClient } from '@/services/api'
 
 interface MarketData {
@@ -39,35 +39,70 @@ export const useMarketData = (
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // AbortController to cancel pending requests on cleanup/re-fetch
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const isMountedRef = useRef(true)
+
   /**
-   * Fetch market data from backend
+   * Fetch market data from backend with abort support
    */
   const fetchMarketData = useCallback(async () => {
+    // Cancel any pending request before starting new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // Create new AbortController for this request
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
     try {
-      // Call backend API to get chart data
-      const chartData = await apiClient.rust.getChartData(symbol, timeframe, 100)
+      // Call backend API to get chart data with abort signal
+      const chartData = await apiClient.rust.getChartData(
+        symbol,
+        timeframe,
+        100,
+        abortController.signal
+      )
 
-      // Extract market metrics from chart data
-      setData({
-        price: chartData.latest_price,
-        change24h: chartData.price_change_24h,
-        volume: chartData.volume_24h,
-        priceChangePercent: chartData.price_change_percent_24h,
-        high24h: Math.max(...chartData.candles.map(c => c.high)),
-        low24h: Math.min(...chartData.candles.map(c => c.low)),
-        lastUpdate: new Date().toISOString(),
-      })
+      // Only update state if not aborted and still mounted
+      if (!abortController.signal.aborted && isMountedRef.current) {
+        // Extract market metrics from chart data
+        setData({
+          price: chartData.latest_price,
+          change24h: chartData.price_change_24h,
+          volume: chartData.volume_24h,
+          priceChangePercent: chartData.price_change_percent_24h,
+          high24h: Math.max(...chartData.candles.map(c => c.high)),
+          low24h: Math.min(...chartData.candles.map(c => c.low)),
+          lastUpdate: new Date().toISOString(),
+        })
 
-      setError(null)
+        setError(null)
+      }
     } catch (err) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string }
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch market data'
-      setError(errorMessage)
+      // Ignore abort errors - they're expected when component unmounts or refetches
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
+      if ((err as { code?: string })?.code === 'ERR_CANCELED') {
+        return
+      }
+
+      // Only update error state if still mounted
+      if (isMountedRef.current) {
+        const error = err as { response?: { data?: { error?: string } }; message?: string }
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch market data'
+        setError(errorMessage)
+      }
 
       // Keep previous data on error, don't reset to zero
       // This prevents UI from showing $0 during temporary network issues
     } finally {
-      setIsLoading(false)
+      // Only update loading state if still mounted and not aborted
+      if (isMountedRef.current && !abortController.signal.aborted) {
+        setIsLoading(false)
+      }
     }
   }, [symbol, timeframe])
 
@@ -93,6 +128,21 @@ export const useMarketData = (
 
     return () => clearInterval(intervalId)
   }, [fetchMarketData, refreshInterval])
+
+  /**
+   * Cleanup on unmount - cancel pending requests
+   */
+  useEffect(() => {
+    isMountedRef.current = true
+
+    return () => {
+      isMountedRef.current = false
+      // Abort any pending request on unmount
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   /**
    * Manual refresh function
