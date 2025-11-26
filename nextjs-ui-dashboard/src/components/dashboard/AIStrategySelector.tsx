@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,15 @@ import {
   Activity,
   Target,
   Info,
+  Loader2,
 } from "lucide-react";
+import logger from "@/utils/logger";
+
+// API Base URL - using environment variable with fallback
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
+
+// Fallback symbols only used if ALL API calls fail
+const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 
 // Strategy Information Database
 const STRATEGY_INFO = {
@@ -893,8 +901,46 @@ export function AIStrategySelector() {
     "MACD Strategy",
   ]);
   const [riskLevel, setRiskLevel] = useState("Moderate");
-  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
+  // Dynamic symbols - initialized with empty, will be set after API call
+  const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+  const [selectedSymbol, setSelectedSymbol] = useState("");
+  const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
   const [openDialog, setOpenDialog] = useState<string | null>(null);
+
+  // Fetch symbols dynamically from API
+  const fetchSymbols = useCallback(async () => {
+    setIsLoadingSymbols(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/market/symbols`);
+      const data = await response.json();
+      // FIX: API returns {success: true, data: {symbols: [...]}} - access data.data.symbols
+      if (data.success && data.data && data.data.symbols && data.data.symbols.length > 0) {
+        const symbols = data.data.symbols;
+        setAvailableSymbols(symbols);
+        setSelectedSymbol(symbols[0]); // Set first symbol as default
+        logger.info(`Loaded ${symbols.length} symbols for AI strategy selector`);
+      } else {
+        initializeFallbackSymbols();
+      }
+    } catch (error) {
+      logger.error("Failed to fetch symbols:", error);
+      initializeFallbackSymbols();
+    } finally {
+      setIsLoadingSymbols(false);
+    }
+  }, []);
+
+  // Initialize with fallback symbols
+  const initializeFallbackSymbols = useCallback(() => {
+    setAvailableSymbols(FALLBACK_SYMBOLS);
+    setSelectedSymbol(FALLBACK_SYMBOLS[0]);
+    logger.warn("Using fallback symbols for AI strategy selector");
+  }, []);
+
+  // Load symbols on mount
+  useEffect(() => {
+    fetchSymbols();
+  }, [fetchSymbols]);
 
   const handleStrategyToggle = (strategy: string) => {
     setSelectedStrategies((prev) =>
@@ -927,10 +973,22 @@ export function AIStrategySelector() {
               <SelectValue placeholder="Select trading pair" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="BTCUSDT">BTC/USDT</SelectItem>
-              <SelectItem value="ETHUSDT">ETH/USDT</SelectItem>
-              <SelectItem value="BNBUSDT">BNB/USDT</SelectItem>
-              <SelectItem value="SOLUSDT">SOL/USDT</SelectItem>
+              {isLoadingSymbols ? (
+                <div className="flex items-center justify-center p-2">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : availableSymbols.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center p-2">
+                  No symbols available
+                </div>
+              ) : (
+                availableSymbols.map((symbol) => (
+                  <SelectItem key={symbol} value={symbol}>
+                    {symbol.replace('USDT', '/USDT')}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>

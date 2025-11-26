@@ -3,10 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
-import { usePaperTrading } from "@/hooks/usePaperTrading";
+import { useState, useEffect, useCallback } from "react";
+import { usePaperTradingContext } from "@/contexts/PaperTradingContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import logger from "@/utils/logger";
+
+// API Base URL - using environment variable with fallback
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
+
+// Fallback symbols only used if ALL API calls fail
+const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 
 /**
  * Bot Configuration Component - REAL BACKEND INTEGRATION
@@ -18,7 +25,7 @@ import { Loader2 } from "lucide-react";
  * @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
  */
 export function BotSettings() {
-  const { settings, portfolio, updateSettings, startBot, stopBot, resetPortfolio } = usePaperTrading();
+  const { settings, portfolio, updateSettings, startBot, stopBot, resetPortfolio } = usePaperTradingContext();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -29,12 +36,52 @@ export function BotSettings() {
   const [leverage, setLeverage] = useState([settings?.basic?.default_leverage || 10]);
   const [capitalAllocation, setCapitalAllocation] = useState([settings?.basic?.default_position_size_pct || 75]);
   const [riskThreshold, setRiskThreshold] = useState([settings?.risk?.max_risk_per_trade_pct || 5]);
-  const [activePairs, setActivePairs] = useState<Record<string, boolean>>({
-    "BTCUSDT": true,
-    "ETHUSDT": true,
-    "BNBUSDT": false,
-    "SOLUSDT": false,
-  });
+  // Dynamic trading pairs - initialized empty, loaded from API
+  const [activePairs, setActivePairs] = useState<Record<string, boolean>>({});
+  const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
+
+  // Fetch symbols dynamically from API
+  const fetchSymbols = useCallback(async () => {
+    setIsLoadingSymbols(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/market/symbols`);
+      const data = await response.json();
+      // FIX: API returns {success: true, data: {symbols: [...]}} - access data.data.symbols
+      if (data.success && data.data && data.data.symbols && data.data.symbols.length > 0) {
+        // Initialize all symbols with first two enabled, rest disabled
+        const pairs: Record<string, boolean> = {};
+        const symbols = data.data.symbols;
+        symbols.forEach((symbol: string, index: number) => {
+          pairs[symbol] = index < 2; // Enable first 2 symbols by default
+        });
+        setActivePairs(pairs);
+        logger.info(`Loaded ${symbols.length} trading pairs from API`);
+      } else {
+        // Use fallback if API returns empty
+        initializeFallbackSymbols();
+      }
+    } catch (error) {
+      logger.error("Failed to fetch symbols from API:", error);
+      initializeFallbackSymbols();
+    } finally {
+      setIsLoadingSymbols(false);
+    }
+  }, []);
+
+  // Initialize with fallback symbols
+  const initializeFallbackSymbols = useCallback(() => {
+    const pairs: Record<string, boolean> = {};
+    FALLBACK_SYMBOLS.forEach((symbol, index) => {
+      pairs[symbol] = index < 2; // Enable first 2 symbols by default
+    });
+    setActivePairs(pairs);
+    logger.warn("Using fallback symbols for trading pairs");
+  }, []);
+
+  // Load symbols on mount
+  useEffect(() => {
+    fetchSymbols();
+  }, [fetchSymbols]);
 
   // Sync local state with backend settings when settings change
   useEffect(() => {
@@ -282,17 +329,28 @@ export function BotSettings() {
         {/* Trading Pairs */}
         <div className="space-y-3">
           <h3 className="font-semibold">Active Trading Pairs</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries(activePairs).map(([pair, active]) => (
-              <div key={pair} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                <span className="text-sm font-medium">{pair.replace('USDT', '/USDT')}</span>
-                <Switch
-                  checked={active}
-                  onCheckedChange={(checked) => setActivePairs(prev => ({ ...prev, [pair]: checked }))}
-                />
-              </div>
-            ))}
-          </div>
+          {isLoadingSymbols ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading trading pairs...</span>
+            </div>
+          ) : Object.keys(activePairs).length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center p-4">
+              No trading pairs available
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(activePairs).map(([pair, active]) => (
+                <div key={pair} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                  <span className="text-sm font-medium">{pair.replace('USDT', '/USDT')}</span>
+                  <Switch
+                    checked={active}
+                    onCheckedChange={(checked) => setActivePairs(prev => ({ ...prev, [pair]: checked }))}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

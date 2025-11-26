@@ -13,7 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
-import { usePaperTrading } from "@/hooks/usePaperTrading";
+import { usePaperTradingContext } from "@/contexts/PaperTradingContext";
 
 interface PerformanceDataPoint {
   date: string;
@@ -87,7 +87,7 @@ const CustomTooltip = ({
 };
 
 export function PerformanceChart() {
-  const { portfolio, openTrades, closedTrades } = usePaperTrading();
+  const { portfolio, openTrades, closedTrades } = usePaperTradingContext();
 
   // Memoize performance data generation to prevent chart flickering
   // Only regenerate when portfolio values actually change

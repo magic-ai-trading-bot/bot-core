@@ -16,6 +16,7 @@ from contextlib import asynccontextmanager
 
 # Load configuration
 from config_loader import AI_CACHE_DURATION_MINUTES, AI_CACHE_ENABLED
+from app.core.config import OPENAI_REQUEST_DELAY
 
 import pandas as pd
 import numpy as np
@@ -54,8 +55,7 @@ mongodb_db: Optional[Any] = None
 # for proper async/await compatibility
 _rate_limit_lock = asyncio.Lock()
 last_openai_request_time = None
-# 20 seconds between requests (GPT-4o-mini rate limiting)
-OPENAI_REQUEST_DELAY = 20
+# OPENAI_REQUEST_DELAY is imported from app.core.config (reads from env var)
 OPENAI_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
 
 # Cost monitoring (GPT-4o-mini pricing as of Nov 2024)
@@ -138,17 +138,44 @@ ws_manager = WebSocketManager()
 
 # === MONGODB STORAGE & PERIODIC ANALYSIS ===
 
-# Popular symbols to analyze
-ANALYSIS_SYMBOLS = [
+# Rust Core Engine API URL - for dynamic symbol fetching
+RUST_API_URL = os.getenv("RUST_API_URL", "http://localhost:8080")
+
+# Fallback symbols - only used when Rust API is unavailable
+FALLBACK_ANALYSIS_SYMBOLS = [
     "BTCUSDT",
     "ETHUSDT",
     "BNBUSDT",
     "SOLUSDT",
-    "ADAUSDT",
-    "DOTUSDT",
-    "XRPUSDT",
-    "LINKUSDT",
 ]
+
+
+async def fetch_analysis_symbols() -> List[str]:
+    """
+    Fetch current symbols from Rust Core Engine API.
+    Falls back to FALLBACK_ANALYSIS_SYMBOLS if API is unavailable.
+    """
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{RUST_API_URL}/api/market/symbols")
+            if response.status_code == 200:
+                data = response.json()
+                # API returns {"success":true,"data":{"symbols":[...]}}
+                if data.get("success"):
+                    # Try nested structure first (data.symbols), then flat structure (symbols)
+                    symbols = data.get("data", {}).get("symbols") or data.get("symbols")
+                    if symbols:
+                        logger.info(f"📊 Fetched {len(symbols)} symbols from Rust API: {symbols}")
+                        return symbols
+
+        logger.warning("⚠️ Rust API returned no symbols, using fallback")
+        return FALLBACK_ANALYSIS_SYMBOLS
+
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to fetch symbols from Rust API: {e}, using fallback")
+        return FALLBACK_ANALYSIS_SYMBOLS
 
 
 async def store_analysis_result(symbol: str, analysis_result: Dict[str, Any]) -> None:
@@ -197,10 +224,12 @@ async def periodic_analysis_runner():
 
     while True:
         try:
-            logger.info("🤖 Starting periodic AI analysis cycle")
+            # Fetch symbols dynamically from Rust API (includes user-added symbols)
+            analysis_symbols = await fetch_analysis_symbols()
+            logger.info(f"🤖 Starting periodic AI analysis cycle for {len(analysis_symbols)} symbols")
 
             # Analyze each symbol
-            for symbol in ANALYSIS_SYMBOLS:
+            for symbol in analysis_symbols:
                 try:
                     # Generate dummy market data (in production, this would come from Binance API)
                     analysis_request = await generate_dummy_market_data(symbol)
@@ -238,7 +267,7 @@ async def periodic_analysis_runner():
                     continue
 
             logger.info(
-                f"🎯 Completed AI analysis cycle for {len(ANALYSIS_SYMBOLS)} symbols"
+                f"🎯 Completed AI analysis cycle for {len(analysis_symbols)} symbols"
             )
 
             # Wait for next cycle
@@ -606,7 +635,7 @@ class AIServiceInfo(BaseModel):
         default_factory=lambda: ["1m", "5m", "15m", "1h", "4h", "1d"]
     )
     supported_symbols: List[str] = Field(
-        default_factory=lambda: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
+        default_factory=lambda: FALLBACK_ANALYSIS_SYMBOLS
     )
     capabilities: List[str] = Field(
         default_factory=lambda: [
@@ -1612,10 +1641,13 @@ async def get_analysis_statistics() -> Dict[str, Any]:
             {"timestamp": {"$gte": datetime.now(timezone.utc) - timedelta(hours=24)}}
         )
 
+        # Fetch current symbols dynamically
+        current_symbols = await fetch_analysis_symbols()
+
         return {
             "total_analyses": total_analyses,
             "analyses_24h": recent_analyses,
-            "symbols_tracked": len(ANALYSIS_SYMBOLS),
+            "symbols_tracked": len(current_symbols),
             "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
         }
     except Exception as e:
@@ -1730,6 +1762,9 @@ async def health_check():
     except Exception:
         pass
 
+    # Fetch dynamic symbols from Rust API
+    current_symbols = await fetch_analysis_symbols()
+
     return {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -1739,7 +1774,7 @@ async def health_check():
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
         "mongodb_connected": mongodb_status,
         "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
-        "supported_symbols": ANALYSIS_SYMBOLS,
+        "supported_symbols": current_symbols,
     }
 
 
@@ -2347,10 +2382,13 @@ async def get_cost_statistics():
     """Get GPT-4 API cost statistics."""
     # Note: Reading global variables (no 'global' keyword needed for read-only access)
 
+    # Fetch current symbols dynamically
+    current_symbols = await fetch_analysis_symbols()
+
     # Calculate estimates
     estimated_cost_per_day = (
         (total_cost_usd / max(total_requests_count, 1))
-        * (24 * 60 / max(ANALYSIS_INTERVAL_MINUTES, 1) * len(ANALYSIS_SYMBOLS))
+        * (24 * 60 / max(ANALYSIS_INTERVAL_MINUTES, 1) * len(current_symbols))
         if total_requests_count > 0
         else 0.0
     )
@@ -2385,7 +2423,7 @@ async def get_cost_statistics():
         "configuration": {
             "model": "gpt-4o-mini",
             "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
-            "symbols_tracked": len(ANALYSIS_SYMBOLS),
+            "symbols_tracked": len(current_symbols),
             "cache_duration_minutes": 15,  # Updated cache duration
             "max_tokens": 1200,  # Optimized max tokens
             "input_cost_per_1m_tokens": GPT4O_MINI_INPUT_COST_PER_1M,
@@ -2495,7 +2533,7 @@ async def root():
             "websocket_broadcasting": True,
             "periodic_analysis": True,
             "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
-            "symbols_tracked": ANALYSIS_SYMBOLS,
+            "symbols_tracked": await fetch_analysis_symbols(),
         },
     }
 

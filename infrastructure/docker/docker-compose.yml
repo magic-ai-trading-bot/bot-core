@@ -17,6 +17,7 @@ services:
       - PYTHON_API_KEY=${PYTHON_API_KEY:-default_python_api_key}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATABASE_URL=${DATABASE_URL:-mongodb://bot_core_app:${MONGO_ROOT_PASSWORD:-secure_mongo_password_change_me}@mongodb:27017/bot_core}
+      - RUST_API_URL=http://rust-core-engine:8080
     volumes:
       - ./python-ai-service/models:/app/models
       - ./python-ai-service/logs:/app/logs
@@ -60,6 +61,7 @@ services:
       - ENABLE_HOT_RELOAD=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATABASE_URL=${DATABASE_URL}
+      - RUST_API_URL=http://rust-core-engine-dev:8080
     volumes:
       - ./python-ai-service:/app
       - /app/__pycache__
@@ -79,11 +81,11 @@ services:
     networks:
       - bot-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+      test: ["CMD", "curl", "-f", "--max-time", "10", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -170,11 +172,11 @@ services:
     networks:
       - bot-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
+      test: ["CMD", "curl", "-f", "--max-time", "10", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 300s
     depends_on:
       python-ai-service-dev:
         condition: service_healthy

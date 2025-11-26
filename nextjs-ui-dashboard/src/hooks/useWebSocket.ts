@@ -162,6 +162,8 @@ export const useWebSocket = (): WebSocketHook => {
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pongTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastPingTimeRef = useRef<number>(0);
+  // Ref to store latest connectWebSocket function (avoids stale closure in handleClose)
+  const connectWebSocketRef = useRef<() => void>(() => {});
 
   const stopHeartbeat = useCallback(() => {
     if (pingIntervalRef.current) {
@@ -419,13 +421,13 @@ export const useWebSocket = (): WebSocketHook => {
 
       reconnectTimeoutRef.current = setTimeout(() => {
         reconnectAttemptsRef.current++;
-        connectWebSocket();
+        // Use ref to access latest connectWebSocket (avoids stale closure)
+        connectWebSocketRef.current?.();
       }, delay);
     }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [stopHeartbeat]
-  ); // connectWebSocket intentionally excluded to prevent infinite reconnection loop
+  ); // connectWebSocket accessed via ref - no dependency needed
 
   const handleError = useCallback((event: Event) => {
     logger.error("WebSocket error:", event);
@@ -464,6 +466,9 @@ export const useWebSocket = (): WebSocketHook => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Update ref whenever connectWebSocket changes (for handleClose to access latest version)
+  connectWebSocketRef.current = connectWebSocket;
 
   const connect = useCallback(() => {
     setState((prev) => ({

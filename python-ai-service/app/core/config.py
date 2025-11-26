@@ -7,7 +7,8 @@ import os
 from typing import List
 
 # === API Configuration ===
-OPENAI_REQUEST_DELAY = 20  # seconds between requests (GPT-4o-mini rate limiting)
+# Read from environment variable with fallback to 20 seconds
+OPENAI_REQUEST_DELAY = int(os.getenv("OPENAI_REQUEST_DELAY", "20"))
 
 # === Cost Monitoring (GPT-4o-mini pricing as of Nov 2024) ===
 GPT4O_MINI_INPUT_COST_PER_1M = 0.150  # $0.150 per 1M input tokens
@@ -18,15 +19,15 @@ AI_ANALYSIS_COLLECTION = "ai_analysis_results"
 ANALYSIS_INTERVAL_MINUTES = 10  # Run analysis every 10 minutes (optimized from 5)
 
 # === Symbols to Analyze ===
+# DEPRECATED: Do NOT use this hardcoded list!
+# Symbols are fetched dynamically from Rust API via fetch_analysis_symbols() in main.py
+# This is kept only for backwards compatibility with tests
+# Fallback symbols when Rust API is unavailable
 ANALYSIS_SYMBOLS: List[str] = [
     "BTCUSDT",
     "ETHUSDT",
     "BNBUSDT",
     "SOLUSDT",
-    "ADAUSDT",
-    "DOTUSDT",
-    "XRPUSDT",
-    "LINKUSDT",
 ]
 
 

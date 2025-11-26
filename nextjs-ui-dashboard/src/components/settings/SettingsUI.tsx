@@ -16,9 +16,13 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Info, AlertTriangle, CheckCircle, TrendingUp, Shield, Brain, ChartLine, Bell } from 'lucide-react';
+import { Info, AlertTriangle, CheckCircle, TrendingUp, Shield, Brain, ChartLine, Bell, Loader2 } from 'lucide-react';
 import settingsConfig from '@/config/settings-config.json';
 import { useCallback } from 'react';
+import logger from '@/utils/logger';
+
+// API Base URL - using environment variable with fallback
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
 
 interface SettingsValues {
   [key: string]: string | number | boolean;
@@ -44,9 +48,43 @@ interface Setting {
   options?: SettingOption[];
 }
 
+// Fallback symbols - only used when API fails
+const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+
 export function SettingsUI() {
   const [values, setValues] = useState<SettingsValues>({});
   const [hasChanges, setHasChanges] = useState(false);
+  // Dynamic symbols - fetched from API
+  const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+  const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
+
+  // Fetch available symbols from API
+  const fetchSymbols = useCallback(async () => {
+    setIsLoadingSymbols(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/market/symbols`);
+      const data = await response.json();
+      // FIX: API returns {success: true, data: {symbols: [...]}} - access data.data.symbols
+      if (data.success && data.data && data.data.symbols && data.data.symbols.length > 0) {
+        const symbols = data.data.symbols;
+        setAvailableSymbols(symbols);
+        logger.info(`[SettingsUI] Loaded ${symbols.length} symbols from API`);
+      } else {
+        setAvailableSymbols(FALLBACK_SYMBOLS);
+        logger.warn("[SettingsUI] API returned empty, using fallback symbols");
+      }
+    } catch (error) {
+      logger.error("[SettingsUI] Failed to fetch symbols:", error);
+      setAvailableSymbols(FALLBACK_SYMBOLS);
+    } finally {
+      setIsLoadingSymbols(false);
+    }
+  }, []);
+
+  // Load symbols on mount
+  useEffect(() => {
+    fetchSymbols();
+  }, [fetchSymbols]);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -281,26 +319,41 @@ export function SettingsUI() {
         );
 
       case 'multiselect':
+        // Use dynamic symbols from API for the symbols setting
+        const options = setting.id === 'symbols' ? availableSymbols : (setting.options || []);
+        const isLoadingOptions = setting.id === 'symbols' && isLoadingSymbols;
+
         return (
           <div className="space-y-3">
             <Label>{setting.name}</Label>
-            <div className="flex flex-wrap gap-2">
-              {setting.options.map((option: string) => (
-                <Button
-                  key={option}
-                  variant={value.includes(option) ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    const newValue = value.includes(option)
-                      ? value.filter((v: string) => v !== option)
-                      : [...value, option];
-                    handleChange(setting.id, newValue);
-                  }}
-                >
-                  {option}
-                </Button>
-              ))}
-            </div>
+            {isLoadingOptions ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Loading symbols...</span>
+              </div>
+            ) : options.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                No options available
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {options.map((option: string) => (
+                  <Button
+                    key={option}
+                    variant={value.includes(option) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      const newValue = value.includes(option)
+                        ? value.filter((v: string) => v !== option)
+                        : [...value, option];
+                      handleChange(setting.id, newValue);
+                    }}
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">{setting.description}</p>
             {setting.help && (
               <div className="flex gap-2 text-sm text-blue-600 dark:text-blue-400">

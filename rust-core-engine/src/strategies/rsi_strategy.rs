@@ -20,12 +20,14 @@ impl RsiStrategy {
         config
             .parameters
             .insert("rsi_period".to_string(), json!(14));
+        // @spec:FR-STRATEGIES-001 - RSI Strategy optimized thresholds
+        // @ref:docs/features/how-it-works.md - RSI: "RSI < 25 (quá bán - optimized)", "RSI > 75 (quá mua - optimized)"
         config
             .parameters
-            .insert("oversold_threshold".to_string(), json!(30.0));
+            .insert("oversold_threshold".to_string(), json!(25.0));  // FIXED: Match docs - 25 (not 30)
         config
             .parameters
-            .insert("overbought_threshold".to_string(), json!(70.0));
+            .insert("overbought_threshold".to_string(), json!(75.0)); // FIXED: Match docs - 75 (not 70)
         config
             .parameters
             .insert("extreme_oversold".to_string(), json!(20.0));
@@ -403,8 +405,8 @@ mod tests {
         let mut strategy = RsiStrategy::new();
 
         assert_eq!(strategy.get_rsi_period(), 14);
-        assert_eq!(strategy.get_oversold_threshold(), 30.0);
-        assert_eq!(strategy.get_overbought_threshold(), 70.0);
+        assert_eq!(strategy.get_oversold_threshold(), 25.0);  // FIXED: Match docs - 25
+        assert_eq!(strategy.get_overbought_threshold(), 75.0); // FIXED: Match docs - 75
 
         // Update config
         let mut new_config = StrategyConfig::default();
@@ -600,7 +602,7 @@ mod tests {
     #[test]
     fn test_get_oversold_threshold_default() {
         let strategy = RsiStrategy::new();
-        assert_eq!(strategy.get_oversold_threshold(), 30.0);
+        assert_eq!(strategy.get_oversold_threshold(), 25.0);  // FIXED: Match docs - 25
     }
 
     #[test]
@@ -617,13 +619,13 @@ mod tests {
     fn test_get_oversold_threshold_missing_fallback() {
         let config = StrategyConfig::default();
         let strategy = RsiStrategy::with_config(config);
-        assert_eq!(strategy.get_oversold_threshold(), 30.0);
+        assert_eq!(strategy.get_oversold_threshold(), 30.0); // Default fallback in implementation
     }
 
     #[test]
     fn test_get_overbought_threshold_default() {
         let strategy = RsiStrategy::new();
-        assert_eq!(strategy.get_overbought_threshold(), 70.0);
+        assert_eq!(strategy.get_overbought_threshold(), 75.0); // FIXED: Match docs - 75
     }
 
     #[test]
@@ -640,7 +642,7 @@ mod tests {
     fn test_get_overbought_threshold_missing_fallback() {
         let config = StrategyConfig::default();
         let strategy = RsiStrategy::with_config(config);
-        assert_eq!(strategy.get_overbought_threshold(), 70.0);
+        assert_eq!(strategy.get_overbought_threshold(), 70.0); // Default fallback in implementation
     }
 
     #[test]

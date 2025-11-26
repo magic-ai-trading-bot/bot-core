@@ -186,6 +186,15 @@ export const usePaperTrading = () => {
   // API base URL - should match your Rust backend
   const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
 
+  // Guard to prevent duplicate AI signals fetch (React Strict Mode calls useEffect twice)
+  const aiSignalsFetchedRef = useRef(false);
+
+  // Refs for WebSocket message handlers (prevents WebSocket recreation when callbacks change)
+  const fetchPortfolioStatusRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const fetchOpenTradesRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const fetchClosedTradesRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const deduplicateSignalsRef = useRef<(signals: AISignal[]) => AISignal[]>((s) => s);
+
   // Fetch bot status to check if it's running
   const fetchBotStatus = useCallback(async () => {
     try {
@@ -351,10 +360,36 @@ export const usePaperTrading = () => {
     return Array.from(signalMap.values()).slice(0, 8); // Limit to 8 signals max
   }, []);
 
+  // Update refs whenever callbacks change (for WebSocket to access latest version)
+  // This prevents WebSocket recreation when callbacks change
+  fetchPortfolioStatusRef.current = fetchPortfolioStatus;
+  fetchOpenTradesRef.current = fetchOpenTrades;
+  fetchClosedTradesRef.current = fetchClosedTrades;
+  deduplicateSignalsRef.current = deduplicateSignals;
+
   // Manual fetch AI signals (for refresh button only)
   const fetchAISignals = useCallback(async () => {
     try {
-      const symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+      // Fetch symbols dynamically from API (includes user-added symbols)
+      let symbols: string[] = [];
+      try {
+        const symbolsResponse = await fetch(`${API_BASE}/api/market/symbols`);
+        const symbolsData = await symbolsResponse.json();
+        // FIX: API returns {success: true, data: {symbols: [...]}} - access data.symbols
+        if (symbolsData.success && symbolsData.data && symbolsData.data.symbols) {
+          symbols = symbolsData.data.symbols;
+          logger.info(`Fetched ${symbols.length} symbols from API:`, symbols);
+        }
+      } catch (e) {
+        logger.warn("Failed to fetch symbols from API, using fallback:", e);
+      }
+
+      // Fallback to default symbols if API fails
+      if (symbols.length === 0) {
+        logger.warn("No symbols from API, falling back to default 4 symbols");
+        symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+      }
+
       const signalsPromises = symbols.map(async (symbol) => {
         // Get recent candle data for AI analysis
         const now = Date.now();
@@ -650,20 +685,19 @@ export const usePaperTrading = () => {
     fetchClosedTrades();
     fetchCurrentSettings();
 
-    // 🎯 FIXED: Fetch initial AI signals on load
-    fetchAISignals();
+    // 🎯 FIXED: Fetch initial AI signals on load (with guard to prevent duplicates in Strict Mode)
+    if (!aiSignalsFetchedRef.current) {
+      aiSignalsFetchedRef.current = true;
+      fetchAISignals();
+    }
 
     // Note: AI signals are now handled via WebSocket in real-time
     // Manual refresh available via fetchAISignals function
-  }, [
-    fetchBotStatus,
-    fetchOpenTrades,
-    fetchClosedTrades,
-    fetchCurrentSettings,
-    fetchAISignals,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Set up WebSocket connection for real-time updates
+  // Uses refs to access latest callbacks without recreating WebSocket
   useEffect(() => {
     const wsUrl = (
       import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws"
@@ -746,8 +780,8 @@ export const usePaperTrading = () => {
 
               // Periodically fetch fresh data to ensure accuracy (less frequent now)
               if (Math.random() < 0.05) {
-                // 5% chance to fetch fresh data
-                fetchPortfolioStatus();
+                // 5% chance to fetch fresh data - use ref to access latest callback
+                fetchPortfolioStatusRef.current();
               }
             }
             break;
@@ -756,7 +790,7 @@ export const usePaperTrading = () => {
             // Legacy price update format
             // Trigger refresh of portfolio data to update P&L
             if (data && Object.keys(data).length > 0) {
-              fetchPortfolioStatus();
+              fetchPortfolioStatusRef.current();
             }
             break;
 
@@ -772,25 +806,25 @@ export const usePaperTrading = () => {
             break;
 
           case "trade_executed":
-            // Refresh both portfolio and trades
-            fetchPortfolioStatus();
-            fetchOpenTrades();
+            // Refresh both portfolio and trades - use refs
+            fetchPortfolioStatusRef.current();
+            fetchOpenTradesRef.current();
             break;
 
           case "trade_closed":
-            // Refresh everything when a trade is closed
-            fetchPortfolioStatus();
-            fetchOpenTrades();
-            fetchClosedTrades();
+            // Refresh everything when a trade is closed - use refs
+            fetchPortfolioStatusRef.current();
+            fetchOpenTradesRef.current();
+            fetchClosedTradesRef.current();
             break;
 
           case "AISignalReceived":
             // Real-time AI signals
             if (data) {
               setState((prev) => {
-                // Add new signal and deduplicate all signals
+                // Add new signal and deduplicate all signals - use ref
                 const allSignals = [data, ...prev.recentSignals];
-                const deduplicatedSignals = deduplicateSignals(allSignals);
+                const deduplicatedSignals = deduplicateSignalsRef.current(allSignals);
 
                 return {
                   ...prev,
@@ -842,12 +876,7 @@ export const usePaperTrading = () => {
         ws.close();
       }
     };
-  }, [
-    fetchPortfolioStatus,
-    fetchOpenTrades,
-    fetchClosedTrades,
-    deduplicateSignals,
-  ]);
+  }, []); // Empty deps - WebSocket only created once, uses refs for latest callbacks
 
   return {
     // State

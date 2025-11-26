@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,7 +20,8 @@ interface ClosedTradesTableProps {
   openTradeDetails: (trade: Trade) => void;
 }
 
-export function ClosedTradesTable({
+// Memoize to prevent re-renders when parent state changes but props don't
+export const ClosedTradesTable = React.memo(function ClosedTradesTable({
   closedTrades,
   wsConnected,
   formatCurrency,
@@ -149,4 +151,4 @@ export function ClosedTradesTable({
       </CardContent>
     </Card>
   );
-}
+});

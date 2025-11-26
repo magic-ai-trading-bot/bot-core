@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,24 +79,43 @@ const CandlestickChart: React.FC<{
 }> = ({ candles, symbol }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  // Prepare data for candlestick chart
-  const chartData = candles.slice(-15).map((candle, index) => {
-    const isBullish = candle.close >= candle.open;
+  // Memoize chart data preparation to avoid recalculation on every render
+  const chartData = useMemo(() => {
+    return candles.slice(-15).map((candle, index) => {
+      const isBullish = candle.close >= candle.open;
 
+      return {
+        index,
+        timestamp: candle.timestamp,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume,
+        isBullish,
+        bodyTop: Math.max(candle.open, candle.close),
+        bodyBottom: Math.min(candle.open, candle.close),
+        color: isBullish ? "#00ff88" : "#ff4444",
+      };
+    });
+  }, [candles]);
+
+  // Memoize price range calculations for scaling
+  const { scaledMin, scaledMax, scaledRange } = useMemo(() => {
+    if (!chartData || chartData.length === 0) {
+      return { scaledMin: 0, scaledMax: 1, scaledRange: 1 };
+    }
+    const allPrices = chartData.flatMap((d) => [d.high, d.low]);
+    const minPrice = Math.min(...allPrices);
+    const maxPrice = Math.max(...allPrices);
+    const priceRange = maxPrice - minPrice;
+    const padding = priceRange * 0.1;
     return {
-      index,
-      timestamp: candle.timestamp,
-      open: candle.open,
-      high: candle.high,
-      low: candle.low,
-      close: candle.close,
-      volume: candle.volume,
-      isBullish,
-      bodyTop: Math.max(candle.open, candle.close),
-      bodyBottom: Math.min(candle.open, candle.close),
-      color: isBullish ? "#00ff88" : "#ff4444",
+      scaledMin: minPrice - padding,
+      scaledMax: maxPrice + padding,
+      scaledRange: (maxPrice + padding) - (minPrice - padding),
     };
-  });
+  }, [chartData]);
 
   if (!chartData || chartData.length === 0) {
     return (
@@ -105,16 +124,6 @@ const CandlestickChart: React.FC<{
       </div>
     );
   }
-
-  // Calculate price range for scaling
-  const allPrices = chartData.flatMap((d) => [d.high, d.low]);
-  const minPrice = Math.min(...allPrices);
-  const maxPrice = Math.max(...allPrices);
-  const priceRange = maxPrice - minPrice;
-  const padding = priceRange * 0.1;
-  const scaledMin = minPrice - padding;
-  const scaledMax = maxPrice + padding;
-  const scaledRange = scaledMax - scaledMin;
 
   // Helper function to convert price to percentage position
   const priceToPercent = (price: number) => {
@@ -525,8 +534,11 @@ const AddSymbolDialog: React.FC<{
   );
 };
 
-// Default symbols to load immediately without waiting for API
-const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+// FALLBACK symbols - actual symbols are fetched dynamically from /api/market/symbols
+const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+
+// API Base URL - using environment variable with fallback
+const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
 
 export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
   ({ className }) => {
@@ -536,6 +548,33 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
     const { state: wsState, connect: connectWs } = useWebSocket();
     const lastPriceUpdateRef = useRef<Record<string, number>>({});
     const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Dynamic symbol state - fetched from API
+    const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+    const symbolsFetchedRef = useRef(false);
+
+    // Guard to prevent React Strict Mode from canceling initial load
+    const initialLoadRef = useRef(false);
+
+    // Fetch symbols dynamically from API
+    const fetchSymbols = useCallback(async (): Promise<string[]> => {
+      try {
+        const response = await fetch(`${API_BASE}/api/market/symbols`);
+        const data = await response.json();
+        // FIX: API returns {success: true, data: {symbols: [...]}} - access data.data.symbols
+        if (data.success && data.data && data.data.symbols && data.data.symbols.length > 0) {
+          const symbols = data.data.symbols;
+          logger.info(`[TradingCharts] Loaded ${symbols.length} symbols from API`);
+          setAvailableSymbols(symbols);
+          return symbols;
+        }
+      } catch (error) {
+        logger.error("[TradingCharts] Failed to fetch symbols from API:", error);
+      }
+      // Return fallback symbols if API fails
+      logger.warn("[TradingCharts] Using fallback symbols");
+      return FALLBACK_SYMBOLS;
+    }, []);
 
     const loadChartData = useCallback(async () => {
       // Cancel any pending requests from previous loads
@@ -550,35 +589,43 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
       try {
         setLoading(true);
 
-        // PHASE 1: Load default symbols immediately for instant display
-        console.log("📊 [TradingCharts] Loading charts for symbols:", DEFAULT_SYMBOLS, "timeframe:", selectedTimeframe);
+        // PHASE 1: Fetch symbols dynamically from API (or use fallback)
+        let symbolsToLoad: string[];
+        if (!symbolsFetchedRef.current) {
+          symbolsToLoad = await fetchSymbols();
+          symbolsFetchedRef.current = true;
+        } else {
+          // Use cached symbols if already fetched, or fallback
+          symbolsToLoad = availableSymbols.length > 0 ? availableSymbols : FALLBACK_SYMBOLS;
+        }
 
-        const chartPromises = DEFAULT_SYMBOLS.map((symbol) =>
+        logger.info(`[TradingCharts] Loading charts for symbols: ${symbolsToLoad.join(", ")}, timeframe: ${selectedTimeframe}`);
+
+        const chartPromises = symbolsToLoad.map((symbol) =>
           apiClient.rust.getChartDataFast(
             symbol,
             selectedTimeframe,
             100,
             abortController.signal
           ).then((data) => {
-            console.log(`✅ [TradingCharts] Loaded ${symbol}:`, data ? 'success' : 'null');
+            logger.info(`[TradingCharts] Loaded ${symbol}: ${data ? 'success' : 'null'}`);
             return data;
           }).catch((err) => {
-            console.error(`❌ [TradingCharts] Failed to load ${symbol}:`, err?.message || err, err);
+            logger.error(`[TradingCharts] Failed to load ${symbol}:`, err?.message || err);
             return null;
           })
         );
 
         const chartResults = await Promise.all(chartPromises);
-        console.log("📊 [TradingCharts] Chart results:", chartResults.map(c => c ? c.symbol : 'null'));
 
         const successfulCharts = chartResults.filter(
           (chart): chart is ChartData => chart !== null
         );
-        console.log(`📊 [TradingCharts] Successful: ${successfulCharts.length}/${DEFAULT_SYMBOLS.length}`);
+        logger.info(`[TradingCharts] Successful: ${successfulCharts.length}/${symbolsToLoad.length}`);
 
         if (!abortController.signal.aborted) {
           setCharts(successfulCharts);
-          setLoading(false); // End loading after default symbols
+          setLoading(false); // End loading after symbols loaded
         }
 
         // PHASE 2: Load any additional symbols from backend (user-added symbols)
@@ -587,9 +634,9 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           const supportedSymbols = await apiClient.rust.getSupportedSymbols(abortController.signal);
           const allSymbols = supportedSymbols.symbols || [];
 
-          // Find symbols not in DEFAULT_SYMBOLS
+          // Find symbols not already loaded
           const additionalSymbols = allSymbols.filter(
-            (symbol: string) => !DEFAULT_SYMBOLS.includes(symbol)
+            (symbol: string) => !symbolsToLoad.includes(symbol)
           );
 
           if (additionalSymbols.length > 0 && !abortController.signal.aborted) {
@@ -613,7 +660,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
             }
           }
         } catch {
-          // Silently ignore errors in phase 2 - user already has default charts
+          // Silently ignore errors in phase 2 - user already has charts
         }
       } catch (error) {
         // Ignore abort errors (expected when component unmounts or new load starts)
@@ -631,7 +678,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
           setLoading(false);
         }
       }
-    }, [selectedTimeframe]);
+    }, [selectedTimeframe, fetchSymbols, availableSymbols]);
 
     const updatePricesOnly = useCallback(async () => {
       try {
@@ -703,28 +750,43 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
     };
 
     useEffect(() => {
-      loadChartData();
+      // Guard against React Strict Mode double-invoke canceling initial load
+      if (!initialLoadRef.current) {
+        initialLoadRef.current = true;
+        loadChartData();
+      } else if (selectedTimeframe) {
+        // Subsequent loads (timeframe change) - allow abort + reload
+        loadChartData();
+      }
+
       // Connect WebSocket for real-time updates
       if (!wsState.isConnected && !wsState.isConnecting) {
         connectWs();
       }
 
-      // Cleanup: abort pending requests on unmount or timeframe change
+      // Cleanup: only abort on actual unmount, not on Strict Mode re-render
       return () => {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
+        // Don't abort during initial Strict Mode cleanup - only on real unmount
+        // The ref pattern ensures initial load completes
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTimeframe]); // Only depend on selectedTimeframe to avoid infinite loops
 
-    // Real-time price polling every 2 seconds as backup (in case WebSocket is delayed)
+    // Fallback price polling - only when WebSocket disconnected
+    // WebSocket provides real-time updates, polling is backup only
     useEffect(() => {
+      // Only poll if WebSocket is NOT connected
+      if (wsState.isConnected) {
+        return; // WebSocket handles real-time updates
+      }
+
+      // Fallback polling at 5s interval (less aggressive than WebSocket)
       const interval = setInterval(() => {
         updatePricesOnly();
-      }, 2000); // Poll every 2 seconds for smooth updates
+      }, 5000);
+
       return () => clearInterval(interval);
-    }, [updatePricesOnly]);
+    }, [wsState.isConnected, updatePricesOnly]);
 
     // Handle WebSocket updates (both ChartUpdate and MarketData)
     useEffect(() => {

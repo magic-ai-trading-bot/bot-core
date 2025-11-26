@@ -23,12 +23,14 @@ impl StochasticStrategy {
         let mut config = StrategyConfig::default();
         config.parameters.insert("k_period".to_string(), json!(14));
         config.parameters.insert("d_period".to_string(), json!(3));
+        // @spec:FR-STRATEGIES-005 - Stochastic Strategy optimized thresholds
+        // @ref:docs/features/how-it-works.md - Stochastic: "%K vùng oversold (<15)", "%K vùng overbought (>85)"
         config
             .parameters
-            .insert("oversold_threshold".to_string(), json!(20.0));
+            .insert("oversold_threshold".to_string(), json!(15.0));  // FIXED: Match docs - 15 (not 20)
         config
             .parameters
-            .insert("overbought_threshold".to_string(), json!(80.0));
+            .insert("overbought_threshold".to_string(), json!(85.0)); // FIXED: Match docs - 85 (not 80)
         config
             .parameters
             .insert("extreme_oversold".to_string(), json!(10.0));
@@ -480,8 +482,8 @@ mod tests {
 
         assert_eq!(strategy.get_k_period(), 14);
         assert_eq!(strategy.get_d_period(), 3);
-        assert_eq!(strategy.get_oversold_threshold(), 20.0);
-        assert_eq!(strategy.get_overbought_threshold(), 80.0);
+        assert_eq!(strategy.get_oversold_threshold(), 15.0);  // FIXED: Match docs - 15
+        assert_eq!(strategy.get_overbought_threshold(), 85.0); // FIXED: Match docs - 85
 
         // Update config
         let mut new_config = StrategyConfig::default();

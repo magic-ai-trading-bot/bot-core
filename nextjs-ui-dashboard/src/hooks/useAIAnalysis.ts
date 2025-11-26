@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import logger from "@/utils/logger";
+import { fetchBinancePrice } from "@/utils/binancePrice";
 import {
 
 
@@ -14,7 +15,7 @@ import {
   AIServiceInfo,
   CandleDataAI,
 } from "@/services/api";
-import { BotCoreApiClient } from "@/services/api";
+import { apiClient } from "@/services/api";
 
 export interface AIAnalysisState {
   signals: AISignalResponse[];
@@ -22,6 +23,7 @@ export interface AIAnalysisState {
   marketCondition: MarketConditionAnalysis | null;
   serviceInfo: AIServiceInfo | null;
   supportedStrategies: string[];
+  availableSymbols: string[]; // Dynamic symbols from API (includes user-added)
   isLoading: boolean;
   error: string | null;
   lastUpdate: string | null;
@@ -33,11 +35,13 @@ export interface AIAnalysisHook {
   getStrategyRecommendations: (symbol: string) => Promise<void>;
   analyzeMarketCondition: (symbol: string) => Promise<void>;
   refreshServiceInfo: () => Promise<void>;
+  refreshAvailableSymbols: () => Promise<string[]>; // Fetch dynamic symbols from API
   clearError: () => void;
 }
 
 const REFRESH_INTERVAL = 600000; // 10 minutes (increased to avoid rate limiting)
-const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+// FALLBACK symbols - actual symbols are fetched dynamically from /api/market/symbols
+const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 const DEFAULT_STRATEGIES = [
   "RSI Strategy",
   "MACD Strategy",
@@ -53,14 +57,17 @@ export const useAIAnalysis = (): AIAnalysisHook => {
     marketCondition: null,
     serviceInfo: null,
     supportedStrategies: [],
+    availableSymbols: FALLBACK_SYMBOLS, // Will be updated from API
     isLoading: false,
     error: null,
     lastUpdate: null,
   });
 
-  const apiClient = useRef(new BotCoreApiClient());
+  // Use singleton apiClient from api.ts (no need for useRef)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  // Use ref to track availableSymbols to avoid infinite loop in startAutoRefresh
+  const availableSymbolsRef = useRef<string[]>(FALLBACK_SYMBOLS);
 
   const setLoading = useCallback((loading: boolean) => {
     if (isMountedRef.current) {
@@ -79,11 +86,11 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   }, [setError]);
 
   // Generate sample candle data for testing (replace with real data from chart)
+  // Now accepts basePrice parameter to use real prices from API instead of hardcoded values
   const generateSampleCandles = useCallback(
-    (symbol: string): Record<string, CandleDataAI[]> => {
+    (symbol: string, basePrice: number): Record<string, CandleDataAI[]> => {
       const now = Date.now();
-      const basePrice =
-        symbol === "BTCUSDT" ? 95000 : symbol === "ETHUSDT" ? 3500 : 600;
+      // Use provided basePrice (from real API) instead of hardcoded values
 
       const generate1hCandles = (): CandleDataAI[] => {
         const candles: CandleDataAI[] = [];
@@ -161,24 +168,13 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         setLoading(true);
         setError(null);
 
-        // CRITICAL FIX: Fetch REAL price from Binance API instead of using fake generated data
-        let currentPrice = 0;
-        try {
-          const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
-          const priceData = await response.json();
-          currentPrice = parseFloat(priceData.price);
+        // Fetch price from Binance (with caching) - fallback to our API
+        const currentPrice = await fetchBinancePrice(symbol, async () => {
+          const prices = await apiClient.rust.getLatestPrices();
+          return prices[symbol] || 0;
+        });
 
-          // Check if parsing resulted in NaN (invalid data)
-          if (isNaN(currentPrice)) {
-            throw new Error("Invalid price data from API");
-          }
-        } catch (e) {
-          logger.error("Failed to fetch real price from Binance:", e);
-          // Fallback to estimated prices if API fails
-          currentPrice = symbol === "BTCUSDT" ? 95000 : symbol === "ETHUSDT" ? 3500 : symbol === "BNBUSDT" ? 650 : 600;
-        }
-
-        const timeframeData = generateSampleCandles(symbol);
+        const timeframeData = generateSampleCandles(symbol, currentPrice);
         const latestCandle =
           timeframeData["1h"] && timeframeData["1h"].length > 0
             ? timeframeData["1h"][timeframeData["1h"].length - 1]
@@ -202,7 +198,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           } as AIStrategyContext,
         };
 
-        const signal = await apiClient.current.rust.analyzeAI(request);
+        const signal = await apiClient.rust.analyzeAI(request);
 
         // Add symbol to the response for display purposes
         const enhancedSignal = { ...signal, symbol };
@@ -229,33 +225,24 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   const getStrategyRecommendations = useCallback(
     async (symbol: string) => {
       try {
-        // CRITICAL FIX: Fetch REAL price from Binance API
-        let currentPrice = 0;
-        try {
-          const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
-          const priceData = await response.json();
-          currentPrice = parseFloat(priceData.price);
-        } catch (e) {
-          logger.error("Failed to fetch real price:", e);
-          currentPrice = symbol === "BTCUSDT" ? 95000 : symbol === "ETHUSDT" ? 3500 : symbol === "BNBUSDT" ? 650 : 600;
-        }
+        // Fetch price from Binance (with caching) - fallback to our API
+        const currentPrice = await fetchBinancePrice(symbol, async () => {
+          const prices = await apiClient.rust.getLatestPrices();
+          return prices[symbol] || 0;
+        });
 
-        const timeframeData = generateSampleCandles(symbol);
-        const latestCandle =
-          timeframeData["1h"] && timeframeData["1h"].length > 0
-            ? timeframeData["1h"][timeframeData["1h"].length - 1]
-            : null;
+        const timeframeData = generateSampleCandles(symbol, currentPrice);
 
         const data = {
           symbol,
           timeframe_data: timeframeData,
-          current_price: currentPrice, // FIXED: Use real price!
+          current_price: currentPrice,
           available_strategies: DEFAULT_STRATEGIES,
           timestamp: Date.now(),
         };
 
         const recommendations =
-          await apiClient.current.rust.getStrategyRecommendations(data);
+          await apiClient.rust.getStrategyRecommendations(data);
 
         if (isMountedRef.current) {
           setState((prev) => ({
@@ -278,27 +265,18 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   const analyzeMarketCondition = useCallback(
     async (symbol: string) => {
       try {
-        // CRITICAL FIX: Fetch REAL price from Binance API
-        let currentPrice = 0;
-        try {
-          const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
-          const priceData = await response.json();
-          currentPrice = parseFloat(priceData.price);
-        } catch (e) {
-          logger.error("Failed to fetch real price:", e);
-          currentPrice = symbol === "BTCUSDT" ? 95000 : symbol === "ETHUSDT" ? 3500 : symbol === "BNBUSDT" ? 650 : 600;
-        }
+        // Fetch price from Binance (with caching) - fallback to our API
+        const currentPrice = await fetchBinancePrice(symbol, async () => {
+          const prices = await apiClient.rust.getLatestPrices();
+          return prices[symbol] || 0;
+        });
 
-        const timeframeData = generateSampleCandles(symbol);
-        const latestCandle =
-          timeframeData["1h"] && timeframeData["1h"].length > 0
-            ? timeframeData["1h"][timeframeData["1h"].length - 1]
-            : null;
+        const timeframeData = generateSampleCandles(symbol, currentPrice);
 
         const data = {
           symbol,
           timeframe_data: timeframeData,
-          current_price: currentPrice, // FIXED: Use real price!
+          current_price: currentPrice,
           volume_24h: timeframeData["1h"].reduce(
             (sum, candle) => sum + candle.volume,
             0
@@ -306,7 +284,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           timestamp: Date.now(),
         };
 
-        const condition = await apiClient.current.rust.analyzeMarketCondition(
+        const condition = await apiClient.rust.analyzeMarketCondition(
           data
         );
 
@@ -331,8 +309,8 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   const refreshServiceInfo = useCallback(async () => {
     try {
       const [serviceInfo, supportedStrategies] = await Promise.all([
-        apiClient.current.rust.getAIServiceInfo(),
-        apiClient.current.rust.getSupportedStrategies(),
+        apiClient.rust.getAIServiceInfo(),
+        apiClient.rust.getSupportedStrategies(),
       ]);
 
       if (isMountedRef.current) {
@@ -348,20 +326,47 @@ export const useAIAnalysis = (): AIAnalysisHook => {
     }
   }, []);
 
-  // Auto-refresh signals periodically
+  // Fetch available symbols dynamically from API (includes user-added symbols from database)
+  const refreshAvailableSymbols = useCallback(async (): Promise<string[]> => {
+    try {
+      const response = await apiClient.rust.getSupportedSymbols();
+      const symbols = response.symbols || FALLBACK_SYMBOLS;
+
+      if (isMountedRef.current) {
+        setState((prev) => ({
+          ...prev,
+          availableSymbols: symbols,
+        }));
+        // Update ref for use in startAutoRefresh (avoids stale closure)
+        availableSymbolsRef.current = symbols;
+      }
+
+      logger.info(`Loaded ${symbols.length} symbols from API:`, symbols);
+      return symbols;
+    } catch (error) {
+      logger.error("Failed to fetch symbols from API:", error);
+      // Return fallback symbols on error
+      return FALLBACK_SYMBOLS;
+    }
+  }, []);
+
+  // Auto-refresh signals periodically using dynamic symbols from API
   const startAutoRefresh = useCallback(() => {
     if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current);
     }
 
     refreshIntervalRef.current = setInterval(() => {
-      // Analyze default symbols in rotation
-      const symbolIndex =
-        Math.floor(Date.now() / REFRESH_INTERVAL) % DEFAULT_SYMBOLS.length;
-      const symbol = DEFAULT_SYMBOLS[symbolIndex];
+      // Use ref to access current symbols without causing infinite loop
+      // (avoids stale closure by reading ref.current instead of state)
+      const symbols = availableSymbolsRef.current.length > 0
+        ? availableSymbolsRef.current
+        : FALLBACK_SYMBOLS;
+      const symbolIndex = Math.floor(Date.now() / REFRESH_INTERVAL) % symbols.length;
+      const symbol = symbols[symbolIndex];
       analyzeSymbol(symbol);
     }, REFRESH_INTERVAL);
-  }, [analyzeSymbol]);
+  }, [analyzeSymbol]); // Removed state.availableSymbols - use ref instead
 
   const stopAutoRefresh = useCallback(() => {
     if (refreshIntervalRef.current) {
@@ -372,30 +377,21 @@ export const useAIAnalysis = (): AIAnalysisHook => {
 
   // Initialize on mount
   useEffect(() => {
+    // Fetch service info and available symbols from API (includes user-added symbols)
     refreshServiceInfo();
+    refreshAvailableSymbols().then((symbols) => {
+      // Auto-analyze first symbol on mount to show initial data
+      if (symbols.length > 0) {
+        analyzeSymbol(symbols[0]);
+      }
+    });
 
-    // DISABLED: Auto-analyze symbols on mount
-    // Reason: Paper trading now receives AI signals from frontend via API automatically
-    // The frontend no longer needs to poll for signals - they are pushed via WebSocket
-    // Users can manually trigger analysis if needed
-
-    // Analyze initial symbols (DISABLED to avoid rate limiting)
-    // const timeouts: NodeJS.Timeout[] = [];
-    // DEFAULT_SYMBOLS.forEach((symbol, index) => {
-    //   const timeout = setTimeout(() => {
-    //     analyzeSymbol(symbol);
-    //   }, index * 2000); // Stagger initial requests (2 seconds apart to avoid rate limit)
-    //   timeouts.push(timeout);
-    // });
-
-    // DISABLED: Auto-refresh (can be re-enabled by calling startAutoRefresh manually)
-    // startAutoRefresh();
+    // Start auto-refresh to periodically analyze symbols (every 10 minutes)
+    startAutoRefresh();
 
     return () => {
       // Mark as unmounted to prevent state updates
       isMountedRef.current = false;
-      // Clear all pending timeouts
-      // timeouts.forEach(clearTimeout);
       stopAutoRefresh();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -407,6 +403,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
     getStrategyRecommendations,
     analyzeMarketCondition,
     refreshServiceInfo,
+    refreshAvailableSymbols,
     clearError,
   };
 };

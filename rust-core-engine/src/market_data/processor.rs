@@ -8,6 +8,7 @@ use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
 
 use crate::binance::{BinanceClient, BinanceWebSocket, StreamEvent};
+use crate::binance::websocket::WebSocketCommand;
 use crate::config::{BinanceConfig, MarketDataConfig};
 use crate::storage::Storage;
 
@@ -45,6 +46,8 @@ pub struct MarketDataProcessor {
     analyzer: Arc<MarketDataAnalyzer>,
     storage: Storage,
     ws_broadcaster: Option<broadcast::Sender<String>>,
+    /// Command sender for dynamic WebSocket symbol subscription
+    ws_command_sender: Arc<std::sync::Mutex<Option<mpsc::UnboundedSender<WebSocketCommand>>>>,
 }
 
 impl MarketDataProcessor {
@@ -115,6 +118,7 @@ impl MarketDataProcessor {
             analyzer,
             storage,
             ws_broadcaster: None,
+            ws_command_sender: Arc::new(std::sync::Mutex::new(None)),
         })
     }
 
@@ -164,7 +168,27 @@ impl MarketDataProcessor {
     async fn load_historical_data(&self) -> Result<()> {
         info!("Loading historical market data");
 
-        for symbol in &self.config.symbols {
+        // Get ALL symbols: config defaults + user-added from database
+        let mut all_symbols = self.config.symbols.clone();
+
+        // Load user-added symbols from database
+        match self.storage.load_user_symbols().await {
+            Ok(user_symbols) => {
+                info!("📊 Found {} user symbols in database: {:?}", user_symbols.len(), user_symbols);
+                for symbol in user_symbols {
+                    if !all_symbols.contains(&symbol) {
+                        all_symbols.push(symbol);
+                    }
+                }
+            }
+            Err(e) => {
+                info!("No user symbols found in database (normal for first run): {}", e);
+            }
+        }
+
+        info!("📊 Loading historical data for {} symbols: {:?}", all_symbols.len(), all_symbols);
+
+        for symbol in &all_symbols {
             for timeframe in &self.config.timeframes {
                 match self.load_historical_klines(symbol, timeframe).await {
                     Ok(count) => {
@@ -257,13 +281,42 @@ impl MarketDataProcessor {
 
     async fn start_websocket_streams(&self) -> Result<tokio::task::JoinHandle<Result<()>>> {
         let (websocket, receiver) = BinanceWebSocket::new(self.binance_config.clone());
-        let symbols = self.config.symbols.clone();
+
+        // Get ALL symbols: config defaults + user-added from database
+        let mut all_symbols = self.config.symbols.clone();
+
+        // Load user-added symbols from database
+        match self.storage.load_user_symbols().await {
+            Ok(user_symbols) => {
+                info!("📡 Found {} user symbols for WebSocket subscription: {:?}", user_symbols.len(), user_symbols);
+                for symbol in user_symbols {
+                    if !all_symbols.contains(&symbol) {
+                        all_symbols.push(symbol);
+                    }
+                }
+            }
+            Err(e) => {
+                info!("No user symbols found for WebSocket (normal for first run): {}", e);
+            }
+        }
+
+        info!("📡 Subscribing to {} symbols via WebSocket: {:?}", all_symbols.len(), all_symbols);
+
         let timeframes = self.config.timeframes.clone();
         let cache = self.cache.clone();
         let ws_broadcaster = self.ws_broadcaster.clone();
 
-        // Start WebSocket connection
-        let ws_handle = tokio::spawn(async move { websocket.start(symbols, timeframes).await });
+        // Store the command sender for dynamic symbol subscription
+        // This must be done BEFORE moving websocket into the spawned task
+        let command_sender = websocket.get_command_sender();
+        {
+            let mut guard = self.ws_command_sender.lock().expect("Command sender mutex poisoned");
+            *guard = Some(command_sender);
+        }
+        info!("📡 WebSocket command sender stored for dynamic subscription");
+
+        // Start WebSocket connection with ALL symbols (config + user-added)
+        let ws_handle = tokio::spawn(async move { websocket.start(all_symbols, timeframes).await });
 
         // Start message processing
         let processor_handle = tokio::spawn(async move {
@@ -451,9 +504,10 @@ impl MarketDataProcessor {
     fn start_periodic_updates(&self) -> tokio::task::JoinHandle<Result<()>> {
         let client = self.client.clone();
         let cache = self.cache.clone();
-        let symbols = self.config.symbols.clone();
+        let config_symbols = self.config.symbols.clone();
         let timeframes = self.config.timeframes.clone();
         let update_interval = self.config.update_interval_ms;
+        let storage = self.storage.clone();
 
         tokio::spawn(async move {
             let mut interval = interval(Duration::from_millis(update_interval));
@@ -461,8 +515,18 @@ impl MarketDataProcessor {
             loop {
                 interval.tick().await;
 
+                // Load user symbols dynamically and merge with config symbols
+                let mut all_symbols = config_symbols.clone();
+                if let Ok(user_symbols) = storage.load_user_symbols().await {
+                    for symbol in user_symbols {
+                        if !all_symbols.contains(&symbol) {
+                            all_symbols.push(symbol);
+                        }
+                    }
+                }
+
                 // Periodically refresh data to ensure we don't miss anything
-                for symbol in &symbols {
+                for symbol in &all_symbols {
                     for timeframe in &timeframes {
                         // Refresh all timeframes from config
                         // WebSocket provides real-time updates, periodic refresh ensures data integrity
@@ -505,7 +569,7 @@ impl MarketDataProcessor {
 
     fn start_periodic_analysis(&self) -> tokio::task::JoinHandle<Result<()>> {
         let analyzer = self.analyzer.clone();
-        let symbols = self.config.symbols.clone();
+        let config_symbols = self.config.symbols.clone();
         let timeframes = self.config.timeframes.clone();
         let storage = self.storage.clone();
 
@@ -516,9 +580,19 @@ impl MarketDataProcessor {
             loop {
                 interval.tick().await;
 
-                info!("Starting periodic market analysis");
+                // Load user symbols dynamically and merge with config symbols
+                let mut all_symbols = config_symbols.clone();
+                if let Ok(user_symbols) = storage.load_user_symbols().await {
+                    for symbol in user_symbols {
+                        if !all_symbols.contains(&symbol) {
+                            all_symbols.push(symbol);
+                        }
+                    }
+                }
 
-                for symbol in &symbols {
+                info!("Starting periodic market analysis for {} symbols", all_symbols.len());
+
+                for symbol in &all_symbols {
                     match analyzer
                         .analyze_multi_timeframe(symbol, &timeframes, "trend_analysis", Some(100))
                         .await
@@ -610,6 +684,51 @@ impl MarketDataProcessor {
         self.config.timeframes.clone()
     }
 
+    /// Subscribe to a new symbol on the live WebSocket connection
+    /// This enables real-time price updates without requiring service restart
+    pub fn subscribe_symbol(&self, symbol: &str, timeframes: &[String]) -> Result<()> {
+        let guard = self.ws_command_sender.lock().expect("Command sender mutex poisoned");
+        if let Some(ref sender) = *guard {
+            let cmd = WebSocketCommand::Subscribe {
+                symbol: symbol.to_string(),
+                timeframes: timeframes.to_vec(),
+            };
+
+            if let Err(e) = sender.send(cmd) {
+                warn!("Failed to send subscribe command for {}: {}", symbol, e);
+                return Err(anyhow::anyhow!("Failed to subscribe to {}: {}", symbol, e));
+            }
+
+            info!("📡 Subscribed to WebSocket streams for {} with timeframes {:?}", symbol, timeframes);
+            Ok(())
+        } else {
+            warn!("WebSocket not connected yet, cannot subscribe to {}", symbol);
+            Err(anyhow::anyhow!("WebSocket not connected"))
+        }
+    }
+
+    /// Unsubscribe from a symbol on the live WebSocket connection
+    pub fn unsubscribe_symbol(&self, symbol: &str, timeframes: &[String]) -> Result<()> {
+        let guard = self.ws_command_sender.lock().expect("Command sender mutex poisoned");
+        if let Some(ref sender) = *guard {
+            let cmd = WebSocketCommand::Unsubscribe {
+                symbol: symbol.to_string(),
+                timeframes: timeframes.to_vec(),
+            };
+
+            if let Err(e) = sender.send(cmd) {
+                warn!("Failed to send unsubscribe command for {}: {}", symbol, e);
+                return Err(anyhow::anyhow!("Failed to unsubscribe from {}: {}", symbol, e));
+            }
+
+            info!("📡 Unsubscribed from WebSocket streams for {} with timeframes {:?}", symbol, timeframes);
+            Ok(())
+        } else {
+            warn!("WebSocket not connected, cannot unsubscribe from {}", symbol);
+            Err(anyhow::anyhow!("WebSocket not connected"))
+        }
+    }
+
     // NEW: Chart data methods for API support (now using MongoDB instead of cache)
     pub async fn get_chart_data(
         &self,
@@ -669,7 +788,11 @@ impl MarketDataProcessor {
             (0.0, 0.0, 0.0)
         };
 
-        let latest_price = candle_data.last().map(|c| c.close).unwrap_or(0.0);
+        // Use real-time price from cache if available, fallback to last candle close price
+        let latest_price = self
+            .cache
+            .get_latest_price(symbol)
+            .unwrap_or_else(|| candle_data.last().map(|c| c.close).unwrap_or(0.0));
 
         Ok(ChartData {
             symbol: symbol.to_string(),
@@ -744,8 +867,15 @@ impl MarketDataProcessor {
             sleep(Duration::from_millis(100)).await;
         }
 
-        // Note: WebSocket subscription requires service restart for now
-        info!("✅ Symbol {} added successfully. Real-time updates will start after service restart.", symbol);
+        // Subscribe to WebSocket streams for real-time updates (no restart needed!)
+        match self.subscribe_symbol(&symbol, &timeframes) {
+            Ok(()) => {
+                info!("✅ Symbol {} added successfully with real-time WebSocket subscription!", symbol);
+            }
+            Err(e) => {
+                warn!("⚠️ Symbol {} added but WebSocket subscription failed: {}. Data will be available after service restart.", symbol, e);
+            }
+        }
 
         Ok(())
     }
@@ -755,6 +885,12 @@ impl MarketDataProcessor {
 
         // Remove from cache
         self.cache.remove_symbol(symbol);
+
+        // Unsubscribe from WebSocket streams
+        let timeframes = self.config.timeframes.clone();
+        if let Err(e) = self.unsubscribe_symbol(symbol, &timeframes) {
+            warn!("Failed to unsubscribe {} from WebSocket: {}", symbol, e);
+        }
 
         // Remove from database (only if it's a user-added symbol, not config symbol)
         if !self.config.symbols.contains(&symbol.to_string()) {
