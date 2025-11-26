@@ -20,7 +20,7 @@ from main import (
     AIStrategyContext,
     store_analysis_result,
     get_latest_analysis,
-    generate_dummy_market_data,
+    fetch_real_market_data,
 )
 
 
@@ -774,65 +774,124 @@ class TestGPTTradingAnalyzer:
         assert "Technical analysis" in result.reasoning
 
     def test_fallback_analysis_rsi_oversold(self):
-        """Test fallback analysis with oversold RSI."""
+        """Test fallback analysis requires 4/5 signals for Long (matching Rust FR-STRATEGIES-006)."""
         analyzer = GPTTradingAnalyzer(None)
 
-        candles = [
-            CandleData(
-                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                open=45000,
-                high=45100,
-                low=44900,
-                close=45050,
+        # Create candles with strong upward movement in LAST 2 candles
+        # Price change check: (candles[-1].close - candles[-2].close) / candles[-2].close * 100
+        # Need >1% change to trigger "Strong upward movement" bullish signal
+        base_time = int(datetime.now(timezone.utc).timestamp() * 1000)
+        candles = []
+        base_price = 44000
+        for i in range(98):  # First 98 candles with gradual increase
+            price = base_price + (i * 50)
+            candles.append(CandleData(
+                timestamp=base_time + i * 3600000,
+                open=price,
+                high=price + 100,
+                low=price - 50,
+                close=price + 80,
                 volume=100.0,
-            )
-            for _ in range(100)
-        ]
+            ))
+        # Second to last candle
+        candles.append(CandleData(
+            timestamp=base_time + 98 * 3600000,
+            open=48900,
+            high=49000,
+            low=48800,
+            close=48900,  # Base for price change calculation
+            volume=100.0,
+        ))
+        # Last candle with >1% jump to trigger Strong upward movement
+        candles.append(CandleData(
+            timestamp=base_time + 99 * 3600000,
+            open=49000,
+            high=50000,
+            low=49000,
+            close=49500,  # 1.2% higher than 48900
+            volume=150.0,
+        ))
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
             timeframe_data={"1h": candles},
-            current_price=45050.0,
+            current_price=49500.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"]),
+            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy"]),
         )
 
-        # Mock indicators with oversold RSI
-        with patch.object(
-            TechnicalAnalyzer, "calculate_indicators", return_value={"rsi": 25.0}
-        ):
-            result = analyzer._fallback_analysis(request, {"rsi": 25.0}, {})
-            assert result["signal"] == "Long"
-            assert "oversold" in result["reasoning"]
+        # Need 4+ bullish signals for Long (FR-STRATEGIES-006: 4/5 = 80%)
+        # RSI oversold + MACD bullish + BB lower + Price trend = 4 bullish
+        indicators = {
+            "rsi": 25.0,  # Oversold = bullish
+            "macd": 0.5, "macd_signal": 0.3,  # MACD > signal = bullish
+            "bb_position": 0.05,  # Near lower band = bullish
+        }
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
+        assert result["signal"] == "Long"
+        assert "Bullish: 4" in result["reasoning"]
 
     def test_fallback_analysis_rsi_overbought(self):
-        """Test fallback analysis with overbought RSI."""
+        """Test fallback analysis requires 4/5 signals for Short (matching Rust FR-STRATEGIES-006)."""
         analyzer = GPTTradingAnalyzer(None)
 
-        candles = [
-            CandleData(
-                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-                open=45000,
-                high=45100,
-                low=44900,
-                close=45050,
+        # Create candles with strong downward movement in LAST 2 candles
+        # Price change check: (candles[-1].close - candles[-2].close) / candles[-2].close * 100
+        # Need <-1% change to trigger "Strong downward movement" bearish signal
+        base_time = int(datetime.now(timezone.utc).timestamp() * 1000)
+        candles = []
+        base_price = 50000
+        for i in range(98):  # First 98 candles with gradual decrease
+            price = base_price - (i * 50)
+            candles.append(CandleData(
+                timestamp=base_time + i * 3600000,
+                open=price,
+                high=price + 50,
+                low=price - 100,
+                close=price - 80,
                 volume=100.0,
-            )
-        ]
+            ))
+        # Second to last candle
+        candles.append(CandleData(
+            timestamp=base_time + 98 * 3600000,
+            open=46000,
+            high=46100,
+            low=45900,
+            close=46000,  # Base for price change calculation
+            volume=100.0,
+        ))
+        # Last candle with >1% drop to trigger Strong downward movement
+        candles.append(CandleData(
+            timestamp=base_time + 99 * 3600000,
+            open=45800,
+            high=46000,
+            low=45300,
+            close=45400,  # -1.3% lower than 46000
+            volume=150.0,
+        ))
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
             timeframe_data={"1h": candles},
-            current_price=45050.0,
+            current_price=45400.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"]),
+            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy"]),
         )
 
-        result = analyzer._fallback_analysis(request, {"rsi": 75.0}, {})
+        # Need 4+ bearish signals for Short (FR-STRATEGIES-006: 4/5 = 80%)
+        # RSI overbought + MACD bearish + BB upper + Price trend = 4 bearish
+        indicators = {
+            "rsi": 75.0,  # Overbought = bearish
+            "macd": 0.3, "macd_signal": 0.5,  # MACD < signal = bearish
+            "bb_position": 0.95,  # Near upper band = bearish
+        }
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
         assert result["signal"] == "Short"
-        assert "overbought" in result["reasoning"]
+        assert "Bearish: 4" in result["reasoning"]
 
     def test_parse_gpt_response_json(self):
         """Test parsing valid JSON GPT response."""
@@ -965,36 +1024,95 @@ class TestMongoDBFunctions:
 
 
 @pytest.mark.unit
-class TestGenerateDummyMarketData:
-    """Test dummy market data generation."""
+class TestFetchRealMarketData:
+    """Test real market data fetching from Rust API."""
 
     @pytest.mark.asyncio
-    async def test_generate_dummy_market_data_btc(self):
-        """Test generating dummy data for BTC."""
-        result = await generate_dummy_market_data("BTCUSDT")
+    async def test_fetch_real_market_data_btc(self):
+        """Test fetching real data for BTC with mocked HTTP responses."""
+        import httpx
 
-        assert result.symbol == "BTCUSDT"
-        assert result.current_price == 50000
-        assert "1h" in result.timeframe_data
-        assert "4h" in result.timeframe_data
-        assert len(result.timeframe_data["1h"]) == 100
-        assert len(result.timeframe_data["4h"]) == 60
+        # Mock candle data
+        mock_candles_1h = [
+            {"timestamp": 1700000000000 + i * 3600000, "open": 50000, "high": 50100, "low": 49900, "close": 50050, "volume": 100.0}
+            for i in range(100)
+        ]
+        mock_candles_4h = [
+            {"timestamp": 1700000000000 + i * 14400000, "open": 50000, "high": 50200, "low": 49800, "close": 50100, "volume": 400.0}
+            for i in range(60)
+        ]
+        mock_prices = {"BTCUSDT": 50000.0, "ETHUSDT": 3000.0}
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+
+            # Configure mock responses for different endpoints
+            async def mock_get(url, **kwargs):
+                response = Mock()  # Use regular Mock for response object
+                if "/api/market/candles/" in url and "/1h" in url:
+                    response.status_code = 200
+                    response.json = Mock(return_value={"success": True, "data": mock_candles_1h})
+                elif "/api/market/candles/" in url and "/4h" in url:
+                    response.status_code = 200
+                    response.json = Mock(return_value={"success": True, "data": mock_candles_4h})
+                elif "/api/market/prices" in url:
+                    response.status_code = 200
+                    response.json = Mock(return_value={"success": True, "data": mock_prices})
+                else:
+                    response.status_code = 404
+                return response
+
+            mock_instance.get = mock_get
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            result = await fetch_real_market_data("BTCUSDT")
+
+            assert result.symbol == "BTCUSDT"
+            assert result.current_price == 50000.0
+            assert "1h" in result.timeframe_data
+            assert "4h" in result.timeframe_data
+            assert len(result.timeframe_data["1h"]) == 100
+            assert len(result.timeframe_data["4h"]) == 60
 
     @pytest.mark.asyncio
-    async def test_generate_dummy_market_data_eth(self):
-        """Test generating dummy data for ETH."""
-        result = await generate_dummy_market_data("ETHUSDT")
+    async def test_fetch_real_market_data_api_failure(self):
+        """Test handling when Rust API is unavailable - raises pydantic validation error."""
+        from pydantic import ValidationError
 
-        assert result.symbol == "ETHUSDT"
-        assert result.current_price == 3000
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+
+            async def mock_get_failure(url, **kwargs):
+                response = Mock()
+                response.status_code = 500
+                return response
+
+            mock_instance.get = mock_get_failure
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            # When API fails, current_price=0 which fails pydantic validation (>0 required)
+            with pytest.raises(ValidationError) as exc_info:
+                await fetch_real_market_data("BTCUSDT")
+
+            # Verify the error is about current_price validation
+            assert "current_price" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_generate_dummy_market_data_unknown(self):
-        """Test generating dummy data for unknown symbol."""
-        result = await generate_dummy_market_data("UNKNOWNUSDT")
+    async def test_fetch_real_market_data_network_error(self):
+        """Test handling network errors - raises pydantic validation error."""
+        from pydantic import ValidationError
 
-        assert result.symbol == "UNKNOWNUSDT"
-        assert result.current_price == 100  # Default price
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.get = AsyncMock(side_effect=Exception("Connection refused"))
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            # Network errors result in current_price=0, which fails pydantic validation
+            with pytest.raises(ValidationError) as exc_info:
+                await fetch_real_market_data("ETHUSDT")
+
+            # Verify the error is about current_price validation
+            assert "current_price" in str(exc_info.value)
 
 
 @pytest.mark.unit
@@ -1215,7 +1333,8 @@ class TestMoreGPTAnalyzerMethods:
         )
 
         indicators = {"macd": 50.0, "macd_signal": 30.0}
-        result = analyzer._fallback_analysis(request, indicators, {})
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
         assert "MACD" in result["reasoning"]
         assert result["signal"] in ["Long", "Short", "Neutral"]
 
@@ -1244,11 +1363,12 @@ class TestMoreGPTAnalyzerMethods:
         )
 
         indicators = {"volume_ratio": 2.0}
-        result = analyzer._fallback_analysis(request, indicators, {})
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
         assert "volume" in result["reasoning"].lower()
 
-    def test_fallback_analysis_bollinger_bands(self):
-        """Test fallback analysis with Bollinger Bands."""
+    def test_fallback_analysis_bollinger_bands_insufficient_signals(self):
+        """Test fallback analysis with only 2 signals returns Neutral (4/5 = 80% required)."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -1269,13 +1389,18 @@ class TestMoreGPTAnalyzerMethods:
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(
-                selected_strategies=["Bollinger Bands Strategy"]
+                selected_strategies=["Bollinger Bands Strategy", "RSI Strategy"]
             ),
         )
 
-        indicators = {"bb_position": 0.05}
-        result = analyzer._fallback_analysis(request, indicators, {})
-        assert result["signal"] == "Long"
+        # Only 2 bullish signals: BB near lower + RSI oversold
+        # This is NOT enough - need 4/5 (FR-STRATEGIES-006)
+        indicators = {"bb_position": 0.05, "rsi": 25.0}
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
+        # With only 2 signals, result should be Neutral (safety first)
+        assert result["signal"] == "Neutral"
+        assert "Bullish: 2" in result["reasoning"]
 
     def test_fallback_analysis_price_trend(self):
         """Test fallback analysis with price trend."""
@@ -1309,7 +1434,8 @@ class TestMoreGPTAnalyzerMethods:
             strategy_context=AIStrategyContext(),
         )
 
-        result = analyzer._fallback_analysis(request, {}, {})
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, {}, {})
         assert "movement" in result["reasoning"].lower()
 
 
@@ -1964,11 +2090,12 @@ class TestGPTAnalyzerFallbackStrategies:
             strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"]),
         )
 
-        result = analyzer._fallback_analysis(request, {"rsi": 55.0}, {})
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, {"rsi": 55.0}, {})
         assert "neutral" in result["reasoning"].lower()
 
     def test_fallback_analysis_macd_bearish_neutral_signal(self):
-        """Test MACD bearish crossover."""
+        """Test MACD bearish crossover - single signal stays Neutral."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -1991,13 +2118,15 @@ class TestGPTAnalyzerFallbackStrategies:
             strategy_context=AIStrategyContext(selected_strategies=["MACD Strategy"]),
         )
 
-        # MACD bearish crossover - but default signal is "Long", so it stays Long
-        # (only changes if signal == "Neutral")
+        # MACD bearish crossover - but single signal stays Neutral
+        # (need 4/5 = 80% signals in same direction for trading signal - FR-STRATEGIES-006)
         indicators = {"macd": 30.0, "macd_signal": 50.0}
-        result = analyzer._fallback_analysis(request, indicators, {})
-        # Signal should be Long (default) since MACD only changes from Neutral
-        assert result["signal"] == "Long"
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
+        # Signal should be Neutral since only 1 bearish signal (need 4+)
+        assert result["signal"] == "Neutral"
         assert "MACD bearish" in result["reasoning"]
+        assert "Bearish: 1" in result["reasoning"]
 
     def test_fallback_analysis_low_volume(self):
         """Test fallback with low volume."""
@@ -2023,11 +2152,12 @@ class TestGPTAnalyzerFallbackStrategies:
             strategy_context=AIStrategyContext(selected_strategies=["Volume Strategy"]),
         )
 
-        result = analyzer._fallback_analysis(request, {"volume_ratio": 0.3}, {})
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, {"volume_ratio": 0.3}, {})
         assert "low volume" in result["reasoning"].lower()
 
     def test_fallback_analysis_bb_upper_neutral(self):
-        """Test Bollinger Bands upper boundary."""
+        """Test Bollinger Bands upper boundary - single signal stays Neutral."""
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -2052,10 +2182,12 @@ class TestGPTAnalyzerFallbackStrategies:
             ),
         )
 
-        result = analyzer._fallback_analysis(request, {"bb_position": 0.95}, {})
-        # BB upper only changes signal if signal == "Neutral", but default is "Long"
-        assert result["signal"] == "Long"
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, {"bb_position": 0.95}, {})
+        # Single BB upper signal stays Neutral (need 4/5 = 80% signals - FR-STRATEGIES-006)
+        assert result["signal"] == "Neutral"
         assert "upper Bollinger" in result["reasoning"]
+        assert "Bearish: 1" in result["reasoning"]
 
     def test_fallback_analysis_strong_downward_movement(self):
         """Test price trend with strong downward movement."""
@@ -2089,7 +2221,8 @@ class TestGPTAnalyzerFallbackStrategies:
             strategy_context=AIStrategyContext(),
         )
 
-        result = analyzer._fallback_analysis(request, {}, {})
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        result = analyzer._fallback_analysis(request, {}, {}, {}, {})
         assert "downward" in result["reasoning"].lower()
 
 
@@ -2348,7 +2481,7 @@ class TestPeriodicAnalysisRunner:
     @pytest.mark.asyncio
     async def test_periodic_analysis_runner_one_cycle(self):
         """Test one cycle of periodic analysis."""
-        from main import periodic_analysis_runner, generate_dummy_market_data
+        from main import periodic_analysis_runner, fetch_real_market_data
 
         # Mock the global openai_client and mongodb_db
         mock_gpt_client = AsyncMock()

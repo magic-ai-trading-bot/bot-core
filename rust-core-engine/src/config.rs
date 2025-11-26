@@ -152,7 +152,24 @@ impl Config {
         }
 
         if let Ok(testnet) = std::env::var("BINANCE_TESTNET") {
-            config.binance.testnet = testnet == "true";
+            let use_testnet = testnet == "true";
+            config.binance.testnet = use_testnet;
+
+            // CRITICAL: Also update URLs based on testnet flag
+            // This ensures paper trading uses real prices from production API
+            if use_testnet {
+                config.binance.base_url = "https://testnet.binance.vision".to_string();
+                config.binance.ws_url = "wss://testnet.binance.vision/ws".to_string();
+                config.binance.futures_base_url = "https://testnet.binancefuture.com".to_string();
+                config.binance.futures_ws_url = "wss://stream.binancefuture.com/ws".to_string();
+            } else {
+                // Use PRODUCTION API for real market prices
+                // This is safe because paper trading doesn't execute real trades
+                config.binance.base_url = "https://api.binance.com".to_string();
+                config.binance.ws_url = "wss://stream.binance.com:9443/ws".to_string();
+                config.binance.futures_base_url = "https://fapi.binance.com".to_string();
+                config.binance.futures_ws_url = "wss://fstream.binance.com".to_string();
+            }
         }
 
         if let Ok(python_url) = std::env::var("PYTHON_AI_SERVICE_URL") {
@@ -432,7 +449,7 @@ mod tests {
 
         Config::default().save_to_file(&temp_path).unwrap();
 
-        // Test setting to false
+        // Test setting to false - should switch to production URLs
         env::set_var("BINANCE_TESTNET", "false");
         // Small delay to ensure env var is set
         std::thread::sleep(std::time::Duration::from_millis(10));
@@ -441,14 +458,31 @@ mod tests {
             !config.binance.testnet,
             "Expected testnet=false but got testnet=true (env var should override file default)"
         );
+        // Verify URLs are updated to production
+        assert_eq!(
+            config.binance.base_url,
+            "https://api.binance.com",
+            "Expected production base_url when testnet=false"
+        );
+        assert_eq!(
+            config.binance.ws_url,
+            "wss://stream.binance.com:9443/ws",
+            "Expected production ws_url when testnet=false"
+        );
 
-        // Test setting to true
+        // Test setting to true - should use testnet URLs
         env::set_var("BINANCE_TESTNET", "true");
         std::thread::sleep(std::time::Duration::from_millis(10));
         let config = Config::from_file(&temp_path).unwrap();
         assert!(
             config.binance.testnet,
             "Expected testnet=true but got testnet=false"
+        );
+        // Verify URLs are updated to testnet
+        assert_eq!(
+            config.binance.base_url,
+            "https://testnet.binance.vision",
+            "Expected testnet base_url when testnet=true"
         );
 
         // Restore original env var or remove it

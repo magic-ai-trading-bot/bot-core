@@ -231,8 +231,8 @@ async def periodic_analysis_runner():
             # Analyze each symbol
             for symbol in analysis_symbols:
                 try:
-                    # Generate dummy market data (in production, this would come from Binance API)
-                    analysis_request = await generate_dummy_market_data(symbol)
+                    # Fetch REAL market data from Rust Core Engine API
+                    analysis_request = await fetch_real_market_data(symbol)
 
                     # Run AI analysis
                     analyzer = GPTTradingAnalyzer(openai_client)
@@ -1201,9 +1201,18 @@ class GPTTradingAnalyzer:
             # Convert to DataFrames and calculate indicators
             dataframes = TechnicalAnalyzer.candles_to_dataframe(request.timeframe_data)
 
-            # Get indicators for primary timeframes
+            # Get indicators for ALL timeframes (15m, 30m, 1h, 4h) for multi-timeframe analysis
+            # This fixes the issue where short-term downtrend was ignored because AI only looked at 1H/4H
+            indicators_15m = {}
+            indicators_30m = {}
             indicators_1h = {}
             indicators_4h = {}
+
+            if "15m" in dataframes and len(dataframes["15m"]) >= 2:
+                indicators_15m = TechnicalAnalyzer.calculate_indicators(dataframes["15m"])
+
+            if "30m" in dataframes and len(dataframes["30m"]) >= 2:
+                indicators_30m = TechnicalAnalyzer.calculate_indicators(dataframes["30m"])
 
             if "1h" in dataframes and len(dataframes["1h"]) >= 2:
                 indicators_1h = TechnicalAnalyzer.calculate_indicators(dataframes["1h"])
@@ -1212,13 +1221,14 @@ class GPTTradingAnalyzer:
                 indicators_4h = TechnicalAnalyzer.calculate_indicators(dataframes["4h"])
 
             # Choose analysis method based on client availability
+            # Pass all 4 timeframes for comprehensive multi-timeframe analysis
             if self.client is not None:
                 ai_analysis = await self._gpt_analysis(
-                    request, indicators_1h, indicators_4h
+                    request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
                 )
             else:
                 ai_analysis = self._fallback_analysis(
-                    request, indicators_1h, indicators_4h
+                    request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
                 )
 
             # Create response
@@ -1261,15 +1271,15 @@ class GPTTradingAnalyzer:
             raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
 
     async def _gpt_analysis(
-        self, request: AIAnalysisRequest, indicators_1h: Dict, indicators_4h: Dict
+        self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
     ) -> Dict[str, Any]:
-        """GPT-4 powered analysis."""
+        """GPT-4 powered analysis with multi-timeframe support (15m, 30m, 1h, 4h)."""
         try:
             logger.info(f"🤖 Starting GPT-4 analysis for {request.symbol}")
 
-            # Prepare market context
+            # Prepare market context with ALL timeframes
             market_context = self._prepare_market_context(
-                request, indicators_1h, indicators_4h
+                request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
             )
             logger.debug(
                 f"📊 Market context prepared: {len(market_context)} characters"
@@ -1352,18 +1362,76 @@ class GPTTradingAnalyzer:
 
             # Fall back to technical analysis
             logger.warning("🔄 Falling back to technical analysis...")
-            return self._fallback_analysis(request, indicators_1h, indicators_4h)
+            return self._fallback_analysis(request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
 
     def _fallback_analysis(
-        self, request: AIAnalysisRequest, indicators_1h: Dict, indicators_4h: Dict
+        self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
     ) -> Dict[str, Any]:
-        """Fallback technical analysis when GPT-4 is not available."""
-        signal = "Long"  # Default to Long instead of Neutral
-        confidence = 0.65  # Higher confidence for more trades
+        """Fallback technical analysis when GPT-4 is not available. Uses multi-timeframe (15m, 30m, 1h, 4h)."""
+        # FIX: Use Neutral as default to avoid Long bias
+        # Only set Long/Short when indicators clearly support it
+        signal = "Neutral"
+        confidence = 0.45  # Lower confidence for fallback analysis
         reasoning = "Technical analysis (GPT-4 unavailable): "
 
         signals = []
         selected_strategies = request.strategy_context.selected_strategies
+
+        # Track bullish/bearish signals to determine final signal
+        bullish_count = 0
+        bearish_count = 0
+
+        # =========================================================
+        # 15M & 30M SHORT-TERM TREND CHECK (CRITICAL!)
+        # If short-term shows strong opposite trend, it overrides longer timeframes
+        # This prevents LONG signals when 15m/30m chart is clearly in downtrend
+        # =========================================================
+        short_term_bearish = False
+        short_term_bullish = False
+
+        # Check 15m trend
+        if indicators_15m:
+            macd_hist_15m = indicators_15m.get("macd_histogram", 0)
+
+            # Check 15m price trend from candles
+            if "15m" in request.timeframe_data and len(request.timeframe_data["15m"]) >= 10:
+                candles_15m = request.timeframe_data["15m"]
+                # Calculate trend over last 10 candles (2.5 hours)
+                first_close = candles_15m[-10].close if hasattr(candles_15m[-10], 'close') else candles_15m[-10].get("close", 0)
+                last_close = candles_15m[-1].close if hasattr(candles_15m[-1], 'close') else candles_15m[-1].get("close", 0)
+                if first_close > 0:
+                    trend_15m = ((last_close - first_close) / first_close) * 100
+
+                    if trend_15m < -0.5 and macd_hist_15m < 0:  # 15m downtrend > 0.5%
+                        short_term_bearish = True
+                        signals.append(f"⚠️ 15M DOWNTREND ({trend_15m:.2f}%)")
+                        bearish_count += 2  # Weight 15m trend heavily (counts as 2 signals)
+                    elif trend_15m > 0.5 and macd_hist_15m > 0:  # 15m uptrend > 0.5%
+                        short_term_bullish = True
+                        signals.append(f"✅ 15M UPTREND (+{trend_15m:.2f}%)")
+                        bullish_count += 2  # Weight 15m trend heavily
+
+        # Check 30m trend (additional confirmation)
+        if indicators_30m:
+            macd_hist_30m = indicators_30m.get("macd_histogram", 0)
+
+            # Check 30m price trend from candles
+            if "30m" in request.timeframe_data and len(request.timeframe_data["30m"]) >= 10:
+                candles_30m = request.timeframe_data["30m"]
+                # Calculate trend over last 10 candles (5 hours)
+                first_close = candles_30m[-10].close if hasattr(candles_30m[-10], 'close') else candles_30m[-10].get("close", 0)
+                last_close = candles_30m[-1].close if hasattr(candles_30m[-1], 'close') else candles_30m[-1].get("close", 0)
+                if first_close > 0:
+                    trend_30m = ((last_close - first_close) / first_close) * 100
+
+                    if trend_30m < -0.5 and macd_hist_30m < 0:  # 30m downtrend > 0.5%
+                        short_term_bearish = True
+                        signals.append(f"⚠️ 30M DOWNTREND ({trend_30m:.2f}%)")
+                        bearish_count += 1  # Weight 30m slightly less than 15m
+                    elif trend_30m > 0.5 and macd_hist_30m > 0:  # 30m uptrend > 0.5%
+                        short_term_bullish = True
+                        signals.append(f"✅ 30M UPTREND (+{trend_30m:.2f}%)")
+                        bullish_count += 1
 
         # RSI Analysis - only if selected
         if not selected_strategies or "RSI Strategy" in selected_strategies:
@@ -1371,10 +1439,10 @@ class GPTTradingAnalyzer:
                 rsi = indicators_1h["rsi"]
                 if rsi < 30:
                     signals.append("RSI oversold (bullish)")
-                    signal = "Long"
+                    bullish_count += 1
                 elif rsi > 70:
                     signals.append("RSI overbought (bearish)")
-                    signal = "Short"
+                    bearish_count += 1
                 else:
                     signals.append(f"RSI neutral ({rsi:.1f})")
 
@@ -1385,12 +1453,10 @@ class GPTTradingAnalyzer:
                 macd_signal = indicators_1h["macd_signal"]
                 if macd > macd_signal:
                     signals.append("MACD bullish crossover")
-                    if signal == "Neutral":
-                        signal = "Long"
+                    bullish_count += 1
                 else:
                     signals.append("MACD bearish crossover")
-                    if signal == "Neutral":
-                        signal = "Short"
+                    bearish_count += 1
 
         # Volume Analysis - only if selected
         if not selected_strategies or "Volume Strategy" in selected_strategies:
@@ -1406,13 +1472,11 @@ class GPTTradingAnalyzer:
             if indicators_1h.get("bb_position"):
                 bb_position = indicators_1h["bb_position"]
                 if bb_position < 0.1:
-                    signals.append("Price near lower Bollinger Band")
-                    if signal == "Neutral":
-                        signal = "Long"
+                    signals.append("Price near lower Bollinger Band (bullish)")
+                    bullish_count += 1
                 elif bb_position > 0.9:
-                    signals.append("Price near upper Bollinger Band")
-                    if signal == "Neutral":
-                        signal = "Short"
+                    signals.append("Price near upper Bollinger Band (bearish)")
+                    bearish_count += 1
 
         # Price trend analysis
         if "1h" in request.timeframe_data and len(request.timeframe_data["1h"]) >= 2:
@@ -1423,10 +1487,29 @@ class GPTTradingAnalyzer:
                 )
                 if price_change > 1:
                     signals.append(f"Strong upward movement (+{price_change:.2f}%)")
+                    bullish_count += 1
                 elif price_change < -1:
                     signals.append(f"Strong downward movement ({price_change:.2f}%)")
+                    bearish_count += 1
+
+        # FIX: Determine signal based on STRONG consensus (4/5 = 80%)
+        # This matches Rust strategy_engine.rs requirement for maximum safety
+        # @spec:FR-STRATEGIES-006 - Signal Combination requires ≥4/5 strategies agreement
+        MIN_REQUIRED_SIGNALS = 4  # Must have 4+ out of 5 indicators agree
+
+        if bullish_count >= MIN_REQUIRED_SIGNALS:
+            signal = "Long"
+            confidence = min(0.75, 0.50 + (bullish_count * 0.05))
+        elif bearish_count >= MIN_REQUIRED_SIGNALS:
+            signal = "Short"
+            confidence = min(0.75, 0.50 + (bearish_count * 0.05))
+        else:
+            # Stay Neutral when consensus is weak (< 4/5 agreement)
+            signal = "Neutral"
+            confidence = 0.35
 
         reasoning += "; ".join(signals) if signals else "Limited data available"
+        reasoning += f" (Bullish: {bullish_count}, Bearish: {bearish_count})"
 
         # Create strategy scores based on selected strategies
         strategy_scores = {}
@@ -1483,9 +1566,12 @@ class GPTTradingAnalyzer:
         }
 
     def _get_system_prompt(self) -> str:
-        """Get system prompt for GPT-4 (optimized for cost)."""
+        """Get system prompt for GPT-4 with multi-timeframe awareness."""
         return (
-            "Crypto trading analyst. Respond ONLY in JSON:\n"
+            "Crypto trading analyst using MULTI-TIMEFRAME analysis (15M, 1H, 4H).\n"
+            "CRITICAL RULE: If 15M trend CONFLICTS with 1H/4H, signal MUST be Neutral!\n"
+            "Example: 15M bearish + 1H/4H bullish = Neutral (NOT Long!)\n"
+            "Respond ONLY in JSON:\n"
             '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
             '"strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,'
             '"Bollinger Bands Strategy":0-1},"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways",'
@@ -1494,22 +1580,47 @@ class GPTTradingAnalyzer:
             '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
             '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
             '"take_profit_suggestion":null}}\n'
-            "Use confidence >0.6 for strong signals, >0.5 for moderate. Prefer Long/Short over Neutral."
+            "Use confidence >0.6 for strong signals. When timeframes conflict, always choose Neutral."
         )
 
     def _prepare_market_context(
-        self, request: AIAnalysisRequest, indicators_1h: Dict, indicators_4h: Dict
+        self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
     ) -> str:
-        """Prepare market context for GPT-4 (optimized for cost)."""
-        # Compact format to reduce tokens
-        context = (
-            f"{request.symbol} ${request.current_price:.0f}\n"
+        """Prepare market context for GPT-4 with multi-timeframe analysis (15m, 30m, 1h, 4h).
+
+        IMPORTANT: 15m and 30m are included to detect short-term trend changes that may conflict
+        with longer timeframes. This prevents giving LONG signal when short-term shows downtrend.
+        """
+        # Compact format to reduce tokens - now includes 15m & 30m for short-term trend
+        context = f"{request.symbol} ${request.current_price:.0f}\n"
+
+        # 15m - Very short-term trend (CRITICAL for detecting immediate reversals)
+        if indicators_15m:
+            context += (
+                f"15M: RSI:{indicators_15m.get('rsi',50):.1f} "
+                f"MACD:{indicators_15m.get('macd_histogram',0):.2f} "
+                f"BB:{indicators_15m.get('bb_position',0.5):.2f} "
+                f"Vol:{indicators_15m.get('volume_ratio',1):.1f}x\n"
+            )
+
+        # 30m - Short-term trend
+        if indicators_30m:
+            context += (
+                f"30M: RSI:{indicators_30m.get('rsi',50):.1f} "
+                f"MACD:{indicators_30m.get('macd_histogram',0):.2f} "
+                f"BB:{indicators_30m.get('bb_position',0.5):.2f} "
+                f"Vol:{indicators_30m.get('volume_ratio',1):.1f}x\n"
+            )
+
+        # 1H - Medium-term trend
+        context += (
             f"1H: RSI:{indicators_1h.get('rsi',50):.1f} "
             f"MACD:{indicators_1h.get('macd_histogram',0):.2f} "
             f"BB:{indicators_1h.get('bb_position',0.5):.2f} "
             f"Vol:{indicators_1h.get('volume_ratio',1):.1f}x"
         )
 
+        # 4H - Long-term trend
         if indicators_4h:
             context += (
                 f"\n4H: RSI:{indicators_4h.get('rsi',50):.1f} "
@@ -1655,85 +1766,116 @@ async def get_analysis_statistics() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-async def generate_dummy_market_data(symbol: str) -> AIAnalysisRequest:
-    """Generate dummy market data for testing (replace with real Binance API)."""
-    import random
+async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
+    """
+    Fetch REAL market data from Rust Core Engine API.
 
-    # Generate realistic price data
-    base_price = {
-        "BTCUSDT": 50000,
-        "ETHUSDT": 3000,
-        "BNBUSDT": 600,
-        "SOLUSDT": 200,
-        "ADAUSDT": 1.5,
-        "DOTUSDT": 25,
-        "XRPUSDT": 0.6,
-        "LINKUSDT": 18,
-    }.get(symbol, 100)
+    CRITICAL: This function fetches actual market data from Binance via Rust API.
+    Never use dummy/fake data for trading decisions!
+    """
+    import httpx
 
-    # Generate candle data
     current_time = int(datetime.now(timezone.utc).timestamp() * 1000)
-
     candles_1h = []
     candles_4h = []
+    current_price = 0.0
+    volume_24h = 0.0
 
-    for i in range(100):  # 100 hours of 1H data (need 50+ for SMA50)
-        timestamp = current_time - (i * 3600000)  # 1 hour intervals
-        price_variation = random.uniform(-0.02, 0.02)  # ±2% variation
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Fetch 1H candles from Rust API
+            try:
+                response_1h = await client.get(
+                    f"{RUST_API_URL}/api/market/candles/{symbol}/1h",
+                    params={"limit": 100}  # Need 100 candles for indicators
+                )
+                if response_1h.status_code == 200:
+                    data = response_1h.json()
+                    candle_data = data.get("data", []) if data.get("success") else []
+                    for candle in candle_data:
+                        candles_1h.append(
+                            CandleData(
+                                timestamp=candle.get("timestamp", 0),
+                                open=float(candle.get("open", 0)),
+                                high=float(candle.get("high", 0)),
+                                low=float(candle.get("low", 0)),
+                                close=float(candle.get("close", 0)),
+                                volume=float(candle.get("volume", 0)),
+                            )
+                        )
+                    logger.info(f"📊 Fetched {len(candles_1h)} 1H candles for {symbol}")
+                else:
+                    logger.warning(f"⚠️ Failed to fetch 1H candles for {symbol}: {response_1h.status_code}")
+            except Exception as e:
+                logger.error(f"❌ Error fetching 1H candles for {symbol}: {e}")
 
-        # Add some trend to make realistic price movement
-        trend_factor = 1 + (i * 0.0001 * random.uniform(-1, 1))
-        open_price = base_price * trend_factor * (1 + price_variation)
-        high_price = open_price * (1 + random.uniform(0, 0.01))
-        low_price = open_price * (1 - random.uniform(0, 0.01))
-        close_price = open_price * (1 + random.uniform(-0.01, 0.01))
-        volume = random.uniform(1000, 5000)
+            # Fetch 4H candles from Rust API
+            try:
+                response_4h = await client.get(
+                    f"{RUST_API_URL}/api/market/candles/{symbol}/4h",
+                    params={"limit": 60}  # Need 60 candles for indicators
+                )
+                if response_4h.status_code == 200:
+                    data = response_4h.json()
+                    candle_data = data.get("data", []) if data.get("success") else []
+                    for candle in candle_data:
+                        candles_4h.append(
+                            CandleData(
+                                timestamp=candle.get("timestamp", 0),
+                                open=float(candle.get("open", 0)),
+                                high=float(candle.get("high", 0)),
+                                low=float(candle.get("low", 0)),
+                                close=float(candle.get("close", 0)),
+                                volume=float(candle.get("volume", 0)),
+                            )
+                        )
+                    logger.info(f"📊 Fetched {len(candles_4h)} 4H candles for {symbol}")
+                else:
+                    logger.warning(f"⚠️ Failed to fetch 4H candles for {symbol}: {response_4h.status_code}")
+            except Exception as e:
+                logger.error(f"❌ Error fetching 4H candles for {symbol}: {e}")
 
-        candles_1h.append(
-            CandleData(
-                timestamp=timestamp,
-                open=open_price,
-                high=high_price,
-                low=low_price,
-                close=close_price,
-                volume=volume,
-            )
-        )
+            # Fetch current price from Rust API
+            try:
+                response_prices = await client.get(f"{RUST_API_URL}/api/market/prices")
+                if response_prices.status_code == 200:
+                    data = response_prices.json()
+                    prices = data.get("data", {}) if data.get("success") else {}
+                    current_price = float(prices.get(symbol, 0))
+                    logger.info(f"💰 Current price for {symbol}: ${current_price:.2f}")
+            except Exception as e:
+                logger.error(f"❌ Error fetching price for {symbol}: {e}")
 
-    for i in range(60):  # 60 periods of 4H data (need 50+ for SMA50)
-        timestamp = current_time - (i * 14400000)  # 4 hour intervals
-        price_variation = random.uniform(-0.03, 0.03)  # ±3% variation
+            # Calculate 24h volume from 1H candles
+            if candles_1h:
+                volume_24h = sum(c.volume for c in candles_1h[:24])
 
-        # Add some trend to make realistic price movement
-        trend_factor = 1 + (i * 0.0002 * random.uniform(-1, 1))
-        open_price = base_price * trend_factor * (1 + price_variation)
-        high_price = open_price * (1 + random.uniform(0, 0.02))
-        low_price = open_price * (1 - random.uniform(0, 0.02))
-        close_price = open_price * (1 + random.uniform(-0.02, 0.02))
-        volume = random.uniform(5000, 20000)
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch market data for {symbol}: {e}")
 
-        candles_4h.append(
-            CandleData(
-                timestamp=timestamp,
-                open=open_price,
-                high=high_price,
-                low=low_price,
-                close=close_price,
-                volume=volume,
-            )
-        )
+    # Validate we have sufficient data
+    if len(candles_1h) < 50:
+        logger.warning(f"⚠️ Insufficient 1H data for {symbol}: {len(candles_1h)} candles (need 50+)")
+    if len(candles_4h) < 50:
+        logger.warning(f"⚠️ Insufficient 4H data for {symbol}: {len(candles_4h)} candles (need 50+)")
+    if current_price == 0:
+        logger.warning(f"⚠️ No current price for {symbol}, using last close price")
+        if candles_1h:
+            current_price = candles_1h[0].close
 
     return AIAnalysisRequest(
         symbol=symbol,
         timeframe_data={"1h": candles_1h, "4h": candles_4h},
-        current_price=base_price,
-        volume_24h=50000,
+        current_price=current_price,
+        volume_24h=volume_24h,
         timestamp=current_time,
         strategy_context=AIStrategyContext(
             selected_strategies=[
                 "RSI Strategy",
                 "MACD Strategy",
                 "Bollinger Bands Strategy",
+                "Volume Strategy",
+                "Stochastic Strategy",
             ],
             market_condition="Trending",
             risk_level="Moderate",

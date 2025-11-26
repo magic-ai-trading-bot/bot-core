@@ -85,79 +85,49 @@ export const useAIAnalysis = (): AIAnalysisHook => {
     setError(null);
   }, [setError]);
 
-  // Generate sample candle data for testing (replace with real data from chart)
-  // Now accepts basePrice parameter to use real prices from API instead of hardcoded values
-  const generateSampleCandles = useCallback(
-    (symbol: string, basePrice: number): Record<string, CandleDataAI[]> => {
-      const now = Date.now();
-      // Use provided basePrice (from real API) instead of hardcoded values
+  // FIXED: Fetch REAL candle data from Rust API instead of generating random fake data
+  // This is CRITICAL for accurate AI analysis - fake data leads to wrong trading decisions!
+  // Now includes 15m AND 30m timeframes for comprehensive short-term trend detection
+  const fetchRealCandles = useCallback(
+    async (symbol: string): Promise<Record<string, CandleDataAI[]>> => {
+      try {
+        // Fetch real candle data from Rust API for ALL timeframes in parallel
+        // Including 15m & 30m for short-term trend detection (fixes issue where short-term downtrend
+        // was ignored because AI only looked at 1H/4H which showed bullish)
+        const [chartData15m, chartData30m, chartData1h, chartData4h] = await Promise.all([
+          apiClient.rust.getChartData(symbol, "15m", 100), // Very short-term trend
+          apiClient.rust.getChartData(symbol, "30m", 100), // Short-term trend
+          apiClient.rust.getChartData(symbol, "1h", 100),  // Medium-term trend
+          apiClient.rust.getChartData(symbol, "4h", 50),   // Long-term trend
+        ]);
 
-      const generate1hCandles = (): CandleDataAI[] => {
-        const candles: CandleDataAI[] = [];
-        for (let i = 5; i >= 0; i--) {
-          const open_time = now - i * 60 * 60 * 1000; // 1h intervals
-          const close_time = open_time + 60 * 60 * 1000; // 1h later
-          const randomChange = (Math.random() - 0.5) * 0.02; // ±1% random change
-          const open = basePrice * (1 + randomChange);
-          const close = open * (1 + (Math.random() - 0.5) * 0.01); // ±0.5% from open
-          const high = Math.max(open, close) * (1 + Math.random() * 0.005); // Up to 0.5% higher
-          const low = Math.min(open, close) * (1 - Math.random() * 0.005); // Up to 0.5% lower
-          const volume = 1000 + Math.random() * 500;
-          const quote_volume = volume * ((open + close) / 2); // Estimated quote volume
-          const trades = Math.floor(100 + Math.random() * 500); // Random trade count
-          const is_closed = true;
+        // Convert CandleData to CandleDataAI format
+        const convertCandles = (candles: { timestamp: number; open: number; high: number; low: number; close: number; volume: number }[], intervalMs: number): CandleDataAI[] => {
+          return candles.map((candle) => ({
+            open_time: candle.timestamp,
+            close_time: candle.timestamp + intervalMs,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close,
+            volume: candle.volume,
+            quote_volume: candle.volume * ((candle.open + candle.close) / 2),
+            trades: Math.floor(candle.volume / 10), // Estimate trades from volume
+            is_closed: true,
+          }));
+        };
 
-          candles.push({
-            open_time,
-            close_time,
-            open,
-            high,
-            low,
-            close,
-            volume,
-            quote_volume,
-            trades,
-            is_closed,
-          });
-        }
-        return candles;
-      };
-
-      const generate4hCandles = (): CandleDataAI[] => {
-        const candles: CandleDataAI[] = [];
-        for (let i = 2; i >= 0; i--) {
-          const open_time = now - i * 4 * 60 * 60 * 1000; // 4h intervals
-          const close_time = open_time + 4 * 60 * 60 * 1000; // 4h later
-          const randomChange = (Math.random() - 0.5) * 0.03; // ±1.5% random change
-          const open = basePrice * (1 + randomChange);
-          const close = open * (1 + (Math.random() - 0.5) * 0.02); // ±1% from open
-          const high = Math.max(open, close) * (1 + Math.random() * 0.01); // Up to 1% higher
-          const low = Math.min(open, close) * (1 - Math.random() * 0.01); // Up to 1% lower
-          const volume = 4000 + Math.random() * 2000;
-          const quote_volume = volume * ((open + close) / 2); // Estimated quote volume
-          const trades = Math.floor(200 + Math.random() * 1000); // Random trade count
-          const is_closed = true;
-
-          candles.push({
-            open_time,
-            close_time,
-            open,
-            high,
-            low,
-            close,
-            volume,
-            quote_volume,
-            trades,
-            is_closed,
-          });
-        }
-        return candles;
-      };
-
-      return {
-        "1h": generate1hCandles(),
-        "4h": generate4hCandles(),
-      };
+        return {
+          "15m": convertCandles(chartData15m.candles || [], 15 * 60 * 1000),
+          "30m": convertCandles(chartData30m.candles || [], 30 * 60 * 1000),
+          "1h": convertCandles(chartData1h.candles || [], 60 * 60 * 1000),
+          "4h": convertCandles(chartData4h.candles || [], 4 * 60 * 60 * 1000),
+        };
+      } catch (error) {
+        logger.error(`Failed to fetch real candles for ${symbol}:`, error);
+        // Return empty arrays on error - DO NOT generate fake data!
+        return { "15m": [], "30m": [], "1h": [], "4h": [] };
+      }
     },
     []
   );
@@ -168,22 +138,24 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         setLoading(true);
         setError(null);
 
-        // Fetch price from Binance (with caching) - fallback to our API
-        const currentPrice = await fetchBinancePrice(symbol, async () => {
-          const prices = await apiClient.rust.getLatestPrices();
-          return prices[symbol] || 0;
-        });
+        // FIXED: Fetch REAL candle data from Rust API (not fake random data!)
+        const [timeframeData, currentPrice] = await Promise.all([
+          fetchRealCandles(symbol),
+          fetchBinancePrice(symbol, async () => {
+            const prices = await apiClient.rust.getLatestPrices();
+            return prices[symbol] || 0;
+          }),
+        ]);
 
-        const timeframeData = generateSampleCandles(symbol, currentPrice);
-        const latestCandle =
-          timeframeData["1h"] && timeframeData["1h"].length > 0
-            ? timeframeData["1h"][timeframeData["1h"].length - 1]
-            : null;
+        // Validate we have real data before proceeding
+        if (!timeframeData["1h"]?.length || !timeframeData["4h"]?.length) {
+          throw new Error(`No real candle data available for ${symbol}`);
+        }
 
         const request = {
           symbol,
           timeframe_data: timeframeData,
-          current_price: currentPrice, // FIXED: Use real price from Binance API!
+          current_price: currentPrice,
           volume_24h: timeframeData["1h"].reduce(
             (sum, candle) => sum + candle.volume,
             0
@@ -219,19 +191,20 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         setLoading(false);
       }
     },
-    [generateSampleCandles, setLoading, setError]
+    [fetchRealCandles, setLoading, setError]
   );
 
   const getStrategyRecommendations = useCallback(
     async (symbol: string) => {
       try {
-        // Fetch price from Binance (with caching) - fallback to our API
-        const currentPrice = await fetchBinancePrice(symbol, async () => {
-          const prices = await apiClient.rust.getLatestPrices();
-          return prices[symbol] || 0;
-        });
-
-        const timeframeData = generateSampleCandles(symbol, currentPrice);
+        // FIXED: Fetch REAL candle data from Rust API (not fake random data!)
+        const [timeframeData, currentPrice] = await Promise.all([
+          fetchRealCandles(symbol),
+          fetchBinancePrice(symbol, async () => {
+            const prices = await apiClient.rust.getLatestPrices();
+            return prices[symbol] || 0;
+          }),
+        ]);
 
         const data = {
           symbol,
@@ -259,28 +232,29 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         );
       }
     },
-    [generateSampleCandles, setError]
+    [fetchRealCandles, setError]
   );
 
   const analyzeMarketCondition = useCallback(
     async (symbol: string) => {
       try {
-        // Fetch price from Binance (with caching) - fallback to our API
-        const currentPrice = await fetchBinancePrice(symbol, async () => {
-          const prices = await apiClient.rust.getLatestPrices();
-          return prices[symbol] || 0;
-        });
-
-        const timeframeData = generateSampleCandles(symbol, currentPrice);
+        // FIXED: Fetch REAL candle data from Rust API (not fake random data!)
+        const [timeframeData, currentPrice] = await Promise.all([
+          fetchRealCandles(symbol),
+          fetchBinancePrice(symbol, async () => {
+            const prices = await apiClient.rust.getLatestPrices();
+            return prices[symbol] || 0;
+          }),
+        ]);
 
         const data = {
           symbol,
           timeframe_data: timeframeData,
           current_price: currentPrice,
-          volume_24h: timeframeData["1h"].reduce(
+          volume_24h: timeframeData["1h"]?.reduce(
             (sum, candle) => sum + candle.volume,
             0
-          ),
+          ) || 0,
           timestamp: Date.now(),
         };
 
@@ -303,7 +277,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         );
       }
     },
-    [generateSampleCandles, setError]
+    [fetchRealCandles, setError]
   );
 
   const refreshServiceInfo = useCallback(async () => {
