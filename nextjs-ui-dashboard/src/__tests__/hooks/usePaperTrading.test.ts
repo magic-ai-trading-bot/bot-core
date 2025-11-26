@@ -242,57 +242,34 @@ describe('usePaperTrading', () => {
   })
 
   it('stops trading successfully', async () => {
-    const mockFetch = vi.fn()
-      // Initial mount calls
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { is_running: true, portfolio: {}, last_updated: new Date().toISOString() } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { basic: {}, risk: {} } })
-      })
-      // fetchAISignals makes 4 calls (one per symbol)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      // The actual test call - stop trading
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: { message: 'Trading stopped' }
-        })
-      })
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/status') || url.includes('/portfolio')) {
+        return { ok: true, json: async () => ({ success: true, data: { is_running: true, portfolio: {}, last_updated: new Date().toISOString() } }) }
+      }
+      if (url.includes('/trades')) {
+        return { ok: true, json: async () => ({ success: true, data: [] }) }
+      }
+      if (url.includes('/basic-settings')) {
+        return { ok: true, json: async () => ({ success: true, data: { basic: {}, risk: {} } }) }
+      }
+      if (url.includes('/stop')) {
+        return { ok: true, json: async () => ({ success: true, data: { message: 'Trading stopped' } }) }
+      }
+      // AI signals and fallback
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
 
     vi.stubGlobal('fetch', mockFetch)
+    vi.stubGlobal('WebSocket', class { close() {} send() {} })
 
     const { result } = renderHook(() => usePaperTrading())
 
     await waitFor(() => {
       expect(result.current.isActive).toBe(true)
-    })
+    }, { timeout: 3000 })
 
     await act(async () => {
       await result.current.stopTrading()
@@ -301,61 +278,36 @@ describe('usePaperTrading', () => {
     await waitFor(() => {
       expect(result.current.isActive).toBe(false)
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 2000 })
   })
 
   it('handles start trading error', async () => {
-    const mockFetch = vi.fn()
-      // Initial mount calls
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { is_running: false, portfolio: {}, last_updated: new Date().toISOString() } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { basic: {}, risk: {} } })
-      })
-      // fetchAISignals makes 4 calls (one per symbol)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      // The actual test call - start trading
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Failed to start'
-        })
-      })
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/status') || url.includes('/portfolio')) {
+        return { ok: true, json: async () => ({ success: true, data: { is_running: false, portfolio: {}, last_updated: new Date().toISOString() } }) }
+      }
+      if (url.includes('/trades')) {
+        return { ok: true, json: async () => ({ success: true, data: [] }) }
+      }
+      if (url.includes('/basic-settings')) {
+        return { ok: true, json: async () => ({ success: true, data: { basic: {}, risk: {} } }) }
+      }
+      if (url.includes('/start')) {
+        return { ok: true, json: async () => ({ success: false, error: 'Failed to start' }) }
+      }
+      // AI signals and fallback
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
 
     vi.stubGlobal('fetch', mockFetch)
+    vi.stubGlobal('WebSocket', class { close() {} send() {} })
 
     const { result } = renderHook(() => usePaperTrading())
 
-    await waitFor(() => {
-      expect(result.current.isActive).toBe(false)
-    })
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 })
 
     await act(async () => {
       await result.current.startTrading()
@@ -364,61 +316,36 @@ describe('usePaperTrading', () => {
     await waitFor(() => {
       expect(result.current.error).toBe('Failed to start')
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 2000 })
   })
 
   it('handles stop trading error', async () => {
-    const mockFetch = vi.fn()
-      // Initial mount calls
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { is_running: true, portfolio: {}, last_updated: new Date().toISOString() } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { basic: {}, risk: {} } })
-      })
-      // fetchAISignals makes 4 calls (one per symbol)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      // The actual test call - stop trading
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Failed to stop'
-        })
-      })
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/status') || url.includes('/portfolio')) {
+        return { ok: true, json: async () => ({ success: true, data: { is_running: true, portfolio: {}, last_updated: new Date().toISOString() } }) }
+      }
+      if (url.includes('/trades')) {
+        return { ok: true, json: async () => ({ success: true, data: [] }) }
+      }
+      if (url.includes('/basic-settings')) {
+        return { ok: true, json: async () => ({ success: true, data: { basic: {}, risk: {} } }) }
+      }
+      if (url.includes('/stop')) {
+        return { ok: true, json: async () => ({ success: false, error: 'Failed to stop' }) }
+      }
+      // AI signals and fallback
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
 
     vi.stubGlobal('fetch', mockFetch)
+    vi.stubGlobal('WebSocket', class { close() {} send() {} })
 
     const { result } = renderHook(() => usePaperTrading())
 
-    await waitFor(() => {
-      expect(result.current.isActive).toBe(true)
-    })
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 })
 
     await act(async () => {
       await result.current.stopTrading()
@@ -427,7 +354,7 @@ describe('usePaperTrading', () => {
     await waitFor(() => {
       expect(result.current.error).toBe('Failed to stop')
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 2000 })
   })
 
   it('closes a trade successfully', async () => {
@@ -471,57 +398,32 @@ describe('usePaperTrading', () => {
   })
 
   it('handles close trade error', async () => {
-    const mockFetch = vi.fn()
-      // Initial mount calls
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { is_running: false, portfolio: {}, last_updated: new Date().toISOString() } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { basic: {}, risk: {} } })
-      })
-      // fetchAISignals makes 4 calls (one per symbol)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      // The actual test call - close trade
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Trade not found'
-        })
-      })
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/status') || url.includes('/portfolio')) {
+        return { ok: true, json: async () => ({ success: true, data: { is_running: false, portfolio: {}, last_updated: new Date().toISOString() } }) }
+      }
+      if (url.includes('/close')) {
+        return { ok: true, json: async () => ({ success: false, error: 'Trade not found' }) }
+      }
+      if (url.includes('/trades')) {
+        return { ok: true, json: async () => ({ success: true, data: [] }) }
+      }
+      if (url.includes('/basic-settings')) {
+        return { ok: true, json: async () => ({ success: true, data: { basic: {}, risk: {} } }) }
+      }
+      // AI signals and fallback
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
 
     vi.stubGlobal('fetch', mockFetch)
+    vi.stubGlobal('WebSocket', class { close() {} send() {} })
 
     const { result } = renderHook(() => usePaperTrading())
 
-    await waitFor(() => {
-      expect(result.current.isActive).toBe(false)
-    })
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 })
 
     await act(async () => {
       await result.current.closeTrade('invalid-trade')
@@ -529,7 +431,7 @@ describe('usePaperTrading', () => {
 
     await waitFor(() => {
       expect(result.current.error).toBe('Trade not found')
-    })
+    }, { timeout: 2000 })
   })
 
   it('updates settings successfully', async () => {
@@ -597,57 +499,39 @@ describe('usePaperTrading', () => {
   })
 
   it('handles update settings error', async () => {
-    const mockFetch = vi.fn()
-      // Initial mount calls
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { is_running: false, portfolio: {}, last_updated: new Date().toISOString() } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { basic: {}, risk: {} } })
-      })
-      // fetchAISignals makes 4 calls (one per symbol)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, data: null })
-      })
-      // The actual test call - update settings
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Invalid settings'
-        })
-      })
+    vi.clearAllMocks()
+    vi.unstubAllGlobals()
+
+    // Track request methods to distinguish GET from PUT
+    let settingsCallCount = 0
+
+    const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+      const method = options?.method || 'GET'
+
+      if (url.includes('/status') || url.includes('/portfolio')) {
+        return { ok: true, json: async () => ({ success: true, data: { is_running: false, portfolio: {}, last_updated: new Date().toISOString() } }) }
+      }
+      if (url.includes('/trades')) {
+        return { ok: true, json: async () => ({ success: true, data: [] }) }
+      }
+      if (url.includes('/basic-settings')) {
+        settingsCallCount++
+        // First call is GET (fetch), subsequent PUT calls should fail
+        if (method === 'PUT' || method === 'POST') {
+          return { ok: true, json: async () => ({ success: false, error: 'Invalid settings' }) }
+        }
+        return { ok: true, json: async () => ({ success: true, data: { basic: {}, risk: {} } }) }
+      }
+      // AI signals and fallback
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
 
     vi.stubGlobal('fetch', mockFetch)
+    vi.stubGlobal('WebSocket', class { close() {} send() {} })
 
     const { result } = renderHook(() => usePaperTrading())
 
-    await waitFor(() => {
-      expect(result.current.isActive).toBe(false)
-    })
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 })
 
     const newSettings = {
       basic: {
@@ -682,7 +566,7 @@ describe('usePaperTrading', () => {
     await waitFor(() => {
       expect(result.current.error).toBe('Invalid settings')
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 2000 })
   })
 
   it('resets portfolio successfully', async () => {

@@ -4,16 +4,22 @@ import userEvent from '@testing-library/user-event'
 import { render } from '../../../test/utils'
 import { AISignals } from '../../../components/dashboard/AISignals'
 
-// Mock hooks
-const mockUseAIAnalysis = vi.fn()
+// Mock hooks and contexts
+const mockUseAIAnalysisContext = vi.fn()
 const mockUseWebSocket = vi.fn()
 
-vi.mock('../../../hooks/useAIAnalysis', () => ({
-  useAIAnalysis: () => mockUseAIAnalysis(),
+vi.mock('../../../contexts/AIAnalysisContext', () => ({
+  useAIAnalysisContext: () => mockUseAIAnalysisContext(),
+  AIAnalysisProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 vi.mock('../../../hooks/useWebSocket', () => ({
   useWebSocket: () => mockUseWebSocket(),
+}))
+
+vi.mock('../../../contexts/WebSocketContext', () => ({
+  useWebSocketContext: () => mockUseWebSocket(),
+  WebSocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 describe('AISignals', () => {
@@ -52,7 +58,7 @@ describe('AISignals', () => {
     vi.clearAllMocks()
 
     // Default mock implementations
-    mockUseAIAnalysis.mockReturnValue({
+    mockUseAIAnalysisContext.mockReturnValue({
       state: {
         signals: [],
         isLoading: false,
@@ -129,7 +135,7 @@ describe('AISignals', () => {
     })
 
     it('does not show service info when not available', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [],
           isLoading: false,
@@ -149,7 +155,7 @@ describe('AISignals', () => {
 
   describe('Loading State', () => {
     it('displays loading indicator when analyzing', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [],
           isLoading: true,
@@ -170,7 +176,7 @@ describe('AISignals', () => {
   describe('Error Handling', () => {
     it('displays error message when AI analysis fails', () => {
       const clearError = vi.fn()
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [],
           isLoading: false,
@@ -206,7 +212,7 @@ describe('AISignals', () => {
       const user = userEvent.setup()
       const clearError = vi.fn()
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [],
           isLoading: false,
@@ -238,7 +244,7 @@ describe('AISignals', () => {
 
   describe('Signal Display', () => {
     it('displays signal from API', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -288,7 +294,7 @@ describe('AISignals', () => {
         timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
       }
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [recentSignal],
           isLoading: false,
@@ -311,7 +317,7 @@ describe('AISignals', () => {
         timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
       }
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [oldSignal],
           isLoading: false,
@@ -329,7 +335,7 @@ describe('AISignals', () => {
     })
 
     it('displays confidence bar with correct color for high confidence', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -349,7 +355,7 @@ describe('AISignals', () => {
     })
 
     it('displays signal reasoning', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -371,7 +377,7 @@ describe('AISignals', () => {
     it('opens detailed dialog when signal is clicked', async () => {
       const user = userEvent.setup()
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -398,7 +404,7 @@ describe('AISignals', () => {
     it('displays market analysis in dialog', async () => {
       const user = userEvent.setup()
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -428,7 +434,7 @@ describe('AISignals', () => {
     it('displays strategy scores in dialog', async () => {
       const user = userEvent.setup()
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -457,7 +463,7 @@ describe('AISignals', () => {
     it('displays risk assessment in dialog', async () => {
       const user = userEvent.setup()
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -486,7 +492,7 @@ describe('AISignals', () => {
     it('displays stop loss and take profit suggestions', async () => {
       const user = userEvent.setup()
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -517,7 +523,7 @@ describe('AISignals', () => {
     it('opens strategy explanation dialog when strategy is clicked', async () => {
       const user = userEvent.setup()
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -561,7 +567,7 @@ describe('AISignals', () => {
         { ...mockSignal, symbol: 'BNBUSDT', signal: 'neutral', confidence: 0.5 },
       ]
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals,
           isLoading: false,
@@ -586,7 +592,7 @@ describe('AISignals', () => {
         { ...mockSignal, symbol: 'BTCUSDT', timestamp: new Date('2024-01-01T11:00:00Z').toISOString() },
       ]
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals,
           isLoading: false,
@@ -608,7 +614,7 @@ describe('AISignals', () => {
 
   describe('Signal Colors', () => {
     it('displays LONG signal with profit color', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [{ ...mockSignal, signal: 'long' }],
           isLoading: false,
@@ -627,7 +633,7 @@ describe('AISignals', () => {
     })
 
     it('displays SHORT signal with loss color', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [{ ...mockSignal, signal: 'short' }],
           isLoading: false,
@@ -646,7 +652,7 @@ describe('AISignals', () => {
     })
 
     it('displays NEUTRAL signal with warning color', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [{ ...mockSignal, signal: 'neutral' }],
           isLoading: false,
@@ -667,7 +673,7 @@ describe('AISignals', () => {
 
   describe('Timestamp Formatting', () => {
     it('formats timestamp correctly', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -690,7 +696,7 @@ describe('AISignals', () => {
 
   describe('Accessibility', () => {
     it('has clickable signal cards', () => {
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [mockSignal],
           isLoading: false,
@@ -716,7 +722,7 @@ describe('AISignals', () => {
         strategy_scores: undefined,
       }
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [signalWithoutScores],
           isLoading: false,
@@ -739,7 +745,7 @@ describe('AISignals', () => {
         market_analysis: undefined,
       }
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [signalWithoutAnalysis],
           isLoading: false,
@@ -762,7 +768,7 @@ describe('AISignals', () => {
         risk_assessment: undefined,
       }
 
-      mockUseAIAnalysis.mockReturnValue({
+      mockUseAIAnalysisContext.mockReturnValue({
         state: {
           signals: [signalWithoutRisk],
           isLoading: false,

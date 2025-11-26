@@ -29,14 +29,14 @@ export function MobileNav() {
       icon: TrendingUp,
     },
     {
-      label: "Hướng Dẫn",
-      href: "/how-it-works",
-      icon: BookOpen,
-    },
-    {
       label: "Settings",
       href: "/settings",
       icon: Settings,
+    },
+    {
+      label: "Hướng Dẫn",
+      href: "/how-it-works",
+      icon: BookOpen,
     },
   ];
 

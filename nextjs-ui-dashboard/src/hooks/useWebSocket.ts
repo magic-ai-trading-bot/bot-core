@@ -292,6 +292,8 @@ export const useWebSocket = (): WebSocketHook => {
       model_type: signalData.model_type,
       symbol: signalData.symbol,
       timeframe: signalData.timeframe,
+      reasoning: signalData.reasoning, // Pass through reasoning from backend
+      strategy_scores: signalData.strategy_scores, // Pass through strategy scores from backend
     };
 
     setState((prev) => ({

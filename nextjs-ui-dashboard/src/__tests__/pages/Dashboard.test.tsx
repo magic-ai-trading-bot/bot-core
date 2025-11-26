@@ -85,8 +85,76 @@ vi.mock('../../hooks/useWebSocket', () => ({
   }),
 }))
 
-vi.mock('../../hooks/usePaperTrading', () => ({
-  usePaperTrading: () => ({
+vi.mock('../../contexts/WebSocketContext', () => ({
+  useWebSocketContext: () => ({
+    state: {
+      isConnected: true,
+      isConnecting: false,
+      error: null,
+      lastMessage: null,
+    },
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    sendMessage: vi.fn(),
+  }),
+  WebSocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
+vi.mock('../../contexts/AIAnalysisContext', () => ({
+  useAIAnalysisContext: () => ({
+    state: {
+      signals: [],
+      strategies: [],
+      marketCondition: null,
+      serviceInfo: null,
+      supportedStrategies: [],
+      availableSymbols: ['BTCUSDT', 'ETHUSDT'],
+      isLoading: false,
+      error: null,
+      lastUpdate: null,
+    },
+    analyzeSymbol: vi.fn(),
+    getStrategyRecommendations: vi.fn(),
+    analyzeMarketCondition: vi.fn(),
+    refreshServiceInfo: vi.fn(),
+    refreshAvailableSymbols: vi.fn(() => Promise.resolve(['BTCUSDT', 'ETHUSDT'])),
+    clearError: vi.fn(),
+  }),
+  AIAnalysisProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
+// Mock heavy components to avoid async loading issues
+vi.mock('../../components/dashboard/TradingCharts', () => ({
+  TradingCharts: () => <div data-testid="trading-charts">Trading Charts Mock</div>,
+}))
+
+vi.mock('../../components/dashboard/PerformanceChart', () => ({
+  PerformanceChart: () => <div data-testid="performance-chart">Performance Chart Mock</div>,
+}))
+
+vi.mock('../../components/ChatBot', () => ({
+  default: () => <div data-testid="chatbot">ChatBot Mock</div>,
+}))
+
+// Mock AuthContext for DashboardHeader
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: {
+      id: 'user123',
+      email: 'test@example.com',
+      full_name: 'Test User',
+    },
+    isAuthenticated: true,
+    isLoading: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    register: vi.fn(),
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
+vi.mock('../../contexts/PaperTradingContext', () => ({
+  usePaperTradingContext: () => ({
     portfolio: {
       current_balance: 10000,
       available_balance: 9000,
@@ -136,6 +204,7 @@ vi.mock('../../hooks/usePaperTrading', () => ({
     refreshAISignals: vi.fn(),
     refreshSettings: vi.fn(),
   }),
+  PaperTradingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 describe('Dashboard', () => {

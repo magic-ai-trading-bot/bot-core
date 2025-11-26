@@ -19,6 +19,19 @@ vi.mock('../../components/ChatBot', () => ({
   default: () => null,
 }))
 
+// Mock PaperTradingContext (Settings uses usePaperTradingContext)
+vi.mock('../../contexts/PaperTradingContext', () => ({
+  usePaperTradingContext: vi.fn(() => ({
+    portfolio: {
+      current_balance: 10000,
+      equity: 10000,
+      total_pnl: 0,
+      total_pnl_percentage: 0,
+    },
+  })),
+  PaperTradingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 describe('Settings', () => {
   beforeEach(() => {
     vi.clearAllMocks()

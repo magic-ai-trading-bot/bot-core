@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { useAIAnalysisContext } from "@/contexts/AIAnalysisContext";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useWebSocketContext } from "@/contexts/WebSocketContext";
 import {
   AlertCircle,
   RefreshCw,
@@ -18,7 +18,7 @@ import { DetailedSignalDialog } from "./DetailedSignalDialog";
 
 export function AISignalsDashboard() {
   const { state: aiState, clearError } = useAIAnalysisContext();
-  const { state: wsState } = useWebSocket();
+  const { state: wsState } = useWebSocketContext();
 
   // Combine signals from both AI analysis and WebSocket
   const allSignalsRaw = [
@@ -26,8 +26,11 @@ export function AISignalsDashboard() {
     ...wsState.aiSignals.map((s) => ({
       ...s,
       source: "websocket",
-      reasoning: `WebSocket signal from ${s.model_type}`,
-      strategy_scores: {},
+      // Use reasoning from WebSocket if available, otherwise generate a meaningful default
+      reasoning: s.reasoning ||
+        `Real-time ${s.model_type} analysis for ${s.symbol} on ${s.timeframe} timeframe`,
+      // Use strategy_scores from WebSocket if available
+      strategy_scores: s.strategy_scores || {},
       market_analysis: {
         trend_direction:
           s.signal === "long"
@@ -101,8 +104,8 @@ export function AISignalsDashboard() {
   });
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
+    <Card className="h-full flex flex-col w-full">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="text-lg flex items-center gap-2">
           AI Trading Signals
           <Badge
@@ -114,7 +117,7 @@ export function AISignalsDashboard() {
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 flex-1 overflow-auto">
+      <CardContent className="space-y-4 flex-1 overflow-y-auto min-h-0">
         {/* WebSocket Connection Status */}
         <div className="flex items-center gap-4 mb-4">
           <div className="flex items-center gap-2">

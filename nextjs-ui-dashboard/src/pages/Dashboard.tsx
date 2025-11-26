@@ -16,6 +16,7 @@ const ChartFallback = () => (
 );
 
 const Dashboard = () => {
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
@@ -31,11 +32,12 @@ const Dashboard = () => {
           </Suspense>
 
           {/* AI Section - Strategy Configuration & Trading Signals */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-            <div className="lg:col-span-1 h-full">
+          {/* Fixed height section - both columns fill the same height */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 lg:h-[950px]">
+            <div className="lg:col-span-1 lg:overflow-auto">
               <AIStrategySelector />
             </div>
-            <div className="lg:col-span-2 h-full">
+            <div className="lg:col-span-2 lg:overflow-hidden">
               <AISignals />
             </div>
           </div>

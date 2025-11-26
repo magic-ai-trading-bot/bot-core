@@ -60,6 +60,8 @@ export interface AISignal {
   model_type: string;
   symbol: string;
   timeframe: string;
+  reasoning?: string; // Detailed analysis reasoning from AI
+  strategy_scores?: Record<string, number>; // Strategy performance scores
 }
 
 // NEW AI TYPES - Compatible with Python AI Service

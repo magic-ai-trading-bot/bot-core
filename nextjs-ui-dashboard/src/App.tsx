@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AIAnalysisProvider } from "@/contexts/AIAnalysisContext";
 import { PaperTradingProvider } from "@/contexts/PaperTradingContext";
+import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Lazy load all pages for code splitting
@@ -32,9 +33,10 @@ const LoadingFallback = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <AIAnalysisProvider>
-        <PaperTradingProvider>
-          <TooltipProvider>
+      <WebSocketProvider>
+        <AIAnalysisProvider>
+          <PaperTradingProvider>
+            <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -76,9 +78,10 @@ const App = () => (
               </Routes>
             </Suspense>
           </BrowserRouter>
-          </TooltipProvider>
-        </PaperTradingProvider>
-      </AIAnalysisProvider>
+            </TooltipProvider>
+          </PaperTradingProvider>
+        </AIAnalysisProvider>
+      </WebSocketProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
