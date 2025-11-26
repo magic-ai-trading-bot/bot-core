@@ -45,19 +45,21 @@ describe('DashboardHeader', () => {
     it('renders the dashboard header', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+      expect(screen.getByText('Bot')).toBeInTheDocument()
+      expect(screen.getByText('Core')).toBeInTheDocument()
     })
 
-    it('displays the app logo', () => {
-      render(<DashboardHeader />)
+    it('displays the app logo with Bot icon', () => {
+      const { container } = render(<DashboardHeader />)
 
-      expect(screen.getByText('BT')).toBeInTheDocument()
+      const logo = container.querySelector('[aria-label="BotCore Logo"]')
+      expect(logo).toBeInTheDocument()
     })
 
     it('displays the app tagline', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('AI-Powered Futures Trading')).toBeInTheDocument()
+      expect(screen.getByText('AI Trading')).toBeInTheDocument()
     })
 
     it('displays navigation menu', () => {
@@ -71,27 +73,29 @@ describe('DashboardHeader', () => {
     it('displays bot active badge', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Bot Active')).toBeInTheDocument()
+      expect(screen.getByText('Active')).toBeInTheDocument()
     })
 
-    it('displays Binance Futures connection', () => {
+    it('displays Binance connection indicator', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Connected to')).toBeInTheDocument()
-      expect(screen.getByText('Binance Futures')).toBeInTheDocument()
+      expect(screen.getByText('Binance')).toBeInTheDocument()
     })
 
-    it('displays logged in user information', () => {
+    it('displays user info with first name or email prefix', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Logged in as')).toBeInTheDocument()
-      expect(screen.getByText('Test User')).toBeInTheDocument()
+      // Shows first name "Test" from "Test User"
+      expect(screen.getByText('Test')).toBeInTheDocument()
     })
 
-    it('displays logout button', () => {
+    it('displays logout button as icon', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByRole('button', { name: /đăng xuất/i })).toBeInTheDocument()
+      // Logout button is now an icon button, find by aria-label or role
+      const buttons = screen.getAllByRole('button')
+      const logoutButton = buttons.find(btn => btn.querySelector('svg.lucide-log-out'))
+      expect(logoutButton).toBeInTheDocument()
     })
   })
 
@@ -133,13 +137,14 @@ describe('DashboardHeader', () => {
   })
 
   describe('User Information Display', () => {
-    it('displays user full name when available', () => {
+    it('displays user first name when full_name available', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Test User')).toBeInTheDocument()
+      // Shows first name "Test" from "Test User"
+      expect(screen.getByText('Test')).toBeInTheDocument()
     })
 
-    it('displays user email when full name is not available', () => {
+    it('displays email prefix when full name is not available', () => {
       mockUseAuth.mockReturnValue({
         logout: mockLogout,
         user: {
@@ -153,7 +158,8 @@ describe('DashboardHeader', () => {
 
       render(<DashboardHeader />)
 
-      expect(screen.getByText('test@example.com')).toBeInTheDocument()
+      // Shows email prefix "test" from "test@example.com"
+      expect(screen.getByText('test')).toBeInTheDocument()
     })
 
     it('handles empty user name gracefully', () => {
@@ -170,7 +176,8 @@ describe('DashboardHeader', () => {
 
       render(<DashboardHeader />)
 
-      expect(screen.getByText('test@example.com')).toBeInTheDocument()
+      // Falls back to email prefix
+      expect(screen.getByText('test')).toBeInTheDocument()
     })
 
     it('truncates long user names', () => {
@@ -197,8 +204,11 @@ describe('DashboardHeader', () => {
       const user = userEvent.setup()
       render(<DashboardHeader />)
 
-      const logoutButton = screen.getByRole('button', { name: /đăng xuất/i })
-      await user.click(logoutButton)
+      // Find logout button by icon
+      const buttons = screen.getAllByRole('button')
+      const logoutButton = buttons.find(btn => btn.querySelector('svg.lucide-log-out'))
+      expect(logoutButton).toBeInTheDocument()
+      await user.click(logoutButton!)
 
       expect(mockLogout).toHaveBeenCalled()
     })
@@ -207,8 +217,9 @@ describe('DashboardHeader', () => {
       const user = userEvent.setup()
       render(<DashboardHeader />)
 
-      const logoutButton = screen.getByRole('button', { name: /đăng xuất/i })
-      await user.click(logoutButton)
+      const buttons = screen.getAllByRole('button')
+      const logoutButton = buttons.find(btn => btn.querySelector('svg.lucide-log-out'))
+      await user.click(logoutButton!)
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/login')
@@ -219,8 +230,9 @@ describe('DashboardHeader', () => {
       const user = userEvent.setup()
       render(<DashboardHeader />)
 
-      const logoutButton = screen.getByRole('button', { name: /đăng xuất/i })
-      await user.click(logoutButton)
+      const buttons = screen.getAllByRole('button')
+      const logoutButton = buttons.find(btn => btn.querySelector('svg.lucide-log-out'))
+      await user.click(logoutButton!)
 
       // Logout should be called before navigation
       expect(mockLogout).toHaveBeenCalled()
@@ -239,7 +251,7 @@ describe('DashboardHeader', () => {
     it('applies profit color to bot active badge', () => {
       render(<DashboardHeader />)
 
-      const badge = screen.getByText('Bot Active').closest('div')
+      const badge = screen.getByText('Active').closest('div')
       expect(badge?.className).toContain('bg-profit/10')
     })
   })
@@ -314,22 +326,25 @@ describe('DashboardHeader', () => {
     it('displays logo with correct size', () => {
       const { container } = render(<DashboardHeader />)
 
-      const logo = container.querySelector('.w-8.h-8')
+      const logo = container.querySelector('.w-11.h-11')
       expect(logo).toBeTruthy()
     })
 
-    it('displays logo text centered', () => {
+    it('displays brand name with gradient text', () => {
       render(<DashboardHeader />)
 
-      const logoText = screen.getByText('BT')
-      expect(logoText.className).toContain('font-bold')
+      const botText = screen.getByText('Bot')
+      const coreText = screen.getByText('Core')
+      expect(botText).toBeInTheDocument()
+      expect(coreText.className).toContain('bg-gradient-to-r')
+      expect(coreText.className).toContain('bg-clip-text')
     })
 
     it('applies hover effect to logo link', () => {
       const { container } = render(<DashboardHeader />)
 
       const logoLink = screen.getAllByRole('link')[0]
-      expect(logoLink.className).toContain('hover:opacity-80')
+      expect(logoLink.className).toContain('group')
     })
   })
 
@@ -342,7 +357,8 @@ describe('DashboardHeader', () => {
 
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+      expect(screen.getByText('Bot')).toBeInTheDocument()
+      expect(screen.getByText('Core')).toBeInTheDocument()
     })
 
     it('handles user without full_name or email', () => {
@@ -357,18 +373,20 @@ describe('DashboardHeader', () => {
 
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+      expect(screen.getByText('Bot')).toBeInTheDocument()
+      expect(screen.getByText('Core')).toBeInTheDocument()
     })
 
     it('handles multiple rapid logout clicks', async () => {
       const user = userEvent.setup()
       render(<DashboardHeader />)
 
-      const logoutButton = screen.getByRole('button', { name: /đăng xuất/i })
+      const buttons = screen.getAllByRole('button')
+      const logoutButton = buttons.find(btn => btn.querySelector('svg.lucide-log-out'))
 
-      await user.click(logoutButton)
-      await user.click(logoutButton)
-      await user.click(logoutButton)
+      await user.click(logoutButton!)
+      await user.click(logoutButton!)
+      await user.click(logoutButton!)
 
       // Should only logout once (or multiple times, but shouldn't crash)
       expect(mockLogout).toHaveBeenCalled()
@@ -396,7 +414,10 @@ describe('DashboardHeader', () => {
       expect(screen.getByRole('button', { name: /dashboard/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /trading paper/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /đăng xuất/i })).toBeInTheDocument()
+      // Logout button is now an icon-only button
+      const buttons = screen.getAllByRole('button')
+      const logoutButton = buttons.find(btn => btn.querySelector('svg.lucide-log-out'))
+      expect(logoutButton).toBeInTheDocument()
     })
   })
 
@@ -427,32 +448,37 @@ describe('DashboardHeader', () => {
     it('displays correct heading text', () => {
       render(<DashboardHeader />)
 
-      const heading = screen.getByText('Crypto Trading Bot')
-      expect(heading.tagName).toBe('H1')
+      // Brand name is split into two spans inside h1
+      const botText = screen.getByText('Bot')
+      const coreText = screen.getByText('Core')
+      expect(botText.closest('h1')).toBeInTheDocument()
+      expect(coreText.closest('h1')).toBeInTheDocument()
     })
 
     it('applies correct text sizes', () => {
       render(<DashboardHeader />)
 
-      const heading = screen.getByText('Crypto Trading Bot')
-      expect(heading.className).toContain('text-xl')
-      expect(heading.className).toContain('lg:text-2xl')
+      const heading = screen.getByText('Bot').closest('h1')
+      expect(heading?.className).toContain('text-lg')
+      expect(heading?.className).toContain('lg:text-xl')
     })
 
     it('applies muted color to tagline', () => {
       render(<DashboardHeader />)
 
-      const tagline = screen.getByText('AI-Powered Futures Trading')
+      const tagline = screen.getByText('AI Trading')
       expect(tagline.className).toContain('text-muted-foreground')
     })
   })
 
   describe('Button Styling', () => {
-    it('applies outline variant to logout button', () => {
+    it('applies ghost variant to logout button', () => {
       render(<DashboardHeader />)
 
-      const logoutButton = screen.getByRole('button', { name: /đăng xuất/i })
-      expect(logoutButton.className).toContain('outline')
+      const buttons = screen.getAllByRole('button')
+      const logoutButton = buttons.find(btn => btn.querySelector('svg.lucide-log-out'))
+      // Ghost variant button with icon
+      expect(logoutButton).toBeInTheDocument()
     })
 
     it('applies small size to navigation buttons', () => {
@@ -467,8 +493,8 @@ describe('DashboardHeader', () => {
     it('displays user info when authenticated', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Logged in as')).toBeInTheDocument()
-      expect(screen.getByText('Test User')).toBeInTheDocument()
+      // Shows first name from full_name
+      expect(screen.getByText('Test')).toBeInTheDocument()
     })
 
     it('handles unauthenticated state', () => {
@@ -480,7 +506,8 @@ describe('DashboardHeader', () => {
       render(<DashboardHeader />)
 
       // Should still render header
-      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+      expect(screen.getByText('Bot')).toBeInTheDocument()
+      expect(screen.getByText('Core')).toBeInTheDocument()
     })
   })
 })

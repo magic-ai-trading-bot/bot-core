@@ -4,7 +4,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { MobileNav } from "./MobileNav";
-import { WifiOff, LayoutDashboard, TrendingUp, BookOpen, Settings as SettingsIcon } from "lucide-react";
+import { WifiOff, LayoutDashboard, TrendingUp, BookOpen, Settings as SettingsIcon, LogOut, User, Wifi } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function DashboardHeader() {
   const { logout, user } = useAuth();
@@ -26,37 +33,22 @@ export function DashboardHeader() {
           </div>
         </div>
       )}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 lg:p-6 border-b border-border gap-4">
-        <div className="flex items-center gap-4">
-        {/* Mobile Hamburger Menu - Only visible on mobile/tablet */}
-        <MobileNav />
-        <Link
-          to="/dashboard"
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          aria-label="Go to Dashboard home"
-        >
-          <div
-            className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
-            role="img"
-            aria-label="Bot Core Logo"
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 lg:px-6 py-3 lg:py-4 border-b border-border gap-4 relative">
+        {/* Left: Logo */}
+        <div className="flex items-center gap-3 lg:flex-shrink-0">
+          {/* Mobile Hamburger Menu - Only visible on mobile/tablet */}
+          <MobileNav />
+          <Link
+            to="/"
+            className="group flex items-center"
+            aria-label="Go to Home"
           >
-            <span className="text-primary-foreground font-bold text-sm" aria-hidden="true">
-              BT
-            </span>
-          </div>
-          <div>
-            <h1 className="text-xl lg:text-2xl font-bold">
-              Crypto Trading Bot
-            </h1>
-            <p className="text-muted-foreground text-xs lg:text-sm">
-              AI-Powered Futures Trading
-            </p>
-          </div>
-        </Link>
-      </div>
+            <Logo size="md" />
+          </Link>
+        </div>
 
-      {/* Navigation Menu - Mobile friendly */}
-      <div className="hidden lg:flex items-center gap-2">
+      {/* Center: Navigation Menu - Absolutely centered on desktop */}
+      <div className="hidden lg:flex items-center gap-2 lg:absolute lg:left-1/2 lg:-translate-x-1/2">
         <Link to="/dashboard">
           <Button
             variant="ghost"
@@ -99,36 +91,63 @@ export function DashboardHeader() {
         </Link>
       </div>
 
-      <div className="flex flex-row items-center gap-2 lg:gap-4 ml-auto lg:ml-0">
-        <Badge
-          variant="outline"
-          className="bg-profit/10 text-profit border-profit/20 text-xs lg:text-sm w-fit"
-        >
-          <div className="w-2 h-2 bg-profit rounded-full mr-2 animate-pulse"></div>
-          Bot Active
-        </Badge>
+      <TooltipProvider>
+        <div className="flex flex-row items-center gap-2 lg:gap-3 ml-auto lg:ml-0">
+          {/* Bot Status Badge */}
+          <Badge
+            variant="outline"
+            className="bg-profit/10 text-profit border-profit/20 text-xs w-fit"
+          >
+            <div className="w-2 h-2 bg-profit rounded-full mr-1.5 animate-pulse"></div>
+            <span className="hidden sm:inline">Active</span>
+          </Badge>
 
-        <div className="text-left lg:text-right">
-          <p className="text-xs text-muted-foreground">Connected to</p>
-          <p className="font-semibold text-xs lg:text-sm">Binance Futures</p>
+          {/* Connection Status */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 cursor-default">
+                <Wifi className="h-3.5 w-3.5 text-profit" />
+                <span className="text-xs font-medium hidden md:inline">Binance</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Connected to Binance Futures</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* User Info */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 cursor-default">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium truncate max-w-20 hidden md:inline">
+                  {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{user?.full_name || user?.email}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Logout Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Đăng xuất</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
-
-        <div className="text-left lg:text-right">
-          <p className="text-xs text-muted-foreground">Logged in as</p>
-          <p className="font-semibold text-xs truncate max-w-32 lg:max-w-none">
-            {user?.full_name || user?.email}
-          </p>
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLogout}
-          className="text-xs lg:text-sm w-fit"
-        >
-          Đăng xuất
-        </Button>
-      </div>
+      </TooltipProvider>
     </div>
     </>
   );

@@ -6,14 +6,19 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   isTyping?: boolean;
+  sources?: Array<{ title: string; path: string }>;
 }
 
 export interface ChatResponse {
   success: boolean;
   message: string;
   confidence: number;
-  type: "faq" | "ai" | "error";
+  type: "faq" | "ai" | "rag" | "fallback" | "error";
+  sources?: Array<{ title: string; path: string }>;
 }
+
+// Python AI Service URL for RAG chatbot
+const PYTHON_AI_SERVICE_URL = import.meta.env.VITE_PYTHON_AI_URL || "http://localhost:8000";
 
 // FAQ Database cho trading bot (Vietnamese)
 const FAQ_DATABASE = {
@@ -157,6 +162,7 @@ class ChatbotService {
   private lastRequestTime = 0;
   private readonly REQUEST_LIMIT = 10; // Giới hạn 10 requests mỗi 5 phút
   private readonly TIME_WINDOW = 5 * 60 * 1000; // 5 phút
+  private useRAG = true; // Default to RAG mode
 
   // Kiểm tra rate limiting
   private checkRateLimit(): boolean {
@@ -194,7 +200,80 @@ class ChatbotService {
     return null;
   }
 
-  // Gọi Hugging Face API
+  // Gọi Python RAG Chatbot API
+  private async callRAGChatbot(message: string): Promise<ChatResponse> {
+    if (!this.checkRateLimit()) {
+      return {
+        success: false,
+        message: "⏰ Xin lỗi, bạn đã hỏi quá nhiều câu hỏi. Vui lòng chờ 5 phút rồi thử lại.",
+        confidence: 0,
+        type: "error",
+      };
+    }
+
+    try {
+      const response = await fetch(`${PYTHON_AI_SERVICE_URL}/api/chat/project`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message,
+          include_history: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      return {
+        success: result.success,
+        message: result.message,
+        confidence: result.confidence,
+        type: result.type as "rag" | "fallback" | "error",
+        sources: result.sources,
+      };
+    } catch (error) {
+      logger.error("RAG Chatbot API Error:", error);
+      // Fallback to local FAQ if RAG service is unavailable
+      return this.fallbackToLocalFAQ(message);
+    }
+  }
+
+  // Fallback to local FAQ when RAG is unavailable
+  private fallbackToLocalFAQ(message: string): ChatResponse {
+    const faqMatch = this.findFAQMatch(message);
+
+    if (faqMatch) {
+      return {
+        success: true,
+        message: faqMatch.response + "\n\n💡 *Trả lời từ FAQ cục bộ (AI service đang không khả dụng)*",
+        confidence: faqMatch.confidence * 0.8, // Slightly lower confidence for fallback
+        type: "faq",
+      };
+    }
+
+    return {
+      success: true,
+      message: `🤔 Tôi chưa tìm thấy thông tin về câu hỏi này.
+
+Bạn có thể hỏi về:
+• Bot hoạt động như thế nào?
+• Cách bắt đầu sử dụng?
+• Các chiến lược trading?
+• Bảo mật và quản lý rủi ro?
+• Paper trading là gì?
+
+💡 *AI service đang không khả dụng. Đang dùng FAQ cục bộ.*`,
+      confidence: 0.5,
+      type: "fallback",
+    };
+  }
+
+  // Gọi Hugging Face API (legacy fallback)
   private async callHuggingFaceAPI(message: string): Promise<string> {
     if (!this.checkRateLimit()) {
       return "⏰ Xin lỗi, bạn đã hỏi quá nhiều câu hỏi. Vui lòng chờ 5 phút rồi thử lại. Trong lúc này, bạn có thể xem FAQ hoặc documentation.";
@@ -241,10 +320,26 @@ Assistant:`,
     }
   }
 
+  // Toggle RAG mode
+  setRAGMode(enabled: boolean): void {
+    this.useRAG = enabled;
+    logger.info(`RAG mode ${enabled ? "enabled" : "disabled"}`);
+  }
+
+  // Check if RAG mode is enabled
+  isRAGEnabled(): boolean {
+    return this.useRAG;
+  }
+
   // Xử lý tin nhắn chính
   async processMessage(message: string): Promise<ChatResponse> {
     try {
-      // Tìm trong FAQ trước
+      // Use RAG chatbot as primary (calls Python backend with GPT-4)
+      if (this.useRAG) {
+        return await this.callRAGChatbot(message);
+      }
+
+      // Legacy mode: Local FAQ first, then Hugging Face
       const faqMatch = this.findFAQMatch(message);
 
       if (faqMatch && faqMatch.confidence > 0.8) {
@@ -256,7 +351,7 @@ Assistant:`,
         };
       }
 
-      // Nếu không tìm thấy trong FAQ, dùng AI
+      // Nếu không tìm thấy trong FAQ, dùng Hugging Face AI
       const aiResponse = await this.callHuggingFaceAPI(message);
 
       return {
@@ -277,8 +372,29 @@ Assistant:`,
     }
   }
 
-  // Lấy suggested questions
+  // Lấy suggested questions (có thể gọi API nếu RAG enabled)
+  async getSuggestedQuestionsAsync(): Promise<string[]> {
+    if (this.useRAG) {
+      try {
+        const response = await fetch(`${PYTHON_AI_SERVICE_URL}/api/chat/project/suggestions`);
+        if (response.ok) {
+          const data = await response.json();
+          return data.suggestions || this.getDefaultSuggestedQuestions();
+        }
+      } catch (error) {
+        logger.error("Failed to fetch suggestions from API:", error);
+      }
+    }
+    return this.getDefaultSuggestedQuestions();
+  }
+
+  // Lấy suggested questions (sync version - uses defaults)
   getSuggestedQuestions(): string[] {
+    return this.getDefaultSuggestedQuestions();
+  }
+
+  // Default suggested questions
+  private getDefaultSuggestedQuestions(): string[] {
     return [
       "Bot hoạt động như thế nào?",
       "Làm sao để bắt đầu sử dụng bot?",
@@ -286,9 +402,30 @@ Assistant:`,
       "Vốn tối thiểu là bao nhiêu?",
       "Bot có những chiến lược gì?",
       "Kết quả trading như thế nào?",
-      "Chi phí sử dụng bot là bao nhiêu?",
-      "Cần hỗ trợ thì liên hệ đâu?",
+      "Paper trading là gì?",
+      "Cách cấu hình API keys?",
     ];
+  }
+
+  // Clear conversation history (also clears on server if RAG enabled)
+  async clearHistoryAsync(): Promise<void> {
+    this.conversationHistory = [];
+
+    if (this.useRAG) {
+      try {
+        await fetch(`${PYTHON_AI_SERVICE_URL}/api/chat/project/clear`, {
+          method: "POST",
+        });
+      } catch (error) {
+        logger.error("Failed to clear history on server:", error);
+      }
+    }
+  }
+
+  // Reset rate limit counter (for testing purposes)
+  resetRateLimit(): void {
+    this.requestCount = 0;
+    this.lastRequestTime = 0;
   }
 
   // Lấy lịch sử conversation

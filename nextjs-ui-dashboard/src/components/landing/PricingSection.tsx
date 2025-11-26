@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Zap, Rocket } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const plans = [
   {
@@ -80,15 +81,21 @@ export function PricingSection() {
 
   const handleSubscribe = async (planName: string, price: number) => {
     setIsProcessing(planName);
-    
+
     try {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For now, redirect to a success page or show success message
-      alert(`Subscription to ${planName} plan ($${price}/month) initiated! You will receive an email with registration instructions.`);
-    } catch (error) {
-      alert('Payment failed. Please try again.');
+
+      // Show success toast
+      toast.success(`${planName} Plan Selected!`, {
+        description: `$${price}/month - You will receive an email with registration instructions.`,
+        duration: 5000,
+      });
+    } catch {
+      toast.error("Payment Failed", {
+        description: "Please try again or contact support.",
+        duration: 4000,
+      });
     } finally {
       setIsProcessing(null);
     }

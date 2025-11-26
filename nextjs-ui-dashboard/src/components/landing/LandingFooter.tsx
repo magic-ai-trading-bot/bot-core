@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Mail, Twitter, Linkedin, Github } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
+import { Link } from "react-router-dom";
 
 export function LandingFooter() {
   return (
@@ -8,15 +10,9 @@ export function LandingFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">BT</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">CryptoBot AI</h3>
-                <p className="text-xs text-muted-foreground">AI-Powered Trading</p>
-              </div>
-            </div>
+            <Link to="/">
+              <Logo size="sm" />
+            </Link>
             <p className="text-sm text-muted-foreground">
               The most advanced AI trading platform for cryptocurrency futures, 
               trusted by thousands of traders worldwide.
@@ -77,7 +73,7 @@ export function LandingFooter() {
         <div className="border-t border-border/50 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              © 2024 CryptoBot AI. All rights reserved.
+              © 2025 BotCore. All rights reserved.
             </div>
             
             <div className="flex items-center gap-4">

@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import ChatBot from "@/components/ChatBot";
+import { Logo } from "@/components/ui/Logo";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -67,16 +68,13 @@ const Login = () => {
       <div className="relative z-10 w-full max-w-sm md:max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-6 md:mb-8">
-          <div
-            className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4"
-            role="img"
-            aria-label="Bot Core Trading Bot Logo"
-          >
-            <span className="text-primary-foreground font-bold text-lg md:text-2xl" aria-hidden="true">
-              BT
-            </span>
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" showText={false} />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold">Crypto Trading Bot</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold">
+            <span className="text-foreground">Bot</span>
+            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Core</span>
+          </h1>
           <p className="text-muted-foreground mt-2 text-sm md:text-base">
             Đăng nhập để quản lý bot trading của bạn
           </p>
