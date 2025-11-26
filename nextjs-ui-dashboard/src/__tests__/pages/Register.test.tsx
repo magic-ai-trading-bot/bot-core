@@ -84,7 +84,8 @@ describe('Register', () => {
     render(<Register />)
 
     expect(screen.getByRole('heading', { name: /đăng ký/i })).toBeInTheDocument()
-    expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+    expect(screen.getByText('Bot')).toBeInTheDocument()
+    expect(screen.getByText('Core')).toBeInTheDocument()
     expect(screen.getByLabelText(/họ và tên/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Mật khẩu')).toBeInTheDocument()
@@ -95,8 +96,9 @@ describe('Register', () => {
   it('shows brand and tagline', () => {
     render(<Register />)
 
-    expect(screen.getByText('BT')).toBeInTheDocument()
-    expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+    expect(screen.getByText('Bot')).toBeInTheDocument()
+    expect(screen.getByText('Core')).toBeInTheDocument()
+    // Register page doesn't show "AI Trading" - it has custom tagline
     expect(screen.getByText(/tạo tài khoản để bắt đầu giao dịch/i)).toBeInTheDocument()
   })
 

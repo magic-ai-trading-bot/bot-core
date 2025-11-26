@@ -84,7 +84,8 @@ describe('Login', () => {
     render(<Login />)
 
     expect(screen.getByRole('heading', { name: /đăng nhập/i })).toBeInTheDocument()
-    expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+    expect(screen.getByText('Bot')).toBeInTheDocument()
+    expect(screen.getByText('Core')).toBeInTheDocument()
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/mật khẩu/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /đăng nhập/i })).toBeInTheDocument()
