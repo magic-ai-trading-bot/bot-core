@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { render } from '../../../test/utils'
 import { BotSettings } from '../../../components/dashboard/BotSettings'
 
-// Mock usePaperTrading hook
+// Mock usePaperTradingContext hook (component uses context, not hook directly)
 const mockStartBot = vi.fn()
 const mockStopBot = vi.fn()
 const mockUpdateSettings = vi.fn()
@@ -64,8 +64,8 @@ const mockClosedTrades: never[] = []
 const mockRecentSignals: never[] = []
 const mockLastUpdated = new Date()
 
-vi.mock('../../../hooks/usePaperTrading', () => ({
-  usePaperTrading: vi.fn(() => ({
+vi.mock('../../../contexts/PaperTradingContext', () => ({
+  usePaperTradingContext: vi.fn(() => ({
     portfolio: mockPortfolio,
     settings: mockSettings,
     positions: mockPositions,
@@ -86,11 +86,22 @@ vi.mock('../../../hooks/usePaperTrading', () => ({
     refreshAISignals: vi.fn(),
     refreshSettings: vi.fn(),
   })),
+  PaperTradingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 describe('BotSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Mock fetch for trading pairs API
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'SOLUSDT']
+        }
+      })
+    }) as unknown as typeof fetch
   })
 
   describe('Component Rendering', () => {
@@ -116,10 +127,13 @@ describe('BotSettings', () => {
       expect(screen.getByText('Active Trading Pairs')).toBeInTheDocument()
     })
 
-    it('displays all trading pairs', () => {
+    it('displays all trading pairs', async () => {
       render(<BotSettings />)
 
-      expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+      // Wait for trading pairs to load from API mock
+      await waitFor(() => {
+        expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+      })
       expect(screen.getByText('ETH/USDT')).toBeInTheDocument()
       expect(screen.getByText('BNB/USDT')).toBeInTheDocument()
       expect(screen.getByText('SOL/USDT')).toBeInTheDocument()
@@ -246,16 +260,26 @@ describe('BotSettings', () => {
   })
 
   describe('Trading Pairs', () => {
-    it('has BTC/USDT switch checked by default', () => {
+    it('has BTC/USDT switch checked by default', async () => {
       render(<BotSettings />)
+
+      // Wait for trading pairs to load
+      await waitFor(() => {
+        expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+      })
 
       const switches = screen.getAllByRole('switch')
       // BTC/USDT is the second switch (index 1)
       expect(switches[1]).toBeChecked()
     })
 
-    it('has ETH/USDT switch checked by default', () => {
+    it('has ETH/USDT switch checked by default', async () => {
       render(<BotSettings />)
+
+      // Wait for trading pairs to load
+      await waitFor(() => {
+        expect(screen.getByText('ETH/USDT')).toBeInTheDocument()
+      })
 
       const switches = screen.getAllByRole('switch')
       // ETH/USDT is the third switch (index 2)
@@ -265,6 +289,11 @@ describe('BotSettings', () => {
     it('toggles trading pair switch', async () => {
       const user = userEvent.setup()
       render(<BotSettings />)
+
+      // Wait for trading pairs to load
+      await waitFor(() => {
+        expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+      })
 
       const switches = screen.getAllByRole('switch')
       const btcSwitch = switches[1]
@@ -365,12 +394,17 @@ describe('BotSettings', () => {
   })
 
   describe('Accessibility', () => {
-    it('has accessible switch roles', () => {
+    it('has accessible switch roles', async () => {
       render(<BotSettings />)
 
+      // Wait for trading pairs to load from API
+      await waitFor(() => {
+        expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+      })
+
       const switches = screen.getAllByRole('switch')
-      // Should have 5 switches: bot status + 4 trading pairs
-      expect(switches).toHaveLength(5)
+      // Should have 6 switches: bot status + 5 trading pairs (from API mock)
+      expect(switches).toHaveLength(6)
     })
 
     it('has accessible button roles', () => {
@@ -454,6 +488,11 @@ describe('BotSettings', () => {
       const user = userEvent.setup()
       render(<BotSettings />)
 
+      // Wait for trading pairs to load from API
+      await waitFor(() => {
+        expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+      })
+
       const switches = screen.getAllByRole('switch')
 
       // Toggle multiple pairs
@@ -461,8 +500,8 @@ describe('BotSettings', () => {
       await user.click(switches[2]) // ETH
       await user.click(switches[3]) // BNB
 
-      // All switches should be functional
-      expect(switches).toHaveLength(5)
+      // All switches should be functional - 6 switches: bot status + 5 trading pairs
+      expect(switches).toHaveLength(6)
     })
   })
 })

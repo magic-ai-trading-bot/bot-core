@@ -189,7 +189,7 @@ impl BinanceWebSocket {
                 } => {
                     match cmd {
                         Some(WebSocketCommand::Subscribe { symbol, timeframes }) => {
-                            let streams = self.build_stream_names(&[symbol.clone()], &timeframes);
+                            let streams = self.build_stream_names(std::slice::from_ref(&symbol), &timeframes);
                             let request_id = self.request_id.fetch_add(1, Ordering::SeqCst);
 
                             let subscribe_msg = serde_json::json!({
@@ -207,7 +207,7 @@ impl BinanceWebSocket {
                             }
                         },
                         Some(WebSocketCommand::Unsubscribe { symbol, timeframes }) => {
-                            let streams = self.build_stream_names(&[symbol.clone()], &timeframes);
+                            let streams = self.build_stream_names(std::slice::from_ref(&symbol), &timeframes);
                             let request_id = self.request_id.fetch_add(1, Ordering::SeqCst);
 
                             let unsubscribe_msg = serde_json::json!({

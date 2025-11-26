@@ -19,6 +19,11 @@ vi.mock('../../components/ChatBot', () => ({
   default: () => null,
 }))
 
+// Mock PerformanceChart
+vi.mock('../../components/dashboard/PerformanceChart', () => ({
+  PerformanceChart: () => <div data-testid="performance-chart">Biểu đồ hiệu suất</div>,
+}))
+
 // Mock recharts to avoid rendering issues
 vi.mock('recharts', () => ({
   LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
@@ -33,7 +38,7 @@ vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
 }))
 
-// Mock the usePaperTrading hook
+// Mock functions for PaperTradingContext
 const mockStartTrading = vi.fn()
 const mockStopTrading = vi.fn()
 const mockUpdateSettings = vi.fn()
@@ -91,16 +96,41 @@ const defaultHookReturn = {
   refreshSettings: mockRefreshSettings,
 }
 
-vi.mock('../../hooks/usePaperTrading', () => ({
-  usePaperTrading: vi.fn(() => defaultHookReturn),
+// Mock the PaperTradingContext (TradingPaper uses usePaperTradingContext)
+vi.mock('../../contexts/PaperTradingContext', () => ({
+  usePaperTradingContext: vi.fn(() => defaultHookReturn),
+  PaperTradingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
-const { usePaperTrading } = await import('../../hooks/usePaperTrading')
+// Mock useAIAnalysis hook (used by AIAnalysisContext if provider is used)
+vi.mock('../../hooks/useAIAnalysis', () => ({
+  useAIAnalysis: vi.fn(() => ({
+    state: {
+      signals: [],
+      strategies: [],
+      marketCondition: null,
+      serviceInfo: null,
+      supportedStrategies: [],
+      availableSymbols: ['BTCUSDT', 'ETHUSDT'],
+      isLoading: false,
+      error: null,
+      lastUpdate: null,
+    },
+    analyzeSymbol: vi.fn(),
+    getStrategyRecommendations: vi.fn(),
+    analyzeMarketCondition: vi.fn(),
+    refreshServiceInfo: vi.fn(),
+    refreshAvailableSymbols: vi.fn().mockResolvedValue(['BTCUSDT', 'ETHUSDT']),
+    clearError: vi.fn(),
+  })),
+}))
+
+const { usePaperTradingContext } = await import('../../contexts/PaperTradingContext')
 
 describe('TradingPaper', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(usePaperTrading).mockReturnValue(defaultHookReturn)
+    vi.mocked(usePaperTradingContext).mockReturnValue(defaultHookReturn)
     global.fetch = vi.fn()
   })
 
@@ -152,7 +182,7 @@ describe('TradingPaper', () => {
     })
 
     it('shows active badge when bot is running', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         isActive: true,
       })
@@ -163,7 +193,7 @@ describe('TradingPaper', () => {
     })
 
     it('shows stop button when bot is active', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         isActive: true,
       })
@@ -177,7 +207,7 @@ describe('TradingPaper', () => {
       const user = userEvent.setup()
       mockStopTrading.mockResolvedValue(undefined)
 
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         isActive: true,
       })
@@ -190,7 +220,7 @@ describe('TradingPaper', () => {
     })
 
     it('disables buttons when loading', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         isLoading: true,
       })
@@ -276,7 +306,7 @@ describe('TradingPaper', () => {
     })
 
     it('displays portfolio metrics with live data', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         portfolio: {
           ...defaultHookReturn.portfolio,
@@ -306,7 +336,7 @@ describe('TradingPaper', () => {
 
     it('displays AI signals when available', async () => {
       const user = userEvent.setup()
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         recentSignals: [
           {
@@ -342,7 +372,7 @@ describe('TradingPaper', () => {
 
     it('displays open trades', async () => {
       const user = userEvent.setup()
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         openTrades: [
           {
@@ -373,7 +403,7 @@ describe('TradingPaper', () => {
 
     it('displays closed trades', async () => {
       const user = userEvent.setup()
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         closedTrades: [
           {
@@ -405,7 +435,7 @@ describe('TradingPaper', () => {
       const user = userEvent.setup()
       mockCloseTrade.mockResolvedValue(undefined)
 
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         openTrades: [
           {
@@ -549,7 +579,7 @@ describe('TradingPaper', () => {
 
   describe('Error Handling', () => {
     it('displays error alert when error occurs', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         error: 'Failed to fetch data',
       })
@@ -577,7 +607,7 @@ describe('TradingPaper', () => {
   describe('Trade Details Dialog', () => {
     it('opens trade details when trade row is clicked', async () => {
       const user = userEvent.setup()
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         openTrades: [
           {
@@ -643,7 +673,7 @@ describe('TradingPaper', () => {
 
   describe('Loading States', () => {
     it('shows loading state in buttons', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         isLoading: true,
       })
@@ -659,7 +689,7 @@ describe('TradingPaper', () => {
 
   describe('Real-time Updates', () => {
     it('displays live P&L section', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         portfolio: {
           ...defaultHookReturn.portfolio,
@@ -690,7 +720,7 @@ describe('TradingPaper', () => {
 
   describe('Currency Formatting', () => {
     it('displays balance section with values', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         portfolio: {
           ...defaultHookReturn.portfolio,
@@ -704,7 +734,7 @@ describe('TradingPaper', () => {
     })
 
     it('displays P&L percentage section', () => {
-      vi.mocked(usePaperTrading).mockReturnValue({
+      vi.mocked(usePaperTradingContext).mockReturnValue({
         ...defaultHookReturn,
         portfolio: {
           ...defaultHookReturn.portfolio,

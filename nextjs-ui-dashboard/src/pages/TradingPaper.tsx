@@ -46,6 +46,10 @@ import {
   Wifi,
   WifiOff,
   Clock,
+  Zap,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from "lucide-react";
 import ChatBot from "@/components/ChatBot";
 
@@ -643,6 +647,19 @@ const TradingPaper = () => {
     }
   }, []);
 
+  const formatTimeAgo = useCallback((date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Vừa xong";
+    if (diffMins < 60) return `${diffMins}m trước`;
+    if (diffHours < 24) return `${diffHours}h trước`;
+    return `${diffDays}d trước`;
+  }, []);
+
   // Memoize total position calculations to prevent recalculation on every render
   const totalPositionSize = useMemo(() => {
     return openTrades.reduce((total, trade) => total + calculatePositionSize(trade), 0);
@@ -1062,139 +1079,184 @@ const TradingPaper = () => {
             <PerformanceChart />
           </TabsContent>
 
-          {/* AI Signals Tab */}
+          {/* AI Signals Tab - Grid Cards Design */}
           <TabsContent value="signals" className="space-y-4 lg:space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  Tín hiệu AI gần đây
-                  <Badge
-                    variant="outline"
-                    className="bg-info/10 text-info border-info/20"
-                  >
-                    <div className="w-2 h-2 bg-info rounded-full mr-2 animate-pulse"></div>
-                    Live Analysis
-                  </Badge>
-                </CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  GPT-4 Trading AI v2.0.0 • Model: gpt-3.5-turbo
-                  <span className="ml-2">• WebSocket real-time signals</span>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-info" />
+                    Tín hiệu AI
+                    <Badge
+                      variant="outline"
+                      className="bg-info/10 text-info border-info/20"
+                    >
+                      <div className="w-2 h-2 bg-info rounded-full mr-2 animate-pulse"></div>
+                      Live
+                    </Badge>
+                  </CardTitle>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <ArrowUpRight className="h-3 w-3 text-profit" />
+                        <span>Long</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <ArrowDownRight className="h-3 w-3 text-loss" />
+                        <span>Short</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Minus className="h-3 w-3 text-warning" />
+                        <span>Neutral</span>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {recentSignals?.length || 0} signals
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 {isLoading && (
-                  <div className="p-4 rounded-lg bg-muted/20 border border-muted/40 flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">
-                      Đang phân tích tín hiệu thị trường...
-                    </span>
+                    <span>Đang phân tích tín hiệu...</span>
                   </div>
                 )}
 
                 {recentSignals && recentSignals.length > 0 ? (
-                  <div className="space-y-4">
-                    {recentSignals.map((signal, index) => {
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {recentSignals.map((signal) => {
                       const isActive =
                         Date.now() - new Date(signal.timestamp).getTime() <
-                        30 * 60 * 1000; // Active if less than 30 minutes old
+                        30 * 60 * 1000;
                       const isLong = signal.signal?.toLowerCase() === "long";
                       const isShort = signal.signal?.toLowerCase() === "short";
+                      const confidence = signal.confidence || 0;
+                      const confidencePercent = (confidence * 100).toFixed(0);
+                      const timeAgo = formatTimeAgo(new Date(signal.timestamp));
 
                       return (
                         <div
-                          key={`${signal.symbol}-${signal.timestamp}-websocket`}
-                          className={`p-4 rounded-lg border transition-all duration-200 ${
-                            isActive
-                              ? "bg-secondary/50 border-primary/20 shadow-primary/5"
-                              : "bg-muted/20 border-muted/40"
-                          }`}
+                          key={`${signal.symbol}-${signal.timestamp}-card`}
+                          className={`group relative p-3 rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 ${
+                            isLong
+                              ? "bg-gradient-to-br from-profit/5 to-profit/10 border-profit/30 hover:border-profit/60"
+                              : isShort
+                              ? "bg-gradient-to-br from-loss/5 to-loss/10 border-loss/30 hover:border-loss/60"
+                              : "bg-gradient-to-br from-warning/5 to-warning/10 border-warning/30 hover:border-warning/60"
+                          } ${!isActive && "opacity-60"}`}
                         >
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center gap-3">
-                              <Badge
-                                className={
+                          {/* Active Badge */}
+                          {isActive && (
+                            <div className="absolute -top-1.5 -right-1.5">
+                              <div className="relative">
+                                <div className={`w-3 h-3 rounded-full ${
+                                  isLong ? "bg-profit" : isShort ? "bg-loss" : "bg-warning"
+                                } animate-ping absolute`}></div>
+                                <div className={`w-3 h-3 rounded-full ${
+                                  isLong ? "bg-profit" : isShort ? "bg-loss" : "bg-warning"
+                                } relative`}></div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Header: Symbol + Signal Type */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`flex items-center justify-center w-7 h-7 rounded-lg ${
                                   isLong
                                     ? "bg-profit text-profit-foreground"
                                     : isShort
                                     ? "bg-loss text-loss-foreground"
                                     : "bg-warning text-warning-foreground"
-                                }
+                                }`}
                               >
-                                {signal.signal?.toUpperCase() || "NEUTRAL"}
-                              </Badge>
-                              <span className="font-semibold">
-                                {signal.symbol?.replace("USDT", "/USDT") ||
-                                  "N/A"}
+                                {isLong ? (
+                                  <ArrowUpRight className="h-4 w-4" />
+                                ) : isShort ? (
+                                  <ArrowDownRight className="h-4 w-4" />
+                                ) : (
+                                  <Minus className="h-4 w-4" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-bold text-sm">
+                                  {signal.symbol?.replace("USDT", "") || "???"}
+                                </div>
+                                <div className={`text-[10px] font-medium uppercase ${
+                                  isLong ? "text-profit" : isShort ? "text-loss" : "text-warning"
+                                }`}>
+                                  {signal.signal || "neutral"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Confidence */}
+                          <div className="mb-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Confidence</span>
+                              <span className={`text-sm font-bold ${
+                                confidence >= 0.7 ? "text-profit" : confidence >= 0.5 ? "text-warning" : "text-loss"
+                              }`}>
+                                {confidencePercent}%
                               </span>
-                              {isActive && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-profit/10 text-profit border-profit/20 text-xs"
-                                >
-                                  ACTIVE
-                                </Badge>
-                              )}
-                              <Badge
-                                variant="outline"
-                                className="text-xs capitalize"
-                              >
-                                websocket
-                              </Badge>
                             </div>
-                            <div className="text-right">
+                            <div className="w-full bg-muted/50 rounded-full h-1.5 overflow-hidden">
                               <div
-                                className={`font-bold text-lg ${
-                                  signal.confidence >= 0.8
-                                    ? "text-profit"
-                                    : signal.confidence >= 0.6
-                                    ? "text-warning"
-                                    : "text-loss"
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  confidence >= 0.7
+                                    ? "bg-gradient-to-r from-profit/70 to-profit"
+                                    : confidence >= 0.5
+                                    ? "bg-gradient-to-r from-warning/70 to-warning"
+                                    : "bg-gradient-to-r from-loss/70 to-loss"
                                 }`}
-                              >
-                                {((signal.confidence || 0) * 100).toFixed(0)}%
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Confidence
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <p className="text-sm text-foreground">
-                              {signal.reasoning || "WebSocket real-time signal"}
-                            </p>
-                            <div className="flex justify-between items-center text-xs text-muted-foreground">
-                              <span>{formatDate(signal.timestamp)}</span>
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className={`w-2 h-2 rounded-full ${
-                                    signal.confidence >= 0.8
-                                      ? "bg-profit"
-                                      : signal.confidence >= 0.6
-                                      ? "bg-warning"
-                                      : "bg-loss"
-                                  }`}
-                                ></div>
-                                <span>AI Confidence</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Confidence Bar */}
-                          <div className="mt-3">
-                            <div className="w-full bg-muted rounded-full h-1.5">
-                              <div
-                                className={`h-1.5 rounded-full transition-all duration-500 ${
-                                  signal.confidence >= 0.8
-                                    ? "bg-profit"
-                                    : signal.confidence >= 0.6
-                                    ? "bg-warning"
-                                    : "bg-loss"
-                                }`}
-                                style={{
-                                  width: `${(signal.confidence || 0) * 100}%`,
-                                }}
+                                style={{ width: `${confidence * 100}%` }}
                               ></div>
+                            </div>
+                          </div>
+
+                          {/* Time */}
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{timeAgo}</span>
+                            </div>
+                            {isActive && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-profit/10 text-profit border-profit/30">
+                                ACTIVE
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Hover Overlay with Reasoning */}
+                          <div className="absolute inset-0 p-3 rounded-xl bg-popover/95 backdrop-blur-sm border-2 border-border opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-between z-10">
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-bold text-sm">
+                                  {signal.symbol?.replace("USDT", "/USDT")}
+                                </span>
+                                <Badge
+                                  className={`text-[10px] ${
+                                    isLong ? "bg-profit" : isShort ? "bg-loss" : "bg-warning"
+                                  }`}
+                                >
+                                  {signal.signal?.toUpperCase() || "NEUTRAL"}
+                                </Badge>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground line-clamp-3 leading-relaxed">
+                                {signal.reasoning || "Real-time AI market analysis signal"}
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-2 border-t border-border/50">
+                              <span>{formatDate(signal.timestamp)}</span>
+                              <span className={`font-semibold ${
+                                confidence >= 0.7 ? "text-profit" : confidence >= 0.5 ? "text-warning" : "text-loss"
+                              }`}>
+                                {confidencePercent}%
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1202,13 +1264,11 @@ const TradingPaper = () => {
                     })}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-32 text-muted-foreground">
+                  <div className="flex items-center justify-center py-12 text-muted-foreground">
                     <div className="text-center">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Chưa có tín hiệu AI</p>
-                      <p className="text-sm">
-                        Tín hiệu sẽ xuất hiện tự động khi có phân tích mới
-                      </p>
+                      <Zap className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                      <p className="font-medium">Chưa có tín hiệu AI</p>
+                      <p className="text-sm opacity-70">Tín hiệu sẽ xuất hiện khi có phân tích mới</p>
                     </div>
                   </div>
                 )}
@@ -1573,32 +1633,36 @@ const TradingPaper = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Real-time Footer Status */}
-        {wsConnected && (
-          <div className="mt-6 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-700 font-medium">
-                    WebSocket Active
-                  </span>
-                </div>
-                <div className="text-green-600">
-                  Real-time updates: {lastUpdateCount}
-                </div>
-                <div className="text-green-600">
-                  Last sync:{" "}
-                  {lastUpdated?.toLocaleTimeString("vi-VN") || "Never"}
-                </div>
+      </div>
+
+      {/* Real-time Footer Status - Sticky Bottom */}
+      {wsConnected && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-2 bg-green-50/95 dark:bg-green-950/95 border-t border-green-200 dark:border-green-800 backdrop-blur-sm shadow-lg">
+          <div className="max-w-7xl mx-auto flex items-center justify-between text-sm px-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-green-700 dark:text-green-400 font-medium">
+                  WebSocket Active
+                </span>
               </div>
-              <div className="text-green-600">
-                Data refreshes automatically every second 🚀
+              <div className="text-green-600 dark:text-green-500">
+                Real-time updates: {lastUpdateCount}
+              </div>
+              <div className="text-green-600 dark:text-green-500 hidden sm:block">
+                Last sync:{" "}
+                {lastUpdated?.toLocaleTimeString("vi-VN") || "Never"}
               </div>
             </div>
+            <div className="text-green-600 dark:text-green-500 hidden md:block">
+              Data refreshes automatically every second 🚀
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Bottom padding to prevent content from being hidden behind sticky footer */}
+      {wsConnected && <div className="h-12"></div>}
 
       {/* Trade Details Popup */}
       <Dialog open={isTradeDetailOpen} onOpenChange={setIsTradeDetailOpen}>

@@ -77,16 +77,6 @@ export function DashboardHeader() {
             Trading Paper
           </Button>
         </Link>
-        <Link to="/how-it-works">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
-          >
-            <BookOpen className="h-4 w-4" />
-            Hướng Dẫn
-          </Button>
-        </Link>
         <Link to="/settings">
           <Button
             variant="ghost"
@@ -95,6 +85,16 @@ export function DashboardHeader() {
           >
             <SettingsIcon className="h-4 w-4" />
             Settings
+          </Button>
+        </Link>
+        <Link to="/how-it-works">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
+          >
+            <BookOpen className="h-4 w-4" />
+            Hướng Dẫn
           </Button>
         </Link>
       </div>

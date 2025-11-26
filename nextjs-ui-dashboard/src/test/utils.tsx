@@ -3,8 +3,11 @@ import { render, RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '../contexts/AuthContext'
-import { AIAnalysisProvider } from '../contexts/AIAnalysisContext'
+import { WebSocketProvider } from '../contexts/WebSocketContext'
 // ThemeProvider removed - not needed for tests
+
+// NOTE: AIAnalysisProvider NOT included by default - tests that need it should mock useAIAnalysis hook
+// This prevents conflicts with test-specific API mocks
 
 // Create a test query client
 const createTestQueryClient = () =>
@@ -33,9 +36,9 @@ const AllTheProviders: React.FC<{ children: React.ReactNode; queryClient: QueryC
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <AIAnalysisProvider>
+          <WebSocketProvider>
             {children}
-          </AIAnalysisProvider>
+          </WebSocketProvider>
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>

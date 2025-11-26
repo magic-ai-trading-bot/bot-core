@@ -16,11 +16,12 @@ vi.mock('recharts', () => ({
   Area: () => null,
 }))
 
-// Mock usePaperTrading hook
-const mockUsePaperTrading = vi.fn()
+// Mock usePaperTradingContext hook (component uses context, not hook directly)
+const mockUsePaperTradingContext = vi.fn()
 
-vi.mock('../../../hooks/usePaperTrading', () => ({
-  usePaperTrading: () => mockUsePaperTrading(),
+vi.mock('../../../contexts/PaperTradingContext', () => ({
+  usePaperTradingContext: () => mockUsePaperTradingContext(),
+  PaperTradingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 describe('PerformanceChart', () => {
@@ -72,7 +73,7 @@ describe('PerformanceChart', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    mockUsePaperTrading.mockReturnValue({
+    mockUsePaperTradingContext.mockReturnValue({
       portfolio: mockPortfolio,
       openTrades: mockOpenTrades,
       closedTrades: mockClosedTrades,
@@ -95,7 +96,7 @@ describe('PerformanceChart', () => {
     })
 
     it('displays loss badge when PnL is negative', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_pnl: -300,
@@ -130,7 +131,7 @@ describe('PerformanceChart', () => {
     })
 
     it('displays trending down icon when trend is negative', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_pnl: -300,
@@ -163,7 +164,7 @@ describe('PerformanceChart', () => {
     })
 
     it('displays total P&L in loss color when negative', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_pnl: -300,
@@ -225,7 +226,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles zero trades', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_trades: 0,
@@ -240,7 +241,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles zero equity', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           equity: 0,
@@ -272,7 +273,7 @@ describe('PerformanceChart', () => {
     })
 
     it('formats large numbers with commas', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           equity: 1000000,
@@ -325,7 +326,7 @@ describe('PerformanceChart', () => {
     })
 
     it('applies correct gradient for loss', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_pnl: -300,
@@ -363,7 +364,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles multiple open trades', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: mockPortfolio,
         openTrades: [
           mockOpenTrades[0],
@@ -379,7 +380,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles empty open trades', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: mockPortfolio,
         openTrades: [],
         closedTrades: mockClosedTrades,
@@ -391,7 +392,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles empty closed trades', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: mockPortfolio,
         openTrades: mockOpenTrades,
         closedTrades: [],
@@ -405,7 +406,7 @@ describe('PerformanceChart', () => {
 
   describe('Edge Cases', () => {
     it('handles zero win rate', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           win_rate: 0,
@@ -420,7 +421,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles perfect win rate', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           win_rate: 100,
@@ -435,7 +436,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles very small PnL values', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_pnl: 0.01,
@@ -451,7 +452,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles very large PnL values', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_pnl: 999999.99,
@@ -467,7 +468,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles negative Sharpe ratio', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           sharpe_ratio: -0.5,
@@ -482,7 +483,7 @@ describe('PerformanceChart', () => {
     })
 
     it('handles zero total trades', () => {
-      mockUsePaperTrading.mockReturnValue({
+      mockUsePaperTradingContext.mockReturnValue({
         portfolio: {
           ...mockPortfolio,
           total_trades: 0,

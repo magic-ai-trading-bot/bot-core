@@ -1518,6 +1518,7 @@ class GPTTradingAnalyzer:
             "MACD Strategy",
             "Volume Strategy",
             "Bollinger Bands Strategy",
+            "Stochastic Strategy",
         ]
 
         for strategy in all_strategies:
@@ -1537,6 +1538,10 @@ class GPTTradingAnalyzer:
                 elif strategy == "Bollinger Bands Strategy":
                     strategy_scores[strategy] = (
                         confidence if "Bollinger" in reasoning else 0.3
+                    )
+                elif strategy == "Stochastic Strategy":
+                    strategy_scores[strategy] = (
+                        confidence if "Stochastic" in reasoning else 0.35
                     )
             else:
                 # Set low score for non-selected strategies
@@ -1574,7 +1579,8 @@ class GPTTradingAnalyzer:
             "Respond ONLY in JSON:\n"
             '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
             '"strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,'
-            '"Bollinger Bands Strategy":0-1},"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways",'
+            '"Bollinger Bands Strategy":0-1,"Stochastic Strategy":0-1},'
+            '"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways",'
             '"trend_strength":0-1,"support_levels":[],"resistance_levels":[],'
             '"volatility_level":"Low|Medium|High","volume_analysis":"brief"},'
             '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
@@ -1921,7 +1927,7 @@ async def health_check():
 
 
 @app.get("/debug/gpt4")
-@limiter.limit("5/minute")  # Rate limit: 5 requests per minute for debug endpoint
+@limiter.limit("60/minute")  # Rate limit: 60 requests per minute for debug endpoint
 async def debug_gpt4(request: Request):
     """Debug GPT-4 connectivity."""
     result: Dict[str, Any] = {
@@ -1994,8 +2000,8 @@ async def websocket_endpoint(websocket: WebSocket):
 # @test:TC-AI-010, TC-AI-011, TC-AI-012
 @app.post("/ai/analyze", response_model=AISignalResponse)
 @limiter.limit(
-    "300/minute"
-)  # Rate limit: 300 requests per minute (5 per second) - increased for multi-symbol monitoring
+    "600/minute"
+)  # Rate limit: 600 requests per minute (10 per second) - high throughput for multi-symbol monitoring
 async def analyze_trading_signals(
     analysis_request: AIAnalysisRequest, request: Request
 ):
@@ -2139,7 +2145,10 @@ async def analyze_trading_signals(
 
 
 @app.post("/ai/strategy-recommendations", response_model=List[StrategyRecommendation])
-async def get_strategy_recommendations(request: StrategyRecommendationRequest):
+@limiter.limit("300/minute")  # Rate limit: 300 requests per minute (5 per second)
+async def get_strategy_recommendations(
+    request: StrategyRecommendationRequest, http_request: Request
+):
     """Get AI strategy recommendations."""
     logger.info(f"📊 Strategy recommendations for {request.symbol}")
 
@@ -2162,7 +2171,8 @@ async def get_strategy_recommendations(request: StrategyRecommendationRequest):
 
 
 @app.post("/ai/market-condition", response_model=MarketConditionAnalysis)
-async def analyze_market_condition(request: MarketConditionRequest):
+@limiter.limit("300/minute")  # Rate limit: 300 requests per minute (5 per second)
+async def analyze_market_condition(request: MarketConditionRequest, http_request: Request):
     """Analyze market condition."""
     logger.info(f"🔍 Market condition analysis for {request.symbol}")
 
@@ -2194,7 +2204,8 @@ async def analyze_market_condition(request: MarketConditionRequest):
 
 
 @app.post("/ai/feedback")
-async def send_performance_feedback(feedback: PerformanceFeedback):
+@limiter.limit("120/minute")  # Rate limit: 120 requests per minute (2 per second)
+async def send_performance_feedback(feedback: PerformanceFeedback, request: Request):
     """Receive performance feedback for learning."""
     logger.info(
         f"📝 Feedback received for {feedback.symbol}: {feedback.actual_outcome}"
@@ -2211,7 +2222,8 @@ async def send_performance_feedback(feedback: PerformanceFeedback):
 
 
 @app.post("/predict-trend", response_model=TrendPredictionResponse)
-async def predict_trend(request: TrendPredictionRequest):
+@limiter.limit("600/minute")  # Rate limit: 600 requests per minute (10 per second) - main prediction endpoint
+async def predict_trend(request: TrendPredictionRequest, http_request: Request):
     """
     Predict trend direction using GPT-4 powered multi-timeframe analysis.
 
@@ -2497,30 +2509,35 @@ def _predict_trend_technical(symbol: str, candles_by_tf: Dict[str, List], primar
 
 
 @app.get("/ai/info", response_model=AIServiceInfo)
-async def get_service_info():
+@limiter.limit("120/minute")  # Rate limit: 120 requests per minute
+async def get_service_info(request: Request):
     """Get AI service information."""
     return AIServiceInfo()
 
 
 @app.get("/ai/strategies")
-async def get_supported_strategies():
+@limiter.limit("120/minute")  # Rate limit: 120 requests per minute
+async def get_supported_strategies(request: Request):
     """Get list of supported strategies."""
     return [
         "RSI Strategy",
         "MACD Strategy",
         "Volume Strategy",
         "Bollinger Bands Strategy",
+        "Stochastic Strategy",
     ]
 
 
 @app.get("/ai/performance", response_model=AIModelPerformance)
-async def get_model_performance():
+@limiter.limit("120/minute")  # Rate limit: 120 requests per minute
+async def get_model_performance(request: Request):
     """Get AI model performance metrics."""
     return AIModelPerformance()
 
 
 @app.get("/ai/cost/statistics")
-async def get_cost_statistics():
+@limiter.limit("60/minute")  # Rate limit: 60 requests per minute
+async def get_cost_statistics(request: Request):
     """Get GPT-4 API cost statistics."""
     # Note: Reading global variables (no 'global' keyword needed for read-only access)
 
@@ -2583,7 +2600,8 @@ async def get_cost_statistics():
 
 
 @app.get("/ai/storage/stats")
-async def get_storage_statistics():
+@limiter.limit("60/minute")  # Rate limit: 60 requests per minute
+async def get_storage_statistics(request: Request):
     """Get AI analysis storage statistics."""
     if mongodb_db is None:
         return {"error": "MongoDB not connected"}
@@ -2630,7 +2648,8 @@ async def get_storage_statistics():
 
 
 @app.post("/ai/storage/clear")
-async def clear_storage():
+@limiter.limit("10/minute")  # Rate limit: 10 requests per minute (dangerous operation)
+async def clear_storage(request: Request):
     """Clear AI analysis storage."""
     if mongodb_db is None:
         return {"error": "MongoDB not connected"}

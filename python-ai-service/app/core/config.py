@@ -7,8 +7,10 @@ import os
 from typing import List
 
 # === API Configuration ===
-# Read from environment variable with fallback to 20 seconds
-OPENAI_REQUEST_DELAY = int(os.getenv("OPENAI_REQUEST_DELAY", "20"))
+# Read from environment variable with fallback to 2 seconds
+# GPT-4o-mini has high rate limits (500 RPM for Tier 1, 5000 RPM for Tier 2+)
+# So we can safely reduce delay between requests
+OPENAI_REQUEST_DELAY = int(os.getenv("OPENAI_REQUEST_DELAY", "2"))
 
 # === Cost Monitoring (GPT-4o-mini pricing as of Nov 2024) ===
 GPT4O_MINI_INPUT_COST_PER_1M = 0.150  # $0.150 per 1M input tokens

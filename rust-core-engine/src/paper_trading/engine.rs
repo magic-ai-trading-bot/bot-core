@@ -682,7 +682,7 @@ impl PaperTradingEngine {
                 .get_open_trades()
                 .into_iter()
                 .filter(|trade| trade.symbol == signal.symbol)
-                .map(|trade| trade.clone())
+                .cloned()
                 .collect()
         };
 
@@ -884,8 +884,8 @@ impl PaperTradingEngine {
         drop(settings);
 
         // Random slippage between 0 and max_slippage_pct
-        let mut rng = rand::thread_rng();
-        let slippage_pct = rng.gen::<f64>() * max_slippage;
+        let mut rng = rand::rng();
+        let slippage_pct = rng.random::<f64>() * max_slippage;
 
         let slipped_price = match trade_type {
             TradeType::Long => price * (1.0 + slippage_pct / 100.0), // Buy at higher price
@@ -964,11 +964,11 @@ impl PaperTradingEngine {
         let partial_prob = settings.execution.partial_fill_probability;
         drop(settings);
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
-        if rng.gen::<f64>() < partial_prob {
+        if rng.random::<f64>() < partial_prob {
             // Partial fill: 30-90% of requested quantity
-            let fill_pct = 0.3 + (rng.gen::<f64>() * 0.6);
+            let fill_pct = 0.3 + (rng.random::<f64>() * 0.6);
             let filled_qty = quantity * fill_pct;
 
             warn!(
@@ -1038,7 +1038,7 @@ impl PaperTradingEngine {
                 "✅ Warmup complete (cached): {} has sufficient data for all timeframes ({:?})",
                 symbol, REQUIRED_TIMEFRAMES
             );
-            return Ok(true);
+            Ok(true)
         }
     }
 
@@ -1403,11 +1403,9 @@ impl PaperTradingEngine {
             // Calculate risk per trade as % of equity at risk
             let position_value = trade.quantity * trade.entry_price;
             // Use stop_loss if set, otherwise use configured default_stop_loss_pct
-            let stop_loss_price = trade.stop_loss.unwrap_or_else(|| {
-                match trade.trade_type {
-                    TradeType::Long => trade.entry_price * (1.0 - stop_loss_multiplier), // Below for Long
-                    TradeType::Short => trade.entry_price * (1.0 + stop_loss_multiplier), // Above for Short
-                }
+            let stop_loss_price = trade.stop_loss.unwrap_or(match trade.trade_type {
+                TradeType::Long => trade.entry_price * (1.0 - stop_loss_multiplier), // Below for Long
+                TradeType::Short => trade.entry_price * (1.0 + stop_loss_multiplier), // Above for Short
             });
             let stop_loss_distance_pct =
                 ((trade.entry_price - stop_loss_price).abs() / trade.entry_price) * 100.0;
@@ -1594,7 +1592,7 @@ impl PaperTradingEngine {
 
         // Step 2: Calculate parameters for new position
         let settings = self.settings.read().await;
-        let symbol_settings = settings.get_symbol_settings(&symbol);
+        let symbol_settings = settings.get_symbol_settings(symbol);
         let leverage = symbol_settings.leverage;
 
         // Get current price

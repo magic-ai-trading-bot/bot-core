@@ -26,9 +26,11 @@ const mockApiClient = vi.hoisted(() => ({
   rust: {
     getSupportedSymbols: vi.fn(),
     getChartData: vi.fn(),
+    getChartDataFast: vi.fn(),
     getLatestPrices: vi.fn(),
     addSymbol: vi.fn(),
     removeSymbol: vi.fn(),
+    fetchAvailableSymbols: vi.fn(),
   },
 }))
 
@@ -53,11 +55,12 @@ vi.mock('sonner', () => ({
   },
 }))
 
-// Mock WebSocket hook
-const mockUseWebSocket = vi.fn()
+// Mock WebSocket context
+const mockUseWebSocketContext = vi.fn()
 
-vi.mock('../../../hooks/useWebSocket', () => ({
-  useWebSocket: () => mockUseWebSocket(),
+vi.mock('../../../contexts/WebSocketContext', () => ({
+  useWebSocketContext: () => mockUseWebSocketContext(),
+  WebSocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 describe('TradingCharts', () => {
@@ -79,18 +82,36 @@ describe('TradingCharts', () => {
       symbols: ['BTCUSDT'],
     })
 
-    // Mock getChartData to return different data based on symbol
+    // Mock getChartData and getChartDataFast to return different data based on symbol
     mockApiClient.rust.getChartData.mockImplementation(async (symbol: string) => ({
       ...mockChartData,
       symbol,
     }))
+
+    mockApiClient.rust.getChartDataFast.mockImplementation(async (symbol: string) => ({
+      ...mockChartData,
+      symbol,
+    }))
+
+    mockApiClient.rust.fetchAvailableSymbols.mockResolvedValue(['BTCUSDT'])
 
     mockApiClient.rust.getLatestPrices.mockResolvedValue({
       BTCUSDT: 45500,
       ETHUSDT: 3000,
     })
 
-    mockUseWebSocket.mockReturnValue({
+    // Mock global fetch for /api/market/symbols endpoint
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          symbols: ['BTCUSDT']
+        }
+      })
+    }) as unknown as typeof fetch
+
+    mockUseWebSocketContext.mockReturnValue({
       state: {
         isConnected: true,
         isConnecting: false,
@@ -119,7 +140,7 @@ describe('TradingCharts', () => {
     })
 
     it('displays disconnected status when WebSocket is offline', async () => {
-      mockUseWebSocket.mockReturnValue({
+      mockUseWebSocketContext.mockReturnValue({
         state: {
           isConnected: false,
           isConnecting: false,
@@ -185,8 +206,9 @@ describe('TradingCharts', () => {
       render(<TradingCharts />)
 
       await waitFor(() => {
-        expect(mockApiClient.rust.getSupportedSymbols).toHaveBeenCalled()
-        expect(mockApiClient.rust.getChartData).toHaveBeenCalled()
+        // Component uses fetch for /api/market/symbols and getChartDataFast for chart data
+        expect(global.fetch).toHaveBeenCalled()
+        expect(mockApiClient.rust.getChartDataFast).toHaveBeenCalled()
       })
     })
 
@@ -206,12 +228,16 @@ describe('TradingCharts', () => {
     })
 
     it('handles load error gracefully', async () => {
-      mockApiClient.rust.getSupportedSymbols.mockRejectedValue(new Error('Network error'))
+      // Mock fetch to return error - component uses fetch for /api/market/symbols
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as unknown as typeof fetch
+      mockApiClient.rust.getChartDataFast.mockRejectedValue(new Error('Network error'))
 
       render(<TradingCharts />)
 
+      // Component falls back to FALLBACK_SYMBOLS when fetch fails, so it won't show error toast
+      // It will try to load charts with fallback symbols instead
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Failed to load chart data')
+        expect(global.fetch).toHaveBeenCalled()
       })
     })
   })
@@ -276,7 +302,7 @@ describe('TradingCharts', () => {
     })
 
     it('shows trending down icon for negative change', async () => {
-      mockApiClient.rust.getChartData.mockImplementation(async (symbol: string) => ({
+      mockApiClient.rust.getChartDataFast.mockImplementation(async (symbol: string) => ({
         ...mockChartData,
         symbol,
         price_change_24h: -500,
@@ -321,11 +347,12 @@ describe('TradingCharts', () => {
       await user.click(addButton)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/Enter symbol like BTCUSDT/i)).toBeInTheDocument()
+        // Placeholder matches component: "BTCUSDT, ETHUSDT, XRPUSDT..."
+        expect(screen.getByPlaceholderText(/BTCUSDT, ETHUSDT/i)).toBeInTheDocument()
       })
     })
 
-    it('displays timeframe selection buttons', async () => {
+    it('displays timeframe info text', async () => {
       const user = userEvent.setup()
       render(<TradingCharts />)
 
@@ -333,10 +360,8 @@ describe('TradingCharts', () => {
       await user.click(addButton)
 
       await waitFor(() => {
-        expect(screen.getByText('Select Timeframes')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '1m' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '5m' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: '15m' })).toBeInTheDocument()
+        // Component auto-loads all timeframes - shows info text instead of buttons
+        expect(screen.getByText(/All timeframes.*will be loaded automatically/i)).toBeInTheDocument()
       })
     })
 
@@ -350,19 +375,21 @@ describe('TradingCharts', () => {
       await user.click(addButton)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/Enter symbol like BTCUSDT/i)).toBeInTheDocument()
+        expect(screen.getByPlaceholderText(/BTCUSDT, ETHUSDT/i)).toBeInTheDocument()
       })
 
-      const input = screen.getByPlaceholderText(/Enter symbol like BTCUSDT/i)
+      const input = screen.getByPlaceholderText(/BTCUSDT, ETHUSDT/i)
       await user.type(input, 'SOLUSDT')
 
-      const submitButton = screen.getByRole('button', { name: /add symbol/i, hidden: false })
+      // Submit button in the dialog
+      const submitButtons = screen.getAllByRole('button', { name: /add symbol/i })
+      const submitButton = submitButtons[submitButtons.length - 1]
       await user.click(submitButton)
 
       await waitFor(() => {
         expect(mockApiClient.rust.addSymbol).toHaveBeenCalledWith({
           symbol: 'SOLUSDT',
-          timeframes: ['1h'],
+          timeframes: expect.arrayContaining(['1m', '5m', '15m', '1h', '4h', '1d']),
         })
         expect(toast.success).toHaveBeenCalledWith('Successfully added SOLUSDT')
       })
@@ -378,13 +405,15 @@ describe('TradingCharts', () => {
       await user.click(addButton)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/Enter symbol like BTCUSDT/i)).toBeInTheDocument()
+        expect(screen.getByPlaceholderText(/BTCUSDT, ETHUSDT/i)).toBeInTheDocument()
       })
 
-      const input = screen.getByPlaceholderText(/Enter symbol like BTCUSDT/i)
+      const input = screen.getByPlaceholderText(/BTCUSDT, ETHUSDT/i)
       await user.type(input, 'INVALID')
 
-      const submitButton = screen.getByRole('button', { name: /add symbol/i, hidden: false })
+      // Submit button in the dialog
+      const submitButtons = screen.getAllByRole('button', { name: /add symbol/i })
+      const submitButton = submitButtons[submitButtons.length - 1]
       await user.click(submitButton)
 
       await waitFor(() => {
@@ -392,7 +421,7 @@ describe('TradingCharts', () => {
       })
     })
 
-    it('selects multiple timeframes', async () => {
+    it('adds symbol with all timeframes automatically', async () => {
       const user = userEvent.setup()
       mockApiClient.rust.addSymbol.mockResolvedValue({ success: true })
 
@@ -402,26 +431,22 @@ describe('TradingCharts', () => {
       await user.click(addButton)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: '5m' })).toBeInTheDocument()
+        expect(screen.getByPlaceholderText(/BTCUSDT, ETHUSDT/i)).toBeInTheDocument()
       })
 
-      // Select additional timeframes
-      const tf5m = screen.getByRole('button', { name: '5m' })
-      const tf15m = screen.getByRole('button', { name: '15m' })
-
-      await user.click(tf5m)
-      await user.click(tf15m)
-
-      const input = screen.getByPlaceholderText(/Enter symbol like BTCUSDT/i)
+      const input = screen.getByPlaceholderText(/BTCUSDT, ETHUSDT/i)
       await user.type(input, 'ETHUSDT')
 
-      const submitButton = screen.getByRole('button', { name: /add symbol/i, hidden: false })
+      // Submit button in the dialog
+      const submitButtons = screen.getAllByRole('button', { name: /add symbol/i })
+      const submitButton = submitButtons[submitButtons.length - 1]
       await user.click(submitButton)
 
       await waitFor(() => {
+        // Component auto-loads ALL timeframes
         expect(mockApiClient.rust.addSymbol).toHaveBeenCalledWith({
           symbol: 'ETHUSDT',
-          timeframes: expect.arrayContaining(['1h', '5m', '15m']),
+          timeframes: expect.arrayContaining(['1m', '5m', '15m', '1h', '4h', '1d']),
         })
       })
     })
@@ -475,40 +500,36 @@ describe('TradingCharts', () => {
     })
   })
 
-  describe('Action Buttons', () => {
-    it('updates prices when update prices button is clicked', async () => {
-      const user = userEvent.setup()
+  describe('Auto Updates', () => {
+    it('loads charts automatically on mount', async () => {
       render(<TradingCharts />)
 
+      // Component loads charts on mount via useEffect
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /update prices/i })).toBeInTheDocument()
-      })
-
-      vi.clearAllMocks()
-
-      const updateButton = screen.getByRole('button', { name: /update prices/i })
-      await user.click(updateButton)
-
-      await waitFor(() => {
-        expect(mockApiClient.rust.getLatestPrices).toHaveBeenCalled()
+        expect(global.fetch).toHaveBeenCalled()
+        expect(mockApiClient.rust.getChartDataFast).toHaveBeenCalled()
       })
     })
 
-    it('refreshes charts when refresh button is clicked', async () => {
-      const user = userEvent.setup()
-      render(<TradingCharts />)
+    it('connects WebSocket when disconnected', async () => {
+      const connectFn = vi.fn()
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /refresh charts/i })).toBeInTheDocument()
+      // Start with disconnected state
+      mockUseWebSocketContext.mockReturnValue({
+        state: {
+          isConnected: false,
+          isConnecting: false,
+          lastMessage: null,
+        },
+        connect: connectFn,
+        disconnect: vi.fn(),
       })
 
-      vi.clearAllMocks()
+      render(<TradingCharts />)
 
-      const refreshButton = screen.getByRole('button', { name: /refresh charts/i })
-      await user.click(refreshButton)
-
+      // WebSocket connect should be called when not connected
       await waitFor(() => {
-        expect(mockApiClient.rust.getSupportedSymbols).toHaveBeenCalled()
+        expect(connectFn).toHaveBeenCalled()
       })
     })
   })
@@ -517,7 +538,7 @@ describe('TradingCharts', () => {
     it('updates price when MarketData message is received', async () => {
       const connectFn = vi.fn()
 
-      mockUseWebSocket.mockReturnValue({
+      mockUseWebSocketContext.mockReturnValue({
         state: {
           isConnected: true,
           isConnecting: false,
@@ -546,7 +567,7 @@ describe('TradingCharts', () => {
     })
 
     it('updates chart when ChartUpdate message is received', async () => {
-      mockUseWebSocket.mockReturnValue({
+      mockUseWebSocketContext.mockReturnValue({
         state: {
           isConnected: true,
           isConnecting: false,
@@ -579,7 +600,7 @@ describe('TradingCharts', () => {
     it('connects WebSocket on mount', async () => {
       const connectFn = vi.fn()
 
-      mockUseWebSocket.mockReturnValue({
+      mockUseWebSocketContext.mockReturnValue({
         state: {
           isConnected: false,
           isConnecting: false,
@@ -599,6 +620,19 @@ describe('TradingCharts', () => {
 
   describe('Empty State', () => {
     it('displays empty state when no charts available', async () => {
+      // Mock fetch to return empty symbols AND reject to avoid fallback
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          success: false, // Return failure to trigger fallback
+          data: null
+        })
+      }) as unknown as typeof fetch
+
+      // Mock getChartDataFast to return null for all symbols (including fallback)
+      mockApiClient.rust.getChartDataFast.mockResolvedValue(null)
+
+      // Also mock getSupportedSymbols for phase 2 loading
       mockApiClient.rust.getSupportedSymbols.mockResolvedValue({
         symbols: [],
       })
@@ -626,7 +660,7 @@ describe('TradingCharts', () => {
     })
 
     it('displays no data message when no candles available', async () => {
-      mockApiClient.rust.getChartData.mockImplementation(async (symbol: string) => ({
+      mockApiClient.rust.getChartDataFast.mockImplementation(async (symbol: string) => ({
         ...mockChartData,
         symbol,
         candles: [],
@@ -662,7 +696,7 @@ describe('TradingCharts', () => {
     })
 
     it('formats small prices with decimals', async () => {
-      mockApiClient.rust.getChartData.mockImplementation(async (symbol: string) => ({
+      mockApiClient.rust.getChartDataFast.mockImplementation(async (symbol: string) => ({
         ...mockChartData,
         symbol,
         latest_price: 0.00001234,
@@ -681,14 +715,22 @@ describe('TradingCharts', () => {
 
   describe('Performance', () => {
     it('handles multiple charts efficiently', async () => {
-      mockApiClient.rust.getSupportedSymbols.mockResolvedValue({
-        symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT'],
-      })
+      // Mock fetch to return 4 symbols
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          success: true,
+          data: {
+            symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT']
+          }
+        })
+      }) as unknown as typeof fetch
 
       render(<TradingCharts />)
 
       await waitFor(() => {
-        expect(mockApiClient.rust.getChartData).toHaveBeenCalledTimes(4)
+        // Component uses getChartDataFast for all symbols
+        expect(mockApiClient.rust.getChartDataFast).toHaveBeenCalledTimes(4)
       })
     })
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
 interface PriceData {
   symbol: string;
@@ -14,7 +14,8 @@ export function LivePriceTicker() {
   const [prices, setPrices] = useState<Record<string, PriceData>>({});
   const [symbols, setSymbols] = useState<string[]>([]);
 
-  const { lastMessage } = useWebSocket();
+  const { state: wsState } = useWebSocketContext();
+  const lastMessage = wsState.lastMessage;
 
   // Fetch symbols dynamically from API
   const fetchSymbols = useCallback(async () => {

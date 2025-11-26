@@ -39,7 +39,7 @@ export interface AIAnalysisHook {
   clearError: () => void;
 }
 
-const REFRESH_INTERVAL = 600000; // 10 minutes (increased to avoid rate limiting)
+const REFRESH_INTERVAL = 30000; // 30 seconds - real-time feel (WebSocket broadcasts on each analysis)
 // FALLBACK symbols - actual symbols are fetched dynamically from /api/market/symbols
 const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 const DEFAULT_STRATEGIES = [

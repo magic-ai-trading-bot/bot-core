@@ -44,10 +44,10 @@ import { apiClient } from "@/services/api";
 import type { ChartData, AddSymbolRequest } from "@/services/api";
 import { toast } from "sonner";
 import {
-  useWebSocket,
   type ChartUpdateData,
   type MarketDataUpdateData,
 } from "@/hooks/useWebSocket";
+import { useWebSocketContext } from "@/contexts/WebSocketContext";
 
 interface TradingChartsProps {
   className?: string;
@@ -545,7 +545,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
     const [charts, setCharts] = useState<ChartData[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTimeframe, setSelectedTimeframe] = useState("1m");
-    const { state: wsState, connect: connectWs } = useWebSocket();
+    const { state: wsState, connect: connectWs } = useWebSocketContext();
     const lastPriceUpdateRef = useRef<Record<string, number>>({});
     const abortControllerRef = useRef<AbortController | null>(null);
 
