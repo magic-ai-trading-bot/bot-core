@@ -9,6 +9,15 @@ from unittest.mock import patch, MagicMock, Mock
 from datetime import datetime, timedelta
 import json
 
+# Skip all tests if celery is not installed
+try:
+    import celery
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(not CELERY_AVAILABLE, reason="Celery not installed")
+
 
 class TestGPT4SelfAnalysis:
     """Test gpt4_self_analysis task"""

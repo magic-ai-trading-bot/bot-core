@@ -9,6 +9,15 @@ from unittest.mock import patch, MagicMock, Mock
 from datetime import datetime, timedelta
 import requests
 
+# Skip all tests if celery is not installed
+try:
+    import celery
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(not CELERY_AVAILABLE, reason="Celery not installed")
+
 
 class TestSystemHealthCheck:
     """Test system_health_check task"""
