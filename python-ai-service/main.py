@@ -1402,11 +1402,11 @@ class GPTTradingAnalyzer:
                 if first_close > 0:
                     trend_15m = ((last_close - first_close) / first_close) * 100
 
-                    if trend_15m < -0.5 and macd_hist_15m < 0:  # 15m downtrend > 0.5%
+                    if trend_15m < -0.8 and macd_hist_15m < 0:  # 15m downtrend > 0.8% (relaxed from 0.5%)
                         short_term_bearish = True
                         signals.append(f"⚠️ 15M DOWNTREND ({trend_15m:.2f}%)")
                         bearish_count += 2  # Weight 15m trend heavily (counts as 2 signals)
-                    elif trend_15m > 0.5 and macd_hist_15m > 0:  # 15m uptrend > 0.5%
+                    elif trend_15m > 0.8 and macd_hist_15m > 0:  # 15m uptrend > 0.8% (relaxed from 0.5%)
                         short_term_bullish = True
                         signals.append(f"✅ 15M UPTREND (+{trend_15m:.2f}%)")
                         bullish_count += 2  # Weight 15m trend heavily
@@ -1424,11 +1424,11 @@ class GPTTradingAnalyzer:
                 if first_close > 0:
                     trend_30m = ((last_close - first_close) / first_close) * 100
 
-                    if trend_30m < -0.5 and macd_hist_30m < 0:  # 30m downtrend > 0.5%
+                    if trend_30m < -0.8 and macd_hist_30m < 0:  # 30m downtrend > 0.8% (relaxed from 0.5%)
                         short_term_bearish = True
                         signals.append(f"⚠️ 30M DOWNTREND ({trend_30m:.2f}%)")
                         bearish_count += 1  # Weight 30m slightly less than 15m
-                    elif trend_30m > 0.5 and macd_hist_30m > 0:  # 30m uptrend > 0.5%
+                    elif trend_30m > 0.8 and macd_hist_30m > 0:  # 30m uptrend > 0.8% (relaxed from 0.5%)
                         short_term_bullish = True
                         signals.append(f"✅ 30M UPTREND (+{trend_30m:.2f}%)")
                         bullish_count += 1
