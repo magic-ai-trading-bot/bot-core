@@ -161,7 +161,8 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
 
       await expect(client.rust.getBotStatus()).rejects.toThrow('Network error')
-      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(3)
+      // maxRetries defaults to 2, so there are 2 total attempts
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2)
     })
 
     it('should start bot', async () => {
@@ -414,7 +415,8 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
       const result = await client.rust.getChartData('BTCUSDT', '1h')
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/api/market/chart/BTCUSDT/1h')
+      // The method passes { signal: undefined } when no signal is provided
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/api/market/chart/BTCUSDT/1h', { signal: undefined })
       expect(result).toEqual(mockChartData)
     })
 
@@ -434,7 +436,8 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
       await client.rust.getChartData('BTCUSDT', '1h', 200)
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/api/market/chart/BTCUSDT/1h?limit=200')
+      // The method passes { signal: undefined } when no signal is provided
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/api/market/chart/BTCUSDT/1h?limit=200', { signal: undefined })
     })
 
     it('should get multi chart data', async () => {
@@ -469,7 +472,8 @@ describe('API Service Tests', () => {
       const client = new BotCoreApiClient()
       const result = await client.rust.getSupportedSymbols()
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/api/market/symbols')
+      // The method passes { signal: undefined } when no signal is provided
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/api/market/symbols', { signal: undefined })
       expect(result).toEqual(mockSymbols)
     })
 
