@@ -27,7 +27,7 @@ impl StochasticStrategy {
         // @ref:docs/features/how-it-works.md - Stochastic: "%K vùng oversold (<15)", "%K vùng overbought (>85)"
         config
             .parameters
-            .insert("oversold_threshold".to_string(), json!(15.0));  // FIXED: Match docs - 15 (not 20)
+            .insert("oversold_threshold".to_string(), json!(15.0)); // FIXED: Match docs - 15 (not 20)
         config
             .parameters
             .insert("overbought_threshold".to_string(), json!(85.0)); // FIXED: Match docs - 85 (not 80)
@@ -482,7 +482,7 @@ mod tests {
 
         assert_eq!(strategy.get_k_period(), 14);
         assert_eq!(strategy.get_d_period(), 3);
-        assert_eq!(strategy.get_oversold_threshold(), 15.0);  // FIXED: Match docs - 15
+        assert_eq!(strategy.get_oversold_threshold(), 15.0); // FIXED: Match docs - 15
         assert_eq!(strategy.get_overbought_threshold(), 85.0); // FIXED: Match docs - 85
 
         // Update config

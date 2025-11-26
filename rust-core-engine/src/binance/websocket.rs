@@ -23,9 +23,15 @@ use crate::config::BinanceConfig;
 #[derive(Debug, Clone)]
 pub enum WebSocketCommand {
     /// Subscribe to new streams for a symbol
-    Subscribe { symbol: String, timeframes: Vec<String> },
+    Subscribe {
+        symbol: String,
+        timeframes: Vec<String>,
+    },
     /// Unsubscribe from streams for a symbol
-    Unsubscribe { symbol: String, timeframes: Vec<String> },
+    Unsubscribe {
+        symbol: String,
+        timeframes: Vec<String>,
+    },
 }
 
 pub struct BinanceWebSocket {
@@ -63,15 +69,23 @@ impl BinanceWebSocket {
     /// Subscribe to a new symbol's streams dynamically
     pub fn subscribe_symbol(&self, symbol: String, timeframes: Vec<String>) -> Result<()> {
         self.command_sender
-            .send(WebSocketCommand::Subscribe { symbol: symbol.clone(), timeframes })
+            .send(WebSocketCommand::Subscribe {
+                symbol: symbol.clone(),
+                timeframes,
+            })
             .map_err(|e| anyhow::anyhow!("Failed to send subscribe command for {}: {}", symbol, e))
     }
 
     /// Unsubscribe from a symbol's streams dynamically
     pub fn unsubscribe_symbol(&self, symbol: String, timeframes: Vec<String>) -> Result<()> {
         self.command_sender
-            .send(WebSocketCommand::Unsubscribe { symbol: symbol.clone(), timeframes })
-            .map_err(|e| anyhow::anyhow!("Failed to send unsubscribe command for {}: {}", symbol, e))
+            .send(WebSocketCommand::Unsubscribe {
+                symbol: symbol.clone(),
+                timeframes,
+            })
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to send unsubscribe command for {}: {}", symbol, e)
+            })
     }
 
     pub async fn start(&self, symbols: Vec<String>, timeframes: Vec<String>) -> Result<()> {
@@ -119,7 +133,8 @@ impl BinanceWebSocket {
 
         // Take the command receiver from self (only first connection gets it)
         // This receiver is connected to the command_sender, so subscribe_symbol() calls work
-        let mut cmd_rx = self.command_receiver
+        let mut cmd_rx = self
+            .command_receiver
             .lock()
             .expect("Command receiver mutex poisoned")
             .take();

@@ -460,13 +460,11 @@ mod tests {
         );
         // Verify URLs are updated to production
         assert_eq!(
-            config.binance.base_url,
-            "https://api.binance.com",
+            config.binance.base_url, "https://api.binance.com",
             "Expected production base_url when testnet=false"
         );
         assert_eq!(
-            config.binance.ws_url,
-            "wss://stream.binance.com:9443/ws",
+            config.binance.ws_url, "wss://stream.binance.com:9443/ws",
             "Expected production ws_url when testnet=false"
         );
 
@@ -480,8 +478,7 @@ mod tests {
         );
         // Verify URLs are updated to testnet
         assert_eq!(
-            config.binance.base_url,
-            "https://testnet.binance.vision",
+            config.binance.base_url, "https://testnet.binance.vision",
             "Expected testnet base_url when testnet=true"
         );
 

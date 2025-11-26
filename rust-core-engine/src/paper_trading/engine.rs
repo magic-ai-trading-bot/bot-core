@@ -373,7 +373,10 @@ impl PaperTradingEngine {
             match self.binance_client.get_symbol_price(symbol).await {
                 Ok(price_info) => {
                     let price: f64 = price_info.price.parse().unwrap_or(0.0);
-                    debug!("📊 Price update: {} = ${:.2} (source: Binance API)", symbol, price);
+                    debug!(
+                        "📊 Price update: {} = ${:.2} (source: Binance API)",
+                        symbol, price
+                    );
                     new_prices.insert(symbol.clone(), price);
                 },
                 Err(e) => {
@@ -1017,20 +1020,16 @@ impl PaperTradingEngine {
                             );
                             return Ok(false);
                         }
-                        debug!(
-                            "✅ {} {} has {} candles (cached)",
-                            symbol, tf, candle_count
-                        );
+                        debug!("✅ {} {} has {} candles (cached)", symbol, tf, candle_count);
                     },
                     None => {
-                        debug!(
-                            "📡 Cache miss for {} {}, will query API...",
-                            symbol, tf
-                        );
+                        debug!("📡 Cache miss for {} {}, will query API...", symbol, tf);
                         // Cache miss - need to fetch from API
                         drop(cache);
-                        return self.fetch_and_check_timeframes(symbol, REQUIRED_TIMEFRAMES).await;
-                    }
+                        return self
+                            .fetch_and_check_timeframes(symbol, REQUIRED_TIMEFRAMES)
+                            .await;
+                    },
                 }
             }
 
@@ -1071,10 +1070,7 @@ impl PaperTradingEngine {
                         return Ok(false);
                     }
 
-                    debug!(
-                        "✅ {} {} has {} candles (API)",
-                        symbol, tf, candle_count
-                    );
+                    debug!("✅ {} {} has {} candles (API)", symbol, tf, candle_count);
                 },
                 Err(e) => {
                     error!("❌ Failed to fetch {} data for {}: {}", tf, symbol, e);
@@ -1393,7 +1389,10 @@ impl PaperTradingEngine {
 
         // CRITICAL: Prevent division by zero - if equity is 0 or negative, block all trades
         if equity <= 0.0 {
-            warn!("⚠️ Portfolio equity is zero or negative ({:.2}), blocking trades for safety", equity);
+            warn!(
+                "⚠️ Portfolio equity is zero or negative ({:.2}), blocking trades for safety",
+                equity
+            );
             return Ok(false);
         }
 
@@ -1410,7 +1409,8 @@ impl PaperTradingEngine {
                     TradeType::Short => trade.entry_price * (1.0 + stop_loss_multiplier), // Above for Short
                 }
             });
-            let stop_loss_distance_pct = ((trade.entry_price - stop_loss_price).abs() / trade.entry_price) * 100.0;
+            let stop_loss_distance_pct =
+                ((trade.entry_price - stop_loss_price).abs() / trade.entry_price) * 100.0;
             let risk_amount = position_value * (stop_loss_distance_pct / 100.0);
             let risk_pct_of_equity = (risk_amount / equity) * 100.0;
             total_risk += risk_pct_of_equity;
@@ -1439,7 +1439,9 @@ impl PaperTradingEngine {
 
         debug!(
             "✅ Portfolio risk OK: {:.1}% of {:.0}% max ({} positions)",
-            total_risk, max_portfolio_risk_pct, open_trades.len()
+            total_risk,
+            max_portfolio_risk_pct,
+            open_trades.len()
         );
         Ok(true)
     }
@@ -1570,7 +1572,9 @@ impl PaperTradingEngine {
         );
 
         // Step 1: Close existing position (with AISignal reason for proper tracking)
-        let close_result = self.close_trade(&existing_trade.id, CloseReason::AISignal).await;
+        let close_result = self
+            .close_trade(&existing_trade.id, CloseReason::AISignal)
+            .await;
 
         if let Err(e) = close_result {
             warn!("⚠️ Failed to close position for reversal: {}", e);
@@ -1932,16 +1936,30 @@ impl PaperTradingEngine {
         }
 
         // Save trade to database
-        info!("💾 Attempting to save paper trade {} to database...", trade_id);
+        info!(
+            "💾 Attempting to save paper trade {} to database...",
+            trade_id
+        );
         match self.storage.save_paper_trade(&paper_trade).await {
             Ok(_) => {
-                info!("✅ Successfully saved paper trade {} to MongoDB (collection: paper_trades)", trade_id);
-            }
+                info!(
+                    "✅ Successfully saved paper trade {} to MongoDB (collection: paper_trades)",
+                    trade_id
+                );
+            },
             Err(e) => {
-                error!("❌ CRITICAL: Failed to save paper trade {} to database: {}", trade_id, e);
-                error!("   Trade details: symbol={}, type={:?}, entry={}, qty={}",
-                    paper_trade.symbol, paper_trade.trade_type, paper_trade.entry_price, paper_trade.quantity);
-            }
+                error!(
+                    "❌ CRITICAL: Failed to save paper trade {} to database: {}",
+                    trade_id, e
+                );
+                error!(
+                    "   Trade details: symbol={}, type={:?}, entry={}, qty={}",
+                    paper_trade.symbol,
+                    paper_trade.trade_type,
+                    paper_trade.entry_price,
+                    paper_trade.quantity
+                );
+            },
         }
 
         // Save portfolio snapshot
@@ -1951,12 +1969,16 @@ impl PaperTradingEngine {
             match self.storage.save_portfolio_snapshot(&portfolio).await {
                 Ok(_) => {
                     info!("✅ Successfully saved portfolio snapshot to MongoDB (collection: portfolio_history)");
-                    info!("   Portfolio: balance={:.2}, equity={:.2}, open_positions={}",
-                        portfolio.cash_balance, portfolio.equity, portfolio.open_trade_ids.len());
-                }
+                    info!(
+                        "   Portfolio: balance={:.2}, equity={:.2}, open_positions={}",
+                        portfolio.cash_balance,
+                        portfolio.equity,
+                        portfolio.open_trade_ids.len()
+                    );
+                },
                 Err(e) => {
                     error!("❌ CRITICAL: Failed to save portfolio snapshot: {}", e);
-                }
+                },
             }
         }
 
@@ -2049,18 +2071,15 @@ impl PaperTradingEngine {
             Ok(trades) => {
                 info!("✅ Loaded {} trades from database", trades.len());
                 trades
-            }
+            },
             Err(e) => {
                 warn!("⚠️ Failed to load trades from database: {}", e);
                 return Ok(()); // Continue without restoring
-            }
+            },
         };
 
         // Filter open trades
-        let open_trades: Vec<_> = all_trades
-            .iter()
-            .filter(|t| t.status == "Open")
-            .collect();
+        let open_trades: Vec<_> = all_trades.iter().filter(|t| t.status == "Open").collect();
 
         if open_trades.is_empty() {
             info!("📊 No open positions to restore");
@@ -2085,11 +2104,11 @@ impl PaperTradingEngine {
                     info!("📝 No portfolio snapshot found, using defaults");
                     None
                 }
-            }
+            },
             Err(e) => {
                 warn!("⚠️ Failed to load portfolio history: {}", e);
                 None
-            }
+            },
         };
 
         // Restore portfolio state
@@ -2133,18 +2152,20 @@ impl PaperTradingEngine {
                     _ => continue,
                 };
 
-                let close_reason = trade_record.close_reason.as_ref().and_then(|r| {
-                    match r.as_str() {
-                        "StopLoss" => Some(CloseReason::StopLoss),
-                        "TakeProfit" => Some(CloseReason::TakeProfit),
-                        "Manual" => Some(CloseReason::Manual),
-                        "AISignal" => Some(CloseReason::AISignal),
-                        "RiskManagement" => Some(CloseReason::RiskManagement),
-                        "MarginCall" => Some(CloseReason::MarginCall),
-                        "TimeBasedExit" => Some(CloseReason::TimeBasedExit),
-                        _ => None,
-                    }
-                });
+                let close_reason =
+                    trade_record
+                        .close_reason
+                        .as_ref()
+                        .and_then(|r| match r.as_str() {
+                            "StopLoss" => Some(CloseReason::StopLoss),
+                            "TakeProfit" => Some(CloseReason::TakeProfit),
+                            "Manual" => Some(CloseReason::Manual),
+                            "AISignal" => Some(CloseReason::AISignal),
+                            "RiskManagement" => Some(CloseReason::RiskManagement),
+                            "MarginCall" => Some(CloseReason::MarginCall),
+                            "TimeBasedExit" => Some(CloseReason::TimeBasedExit),
+                            _ => None,
+                        });
 
                 let notional_value = trade_record.quantity * trade_record.entry_price;
                 let initial_margin = notional_value / trade_record.leverage as f64;
@@ -2167,7 +2188,7 @@ impl PaperTradingEngine {
                     exit_price: trade_record.exit_price,
                     quantity: trade_record.quantity,
                     leverage: trade_record.leverage,
-                    stop_loss: None, // Will be calculated from settings
+                    stop_loss: None,   // Will be calculated from settings
                     take_profit: None, // Will be calculated from settings
                     unrealized_pnl: 0.0,
                     realized_pnl: trade_record.pnl,
@@ -2248,11 +2269,11 @@ impl PaperTradingEngine {
                     portfolio.equity,
                     portfolio.open_trade_ids.len()
                 );
-            }
+            },
             Err(e) => {
                 error!("❌ Failed to save portfolio snapshot: {}", e);
                 return Err(e);
-            }
+            },
         }
 
         // Save/update all open trades
@@ -2261,10 +2282,10 @@ impl PaperTradingEngine {
                 match self.storage.update_paper_trade(trade).await {
                     Ok(_) => {
                         debug!("✅ Updated trade {} in database", trade_id);
-                    }
+                    },
                     Err(e) => {
                         warn!("⚠️ Failed to update trade {}: {}", trade_id, e);
-                    }
+                    },
                 }
             }
         }
@@ -2416,23 +2437,36 @@ impl PaperTradingEngine {
             match self.storage.update_paper_trade(trade).await {
                 Ok(_) => {
                     info!("✅ Successfully updated trade {} in MongoDB", trade_id);
-                    info!("   Close reason: {:?}, PnL: {:.2}, Exit price: {:.2}",
-                        trade.close_reason, trade.realized_pnl.unwrap_or(0.0), trade.exit_price.unwrap_or(0.0));
-                }
+                    info!(
+                        "   Close reason: {:?}, PnL: {:.2}, Exit price: {:.2}",
+                        trade.close_reason,
+                        trade.realized_pnl.unwrap_or(0.0),
+                        trade.exit_price.unwrap_or(0.0)
+                    );
+                },
                 Err(e) => {
-                    error!("❌ CRITICAL: Failed to update paper trade {} in database: {}", trade_id, e);
-                }
+                    error!(
+                        "❌ CRITICAL: Failed to update paper trade {} in database: {}",
+                        trade_id, e
+                    );
+                },
             }
 
             // Save portfolio snapshot after trade closure
             info!("💾 Saving portfolio snapshot after trade closure...");
             match self.storage.save_portfolio_snapshot(&portfolio).await {
                 Ok(_) => {
-                    info!("✅ Successfully saved portfolio snapshot after closing trade {}", trade_id);
-                }
+                    info!(
+                        "✅ Successfully saved portfolio snapshot after closing trade {}",
+                        trade_id
+                    );
+                },
                 Err(e) => {
-                    error!("❌ Failed to save portfolio snapshot after trade closure: {}", e);
-                }
+                    error!(
+                        "❌ Failed to save portfolio snapshot after trade closure: {}",
+                        e
+                    );
+                },
             }
         }
 
@@ -2490,7 +2524,10 @@ impl PaperTradingEngine {
 
         // Check if symbol already exists
         if settings.symbols.contains_key(&symbol) {
-            info!("📊 Symbol {} already exists in paper trading settings", symbol);
+            info!(
+                "📊 Symbol {} already exists in paper trading settings",
+                symbol
+            );
             return Ok(());
         }
 
@@ -2508,7 +2545,10 @@ impl PaperTradingEngine {
         };
 
         settings.set_symbol_settings(symbol.clone(), symbol_settings);
-        info!("📊 Added {} to paper trading settings for AI analysis", symbol);
+        info!(
+            "📊 Added {} to paper trading settings for AI analysis",
+            symbol
+        );
 
         // Save updated settings to database
         if let Err(e) = self.storage.save_paper_trading_settings(&settings).await {
@@ -4035,7 +4075,7 @@ mod tests {
                 portfolio.trades.insert(trade.id.clone(), trade);
             }
             portfolio.consecutive_losses = 0; // No consecutive losses (winning streak)
-            // Note: volatility is calculated dynamically, not stored
+                                              // Note: volatility is calculated dynamically, not stored
         }
 
         let should_enable = engine.should_ai_enable_reversal().await;
@@ -4142,7 +4182,7 @@ mod tests {
                 portfolio.trades.insert(trade.id.clone(), trade);
             }
             portfolio.consecutive_losses = 0; // No consecutive losses (means winning)
-            // Note: volatility is calculated dynamically from trade history, not stored
+                                              // Note: volatility is calculated dynamically from trade history, not stored
         }
 
         // With 100% win rate and no consecutive losses, reversal should be enabled

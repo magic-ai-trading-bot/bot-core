@@ -308,25 +308,28 @@ impl ApiServer {
             .and(warp::any().map(move || market_data_clone5.clone()))
             .and(warp::any().map(move || paper_trading_for_symbol.clone()))
             .and_then(
-                |request: AddSymbolRequest, market_data: MarketDataProcessor, paper_trading: Arc<PaperTradingEngine>| async move {
+                |request: AddSymbolRequest,
+                 market_data: MarketDataProcessor,
+                 paper_trading: Arc<PaperTradingEngine>| async move {
                     let symbol = request.symbol.clone();
 
                     // Use default timeframes from config if not provided
-                    let timeframes = request.timeframes.unwrap_or_else(|| market_data.get_supported_timeframes());
+                    let timeframes = request
+                        .timeframes
+                        .unwrap_or_else(|| market_data.get_supported_timeframes());
 
                     // Add to market data
-                    match market_data
-                        .add_symbol(request.symbol, timeframes)
-                        .await
-                    {
+                    match market_data.add_symbol(request.symbol, timeframes).await {
                         Ok(_) => {
                             // Also add to paper trading settings for AI analysis
-                            if let Err(e) = paper_trading.add_symbol_to_settings(symbol.clone()).await {
+                            if let Err(e) =
+                                paper_trading.add_symbol_to_settings(symbol.clone()).await
+                            {
                                 error!("Failed to add symbol to paper trading: {}", e);
                             }
-                            Ok::<_, warp::Rejection>(warp::reply::json(
-                                &ApiResponse::success("Symbol added successfully"),
-                            ))
+                            Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(
+                                "Symbol added successfully",
+                            )))
                         },
                         Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
                             &ApiResponse::<()>::error(e.to_string()),
@@ -938,7 +941,14 @@ mod tests {
         let request: AddSymbolRequest = serde_json::from_str(json).unwrap();
         assert_eq!(request.symbol, "ETHUSDT");
         assert_eq!(request.timeframes.as_ref().map(|t| t.len()), Some(3));
-        assert_eq!(request.timeframes.as_ref().and_then(|t| t.first()).map(|s| s.as_str()), Some("15m"));
+        assert_eq!(
+            request
+                .timeframes
+                .as_ref()
+                .and_then(|t| t.first())
+                .map(|s| s.as_str()),
+            Some("15m")
+        );
     }
 
     #[test]
@@ -1101,7 +1111,11 @@ mod tests {
         let deserialized: AddSymbolRequest = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.symbol, "BTCUSDT");
-        assert!(deserialized.timeframes.as_ref().map(|t| t.is_empty()).unwrap_or(true));
+        assert!(deserialized
+            .timeframes
+            .as_ref()
+            .map(|t| t.is_empty())
+            .unwrap_or(true));
     }
 
     #[test]
@@ -1305,7 +1319,10 @@ mod tests {
         let deserialized: AddSymbolRequest = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.symbol, request.symbol);
-        assert_eq!(deserialized.timeframes.as_ref().map(|t| t.len()), request.timeframes.as_ref().map(|t| t.len()));
+        assert_eq!(
+            deserialized.timeframes.as_ref().map(|t| t.len()),
+            request.timeframes.as_ref().map(|t| t.len())
+        );
     }
 
     #[test]
