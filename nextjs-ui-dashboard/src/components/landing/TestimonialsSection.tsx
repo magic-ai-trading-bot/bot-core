@@ -3,11 +3,15 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, Quote } from "lucide-react";
 
+// Generate avatar URL using UI Avatars API
+const getAvatarUrl = (name: string, bgColor: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bgColor}&color=fff&size=128&bold=true&format=svg`;
+
 const testimonials = [
   {
     name: "Alex Chen",
     role: "Professional Trader",
-    avatar: "/placeholder.svg",
+    avatar: getAvatarUrl("Alex Chen", "3b82f6"),
     initials: "AC",
     rating: 5,
     profit: "+248%",
@@ -17,7 +21,7 @@ const testimonials = [
   {
     name: "Sarah Rodriguez",
     role: "Investment Manager",
-    avatar: "/placeholder.svg", 
+    avatar: getAvatarUrl("Sarah Rodriguez", "8b5cf6"),
     initials: "SR",
     rating: 5,
     profit: "+156%",
@@ -26,8 +30,8 @@ const testimonials = [
   },
   {
     name: "Michael Kim",
-    role: "Crypto Enthusiast", 
-    avatar: "/placeholder.svg",
+    role: "Crypto Enthusiast",
+    avatar: getAvatarUrl("Michael Kim", "22c55e"),
     initials: "MK",
     rating: 5,
     profit: "+89%",
@@ -37,8 +41,8 @@ const testimonials = [
   {
     name: "Emma Thompson",
     role: "Day Trader",
-    avatar: "/placeholder.svg",
-    initials: "ET", 
+    avatar: getAvatarUrl("Emma Thompson", "f59e0b"),
+    initials: "ET",
     rating: 5,
     profit: "+312%",
     content: "The 24/7 automation means I never miss opportunities. Woke up to profitable trades that happened while I was sleeping - it's like having a personal trading assistant.",
@@ -47,7 +51,7 @@ const testimonials = [
   {
     name: "David Park",
     role: "Hedge Fund Analyst",
-    avatar: "/placeholder.svg",
+    avatar: getAvatarUrl("David Park", "06b6d4"),
     initials: "DP",
     rating: 5,
     profit: "+198%",
@@ -57,8 +61,8 @@ const testimonials = [
   {
     name: "Lisa Wang",
     role: "Financial Advisor",
-    avatar: "/placeholder.svg",
-    initials: "LW", 
+    avatar: getAvatarUrl("Lisa Wang", "ec4899"),
+    initials: "LW",
     rating: 5,
     profit: "+134%",
     content: "Recommended this to my clients and they're thrilled with the results. The transparent reporting and risk controls make it perfect for wealth management.",

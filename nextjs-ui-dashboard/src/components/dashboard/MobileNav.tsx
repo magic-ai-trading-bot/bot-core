@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Menu, LayoutDashboard, TrendingUp, Settings, LogOut, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Logo } from "@/components/ui/Logo";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -54,17 +55,8 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-[280px] sm:w-[320px]">
         <SheetHeader>
-          <SheetTitle className="text-left flex items-center gap-2">
-            <div
-              className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
-              role="img"
-              aria-label="Bot Core Logo"
-            >
-              <span className="text-primary-foreground font-bold text-sm" aria-hidden="true">
-                BT
-              </span>
-            </div>
-            <span>Crypto Trading Bot</span>
+          <SheetTitle className="text-left">
+            <Logo size="sm" />
           </SheetTitle>
         </SheetHeader>
 

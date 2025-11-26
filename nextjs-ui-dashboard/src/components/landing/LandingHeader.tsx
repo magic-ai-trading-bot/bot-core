@@ -1,15 +1,17 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "@/components/LanguageSelector";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Logo } from "@/components/ui/Logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function LandingHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -30,20 +32,14 @@ export function LandingHeader() {
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">BT</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold">CryptoBot AI</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">AI-Powered Trading</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between h-16 relative">
+          {/* Logo - Click to go home */}
+          <Link to="/" className="flex-shrink-0">
+            <Logo size="md" />
+          </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          {/* Desktop Navigation - Absolutely centered */}
+          <nav className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
             <button 
               onClick={() => scrollToSection('features')}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -73,12 +69,21 @@ export function LandingHeader() {
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <LanguageSelector />
-            <Button variant="ghost" size="sm" onClick={handleSignIn}>
-              {t('nav.signIn')}
-            </Button>
-            <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground" onClick={handleStartTrial}>
-              {t('nav.startTrial')}
-            </Button>
+            {isAuthenticated ? (
+              <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground" onClick={() => navigate('/dashboard')}>
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={handleSignIn}>
+                  {t('nav.signIn')}
+                </Button>
+                <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground" onClick={handleStartTrial}>
+                  {t('nav.startTrial')}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -120,12 +125,21 @@ export function LandingHeader() {
               </button>
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
                 <LanguageSelector />
-                <Button variant="ghost" size="sm" className="justify-start" onClick={handleSignIn}>
-                  {t('nav.signIn')}
-                </Button>
-                <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground justify-start" onClick={handleStartTrial}>
-                  {t('nav.startTrial')}
-                </Button>
+                {isAuthenticated ? (
+                  <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground justify-start" onClick={() => navigate('/dashboard')}>
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" className="justify-start" onClick={handleSignIn}>
+                      {t('nav.signIn')}
+                    </Button>
+                    <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground justify-start" onClick={handleStartTrial}>
+                      {t('nav.startTrial')}
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>

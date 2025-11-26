@@ -84,11 +84,11 @@ export function FAQSection() {
             Still have questions? Our support team is here to help.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a 
-              href="mailto:support@cryptotradingbot.com" 
+            <a
+              href="mailto:support@botcore.ai"
               className="text-primary hover:text-primary/80 font-medium"
             >
-              📧 support@cryptotradingbot.com
+              📧 support@botcore.ai
             </a>
             <span className="hidden sm:block text-muted-foreground">•</span>
             <span className="text-muted-foreground">

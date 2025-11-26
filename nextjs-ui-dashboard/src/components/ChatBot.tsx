@@ -233,7 +233,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
         <Button
           onClick={handleToggle}
           size="lg"
-          className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 hover:from-blue-600 hover:via-cyan-600 hover:to-emerald-500 hover:scale-110 active:scale-95 shadow-blue-500/25 hover:shadow-cyan-500/40"
+          className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-green-500 via-green-500 to-green-600 hover:from-green-400 hover:via-green-500 hover:to-green-600 hover:scale-110 active:scale-95 shadow-green-500/25 hover:shadow-green-500/40"
         >
           <MessageCircle className="h-6 w-6" />
         </Button>
@@ -249,7 +249,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
         }`}
       >
         {/* Header */}
-        <CardHeader className="pb-3 bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 text-white rounded-t-lg shadow-inner">
+        <CardHeader className="pb-3 bg-gradient-to-br from-green-500 via-green-500 to-green-600 text-white rounded-t-lg shadow-inner">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="relative">
@@ -322,8 +322,8 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                           message.type === "user"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/20"
+                            ? "bg-green-600 text-white"
+                            : "bg-gradient-to-br from-green-500 via-green-500 to-green-600 text-white shadow-lg shadow-green-500/20"
                         }`}
                       >
                         {message.type === "user" ? (
@@ -337,7 +337,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                       <div
                         className={`rounded-lg p-3 ${
                           message.type === "user"
-                            ? "bg-blue-500 text-white"
+                            ? "bg-green-600 text-white"
                             : "bg-secondary/50 text-foreground border"
                         }`}
                       >
@@ -364,7 +364,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                 {messages.length === 1 && (
                   <div className="border-t pt-4">
                     <div className="flex items-center space-x-2 mb-3">
-                      <Sparkles className="h-4 w-4 text-cyan-500" />
+                      <Sparkles className="h-4 w-4 text-green-500" />
                       <span className="text-sm font-medium text-muted-foreground">
                         Câu hỏi gợi ý:
                       </span>

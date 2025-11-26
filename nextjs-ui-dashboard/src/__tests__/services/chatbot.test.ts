@@ -10,6 +10,8 @@ describe('Chatbot Service Tests', () => {
     vi.clearAllMocks()
     // Clear conversation history before each test
     chatbotService.clearHistory()
+    // Disable RAG mode for legacy tests (use local FAQ + Hugging Face)
+    chatbotService.setRAGMode(false)
   })
 
   afterEach(() => {
@@ -434,8 +436,8 @@ describe('Chatbot Service Tests', () => {
       expect(questions).toContain('Vốn tối thiểu là bao nhiêu?')
       expect(questions).toContain('Bot có những chiến lược gì?')
       expect(questions).toContain('Kết quả trading như thế nào?')
-      expect(questions).toContain('Chi phí sử dụng bot là bao nhiêu?')
-      expect(questions).toContain('Cần hỗ trợ thì liên hệ đâu?')
+      expect(questions).toContain('Paper trading là gì?')
+      expect(questions).toContain('Cách cấu hình API keys?')
     })
 
     it('should return 8 suggested questions', () => {
@@ -593,7 +595,7 @@ describe('Chatbot Service Tests', () => {
       expect(typeof result.success).toBe('boolean')
       expect(typeof result.message).toBe('string')
       expect(typeof result.confidence).toBe('number')
-      expect(['faq', 'ai', 'error']).toContain(result.type)
+      expect(['faq', 'ai', 'rag', 'fallback', 'error']).toContain(result.type)
     })
 
     it('should return correct response structure for AI', async () => {
@@ -614,7 +616,7 @@ describe('Chatbot Service Tests', () => {
       expect(typeof result.success).toBe('boolean')
       expect(typeof result.message).toBe('string')
       expect(typeof result.confidence).toBe('number')
-      expect(['faq', 'ai', 'error']).toContain(result.type)
+      expect(['faq', 'ai', 'rag', 'fallback', 'error']).toContain(result.type)
     })
 
     it('should return correct response structure for API errors', async () => {
@@ -671,6 +673,96 @@ describe('Chatbot Service Tests', () => {
       expect(typeof chatbotService.getConversationHistory).toBe('function')
       expect(typeof chatbotService.addMessageToHistory).toBe('function')
       expect(typeof chatbotService.clearHistory).toBe('function')
+    })
+  })
+
+  describe('RAG Mode', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      chatbotService.clearHistory()
+      // Reset rate limit for RAG tests
+      chatbotService.resetRateLimit()
+    })
+
+    it('should toggle RAG mode', () => {
+      chatbotService.setRAGMode(true)
+      expect(chatbotService.isRAGEnabled()).toBe(true)
+
+      chatbotService.setRAGMode(false)
+      expect(chatbotService.isRAGEnabled()).toBe(false)
+    })
+
+    it('should call RAG endpoint when RAG mode is enabled', async () => {
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'RAG response about BotCore',
+          sources: [{ title: 'README', path: 'README.md' }],
+          confidence: 0.9,
+          type: 'rag',
+        }),
+      })
+
+      global.fetch = mockFetch
+
+      const result = await chatbotService.processMessage('what is BotCore?')
+
+      expect(result.success).toBe(true)
+      expect(result.type).toBe('rag')
+      expect(result.message).toBe('RAG response about BotCore')
+      expect(result.sources).toHaveLength(1)
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/chat/project'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    })
+
+    it('should fallback to local FAQ when RAG service is unavailable', async () => {
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+      global.fetch = mockFetch
+
+      const result = await chatbotService.processMessage('bot hoạt động')
+
+      // Should fallback to local FAQ
+      expect(result.success).toBe(true)
+      expect(result.type).toBe('faq')
+      expect(result.message).toContain('FAQ cục bộ')
+    })
+
+    it('should fallback with generic message when RAG fails and no FAQ match', async () => {
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+      global.fetch = mockFetch
+
+      const result = await chatbotService.processMessage('random question xyz')
+
+      expect(result.success).toBe(true)
+      expect(result.type).toBe('fallback')
+      expect(result.message).toContain('AI service đang không khả dụng')
+    })
+
+    it('should handle rate limiting in RAG mode', async () => {
+      chatbotService.setRAGMode(true)
+
+      // Exhaust rate limit
+      for (let i = 0; i < 15; i++) {
+        await chatbotService.processMessage(`test ${i}`)
+      }
+
+      const result = await chatbotService.processMessage('another question')
+
+      expect(result.message).toContain('quá nhiều câu hỏi')
     })
   })
 

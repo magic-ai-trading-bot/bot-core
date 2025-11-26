@@ -1,5 +1,6 @@
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { PartnersSection } from "@/components/landing/PartnersSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
@@ -15,6 +16,9 @@ const Index = () => {
 
       <main>
         <HeroSection />
+
+        {/* Partners & Integrations */}
+        <PartnersSection />
 
         <section id="features">
           <FeaturesSection />
