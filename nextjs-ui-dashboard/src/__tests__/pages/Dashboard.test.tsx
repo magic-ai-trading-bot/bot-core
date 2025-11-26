@@ -216,8 +216,9 @@ describe('Dashboard', () => {
     render(<Dashboard />)
 
     await waitFor(() => {
-      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
-      expect(screen.getByText('AI-Powered Futures Trading')).toBeInTheDocument()
+      expect(screen.getByText('Bot')).toBeInTheDocument()
+      expect(screen.getByText('Core')).toBeInTheDocument()
+      expect(screen.getByText('AI Trading')).toBeInTheDocument()
     })
   })
 
@@ -307,7 +308,8 @@ describe('Dashboard', () => {
 
     // Dashboard uses WebSocket data from state
     await waitFor(() => {
-      expect(screen.getByText('Crypto Trading Bot')).toBeInTheDocument()
+      expect(screen.getByText('Bot')).toBeInTheDocument()
+      expect(screen.getByText('Core')).toBeInTheDocument()
     })
   })
 

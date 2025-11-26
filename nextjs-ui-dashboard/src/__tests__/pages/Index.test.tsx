@@ -36,6 +36,10 @@ vi.mock('../../components/landing/HeroSection', () => ({
   HeroSection: () => <div data-testid="hero-section">Hero Section</div>,
 }))
 
+vi.mock('../../components/landing/PartnersSection', () => ({
+  PartnersSection: () => <div data-testid="partners-section">Partners Section</div>,
+}))
+
 vi.mock('../../components/landing/FeaturesSection', () => ({
   FeaturesSection: () => <div data-testid="features-section">Features Section</div>,
 }))
@@ -94,6 +98,12 @@ describe('Index (Landing Page)', () => {
 
     const hero = screen.getByTestId('hero-section')
     expect(hero).toBeInTheDocument()
+  })
+
+  it('renders partners section', () => {
+    render(<Index />)
+
+    expect(screen.getByTestId('partners-section')).toBeInTheDocument()
   })
 
   it('renders features section with correct id', () => {
@@ -156,6 +166,7 @@ describe('Index (Landing Page)', () => {
     const main = container.querySelector('main')
     expect(main).toBeInTheDocument()
     expect(main).toContainElement(screen.getByTestId('hero-section'))
+    expect(main).toContainElement(screen.getByTestId('partners-section'))
     expect(main).toContainElement(screen.getByTestId('features-section'))
     expect(main).toContainElement(screen.getByTestId('pricing-section'))
     expect(main).toContainElement(screen.getByTestId('testimonials-section'))
@@ -175,6 +186,7 @@ describe('Index (Landing Page)', () => {
 
     expect(screen.getAllByTestId('landing-header')).toHaveLength(1)
     expect(screen.getAllByTestId('hero-section')).toHaveLength(1)
+    expect(screen.getAllByTestId('partners-section')).toHaveLength(1)
     expect(screen.getAllByTestId('features-section')).toHaveLength(1)
     expect(screen.getAllByTestId('pricing-section')).toHaveLength(1)
     expect(screen.getAllByTestId('testimonials-section')).toHaveLength(1)

@@ -127,12 +127,12 @@ describe('DashboardHeader', () => {
       expect(settingsLink).toBeInTheDocument()
     })
 
-    it('navigates to dashboard when logo is clicked', async () => {
+    it('navigates to home when logo is clicked', async () => {
       const user = userEvent.setup()
       render(<DashboardHeader />)
 
       const logoLink = screen.getAllByRole('link')[0]
-      expect(logoLink.getAttribute('href')).toBe('/dashboard')
+      expect(logoLink.getAttribute('href')).toBe('/')
     })
   })
 
@@ -274,7 +274,8 @@ describe('DashboardHeader', () => {
     it('has responsive text sizes', () => {
       const { container } = render(<DashboardHeader />)
 
-      const responsiveText = container.querySelector('[class*="lg:text-"]')
+      // Check for text-lg class which is used in Logo md size
+      const responsiveText = container.querySelector('[class*="text-lg"]')
       expect(responsiveText).toBeInTheDocument()
     })
   })
@@ -326,7 +327,8 @@ describe('DashboardHeader', () => {
     it('displays logo with correct size', () => {
       const { container } = render(<DashboardHeader />)
 
-      const logo = container.querySelector('.w-11.h-11')
+      // Logo md size uses w-10 h-10
+      const logo = container.querySelector('.w-10.h-10')
       expect(logo).toBeTruthy()
     })
 
@@ -432,7 +434,8 @@ describe('DashboardHeader', () => {
     it('has correct padding', () => {
       const { container } = render(<DashboardHeader />)
 
-      const header = container.querySelector('[class*="lg:p-6"]')
+      // Header uses lg:px-6 for horizontal padding and lg:py-4 for vertical
+      const header = container.querySelector('[class*="lg:px-6"]')
       expect(header).toBeInTheDocument()
     })
 
@@ -459,8 +462,8 @@ describe('DashboardHeader', () => {
       render(<DashboardHeader />)
 
       const heading = screen.getByText('Bot').closest('h1')
+      // Logo md size uses text-lg
       expect(heading?.className).toContain('text-lg')
-      expect(heading?.className).toContain('lg:text-xl')
     })
 
     it('applies muted color to tagline', () => {
