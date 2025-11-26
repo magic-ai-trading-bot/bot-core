@@ -255,14 +255,18 @@ impl BinanceWebSocket {
         let base_url = &self.config.ws_url;
 
         if streams.len() == 1 {
-            // Single stream
+            // Single stream: wss://stream.binance.com:9443/ws/btcusdt@kline_1m
             let stream = &streams[0];
             Ok(Url::parse(&format!("{base_url}/{stream}"))?)
         } else {
-            // Multiple streams using combined stream endpoint
+            // Multiple streams: wss://stream.binance.com:9443/stream?streams=btcusdt@kline_1m/ethusdt@kline_1m
+            // Binance combined stream endpoint does NOT use /ws prefix!
+            // base_url is like: wss://stream.binance.com:9443/ws
+            // We need to strip /ws and use /stream instead
+            let base_without_ws = base_url.trim_end_matches("/ws");
             let stream_list = streams.join("/");
             Ok(Url::parse(&format!(
-                "{base_url}/stream?streams={stream_list}"
+                "{base_without_ws}/stream?streams={stream_list}"
             ))?)
         }
     }
@@ -530,9 +534,10 @@ mod tests {
         let streams = vec!["btcusdt@kline_1m".to_string(), "btcusdt@ticker".to_string()];
         let url = ws.build_websocket_url(&streams).unwrap();
 
+        // Multi-stream URL should NOT have /ws/ - it uses /stream?streams= directly
         assert!(url
             .as_str()
-            .starts_with("wss://stream.binance.com:9443/ws/stream?streams="));
+            .starts_with("wss://stream.binance.com:9443/stream?streams="));
         assert!(url.as_str().contains("btcusdt@kline_1m"));
         assert!(url.as_str().contains("btcusdt@ticker"));
     }

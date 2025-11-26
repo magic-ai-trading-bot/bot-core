@@ -2,9 +2,13 @@
 """
 ML Training & Analysis Tasks
 Long-running machine learning operations executed asynchronously
+
+IMPORTANT: These tasks now fetch REAL market data from Rust API.
+Never use dummy/fake data for trading decisions!
 """
 
 import asyncio
+import os
 from typing import Dict, Any, List
 from celery import Task
 from celery_app import app
@@ -12,8 +16,76 @@ from models.model_manager import ModelManager
 from utils.logger import get_logger
 import pandas as pd
 import numpy as np
+import httpx
 
 logger = get_logger("MLTasks")
+
+# Rust Core Engine API URL
+RUST_API_URL = os.getenv("RUST_API_URL", "http://rust-core-engine:8080")
+
+
+def fetch_real_candles_sync(symbol: str, timeframe: str = "1h", limit: int = 100) -> pd.DataFrame:
+    """
+    Fetch REAL candle data from Rust Core Engine API (synchronous version for Celery).
+
+    CRITICAL: This function fetches actual market data from Binance via Rust API.
+    Never use dummy/fake data for trading decisions!
+
+    Args:
+        symbol: Trading pair symbol (e.g., "BTCUSDT")
+        timeframe: Timeframe (e.g., "1h", "4h")
+        limit: Number of candles to fetch
+
+    Returns:
+        DataFrame with OHLCV data
+    """
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            url = f"{RUST_API_URL}/api/market/chart/{symbol}/{timeframe}?limit={limit}"
+            logger.info(f"📊 Fetching real candles from: {url}")
+
+            response = client.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                candles = data.get("data", {}).get("candles", [])
+
+                if not candles:
+                    logger.warning(f"⚠️ No candles returned for {symbol}/{timeframe}")
+                    return pd.DataFrame()
+
+                df = pd.DataFrame(candles)
+                df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+                logger.info(f"✅ Fetched {len(df)} real candles for {symbol}/{timeframe}")
+                return df
+            else:
+                logger.error(f"❌ Failed to fetch candles: {response.status_code}")
+                return pd.DataFrame()
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching real candles for {symbol}: {e}")
+        return pd.DataFrame()
+
+
+def fetch_current_price_sync(symbol: str) -> float:
+    """
+    Fetch current price from Rust API (synchronous version for Celery).
+
+    Args:
+        symbol: Trading pair symbol
+
+    Returns:
+        Current price as float, or 0 if failed
+    """
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            url = f"{RUST_API_URL}/api/market/prices"
+            response = client.get(url)
+            if response.status_code == 200:
+                prices = response.json()
+                return prices.get(symbol, 0)
+    except Exception as e:
+        logger.error(f"❌ Error fetching price for {symbol}: {e}")
+    return 0
 
 
 class MLTask(Task):
@@ -85,21 +157,12 @@ def train_model(
             },
         )
 
-        # TODO: Fetch real data from MongoDB
-        # For now, generate dummy data
-        dates = pd.date_range(
-            end=pd.Timestamp.now(), periods=days_of_data * 24, freq="h"
-        )
-        df = pd.DataFrame(
-            {
-                "timestamp": dates,
-                "open": np.random.uniform(30000, 50000, len(dates)),
-                "high": np.random.uniform(30000, 50000, len(dates)),
-                "low": np.random.uniform(30000, 50000, len(dates)),
-                "close": np.random.uniform(30000, 50000, len(dates)),
-                "volume": np.random.uniform(1000, 10000, len(dates)),
-            }
-        )
+        # FIXED: Fetch REAL candle data from Rust API
+        # This fetches actual historical market data from Binance
+        df = fetch_real_candles_sync(symbol, "1h", days_of_data * 24)
+
+        if df.empty:
+            raise ValueError(f"No real market data available for {symbol}. Cannot train on fake data!")
 
         # Update progress: Training
         self.update_state(
@@ -183,15 +246,49 @@ def bulk_analysis(
         )
 
         try:
-            # TODO: Implement actual analysis
-            # For now, return dummy data
+            # FIXED: Fetch REAL candle data and calculate REAL indicators
+            df = fetch_real_candles_sync(symbol, timeframe, 100)
+            current_price = fetch_current_price_sync(symbol)
+
+            if df.empty or current_price == 0:
+                results[symbol] = {"error": f"No real data available for {symbol}"}
+                continue
+
+            # Calculate REAL technical indicators from actual market data
+            close_prices = df["close"].values
+
+            # RSI calculation (14 period)
+            delta = np.diff(close_prices)
+            gains = np.where(delta > 0, delta, 0)
+            losses = np.where(delta < 0, -delta, 0)
+            avg_gain = np.mean(gains[-14:]) if len(gains) >= 14 else np.mean(gains)
+            avg_loss = np.mean(losses[-14:]) if len(losses) >= 14 else np.mean(losses)
+            rs = avg_gain / avg_loss if avg_loss != 0 else 100
+            rsi = 100 - (100 / (1 + rs))
+
+            # MACD calculation (12, 26, 9)
+            ema_12 = pd.Series(close_prices).ewm(span=12).mean().iloc[-1]
+            ema_26 = pd.Series(close_prices).ewm(span=26).mean().iloc[-1]
+            macd = ema_12 - ema_26
+
+            # Determine signal based on REAL indicators
+            if rsi < 30 and macd > 0:
+                signal = "BUY"
+                confidence = min(0.85, 0.5 + (30 - rsi) / 100 + abs(macd) / 1000)
+            elif rsi > 70 and macd < 0:
+                signal = "SELL"
+                confidence = min(0.85, 0.5 + (rsi - 70) / 100 + abs(macd) / 1000)
+            else:
+                signal = "HOLD"
+                confidence = 0.5
+
             results[symbol] = {
-                "signal": np.random.choice(["BUY", "SELL", "HOLD"]),
-                "confidence": np.random.uniform(0.5, 0.95),
-                "price": np.random.uniform(30000, 50000),
+                "signal": signal,
+                "confidence": round(confidence, 3),
+                "price": current_price,
                 "indicators": {
-                    "rsi": np.random.uniform(30, 70),
-                    "macd": np.random.uniform(-100, 100),
+                    "rsi": round(rsi, 2),
+                    "macd": round(macd, 4),
                 },
             }
 
@@ -239,24 +336,42 @@ def predict_price(
     )
 
     try:
-        # TODO: Load model and make predictions
-        # For now, return dummy predictions
+        # FIXED: Fetch REAL current price and historical data for trend-based predictions
+        current_price = fetch_current_price_sync(symbol)
+        df = fetch_real_candles_sync(symbol, "1h", 100)
+
+        if current_price == 0 or df.empty:
+            raise ValueError(f"No real market data available for {symbol}. Cannot make predictions without real data!")
+
+        # Calculate trend from real historical data
+        close_prices = df["close"].values
+        recent_prices = close_prices[-24:] if len(close_prices) >= 24 else close_prices
+
+        # Calculate average hourly change from real data
+        price_changes = np.diff(recent_prices) / recent_prices[:-1]
+        avg_change = np.mean(price_changes) if len(price_changes) > 0 else 0
+        volatility = np.std(price_changes) if len(price_changes) > 0 else 0.01
+
+        # Generate predictions based on real trend (not random!)
         predictions = []
-        current_price = np.random.uniform(30000, 50000)
+        pred_price = current_price
 
         for h in range(horizon_hours):
-            # Random walk prediction
-            change = np.random.uniform(-0.02, 0.02)
-            current_price *= 1 + change
+            # Trend-based prediction with decreasing confidence over time
+            # Use actual trend, not random values
+            pred_price *= 1 + avg_change
+            confidence = max(0.3, 0.85 - (h * 0.02) - (volatility * 10))
+
             predictions.append(
                 {
                     "hour": h + 1,
-                    "predicted_price": round(current_price, 2),
-                    "confidence": np.random.uniform(0.6, 0.9),
+                    "predicted_price": round(pred_price, 2),
+                    "confidence": round(confidence, 3),
+                    "trend_direction": "UP" if avg_change > 0 else "DOWN" if avg_change < 0 else "FLAT",
                 }
             )
 
-        logger.info(f"✅ Prediction complete: {symbol}")
+        logger.info(f"✅ Prediction complete: {symbol} (current: ${current_price:.2f}, trend: {avg_change*100:.2f}%/hr)")
 
         return {
             "status": "success",

@@ -61,6 +61,20 @@ async fn main() -> Result<()> {
     let config = Config::from_file(&opt.config_file)?;
     info!("Configuration loaded from {}", opt.config_file);
 
+    // Log important configuration for debugging
+    info!(
+        "🌐 Binance API: testnet={}, base_url={}",
+        config.binance.testnet, config.binance.base_url
+    );
+    info!(
+        "📊 Price updates will use: {}",
+        if config.binance.base_url.contains("testnet") {
+            "TESTNET (⚠️ May be unstable!)"
+        } else {
+            "PRODUCTION (✅ Real market prices)"
+        }
+    );
+
     // Initialize storage
     let storage = storage::Storage::new(&config.database).await?;
 
