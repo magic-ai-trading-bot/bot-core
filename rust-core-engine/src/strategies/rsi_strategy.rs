@@ -24,7 +24,7 @@ impl RsiStrategy {
         // @ref:docs/features/how-it-works.md - RSI: "RSI < 25 (quá bán - optimized)", "RSI > 75 (quá mua - optimized)"
         config
             .parameters
-            .insert("oversold_threshold".to_string(), json!(25.0));  // FIXED: Match docs - 25 (not 30)
+            .insert("oversold_threshold".to_string(), json!(25.0)); // FIXED: Match docs - 25 (not 30)
         config
             .parameters
             .insert("overbought_threshold".to_string(), json!(75.0)); // FIXED: Match docs - 75 (not 70)
@@ -405,7 +405,7 @@ mod tests {
         let mut strategy = RsiStrategy::new();
 
         assert_eq!(strategy.get_rsi_period(), 14);
-        assert_eq!(strategy.get_oversold_threshold(), 25.0);  // FIXED: Match docs - 25
+        assert_eq!(strategy.get_oversold_threshold(), 25.0); // FIXED: Match docs - 25
         assert_eq!(strategy.get_overbought_threshold(), 75.0); // FIXED: Match docs - 75
 
         // Update config
@@ -602,7 +602,7 @@ mod tests {
     #[test]
     fn test_get_oversold_threshold_default() {
         let strategy = RsiStrategy::new();
-        assert_eq!(strategy.get_oversold_threshold(), 25.0);  // FIXED: Match docs - 25
+        assert_eq!(strategy.get_oversold_threshold(), 25.0); // FIXED: Match docs - 25
     }
 
     #[test]

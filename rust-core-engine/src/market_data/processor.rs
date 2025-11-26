@@ -7,8 +7,8 @@ use tokio::sync::{broadcast, mpsc};
 use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
 
-use crate::binance::{BinanceClient, BinanceWebSocket, StreamEvent};
 use crate::binance::websocket::WebSocketCommand;
+use crate::binance::{BinanceClient, BinanceWebSocket, StreamEvent};
 use crate::config::{BinanceConfig, MarketDataConfig};
 use crate::storage::Storage;
 
@@ -174,19 +174,30 @@ impl MarketDataProcessor {
         // Load user-added symbols from database
         match self.storage.load_user_symbols().await {
             Ok(user_symbols) => {
-                info!("📊 Found {} user symbols in database: {:?}", user_symbols.len(), user_symbols);
+                info!(
+                    "📊 Found {} user symbols in database: {:?}",
+                    user_symbols.len(),
+                    user_symbols
+                );
                 for symbol in user_symbols {
                     if !all_symbols.contains(&symbol) {
                         all_symbols.push(symbol);
                     }
                 }
-            }
+            },
             Err(e) => {
-                info!("No user symbols found in database (normal for first run): {}", e);
-            }
+                info!(
+                    "No user symbols found in database (normal for first run): {}",
+                    e
+                );
+            },
         }
 
-        info!("📊 Loading historical data for {} symbols: {:?}", all_symbols.len(), all_symbols);
+        info!(
+            "📊 Loading historical data for {} symbols: {:?}",
+            all_symbols.len(),
+            all_symbols
+        );
 
         for symbol in &all_symbols {
             for timeframe in &self.config.timeframes {
@@ -288,19 +299,30 @@ impl MarketDataProcessor {
         // Load user-added symbols from database
         match self.storage.load_user_symbols().await {
             Ok(user_symbols) => {
-                info!("📡 Found {} user symbols for WebSocket subscription: {:?}", user_symbols.len(), user_symbols);
+                info!(
+                    "📡 Found {} user symbols for WebSocket subscription: {:?}",
+                    user_symbols.len(),
+                    user_symbols
+                );
                 for symbol in user_symbols {
                     if !all_symbols.contains(&symbol) {
                         all_symbols.push(symbol);
                     }
                 }
-            }
+            },
             Err(e) => {
-                info!("No user symbols found for WebSocket (normal for first run): {}", e);
-            }
+                info!(
+                    "No user symbols found for WebSocket (normal for first run): {}",
+                    e
+                );
+            },
         }
 
-        info!("📡 Subscribing to {} symbols via WebSocket: {:?}", all_symbols.len(), all_symbols);
+        info!(
+            "📡 Subscribing to {} symbols via WebSocket: {:?}",
+            all_symbols.len(),
+            all_symbols
+        );
 
         let timeframes = self.config.timeframes.clone();
         let cache = self.cache.clone();
@@ -310,7 +332,10 @@ impl MarketDataProcessor {
         // This must be done BEFORE moving websocket into the spawned task
         let command_sender = websocket.get_command_sender();
         {
-            let mut guard = self.ws_command_sender.lock().expect("Command sender mutex poisoned");
+            let mut guard = self
+                .ws_command_sender
+                .lock()
+                .expect("Command sender mutex poisoned");
             *guard = Some(command_sender);
         }
         info!("📡 WebSocket command sender stored for dynamic subscription");
@@ -590,7 +615,10 @@ impl MarketDataProcessor {
                     }
                 }
 
-                info!("Starting periodic market analysis for {} symbols", all_symbols.len());
+                info!(
+                    "Starting periodic market analysis for {} symbols",
+                    all_symbols.len()
+                );
 
                 for symbol in &all_symbols {
                     match analyzer
@@ -687,7 +715,10 @@ impl MarketDataProcessor {
     /// Subscribe to a new symbol on the live WebSocket connection
     /// This enables real-time price updates without requiring service restart
     pub fn subscribe_symbol(&self, symbol: &str, timeframes: &[String]) -> Result<()> {
-        let guard = self.ws_command_sender.lock().expect("Command sender mutex poisoned");
+        let guard = self
+            .ws_command_sender
+            .lock()
+            .expect("Command sender mutex poisoned");
         if let Some(ref sender) = *guard {
             let cmd = WebSocketCommand::Subscribe {
                 symbol: symbol.to_string(),
@@ -699,17 +730,26 @@ impl MarketDataProcessor {
                 return Err(anyhow::anyhow!("Failed to subscribe to {}: {}", symbol, e));
             }
 
-            info!("📡 Subscribed to WebSocket streams for {} with timeframes {:?}", symbol, timeframes);
+            info!(
+                "📡 Subscribed to WebSocket streams for {} with timeframes {:?}",
+                symbol, timeframes
+            );
             Ok(())
         } else {
-            warn!("WebSocket not connected yet, cannot subscribe to {}", symbol);
+            warn!(
+                "WebSocket not connected yet, cannot subscribe to {}",
+                symbol
+            );
             Err(anyhow::anyhow!("WebSocket not connected"))
         }
     }
 
     /// Unsubscribe from a symbol on the live WebSocket connection
     pub fn unsubscribe_symbol(&self, symbol: &str, timeframes: &[String]) -> Result<()> {
-        let guard = self.ws_command_sender.lock().expect("Command sender mutex poisoned");
+        let guard = self
+            .ws_command_sender
+            .lock()
+            .expect("Command sender mutex poisoned");
         if let Some(ref sender) = *guard {
             let cmd = WebSocketCommand::Unsubscribe {
                 symbol: symbol.to_string(),
@@ -718,13 +758,23 @@ impl MarketDataProcessor {
 
             if let Err(e) = sender.send(cmd) {
                 warn!("Failed to send unsubscribe command for {}: {}", symbol, e);
-                return Err(anyhow::anyhow!("Failed to unsubscribe from {}: {}", symbol, e));
+                return Err(anyhow::anyhow!(
+                    "Failed to unsubscribe from {}: {}",
+                    symbol,
+                    e
+                ));
             }
 
-            info!("📡 Unsubscribed from WebSocket streams for {} with timeframes {:?}", symbol, timeframes);
+            info!(
+                "📡 Unsubscribed from WebSocket streams for {} with timeframes {:?}",
+                symbol, timeframes
+            );
             Ok(())
         } else {
-            warn!("WebSocket not connected, cannot unsubscribe from {}", symbol);
+            warn!(
+                "WebSocket not connected, cannot unsubscribe from {}",
+                symbol
+            );
             Err(anyhow::anyhow!("WebSocket not connected"))
         }
     }
@@ -870,11 +920,14 @@ impl MarketDataProcessor {
         // Subscribe to WebSocket streams for real-time updates (no restart needed!)
         match self.subscribe_symbol(&symbol, &timeframes) {
             Ok(()) => {
-                info!("✅ Symbol {} added successfully with real-time WebSocket subscription!", symbol);
-            }
+                info!(
+                    "✅ Symbol {} added successfully with real-time WebSocket subscription!",
+                    symbol
+                );
+            },
             Err(e) => {
                 warn!("⚠️ Symbol {} added but WebSocket subscription failed: {}. Data will be available after service restart.", symbol, e);
-            }
+            },
         }
 
         Ok(())
@@ -897,7 +950,10 @@ impl MarketDataProcessor {
             self.storage.remove_user_symbol(symbol).await?;
             info!("💾 Removed {} from user symbols in database", symbol);
         } else {
-            warn!("Cannot remove {} - it's a config symbol, not user-added", symbol);
+            warn!(
+                "Cannot remove {} - it's a config symbol, not user-added",
+                symbol
+            );
         }
 
         Ok(())

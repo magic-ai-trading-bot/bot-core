@@ -114,16 +114,22 @@ mod signal_combination_tests {
 
         if result.is_ok() {
             let combined = result.unwrap();
-            let _total_strategies = combined.metadata.get("total_strategies")
+            let _total_strategies = combined
+                .metadata
+                .get("total_strategies")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0);
 
             // If we got a non-neutral signal, it means enough strategies agreed
             if combined.final_signal != TradingSignal::Neutral {
-                let long_count = combined.metadata.get("long_signals")
+                let long_count = combined
+                    .metadata
+                    .get("long_signals")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(0);
-                let short_count = combined.metadata.get("short_signals")
+                let short_count = combined
+                    .metadata
+                    .get("short_signals")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(0);
 
@@ -148,8 +154,10 @@ mod signal_combination_tests {
         config.min_strategies_agreement = 3; // Lower threshold: ≥3/5 (60%)
 
         // Verify config is applied before moving
-        assert_eq!(config.min_strategies_agreement, 3,
-            "Should support configurable threshold of 3/5");
+        assert_eq!(
+            config.min_strategies_agreement, 3,
+            "Should support configurable threshold of 3/5"
+        );
 
         let _engine = StrategyEngine::with_config(config);
     }
@@ -178,12 +186,22 @@ mod signal_combination_tests {
     fn test_default_config_values() {
         let config = StrategyEngineConfig::default();
 
-        assert_eq!(config.min_strategies_agreement, 4,
-            "Default should require 4/5 strategies (80%)");
-        assert_eq!(config.enabled_strategies.len(), 5,
-            "Should have 5 strategies enabled by default");
-        assert!(matches!(config.signal_combination_mode, SignalCombinationMode::Consensus),
-            "Default should use Consensus mode");
+        assert_eq!(
+            config.min_strategies_agreement, 4,
+            "Default should require 4/5 strategies (80%)"
+        );
+        assert_eq!(
+            config.enabled_strategies.len(),
+            5,
+            "Should have 5 strategies enabled by default"
+        );
+        assert!(
+            matches!(
+                config.signal_combination_mode,
+                SignalCombinationMode::Consensus
+            ),
+            "Default should use Consensus mode"
+        );
     }
 }
 
@@ -548,10 +566,16 @@ mod integration_tests {
 
         let result = engine.analyze_market(&input).await;
 
-        assert!(result.is_ok(), "Should successfully analyze market with multi-timeframe data");
+        assert!(
+            result.is_ok(),
+            "Should successfully analyze market with multi-timeframe data"
+        );
 
         let combined = result.unwrap();
-        assert!(!combined.strategy_signals.is_empty(), "Should have strategy signals");
+        assert!(
+            !combined.strategy_signals.is_empty(),
+            "Should have strategy signals"
+        );
         assert!(combined.combined_confidence >= 0.0 && combined.combined_confidence <= 1.0);
     }
 
@@ -567,18 +591,21 @@ mod integration_tests {
 
         // Check 2: Position count
         let max_positions = 5;
-        assert!(trades.len() <= max_positions, "Position count check should pass");
+        assert!(
+            trades.len() <= max_positions,
+            "Position count check should pass"
+        );
 
         // Check 3: Individual trade risk
         let max_risk_per_trade = 3.0;
-        assert!(portfolio_risk < max_risk_per_trade, "Individual trade risk should be acceptable");
+        assert!(
+            portfolio_risk < max_risk_per_trade,
+            "Individual trade risk should be acceptable"
+        );
     }
 
     /// Helper
-    fn calculate_portfolio_risk(
-        trades: &[(TradeType, f64, f64, Option<f64>)],
-        equity: f64,
-    ) -> f64 {
+    fn calculate_portfolio_risk(trades: &[(TradeType, f64, f64, Option<f64>)], equity: f64) -> f64 {
         if trades.is_empty() || equity == 0.0 {
             return 0.0;
         }
@@ -657,10 +684,7 @@ mod error_scenario_tests {
     }
 
     // Helper
-    fn calculate_portfolio_risk(
-        trades: &[(TradeType, f64, f64, Option<f64>)],
-        equity: f64,
-    ) -> f64 {
+    fn calculate_portfolio_risk(trades: &[(TradeType, f64, f64, Option<f64>)], equity: f64) -> f64 {
         if trades.is_empty() {
             return 0.0;
         }

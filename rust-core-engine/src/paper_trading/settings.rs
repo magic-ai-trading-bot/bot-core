@@ -393,15 +393,15 @@ impl Default for RiskSettings {
             max_consecutive_losses: 3,   // OPTIMIZED: Down from 5 - stop faster
             // @spec:FR-RISK-006 - Cool-down period 60 minutes after consecutive losses
             // @ref:docs/features/how-it-works.md - Layer 6: "Nghỉ 60 phút sau thua lỗ"
-            cool_down_minutes: 60,       // FIXED: Match docs - 60 minutes cool-down
+            cool_down_minutes: 60, // FIXED: Match docs - 60 minutes cool-down
             position_sizing_method: PositionSizingMethod::RiskBased,
             min_risk_reward_ratio: 2.0, // OPTIMIZED: Up from 1.5 - quality trades only
             correlation_limit: 0.7,
             dynamic_sizing: true,
             volatility_lookback_hours: 24,
-            trailing_stop_enabled: true,  // NEW: Enable trailing stops
-            trailing_stop_pct: 3.0,       // NEW: Trail 3% below high/above low
-            trailing_activation_pct: 5.0, // NEW: Start after 5% profit
+            trailing_stop_enabled: true,   // NEW: Enable trailing stops
+            trailing_stop_pct: 3.0,        // NEW: Trail 3% below high/above low
+            trailing_activation_pct: 5.0,  // NEW: Start after 5% profit
             enable_signal_reversal: false, // NEW: Disabled by default (manual control)
             ai_auto_enable_reversal: true, // NEW: Let AI decide automatically ✨
             reversal_min_confidence: 0.75, // NEW: 75% minimum confidence
@@ -924,7 +924,7 @@ mod tests {
             max_drawdown_pct: 10.0,
             daily_loss_limit_pct: 3.0,
             max_consecutive_losses: 3,
-            cool_down_minutes: 60,  // FIXED: Match docs - 60 minutes
+            cool_down_minutes: 60, // FIXED: Match docs - 60 minutes
             position_sizing_method: PositionSizingMethod::FixedPercentage,
             min_risk_reward_ratio: 2.0,
             correlation_limit: 0.8,

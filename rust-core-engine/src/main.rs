@@ -122,10 +122,13 @@ async fn main() -> Result<()> {
                     trading_symbols.push(Box::leak(symbol.into_boxed_str()));
                 }
             }
-        }
+        },
         Err(e) => {
-            info!("No user symbols found in database (this is normal for first run): {}", e);
-        }
+            info!(
+                "No user symbols found in database (this is normal for first run): {}",
+                e
+            );
+        },
     }
 
     info!("🎯 Total symbols for AI analysis: {:?}", trading_symbols);
