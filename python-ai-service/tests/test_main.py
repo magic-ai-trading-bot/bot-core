@@ -1283,11 +1283,13 @@ class TestMoreGPTAnalyzerMethods:
             strategy_context=AIStrategyContext(),
         )
 
+        indicators_15m = {"rsi": 60.0, "macd": 5.0}
+        indicators_30m = {"rsi": 62.0, "macd": 7.0}
         indicators_1h = {"rsi": 65.0, "macd": 10.0}
         indicators_4h = {"rsi": 70.0}
 
         context = analyzer._prepare_market_context(
-            request, indicators_1h, indicators_4h
+            request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
         )
         assert "BTCUSDT" in context
         assert "RSI" in context
@@ -2398,30 +2400,33 @@ class TestCostStatisticsEndpoint:
     async def test_cost_statistics_with_usage(self, client):
         """Test cost statistics with usage data."""
         # Mock global variables with actual usage
-        with patch("main.total_requests_count", 100):
-            with patch("main.total_input_tokens", 50000):
-                with patch("main.total_output_tokens", 25000):
-                    with patch("main.total_cost_usd", 0.5):
-                        response = await client.get("/ai/cost/statistics")
-                        assert response.status_code == 200
-                        data = response.json()
+        # Also mock fetch_analysis_symbols to return fallback symbols (4 symbols)
+        mock_symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
+        with patch("main.fetch_analysis_symbols", AsyncMock(return_value=mock_symbols)):
+            with patch("main.total_requests_count", 100):
+                with patch("main.total_input_tokens", 50000):
+                    with patch("main.total_output_tokens", 25000):
+                        with patch("main.total_cost_usd", 0.5):
+                            response = await client.get("/ai/cost/statistics")
+                            assert response.status_code == 200
+                            data = response.json()
 
-                        # Check session statistics
-                        assert data["session_statistics"]["total_requests"] == 100
-                        assert data["session_statistics"]["total_input_tokens"] == 50000
-                        assert data["session_statistics"]["total_output_tokens"] == 25000
-                        assert data["session_statistics"]["total_cost_usd"] == 0.5
+                            # Check session statistics
+                            assert data["session_statistics"]["total_requests"] == 100
+                            assert data["session_statistics"]["total_input_tokens"] == 50000
+                            assert data["session_statistics"]["total_output_tokens"] == 25000
+                            assert data["session_statistics"]["total_cost_usd"] == 0.5
 
-                        # Check projections exist
-                        assert "estimated_daily_cost_usd" in data["projections"]
-                        assert "estimated_monthly_cost_usd" in data["projections"]
+                            # Check projections exist
+                            assert "estimated_daily_cost_usd" in data["projections"]
+                            assert "estimated_monthly_cost_usd" in data["projections"]
 
-                        # Check configuration
-                        assert data["configuration"]["model"] == "gpt-4o-mini"
-                        assert data["configuration"]["symbols_tracked"] == 8
+                            # Check configuration
+                            assert data["configuration"]["model"] == "gpt-4o-mini"
+                            assert data["configuration"]["symbols_tracked"] == 4
 
-                        # Check optimization status
-                        assert data["optimization_status"]["cache_optimized"] is True
+                            # Check optimization status
+                            assert data["optimization_status"]["cache_optimized"] is True
 
     @pytest.mark.asyncio
     async def test_cost_statistics_no_usage(self, client):
@@ -2628,7 +2633,7 @@ class TestAnalysisStorageErrorHandling:
             side_effect=Exception("Symbol analysis failed")
         )
 
-        with patch("main.ANALYSIS_SYMBOLS", ["BTCUSDT"]):  # Just one symbol
+        with patch("main.FALLBACK_ANALYSIS_SYMBOLS", ["BTCUSDT"]):  # Just one symbol
             with patch("main.ANALYSIS_INTERVAL_MINUTES", 0.001):  # Very short interval
                 with patch("main.openai_client", mock_gpt_client):
                     with patch("main.mongodb_db", None):
