@@ -1430,11 +1430,11 @@ class GPTTradingAnalyzer:
                 if first_close > 0:
                     trend_15m = ((last_close - first_close) / first_close) * 100
 
-                    if trend_15m < -0.5 and macd_hist_15m < 0:  # 15m downtrend > 0.5%
+                    if trend_15m < -0.8 and macd_hist_15m < 0:  # 15m downtrend > 0.8%
                         short_term_bearish = True
                         signals.append(f"⚠️ 15M DOWNTREND ({trend_15m:.2f}%)")
                         bearish_count += 2  # Weight 15m trend heavily (counts as 2 signals)
-                    elif trend_15m > 0.5 and macd_hist_15m > 0:  # 15m uptrend > 0.5%
+                    elif trend_15m > 0.8 and macd_hist_15m > 0:  # 15m uptrend > 0.8%
                         short_term_bullish = True
                         signals.append(f"✅ 15M UPTREND (+{trend_15m:.2f}%)")
                         bullish_count += 2  # Weight 15m trend heavily
@@ -1452,11 +1452,11 @@ class GPTTradingAnalyzer:
                 if first_close > 0:
                     trend_30m = ((last_close - first_close) / first_close) * 100
 
-                    if trend_30m < -0.5 and macd_hist_30m < 0:  # 30m downtrend > 0.5%
+                    if trend_30m < -0.8 and macd_hist_30m < 0:  # 30m downtrend > 0.8%
                         short_term_bearish = True
                         signals.append(f"⚠️ 30M DOWNTREND ({trend_30m:.2f}%)")
                         bearish_count += 1  # Weight 30m slightly less than 15m
-                    elif trend_30m > 0.5 and macd_hist_30m > 0:  # 30m uptrend > 0.5%
+                    elif trend_30m > 0.8 and macd_hist_30m > 0:  # 30m uptrend > 0.8%
                         short_term_bullish = True
                         signals.append(f"✅ 30M UPTREND (+{trend_30m:.2f}%)")
                         bullish_count += 1
@@ -1520,10 +1520,10 @@ class GPTTradingAnalyzer:
                     signals.append(f"Strong downward movement ({price_change:.2f}%)")
                     bearish_count += 1
 
-        # FIX: Determine signal based on STRONG consensus (4/5 = 80%)
-        # This matches Rust strategy_engine.rs requirement for maximum safety
-        # @spec:FR-STRATEGIES-006 - Signal Combination requires ≥4/5 strategies agreement
-        MIN_REQUIRED_SIGNALS = 4  # Must have 4+ out of 5 indicators agree
+        # Determine signal based on consensus (3/5 = 60%)
+        # Lowered from 4/5 to allow more trading opportunities
+        # @spec:FR-STRATEGIES-006 - Signal Combination
+        MIN_REQUIRED_SIGNALS = 3  # Must have 3+ out of 5 indicators agree
 
         if bullish_count >= MIN_REQUIRED_SIGNALS:
             signal = "Long"
