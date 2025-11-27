@@ -20,6 +20,7 @@ from config_loader import (
     AI_CACHE_ENABLED,
     SIGNAL_TREND_THRESHOLD,
     SIGNAL_MIN_TIMEFRAMES,
+    SIGNAL_MIN_INDICATORS,
     SIGNAL_CONFIDENCE_BASE,
     SIGNAL_CONFIDENCE_PER_TF,
 )
@@ -1373,10 +1374,12 @@ class GPTTradingAnalyzer:
 
             # Parse GPT-4 response
             parsed_result = self._parse_gpt_response(response_content)
+            strategy_scores = parsed_result.get('strategy_scores', {})
             logger.info(
                 f"🎯 GPT-4 analysis complete: signal={parsed_result.get('signal')}, "
                 f"confidence={parsed_result.get('confidence')}"
             )
+            logger.info(f"📊 Strategy scores: {strategy_scores}")
 
             return parsed_result
 
@@ -1405,34 +1408,86 @@ class GPTTradingAnalyzer:
         """
         Classify a timeframe as BULLISH, BEARISH, or NEUTRAL.
 
-        Uses unified logic matching GPT-4 prompt:
-        - BULLISH if: trend > threshold% AND MACD histogram > 0
-        - BEARISH if: trend < -threshold% AND MACD histogram < 0
+        Uses unified logic matching GPT-4 prompt (5 INDICATORS SCORING):
+        - MACD: histogram > 0 = +1 bullish, < 0 = +1 bearish
+        - RSI: > 55 = +1 bullish, < 45 = +1 bearish
+        - BB: position < 0.3 = +1 bullish (near lower), > 0.7 = +1 bearish (near upper)
+        - Stochastic: K > D and K < 80 = +1 bullish, K < D and K > 20 = +1 bearish
+        - Volume: ratio > 1.2x confirms trend direction
+
+        Classification (STRICT - requires SIGNAL_MIN_INDICATORS/5):
+        - BULLISH if: SIGNAL_MIN_INDICATORS+ indicators are bullish (default 4/5)
+        - BEARISH if: SIGNAL_MIN_INDICATORS+ indicators are bearish (default 4/5)
         - NEUTRAL otherwise
 
         Returns: (classification, reason_string)
         """
-        if not indicators or not candles or len(candles) < 10:
+        if not indicators:
             return "NEUTRAL", f"{tf_name}: insufficient data"
 
+        # Get indicator values
         macd_hist = indicators.get("macd_histogram", 0)
+        rsi = indicators.get("rsi", 50)
+        bb_position = indicators.get("bb_position", 0.5)
+        stoch_k = indicators.get("stochastic_k", 50)
+        stoch_d = indicators.get("stochastic_d", 50)
+        volume_ratio = indicators.get("volume_ratio", 1.0)
 
-        # Calculate trend over last 10 candles
-        first_close = candles[-10].close if hasattr(candles[-10], 'close') else candles[-10].get("close", 0)
-        last_close = candles[-1].close if hasattr(candles[-1], 'close') else candles[-1].get("close", 0)
+        # Count bullish/bearish points
+        bullish_points = 0
+        bearish_points = 0
+        signals = []
 
-        if first_close <= 0:
-            return "NEUTRAL", f"{tf_name}: invalid price data"
+        # 1. MACD
+        if macd_hist > 0:
+            bullish_points += 1
+            signals.append("MACD↑")
+        elif macd_hist < 0:
+            bearish_points += 1
+            signals.append("MACD↓")
 
-        trend = ((last_close - first_close) / first_close) * 100
+        # 2. RSI
+        if rsi > 55:
+            bullish_points += 1
+            signals.append(f"RSI{rsi:.0f}↑")
+        elif rsi < 45:
+            bearish_points += 1
+            signals.append(f"RSI{rsi:.0f}↓")
 
-        # Apply unified classification rules
-        if trend > threshold and macd_hist > 0:
-            return "BULLISH", f"{tf_name}: ✅ BULLISH (trend +{trend:.2f}%, MACD +{macd_hist:.4f})"
-        elif trend < -threshold and macd_hist < 0:
-            return "BEARISH", f"{tf_name}: ⚠️ BEARISH (trend {trend:.2f}%, MACD {macd_hist:.4f})"
+        # 3. Bollinger Bands
+        if bb_position < 0.3:
+            bullish_points += 1
+            signals.append("BB↑")
+        elif bb_position > 0.7:
+            bearish_points += 1
+            signals.append("BB↓")
+
+        # 4. Stochastic
+        if stoch_k > stoch_d and stoch_k < 80:
+            bullish_points += 1
+            signals.append(f"Stoch{stoch_k:.0f}↑")
+        elif stoch_k < stoch_d and stoch_k > 20:
+            bearish_points += 1
+            signals.append(f"Stoch{stoch_k:.0f}↓")
+
+        # 5. Volume (confirms trend direction)
+        if volume_ratio > 1.2:
+            if bullish_points > bearish_points:
+                bullish_points += 1
+                signals.append(f"Vol{volume_ratio:.1f}x↑")
+            elif bearish_points > bullish_points:
+                bearish_points += 1
+                signals.append(f"Vol{volume_ratio:.1f}x↓")
+
+        signal_str = " ".join(signals) if signals else "no signals"
+
+        # Apply classification rules (SIGNAL_MIN_INDICATORS required, default 4/5)
+        if bullish_points >= SIGNAL_MIN_INDICATORS:
+            return "BULLISH", f"{tf_name}: ✅ BULLISH ({bullish_points}/5 bull) [{signal_str}]"
+        elif bearish_points >= SIGNAL_MIN_INDICATORS:
+            return "BEARISH", f"{tf_name}: ⚠️ BEARISH ({bearish_points}/5 bear) [{signal_str}]"
         else:
-            return "NEUTRAL", f"{tf_name}: ➖ NEUTRAL (trend {trend:+.2f}%, MACD {macd_hist:+.4f})"
+            return "NEUTRAL", f"{tf_name}: ➖ NEUTRAL ({bullish_points}↑ {bearish_points}↓) [{signal_str}]"
 
     def _fallback_analysis(
         self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
@@ -1440,13 +1495,14 @@ class GPTTradingAnalyzer:
         """
         Fallback technical analysis when GPT-4 is not available.
 
-        Uses UNIFIED LOGIC matching GPT-4 prompt exactly:
-        - Each timeframe (15M, 30M, 1H, 4H) is classified as BULLISH/BEARISH/NEUTRAL
-        - Classification: trend > THRESHOLD% AND MACD > 0 → BULLISH
+        Uses UNIFIED LOGIC matching GPT-4 prompt exactly (5 INDICATORS SCORING):
+        - Each timeframe classified using 5 indicators: MACD, RSI, BB, Stochastic, Volume
+        - Timeframe is BULLISH if SIGNAL_MIN_INDICATORS+ indicators are bullish
+        - Timeframe is BEARISH if SIGNAL_MIN_INDICATORS+ indicators are bearish
         - Signal: bullish_timeframes >= MIN_REQUIRED → Long
 
         Config values from config_loader.py ensure consistency:
-        - SIGNAL_TREND_THRESHOLD: minimum % for trend (default 0.8%)
+        - SIGNAL_MIN_INDICATORS: minimum indicators per timeframe (default 4/5)
         - SIGNAL_MIN_TIMEFRAMES: minimum timeframes to agree (default 3)
         """
         symbol = request.symbol
@@ -1504,41 +1560,13 @@ class GPTTradingAnalyzer:
             f"Threshold={SIGNAL_TREND_THRESHOLD}%, MinRequired={SIGNAL_MIN_TIMEFRAMES}"
         )
 
-        # Create strategy scores based on selected strategies
-        strategy_scores = {}
-        all_strategies = [
-            "RSI Strategy",
-            "MACD Strategy",
-            "Volume Strategy",
-            "Bollinger Bands Strategy",
-            "Stochastic Strategy",
-        ]
+        # Create strategy scores based on actual indicator values (not keyword matching)
+        # Average scores across all available timeframes for more accurate assessment
+        all_indicators = [ind for ind in [indicators_15m, indicators_30m, indicators_1h, indicators_4h] if ind]
+        selected_strategies = request.strategy_context.selected_strategies if request.strategy_context else None
 
-        for strategy in all_strategies:
-            if not selected_strategies or strategy in selected_strategies:
-                if strategy == "RSI Strategy":
-                    strategy_scores[strategy] = (
-                        confidence if "RSI" in reasoning else 0.3
-                    )
-                elif strategy == "MACD Strategy":
-                    strategy_scores[strategy] = (
-                        confidence if "MACD" in reasoning else 0.3
-                    )
-                elif strategy == "Volume Strategy":
-                    strategy_scores[strategy] = (
-                        confidence if "volume" in reasoning.lower() else 0.3
-                    )
-                elif strategy == "Bollinger Bands Strategy":
-                    strategy_scores[strategy] = (
-                        confidence if "Bollinger" in reasoning else 0.3
-                    )
-                elif strategy == "Stochastic Strategy":
-                    strategy_scores[strategy] = (
-                        confidence if "Stochastic" in reasoning else 0.35
-                    )
-            else:
-                # Set low score for non-selected strategies
-                strategy_scores[strategy] = 0.1
+        strategy_scores = self._calculate_strategy_scores_from_indicators(all_indicators, selected_strategies)
+        logger.info(f"📊 {symbol} Fallback strategy scores: {strategy_scores}")
 
         return {
             "signal": signal,
@@ -1563,26 +1591,138 @@ class GPTTradingAnalyzer:
             },
         }
 
+    def _calculate_strategy_scores_from_indicators(
+        self, all_indicators: List[Dict], selected_strategies: List[str] = None
+    ) -> Dict[str, float]:
+        """
+        Calculate strategy scores based on actual indicator values.
+
+        Averages scores across all available timeframes for more accurate assessment.
+        Uses the same scoring logic as GPT-4 prompt for consistency.
+
+        Returns scores in range [0.3, 1.0] for all 5 strategies.
+        """
+        all_strategies = [
+            "RSI Strategy",
+            "MACD Strategy",
+            "Volume Strategy",
+            "Bollinger Bands Strategy",
+            "Stochastic Strategy",
+        ]
+
+        strategy_scores = {}
+
+        for strategy in all_strategies:
+            if selected_strategies and strategy not in selected_strategies:
+                # Low score for non-selected strategies
+                strategy_scores[strategy] = 0.1
+                continue
+
+            scores_per_tf = []
+
+            for indicators in all_indicators:
+                if not indicators:
+                    continue
+
+                if strategy == "RSI Strategy":
+                    rsi = indicators.get("rsi", 50)
+                    # 0.3 if neutral (45-55), 0.5-0.7 if moderate, 0.8-1.0 if extreme
+                    if 45 <= rsi <= 55:
+                        score = 0.3
+                    elif rsi < 30 or rsi > 70:
+                        score = 0.8 + min(0.2, abs(rsi - 50) / 50)  # Max 1.0
+                    else:
+                        score = 0.5 + (abs(rsi - 50) - 5) / 30 * 0.2  # 0.5-0.7
+                    scores_per_tf.append(min(1.0, score))
+
+                elif strategy == "MACD Strategy":
+                    macd_hist = abs(indicators.get("macd_histogram", 0))
+                    # 0.3 if histogram~0, 0.5-0.7 if moderate, 0.8-1.0 if strong
+                    if macd_hist < 0.001:
+                        score = 0.3
+                    elif macd_hist > 0.01:
+                        score = 0.8 + min(0.2, macd_hist / 0.05)  # Max 1.0
+                    else:
+                        score = 0.5 + (macd_hist / 0.01) * 0.2  # 0.5-0.7
+                    scores_per_tf.append(min(1.0, score))
+
+                elif strategy == "Volume Strategy":
+                    vol_ratio = indicators.get("volume_ratio", 1.0)
+                    # 0.3 if ratio<1.0, 0.5-0.7 if 1.0-1.5x, 0.8-1.0 if >1.5x
+                    if vol_ratio < 1.0:
+                        score = 0.3
+                    elif vol_ratio > 1.5:
+                        score = 0.8 + min(0.2, (vol_ratio - 1.5) / 2)  # Max 1.0
+                    else:
+                        score = 0.5 + (vol_ratio - 1.0) * 0.4  # 0.5-0.7
+                    scores_per_tf.append(min(1.0, score))
+
+                elif strategy == "Bollinger Bands Strategy":
+                    bb_pos = indicators.get("bb_position", 0.5)
+                    # 0.3 if middle band (0.4-0.6), 0.5-0.7 if near bands, 0.8-1.0 if touching
+                    dist_from_center = abs(bb_pos - 0.5)
+                    if dist_from_center < 0.1:
+                        score = 0.3
+                    elif dist_from_center > 0.4:  # Near/outside bands
+                        score = 0.8 + min(0.2, (dist_from_center - 0.4) / 0.3)
+                    else:
+                        score = 0.5 + (dist_from_center - 0.1) / 0.3 * 0.2  # 0.5-0.7
+                    scores_per_tf.append(min(1.0, score))
+
+                elif strategy == "Stochastic Strategy":
+                    stoch_k = indicators.get("stochastic_k", 50)
+                    # 0.3 if neutral (30-70), 0.5-0.7 if moderate, 0.8-1.0 if overbought/oversold
+                    if 30 <= stoch_k <= 70:
+                        # Score based on distance from center (50)
+                        dist_from_center = abs(stoch_k - 50)
+                        score = 0.3 + (dist_from_center / 20) * 0.2  # Max 0.5
+                    elif stoch_k < 20 or stoch_k > 80:
+                        score = 0.9 + min(0.1, abs(stoch_k - 50) / 100)
+                    else:
+                        score = 0.6 + abs(stoch_k - 50) / 50 * 0.2  # 0.6-0.8
+                    scores_per_tf.append(min(1.0, score))
+
+            # Average scores across timeframes, default to 0.3 if no data
+            if scores_per_tf:
+                strategy_scores[strategy] = round(sum(scores_per_tf) / len(scores_per_tf), 2)
+            else:
+                strategy_scores[strategy] = 0.3
+
+        return strategy_scores
+
     def _get_system_prompt(self) -> str:
         """Get system prompt for GPT-4 with multi-timeframe awareness.
 
         Uses config values for consistency with fallback code:
-        - SIGNAL_TREND_THRESHOLD: minimum % trend to count as bullish/bearish
+        - SIGNAL_MIN_INDICATORS: minimum indicators per timeframe (default 4/5)
         - SIGNAL_MIN_TIMEFRAMES: minimum timeframes needed to agree
         """
         return (
-            f"Crypto trading analyst using MULTI-TIMEFRAME analysis (15M, 30M, 1H, 4H).\n"
-            f"SIGNAL RULES (MUST FOLLOW EXACTLY):\n"
-            f"- Timeframe is BULLISH if: trend > {SIGNAL_TREND_THRESHOLD}% AND MACD histogram > 0\n"
-            f"- Timeframe is BEARISH if: trend < -{SIGNAL_TREND_THRESHOLD}% AND MACD histogram < 0\n"
-            f"- Timeframe is NEUTRAL otherwise\n"
+            f"Crypto trading analyst using MULTI-TIMEFRAME + 5 STRATEGIES analysis.\n"
+            f"INDICATOR SCORING (per timeframe - count bullish/bearish points):\n"
+            f"- MACD: histogram > 0 = +1 bullish, < 0 = +1 bearish\n"
+            f"- RSI: > 55 = +1 bullish, < 45 = +1 bearish (50-55/45-50 = neutral)\n"
+            f"- BB: position < 0.3 = +1 bullish (near lower), > 0.7 = +1 bearish (near upper)\n"
+            f"- Stochastic: K > D and K < 80 = +1 bullish, K < D and K > 20 = +1 bearish\n"
+            f"- Volume: ratio > 1.2x confirms trend direction\n"
+            f"TIMEFRAME CLASSIFICATION (STRICT - requires {SIGNAL_MIN_INDICATORS}/5 indicators):\n"
+            f"- Timeframe is BULLISH if: {SIGNAL_MIN_INDICATORS}+ indicators are bullish\n"
+            f"- Timeframe is BEARISH if: {SIGNAL_MIN_INDICATORS}+ indicators are bearish\n"
+            f"- Otherwise NEUTRAL\n"
+            f"SIGNAL DECISION:\n"
             f"- Give LONG if {SIGNAL_MIN_TIMEFRAMES}+ timeframes are BULLISH\n"
             f"- Give SHORT if {SIGNAL_MIN_TIMEFRAMES}+ timeframes are BEARISH\n"
             f"- Give NEUTRAL otherwise\n"
+            f"STRATEGY SCORE CALCULATION (IMPORTANT - score ALL strategies 0.3-1.0):\n"
+            f"- RSI Strategy: 0.3 if neutral (45-55), 0.5-0.7 if moderate (<45 or >55), 0.8-1.0 if extreme (<30 or >70)\n"
+            f"- MACD Strategy: 0.3 if histogram~0, 0.5-0.7 if moderate, 0.8-1.0 if strong divergence\n"
+            f"- Bollinger Strategy: 0.3 if middle band, 0.5-0.7 if near bands, 0.8-1.0 if touching/outside bands\n"
+            f"- Stochastic Strategy: 0.3 if neutral (30-70), 0.5-0.7 if moderate, 0.8-1.0 if overbought/oversold\n"
+            f"- Volume Strategy: 0.3 if ratio<1.0, 0.5-0.7 if 1.0-1.5x, 0.8-1.0 if >1.5x\n"
             "Respond ONLY in JSON:\n"
             '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
-            '"strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,'
-            '"Bollinger Bands Strategy":0-1,"Stochastic Strategy":0-1},'
+            '"strategy_scores":{"RSI Strategy":0.3-1,"MACD Strategy":0.3-1,"Volume Strategy":0.3-1,'
+            '"Bollinger Bands Strategy":0.3-1,"Stochastic Strategy":0.3-1},'
             '"market_analysis":{"trend_direction":"Bullish|Bearish|Sideways",'
             '"trend_strength":0-1,"support_levels":[],"resistance_levels":[],'
             '"volatility_level":"Low|Medium|High","volume_analysis":"brief"},'
@@ -1609,7 +1749,8 @@ class GPTTradingAnalyzer:
                 f"15M: RSI:{indicators_15m.get('rsi',50):.1f} "
                 f"MACD:{indicators_15m.get('macd_histogram',0):.2f} "
                 f"BB:{indicators_15m.get('bb_position',0.5):.2f} "
-                f"Vol:{indicators_15m.get('volume_ratio',1):.1f}x\n"
+                f"Vol:{indicators_15m.get('volume_ratio',1):.1f}x "
+                f"Stoch:{indicators_15m.get('stochastic_k',50):.1f}/{indicators_15m.get('stochastic_d',50):.1f}\n"
             )
 
         # 30m - Short-term trend
@@ -1618,7 +1759,8 @@ class GPTTradingAnalyzer:
                 f"30M: RSI:{indicators_30m.get('rsi',50):.1f} "
                 f"MACD:{indicators_30m.get('macd_histogram',0):.2f} "
                 f"BB:{indicators_30m.get('bb_position',0.5):.2f} "
-                f"Vol:{indicators_30m.get('volume_ratio',1):.1f}x\n"
+                f"Vol:{indicators_30m.get('volume_ratio',1):.1f}x "
+                f"Stoch:{indicators_30m.get('stochastic_k',50):.1f}/{indicators_30m.get('stochastic_d',50):.1f}\n"
             )
 
         # 1H - Medium-term trend
@@ -1626,7 +1768,8 @@ class GPTTradingAnalyzer:
             f"1H: RSI:{indicators_1h.get('rsi',50):.1f} "
             f"MACD:{indicators_1h.get('macd_histogram',0):.2f} "
             f"BB:{indicators_1h.get('bb_position',0.5):.2f} "
-            f"Vol:{indicators_1h.get('volume_ratio',1):.1f}x"
+            f"Vol:{indicators_1h.get('volume_ratio',1):.1f}x "
+            f"Stoch:{indicators_1h.get('stochastic_k',50):.1f}/{indicators_1h.get('stochastic_d',50):.1f}"
         )
 
         # 4H - Long-term trend
@@ -1634,7 +1777,8 @@ class GPTTradingAnalyzer:
             context += (
                 f"\n4H: RSI:{indicators_4h.get('rsi',50):.1f} "
                 f"MACD:{indicators_4h.get('macd_histogram',0):.2f} "
-                f"BB:{indicators_4h.get('bb_position',0.5):.2f}"
+                f"BB:{indicators_4h.get('bb_position',0.5):.2f} "
+                f"Stoch:{indicators_4h.get('stochastic_k',50):.1f}/{indicators_4h.get('stochastic_d',50):.1f}"
             )
 
         return context
@@ -1697,6 +1841,7 @@ class GPTTradingAnalyzer:
                 "MACD Strategy": confidence,
                 "Volume Strategy": confidence * 0.8,
                 "Bollinger Bands Strategy": confidence * 0.9,
+                "Stochastic Strategy": confidence * 0.85,
             },
             "market_analysis": {
                 "trend_direction": "Uncertain",
@@ -1727,6 +1872,7 @@ class GPTTradingAnalyzer:
                 "MACD Strategy": 0.3,
                 "Volume Strategy": 0.3,
                 "Bollinger Bands Strategy": 0.3,
+                "Stochastic Strategy": 0.3,
             },
             "market_analysis": {
                 "trend_direction": "Uncertain",
