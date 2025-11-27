@@ -759,8 +759,7 @@ impl PaperTradingSettings {
             ));
         }
 
-        if self.signal.confidence_per_timeframe < 0.01
-            || self.signal.confidence_per_timeframe > 0.2
+        if self.signal.confidence_per_timeframe < 0.01 || self.signal.confidence_per_timeframe > 0.2
         {
             return Err(anyhow::anyhow!(
                 "Confidence per timeframe must be between 0.01 and 0.2, got {}",

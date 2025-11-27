@@ -70,9 +70,11 @@ impl BinanceClient {
         T: DeserializeOwned,
     {
         // Acquire rate limiter permit
-        let _permit = self.rate_limiter.acquire().await.map_err(|e| {
-            anyhow::anyhow!("Rate limiter error: {}", e)
-        })?;
+        let _permit = self
+            .rate_limiter
+            .acquire()
+            .await
+            .map_err(|e| anyhow::anyhow!("Rate limiter error: {}", e))?;
 
         // Add delay between requests to avoid rate limiting
         sleep(Duration::from_millis(REQUEST_DELAY_MS)).await;
@@ -142,7 +144,10 @@ impl BinanceClient {
                         let backoff = Duration::from_secs(retry_after * (attempt as u64 + 1));
                         warn!(
                             "Rate limited ({}), retrying in {:?} (attempt {}/{})",
-                            status, backoff, attempt + 1, MAX_RETRIES
+                            status,
+                            backoff,
+                            attempt + 1,
+                            MAX_RETRIES
                         );
                         sleep(backoff).await;
                         last_error = Some(anyhow::anyhow!("Rate limited: {}", status));
@@ -157,12 +162,17 @@ impl BinanceClient {
                         status,
                         error_text
                     ));
-                }
+                },
                 Err(e) => {
-                    warn!("Request error: {} (attempt {}/{})", e, attempt + 1, MAX_RETRIES);
+                    warn!(
+                        "Request error: {} (attempt {}/{})",
+                        e,
+                        attempt + 1,
+                        MAX_RETRIES
+                    );
                     last_error = Some(anyhow::anyhow!("Request error: {}", e));
                     sleep(Duration::from_secs(1)).await;
-                }
+                },
             }
         }
 
