@@ -18,13 +18,19 @@ from contextlib import asynccontextmanager
 from config_loader import (
     AI_CACHE_DURATION_MINUTES,
     AI_CACHE_ENABLED,
-    SIGNAL_TREND_THRESHOLD,
-    SIGNAL_MIN_TIMEFRAMES,
-    SIGNAL_MIN_INDICATORS,
-    SIGNAL_CONFIDENCE_BASE,
-    SIGNAL_CONFIDENCE_PER_TF,
+    # These are now fetched from Rust API via settings_manager (fallback to config.yaml)
+    SIGNAL_TREND_THRESHOLD as CONFIG_SIGNAL_TREND_THRESHOLD,
+    SIGNAL_MIN_TIMEFRAMES as CONFIG_SIGNAL_MIN_TIMEFRAMES,
+    SIGNAL_MIN_INDICATORS as CONFIG_SIGNAL_MIN_INDICATORS,
+    SIGNAL_CONFIDENCE_BASE as CONFIG_SIGNAL_CONFIDENCE_BASE,
+    SIGNAL_CONFIDENCE_PER_TF as CONFIG_SIGNAL_CONFIDENCE_PER_TF,
 )
 from app.core.config import OPENAI_REQUEST_DELAY
+
+# @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified settings from Rust API
+# Settings manager fetches indicator/signal settings from Rust API with caching
+# Falls back to config.yaml values if Rust API is unavailable
+from settings_manager import settings_manager, refresh_settings_periodically
 
 import pandas as pd
 import numpy as np
@@ -81,6 +87,74 @@ total_cost_usd = 0.0
 AI_ANALYSIS_COLLECTION = "ai_analysis_results"
 # Load from config.yaml (default: 2 minutes)
 ANALYSIS_INTERVAL_MINUTES = AI_CACHE_DURATION_MINUTES
+
+
+# @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Dynamic settings from Rust API
+# These helper functions get settings from settings_manager with fallback to config.yaml
+def get_signal_trend_threshold() -> float:
+    """Get trend threshold with fallback to config.yaml"""
+    return settings_manager.get_signal_value("trend_threshold_percent", CONFIG_SIGNAL_TREND_THRESHOLD)
+
+
+def get_signal_min_timeframes() -> int:
+    """Get min required timeframes with fallback to config.yaml"""
+    return settings_manager.get_signal_value("min_required_timeframes", CONFIG_SIGNAL_MIN_TIMEFRAMES)
+
+
+def get_signal_min_indicators() -> int:
+    """Get min required indicators with fallback to config.yaml"""
+    return settings_manager.get_signal_value("min_required_indicators", CONFIG_SIGNAL_MIN_INDICATORS)
+
+
+def get_signal_confidence_base() -> float:
+    """Get confidence base with fallback to config.yaml"""
+    return settings_manager.get_signal_value("confidence_base", CONFIG_SIGNAL_CONFIDENCE_BASE)
+
+
+def get_signal_confidence_per_tf() -> float:
+    """Get confidence per timeframe with fallback to config.yaml"""
+    return settings_manager.get_signal_value("confidence_per_timeframe", CONFIG_SIGNAL_CONFIDENCE_PER_TF)
+
+
+def get_rsi_period() -> int:
+    """Get RSI period with fallback to default 14"""
+    return settings_manager.get_indicator_value("rsi_period", 14)
+
+
+def get_macd_periods() -> tuple:
+    """Get MACD periods (fast, slow, signal) with fallback to defaults"""
+    return (
+        settings_manager.get_indicator_value("macd_fast", 12),
+        settings_manager.get_indicator_value("macd_slow", 26),
+        settings_manager.get_indicator_value("macd_signal", 9),
+    )
+
+
+def get_bollinger_settings() -> tuple:
+    """Get Bollinger Bands settings (period, std) with fallback to defaults"""
+    return (
+        settings_manager.get_indicator_value("bollinger_period", 20),
+        settings_manager.get_indicator_value("bollinger_std", 2.0),
+    )
+
+
+def get_stochastic_periods() -> tuple:
+    """Get Stochastic periods (k, d) with fallback to defaults"""
+    return (
+        settings_manager.get_indicator_value("stochastic_k_period", 14),
+        settings_manager.get_indicator_value("stochastic_d_period", 3),
+    )
+
+
+# For backward compatibility, create module-level aliases that use the helper functions
+# These are evaluated at module load time, so they'll use config.yaml values initially
+# After settings_manager is initialized, the helper functions should be used directly
+SIGNAL_TREND_THRESHOLD = CONFIG_SIGNAL_TREND_THRESHOLD  # Use helper function in code
+SIGNAL_MIN_TIMEFRAMES = CONFIG_SIGNAL_MIN_TIMEFRAMES  # Use helper function in code
+SIGNAL_MIN_INDICATORS = CONFIG_SIGNAL_MIN_INDICATORS  # Use helper function in code
+SIGNAL_CONFIDENCE_BASE = CONFIG_SIGNAL_CONFIDENCE_BASE  # Use helper function in code
+SIGNAL_CONFIDENCE_PER_TF = CONFIG_SIGNAL_CONFIDENCE_PER_TF  # Use helper function in code
+
 
 # === WEBSOCKET MANAGER ===
 
@@ -383,6 +457,24 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("❌ GPT-4 unavailable - will use fallback technical analysis")
 
+    # @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Initialize settings from Rust API
+    # Fetch indicator/signal settings from Rust API with fallback to config.yaml
+    logger.info("📊 Initializing settings from Rust API...")
+    settings_initialized = await settings_manager.initialize()
+    if settings_initialized:
+        logger.info("✅ Settings loaded from Rust API")
+        # Log the actual values being used
+        logger.info(f"📊 RSI period: {get_rsi_period()}")
+        logger.info(f"📊 Trend threshold: {get_signal_trend_threshold()}%")
+        logger.info(f"📊 Min timeframes: {get_signal_min_timeframes()}")
+        logger.info(f"📊 Min indicators: {get_signal_min_indicators()}")
+    else:
+        logger.warning("⚠️ Using fallback settings from config.yaml")
+
+    # Start background settings refresh task (every 5 minutes)
+    settings_refresh_task = asyncio.create_task(refresh_settings_periodically())
+    logger.info("🔄 Started settings refresh background task")
+
     # Start background analysis task
     analysis_task = asyncio.create_task(periodic_analysis_runner())
     logger.info(
@@ -394,6 +486,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("🛑 Shutting down AI Trading Service")
     analysis_task.cancel()
+    settings_refresh_task.cancel()
     if mongodb_client:
         mongodb_client.close()
 
@@ -795,9 +888,11 @@ class TechnicalAnalyzer:
             )
 
             # Momentum indicators
+            # @spec:FR-SETTINGS-001 - Use dynamic RSI period from Rust API
+            rsi_period = get_rsi_period()
             indicators["rsi"] = (
-                ta.momentum.rsi(df["close"], window=14).iloc[-1]
-                if len(df) >= 14
+                ta.momentum.rsi(df["close"], window=rsi_period).iloc[-1]
+                if len(df) >= rsi_period
                 else 50.0
             )
             indicators["stochastic_k"] = (
@@ -1481,10 +1576,13 @@ class GPTTradingAnalyzer:
 
         signal_str = " ".join(signals) if signals else "no signals"
 
-        # Apply classification rules (SIGNAL_MIN_INDICATORS required, default 4/5)
-        if bullish_points >= SIGNAL_MIN_INDICATORS:
+        # @spec:FR-SETTINGS-002 - Use dynamic indicator threshold from Rust API
+        min_indicators = get_signal_min_indicators()
+
+        # Apply classification rules (min_indicators required, default 4/5)
+        if bullish_points >= min_indicators:
             return "BULLISH", f"{tf_name}: ✅ BULLISH ({bullish_points}/5 bull) [{signal_str}]"
-        elif bearish_points >= SIGNAL_MIN_INDICATORS:
+        elif bearish_points >= min_indicators:
             return "BEARISH", f"{tf_name}: ⚠️ BEARISH ({bearish_points}/5 bear) [{signal_str}]"
         else:
             return "NEUTRAL", f"{tf_name}: ➖ NEUTRAL ({bullish_points}↑ {bearish_points}↓) [{signal_str}]"
@@ -1501,33 +1599,38 @@ class GPTTradingAnalyzer:
         - Timeframe is BEARISH if SIGNAL_MIN_INDICATORS+ indicators are bearish
         - Signal: bullish_timeframes >= MIN_REQUIRED → Long
 
-        Config values from config_loader.py ensure consistency:
-        - SIGNAL_MIN_INDICATORS: minimum indicators per timeframe (default 4/5)
-        - SIGNAL_MIN_TIMEFRAMES: minimum timeframes to agree (default 3)
+        @spec:FR-SETTINGS-002 - Uses dynamic settings from Rust API
+        Config values fetched from Rust API (fallback to config.yaml):
+        - min_required_indicators: minimum indicators per timeframe (default 4/5)
+        - min_required_timeframes: minimum timeframes to agree (default 3)
         """
         symbol = request.symbol
         reasoning = "Technical analysis (GPT-4 unavailable): "
         timeframe_results = []
 
+        # @spec:FR-SETTINGS-002 - Get dynamic settings from Rust API
+        trend_threshold = get_signal_trend_threshold()
+        min_timeframes = get_signal_min_timeframes()
+
         # Classify each timeframe using unified logic
         # 15M
         candles_15m = request.timeframe_data.get("15m", [])
-        tf_15m, reason_15m = self._classify_timeframe("15M", indicators_15m, candles_15m, SIGNAL_TREND_THRESHOLD)
+        tf_15m, reason_15m = self._classify_timeframe("15M", indicators_15m, candles_15m, trend_threshold)
         timeframe_results.append((tf_15m, reason_15m))
 
         # 30M
         candles_30m = request.timeframe_data.get("30m", [])
-        tf_30m, reason_30m = self._classify_timeframe("30M", indicators_30m, candles_30m, SIGNAL_TREND_THRESHOLD)
+        tf_30m, reason_30m = self._classify_timeframe("30M", indicators_30m, candles_30m, trend_threshold)
         timeframe_results.append((tf_30m, reason_30m))
 
         # 1H
         candles_1h = request.timeframe_data.get("1h", [])
-        tf_1h, reason_1h = self._classify_timeframe("1H", indicators_1h, candles_1h, SIGNAL_TREND_THRESHOLD)
+        tf_1h, reason_1h = self._classify_timeframe("1H", indicators_1h, candles_1h, trend_threshold)
         timeframe_results.append((tf_1h, reason_1h))
 
         # 4H
         candles_4h = request.timeframe_data.get("4h", [])
-        tf_4h, reason_4h = self._classify_timeframe("4H", indicators_4h, candles_4h, SIGNAL_TREND_THRESHOLD)
+        tf_4h, reason_4h = self._classify_timeframe("4H", indicators_4h, candles_4h, trend_threshold)
         timeframe_results.append((tf_4h, reason_4h))
 
         # Count bullish/bearish timeframes
@@ -1535,14 +1638,18 @@ class GPTTradingAnalyzer:
         bearish_count = sum(1 for tf, _ in timeframe_results if tf == "BEARISH")
         neutral_count = sum(1 for tf, _ in timeframe_results if tf == "NEUTRAL")
 
+        # @spec:FR-SETTINGS-002 - Get confidence settings from Rust API
+        confidence_base = get_signal_confidence_base()
+        confidence_per_tf = get_signal_confidence_per_tf()
+
         # Determine signal using config thresholds (matching GPT-4 prompt)
         # @spec:FR-STRATEGIES-006 - Signal Combination
-        if bullish_count >= SIGNAL_MIN_TIMEFRAMES:
+        if bullish_count >= min_timeframes:
             signal = "Long"
-            confidence = min(0.85, SIGNAL_CONFIDENCE_BASE + (bullish_count * SIGNAL_CONFIDENCE_PER_TF))
-        elif bearish_count >= SIGNAL_MIN_TIMEFRAMES:
+            confidence = min(0.85, confidence_base + (bullish_count * confidence_per_tf))
+        elif bearish_count >= min_timeframes:
             signal = "Short"
-            confidence = min(0.85, SIGNAL_CONFIDENCE_BASE + (bearish_count * SIGNAL_CONFIDENCE_PER_TF))
+            confidence = min(0.85, confidence_base + (bearish_count * confidence_per_tf))
         else:
             signal = "Neutral"
             confidence = 0.40
@@ -1551,13 +1658,13 @@ class GPTTradingAnalyzer:
         reasons = [reason for _, reason in timeframe_results]
         reasoning += "; ".join(reasons)
         reasoning += f" | Summary: Bullish={bullish_count}, Bearish={bearish_count}, Neutral={neutral_count}"
-        reasoning += f" | Threshold: {SIGNAL_TREND_THRESHOLD}%, MinRequired: {SIGNAL_MIN_TIMEFRAMES}/4"
+        reasoning += f" | Threshold: {trend_threshold}%, MinRequired: {min_timeframes}/4"
 
         # Debug logging for signal generation
         logger.info(
             f"📊 {symbol} Fallback Signal: {signal} | "
             f"Bullish={bullish_count}, Bearish={bearish_count}, Neutral={neutral_count} | "
-            f"Threshold={SIGNAL_TREND_THRESHOLD}%, MinRequired={SIGNAL_MIN_TIMEFRAMES}"
+            f"Threshold={trend_threshold}%, MinRequired={min_timeframes}"
         )
 
         # Create strategy scores based on actual indicator values (not keyword matching)
@@ -1693,10 +1800,17 @@ class GPTTradingAnalyzer:
     def _get_system_prompt(self) -> str:
         """Get system prompt for GPT-4 with multi-timeframe awareness.
 
-        Uses config values for consistency with fallback code:
-        - SIGNAL_MIN_INDICATORS: minimum indicators per timeframe (default 4/5)
-        - SIGNAL_MIN_TIMEFRAMES: minimum timeframes needed to agree
+        @spec:FR-SETTINGS-002 - Uses dynamic settings from Rust API
+        Config values fetched from Rust API (fallback to config.yaml):
+        - min_required_indicators: minimum indicators per timeframe (default 4/5)
+        - min_required_timeframes: minimum timeframes needed to agree
         """
+        # @spec:FR-SETTINGS-002 - Get settings from Rust API for GPT-4 prompt
+        min_indicators = get_signal_min_indicators()
+        min_timeframes = get_signal_min_timeframes()
+        confidence_base = get_signal_confidence_base()
+        confidence_per_tf = get_signal_confidence_per_tf()
+
         return (
             f"Crypto trading analyst using MULTI-TIMEFRAME + 5 STRATEGIES analysis.\n"
             f"INDICATOR SCORING (per timeframe - count bullish/bearish points):\n"
@@ -1705,13 +1819,13 @@ class GPTTradingAnalyzer:
             f"- BB: position < 0.3 = +1 bullish (near lower), > 0.7 = +1 bearish (near upper)\n"
             f"- Stochastic: K > D and K < 80 = +1 bullish, K < D and K > 20 = +1 bearish\n"
             f"- Volume: ratio > 1.2x confirms trend direction\n"
-            f"TIMEFRAME CLASSIFICATION (STRICT - requires {SIGNAL_MIN_INDICATORS}/5 indicators):\n"
-            f"- Timeframe is BULLISH if: {SIGNAL_MIN_INDICATORS}+ indicators are bullish\n"
-            f"- Timeframe is BEARISH if: {SIGNAL_MIN_INDICATORS}+ indicators are bearish\n"
+            f"TIMEFRAME CLASSIFICATION (STRICT - requires {min_indicators}/5 indicators):\n"
+            f"- Timeframe is BULLISH if: {min_indicators}+ indicators are bullish\n"
+            f"- Timeframe is BEARISH if: {min_indicators}+ indicators are bearish\n"
             f"- Otherwise NEUTRAL\n"
             f"SIGNAL DECISION:\n"
-            f"- Give LONG if {SIGNAL_MIN_TIMEFRAMES}+ timeframes are BULLISH\n"
-            f"- Give SHORT if {SIGNAL_MIN_TIMEFRAMES}+ timeframes are BEARISH\n"
+            f"- Give LONG if {min_timeframes}+ timeframes are BULLISH\n"
+            f"- Give SHORT if {min_timeframes}+ timeframes are BEARISH\n"
             f"- Give NEUTRAL otherwise\n"
             f"STRATEGY SCORE CALCULATION (IMPORTANT - score ALL strategies 0.3-1.0):\n"
             f"- RSI Strategy: 0.3 if neutral (45-55), 0.5-0.7 if moderate (<45 or >55), 0.8-1.0 if extreme (<30 or >70)\n"
@@ -1729,7 +1843,7 @@ class GPTTradingAnalyzer:
             '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
             '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
             '"take_profit_suggestion":null}}\n'
-            f"Confidence: {SIGNAL_CONFIDENCE_BASE} base + {SIGNAL_CONFIDENCE_PER_TF} per agreeing timeframe."
+            f"Confidence: {confidence_base} base + {confidence_per_tf} per agreeing timeframe."
         )
 
     def _prepare_market_context(
@@ -2497,10 +2611,12 @@ async def _predict_trend_gpt4(symbol: str, candles_by_tf: Dict[str, List]) -> Di
         volume_ratio = df["volume"].iloc[-1] / volume_ma if volume_ma > 0 else 1.0
 
         # RSI if enough data
-        if len(df) >= 14:
+        # @spec:FR-SETTINGS-001 - Use dynamic RSI period from Rust API
+        rsi_period = get_rsi_period()
+        if len(df) >= rsi_period:
             delta = df["close"].diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            gain = (delta.where(delta > 0, 0)).rolling(window=rsi_period).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=rsi_period).mean()
             rs = gain / loss
             rsi = 100 - (100 / (1 + rs))
             current_rsi = rsi.iloc[-1]

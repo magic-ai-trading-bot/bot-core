@@ -25,6 +25,121 @@ pub struct PaperTradingSettings {
 
     /// Notification settings
     pub notifications: NotificationSettings,
+
+    /// Technical indicator configuration (shared with Python AI service)
+    /// @spec:FR-SETTINGS-001 - Unified indicator settings across services
+    #[serde(default)]
+    pub indicators: IndicatorSettings,
+
+    /// Signal generation thresholds (shared with Python AI service)
+    /// @spec:FR-SETTINGS-002 - Unified signal generation settings
+    #[serde(default)]
+    pub signal: SignalGenerationSettings,
+}
+
+/// Technical indicator configuration
+/// These settings are shared between Rust trading engine and Python AI service
+/// to ensure consistent indicator calculations across the system.
+/// @spec:FR-SETTINGS-001 - Unified indicator configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndicatorSettings {
+    /// RSI (Relative Strength Index) period (default: 14)
+    /// Valid range: 5-50
+    pub rsi_period: u32,
+
+    /// MACD fast EMA period (default: 12)
+    /// Must be less than macd_slow
+    pub macd_fast: u32,
+
+    /// MACD slow EMA period (default: 26)
+    /// Must be greater than macd_fast
+    pub macd_slow: u32,
+
+    /// MACD signal line period (default: 9)
+    pub macd_signal: u32,
+
+    /// EMA periods for trend analysis (default: [9, 21, 50])
+    pub ema_periods: Vec<u32>,
+
+    /// Bollinger Bands period (default: 20)
+    pub bollinger_period: u32,
+
+    /// Bollinger Bands standard deviation multiplier (default: 2.0)
+    /// Valid range: 1.0-4.0
+    pub bollinger_std: f64,
+
+    /// Volume SMA period for volume analysis (default: 20)
+    pub volume_sma_period: u32,
+
+    /// Stochastic %K period (default: 14)
+    pub stochastic_k_period: u32,
+
+    /// Stochastic %D period (smoothing, default: 3)
+    pub stochastic_d_period: u32,
+}
+
+/// Signal generation thresholds
+/// These settings control how AI signals are generated and when to trade.
+/// Shared between Rust trading engine and Python AI service.
+/// @spec:FR-SETTINGS-002 - Signal generation configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalGenerationSettings {
+    /// Trend threshold percentage (default: 0.8%)
+    /// Price movement must exceed this % to qualify as bullish/bearish trend
+    /// Lower = more signals (aggressive), Higher = fewer signals (conservative)
+    /// Valid range: 0.1-10.0%
+    pub trend_threshold_percent: f64,
+
+    /// Minimum timeframes required to agree (default: 3 out of 4)
+    /// Timeframes: 15M, 30M, 1H, 4H
+    /// 2 = 50% agreement (aggressive), 3 = 75% (balanced), 4 = 100% (conservative)
+    /// Valid range: 1-4
+    pub min_required_timeframes: u32,
+
+    /// Minimum indicators per timeframe (default: 4 out of 5)
+    /// Indicators: MACD, RSI, Bollinger Bands, Stochastic, Volume
+    /// 3 = 60% agreement (aggressive), 4 = 80% (balanced), 5 = 100% (conservative)
+    /// Valid range: 1-5
+    pub min_required_indicators: u32,
+
+    /// Base confidence when signal is triggered (default: 0.5)
+    /// This is the starting confidence level
+    /// Valid range: 0.1-0.9
+    pub confidence_base: f64,
+
+    /// Confidence added per agreeing timeframe (default: 0.08)
+    /// Max confidence with 4 timeframes = base + (4 * per_tf) = ~0.82
+    /// Valid range: 0.01-0.2
+    pub confidence_per_timeframe: f64,
+}
+
+impl Default for IndicatorSettings {
+    fn default() -> Self {
+        Self {
+            rsi_period: 14,
+            macd_fast: 12,
+            macd_slow: 26,
+            macd_signal: 9,
+            ema_periods: vec![9, 21, 50],
+            bollinger_period: 20,
+            bollinger_std: 2.0,
+            volume_sma_period: 20,
+            stochastic_k_period: 14,
+            stochastic_d_period: 3,
+        }
+    }
+}
+
+impl Default for SignalGenerationSettings {
+    fn default() -> Self {
+        Self {
+            trend_threshold_percent: 0.8,
+            min_required_timeframes: 3,
+            min_required_indicators: 4,
+            confidence_base: 0.5,
+            confidence_per_timeframe: 0.08,
+        }
+    }
 }
 
 /// Basic trading settings
@@ -562,6 +677,95 @@ impl PaperTradingSettings {
 
         if self.ai.signal_refresh_interval_minutes == 0 {
             return Err(anyhow::anyhow!("Signal refresh interval must be positive"));
+        }
+
+        // Validate indicator settings
+        // @spec:FR-SETTINGS-001 - Indicator validation rules
+        if self.indicators.rsi_period < 5 || self.indicators.rsi_period > 50 {
+            return Err(anyhow::anyhow!(
+                "RSI period must be between 5 and 50, got {}",
+                self.indicators.rsi_period
+            ));
+        }
+
+        if self.indicators.macd_fast >= self.indicators.macd_slow {
+            return Err(anyhow::anyhow!(
+                "MACD fast period ({}) must be less than slow period ({})",
+                self.indicators.macd_fast,
+                self.indicators.macd_slow
+            ));
+        }
+
+        if self.indicators.macd_signal == 0 || self.indicators.macd_signal > 20 {
+            return Err(anyhow::anyhow!(
+                "MACD signal period must be between 1 and 20, got {}",
+                self.indicators.macd_signal
+            ));
+        }
+
+        if self.indicators.ema_periods.is_empty() {
+            return Err(anyhow::anyhow!("EMA periods cannot be empty"));
+        }
+
+        if self.indicators.bollinger_period < 5 || self.indicators.bollinger_period > 50 {
+            return Err(anyhow::anyhow!(
+                "Bollinger period must be between 5 and 50, got {}",
+                self.indicators.bollinger_period
+            ));
+        }
+
+        if self.indicators.bollinger_std < 1.0 || self.indicators.bollinger_std > 4.0 {
+            return Err(anyhow::anyhow!(
+                "Bollinger std must be between 1.0 and 4.0, got {}",
+                self.indicators.bollinger_std
+            ));
+        }
+
+        if self.indicators.stochastic_k_period < 5 || self.indicators.stochastic_k_period > 30 {
+            return Err(anyhow::anyhow!(
+                "Stochastic K period must be between 5 and 30, got {}",
+                self.indicators.stochastic_k_period
+            ));
+        }
+
+        // Validate signal generation settings
+        // @spec:FR-SETTINGS-002 - Signal generation validation rules
+        if self.signal.trend_threshold_percent <= 0.0 || self.signal.trend_threshold_percent > 10.0
+        {
+            return Err(anyhow::anyhow!(
+                "Trend threshold must be between 0.1% and 10.0%, got {}%",
+                self.signal.trend_threshold_percent
+            ));
+        }
+
+        if self.signal.min_required_timeframes == 0 || self.signal.min_required_timeframes > 4 {
+            return Err(anyhow::anyhow!(
+                "Min required timeframes must be between 1 and 4, got {}",
+                self.signal.min_required_timeframes
+            ));
+        }
+
+        if self.signal.min_required_indicators == 0 || self.signal.min_required_indicators > 5 {
+            return Err(anyhow::anyhow!(
+                "Min required indicators must be between 1 and 5, got {}",
+                self.signal.min_required_indicators
+            ));
+        }
+
+        if self.signal.confidence_base < 0.1 || self.signal.confidence_base > 0.9 {
+            return Err(anyhow::anyhow!(
+                "Confidence base must be between 0.1 and 0.9, got {}",
+                self.signal.confidence_base
+            ));
+        }
+
+        if self.signal.confidence_per_timeframe < 0.01
+            || self.signal.confidence_per_timeframe > 0.2
+        {
+            return Err(anyhow::anyhow!(
+                "Confidence per timeframe must be between 0.01 and 0.2, got {}",
+                self.signal.confidence_per_timeframe
+            ));
         }
 
         Ok(())

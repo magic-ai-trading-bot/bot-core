@@ -107,6 +107,40 @@ interface EngineSettings {
   data_resolution?: string; // Timeframe for trading signals (1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d)
 }
 
+// @spec:FR-SETTINGS-001 - Indicator Settings (shared with Python AI Service)
+// These settings are fetched by Python AI service from Rust API
+// API: GET /api/paper-trading/indicator-settings
+interface IndicatorSettings {
+  rsi_period: number;           // Default: 14
+  macd_fast: number;            // Default: 12
+  macd_slow: number;            // Default: 26
+  macd_signal: number;          // Default: 9
+  ema_periods: number[];        // Default: [9, 21, 50]
+  bollinger_period: number;     // Default: 20
+  bollinger_std: number;        // Default: 2.0
+  volume_sma_period: number;    // Default: 20
+  stochastic_k_period: number;  // Default: 14
+  stochastic_d_period: number;  // Default: 3
+}
+
+// @spec:FR-SETTINGS-002 - Signal Generation Settings (shared with Python AI Service)
+// Controls how trading signals are generated from technical indicators
+// API: PUT /api/paper-trading/indicator-settings
+interface SignalGenerationSettings {
+  trend_threshold_percent: number;    // Default: 0.8 (trend must be > 0.8% to count)
+  min_required_timeframes: number;    // Default: 3 (need 3/4 timeframes to agree)
+  min_required_indicators: number;    // Default: 4 (need 4/5 indicators to agree)
+  confidence_base: number;            // Default: 0.5 (base confidence for signals)
+  confidence_per_timeframe: number;   // Default: 0.08 (add per agreeing timeframe)
+}
+
+// Combined indicator settings response from API
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface IndicatorSettingsResponse {
+  indicators: IndicatorSettings;
+  signal: SignalGenerationSettings;
+}
+
 interface TradingSettingsData {
   strategies: StrategySettings;
   risk: RiskSettings;
