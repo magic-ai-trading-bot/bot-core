@@ -145,6 +145,7 @@ interface TradingSettingsData {
   strategies: StrategySettings;
   risk: RiskSettings;
   engine: EngineSettings;
+  market_preset?: string; // Selected market preset (low_volatility, normal_volatility, high_volatility)
 }
 
 // Market Condition Presets
@@ -381,6 +382,10 @@ export function TradingSettings() {
         const data = await response.json();
         if (data.success && data.data) {
           setSettings(data.data);
+          // Load saved market preset
+          if (data.data.market_preset) {
+            setSelectedPreset(data.data.market_preset);
+          }
         }
       }
     } catch (error) {
@@ -403,7 +408,10 @@ export function TradingSettings() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            settings: settings,
+            settings: {
+              ...settings,
+              market_preset: selectedPreset, // Include selected preset in save
+            },
           }),
         }
       );
