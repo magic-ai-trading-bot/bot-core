@@ -1539,6 +1539,9 @@ class GPTTradingAnalyzer:
         reasoning += "; ".join(signals) if signals else "Limited data available"
         reasoning += f" (Bullish: {bullish_count}, Bearish: {bearish_count})"
 
+        # Debug logging for signal generation
+        logger.info(f"📊 {symbol} Signal: {signal} | Bullish={bullish_count}, Bearish={bearish_count}, MIN_REQUIRED={MIN_REQUIRED_SIGNALS}")
+
         # Create strategy scores based on selected strategies
         strategy_scores = {}
         all_strategies = [
@@ -1602,8 +1605,10 @@ class GPTTradingAnalyzer:
         """Get system prompt for GPT-4 with multi-timeframe awareness."""
         return (
             "Crypto trading analyst using MULTI-TIMEFRAME analysis (15M, 1H, 4H).\n"
-            "CRITICAL RULE: If 15M trend CONFLICTS with 1H/4H, signal MUST be Neutral!\n"
-            "Example: 15M bearish + 1H/4H bullish = Neutral (NOT Long!)\n"
+            "SIGNAL RULES:\n"
+            "- If 3+ timeframes agree (bullish/bearish): Give Long/Short signal\n"
+            "- If 2/4 timeframes agree with strong indicators (RSI<30 or >70, MACD cross): Give signal with lower confidence\n"
+            "- Only use Neutral when NO clear direction across timeframes\n"
             "Respond ONLY in JSON:\n"
             '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
             '"strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,'
@@ -1614,7 +1619,7 @@ class GPTTradingAnalyzer:
             '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
             '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
             '"take_profit_suggestion":null}}\n'
-            "Use confidence >0.6 for strong signals. When timeframes conflict, always choose Neutral."
+            "Use confidence 0.5-0.7 for moderate signals, >0.7 for strong signals."
         )
 
     def _prepare_market_context(
