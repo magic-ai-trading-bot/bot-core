@@ -30,6 +30,13 @@ pub struct TradingStrategySettings {
     pub strategies: StrategyConfigCollection,
     pub risk: RiskSettings,
     pub engine: EngineSettings,
+    /// Selected market preset (low_volatility, normal_volatility, high_volatility)
+    #[serde(default = "default_market_preset")]
+    pub market_preset: String,
+}
+
+fn default_market_preset() -> String {
+    "normal_volatility".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -684,6 +691,7 @@ async fn get_strategy_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, 
             risk_level: "Moderate".to_string(),
             data_resolution: engine_settings.strategy.backtesting.data_resolution.clone(), // Current timeframe
         },
+        market_preset: engine_settings.strategy.market_preset.clone(),
     };
 
     Ok(warp::reply::with_status(
@@ -720,6 +728,7 @@ async fn update_strategy_settings(
     // Update all settings in current_settings
     current_settings.strategy.min_ai_confidence = confidence_threshold;
     current_settings.strategy.backtesting.data_resolution = data_resolution.clone();
+    current_settings.strategy.market_preset = request.settings.market_preset.clone();
 
     // Update risk settings - ALL fields from request
     current_settings.risk.max_risk_per_trade_pct = risk_settings.max_risk_per_trade;
@@ -750,6 +759,7 @@ async fn update_strategy_settings(
                     "take_profit_percent": risk_settings.take_profit_percent,
                     "market_condition": request.settings.engine.market_condition,
                     "risk_level": request.settings.engine.risk_level,
+                    "market_preset": request.settings.market_preset,
                 },
             });
 

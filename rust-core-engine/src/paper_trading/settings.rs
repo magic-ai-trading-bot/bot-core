@@ -280,6 +280,15 @@ pub struct StrategySettings {
 
     /// Backtesting settings
     pub backtesting: BacktestingSettings,
+
+    /// Selected market preset (low_volatility, normal_volatility, high_volatility)
+    /// Used by frontend to track which preset is selected
+    #[serde(default = "default_market_preset")]
+    pub market_preset: String,
+}
+
+fn default_market_preset() -> String {
+    "normal_volatility".to_string()
 }
 
 /// AI integration settings
@@ -542,6 +551,7 @@ impl Default for StrategySettings {
             enable_market_regime_detection: true,
             regime_specific_params: HashMap::new(),
             backtesting: BacktestingSettings::default(),
+            market_preset: "normal_volatility".to_string(),
         }
     }
 }
