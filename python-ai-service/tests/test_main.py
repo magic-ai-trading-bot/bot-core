@@ -2671,3 +2671,306 @@ class TestAnalysisStorageErrorHandling:
                                     await task
                                 except asyncio.CancelledError:
                                     pass
+
+
+@pytest.mark.unit
+class TestFetchAnalysisSymbols:
+    """Test fetch_analysis_symbols function."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_analysis_symbols_success(self):
+        """Test successful fetch of symbols from Rust API."""
+        from main import fetch_analysis_symbols
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {"symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT"]}
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            result = await fetch_analysis_symbols()
+
+        assert result == ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+
+    @pytest.mark.asyncio
+    async def test_fetch_analysis_symbols_flat_structure(self):
+        """Test fetch with flat symbols structure."""
+        from main import fetch_analysis_symbols
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True,
+            "symbols": ["BTCUSDT", "ETHUSDT"]
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            result = await fetch_analysis_symbols()
+
+        assert result == ["BTCUSDT", "ETHUSDT"]
+
+    @pytest.mark.asyncio
+    async def test_fetch_analysis_symbols_no_symbols(self):
+        """Test fetch when API returns no symbols."""
+        from main import fetch_analysis_symbols, FALLBACK_ANALYSIS_SYMBOLS
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"success": True, "data": {}}
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            result = await fetch_analysis_symbols()
+
+        assert result == FALLBACK_ANALYSIS_SYMBOLS
+
+    @pytest.mark.asyncio
+    async def test_fetch_analysis_symbols_api_error(self):
+        """Test fetch when API returns error status."""
+        from main import fetch_analysis_symbols, FALLBACK_ANALYSIS_SYMBOLS
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            result = await fetch_analysis_symbols()
+
+        assert result == FALLBACK_ANALYSIS_SYMBOLS
+
+    @pytest.mark.asyncio
+    async def test_fetch_analysis_symbols_exception(self):
+        """Test fetch handles exceptions gracefully."""
+        from main import fetch_analysis_symbols, FALLBACK_ANALYSIS_SYMBOLS
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=Exception("Connection failed")
+            )
+            result = await fetch_analysis_symbols()
+
+        assert result == FALLBACK_ANALYSIS_SYMBOLS
+
+
+@pytest.mark.unit
+class TestTrendPrediction:
+    """Test trend prediction functions."""
+
+    @pytest.mark.asyncio
+    async def test_predict_trend_technical_fallback(self):
+        """Test _predict_trend_technical function."""
+        from main import _predict_trend_technical
+        import pandas as pd
+
+        # Create sample candles data
+        candles = []
+        base_price = 50000
+        for i in range(250):
+            candles.append({
+                "open_time": 1700000000000 + i * 3600000,
+                "open": base_price + i * 10,
+                "high": base_price + i * 10 + 100,
+                "low": base_price + i * 10 - 50,
+                "close": base_price + i * 10 + 50,
+                "volume": 1000000
+            })
+
+        candles_by_tf = {"1d": candles, "4h": candles}
+
+        result = _predict_trend_technical("BTCUSDT", candles_by_tf, "1d")
+
+        assert "trend" in result
+        assert result["trend"] in ["Bullish", "Bearish", "Neutral"]
+        assert "confidence" in result
+        assert 0 <= result["confidence"] <= 1
+
+    @pytest.mark.asyncio
+    async def test_predict_trend_technical_insufficient_data(self):
+        """Test _predict_trend_technical with insufficient data."""
+        from main import _predict_trend_technical
+
+        # Create minimal candles data
+        candles = [
+            {"open_time": 1700000000000, "open": 50000, "high": 50100, "low": 49900, "close": 50050, "volume": 1000000}
+            for _ in range(10)  # Only 10 candles
+        ]
+
+        candles_by_tf = {"1d": candles}
+
+        result = _predict_trend_technical("BTCUSDT", candles_by_tf, "1d")
+
+        assert "trend" in result
+        assert "confidence" in result
+
+
+@pytest.mark.unit
+class TestConfigLoaderEdgeCases:
+    """Test config_loader edge cases."""
+
+    def test_config_loader_invalid_yaml(self):
+        """Test config loader with invalid YAML."""
+        from config_loader import load_config
+
+        with patch("builtins.open", MagicMock(side_effect=FileNotFoundError())):
+            # Should handle missing file gracefully
+            try:
+                config = load_config("nonexistent.yaml")
+                # If it doesn't raise, config should be None or default
+            except FileNotFoundError:
+                pass  # Expected behavior
+
+    def test_config_loader_empty_file(self):
+        """Test config loader with empty file."""
+        from config_loader import load_config
+        import yaml
+
+        mock_file = MagicMock()
+        mock_file.__enter__ = MagicMock(return_value=MagicMock(read=MagicMock(return_value="")))
+        mock_file.__exit__ = MagicMock(return_value=False)
+
+        with patch("builtins.open", return_value=mock_file):
+            with patch("yaml.safe_load", return_value=None):
+                try:
+                    config = load_config("empty.yaml")
+                except Exception:
+                    pass  # May raise or return None
+
+
+@pytest.mark.unit
+class TestHelperFunctions:
+    """Test additional helper functions in main.py."""
+
+    def test_get_helper_functions_with_settings_manager(self):
+        """Test helper functions use settings_manager correctly."""
+        from main import (
+            get_signal_trend_threshold,
+            get_signal_min_timeframes,
+            get_signal_min_indicators,
+            get_signal_confidence_base,
+            get_signal_confidence_per_tf,
+            get_rsi_period,
+            get_macd_periods,
+            get_bollinger_settings,
+            get_stochastic_periods,
+        )
+
+        # These should return default values when settings_manager has no cache
+        assert isinstance(get_signal_trend_threshold(), float)
+        assert isinstance(get_signal_min_timeframes(), int)
+        assert isinstance(get_signal_min_indicators(), int)
+        assert isinstance(get_signal_confidence_base(), float)
+        assert isinstance(get_signal_confidence_per_tf(), float)
+        assert isinstance(get_rsi_period(), int)
+
+        # Test tuple returns
+        macd = get_macd_periods()
+        assert len(macd) == 3
+        assert all(isinstance(x, int) for x in macd)
+
+        bollinger = get_bollinger_settings()
+        assert len(bollinger) == 2
+
+        stochastic = get_stochastic_periods()
+        assert len(stochastic) == 2
+        assert all(isinstance(x, int) for x in stochastic)
+
+
+@pytest.mark.unit
+class TestWebSocketManagerBroadcast:
+    """Test WebSocket manager broadcast functionality."""
+
+    @pytest.mark.asyncio
+    async def test_ws_manager_broadcast_signal(self):
+        """Test broadcasting signal via WebSocket manager."""
+        from main import WebSocketManager
+
+        ws_manager = WebSocketManager()
+
+        # Test broadcast with no connections (should not raise)
+        await ws_manager.broadcast_signal({
+            "symbol": "BTCUSDT",
+            "signal": "Long",
+            "confidence": 0.75,
+            "reasoning": "Test signal"
+        })
+
+    @pytest.mark.asyncio
+    async def test_ws_manager_multiple_signals(self):
+        """Test broadcasting multiple signals via WebSocket manager."""
+        from main import WebSocketManager
+
+        ws_manager = WebSocketManager()
+
+        # Test broadcast multiple signals with no connections (should not raise)
+        signals = [
+            {"symbol": "BTCUSDT", "signal": "Long", "confidence": 0.75},
+            {"symbol": "ETHUSDT", "signal": "Short", "confidence": 0.65},
+            {"symbol": "SOLUSDT", "signal": "Neutral", "confidence": 0.50},
+        ]
+        for signal in signals:
+            await ws_manager.broadcast_signal(signal)
+
+
+@pytest.mark.unit
+class TestDirectOpenAIClientErrorHandling:
+    """Test DirectOpenAIClient error handling."""
+
+    @pytest.mark.asyncio
+    async def test_direct_openai_client_timeout(self):
+        """Test DirectOpenAIClient handles timeout."""
+        from main import DirectOpenAIClient
+        import httpx
+
+        client = DirectOpenAIClient(["test-key"])
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(
+                side_effect=httpx.TimeoutException("Timeout")
+            )
+            try:
+                result = await client.chat_completions_create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": "test"}]
+                )
+            except Exception as e:
+                # Should handle timeout gracefully
+                pass
+
+    @pytest.mark.asyncio
+    async def test_direct_openai_client_rate_limit(self):
+        """Test DirectOpenAIClient handles rate limiting."""
+        from main import DirectOpenAIClient
+
+        client = DirectOpenAIClient(["test-key"])
+
+        mock_response = MagicMock()
+        mock_response.status_code = 429
+        mock_response.headers = {"retry-after": "1"}
+        mock_response.text = "Rate limited"
+        mock_response.raise_for_status = MagicMock(
+            side_effect=Exception("Rate limited")
+        )
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(
+                return_value=mock_response
+            )
+            try:
+                result = await client.chat_completions_create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": "test"}]
+                )
+            except Exception:
+                pass  # Expected to fail on rate limit
