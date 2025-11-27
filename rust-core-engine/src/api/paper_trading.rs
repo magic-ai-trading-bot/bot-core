@@ -1598,6 +1598,7 @@ mod tests {
                 risk_level: "Moderate".to_string(),
                 data_resolution: "15m".to_string(),
             },
+            market_preset: "normal_volatility".to_string(),
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -2243,6 +2244,7 @@ mod tests {
                     risk_level: "Moderate".to_string(),
                     data_resolution: "15m".to_string(),
                 },
+                market_preset: "normal_volatility".to_string(),
             },
         };
 
@@ -2837,6 +2839,7 @@ mod tests {
                 risk_level: "Moderate".to_string(),
                 data_resolution: "15m".to_string(),
             },
+            market_preset: "normal_volatility".to_string(),
         };
 
         // RSI validation
