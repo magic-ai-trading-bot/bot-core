@@ -5,7 +5,10 @@ use reqwest::{Client, Method};
 use serde::de::DeserializeOwned;
 use sha2::Sha256;
 use std::collections::HashMap;
-use tracing::{error, trace};
+use std::sync::Arc;
+use tokio::sync::Semaphore;
+use tokio::time::{sleep, Duration};
+use tracing::{error, trace, warn};
 use url::Url;
 
 use super::types::*;
@@ -17,20 +20,31 @@ use crate::config::BinanceConfig;
 
 type HmacSha256 = Hmac<Sha256>;
 
+// Rate limiting: max 10 concurrent requests, with 100ms delay between
+const MAX_CONCURRENT_REQUESTS: usize = 10;
+const REQUEST_DELAY_MS: u64 = 100;
+const MAX_RETRIES: u32 = 3;
+
 #[derive(Clone)]
 pub struct BinanceClient {
     config: BinanceConfig,
     client: Client,
+    rate_limiter: Arc<Semaphore>,
 }
 
 impl BinanceClient {
     pub fn new(config: BinanceConfig) -> Result<Self> {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
+            .user_agent("Mozilla/5.0 (compatible; BotCore/1.0)")
             .build()
             .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
-        Ok(Self { config, client })
+        Ok(Self {
+            config,
+            client,
+            rate_limiter: Arc::new(Semaphore::new(MAX_CONCURRENT_REQUESTS)),
+        })
     }
 
     // Authentication helpers
@@ -55,6 +69,14 @@ impl BinanceClient {
     where
         T: DeserializeOwned,
     {
+        // Acquire rate limiter permit
+        let _permit = self.rate_limiter.acquire().await.map_err(|e| {
+            anyhow::anyhow!("Rate limiter error: {}", e)
+        })?;
+
+        // Add delay between requests to avoid rate limiting
+        sleep(Duration::from_millis(REQUEST_DELAY_MS)).await;
+
         let mut url = if endpoint.starts_with("/fapi/") {
             let futures_base_url = &self.config.futures_base_url;
             Url::parse(&format!("{futures_base_url}{endpoint}"))?
@@ -63,7 +85,7 @@ impl BinanceClient {
             Url::parse(&format!("{base_url}/api/v3{endpoint}"))?
         };
 
-        let mut query_params = params.unwrap_or_default();
+        let mut query_params = params.clone().unwrap_or_default();
 
         if signed {
             query_params.insert("timestamp".to_string(), Self::get_timestamp().to_string());
@@ -83,35 +105,68 @@ impl BinanceClient {
             url.query_pairs_mut().append_pair(key, value);
         }
 
-        let mut request_builder = self.client.request(method, url.clone());
+        // Retry logic for rate limiting (403/429)
+        let mut last_error = None;
+        for attempt in 0..MAX_RETRIES {
+            let mut request_builder = self.client.request(method.clone(), url.clone());
 
-        // Add headers
-        request_builder = request_builder.header("Content-Type", "application/json");
+            // Add headers
+            request_builder = request_builder.header("Content-Type", "application/json");
 
-        if signed || !self.config.api_key.is_empty() {
-            request_builder = request_builder.header("X-MBX-APIKEY", &self.config.api_key);
+            if signed || !self.config.api_key.is_empty() {
+                request_builder = request_builder.header("X-MBX-APIKEY", &self.config.api_key);
+            }
+
+            trace!("Making request to: {url} (attempt {})", attempt + 1);
+
+            match request_builder.send().await {
+                Ok(response) => {
+                    let status = response.status();
+
+                    if status.is_success() {
+                        let response_text = response.text().await?;
+                        trace!("Response: {response_text}");
+                        let result: T = serde_json::from_str(&response_text)?;
+                        return Ok(result);
+                    }
+
+                    // Handle rate limiting (403 or 429)
+                    if status.as_u16() == 403 || status.as_u16() == 429 {
+                        let retry_after = response
+                            .headers()
+                            .get("Retry-After")
+                            .and_then(|v| v.to_str().ok())
+                            .and_then(|v| v.parse::<u64>().ok())
+                            .unwrap_or(2);
+
+                        let backoff = Duration::from_secs(retry_after * (attempt as u64 + 1));
+                        warn!(
+                            "Rate limited ({}), retrying in {:?} (attempt {}/{})",
+                            status, backoff, attempt + 1, MAX_RETRIES
+                        );
+                        sleep(backoff).await;
+                        last_error = Some(anyhow::anyhow!("Rate limited: {}", status));
+                        continue;
+                    }
+
+                    // Other errors - don't retry
+                    let error_text = response.text().await?;
+                    error!("Request failed with status {status}: {error_text}");
+                    return Err(anyhow::anyhow!(
+                        "API request failed: {} - {}",
+                        status,
+                        error_text
+                    ));
+                }
+                Err(e) => {
+                    warn!("Request error: {} (attempt {}/{})", e, attempt + 1, MAX_RETRIES);
+                    last_error = Some(anyhow::anyhow!("Request error: {}", e));
+                    sleep(Duration::from_secs(1)).await;
+                }
+            }
         }
 
-        trace!("Making request to: {url}");
-
-        let response = request_builder.send().await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_text = response.text().await?;
-            error!("Request failed with status {status}: {error_text}");
-            return Err(anyhow::anyhow!(
-                "API request failed: {} - {}",
-                status,
-                error_text
-            ));
-        }
-
-        let response_text = response.text().await?;
-        trace!("Response: {response_text}");
-
-        let result: T = serde_json::from_str(&response_text)?;
-        Ok(result)
+        Err(last_error.unwrap_or_else(|| anyhow::anyhow!("Max retries exceeded")))
     }
 
     // Public API endpoints

@@ -66,6 +66,11 @@ services:
       - ./python-ai-service:/app
       - /app/__pycache__
       - /app/models/saved
+      # Mount project docs for RAG chatbot
+      - ./docs:/project/docs:ro
+      - ./specs:/project/specs:ro
+      - ./CLAUDE.md:/project/CLAUDE.md:ro
+      - ./README.md:/project/README.md:ro
     command:
       [
         "python",
