@@ -50,6 +50,9 @@ signal:
   min_required_timeframes: 3    # Out of 4 timeframes (15M, 30M, 1H, 4H)
                                 # 3 = 75% agreement required
                                 # 2 = 50% agreement (more aggressive)
+  min_required_indicators: 4    # Out of 5 indicators (MACD, RSI, BB, Stochastic, Volume)
+                                # 4 = 80% agreement required (conservative)
+                                # 3 = 60% agreement (more aggressive)
   confidence_base: 0.5          # Base confidence when signal is triggered
   confidence_per_timeframe: 0.08 # Add this per agreeing timeframe (max ~0.82 with 4TF)
 
