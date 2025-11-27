@@ -1126,14 +1126,14 @@ async fn update_indicator_settings(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => {
             log::error!("❌ Failed to update indicator/signal settings: {}", e);
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
                 StatusCode::BAD_REQUEST,
             ))
-        }
+        },
     }
 }
 
