@@ -21,6 +21,12 @@ trading:
   neutral_zone: 0.1
   confidence_threshold: 0.45
 
+# @deprecated - Use Rust API endpoint instead:
+# GET /api/paper-trading/indicator-settings
+# PUT /api/paper-trading/indicator-settings
+# These values are now FALLBACK ONLY - used when Rust API is unavailable
+# Primary source of truth: Rust API (settings stored in MongoDB)
+# @spec:FR-SETTINGS-001 - Indicator Settings Unification
 technical_indicators:
   rsi_period: 14
   macd_fast: 12
@@ -41,6 +47,13 @@ ai_cache:
   duration_minutes: 2 # Cache AI analysis for 2 minutes (reduced from 15 for fresh trading signals)
   max_entries: 100 # Maximum number of cache entries
 
+# @deprecated - Use Rust API endpoint instead:
+# GET /api/paper-trading/indicator-settings
+# PUT /api/paper-trading/indicator-settings
+# These values are now FALLBACK ONLY - used when Rust API is unavailable
+# Primary source of truth: Rust API (settings stored in MongoDB)
+# @spec:FR-SETTINGS-002 - Signal Generation Settings Unification
+#
 # Signal generation config (UNIFIED for both GPT-4 and fallback)
 # These values are used by both GPT-4 prompt and fallback technical analysis
 # to ensure consistent signal generation regardless of which method is used

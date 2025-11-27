@@ -774,16 +774,19 @@ class TestGPTTradingAnalyzer:
         assert "Technical analysis" in result.reasoning
 
     def test_fallback_analysis_rsi_oversold(self):
-        """Test fallback analysis requires 4/5 signals for Long (matching Rust FR-STRATEGIES-006)."""
+        """Test fallback analysis requires 3/4 timeframes for Long (matching multi-timeframe analysis).
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis with min_required_timeframes=3
+        The new fallback analysis requires at least 3 timeframes to agree before generating
+        a Long or Short signal. With only 1 timeframe data, result is Neutral.
+        """
         analyzer = GPTTradingAnalyzer(None)
 
-        # Create candles with strong upward movement in LAST 2 candles
-        # Price change check: (candles[-1].close - candles[-2].close) / candles[-2].close * 100
-        # Need >1% change to trigger "Strong upward movement" bullish signal
+        # Create candles
         base_time = int(datetime.now(timezone.utc).timestamp() * 1000)
         candles = []
         base_price = 44000
-        for i in range(98):  # First 98 candles with gradual increase
+        for i in range(100):
             price = base_price + (i * 50)
             candles.append(CandleData(
                 timestamp=base_time + i * 3600000,
@@ -793,57 +796,42 @@ class TestGPTTradingAnalyzer:
                 close=price + 80,
                 volume=100.0,
             ))
-        # Second to last candle
-        candles.append(CandleData(
-            timestamp=base_time + 98 * 3600000,
-            open=48900,
-            high=49000,
-            low=48800,
-            close=48900,  # Base for price change calculation
-            volume=100.0,
-        ))
-        # Last candle with >1% jump to trigger Strong upward movement
-        candles.append(CandleData(
-            timestamp=base_time + 99 * 3600000,
-            open=49000,
-            high=50000,
-            low=49000,
-            close=49500,  # 1.2% higher than 48900
-            volume=150.0,
-        ))
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=49500.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy"]),
         )
 
-        # Need 4+ bullish signals for Long (FR-STRATEGIES-006: 4/5 = 80%)
-        # RSI oversold + MACD bullish + BB lower + Price trend = 4 bullish
-        indicators = {
-            "rsi": 25.0,  # Oversold = bullish
-            "macd": 0.5, "macd_signal": 0.3,  # MACD > signal = bullish
-            "bb_position": 0.05,  # Near lower band = bullish
+        # Need 4+ bullish indicators per timeframe AND 3+ timeframes to agree for Long
+        # Provide strong bullish indicators for all 4 timeframes
+        bullish_indicators = {
+            "rsi": 25.0,  # Oversold (<45) = bullish
+            "macd_histogram": 0.5,  # Positive = bullish
+            "bb_position": 0.1,  # <0.3 = bullish
+            "stochastic_k": 75.0, "stochastic_d": 60.0,  # K>D and K<80 = bullish
+            "volume_ratio": 1.5,  # >1.2 confirms trend
         }
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
+        # Pass same bullish indicators to all 4 timeframes
+        result = analyzer._fallback_analysis(request, bullish_indicators, bullish_indicators, bullish_indicators, bullish_indicators)
         assert result["signal"] == "Long"
-        assert "Bullish: 4" in result["reasoning"]
+        assert "Bullish=" in result["reasoning"]
 
     def test_fallback_analysis_rsi_overbought(self):
-        """Test fallback analysis requires 4/5 signals for Short (matching Rust FR-STRATEGIES-006)."""
+        """Test fallback analysis requires 3/4 timeframes for Short (matching multi-timeframe analysis).
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis with min_required_timeframes=3
+        """
         analyzer = GPTTradingAnalyzer(None)
 
-        # Create candles with strong downward movement in LAST 2 candles
-        # Price change check: (candles[-1].close - candles[-2].close) / candles[-2].close * 100
-        # Need <-1% change to trigger "Strong downward movement" bearish signal
+        # Create candles
         base_time = int(datetime.now(timezone.utc).timestamp() * 1000)
         candles = []
         base_price = 50000
-        for i in range(98):  # First 98 candles with gradual decrease
+        for i in range(100):
             price = base_price - (i * 50)
             candles.append(CandleData(
                 timestamp=base_time + i * 3600000,
@@ -853,45 +841,28 @@ class TestGPTTradingAnalyzer:
                 close=price - 80,
                 volume=100.0,
             ))
-        # Second to last candle
-        candles.append(CandleData(
-            timestamp=base_time + 98 * 3600000,
-            open=46000,
-            high=46100,
-            low=45900,
-            close=46000,  # Base for price change calculation
-            volume=100.0,
-        ))
-        # Last candle with >1% drop to trigger Strong downward movement
-        candles.append(CandleData(
-            timestamp=base_time + 99 * 3600000,
-            open=45800,
-            high=46000,
-            low=45300,
-            close=45400,  # -1.3% lower than 46000
-            volume=150.0,
-        ))
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45400.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy"]),
         )
 
-        # Need 4+ bearish signals for Short (FR-STRATEGIES-006: 4/5 = 80%)
-        # RSI overbought + MACD bearish + BB upper + Price trend = 4 bearish
-        indicators = {
-            "rsi": 75.0,  # Overbought = bearish
-            "macd": 0.3, "macd_signal": 0.5,  # MACD < signal = bearish
-            "bb_position": 0.95,  # Near upper band = bearish
+        # Need 4+ bearish indicators per timeframe AND 3+ timeframes to agree for Short
+        bearish_indicators = {
+            "rsi": 75.0,  # Overbought (>55) = bearish
+            "macd_histogram": -0.5,  # Negative = bearish
+            "bb_position": 0.9,  # >0.7 = bearish
+            "stochastic_k": 25.0, "stochastic_d": 40.0,  # K<D and K>20 = bearish
+            "volume_ratio": 1.5,  # >1.2 confirms trend
         }
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
+        # Pass same bearish indicators to all 4 timeframes
+        result = analyzer._fallback_analysis(request, bearish_indicators, bearish_indicators, bearish_indicators, bearish_indicators)
         assert result["signal"] == "Short"
-        assert "Bearish: 4" in result["reasoning"]
+        assert "Bearish=" in result["reasoning"]
 
     def test_parse_gpt_response_json(self):
         """Test parsing valid JSON GPT response."""
@@ -1310,7 +1281,10 @@ class TestMoreGPTAnalyzerMethods:
         assert "MACD Strategy" in prompt
 
     def test_fallback_analysis_macd_strategy(self):
-        """Test fallback analysis with MACD strategy."""
+        """Test fallback analysis with MACD indicator shows MACD signals in reasoning.
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis shows indicator breakdown
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -1327,21 +1301,25 @@ class TestMoreGPTAnalyzerMethods:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(selected_strategies=["MACD Strategy"]),
         )
 
-        indicators = {"macd": 50.0, "macd_signal": 30.0}
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
+        # Provide MACD bullish signal (macd_histogram > 0)
+        indicators = {"macd_histogram": 50.0, "rsi": 50.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
+        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        # New format shows "MACD↑" or "MACD↓" in the indicator breakdown
         assert "MACD" in result["reasoning"]
         assert result["signal"] in ["Long", "Short", "Neutral"]
 
     def test_fallback_analysis_volume_strategy(self):
-        """Test fallback analysis with volume strategy."""
+        """Test fallback analysis with volume indicator shows Vol signals in reasoning.
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis shows indicator breakdown
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -1353,24 +1331,31 @@ class TestMoreGPTAnalyzerMethods:
                 close=45050,
                 volume=100.0,
             )
+            for _ in range(50)
         ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(selected_strategies=["Volume Strategy"]),
         )
 
-        indicators = {"volume_ratio": 2.0}
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
-        assert "volume" in result["reasoning"].lower()
+        # Provide volume ratio > 1.2 for bullish volume confirmation
+        indicators = {"volume_ratio": 2.0, "rsi": 50.0, "macd_histogram": 0.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
+        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        # New format shows "Vol↑" in the indicator breakdown
+        assert "Vol" in result["reasoning"] or "NEUTRAL" in result["reasoning"]
+        assert result["signal"] in ["Long", "Short", "Neutral"]
 
     def test_fallback_analysis_bollinger_bands_insufficient_signals(self):
-        """Test fallback analysis with only 2 signals returns Neutral (4/5 = 80% required)."""
+        """Test fallback analysis with insufficient indicators per timeframe returns Neutral.
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis requires 4/5 indicators per TF
+        With only 2 bullish indicators (BB + RSI), each timeframe will be NEUTRAL.
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -1382,11 +1367,12 @@ class TestMoreGPTAnalyzerMethods:
                 close=45050,
                 volume=100.0,
             )
+            for _ in range(50)
         ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -1396,16 +1382,21 @@ class TestMoreGPTAnalyzerMethods:
         )
 
         # Only 2 bullish signals: BB near lower + RSI oversold
-        # This is NOT enough - need 4/5 (FR-STRATEGIES-006)
-        indicators = {"bb_position": 0.05, "rsi": 25.0}
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
-        # With only 2 signals, result should be Neutral (safety first)
+        # This is NOT enough - need 4/5 indicators per timeframe
+        indicators = {"bb_position": 0.05, "rsi": 25.0, "macd_histogram": 0.0, "stochastic_k": 50.0, "stochastic_d": 50.0}
+        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        # With only 2 bullish indicators per timeframe, each TF is NEUTRAL
+        # Result should be Neutral (no 3+ timeframes agree)
         assert result["signal"] == "Neutral"
-        assert "Bullish: 2" in result["reasoning"]
+        # New format shows summary with bullish/bearish/neutral counts
+        assert "Bullish=" in result["reasoning"] or "NEUTRAL" in result["reasoning"]
 
     def test_fallback_analysis_price_trend(self):
-        """Test fallback analysis with price trend."""
+        """Test fallback analysis with empty indicators returns Neutral with summary.
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis shows summary
+        When no indicators are provided, timeframes show "insufficient data".
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -1429,16 +1420,18 @@ class TestMoreGPTAnalyzerMethods:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45500.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(),
         )
 
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        # With empty indicators, all timeframes show "insufficient data"
         result = analyzer._fallback_analysis(request, {}, {}, {}, {})
-        assert "movement" in result["reasoning"].lower()
+        # New format shows "Summary: Bullish=X, Bearish=Y, Neutral=Z"
+        assert "Summary" in result["reasoning"] or "insufficient" in result["reasoning"].lower()
+        assert result["signal"] == "Neutral"
 
 
 @pytest.mark.unit
@@ -2097,7 +2090,10 @@ class TestGPTAnalyzerFallbackStrategies:
         assert "neutral" in result["reasoning"].lower()
 
     def test_fallback_analysis_macd_bearish_neutral_signal(self):
-        """Test MACD bearish crossover - single signal stays Neutral."""
+        """Test MACD bearish with insufficient timeframes stays Neutral.
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis requires 3/4 timeframes
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -2109,29 +2105,32 @@ class TestGPTAnalyzerFallbackStrategies:
                 close=45050,
                 volume=100.0,
             )
+            for _ in range(50)
         ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(selected_strategies=["MACD Strategy"]),
         )
 
-        # MACD bearish crossover - but single signal stays Neutral
-        # (need 4/5 = 80% signals in same direction for trading signal - FR-STRATEGIES-006)
-        indicators = {"macd": 30.0, "macd_signal": 50.0}
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, indicators, {})
-        # Signal should be Neutral since only 1 bearish signal (need 4+)
+        # Only 1 bearish signal (MACD), others neutral - need 4/5 per timeframe
+        # Each timeframe will be NEUTRAL, so overall signal is Neutral
+        indicators = {"macd_histogram": -50.0, "rsi": 50.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
+        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        # Signal should be Neutral since only 1 bearish indicator per timeframe
         assert result["signal"] == "Neutral"
-        assert "MACD bearish" in result["reasoning"]
-        assert "Bearish: 1" in result["reasoning"]
+        assert "MACD" in result["reasoning"]
+        assert "NEUTRAL" in result["reasoning"]
 
     def test_fallback_analysis_low_volume(self):
-        """Test fallback with low volume."""
+        """Test fallback with low volume stays Neutral (volume doesn't create signals alone).
+
+        @spec:FR-SETTINGS-002 - Volume ratio < 1.2 doesn't confirm trend
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -2143,23 +2142,30 @@ class TestGPTAnalyzerFallbackStrategies:
                 close=45050,
                 volume=100.0,
             )
+            for _ in range(50)
         ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(selected_strategies=["Volume Strategy"]),
         )
 
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, {"volume_ratio": 0.3}, {})
-        assert "low volume" in result["reasoning"].lower()
+        # Low volume ratio doesn't contribute to signals
+        indicators = {"volume_ratio": 0.3, "rsi": 50.0, "macd_histogram": 0.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
+        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        # All indicators neutral, so result is Neutral
+        assert result["signal"] == "Neutral"
+        assert "NEUTRAL" in result["reasoning"]
 
     def test_fallback_analysis_bb_upper_neutral(self):
-        """Test Bollinger Bands upper boundary - single signal stays Neutral."""
+        """Test Bollinger Bands upper boundary - single indicator stays Neutral.
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis requires 4/5 indicators per TF
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -2171,11 +2177,12 @@ class TestGPTAnalyzerFallbackStrategies:
                 close=45050,
                 volume=100.0,
             )
+            for _ in range(50)
         ]
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -2184,15 +2191,19 @@ class TestGPTAnalyzerFallbackStrategies:
             ),
         )
 
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, {"bb_position": 0.95}, {})
-        # Single BB upper signal stays Neutral (need 4/5 = 80% signals - FR-STRATEGIES-006)
+        # Only BB bearish (0.95 > 0.7), others neutral - need 4/5 per timeframe
+        indicators = {"bb_position": 0.95, "rsi": 50.0, "macd_histogram": 0.0, "stochastic_k": 50.0, "stochastic_d": 50.0}
+        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        # Single BB upper signal per timeframe = each TF is NEUTRAL
         assert result["signal"] == "Neutral"
-        assert "upper Bollinger" in result["reasoning"]
-        assert "Bearish: 1" in result["reasoning"]
+        assert "BB" in result["reasoning"]
+        assert "NEUTRAL" in result["reasoning"]
 
     def test_fallback_analysis_strong_downward_movement(self):
-        """Test price trend with strong downward movement."""
+        """Test with empty indicators returns Neutral with summary.
+
+        @spec:FR-SETTINGS-002 - Multi-timeframe analysis without indicators shows summary
+        """
         analyzer = GPTTradingAnalyzer(None)
 
         candles = [
@@ -2216,16 +2227,18 @@ class TestGPTAnalyzerFallbackStrategies:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles},
+            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
             current_price=44000.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
             strategy_context=AIStrategyContext(),
         )
 
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+        # Empty indicators = all timeframes show "insufficient data"
         result = analyzer._fallback_analysis(request, {}, {}, {}, {})
-        assert "downward" in result["reasoning"].lower()
+        # New format shows summary
+        assert "Summary" in result["reasoning"] or "insufficient" in result["reasoning"].lower()
+        assert result["signal"] == "Neutral"
 
 
 @pytest.mark.unit

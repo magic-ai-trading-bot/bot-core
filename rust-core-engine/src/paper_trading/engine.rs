@@ -2844,8 +2844,8 @@ impl PaperTradingEngine {
 mod tests {
     use super::*;
     use crate::paper_trading::settings::{
-        AISettings, BasicSettings, ExecutionSettings, NotificationSettings, RiskSettings,
-        StrategySettings, SymbolSettings,
+        AISettings, BasicSettings, ExecutionSettings, IndicatorSettings, NotificationSettings,
+        RiskSettings, SignalGenerationSettings, StrategySettings, SymbolSettings,
     };
     use crate::paper_trading::trade::TradeStatus;
     use crate::paper_trading::MarketAnalysisData;
@@ -2911,6 +2911,9 @@ mod tests {
             ai: AISettings::default(),
             execution: ExecutionSettings::default(),
             notifications: NotificationSettings::default(),
+            // @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified settings
+            indicators: IndicatorSettings::default(),
+            signal: SignalGenerationSettings::default(),
         }
     }
 

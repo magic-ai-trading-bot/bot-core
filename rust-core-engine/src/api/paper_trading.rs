@@ -162,6 +162,48 @@ pub struct UpdateSignalIntervalRequest {
     pub interval_minutes: u32,
 }
 
+/// Indicator settings for API (matches Rust struct)
+/// @spec:FR-SETTINGS-001 - Unified indicator settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndicatorSettingsApi {
+    pub rsi_period: u32,
+    pub macd_fast: u32,
+    pub macd_slow: u32,
+    pub macd_signal: u32,
+    pub ema_periods: Vec<u32>,
+    pub bollinger_period: u32,
+    pub bollinger_std: f64,
+    pub volume_sma_period: u32,
+    pub stochastic_k_period: u32,
+    pub stochastic_d_period: u32,
+}
+
+/// Signal generation settings for API
+/// @spec:FR-SETTINGS-002 - Unified signal generation settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalGenerationSettingsApi {
+    pub trend_threshold_percent: f64,
+    pub min_required_timeframes: u32,
+    pub min_required_indicators: u32,
+    pub confidence_base: f64,
+    pub confidence_per_timeframe: f64,
+}
+
+/// Response for indicator-settings endpoint
+/// This is fetched by Python AI service on startup
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IndicatorSettingsResponse {
+    pub indicators: IndicatorSettingsApi,
+    pub signal: SignalGenerationSettingsApi,
+}
+
+/// Request to update indicator and signal settings
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateIndicatorSettingsRequest {
+    pub indicators: Option<IndicatorSettingsApi>,
+    pub signal: Option<SignalGenerationSettingsApi>,
+}
+
 /// Response for API operations
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiResponse<T> {
@@ -353,6 +395,26 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(update_signal_refresh_interval);
 
+        // GET /api/paper-trading/indicator-settings
+        // @spec:FR-SETTINGS-001 - Unified indicator settings API
+        // This endpoint is fetched by Python AI service on startup
+        let get_indicator_settings_route = base_path
+            .and(warp::path("indicator-settings"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_indicator_settings);
+
+        // PUT /api/paper-trading/indicator-settings
+        // @spec:FR-SETTINGS-002 - Update indicator and signal generation settings
+        let update_indicator_settings_route = base_path
+            .and(warp::path("indicator-settings"))
+            .and(warp::path::end())
+            .and(warp::put())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(update_indicator_settings);
+
         status_route
             .or(portfolio_route)
             .or(open_trades_route)
@@ -370,6 +432,10 @@ impl PaperTradingApi {
             .or(stop_route)
             .or(trigger_analysis_route)
             .or(update_signal_interval_route)
+            // @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified indicator/signal settings
+            // These endpoints are used by Python AI service to fetch settings
+            .or(get_indicator_settings_route)
+            .or(update_indicator_settings_route)
             .with(cors)
     }
 }
@@ -965,6 +1031,109 @@ async fn update_signal_refresh_interval(
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::BAD_REQUEST,
         )),
+    }
+}
+
+/// Get unified indicator and signal generation settings
+/// @spec:FR-SETTINGS-001 - Indicator settings
+/// @spec:FR-SETTINGS-002 - Signal generation settings
+/// This endpoint is fetched by Python AI service on startup
+async fn get_indicator_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
+    let settings = api.engine.get_settings().await;
+
+    let response = IndicatorSettingsResponse {
+        indicators: IndicatorSettingsApi {
+            rsi_period: settings.indicators.rsi_period,
+            macd_fast: settings.indicators.macd_fast,
+            macd_slow: settings.indicators.macd_slow,
+            macd_signal: settings.indicators.macd_signal,
+            ema_periods: settings.indicators.ema_periods.clone(),
+            bollinger_period: settings.indicators.bollinger_period,
+            bollinger_std: settings.indicators.bollinger_std,
+            volume_sma_period: settings.indicators.volume_sma_period,
+            stochastic_k_period: settings.indicators.stochastic_k_period,
+            stochastic_d_period: settings.indicators.stochastic_d_period,
+        },
+        signal: SignalGenerationSettingsApi {
+            trend_threshold_percent: settings.signal.trend_threshold_percent,
+            min_required_timeframes: settings.signal.min_required_timeframes,
+            min_required_indicators: settings.signal.min_required_indicators,
+            confidence_base: settings.signal.confidence_base,
+            confidence_per_timeframe: settings.signal.confidence_per_timeframe,
+        },
+    };
+
+    log::info!(
+        "📊 Indicator settings fetched: RSI={}, MACD={}/{}/{}, Trend threshold={}%",
+        response.indicators.rsi_period,
+        response.indicators.macd_fast,
+        response.indicators.macd_slow,
+        response.indicators.macd_signal,
+        response.signal.trend_threshold_percent
+    );
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(response)),
+        StatusCode::OK,
+    ))
+}
+
+/// Update indicator and signal generation settings
+/// @spec:FR-SETTINGS-001 - Indicator settings update
+/// @spec:FR-SETTINGS-002 - Signal generation settings update
+/// Changes apply immediately and are persisted to database
+async fn update_indicator_settings(
+    request: UpdateIndicatorSettingsRequest,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    log::info!("🔧 Updating indicator/signal settings: {:?}", request);
+
+    let mut current_settings = api.engine.get_settings().await;
+
+    // Update indicators if provided
+    if let Some(indicators) = request.indicators {
+        current_settings.indicators.rsi_period = indicators.rsi_period;
+        current_settings.indicators.macd_fast = indicators.macd_fast;
+        current_settings.indicators.macd_slow = indicators.macd_slow;
+        current_settings.indicators.macd_signal = indicators.macd_signal;
+        current_settings.indicators.ema_periods = indicators.ema_periods;
+        current_settings.indicators.bollinger_period = indicators.bollinger_period;
+        current_settings.indicators.bollinger_std = indicators.bollinger_std;
+        current_settings.indicators.volume_sma_period = indicators.volume_sma_period;
+        current_settings.indicators.stochastic_k_period = indicators.stochastic_k_period;
+        current_settings.indicators.stochastic_d_period = indicators.stochastic_d_period;
+    }
+
+    // Update signal settings if provided
+    if let Some(signal) = request.signal {
+        current_settings.signal.trend_threshold_percent = signal.trend_threshold_percent;
+        current_settings.signal.min_required_timeframes = signal.min_required_timeframes;
+        current_settings.signal.min_required_indicators = signal.min_required_indicators;
+        current_settings.signal.confidence_base = signal.confidence_base;
+        current_settings.signal.confidence_per_timeframe = signal.confidence_per_timeframe;
+    }
+
+    match api.engine.update_settings(current_settings).await {
+        Ok(_) => {
+            let response = serde_json::json!({
+                "message": "Indicator and signal settings updated successfully",
+                "note": "Changes apply immediately to Python AI service on next settings fetch",
+            });
+
+            log::info!("✅ Indicator/signal settings updated successfully");
+
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        }
+        Err(e) => {
+            log::error!("❌ Failed to update indicator/signal settings: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::BAD_REQUEST,
+            ))
+        }
     }
 }
 
