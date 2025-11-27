@@ -41,6 +41,18 @@ ai_cache:
   duration_minutes: 2 # Cache AI analysis for 2 minutes (reduced from 15 for fresh trading signals)
   max_entries: 100 # Maximum number of cache entries
 
+# Signal generation config (UNIFIED for both GPT-4 and fallback)
+# These values are used by both GPT-4 prompt and fallback technical analysis
+# to ensure consistent signal generation regardless of which method is used
+signal:
+  trend_threshold_percent: 0.8  # Trend must exceed this % to count as bullish/bearish
+                                # Lower = more signals, Higher = more conservative
+  min_required_timeframes: 3    # Out of 4 timeframes (15M, 30M, 1H, 4H)
+                                # 3 = 75% agreement required
+                                # 2 = 50% agreement (more aggressive)
+  confidence_base: 0.5          # Base confidence when signal is triggered
+  confidence_per_timeframe: 0.08 # Add this per agreeing timeframe (max ~0.82 with 4TF)
+
 model_management:
   model_save_path: "./models/saved/"
   retrain_interval_hours: 24

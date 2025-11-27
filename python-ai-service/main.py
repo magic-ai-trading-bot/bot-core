@@ -15,7 +15,14 @@ from typing import Dict, Any, List, Optional, Set
 from contextlib import asynccontextmanager
 
 # Load configuration
-from config_loader import AI_CACHE_DURATION_MINUTES, AI_CACHE_ENABLED
+from config_loader import (
+    AI_CACHE_DURATION_MINUTES,
+    AI_CACHE_ENABLED,
+    SIGNAL_TREND_THRESHOLD,
+    SIGNAL_MIN_TIMEFRAMES,
+    SIGNAL_CONFIDENCE_BASE,
+    SIGNAL_CONFIDENCE_PER_TF,
+)
 from app.core.config import OPENAI_REQUEST_DELAY
 
 import pandas as pd
@@ -1392,155 +1399,110 @@ class GPTTradingAnalyzer:
             logger.warning("🔄 Falling back to technical analysis...")
             return self._fallback_analysis(request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
 
+    def _classify_timeframe(
+        self, tf_name: str, indicators: Dict, candles: List, threshold: float
+    ) -> tuple[str, str]:
+        """
+        Classify a timeframe as BULLISH, BEARISH, or NEUTRAL.
+
+        Uses unified logic matching GPT-4 prompt:
+        - BULLISH if: trend > threshold% AND MACD histogram > 0
+        - BEARISH if: trend < -threshold% AND MACD histogram < 0
+        - NEUTRAL otherwise
+
+        Returns: (classification, reason_string)
+        """
+        if not indicators or not candles or len(candles) < 10:
+            return "NEUTRAL", f"{tf_name}: insufficient data"
+
+        macd_hist = indicators.get("macd_histogram", 0)
+
+        # Calculate trend over last 10 candles
+        first_close = candles[-10].close if hasattr(candles[-10], 'close') else candles[-10].get("close", 0)
+        last_close = candles[-1].close if hasattr(candles[-1], 'close') else candles[-1].get("close", 0)
+
+        if first_close <= 0:
+            return "NEUTRAL", f"{tf_name}: invalid price data"
+
+        trend = ((last_close - first_close) / first_close) * 100
+
+        # Apply unified classification rules
+        if trend > threshold and macd_hist > 0:
+            return "BULLISH", f"{tf_name}: ✅ BULLISH (trend +{trend:.2f}%, MACD +{macd_hist:.4f})"
+        elif trend < -threshold and macd_hist < 0:
+            return "BEARISH", f"{tf_name}: ⚠️ BEARISH (trend {trend:.2f}%, MACD {macd_hist:.4f})"
+        else:
+            return "NEUTRAL", f"{tf_name}: ➖ NEUTRAL (trend {trend:+.2f}%, MACD {macd_hist:+.4f})"
+
     def _fallback_analysis(
         self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
     ) -> Dict[str, Any]:
-        """Fallback technical analysis when GPT-4 is not available. Uses multi-timeframe (15m, 30m, 1h, 4h)."""
-        # FIX: Use Neutral as default to avoid Long bias
-        # Only set Long/Short when indicators clearly support it
-        signal = "Neutral"
-        confidence = 0.45  # Lower confidence for fallback analysis
+        """
+        Fallback technical analysis when GPT-4 is not available.
+
+        Uses UNIFIED LOGIC matching GPT-4 prompt exactly:
+        - Each timeframe (15M, 30M, 1H, 4H) is classified as BULLISH/BEARISH/NEUTRAL
+        - Classification: trend > THRESHOLD% AND MACD > 0 → BULLISH
+        - Signal: bullish_timeframes >= MIN_REQUIRED → Long
+
+        Config values from config_loader.py ensure consistency:
+        - SIGNAL_TREND_THRESHOLD: minimum % for trend (default 0.8%)
+        - SIGNAL_MIN_TIMEFRAMES: minimum timeframes to agree (default 3)
+        """
+        symbol = request.symbol
         reasoning = "Technical analysis (GPT-4 unavailable): "
+        timeframe_results = []
 
-        signals = []
-        selected_strategies = request.strategy_context.selected_strategies
+        # Classify each timeframe using unified logic
+        # 15M
+        candles_15m = request.timeframe_data.get("15m", [])
+        tf_15m, reason_15m = self._classify_timeframe("15M", indicators_15m, candles_15m, SIGNAL_TREND_THRESHOLD)
+        timeframe_results.append((tf_15m, reason_15m))
 
-        # Track bullish/bearish signals to determine final signal
-        bullish_count = 0
-        bearish_count = 0
+        # 30M
+        candles_30m = request.timeframe_data.get("30m", [])
+        tf_30m, reason_30m = self._classify_timeframe("30M", indicators_30m, candles_30m, SIGNAL_TREND_THRESHOLD)
+        timeframe_results.append((tf_30m, reason_30m))
 
-        # =========================================================
-        # 15M & 30M SHORT-TERM TREND CHECK (CRITICAL!)
-        # If short-term shows strong opposite trend, it overrides longer timeframes
-        # This prevents LONG signals when 15m/30m chart is clearly in downtrend
-        # =========================================================
-        short_term_bearish = False
-        short_term_bullish = False
+        # 1H
+        candles_1h = request.timeframe_data.get("1h", [])
+        tf_1h, reason_1h = self._classify_timeframe("1H", indicators_1h, candles_1h, SIGNAL_TREND_THRESHOLD)
+        timeframe_results.append((tf_1h, reason_1h))
 
-        # Check 15m trend
-        if indicators_15m:
-            macd_hist_15m = indicators_15m.get("macd_histogram", 0)
+        # 4H
+        candles_4h = request.timeframe_data.get("4h", [])
+        tf_4h, reason_4h = self._classify_timeframe("4H", indicators_4h, candles_4h, SIGNAL_TREND_THRESHOLD)
+        timeframe_results.append((tf_4h, reason_4h))
 
-            # Check 15m price trend from candles
-            if "15m" in request.timeframe_data and len(request.timeframe_data["15m"]) >= 10:
-                candles_15m = request.timeframe_data["15m"]
-                # Calculate trend over last 10 candles (2.5 hours)
-                first_close = candles_15m[-10].close if hasattr(candles_15m[-10], 'close') else candles_15m[-10].get("close", 0)
-                last_close = candles_15m[-1].close if hasattr(candles_15m[-1], 'close') else candles_15m[-1].get("close", 0)
-                if first_close > 0:
-                    trend_15m = ((last_close - first_close) / first_close) * 100
+        # Count bullish/bearish timeframes
+        bullish_count = sum(1 for tf, _ in timeframe_results if tf == "BULLISH")
+        bearish_count = sum(1 for tf, _ in timeframe_results if tf == "BEARISH")
+        neutral_count = sum(1 for tf, _ in timeframe_results if tf == "NEUTRAL")
 
-                    if trend_15m < -0.8 and macd_hist_15m < 0:  # 15m downtrend > 0.8%
-                        short_term_bearish = True
-                        signals.append(f"⚠️ 15M DOWNTREND ({trend_15m:.2f}%)")
-                        bearish_count += 2  # Weight 15m trend heavily (counts as 2 signals)
-                    elif trend_15m > 0.8 and macd_hist_15m > 0:  # 15m uptrend > 0.8%
-                        short_term_bullish = True
-                        signals.append(f"✅ 15M UPTREND (+{trend_15m:.2f}%)")
-                        bullish_count += 2  # Weight 15m trend heavily
-
-        # Check 30m trend (additional confirmation)
-        if indicators_30m:
-            macd_hist_30m = indicators_30m.get("macd_histogram", 0)
-
-            # Check 30m price trend from candles
-            if "30m" in request.timeframe_data and len(request.timeframe_data["30m"]) >= 10:
-                candles_30m = request.timeframe_data["30m"]
-                # Calculate trend over last 10 candles (5 hours)
-                first_close = candles_30m[-10].close if hasattr(candles_30m[-10], 'close') else candles_30m[-10].get("close", 0)
-                last_close = candles_30m[-1].close if hasattr(candles_30m[-1], 'close') else candles_30m[-1].get("close", 0)
-                if first_close > 0:
-                    trend_30m = ((last_close - first_close) / first_close) * 100
-
-                    if trend_30m < -0.8 and macd_hist_30m < 0:  # 30m downtrend > 0.8%
-                        short_term_bearish = True
-                        signals.append(f"⚠️ 30M DOWNTREND ({trend_30m:.2f}%)")
-                        bearish_count += 1  # Weight 30m slightly less than 15m
-                    elif trend_30m > 0.8 and macd_hist_30m > 0:  # 30m uptrend > 0.8%
-                        short_term_bullish = True
-                        signals.append(f"✅ 30M UPTREND (+{trend_30m:.2f}%)")
-                        bullish_count += 1
-
-        # RSI Analysis - only if selected
-        if not selected_strategies or "RSI Strategy" in selected_strategies:
-            if indicators_1h.get("rsi"):
-                rsi = indicators_1h["rsi"]
-                if rsi < 30:
-                    signals.append("RSI oversold (bullish)")
-                    bullish_count += 1
-                elif rsi > 70:
-                    signals.append("RSI overbought (bearish)")
-                    bearish_count += 1
-                else:
-                    signals.append(f"RSI neutral ({rsi:.1f})")
-
-        # MACD Analysis - only if selected
-        if not selected_strategies or "MACD Strategy" in selected_strategies:
-            if indicators_1h.get("macd") and indicators_1h.get("macd_signal"):
-                macd = indicators_1h["macd"]
-                macd_signal = indicators_1h["macd_signal"]
-                if macd > macd_signal:
-                    signals.append("MACD bullish crossover")
-                    bullish_count += 1
-                else:
-                    signals.append("MACD bearish crossover")
-                    bearish_count += 1
-
-        # Volume Analysis - only if selected
-        if not selected_strategies or "Volume Strategy" in selected_strategies:
-            if indicators_1h.get("volume_ratio"):
-                volume_ratio = indicators_1h["volume_ratio"]
-                if volume_ratio > 1.5:
-                    signals.append(f"High volume ({volume_ratio:.1f}x avg)")
-                elif volume_ratio < 0.5:
-                    signals.append(f"Low volume ({volume_ratio:.1f}x avg)")
-
-        # Bollinger Bands Analysis - only if selected
-        if not selected_strategies or "Bollinger Bands Strategy" in selected_strategies:
-            if indicators_1h.get("bb_position"):
-                bb_position = indicators_1h["bb_position"]
-                if bb_position < 0.1:
-                    signals.append("Price near lower Bollinger Band (bullish)")
-                    bullish_count += 1
-                elif bb_position > 0.9:
-                    signals.append("Price near upper Bollinger Band (bearish)")
-                    bearish_count += 1
-
-        # Price trend analysis
-        if "1h" in request.timeframe_data and len(request.timeframe_data["1h"]) >= 2:
-            candles = request.timeframe_data["1h"]
-            if len(candles) >= 2:
-                price_change = (
-                    (candles[-1].close - candles[-2].close) / candles[-2].close * 100
-                )
-                if price_change > 1:
-                    signals.append(f"Strong upward movement (+{price_change:.2f}%)")
-                    bullish_count += 1
-                elif price_change < -1:
-                    signals.append(f"Strong downward movement ({price_change:.2f}%)")
-                    bearish_count += 1
-
-        # Determine signal based on consensus (3/5 = 60%)
-        # Lowered from 4/5 to allow more trading opportunities
+        # Determine signal using config thresholds (matching GPT-4 prompt)
         # @spec:FR-STRATEGIES-006 - Signal Combination
-        MIN_REQUIRED_SIGNALS = 3  # Must have 3+ out of 5 indicators agree
-
-        if bullish_count >= MIN_REQUIRED_SIGNALS:
+        if bullish_count >= SIGNAL_MIN_TIMEFRAMES:
             signal = "Long"
-            confidence = min(0.75, 0.50 + (bullish_count * 0.05))
-        elif bearish_count >= MIN_REQUIRED_SIGNALS:
+            confidence = min(0.85, SIGNAL_CONFIDENCE_BASE + (bullish_count * SIGNAL_CONFIDENCE_PER_TF))
+        elif bearish_count >= SIGNAL_MIN_TIMEFRAMES:
             signal = "Short"
-            confidence = min(0.75, 0.50 + (bearish_count * 0.05))
+            confidence = min(0.85, SIGNAL_CONFIDENCE_BASE + (bearish_count * SIGNAL_CONFIDENCE_PER_TF))
         else:
-            # Stay Neutral when consensus is weak (< 4/5 agreement)
             signal = "Neutral"
-            confidence = 0.35
+            confidence = 0.40
 
-        reasoning += "; ".join(signals) if signals else "Limited data available"
-        reasoning += f" (Bullish: {bullish_count}, Bearish: {bearish_count})"
+        # Build reasoning string
+        reasons = [reason for _, reason in timeframe_results]
+        reasoning += "; ".join(reasons)
+        reasoning += f" | Summary: Bullish={bullish_count}, Bearish={bearish_count}, Neutral={neutral_count}"
+        reasoning += f" | Threshold: {SIGNAL_TREND_THRESHOLD}%, MinRequired: {SIGNAL_MIN_TIMEFRAMES}/4"
 
         # Debug logging for signal generation
-        logger.info(f"📊 {symbol} Signal: {signal} | Bullish={bullish_count}, Bearish={bearish_count}, MIN_REQUIRED={MIN_REQUIRED_SIGNALS}")
+        logger.info(
+            f"📊 {symbol} Fallback Signal: {signal} | "
+            f"Bullish={bullish_count}, Bearish={bearish_count}, Neutral={neutral_count} | "
+            f"Threshold={SIGNAL_TREND_THRESHOLD}%, MinRequired={SIGNAL_MIN_TIMEFRAMES}"
+        )
 
         # Create strategy scores based on selected strategies
         strategy_scores = {}
@@ -1602,13 +1564,21 @@ class GPTTradingAnalyzer:
         }
 
     def _get_system_prompt(self) -> str:
-        """Get system prompt for GPT-4 with multi-timeframe awareness."""
+        """Get system prompt for GPT-4 with multi-timeframe awareness.
+
+        Uses config values for consistency with fallback code:
+        - SIGNAL_TREND_THRESHOLD: minimum % trend to count as bullish/bearish
+        - SIGNAL_MIN_TIMEFRAMES: minimum timeframes needed to agree
+        """
         return (
-            "Crypto trading analyst using MULTI-TIMEFRAME analysis (15M, 1H, 4H).\n"
-            "SIGNAL RULES:\n"
-            "- If 3+ timeframes agree (bullish/bearish): Give Long/Short signal\n"
-            "- If 2/4 timeframes agree with strong indicators (RSI<30 or >70, MACD cross): Give signal with lower confidence\n"
-            "- Only use Neutral when NO clear direction across timeframes\n"
+            f"Crypto trading analyst using MULTI-TIMEFRAME analysis (15M, 30M, 1H, 4H).\n"
+            f"SIGNAL RULES (MUST FOLLOW EXACTLY):\n"
+            f"- Timeframe is BULLISH if: trend > {SIGNAL_TREND_THRESHOLD}% AND MACD histogram > 0\n"
+            f"- Timeframe is BEARISH if: trend < -{SIGNAL_TREND_THRESHOLD}% AND MACD histogram < 0\n"
+            f"- Timeframe is NEUTRAL otherwise\n"
+            f"- Give LONG if {SIGNAL_MIN_TIMEFRAMES}+ timeframes are BULLISH\n"
+            f"- Give SHORT if {SIGNAL_MIN_TIMEFRAMES}+ timeframes are BEARISH\n"
+            f"- Give NEUTRAL otherwise\n"
             "Respond ONLY in JSON:\n"
             '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
             '"strategy_scores":{"RSI Strategy":0-1,"MACD Strategy":0-1,"Volume Strategy":0-1,'
@@ -1619,7 +1589,7 @@ class GPTTradingAnalyzer:
             '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
             '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
             '"take_profit_suggestion":null}}\n'
-            "Use confidence 0.5-0.7 for moderate signals, >0.7 for strong signals."
+            f"Confidence: {SIGNAL_CONFIDENCE_BASE} base + {SIGNAL_CONFIDENCE_PER_TF} per agreeing timeframe."
         )
 
     def _prepare_market_context(
