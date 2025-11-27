@@ -37,6 +37,9 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+# Project chatbot service (RAG)
+from services.project_chatbot import get_chatbot, ProjectChatbot
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -665,6 +668,31 @@ class AIModelPerformance(BaseModel):
     last_updated: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+
+
+# === PROJECT CHATBOT REQUEST/RESPONSE MODELS ===
+
+
+class ProjectChatRequest(BaseModel):
+    """Request model for project chatbot."""
+    message: str = Field(..., min_length=1, max_length=2000, description="User message")
+    include_history: bool = Field(default=True, description="Include conversation history")
+
+
+class ProjectChatSource(BaseModel):
+    """Source document reference."""
+    title: str
+    path: str
+
+
+class ProjectChatResponse(BaseModel):
+    """Response model for project chatbot."""
+    success: bool
+    message: str
+    sources: List[ProjectChatSource] = Field(default_factory=list)
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    type: str = Field(default="rag", description="Response type: rag, fallback, error")
+    tokens_used: Dict[str, Any] = Field(default_factory=dict)
 
 
 # === TECHNICAL ANALYSIS HELPER ===
@@ -1402,11 +1430,11 @@ class GPTTradingAnalyzer:
                 if first_close > 0:
                     trend_15m = ((last_close - first_close) / first_close) * 100
 
-                    if trend_15m < -0.8 and macd_hist_15m < 0:  # 15m downtrend > 0.8% (relaxed from 0.5%)
+                    if trend_15m < -0.5 and macd_hist_15m < 0:  # 15m downtrend > 0.5%
                         short_term_bearish = True
                         signals.append(f"⚠️ 15M DOWNTREND ({trend_15m:.2f}%)")
                         bearish_count += 2  # Weight 15m trend heavily (counts as 2 signals)
-                    elif trend_15m > 0.8 and macd_hist_15m > 0:  # 15m uptrend > 0.8% (relaxed from 0.5%)
+                    elif trend_15m > 0.5 and macd_hist_15m > 0:  # 15m uptrend > 0.5%
                         short_term_bullish = True
                         signals.append(f"✅ 15M UPTREND (+{trend_15m:.2f}%)")
                         bullish_count += 2  # Weight 15m trend heavily
@@ -1424,11 +1452,11 @@ class GPTTradingAnalyzer:
                 if first_close > 0:
                     trend_30m = ((last_close - first_close) / first_close) * 100
 
-                    if trend_30m < -0.8 and macd_hist_30m < 0:  # 30m downtrend > 0.8% (relaxed from 0.5%)
+                    if trend_30m < -0.5 and macd_hist_30m < 0:  # 30m downtrend > 0.5%
                         short_term_bearish = True
                         signals.append(f"⚠️ 30M DOWNTREND ({trend_30m:.2f}%)")
                         bearish_count += 1  # Weight 30m slightly less than 15m
-                    elif trend_30m > 0.8 and macd_hist_30m > 0:  # 30m uptrend > 0.8% (relaxed from 0.5%)
+                    elif trend_30m > 0.5 and macd_hist_30m > 0:  # 30m uptrend > 0.5%
                         short_term_bullish = True
                         signals.append(f"✅ 30M UPTREND (+{trend_30m:.2f}%)")
                         bullish_count += 1
@@ -2666,6 +2694,96 @@ async def clear_storage(request: Request):
         return {"error": f"Failed to clear storage: {e}"}
 
 
+# === PROJECT CHATBOT ENDPOINTS ===
+
+# Global chatbot instance (initialized lazily)
+_project_chatbot: Optional[ProjectChatbot] = None
+
+
+@app.post("/api/chat/project", response_model=ProjectChatResponse)
+async def chat_with_project(request: ProjectChatRequest):
+    """
+    Chat with the project documentation using RAG (Retrieval Augmented Generation).
+
+    This endpoint allows users to ask questions about the BotCore project.
+    It uses GPT-4 with context from indexed project documentation (specs, docs, READMEs).
+
+    - **message**: The question to ask about the project
+    - **include_history**: Whether to include conversation history for context
+
+    Returns:
+    - **message**: AI-generated response
+    - **sources**: List of source documents used for the answer
+    - **confidence**: Confidence score (0-1)
+    - **type**: Response type (rag, fallback, error)
+    """
+    global _project_chatbot
+
+    try:
+        # Get or create chatbot instance with OpenAI client
+        if _project_chatbot is None:
+            _project_chatbot = await get_chatbot(openai_client)
+        elif openai_client and _project_chatbot.openai_client is None:
+            _project_chatbot.openai_client = openai_client
+
+        # Process the message
+        result = await _project_chatbot.chat(
+            message=request.message,
+            include_history=request.include_history
+        )
+
+        return ProjectChatResponse(
+            success=result.get("success", False),
+            message=result.get("message", ""),
+            sources=[
+                ProjectChatSource(title=s["title"], path=s["path"])
+                for s in result.get("sources", [])
+            ],
+            confidence=result.get("confidence", 0.0),
+            type=result.get("type", "error"),
+            tokens_used=result.get("tokens_used", {}),
+        )
+
+    except Exception as e:
+        logger.error(f"Project chatbot error: {e}")
+        return ProjectChatResponse(
+            success=False,
+            message=f"Xin lỗi, có lỗi xảy ra: {str(e)}",
+            sources=[],
+            confidence=0.0,
+            type="error",
+        )
+
+
+@app.get("/api/chat/project/suggestions")
+async def get_chat_suggestions():
+    """Get suggested questions for the project chatbot."""
+    global _project_chatbot
+
+    if _project_chatbot is None:
+        _project_chatbot = await get_chatbot(openai_client)
+
+    return {
+        "suggestions": _project_chatbot.get_suggested_questions(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/chat/project/clear")
+async def clear_chat_history():
+    """Clear conversation history for the project chatbot."""
+    global _project_chatbot
+
+    if _project_chatbot is not None:
+        _project_chatbot.clear_history()
+
+    return {
+        "success": True,
+        "message": "Conversation history cleared",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @app.get("/")
 async def root():
     """Root endpoint with service information."""
@@ -2686,6 +2804,9 @@ async def root():
             "cost_stats": "GET /ai/cost/statistics - View GPT-4 API cost statistics",
             "clear_storage": "POST /ai/storage/clear - Clear analysis storage",
             "websocket": "WS /ws - Real-time AI signal broadcasting",
+            "project_chat": "POST /api/chat/project - RAG chatbot for project questions",
+            "chat_suggestions": "GET /api/chat/project/suggestions - Get suggested questions",
+            "clear_chat": "POST /api/chat/project/clear - Clear chat history",
         },
         "documentation": "/docs",
         "features": {
