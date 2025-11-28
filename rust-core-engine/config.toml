@@ -82,8 +82,9 @@ margin_type = "CROSSED"        # CROSSED or ISOLATED
 [database]
 # MongoDB database for storing trade history and analysis results
 # Enable MongoDB for user authentication and data storage
-url = "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin"
-database_name = "trading_bot"
+# NOTE: URL is overridden by DATABASE_URL env var in docker-compose
+url = "mongodb://botuser:defaultpassword@mongodb:27017/bot_core?authSource=admin"
+database_name = "bot_core"
 max_connections = 10
 enable_logging = false
 

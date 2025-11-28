@@ -1470,9 +1470,25 @@ class GPTTradingAnalyzer:
             # Parse GPT-4 response
             parsed_result = self._parse_gpt_response(response_content)
             strategy_scores = parsed_result.get('strategy_scores', {})
+            gpt_confidence = parsed_result.get('confidence', 0.5)
+            gpt_signal = parsed_result.get('signal', 'Neutral')
+
+            # POST-PROCESS: Recalculate confidence based on timeframe agreement
+            # GPT-4 often returns 0.5 as default, so we calculate proper confidence ourselves
+            recalculated_confidence = self._recalculate_confidence(
+                gpt_signal, request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+            )
+
+            # Use recalculated confidence for directional signals, keep GPT's for Neutral
+            if gpt_signal in ["Long", "Short"] and gpt_confidence == 0.5:
+                parsed_result['confidence'] = recalculated_confidence
+                logger.info(
+                    f"📈 Confidence recalculated: GPT returned {gpt_confidence} -> adjusted to {recalculated_confidence}"
+                )
+
             logger.info(
                 f"🎯 GPT-4 analysis complete: signal={parsed_result.get('signal')}, "
-                f"confidence={parsed_result.get('confidence')}"
+                f"confidence={parsed_result.get('confidence')} (GPT original: {gpt_confidence})"
             )
             logger.info(f"📊 Strategy scores: {strategy_scores}")
 
@@ -1587,6 +1603,106 @@ class GPTTradingAnalyzer:
         else:
             return "NEUTRAL", f"{tf_name}: ➖ NEUTRAL ({bullish_points}↑ {bearish_points}↓) [{signal_str}]"
 
+    def _recalculate_confidence(
+        self,
+        signal: str,
+        request: "AIAnalysisRequest",
+        indicators_15m: Dict,
+        indicators_30m: Dict,
+        indicators_1h: Dict,
+        indicators_4h: Dict,
+    ) -> float:
+        """
+        Recalculate confidence using WEIGHTED timeframe voting.
+
+        GPT-4 often returns 0.5 as default confidence. This method calculates
+        proper confidence using WEIGHTED voting (same as fallback analysis):
+        - 4H has 2.0 weight (main trend - most important)
+        - 1H has 1.5 weight
+        - 30M has 1.0 weight
+        - 15M has 0.5 weight (short-term noise)
+
+        Formula: confidence = 0.50 + (weighted_score / 100) * 0.35
+        - Max 0.85 confidence
+        - Counter-trend signals get lower confidence (0.45)
+
+        @spec:FR-AI-WEIGHTED - Weighted timeframe voting for signal confidence
+        """
+        # Get dynamic settings from config
+        trend_threshold = get_signal_trend_threshold()
+        confidence_base = get_signal_confidence_base()
+
+        # Classify all timeframes
+        candles_15m = request.timeframe_data.get("15m", [])
+        candles_30m = request.timeframe_data.get("30m", [])
+        candles_1h = request.timeframe_data.get("1h", [])
+        candles_4h = request.timeframe_data.get("4h", [])
+
+        tf_15m, _ = self._classify_timeframe("15M", indicators_15m, candles_15m, trend_threshold)
+        tf_30m, _ = self._classify_timeframe("30M", indicators_30m, candles_30m, trend_threshold)
+        tf_1h, _ = self._classify_timeframe("1H", indicators_1h, candles_1h, trend_threshold)
+        tf_4h, _ = self._classify_timeframe("4H", indicators_4h, candles_4h, trend_threshold)
+
+        # ==================== WEIGHTED TIMEFRAME VOTING ====================
+        # Same weights as fallback_analysis for consistency
+        TIMEFRAME_WEIGHTS = {
+            "15M": 0.5,   # Short-term noise, least important
+            "30M": 1.0,   # Short-term trend
+            "1H": 1.5,    # Medium-term trend
+            "4H": 2.0,    # MAIN TREND - most important
+        }
+
+        tf_results = {"15M": tf_15m, "30M": tf_30m, "1H": tf_1h, "4H": tf_4h}
+
+        # Calculate weighted scores
+        weighted_bullish = 0.0
+        weighted_bearish = 0.0
+        total_weight = 0.0
+
+        for tf_name, tf_class in tf_results.items():
+            weight = TIMEFRAME_WEIGHTS.get(tf_name, 1.0)
+            total_weight += weight
+
+            if tf_class == "BULLISH":
+                weighted_bullish += weight
+            elif tf_class == "BEARISH":
+                weighted_bearish += weight
+
+        # Normalize to percentage (0-100%)
+        bullish_score = (weighted_bullish / total_weight) * 100 if total_weight > 0 else 0
+        bearish_score = (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
+
+        # Main trend (4H) for counter-trend detection
+        main_trend = tf_4h
+
+        # Calculate confidence based on signal and weighted score
+        if signal == "Long":
+            if main_trend == "BEARISH":
+                # Counter-trend Long = lower confidence
+                confidence = 0.45
+                logger.debug(f"🔄 Confidence: Long but 4H BEARISH (counter-trend) → {confidence}")
+            else:
+                confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
+                logger.debug(f"🔄 Confidence: Long, bullish_score={bullish_score:.1f}% → {confidence:.2f}")
+        elif signal == "Short":
+            if main_trend == "BULLISH":
+                # Counter-trend Short = lower confidence
+                confidence = 0.45
+                logger.debug(f"🔄 Confidence: Short but 4H BULLISH (counter-trend) → {confidence}")
+            else:
+                confidence = min(0.85, confidence_base + (bearish_score / 100) * 0.35)
+                logger.debug(f"🔄 Confidence: Short, bearish_score={bearish_score:.1f}% → {confidence:.2f}")
+        else:
+            # Neutral signal
+            confidence = 0.40
+
+        logger.info(
+            f"🔄 Weighted confidence: signal={signal}, 4H={main_trend}, "
+            f"bull_score={bullish_score:.1f}%, bear_score={bearish_score:.1f}% → {confidence:.2f}"
+        )
+
+        return confidence
+
     def _fallback_analysis(
         self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
     ) -> Dict[str, Any]:
@@ -1633,7 +1749,7 @@ class GPTTradingAnalyzer:
         tf_4h, reason_4h = self._classify_timeframe("4H", indicators_4h, candles_4h, trend_threshold)
         timeframe_results.append((tf_4h, reason_4h))
 
-        # Count bullish/bearish timeframes
+        # Count bullish/bearish timeframes (for logging)
         bullish_count = sum(1 for tf, _ in timeframe_results if tf == "BULLISH")
         bearish_count = sum(1 for tf, _ in timeframe_results if tf == "BEARISH")
         neutral_count = sum(1 for tf, _ in timeframe_results if tf == "NEUTRAL")
@@ -1642,23 +1758,85 @@ class GPTTradingAnalyzer:
         confidence_base = get_signal_confidence_base()
         confidence_per_tf = get_signal_confidence_per_tf()
 
-        # Determine signal using config thresholds (matching GPT-4 prompt)
-        # @spec:FR-STRATEGIES-006 - Signal Combination
-        if bullish_count >= min_timeframes:
-            signal = "Long"
-            confidence = min(0.85, confidence_base + (bullish_count * confidence_per_tf))
-        elif bearish_count >= min_timeframes:
-            signal = "Short"
-            confidence = min(0.85, confidence_base + (bearish_count * confidence_per_tf))
+        # ==================== WEIGHTED TIMEFRAME VOTING ====================
+        # Higher timeframes have MORE weight (main trend is more important)
+        # This prevents counter-trend trades (e.g., shorting during 4H uptrend)
+        #
+        # Weights: 4H (2.0) > 1H (1.5) > 30M (1.0) > 15M (0.5)
+        # Total weight = 5.0
+        # ===================================================================
+        TIMEFRAME_WEIGHTS = {
+            "15M": 0.5,   # Short-term noise, least important
+            "30M": 1.0,   # Short-term trend
+            "1H": 1.5,    # Medium-term trend
+            "4H": 2.0,    # MAIN TREND - most important
+        }
+
+        # Calculate weighted scores
+        weighted_bullish = 0.0
+        weighted_bearish = 0.0
+        total_weight = 0.0
+
+        tf_names = ["15M", "30M", "1H", "4H"]
+        for i, (tf_class, _) in enumerate(timeframe_results):
+            tf_name = tf_names[i]
+            weight = TIMEFRAME_WEIGHTS.get(tf_name, 1.0)
+            total_weight += weight
+
+            if tf_class == "BULLISH":
+                weighted_bullish += weight
+            elif tf_class == "BEARISH":
+                weighted_bearish += weight
+
+        # Normalize to percentage (0-100%)
+        bullish_score = (weighted_bullish / total_weight) * 100 if total_weight > 0 else 0
+        bearish_score = (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
+
+        # SAFETY RULE: Don't trade against main trend (4H)
+        # If 4H is BULLISH, don't SHORT. If 4H is BEARISH, don't LONG.
+        main_trend = tf_4h  # 4H is the main trend
+
+        # Determine signal using WEIGHTED voting
+        # Need 60%+ weighted score to trigger directional signal
+        MIN_WEIGHTED_THRESHOLD = 60.0  # 60% weighted agreement
+
+        if bullish_score >= MIN_WEIGHTED_THRESHOLD:
+            if main_trend == "BEARISH":
+                # 4H is BEARISH but lower TFs bullish = potential reversal, stay NEUTRAL
+                signal = "Neutral"
+                confidence = 0.45
+                logger.info(f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 4H is BEARISH - staying NEUTRAL")
+            else:
+                signal = "Long"
+                confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
+        elif bearish_score >= MIN_WEIGHTED_THRESHOLD:
+            if main_trend == "BULLISH":
+                # 4H is BULLISH but lower TFs bearish = pullback, stay NEUTRAL (DON'T SHORT!)
+                signal = "Neutral"
+                confidence = 0.45
+                logger.info(f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 4H is BULLISH - staying NEUTRAL (no counter-trend)")
+            else:
+                signal = "Short"
+                confidence = min(0.85, confidence_base + (bearish_score / 100) * 0.35)
         else:
             signal = "Neutral"
             confidence = 0.40
 
-        # Build reasoning string
+        # Log weighted analysis
+        logger.info(
+            f"📊 {symbol} Weighted Analysis: Bullish={bullish_score:.1f}%, Bearish={bearish_score:.1f}%, "
+            f"4H_Trend={main_trend}, Signal={signal}"
+        )
+
+        # Build reasoning string with weighted analysis
         reasons = [reason for _, reason in timeframe_results]
         reasoning += "; ".join(reasons)
-        reasoning += f" | Summary: Bullish={bullish_count}, Bearish={bearish_count}, Neutral={neutral_count}"
-        reasoning += f" | Threshold: {trend_threshold}%, MinRequired: {min_timeframes}/4"
+        reasoning += f" | Weighted: Bullish={bullish_score:.0f}%, Bearish={bearish_score:.0f}%"
+        reasoning += f" | 4H_Trend={main_trend}"
+        if main_trend == "BULLISH" and bearish_score >= MIN_WEIGHTED_THRESHOLD:
+            reasoning += " | ⚠️ Blocked SHORT (counter-trend protection)"
+        elif main_trend == "BEARISH" and bullish_score >= MIN_WEIGHTED_THRESHOLD:
+            reasoning += " | ⚠️ Blocked LONG (counter-trend protection)"
 
         # Debug logging for signal generation
         logger.info(
@@ -1812,7 +1990,7 @@ class GPTTradingAnalyzer:
         confidence_per_tf = get_signal_confidence_per_tf()
 
         return (
-            f"Crypto trading analyst using MULTI-TIMEFRAME + 5 STRATEGIES analysis.\n"
+            f"Crypto trading analyst using WEIGHTED MULTI-TIMEFRAME + 5 STRATEGIES analysis.\n"
             f"INDICATOR SCORING (per timeframe - count bullish/bearish points):\n"
             f"- MACD: histogram > 0 = +1 bullish, < 0 = +1 bearish\n"
             f"- RSI: > 55 = +1 bullish, < 45 = +1 bearish (50-55/45-50 = neutral)\n"
@@ -1823,16 +2001,26 @@ class GPTTradingAnalyzer:
             f"- Timeframe is BULLISH if: {min_indicators}+ indicators are bullish\n"
             f"- Timeframe is BEARISH if: {min_indicators}+ indicators are bearish\n"
             f"- Otherwise NEUTRAL\n"
+            f"WEIGHTED TIMEFRAME VOTING (CRITICAL - higher TF = more important):\n"
+            f"- 4H weight: 2.0 (MAIN TREND - most important)\n"
+            f"- 1H weight: 1.5 (medium-term)\n"
+            f"- 30M weight: 1.0 (short-term)\n"
+            f"- 15M weight: 0.5 (noise)\n"
+            f"- Total weight: 5.0, need 60%+ weighted score for directional signal\n"
+            f"COUNTER-TREND PROTECTION (CRITICAL):\n"
+            f"- NEVER give SHORT if 4H is BULLISH (pullback in uptrend)\n"
+            f"- NEVER give LONG if 4H is BEARISH (bounce in downtrend)\n"
+            f"- 4H is the MAIN TREND - always follow it!\n"
             f"SIGNAL DECISION:\n"
-            f"- Give LONG if {min_timeframes}+ timeframes are BULLISH\n"
-            f"- Give SHORT if {min_timeframes}+ timeframes are BEARISH\n"
-            f"- Give NEUTRAL otherwise\n"
-            f"STRATEGY SCORE CALCULATION (IMPORTANT - score ALL strategies 0.3-1.0):\n"
-            f"- RSI Strategy: 0.3 if neutral (45-55), 0.5-0.7 if moderate (<45 or >55), 0.8-1.0 if extreme (<30 or >70)\n"
-            f"- MACD Strategy: 0.3 if histogram~0, 0.5-0.7 if moderate, 0.8-1.0 if strong divergence\n"
-            f"- Bollinger Strategy: 0.3 if middle band, 0.5-0.7 if near bands, 0.8-1.0 if touching/outside bands\n"
-            f"- Stochastic Strategy: 0.3 if neutral (30-70), 0.5-0.7 if moderate, 0.8-1.0 if overbought/oversold\n"
-            f"- Volume Strategy: 0.3 if ratio<1.0, 0.5-0.7 if 1.0-1.5x, 0.8-1.0 if >1.5x\n"
+            f"- LONG: bullish_weighted_score >= 60% AND 4H NOT BEARISH\n"
+            f"- SHORT: bearish_weighted_score >= 60% AND 4H NOT BULLISH\n"
+            f"- NEUTRAL: otherwise or counter-trend situation\n"
+            f"STRATEGY SCORE CALCULATION (score ALL strategies 0.3-1.0):\n"
+            f"- RSI: 0.3 neutral, 0.5-0.7 moderate, 0.8-1.0 extreme\n"
+            f"- MACD: 0.3 weak, 0.5-0.7 moderate, 0.8-1.0 strong\n"
+            f"- Bollinger: 0.3 middle, 0.5-0.7 near bands, 0.8-1.0 extreme\n"
+            f"- Stochastic: 0.3 neutral, 0.5-0.7 moderate, 0.8-1.0 overbought/oversold\n"
+            f"- Volume: 0.3 low, 0.5-0.7 moderate, 0.8-1.0 high\n"
             "Respond ONLY in JSON:\n"
             '{"signal":"Long|Short|Neutral","confidence":0-1,"reasoning":"brief",'
             '"strategy_scores":{"RSI Strategy":0.3-1,"MACD Strategy":0.3-1,"Volume Strategy":0.3-1,'
@@ -1843,7 +2031,7 @@ class GPTTradingAnalyzer:
             '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
             '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
             '"take_profit_suggestion":null}}\n'
-            f"Confidence: {confidence_base} base + {confidence_per_tf} per agreeing timeframe."
+            f"Confidence: {confidence_base} base + (weighted_score/100)*0.35. Max 0.85."
         )
 
     def _prepare_market_context(
@@ -2929,6 +3117,132 @@ async def clear_storage(request: Request):
         }
     except Exception as e:
         return {"error": f"Failed to clear storage: {e}"}
+
+
+# === CONFIG SUGGESTIONS ENDPOINTS ===
+
+
+@app.post("/ai/config-analysis/trigger")
+@limiter.limit("10/minute")  # Rate limit: 10 requests per minute (expensive GPT-4 call)
+async def trigger_config_analysis(request: Request):
+    """
+    Trigger GPT-4 config analysis DIRECTLY (bypass Celery/Redis).
+
+    This endpoint runs GPT-4 to analyze current trading config and suggest improvements.
+    Use this when:
+    - Redis/Celery is unavailable
+    - You want to manually trigger config analysis
+    - Testing config optimization
+
+    Returns:
+        Config improvement suggestions from GPT-4
+    """
+    try:
+        from tasks.ai_improvement import _run_config_analysis_direct
+
+        logger.info("🧠 Manually triggering config analysis...")
+        result = _run_config_analysis_direct(analysis_result=None)
+
+        if result.get("status") == "success":
+            return {
+                "success": True,
+                "message": "Config analysis completed successfully",
+                "suggestions": result.get("suggestions"),
+                "trade_stats": result.get("trade_stats"),
+                "timestamp": result.get("timestamp"),
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Config analysis failed: {result.get('reason') or result.get('error')}",
+                "status": result.get("status"),
+            }
+
+    except Exception as e:
+        logger.error(f"Failed to trigger config analysis: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/ai/config-suggestions")
+@limiter.limit("60/minute")  # Rate limit: 60 requests per minute
+async def get_config_suggestions(
+    request: Request,
+    days: int = 30,
+    limit: int = 20
+):
+    """
+    Get config improvement suggestions history.
+
+    This endpoint returns past GPT-4 config analysis results stored in MongoDB.
+
+    Args:
+        days: Number of days to look back (default: 30)
+        limit: Maximum number of records (default: 20)
+
+    Returns:
+        List of config suggestions with timestamps
+    """
+    try:
+        from utils.data_storage import storage
+
+        suggestions = storage.get_config_suggestions_history(days=days, limit=limit)
+
+        # Convert ObjectId to string for JSON serialization
+        formatted = []
+        for s in suggestions:
+            s["_id"] = str(s.get("_id", ""))
+            formatted.append(s)
+
+        return {
+            "success": True,
+            "count": len(formatted),
+            "suggestions": formatted,
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get config suggestions: {e}")
+        return {"success": False, "error": str(e), "suggestions": []}
+
+
+@app.get("/ai/gpt4-analysis-history")
+@limiter.limit("60/minute")  # Rate limit: 60 requests per minute
+async def get_gpt4_analysis_history(
+    request: Request,
+    days: int = 30,
+    limit: int = 20
+):
+    """
+    Get GPT-4 self-analysis history.
+
+    This endpoint returns past GPT-4 self-analysis results (retrain recommendations).
+
+    Args:
+        days: Number of days to look back (default: 30)
+        limit: Maximum number of records (default: 20)
+
+    Returns:
+        List of GPT-4 analysis results with timestamps
+    """
+    try:
+        from utils.data_storage import storage
+
+        analyses = storage.get_gpt4_analysis_history(days=days, limit=limit)
+
+        # Convert ObjectId to string for JSON serialization
+        formatted = []
+        for a in analyses:
+            a["_id"] = str(a.get("_id", ""))
+            formatted.append(a)
+
+        return {
+            "success": True,
+            "count": len(formatted),
+            "analyses": formatted,
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get GPT-4 analysis history: {e}")
+        return {"success": False, "error": str(e), "analyses": []}
 
 
 # === PROJECT CHATBOT ENDPOINTS ===

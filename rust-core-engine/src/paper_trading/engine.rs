@@ -2515,6 +2515,12 @@ impl PaperTradingEngine {
         self.settings.read().await.clone()
     }
 
+    /// Get reference to storage for direct database access
+    /// @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
+    pub fn storage(&self) -> &Storage {
+        &self.storage
+    }
+
     /// Add a new symbol to paper trading settings
     /// This is called when user adds a new symbol to track via market data API
     pub async fn add_symbol_to_settings(&self, symbol: String) -> Result<()> {

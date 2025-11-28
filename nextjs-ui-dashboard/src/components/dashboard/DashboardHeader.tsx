@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { MobileNav } from "./MobileNav";
-import { WifiOff, LayoutDashboard, TrendingUp, BookOpen, Settings as SettingsIcon, LogOut, User, Wifi } from "lucide-react";
+import { WifiOff, LayoutDashboard, TrendingUp, BookOpen, Settings as SettingsIcon, LogOut, User, Wifi, Brain } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import {
   Tooltip,
@@ -67,6 +67,16 @@ export function DashboardHeader() {
           >
             <TrendingUp className="h-4 w-4" />
             Trading Paper
+          </Button>
+        </Link>
+        <Link to="/trade-analyses">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
+          >
+            <Brain className="h-4 w-4" />
+            AI Analyses
           </Button>
         </Link>
         <Link to="/settings">

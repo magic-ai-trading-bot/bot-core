@@ -156,10 +156,11 @@ app.conf.beat_schedule = {
         "task": "tasks.monitoring.daily_performance_analysis",
         "schedule": crontab(hour=1, minute=0),  # 1:00 AM daily
     },
-    # GPT-4 self-analysis for adaptive retraining (3 AM UTC)
+    # GPT-4 self-analysis for adaptive retraining (every hour)
     "gpt4-self-analysis": {
         "task": "tasks.ai_improvement.gpt4_self_analysis",
-        "schedule": crontab(hour=3, minute=0),  # 3:00 AM daily
+        "schedule": crontab(minute=0),  # Every hour at minute 0
+        "kwargs": {"force_analysis": True},  # Always run analysis
     },
 }
 

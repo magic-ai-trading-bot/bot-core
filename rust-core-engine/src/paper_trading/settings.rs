@@ -526,11 +526,11 @@ impl Default for RiskSettings {
             trailing_stop_enabled: true,   // NEW: Enable trailing stops
             trailing_stop_pct: 3.0,        // NEW: Trail 3% below high/above low
             trailing_activation_pct: 5.0,  // NEW: Start after 5% profit
-            enable_signal_reversal: false, // NEW: Disabled by default (manual control)
-            ai_auto_enable_reversal: true, // NEW: Let AI decide automatically ✨
-            reversal_min_confidence: 0.75, // NEW: 75% minimum confidence
+            enable_signal_reversal: true,  // ENABLED: Auto-close positions on reversal signals
+            ai_auto_enable_reversal: true, // Let AI decide automatically ✨
+            reversal_min_confidence: 0.65, // LOWERED: 65% minimum confidence (was 75%)
             reversal_max_pnl_pct: 10.0,    // NEW: 10% max profit before using trailing stop
-            reversal_allowed_regimes: vec!["trending".to_string()], // NEW: Only in trending markets
+            reversal_allowed_regimes: vec!["trending".to_string(), "ranging".to_string(), "volatile".to_string()], // Allow reversal in ALL market conditions
         }
     }
 }

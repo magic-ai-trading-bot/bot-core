@@ -11,19 +11,18 @@ echo "🌱 Checking if MongoDB seed data is needed..."
 echo "⏳ Waiting for MongoDB to be ready..."
 sleep 5
 
-# Check if users collection already has data in BOTH databases
-# Rust uses 'trading_bot', Python uses 'bot_core'
-RUST_USER_COUNT=$(docker exec mongodb mongosh -u admin -p secure_mongo_password_change_me --authenticationDatabase admin --quiet --eval "db.getSiblingDB('trading_bot').users.countDocuments()" 2>/dev/null || echo "0")
-PYTHON_USER_COUNT=$(docker exec mongodb mongosh -u admin -p secure_mongo_password_change_me --authenticationDatabase admin --quiet --eval "db.getSiblingDB('bot_core').ai_analysis_results.countDocuments()" 2>/dev/null || echo "0")
+# Check if users collection already has data in bot_core database
+# Both Rust and Python now use 'bot_core' database
+USER_COUNT=$(docker exec mongodb mongosh -u admin -p secure_mongo_password_change_me --authenticationDatabase admin --quiet --eval "db.getSiblingDB('bot_core').users.countDocuments()" 2>/dev/null || echo "0")
 
-if [ "$RUST_USER_COUNT" -gt 0 ] && [ "$PYTHON_USER_COUNT" -gt 0 ]; then
-    echo "✅ Seed data already exists (Rust: $RUST_USER_COUNT users, Python: $PYTHON_USER_COUNT AI results). Skipping seed."
+if [ "$USER_COUNT" -gt 0 ]; then
+    echo "✅ Seed data already exists ($USER_COUNT users in bot_core). Skipping seed."
     exit 0
 fi
 
-echo "📝 No seed data found. Creating sample data for both Rust and Python services..."
+echo "📝 No seed data found. Creating sample data in bot_core database..."
 
-# Run seed script (no need to specify database, script handles both)
+# Run seed script (seeds all data into bot_core database)
 docker exec -i mongodb mongosh -u admin -p secure_mongo_password_change_me --authenticationDatabase admin < scripts/seed-mongodb.js
 
 echo "✅ MongoDB seed data created successfully!"

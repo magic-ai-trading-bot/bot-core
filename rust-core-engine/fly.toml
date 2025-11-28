@@ -9,7 +9,7 @@ primary_region = "sin"  # Singapore region for low latency
   PORT = "8080"
   RUST_LOG = "info"
   PYTHON_AI_SERVICE_URL = "http://trading-bot-ai-service.internal:8000"
-  DATABASE_URL = "mongodb://trading-bot-database.internal:27017/trading_bot"
+  DATABASE_URL = "mongodb://trading-bot-database.internal:27017/bot_core"
 
 [http_service]
   internal_port = 8080

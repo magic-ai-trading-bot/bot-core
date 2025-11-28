@@ -35,7 +35,7 @@ impl Storage {
                     config
                         .database_name
                         .as_ref()
-                        .unwrap_or(&"trading_bot".to_string()),
+                        .unwrap_or(&"bot_core".to_string()),
                 );
 
                 // Test connection by listing collections
@@ -831,6 +831,120 @@ impl Storage {
         self.save_user_symbols(&symbols).await?;
         Ok(())
     }
+
+    // =========================================================================
+    // TRADE ANALYSES (GPT-4 Analysis from Python AI Service)
+    // =========================================================================
+
+    /// Get trade analyses collection
+    pub fn trade_analyses(&self) -> Result<Collection<TradeAnalysisRecord>> {
+        self.db
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("trade_analyses"))
+    }
+
+    /// Get config suggestions collection
+    pub fn config_suggestions(&self) -> Result<Collection<ConfigSuggestionsRecord>> {
+        self.db
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("config_suggestions"))
+    }
+
+    /// Get all trade analyses from MongoDB
+    /// @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
+    pub async fn get_trade_analyses(
+        &self,
+        only_losing: bool,
+        limit: Option<i64>,
+    ) -> Result<Vec<TradeAnalysisRecord>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let filter = if only_losing {
+                    doc! { "is_winning": false }
+                } else {
+                    doc! {}
+                };
+
+                let cursor = self
+                    .trade_analyses()?
+                    .find(filter)
+                    .sort(doc! { "created_at": -1 })
+                    .limit(limit.unwrap_or(100))
+                    .await?;
+
+                let analyses: Vec<TradeAnalysisRecord> = cursor.try_collect().await?;
+                info!("📖 Loaded {} trade analyses from database", analyses.len());
+                return Ok(analyses);
+            }
+        }
+
+        Ok(Vec::new())
+    }
+
+    /// Get trade analysis by trade ID
+    pub async fn get_trade_analysis_by_id(
+        &self,
+        trade_id: &str,
+    ) -> Result<Option<TradeAnalysisRecord>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let filter = doc! { "trade_id": trade_id };
+                let analysis = self.trade_analyses()?.find_one(filter).await?;
+                return Ok(analysis);
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Get config suggestions history from MongoDB
+    /// @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
+    pub async fn get_config_suggestions(
+        &self,
+        limit: Option<i64>,
+    ) -> Result<Vec<ConfigSuggestionsRecord>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let cursor = self
+                    .config_suggestions()?
+                    .find(doc! {})
+                    .sort(doc! { "created_at": -1 })
+                    .limit(limit.unwrap_or(50))
+                    .await?;
+
+                let suggestions: Vec<ConfigSuggestionsRecord> = cursor.try_collect().await?;
+                info!(
+                    "📖 Loaded {} config suggestions from database",
+                    suggestions.len()
+                );
+                return Ok(suggestions);
+            }
+        }
+
+        Ok(Vec::new())
+    }
+
+    /// Get latest config suggestion
+    pub async fn get_latest_config_suggestion(&self) -> Result<Option<ConfigSuggestionsRecord>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let suggestion = self
+                    .config_suggestions()?
+                    .find_one(doc! {})
+                    .sort(doc! { "created_at": -1 })
+                    .await?;
+                return Ok(suggestion);
+            }
+        }
+
+        Ok(None)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -975,6 +1089,46 @@ pub struct PaperTradingSettingsRecord {
     pub updated_at: DateTime<Utc>,
 }
 
+/// GPT-4 Trade Analysis record (created by Python AI service)
+/// @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TradeAnalysisRecord {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    pub trade_id: String,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub created_at: DateTime<Utc>,
+    pub is_winning: bool,
+    pub pnl_usdt: f64,
+    pub pnl_percentage: f64,
+    pub symbol: Option<String>,
+    pub side: Option<String>,
+    pub entry_price: Option<f64>,
+    pub exit_price: Option<f64>,
+    pub close_reason: Option<String>,
+    /// GPT-4 analysis result (stored as BSON Document from Python)
+    pub analysis: mongodb::bson::Document,
+    /// Original trade data (stored as BSON Document from Python)
+    pub trade_data: Option<mongodb::bson::Document>,
+}
+
+/// Config suggestions record (created by Python AI service)
+/// @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigSuggestionsRecord {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub created_at: DateTime<Utc>,
+    pub status: String,
+    pub timestamp: Option<String>,
+    pub current_config: Option<mongodb::bson::Document>,
+    pub trade_stats: Option<mongodb::bson::Document>,
+    pub suggestions: mongodb::bson::Document,
+    pub applied_changes: Vec<String>,
+    pub task_id: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1051,7 +1205,7 @@ mod tests {
             enable_logging: false,
         };
 
-        // Should use default database name "trading_bot"
+        // Should use default database name "bot_core"
         // Will fail to connect but that's expected in unit test
         let _result = Storage::new(&config).await;
 
@@ -1617,7 +1771,7 @@ mod tests {
     async fn test_storage_new_with_default_database_name() {
         let config = crate::config::DatabaseConfig {
             url: "mongodb://localhost:27017".to_string(),
-            database_name: None, // Should use default "trading_bot"
+            database_name: None, // Should use default "bot_core"
             max_connections: 10,
             enable_logging: false,
         };

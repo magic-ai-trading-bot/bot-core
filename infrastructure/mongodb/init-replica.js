@@ -18,8 +18,8 @@ db.createUser({
   user: 'bot-app',
   pwd: process.env.MONGO_APP_PASSWORD || 'app-password',
   roles: [
-    { role: 'readWrite', db: 'trading_bot' },
-    { role: 'dbAdmin', db: 'trading_bot' }
+    { role: 'readWrite', db: 'bot_core' },
+    { role: 'dbAdmin', db: 'bot_core' }
   ]
 });
 
@@ -28,12 +28,12 @@ db.createUser({
   user: 'bot-analytics',
   pwd: process.env.MONGO_ANALYTICS_PASSWORD || 'analytics-password',
   roles: [
-    { role: 'read', db: 'trading_bot' }
+    { role: 'read', db: 'bot_core' }
   ]
 });
 
 // Create database and collections
-db = db.getSiblingDB('trading_bot');
+db = db.getSiblingDB('bot_core');
 
 // Create collections with validation
 db.createCollection('trades', {
