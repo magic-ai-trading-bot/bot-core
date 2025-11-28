@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, LayoutDashboard, TrendingUp, Settings, LogOut, BookOpen } from "lucide-react";
+import { Menu, LayoutDashboard, TrendingUp, Settings, LogOut, BookOpen, Brain } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
@@ -28,6 +28,11 @@ export function MobileNav() {
       label: "Trading Paper",
       href: "/trading-paper",
       icon: TrendingUp,
+    },
+    {
+      label: "AI Analyses",
+      href: "/trade-analyses",
+      icon: Brain,
     },
     {
       label: "Settings",

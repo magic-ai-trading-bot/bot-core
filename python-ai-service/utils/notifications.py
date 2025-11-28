@@ -497,3 +497,45 @@ def send_retrain_complete(results: Dict[str, Any]) -> Dict[str, bool]:
         message=f"Adaptive retraining completed: {successful}/{total} models successful",
         data=results.get("models", {}),
     )
+
+
+def send_config_suggestions(result: Dict[str, Any]) -> Dict[str, bool]:
+    """Send GPT-4 config improvement suggestions notification"""
+    suggestions = result.get("suggestions", {})
+    applied = result.get("applied_changes", [])
+    trade_stats = result.get("trade_stats", {})
+
+    level = (
+        NotificationLevel.WARNING
+        if trade_stats.get("win_rate", 100) < 50
+        else NotificationLevel.INFO
+    )
+
+    indicator_count = len(suggestions.get("indicator_suggestions", {}))
+    signal_count = len(suggestions.get("signal_suggestions", {}))
+
+    message = f"""GPT-4 Config Analysis Complete
+
+Root Cause: {suggestions.get('analysis', {}).get('root_cause', 'N/A')}
+Confidence: {suggestions.get('confidence', 0):.0%}
+
+Suggestions:
+- {indicator_count} indicator parameter changes
+- {signal_count} signal parameter changes
+
+Summary: {suggestions.get('summary', 'N/A')[:200]}..."""
+
+    if applied:
+        message += f"\n\n✅ Auto-applied {len(applied)} changes:\n" + "\n".join(f"  • {c}" for c in applied)
+
+    return send_notification(
+        title="GPT-4 Config Improvement Suggestions",
+        message=message,
+        level=level,
+        data={
+            "win_rate": f"{trade_stats.get('win_rate', 0):.1f}%",
+            "total_pnl": f"${trade_stats.get('total_pnl', 0):.2f}",
+            "auto_apply_safe": suggestions.get("auto_apply_safe", False),
+            "applied_changes": len(applied),
+        },
+    )

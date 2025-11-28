@@ -14,14 +14,12 @@ from datetime import datetime, timedelta
 import requests
 import os
 import json
-import openai
+from openai import OpenAI
 
 logger = get_logger("AIImprovementTasks")
 
-# OpenAI configuration
+# OpenAI configuration - v1.0+ uses client-based API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if OPENAI_API_KEY:
-    openai.api_key = OPENAI_API_KEY
 
 # Service URLs
 RUST_API_URL = os.getenv("RUST_API_URL", "http://localhost:8080")
@@ -109,19 +107,20 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                 "task_id": self.request.id if hasattr(self, 'request') else None,
             }
 
-        # Set OpenAI API key for this request
-        openai.api_key = api_key
+        # Create OpenAI client (v1.0+ syntax)
+        client = OpenAI(api_key=api_key)
 
         # STEP 1: Fetch last 7 days performance data
         logger.info("📊 Fetching 7-day performance data...")
 
         response = requests.get(
-            f"{RUST_API_URL}/api/paper-trading/trades",
-            params={"days": 7, "limit": 1000},
+            f"{RUST_API_URL}/api/paper-trading/trades/closed",
             timeout=10,
         )
         response.raise_for_status()
-        trades = response.json()
+        trades_response = response.json()
+        # Extract trades from response data
+        trades = trades_response.get("data", []) if trades_response.get("success") else []
 
         # Calculate daily metrics
         daily_metrics = calculate_daily_metrics(trades)
@@ -186,7 +185,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
         logger.info("🤖 Calling GPT-4 for deep analysis...")
 
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[
                     {
@@ -203,6 +202,14 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
             )
 
             gpt4_response = response.choices[0].message.content
+
+            # Strip markdown code blocks if present (GPT-4 often wraps JSON in ```json ... ```)
+            if gpt4_response.startswith("```"):
+                # Remove opening ```json or ```
+                lines = gpt4_response.split("\n")
+                # Remove first line (```json) and last line (```)
+                lines = [l for l in lines if not l.strip().startswith("```")]
+                gpt4_response = "\n".join(lines)
 
             # Parse JSON response
             analysis_result = json.loads(gpt4_response)
@@ -228,37 +235,55 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                 and urgency in ["medium", "high"]
             )
 
+            # STEP 8: Store GPT-4 analysis FIRST (before Celery queue to prevent data loss)
+            storage.store_gpt4_analysis(analysis_result, self.request.id)
+            logger.info(f"✅ GPT-4 analysis stored in MongoDB")
+
+            # STEP 9: Send GPT-4 analysis notification
+            notifications.send_gpt4_analysis(analysis_result)
+
+            trigger_retrain = False
             if should_retrain:
                 logger.warning(
                     f"🚨 GPT-4 recommends RETRAIN with {confidence:.0%} confidence (urgency: {urgency})"
                 )
-                logger.info(f"🚀 Triggering adaptive retraining task...")
+                logger.info(f"🚀 Triggering config improvement analysis...")
 
-                # Queue adaptive retraining task
-                from tasks.ai_improvement import adaptive_retrain
+                # Try to queue via Celery first, fallback to direct call if Redis fails
+                try:
+                    from tasks.ai_improvement import adaptive_retrain
 
-                retrain_task = adaptive_retrain.delay(
-                    model_types=["lstm", "gru", "transformer"],
-                    analysis_result=analysis_result,
-                )
+                    retrain_task = adaptive_retrain.delay(
+                        model_types=["lstm", "gru", "transformer"],
+                        analysis_result=analysis_result,
+                    )
 
-                logger.info(f"✅ Adaptive retraining task queued: {retrain_task.id}")
-
-                analysis_result["retrain_task_id"] = retrain_task.id
-                analysis_result["retrain_triggered"] = True
-                trigger_retrain = True
+                    logger.info(f"✅ Config improvement task queued via Celery: {retrain_task.id}")
+                    analysis_result["retrain_task_id"] = retrain_task.id
+                    analysis_result["retrain_triggered"] = True
+                    trigger_retrain = True
+                except Exception as celery_error:
+                    # If Celery/Redis fails, run directly (synchronously)
+                    logger.warning(f"⚠️ Celery queue failed ({celery_error}), running config analysis directly...")
+                    try:
+                        from tasks.ai_improvement import _run_config_analysis_direct
+                        direct_result = _run_config_analysis_direct(analysis_result)
+                        if direct_result.get("status") == "success":
+                            logger.info(f"✅ Config improvement analysis completed directly (bypassed Celery)")
+                            analysis_result["retrain_triggered"] = True
+                            analysis_result["retrain_mode"] = "direct"
+                            trigger_retrain = True
+                        else:
+                            logger.warning(f"⚠️ Direct config analysis returned: {direct_result.get('status')}")
+                            analysis_result["retrain_triggered"] = False
+                    except Exception as direct_error:
+                        logger.error(f"❌ Direct config analysis also failed: {direct_error}")
+                        analysis_result["retrain_triggered"] = False
             else:
                 logger.info(
                     f"✅ No immediate retraining needed (recommendation: {recommendation}, confidence: {confidence:.0%})"
                 )
                 analysis_result["retrain_triggered"] = False
-                trigger_retrain = False
-
-            # STEP 8: Send GPT-4 analysis notification
-            notifications.send_gpt4_analysis(analysis_result)
-
-            # STEP 9: Store GPT-4 analysis in MongoDB for audit trail
-            storage.store_gpt4_analysis(analysis_result, self.request.id)
 
             return {
                 "status": "success",
@@ -281,132 +306,338 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
 
 
 # =============================================================================
-# TASK 2: ADAPTIVE MODEL RETRAINING (Triggered by GPT-4 recommendation)
+# TASK 2: GPT-4 CONFIG IMPROVEMENT SUGGESTIONS (Triggered by GPT-4 analysis)
 # =============================================================================
 
 
-# @spec:FR-ASYNC-009 - Adaptive Model Retraining
+# @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
 # @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-009
 # @test:TC-ASYNC-061, TC-ASYNC-062, TC-ASYNC-063, TC-ASYNC-064, TC-ASYNC-065
 @app.task(
     bind=True,
     base=AIImprovementTask,
-    name="tasks.ai_improvement.adaptive_retrain",
-    time_limit=7200,  # 2 hours max
+    name="tasks.ai_improvement.adaptive_retrain",  # Keep name for backward compatibility
+    time_limit=300,  # 5 minutes max
 )
 def adaptive_retrain(
     self,
-    model_types: List[str],
-    analysis_result: Dict[str, Any],
+    model_types: List[str] = None,  # Deprecated, kept for backward compatibility
+    analysis_result: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
     """
-    Adaptively retrain ML models based on GPT-4 recommendation
-    Triggered by: gpt4_self_analysis task
+    Use GPT-4 to analyze current config and suggest improvements based on trade performance.
+    This task does NOT train ML models - it uses GPT-4 to optimize trading config.
 
     Process:
-    1. Fetch last 60 days of market data
-    2. Train models (LSTM, GRU, Transformer)
-    3. Validate on holdout set
-    4. Compare with current model accuracy
-    5. Deploy if accuracy improves
-    6. Send notification with before/after metrics
+    1. Fetch current indicator settings from Rust API
+    2. Fetch current signal settings from Rust API
+    3. Fetch recent closed trades (last 7 days)
+    4. Send all data to GPT-4 for deep analysis
+    5. GPT-4 suggests specific config changes
+    6. (Optional) Auto-apply changes via PUT to Rust API
+    7. Store suggestions in MongoDB for review
 
     Args:
-        model_types: List of models to retrain
-        analysis_result: GPT-4 analysis that triggered this
+        model_types: Deprecated, ignored
+        analysis_result: GPT-4 analysis that triggered this (contains reasoning)
 
     Returns:
-        Retraining results with before/after comparison
+        Config improvement suggestions from GPT-4
     """
-    logger.info(f"🚀 Starting adaptive retraining for {len(model_types)} models...")
-    logger.info(
-        f"📋 Triggered by GPT-4 recommendation: {analysis_result.get('reasoning', 'N/A')[:100]}..."
-    )
+    logger.info("🧠 Starting GPT-4 config improvement analysis...")
+    if analysis_result:
+        logger.info(
+            f"📋 Triggered by: {analysis_result.get('reasoning', 'N/A')[:100]}..."
+        )
 
     try:
-        results = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "trigger": "gpt4_recommendation",
-            "analysis_reasoning": analysis_result.get("reasoning"),
-            "models": {},
-        }
+        # Check OpenAI API key
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("⚠️ OPENAI_API_KEY not configured - skipping")
+            return {
+                "status": "skipped",
+                "reason": "OPENAI_API_KEY not configured",
+            }
 
-        for model_type in model_types:
-            logger.info(f"🧠 Retraining {model_type.upper()} model...")
+        # Create OpenAI client
+        client = OpenAI(api_key=api_key)
 
-            # Update Celery task state only if we have a valid task context
-            if hasattr(self, 'request') and self.request.id:
-                self.update_state(
-                    state="PROGRESS",
-                    meta={
-                        "current_model": model_type,
-                        "status": f"Retraining {model_type} model...",
-                    },
-                )
+        # STEP 1: Fetch current indicator settings
+        logger.info("📊 Fetching current indicator settings...")
+        try:
+            response = requests.get(
+                f"{RUST_API_URL}/api/paper-trading/indicator-settings",
+                timeout=10,
+            )
+            response.raise_for_status()
+            indicator_settings = response.json().get("data", {})
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch indicator settings: {e}")
+            indicator_settings = {}
 
-            try:
-                # Call Python AI service to retrain model
-                response = requests.post(
-                    f"{PYTHON_API_URL}/ai/train",
-                    json={
-                        "model_type": model_type,
-                        "days_of_data": 60,  # Last 60 days
-                        "retrain": True,
-                    },
-                    timeout=3600,  # 1 hour timeout per model
-                )
-                response.raise_for_status()
-                retrain_result = response.json()
+        # STEP 2: Fetch current signal settings
+        logger.info("📊 Fetching current signal settings...")
+        try:
+            response = requests.get(
+                f"{RUST_API_URL}/api/paper-trading/signal-settings",
+                timeout=10,
+            )
+            response.raise_for_status()
+            signal_settings = response.json().get("data", {})
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch signal settings: {e}")
+            signal_settings = {}
 
-                results["models"][model_type] = {
-                    "status": "success",
-                    "old_accuracy": retrain_result.get("old_accuracy", 0),
-                    "new_accuracy": retrain_result.get("new_accuracy", 0),
-                    "improvement": retrain_result.get("improvement", 0),
-                    "deployed": retrain_result.get("deployed", False),
-                }
+        # STEP 3: Fetch recent closed trades
+        logger.info("📈 Fetching recent closed trades...")
+        try:
+            response = requests.get(
+                f"{RUST_API_URL}/api/paper-trading/trades/closed",
+                timeout=10,
+            )
+            response.raise_for_status()
+            trades_response = response.json()
+            trades = trades_response.get("data", []) if trades_response.get("success") else []
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch trades: {e}")
+            trades = []
 
-                logger.info(
-                    f"✅ {model_type.upper()}: {retrain_result.get('new_accuracy', 0):.2%} accuracy"
-                )
+        # Calculate trade statistics
+        total_trades = len(trades)
+        winning_trades = sum(1 for t in trades if (t.get("pnl_percentage") or 0) > 0)
+        losing_trades = sum(1 for t in trades if (t.get("pnl_percentage") or 0) < 0)
+        win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
+        total_pnl = sum(t.get("pnl_usdt") or 0 for t in trades)
+        avg_pnl_percent = sum(t.get("pnl_percentage") or 0 for t in trades) / total_trades if total_trades > 0 else 0
 
-            except Exception as e:
-                logger.error(f"❌ Failed to retrain {model_type}: {e}")
-                results["models"][model_type] = {
-                    "status": "failed",
-                    "error": str(e),
-                }
+        # STEP 4: Build GPT-4 prompt
+        logger.info("🤖 Building GPT-4 config analysis prompt...")
 
-        # Summary
-        successful_retrains = sum(
-            1 for m in results["models"].values() if m.get("status") == "success"
+        # Determine risk level based on performance
+        is_losing = total_pnl < 0 or win_rate < 50
+        data_insufficient = total_trades < 5
+
+        # Risk guidance for GPT-4
+        if data_insufficient:
+            risk_guidance = f"""
+## ⚠️ CRITICAL: INSUFFICIENT DATA WARNING
+You only have {total_trades} trades to analyze. This is NOT enough data to make confident suggestions.
+- DO NOT suggest aggressive changes
+- Set confidence BELOW 0.3
+- Set auto_apply_safe to FALSE
+- Recommend waiting for more data (at least 10-20 trades)
+"""
+        elif is_losing:
+            risk_guidance = f"""
+## ⚠️ CRITICAL: BOT IS LOSING MONEY
+Current PnL: ${total_pnl:.2f} (NEGATIVE) | Win Rate: {win_rate:.1f}% (BELOW 50%)
+
+**RISK MANAGEMENT RULES (MUST FOLLOW):**
+1. When losing money, NEVER suggest making the bot MORE aggressive
+2. DO NOT lower thresholds (lower threshold = easier to trigger = more trades = more risk)
+3. DO NOT decrease indicator periods (faster signals = more noise = more false positives)
+4. DO NOT decrease min_required_indicators (fewer confirmations = higher risk)
+
+**INSTEAD, consider:**
+1. INCREASE thresholds (be more selective with trades)
+2. INCREASE indicator periods (smoother signals, less noise)
+3. INCREASE min_required_indicators (more confirmations before trading)
+4. Wait for better market conditions
+
+**Your priority is CAPITAL PRESERVATION, not maximizing trades.**
+"""
+        else:
+            risk_guidance = """
+## ✅ BOT IS PROFITABLE
+You can suggest optimizations to improve performance, but still be cautious.
+- Prefer small, incremental changes over drastic ones
+- Changes should have clear reasoning backed by the data
+"""
+
+        prompt = f"""
+You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is CAPITAL PRESERVATION.
+
+{risk_guidance}
+
+## CURRENT INDICATOR SETTINGS:
+{json.dumps(indicator_settings, indent=2)}
+
+## CURRENT SIGNAL SETTINGS:
+{json.dumps(signal_settings, indent=2)}
+
+## TRADE PERFORMANCE (Last 7 days):
+- Total Trades: {total_trades}
+- Winning Trades: {winning_trades}
+- Losing Trades: {losing_trades}
+- Win Rate: {win_rate:.1f}%
+- Total PnL: ${total_pnl:.2f}
+- Avg PnL per Trade: {avg_pnl_percent:.2f}%
+
+## RECENT TRADES DETAILS:
+{json.dumps(trades[:10], indent=2, default=str)}
+
+## ANALYSIS CONTEXT:
+{analysis_result.get('reasoning', 'Performance needs improvement') if analysis_result else 'Routine optimization check'}
+
+## YOUR TASK:
+1. Analyze why trades are losing (if any)
+2. Identify which config parameters might be causing issues
+3. Suggest SPECIFIC parameter changes with exact values
+4. **If losing money: suggest MORE CONSERVATIVE settings (higher thresholds, longer periods)**
+5. **If insufficient data (<10 trades): DO NOT suggest changes, recommend waiting**
+
+## IMPORTANT RULES:
+- If total_trades < 5: Set confidence < 0.3, auto_apply_safe = false
+- If total_trades < 10: Set confidence < 0.5, auto_apply_safe = false
+- If losing money (PnL < 0): NEVER lower thresholds, NEVER decrease periods
+- If win_rate < 50%: Suggest STRICTER criteria (higher thresholds, more confirmations)
+
+## OUTPUT FORMAT (MUST BE VALID JSON):
+{{
+  "analysis": {{
+    "root_cause": "Brief explanation of why performance is poor",
+    "key_issues": ["issue1", "issue2", "issue3"],
+    "data_quality": "insufficient (<10 trades)" | "limited (10-50 trades)" | "good (50+ trades)"
+  }},
+  "indicator_suggestions": {{
+    "rsi_period": {{"current": X, "suggested": Y, "reason": "..."}},
+    "macd_fast": {{"current": X, "suggested": Y, "reason": "..."}},
+    ...only include parameters that need changing
+  }},
+  "signal_suggestions": {{
+    "trend_threshold_percent": {{"current": X, "suggested": Y, "reason": "..."}},
+    "min_required_indicators": {{"current": X, "suggested": Y, "reason": "..."}},
+    ...only include parameters that need changing
+  }},
+  "confidence": 0.0-1.0,
+  "auto_apply_safe": true/false,
+  "risk_assessment": "low" | "medium" | "high",
+  "summary": "One paragraph summary of all recommendations"
+}}
+"""
+
+        # STEP 5: Call GPT-4 for analysis
+        logger.info("🤖 Calling GPT-4 for config analysis...")
+
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a trading bot configuration optimizer. Analyze config and performance data, then suggest specific improvements. Always respond with valid JSON.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=0.3,
+            max_tokens=2000,
         )
-        deployed_models = sum(
-            1 for m in results["models"].values() if m.get("deployed", False)
-        )
 
-        logger.info(f"✅ Adaptive retraining complete:")
-        logger.info(f"  📊 Successful: {successful_retrains}/{len(model_types)} models")
-        logger.info(f"  🚀 Deployed: {deployed_models} improved models")
+        gpt4_response = response.choices[0].message.content
 
-        # Send completion notification
-        notifications.send_retrain_complete(results)
+        # Strip markdown code blocks if present
+        if gpt4_response.startswith("```"):
+            lines = gpt4_response.split("\n")
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            gpt4_response = "\n".join(lines)
 
-        # Store retrain results in MongoDB
-        storage.store_retrain_history(
-            retrain_data=results,
-            task_id=self.request.id if hasattr(self, 'request') else None,
-        )
+        # Parse JSON response
+        suggestions = json.loads(gpt4_response)
 
-        return {
+        logger.info("🤖 GPT-4 Config Analysis Complete:")
+        logger.info(f"  📋 Root Cause: {suggestions.get('analysis', {}).get('root_cause', 'N/A')}")
+        logger.info(f"  🎯 Confidence: {suggestions.get('confidence', 0):.0%}")
+        logger.info(f"  ✅ Auto-apply Safe: {suggestions.get('auto_apply_safe', False)}")
+        logger.info(f"  💡 Summary: {suggestions.get('summary', 'N/A')[:100]}...")
+
+        # STEP 6: (Optional) Auto-apply if safe and confidence is high
+        applied_changes = []
+        if suggestions.get("auto_apply_safe") and suggestions.get("confidence", 0) >= 0.8:
+            logger.info("🚀 Auto-applying safe config changes...")
+
+            # Apply indicator settings
+            if suggestions.get("indicator_suggestions"):
+                new_indicators = {}
+                for key, change in suggestions["indicator_suggestions"].items():
+                    if isinstance(change, dict) and "suggested" in change:
+                        new_indicators[key] = change["suggested"]
+                        applied_changes.append(f"indicator.{key}: {change.get('current')} → {change['suggested']}")
+
+                if new_indicators:
+                    try:
+                        response = requests.put(
+                            f"{RUST_API_URL}/api/paper-trading/indicator-settings",
+                            json=new_indicators,
+                            timeout=10,
+                        )
+                        response.raise_for_status()
+                        logger.info(f"✅ Applied indicator changes: {new_indicators}")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to apply indicator changes: {e}")
+
+            # Apply signal settings
+            if suggestions.get("signal_suggestions"):
+                new_signal = {}
+                for key, change in suggestions["signal_suggestions"].items():
+                    if isinstance(change, dict) and "suggested" in change:
+                        new_signal[key] = change["suggested"]
+                        applied_changes.append(f"signal.{key}: {change.get('current')} → {change['suggested']}")
+
+                if new_signal:
+                    try:
+                        response = requests.put(
+                            f"{RUST_API_URL}/api/paper-trading/signal-settings",
+                            json=new_signal,
+                            timeout=10,
+                        )
+                        response.raise_for_status()
+                        logger.info(f"✅ Applied signal changes: {new_signal}")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to apply signal changes: {e}")
+        else:
+            logger.info("⏸️ Changes NOT auto-applied (confidence < 80% or not marked safe)")
+
+        # STEP 7: Store suggestions in MongoDB
+        result = {
             "status": "success",
-            "retrain_results": [{"model": m, **results["models"][m]} for m in results["models"]],
-            "results": results,
+            "timestamp": datetime.utcnow().isoformat(),
+            "trigger_analysis": analysis_result,
+            "current_config": {
+                "indicators": indicator_settings,
+                "signal": signal_settings,
+            },
+            "trade_stats": {
+                "total_trades": total_trades,
+                "win_rate": win_rate,
+                "total_pnl": total_pnl,
+            },
+            "suggestions": suggestions,
+            "applied_changes": applied_changes,
             "task_id": self.request.id if hasattr(self, 'request') else None,
         }
 
+        storage.store_config_suggestions(result)
+
+        # Send notification
+        notifications.send_config_suggestions(result)
+
+        logger.info(f"✅ Config improvement analysis complete")
+        if applied_changes:
+            logger.info(f"  📝 Applied {len(applied_changes)} changes automatically")
+        else:
+            logger.info(f"  📝 {len(suggestions.get('indicator_suggestions', {}))} indicator suggestions")
+            logger.info(f"  📝 {len(suggestions.get('signal_suggestions', {}))} signal suggestions")
+
+        return result
+
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Failed to parse GPT-4 response: {e}")
+        raise
     except Exception as e:
-        logger.error(f"❌ Adaptive retraining failed: {e}")
+        logger.error(f"❌ Config improvement analysis failed: {e}")
         raise
 
 
@@ -479,6 +710,294 @@ def emergency_strategy_disable(
 
 
 # =============================================================================
+# TASK 4: ANALYZE INDIVIDUAL TRADES (GPT-4 per-trade analysis)
+# =============================================================================
+
+
+# @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-011
+# @test:TC-ASYNC-081, TC-ASYNC-082, TC-ASYNC-083
+@app.task(
+    bind=True,
+    base=AIImprovementTask,
+    name="tasks.ai_improvement.analyze_trade",
+)
+def analyze_trade(
+    self,
+    trade_data: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Use GPT-4 to analyze a single trade and provide detailed feedback.
+    Called automatically when a trade is closed (especially losing trades).
+
+    Args:
+        trade_data: Complete trade data including entry/exit details
+
+    Returns:
+        GPT-4 analysis of the trade
+    """
+    trade_id = trade_data.get("id") or trade_data.get("trade_id", "unknown")
+    logger.info(f"🔍 Analyzing trade {trade_id}...")
+
+    try:
+        # Check if already analyzed
+        existing = storage.get_trade_analysis(trade_id)
+        if existing:
+            logger.info(f"✅ Trade {trade_id} already analyzed, returning cached result")
+            return {
+                "status": "cached",
+                "trade_id": trade_id,
+                "analysis": existing.get("analysis"),
+            }
+
+        # Check OpenAI API key
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("⚠️ OPENAI_API_KEY not configured - skipping trade analysis")
+            return {
+                "status": "skipped",
+                "reason": "OPENAI_API_KEY not configured",
+                "trade_id": trade_id,
+            }
+
+        # Create OpenAI client
+        client = OpenAI(api_key=api_key)
+
+        # Determine if winning or losing
+        pnl = trade_data.get("pnl_usdt") or trade_data.get("profit_usdt", 0)
+        pnl_pct = trade_data.get("pnl_percentage") or trade_data.get("profit_percent", 0)
+        is_winning = pnl > 0
+
+        # Fetch current market conditions
+        symbol = trade_data.get("symbol", "BTCUSDT")
+        try:
+            response = requests.get(
+                f"https://api.binance.com/api/v3/ticker/24hr",
+                params={"symbol": symbol},
+                timeout=5,
+            )
+            market_data = response.json() if response.status_code == 200 else {}
+        except Exception:
+            market_data = {}
+
+        # Build analysis prompt
+        trade_type = "WINNING ✅" if is_winning else "LOSING ❌"
+
+        prompt = f"""
+You are a professional trading analyst. Analyze this {trade_type} trade and provide actionable insights.
+
+## TRADE DETAILS:
+- Trade ID: {trade_id}
+- Symbol: {trade_data.get("symbol")}
+- Side: {trade_data.get("side")} (Long/Short)
+- Entry Price: ${trade_data.get("entry_price", 0):.4f}
+- Exit Price: ${trade_data.get("exit_price", 0):.4f}
+- Quantity: {trade_data.get("quantity", 0)}
+- PnL: ${pnl:.2f} ({pnl_pct:.2f}%)
+- Duration: {trade_data.get("duration_seconds", 0)} seconds
+- Close Reason: {trade_data.get("close_reason", "unknown")}
+- Open Time: {trade_data.get("open_time", "N/A")}
+- Close Time: {trade_data.get("close_time", "N/A")}
+
+## ENTRY SIGNALS (Why bot entered this trade):
+{json.dumps(trade_data.get("entry_signals", {}), indent=2, default=str)}
+
+## EXIT SIGNALS (Why bot exited this trade):
+{json.dumps(trade_data.get("exit_signals", {}), indent=2, default=str)}
+
+## CURRENT MARKET CONDITIONS:
+- 24h Price Change: {market_data.get("priceChangePercent", "N/A")}%
+- 24h Volume: {market_data.get("volume", "N/A")}
+- Current Price: ${market_data.get("lastPrice", "N/A")}
+
+## YOUR ANALYSIS TASKS:
+1. **Entry Analysis**: Was the entry timing good? Were signals valid?
+2. **Exit Analysis**: Was the exit optimal? Too early? Too late?
+3. **What Went {"Right" if is_winning else "Wrong"}**: Key factors that led to this {"profit" if is_winning else "loss"}
+4. **Lessons Learned**: What can be improved for future trades?
+5. **Actionable Recommendations**: Specific parameter changes if needed
+
+## OUTPUT FORMAT (MUST BE VALID JSON):
+{{
+  "trade_verdict": "{trade_type}",
+  "entry_analysis": {{
+    "quality": "good" | "acceptable" | "poor",
+    "reasoning": "Why entry was good/bad",
+    "signals_valid": true/false
+  }},
+  "exit_analysis": {{
+    "quality": "optimal" | "acceptable" | "suboptimal",
+    "reasoning": "Why exit was good/bad",
+    "better_exit_point": "Description of better exit if applicable"
+  }},
+  "key_factors": ["factor1", "factor2", "factor3"],
+  "lessons_learned": ["lesson1", "lesson2"],
+  "recommendations": {{
+    "config_changes": {{"param": "suggested_value", ...}} or null,
+    "strategy_improvements": ["improvement1", "improvement2"],
+    "risk_management": "Any risk management advice"
+  }},
+  "confidence": 0.0-1.0,
+  "summary": "One paragraph summary of the analysis"
+}}
+"""
+
+        # Call GPT-4
+        logger.info(f"🤖 Calling GPT-4 to analyze trade {trade_id}...")
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a professional trading analyst. Provide detailed, actionable analysis of trades. Always respond with valid JSON.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=0.3,
+            max_tokens=1500,
+        )
+
+        gpt4_response = response.choices[0].message.content
+
+        # Strip markdown code blocks if present
+        if gpt4_response.startswith("```"):
+            lines = gpt4_response.split("\n")
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            gpt4_response = "\n".join(lines)
+
+        # Parse JSON response
+        analysis = json.loads(gpt4_response)
+
+        logger.info(f"🤖 GPT-4 Trade Analysis Complete for {trade_id}:")
+        logger.info(f"  📋 Verdict: {analysis.get('trade_verdict', 'N/A')}")
+        logger.info(f"  🎯 Entry Quality: {analysis.get('entry_analysis', {}).get('quality', 'N/A')}")
+        logger.info(f"  🎯 Exit Quality: {analysis.get('exit_analysis', {}).get('quality', 'N/A')}")
+        logger.info(f"  💡 Summary: {analysis.get('summary', 'N/A')[:100]}...")
+
+        # Store analysis in MongoDB
+        storage.store_trade_analysis(trade_id, trade_data, analysis)
+
+        return {
+            "status": "success",
+            "trade_id": trade_id,
+            "is_winning": is_winning,
+            "pnl_usdt": pnl,
+            "analysis": analysis,
+            "task_id": self.request.id if hasattr(self, 'request') else None,
+        }
+
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Failed to parse GPT-4 response for trade {trade_id}: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to analyze trade {trade_id}: {e}")
+        raise
+
+
+# @spec:FR-ASYNC-012 - Batch Trade Analysis
+# @ref:specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md#fr-async-012
+# @test:TC-ASYNC-091, TC-ASYNC-092
+@app.task(
+    bind=True,
+    base=AIImprovementTask,
+    name="tasks.ai_improvement.analyze_recent_trades",
+)
+def analyze_recent_trades(
+    self,
+    only_losing: bool = True,
+    limit: int = 10,
+) -> Dict[str, Any]:
+    """
+    Analyze multiple recent trades that haven't been analyzed yet.
+    Called periodically (e.g., every hour) to catch up on unanalyzed trades.
+
+    Args:
+        only_losing: If True, only analyze losing trades
+        limit: Maximum number of trades to analyze
+
+    Returns:
+        Summary of analyzed trades
+    """
+    logger.info(f"🔍 Analyzing recent {'losing ' if only_losing else ''}trades (limit: {limit})...")
+
+    try:
+        # Fetch recent closed trades
+        response = requests.get(
+            f"{RUST_API_URL}/api/paper-trading/trades/closed",
+            timeout=10,
+        )
+        response.raise_for_status()
+        trades_response = response.json()
+        trades = trades_response.get("data", []) if trades_response.get("success") else []
+
+        if not trades:
+            logger.info("✅ No trades to analyze")
+            return {"status": "success", "analyzed_count": 0, "message": "No trades found"}
+
+        # Filter losing trades if requested
+        if only_losing:
+            trades = [t for t in trades if (t.get("pnl_usdt") or 0) < 0]
+
+        if not trades:
+            logger.info("✅ No losing trades to analyze")
+            return {"status": "success", "analyzed_count": 0, "message": "No losing trades found"}
+
+        # Get trade IDs
+        trade_ids = [t.get("id") or t.get("trade_id") for t in trades if t.get("id") or t.get("trade_id")]
+
+        # Filter out already analyzed trades
+        unanalyzed_ids = storage.get_unanalyzed_trade_ids(trade_ids)
+
+        if not unanalyzed_ids:
+            logger.info("✅ All trades already analyzed")
+            return {"status": "success", "analyzed_count": 0, "message": "All trades already analyzed"}
+
+        # Limit to requested number
+        unanalyzed_ids = unanalyzed_ids[:limit]
+
+        # Get full trade data for unanalyzed trades
+        trades_to_analyze = [t for t in trades if (t.get("id") or t.get("trade_id")) in unanalyzed_ids]
+
+        logger.info(f"📊 Found {len(trades_to_analyze)} trades to analyze")
+
+        # Queue individual analysis tasks
+        results = []
+        for trade in trades_to_analyze:
+            try:
+                result = analyze_trade(trade)
+                results.append({
+                    "trade_id": trade.get("id") or trade.get("trade_id"),
+                    "status": result.get("status"),
+                    "is_winning": result.get("is_winning"),
+                })
+            except Exception as e:
+                logger.error(f"❌ Failed to analyze trade: {e}")
+                results.append({
+                    "trade_id": trade.get("id") or trade.get("trade_id"),
+                    "status": "error",
+                    "error": str(e),
+                })
+
+        successful = sum(1 for r in results if r.get("status") == "success")
+        logger.info(f"✅ Analyzed {successful}/{len(results)} trades successfully")
+
+        return {
+            "status": "success",
+            "analyzed_count": successful,
+            "total_attempted": len(results),
+            "results": results,
+            "task_id": self.request.id if hasattr(self, 'request') else None,
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Batch trade analysis failed: {e}")
+        raise
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -494,19 +1013,23 @@ def calculate_daily_metrics(trades: List[Dict]) -> List[Dict]:
     daily_trades = defaultdict(list)
 
     for trade in trades:
-        date = trade.get("executed_at", "")[:10]  # Extract YYYY-MM-DD
-        daily_trades[date].append(trade)
+        # Support both old format (executed_at) and new format (close_time)
+        timestamp = trade.get("close_time") or trade.get("executed_at", "")
+        date = timestamp[:10] if timestamp else ""  # Extract YYYY-MM-DD
+        if date:
+            daily_trades[date].append(trade)
 
     # Calculate metrics for each day
     daily_metrics = []
     for date in sorted(daily_trades.keys()):
         day_trades = daily_trades[date]
 
-        winning = sum(1 for t in day_trades if t.get("profit_percent", 0) > 0)
+        # Support both old format (profit_percent) and new format (pnl_percentage)
+        winning = sum(1 for t in day_trades if (t.get("pnl_percentage") or t.get("profit_percent", 0)) > 0)
         total = len(day_trades)
         win_rate = (winning / total * 100) if total > 0 else 0
 
-        profits = [t.get("profit_percent", 0) for t in day_trades]
+        profits = [t.get("pnl_percentage") or t.get("profit_percent", 0) for t in day_trades]
         avg_profit = sum(profits) / len(profits) if profits else 0
 
         # Simple Sharpe approximation
@@ -681,3 +1204,199 @@ def _calculate_model_metrics(
         "count": len(model_data),
         "latest_accuracy": accuracies[-1] if accuracies else 0.0,
     }
+
+
+def _run_config_analysis_direct(analysis_result: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Run config improvement analysis DIRECTLY (bypass Celery/Redis).
+    This is a fallback when Redis is unavailable.
+
+    Args:
+        analysis_result: GPT-4 analysis that triggered this (optional)
+
+    Returns:
+        Config improvement suggestions from GPT-4
+    """
+    logger.info("🧠 Running config improvement analysis DIRECTLY (bypassing Celery)...")
+
+    try:
+        # Check OpenAI API key
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("⚠️ OPENAI_API_KEY not configured - skipping")
+            return {"status": "skipped", "reason": "OPENAI_API_KEY not configured"}
+
+        # Create OpenAI client
+        client = OpenAI(api_key=api_key)
+
+        # STEP 1: Fetch current indicator settings
+        logger.info("📊 Fetching current indicator settings...")
+        try:
+            response = requests.get(
+                f"{RUST_API_URL}/api/paper-trading/indicator-settings",
+                timeout=10,
+            )
+            response.raise_for_status()
+            indicator_settings = response.json().get("data", {})
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch indicator settings: {e}")
+            indicator_settings = {}
+
+        # STEP 2: Fetch current signal settings
+        logger.info("📊 Fetching current signal settings...")
+        try:
+            response = requests.get(
+                f"{RUST_API_URL}/api/paper-trading/signal-settings",
+                timeout=10,
+            )
+            response.raise_for_status()
+            signal_settings = response.json().get("data", {})
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch signal settings: {e}")
+            signal_settings = {}
+
+        # STEP 3: Fetch recent closed trades
+        logger.info("📈 Fetching recent closed trades...")
+        try:
+            response = requests.get(
+                f"{RUST_API_URL}/api/paper-trading/trades/closed",
+                timeout=10,
+            )
+            response.raise_for_status()
+            trades_response = response.json()
+            trades = trades_response.get("data", []) if trades_response.get("success") else []
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch trades: {e}")
+            trades = []
+
+        # Calculate trade statistics
+        total_trades = len(trades)
+        winning_trades = sum(1 for t in trades if (t.get("pnl_percentage") or 0) > 0)
+        losing_trades = sum(1 for t in trades if (t.get("pnl_percentage") or 0) < 0)
+        win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
+        total_pnl = sum(t.get("pnl_usdt") or 0 for t in trades)
+        avg_pnl_percent = sum(t.get("pnl_percentage") or 0 for t in trades) / total_trades if total_trades > 0 else 0
+
+        # Determine risk level
+        is_losing = total_pnl < 0 or win_rate < 50
+        data_insufficient = total_trades < 5
+
+        # Risk guidance
+        if data_insufficient:
+            risk_guidance = f"""
+## ⚠️ CRITICAL: INSUFFICIENT DATA WARNING
+You only have {total_trades} trades to analyze. This is NOT enough data.
+- DO NOT suggest aggressive changes
+- Set confidence BELOW 0.3
+- Set auto_apply_safe to FALSE
+"""
+        elif is_losing:
+            risk_guidance = f"""
+## ⚠️ CRITICAL: BOT IS LOSING MONEY
+Current PnL: ${total_pnl:.2f} | Win Rate: {win_rate:.1f}%
+- NEVER lower thresholds (more risk)
+- Consider INCREASING thresholds (be more selective)
+- Priority is CAPITAL PRESERVATION
+"""
+        else:
+            risk_guidance = "## ✅ BOT IS PROFITABLE - Cautious optimization allowed"
+
+        prompt = f"""
+You are a CONSERVATIVE trading bot configuration optimizer.
+
+{risk_guidance}
+
+## CURRENT INDICATOR SETTINGS:
+{json.dumps(indicator_settings, indent=2)}
+
+## CURRENT SIGNAL SETTINGS:
+{json.dumps(signal_settings, indent=2)}
+
+## TRADE PERFORMANCE:
+- Total Trades: {total_trades}
+- Win Rate: {win_rate:.1f}%
+- Total PnL: ${total_pnl:.2f}
+- Avg PnL per Trade: {avg_pnl_percent:.2f}%
+
+## RECENT TRADES (last 5):
+{json.dumps(trades[:5], indent=2, default=str)}
+
+## OUTPUT FORMAT (VALID JSON):
+{{
+  "analysis": {{
+    "root_cause": "Brief explanation",
+    "key_issues": ["issue1", "issue2"],
+    "data_quality": "insufficient/limited/good"
+  }},
+  "indicator_suggestions": {{}},
+  "signal_suggestions": {{}},
+  "confidence": 0.0-1.0,
+  "auto_apply_safe": false,
+  "risk_assessment": "low/medium/high",
+  "summary": "One paragraph summary"
+}}
+"""
+
+        # Call GPT-4
+        logger.info("🤖 Calling GPT-4 for config analysis...")
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a trading bot config optimizer. Always respond with valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=2000,
+        )
+
+        gpt4_response = response.choices[0].message.content
+
+        # Strip markdown code blocks
+        if gpt4_response.startswith("```"):
+            lines = gpt4_response.split("\n")
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            gpt4_response = "\n".join(lines)
+
+        suggestions = json.loads(gpt4_response)
+
+        logger.info(f"🤖 GPT-4 Config Analysis Complete:")
+        logger.info(f"  📋 Root Cause: {suggestions.get('analysis', {}).get('root_cause', 'N/A')}")
+        logger.info(f"  🎯 Confidence: {suggestions.get('confidence', 0):.0%}")
+
+        # Store in MongoDB
+        result = {
+            "status": "success",
+            "timestamp": datetime.utcnow().isoformat(),
+            "mode": "direct_bypass_celery",
+            "trigger_analysis": analysis_result,
+            "current_config": {
+                "indicators": indicator_settings,
+                "signal": signal_settings,
+            },
+            "trade_stats": {
+                "total_trades": total_trades,
+                "win_rate": win_rate,
+                "total_pnl": total_pnl,
+            },
+            "suggestions": suggestions,
+            "applied_changes": [],  # Never auto-apply in direct mode
+            "task_id": None,
+        }
+
+        storage.store_config_suggestions(result)
+
+        # Send notification
+        notifications.send_config_suggestions(result)
+
+        logger.info("✅ Config improvement analysis complete (direct mode)")
+        return result
+
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Failed to parse GPT-4 response: {e}")
+        return {"status": "error", "error": str(e)}
+    except Exception as e:
+        logger.error(f"❌ Direct config analysis failed: {e}")
+        return {"status": "error", "error": str(e)}

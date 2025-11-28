@@ -7,7 +7,7 @@ primary_region = "sin"  # Singapore region for low latency
 
 [env]
   MONGO_INITDB_ROOT_USERNAME = "admin"
-  MONGO_INITDB_DATABASE = "trading_bot"
+  MONGO_INITDB_DATABASE = "bot_core"
 
 [[services]]
   protocol = "tcp"

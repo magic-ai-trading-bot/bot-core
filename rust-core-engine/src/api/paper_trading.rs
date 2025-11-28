@@ -169,6 +169,21 @@ pub struct UpdateSignalIntervalRequest {
     pub interval_minutes: u32,
 }
 
+/// Query params for trade analyses
+/// @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TradeAnalysesQuery {
+    pub only_losing: Option<bool>,
+    pub limit: Option<i64>,
+}
+
+/// Query params for config suggestions
+/// @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigSuggestionsQuery {
+    pub limit: Option<i64>,
+}
+
 /// Indicator settings for API (matches Rust struct)
 /// @spec:FR-SETTINGS-001 - Unified indicator settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -422,6 +437,44 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(update_indicator_settings);
 
+        // GET /api/paper-trading/trade-analyses
+        // @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
+        let get_trade_analyses_route = base_path
+            .and(warp::path("trade-analyses"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(warp::query::<TradeAnalysesQuery>())
+            .and(with_api(api.clone()))
+            .and_then(get_trade_analyses);
+
+        // GET /api/paper-trading/trade-analyses/{trade_id}
+        let get_trade_analysis_by_id_route = base_path
+            .and(warp::path("trade-analyses"))
+            .and(warp::path::param::<String>())
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_trade_analysis_by_id);
+
+        // GET /api/paper-trading/config-suggestions
+        // @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
+        let get_config_suggestions_route = base_path
+            .and(warp::path("config-suggestions"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(warp::query::<ConfigSuggestionsQuery>())
+            .and(with_api(api.clone()))
+            .and_then(get_config_suggestions);
+
+        // GET /api/paper-trading/config-suggestions/latest
+        let get_latest_config_suggestion_route = base_path
+            .and(warp::path("config-suggestions"))
+            .and(warp::path("latest"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_latest_config_suggestion);
+
         status_route
             .or(portfolio_route)
             .or(open_trades_route)
@@ -443,6 +496,11 @@ impl PaperTradingApi {
             // These endpoints are used by Python AI service to fetch settings
             .or(get_indicator_settings_route)
             .or(update_indicator_settings_route)
+            // @spec:FR-ASYNC-011, FR-ASYNC-009 - GPT-4 Trade Analysis & Config Suggestions
+            .or(get_trade_analyses_route)
+            .or(get_trade_analysis_by_id_route)
+            .or(get_config_suggestions_route)
+            .or(get_latest_config_suggestion_route)
             .with(cors)
     }
 }
@@ -1142,6 +1200,131 @@ async fn update_indicator_settings(
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
                 StatusCode::BAD_REQUEST,
+            ))
+        },
+    }
+}
+
+// =============================================================================
+// GPT-4 Trade Analysis & Config Suggestions API Handlers
+// @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
+// @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
+// =============================================================================
+
+/// Get all GPT-4 trade analyses from MongoDB
+/// Query params: only_losing (bool), limit (i64)
+async fn get_trade_analyses(
+    query: TradeAnalysesQuery,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    let only_losing = query.only_losing.unwrap_or(false);
+    let limit = query.limit;
+
+    match api.engine.storage().get_trade_analyses(only_losing, limit).await {
+        Ok(analyses) => {
+            log::info!(
+                "📊 Retrieved {} trade analyses (only_losing: {})",
+                analyses.len(),
+                only_losing
+            );
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(analyses)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => {
+            log::error!("❌ Failed to get trade analyses: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        },
+    }
+}
+
+/// Get GPT-4 analysis for a specific trade by trade_id
+async fn get_trade_analysis_by_id(
+    trade_id: String,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    match api.engine.storage().get_trade_analysis_by_id(&trade_id).await {
+        Ok(Some(analysis)) => {
+            log::info!("📊 Retrieved trade analysis for trade_id: {}", trade_id);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(analysis)),
+                StatusCode::OK,
+            ))
+        },
+        Ok(None) => {
+            log::warn!("⚠️ Trade analysis not found for trade_id: {}", trade_id);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(format!(
+                    "Trade analysis not found for trade_id: {}",
+                    trade_id
+                ))),
+                StatusCode::NOT_FOUND,
+            ))
+        },
+        Err(e) => {
+            log::error!("❌ Failed to get trade analysis: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        },
+    }
+}
+
+/// Get all GPT-4 config suggestions from MongoDB
+/// Query params: limit (i64)
+async fn get_config_suggestions(
+    query: ConfigSuggestionsQuery,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    match api.engine.storage().get_config_suggestions(query.limit).await {
+        Ok(suggestions) => {
+            log::info!("📊 Retrieved {} config suggestions", suggestions.len());
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(suggestions)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => {
+            log::error!("❌ Failed to get config suggestions: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        },
+    }
+}
+
+/// Get the latest GPT-4 config suggestion
+async fn get_latest_config_suggestion(
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    match api.engine.storage().get_latest_config_suggestion().await {
+        Ok(Some(suggestion)) => {
+            log::info!("📊 Retrieved latest config suggestion");
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(suggestion)),
+                StatusCode::OK,
+            ))
+        },
+        Ok(None) => {
+            log::info!("📊 No config suggestions found");
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(
+                    "No config suggestions found".to_string()
+                )),
+                StatusCode::NOT_FOUND,
+            ))
+        },
+        Err(e) => {
+            log::error!("❌ Failed to get latest config suggestion: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::INTERNAL_SERVER_ERROR,
             ))
         },
     }

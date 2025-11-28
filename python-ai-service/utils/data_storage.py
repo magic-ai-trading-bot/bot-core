@@ -41,6 +41,8 @@ COLLECTION_PERFORMANCE_METRICS = "performance_metrics"
 COLLECTION_MODEL_ACCURACY = "model_accuracy_history"
 COLLECTION_API_COSTS = "api_cost_history"
 COLLECTION_RETRAIN_HISTORY = "retrain_history"
+COLLECTION_CONFIG_SUGGESTIONS = "config_suggestions"
+COLLECTION_TRADE_ANALYSES = "trade_analyses"  # GPT-4 analysis per trade
 
 
 class DataStorage:
@@ -584,6 +586,195 @@ class DataStorage:
             trigger_type=retrain_data.get("trigger", "unknown"),
             trigger_data={},
         )
+
+    def store_config_suggestions(
+        self,
+        suggestions: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Store GPT-4 config improvement suggestions
+
+        Args:
+            suggestions: Config suggestions from GPT-4
+
+        Returns:
+            Document ID if successful, None otherwise
+        """
+        if not self.is_connected():
+            return None
+
+        try:
+            document = {
+                **suggestions,
+                "created_at": datetime.utcnow(),
+            }
+            result = self._db[COLLECTION_CONFIG_SUGGESTIONS].insert_one(document)
+            logger.info(f"✅ Stored config suggestions: {result.inserted_id}")
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"❌ Failed to store config suggestions: {e}")
+            return None
+
+    def get_config_suggestions_history(
+        self,
+        days: int = 30,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get config suggestions history
+
+        Args:
+            days: Number of days to look back
+            limit: Maximum number of records to return
+
+        Returns:
+            List of config suggestions
+        """
+        if not self.is_connected():
+            return []
+
+        try:
+            cutoff = datetime.utcnow() - timedelta(days=days)
+            cursor = (
+                self._db[COLLECTION_CONFIG_SUGGESTIONS]
+                .find({"created_at": {"$gte": cutoff}})
+                .sort("created_at", DESCENDING)
+                .limit(limit)
+            )
+            return list(cursor)
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve config suggestions: {e}")
+            return []
+
+    # =========================================================================
+    # TRADE ANALYSIS STORAGE (GPT-4 analysis per trade)
+    # =========================================================================
+
+    def store_trade_analysis(
+        self,
+        trade_id: str,
+        trade_data: Dict[str, Any],
+        analysis: Dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Store GPT-4 analysis for a specific trade
+
+        Args:
+            trade_id: Unique trade ID
+            trade_data: Original trade data
+            analysis: GPT-4 analysis result
+
+        Returns:
+            Document ID if successful, None otherwise
+        """
+        if not self.is_connected():
+            logger.warning("⚠️ MongoDB not connected, skipping trade analysis storage")
+            return None
+
+        try:
+            # Get PnL from either 'pnl' (Rust API) or 'pnl_usdt' (legacy)
+            pnl_value = trade_data.get("pnl") or trade_data.get("pnl_usdt", 0)
+
+            document = {
+                "trade_id": trade_id,
+                "created_at": datetime.utcnow(),
+                "trade_data": trade_data,
+                "analysis": analysis,
+                "is_winning": pnl_value > 0,
+                "pnl_usdt": pnl_value,
+                "pnl_percentage": trade_data.get("pnl_percentage", 0),
+                "symbol": trade_data.get("symbol"),
+                "side": trade_data.get("trade_type") or trade_data.get("side"),  # Rust uses trade_type
+                "entry_price": trade_data.get("entry_price"),
+                "exit_price": trade_data.get("exit_price"),
+                "close_reason": trade_data.get("close_reason"),
+            }
+            result = self._db[COLLECTION_TRADE_ANALYSES].insert_one(document)
+            logger.info(f"✅ Stored trade analysis for {trade_id}: {result.inserted_id}")
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"❌ Failed to store trade analysis: {e}")
+            return None
+
+    def get_trade_analysis(self, trade_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get GPT-4 analysis for a specific trade
+
+        Args:
+            trade_id: Unique trade ID
+
+        Returns:
+            Trade analysis document or None
+        """
+        if not self.is_connected():
+            return None
+
+        try:
+            return self._db[COLLECTION_TRADE_ANALYSES].find_one({"trade_id": trade_id})
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve trade analysis: {e}")
+            return None
+
+    def get_trade_analyses_history(
+        self,
+        days: int = 30,
+        limit: int = 100,
+        only_losing: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get trade analyses history
+
+        Args:
+            days: Number of days to look back
+            limit: Maximum number of records to return
+            only_losing: If True, only return losing trades
+
+        Returns:
+            List of trade analyses
+        """
+        if not self.is_connected():
+            return []
+
+        try:
+            cutoff = datetime.utcnow() - timedelta(days=days)
+            query = {"created_at": {"$gte": cutoff}}
+
+            if only_losing:
+                query["is_winning"] = False
+
+            cursor = (
+                self._db[COLLECTION_TRADE_ANALYSES]
+                .find(query)
+                .sort("created_at", DESCENDING)
+                .limit(limit)
+            )
+            return list(cursor)
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve trade analyses: {e}")
+            return []
+
+    def get_unanalyzed_trade_ids(self, trade_ids: List[str]) -> List[str]:
+        """
+        Get list of trade IDs that haven't been analyzed yet
+
+        Args:
+            trade_ids: List of trade IDs to check
+
+        Returns:
+            List of trade IDs without analysis
+        """
+        if not self.is_connected() or not trade_ids:
+            return trade_ids
+
+        try:
+            analyzed = self._db[COLLECTION_TRADE_ANALYSES].distinct(
+                "trade_id",
+                {"trade_id": {"$in": trade_ids}}
+            )
+            return [tid for tid in trade_ids if tid not in analyzed]
+        except Exception as e:
+            logger.error(f"❌ Failed to check unanalyzed trades: {e}")
+            return trade_ids
 
 
 # Singleton instance (created at module load for backward compatibility)

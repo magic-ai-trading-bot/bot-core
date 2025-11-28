@@ -779,41 +779,27 @@ impl MarketDataProcessor {
         }
     }
 
-    // NEW: Chart data methods for API support (now using MongoDB instead of cache)
+    // NEW: Chart data methods for API support (using in-memory cache for real-time data)
     pub async fn get_chart_data(
         &self,
         symbol: &str,
         timeframe: &str,
         limit: Option<usize>,
     ) -> Result<ChartData> {
-        // Get data directly from MongoDB
-        let klines = self
-            .storage
-            .get_market_data(symbol, timeframe, limit.map(|l| l as i64))
-            .await?;
+        // Get data from in-memory cache (populated from Binance WebSocket/API)
+        // This is more reliable than MongoDB as it's always up-to-date
+        let cached_candles = self.cache.get_candles(symbol, timeframe, limit);
 
-        // Convert Klines to CandleData with validation
-        let candle_data: Vec<CandleData> = klines
-            .iter()
-            .filter_map(|kline| {
-                let open = Self::validate_price(&kline.open, symbol, "kline open").ok()?;
-                let high = Self::validate_price(&kline.high, symbol, "kline high").ok()?;
-                let low = Self::validate_price(&kline.low, symbol, "kline low").ok()?;
-                let close = Self::validate_price(&kline.close, symbol, "kline close").ok()?;
-                let volume = kline
-                    .volume
-                    .parse()
-                    .ok()
-                    .filter(|v: &f64| v.is_finite() && *v >= 0.0)?;
-
-                Some(CandleData {
-                    timestamp: kline.open_time,
-                    open,
-                    high,
-                    low,
-                    close,
-                    volume,
-                })
+        // Convert cache::CandleData to processor::CandleData
+        let candle_data: Vec<CandleData> = cached_candles
+            .into_iter()
+            .map(|c| CandleData {
+                timestamp: c.open_time,
+                open: c.open,
+                high: c.high,
+                low: c.low,
+                close: c.close,
+                volume: c.volume,
             })
             .collect();
 

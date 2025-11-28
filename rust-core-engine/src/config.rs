@@ -107,9 +107,9 @@ impl Default for Config {
                 margin_type: "CROSSED".to_string(),
             },
             database: DatabaseConfig {
-                url: "mongodb://botuser:defaultpassword@mongodb:27017/trading_bot?authSource=admin"
+                url: "mongodb://botuser:defaultpassword@mongodb:27017/bot_core?authSource=admin"
                     .to_string(),
-                database_name: Some("trading_bot".to_string()),
+                database_name: Some("bot_core".to_string()),
                 max_connections: 10,
                 enable_logging: false,
             },

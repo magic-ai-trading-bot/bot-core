@@ -17,6 +17,7 @@ const Register = lazy(() => import("./pages/Register"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Settings = lazy(() => import("./pages/Settings"));
 const TradingPaper = lazy(() => import("./pages/TradingPaper"));
+const TradeAnalyses = lazy(() => import("./pages/TradeAnalyses"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -66,6 +67,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <TradingPaper />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/trade-analyses"
+                  element={
+                    <ProtectedRoute>
+                      <TradeAnalyses />
                     </ProtectedRoute>
                   }
                 />

@@ -186,7 +186,7 @@ async def test_database_integration():
         client.server_info()  # Will raise exception if cannot connect
 
         # Test database access
-        db = client['trading_bot']
+        db = client['bot_core']
 
         # Check collections exist
         collections = db.list_collection_names()
