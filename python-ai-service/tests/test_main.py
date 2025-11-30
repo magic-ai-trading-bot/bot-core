@@ -35,7 +35,7 @@ class TestHealthEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-        assert data["service"] == "GPT-4 Trading AI"
+        assert data["service"] == "GPT-4o Trading AI"
         assert data["gpt4_available"] is True
         # MongoDB connection status can be True or False in test environment
         assert "mongodb_connected" in data
@@ -1131,7 +1131,7 @@ class TestAdditionalEndpoints:
         response = await client.get("/ai/info")
         assert response.status_code == 200
         data = response.json()
-        assert data["service_name"] == "GPT-4 Trading AI"
+        assert data["service_name"] == "GPT-4o Trading AI"
         assert "supported_timeframes" in data
 
     @pytest.mark.asyncio
