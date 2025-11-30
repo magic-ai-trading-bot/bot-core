@@ -732,9 +732,9 @@ class AIServiceInfo(BaseModel):
 
     model_config = {"protected_namespaces": ()}
 
-    service_name: str = Field(default="GPT-5 Trading AI")
+    service_name: str = Field(default="GPT-4o Trading AI")
     version: str = Field(default="2.0.0")
-    model_version: str = Field(default="gpt-5-mini")
+    model_version: str = Field(default="gpt-4o-mini")
     supported_timeframes: List[str] = Field(
         default_factory=lambda: ["1m", "5m", "15m", "1h", "4h", "1d"]
     )
@@ -1236,12 +1236,23 @@ class DirectOpenAIClient:
                 "Content-Type": "application/json",
             }
 
-            payload = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            }
+            # gpt-4o-mini and o1 models have different API requirements:
+            # - Use max_completion_tokens instead of max_tokens
+            # - Don't support temperature parameter (only default=1)
+            if "gpt-5" in model or "o1" in model:
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "max_completion_tokens": max_tokens,
+                    # Note: temperature not supported for these models
+                }
+            else:
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                }
 
             try:
                 logger.info(
@@ -1428,7 +1439,7 @@ class GPTTradingAnalyzer:
             # Call GPT-4 (optimized max_tokens for cost saving)
             logger.info("🔄 Calling GPT-4 API...")
             response = await self.client.chat_completions_create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": self._get_system_prompt()},
                     {"role": "user", "content": prompt},
@@ -2367,7 +2378,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "service": "GPT-5 Trading AI",
+        "service": "GPT-4o Trading AI",
         "version": "2.0.0",
         "gpt4_available": openai_client is not None,
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
@@ -2395,7 +2406,7 @@ async def debug_gpt4(request: Request):
         # Test simple API call
         logger.info("🧪 Testing GPT-5-mini API connection...")
         response = await openai_client.chat_completions_create(
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "user", "content": "Respond with just the word 'SUCCESS'"}
             ],
@@ -2405,7 +2416,7 @@ async def debug_gpt4(request: Request):
 
         result["status"] = "success"
         result["test_response"] = response["choices"][0]["message"]["content"]
-        result["model_used"] = "gpt-5-mini"
+        result["model_used"] = "gpt-4o-mini"
         logger.info("✅ GPT-5-mini test successful")
 
     except Exception as e:
@@ -2857,7 +2868,7 @@ OUTPUT FORMAT (JSON only, no markdown):
 
     # Call GPT-4
     response = await openai_client.chat_completions_create(
-        model="gpt-5-mini",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
@@ -3033,7 +3044,7 @@ async def get_cost_statistics(request: Request):
             "estimated_monthly_cost_vnd": round(estimated_cost_per_month * 23000, 0),
         },
         "configuration": {
-            "model": "gpt-5-mini",
+            "model": "gpt-4o-mini",
             "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
             "symbols_tracked": len(current_symbols),
             "cache_duration_minutes": 15,  # Updated cache duration

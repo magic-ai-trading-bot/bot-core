@@ -73,6 +73,22 @@ export interface AISignalReceivedData {
   timeframe: string;
   reasoning?: string;
   strategy_scores?: Record<string, number>;
+  market_analysis?: {
+    trend_direction: string;
+    trend_strength: number;
+    support_levels: number[];
+    resistance_levels: number[];
+    volatility_level: string;
+    volume_analysis: string;
+  };
+  risk_assessment?: {
+    overall_risk: string;
+    technical_risk: number;
+    market_risk: number;
+    recommended_position_size: number;
+    stop_loss_suggestion: number | null;
+    take_profit_suggestion: number | null;
+  };
 }
 
 export interface BotStatusUpdateData {

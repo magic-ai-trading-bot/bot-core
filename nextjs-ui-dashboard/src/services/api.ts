@@ -62,6 +62,22 @@ export interface AISignal {
   timeframe: string;
   reasoning?: string; // Detailed analysis reasoning from AI
   strategy_scores?: Record<string, number>; // Strategy performance scores
+  market_analysis?: {
+    trend_direction: string;
+    trend_strength: number;
+    support_levels: number[];
+    resistance_levels: number[];
+    volatility_level: string;
+    volume_analysis: string;
+  };
+  risk_assessment?: {
+    overall_risk: string;
+    technical_risk: number;
+    market_risk: number;
+    recommended_position_size: number;
+    stop_loss_suggestion: number | null;
+    take_profit_suggestion: number | null;
+  };
 }
 
 // NEW AI TYPES - Compatible with Python AI Service

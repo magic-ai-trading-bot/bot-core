@@ -1201,7 +1201,8 @@ export function AISignals() {
         `Real-time ${s.model_type} analysis for ${s.symbol} on ${s.timeframe} timeframe`,
       // Use strategy_scores from WebSocket if available
       strategy_scores: s.strategy_scores || {},
-      market_analysis: {
+      // Use real market_analysis from WebSocket, fallback to defaults only if not provided
+      market_analysis: s.market_analysis || {
         trend_direction:
           s.signal === "long"
             ? "Bullish"
@@ -1214,7 +1215,8 @@ export function AISignals() {
         volatility_level: "Medium",
         volume_analysis: "Real-time analysis",
       },
-      risk_assessment: {
+      // Use real risk_assessment from WebSocket, fallback to defaults only if not provided
+      risk_assessment: s.risk_assessment || {
         overall_risk: "Medium",
         technical_risk: 0.5,
         market_risk: 0.5,
