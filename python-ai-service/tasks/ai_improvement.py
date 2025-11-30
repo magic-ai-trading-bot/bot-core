@@ -186,7 +186,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4-turbo-preview",
+                model="gpt-5-mini",
                 messages=[
                     {
                         "role": "system",
@@ -521,7 +521,7 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
         logger.info("🤖 Calling GPT-4 for config analysis...")
 
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-5-mini",
             messages=[
                 {
                     "role": "system",
@@ -845,7 +845,7 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
         # Call GPT-4
         logger.info(f"🤖 Calling GPT-4 to analyze trade {trade_id}...")
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-5-mini",
             messages=[
                 {
                     "role": "system",
@@ -1340,7 +1340,7 @@ You are a CONSERVATIVE trading bot configuration optimizer.
         # Call GPT-4
         logger.info("🤖 Calling GPT-4 for config analysis...")
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-5-mini",
             messages=[
                 {
                     "role": "system",

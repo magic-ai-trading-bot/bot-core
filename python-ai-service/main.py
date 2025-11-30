@@ -75,7 +75,7 @@ last_openai_request_time = None
 # OPENAI_REQUEST_DELAY is imported from app.core.config (reads from env var)
 OPENAI_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
 
-# Cost monitoring (GPT-4o-mini pricing as of Nov 2024)
+# Cost monitoring (GPT-5-mini pricing as of Nov 2024)
 GPT4O_MINI_INPUT_COST_PER_1M = 0.150  # $0.150 per 1M input tokens
 GPT4O_MINI_OUTPUT_COST_PER_1M = 0.600  # $0.600 per 1M output tokens
 total_input_tokens = 0
@@ -732,9 +732,9 @@ class AIServiceInfo(BaseModel):
 
     model_config = {"protected_namespaces": ()}
 
-    service_name: str = Field(default="GPT-4 Trading AI")
+    service_name: str = Field(default="GPT-5 Trading AI")
     version: str = Field(default="2.0.0")
-    model_version: str = Field(default="gpt-4o-mini")
+    model_version: str = Field(default="gpt-5-mini")
     supported_timeframes: List[str] = Field(
         default_factory=lambda: ["1m", "5m", "15m", "1h", "4h", "1d"]
     )
@@ -1428,7 +1428,7 @@ class GPTTradingAnalyzer:
             # Call GPT-4 (optimized max_tokens for cost saving)
             logger.info("🔄 Calling GPT-4 API...")
             response = await self.client.chat_completions_create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini",
                 messages=[
                     {"role": "system", "content": self._get_system_prompt()},
                     {"role": "user", "content": prompt},
@@ -2367,7 +2367,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "service": "GPT-4 Trading AI",
+        "service": "GPT-5 Trading AI",
         "version": "2.0.0",
         "gpt4_available": openai_client is not None,
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
@@ -2393,9 +2393,9 @@ async def debug_gpt4(request: Request):
 
     try:
         # Test simple API call
-        logger.info("🧪 Testing GPT-4o-mini API connection...")
+        logger.info("🧪 Testing GPT-5-mini API connection...")
         response = await openai_client.chat_completions_create(
-            model="gpt-4o-mini",
+            model="gpt-5-mini",
             messages=[
                 {"role": "user", "content": "Respond with just the word 'SUCCESS'"}
             ],
@@ -2405,8 +2405,8 @@ async def debug_gpt4(request: Request):
 
         result["status"] = "success"
         result["test_response"] = response["choices"][0]["message"]["content"]
-        result["model_used"] = "gpt-4o-mini"
-        logger.info("✅ GPT-4o-mini test successful")
+        result["model_used"] = "gpt-5-mini"
+        logger.info("✅ GPT-5-mini test successful")
 
     except Exception as e:
         result["status"] = "failed"
@@ -2733,7 +2733,7 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
                 return TrendPredictionResponse(
                     trend=result["trend"],
                     confidence=result["confidence"],
-                    model="GPT-4o-mini",
+                    model="GPT-5-mini",
                     timestamp=int(datetime.now(timezone.utc).timestamp())
                 )
             except Exception as e:
@@ -2857,7 +2857,7 @@ OUTPUT FORMAT (JSON only, no markdown):
 
     # Call GPT-4
     response = await openai_client.chat_completions_create(
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         messages=[
             {
                 "role": "system",
@@ -3033,7 +3033,7 @@ async def get_cost_statistics(request: Request):
             "estimated_monthly_cost_vnd": round(estimated_cost_per_month * 23000, 0),
         },
         "configuration": {
-            "model": "gpt-4o-mini",
+            "model": "gpt-5-mini",
             "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
             "symbols_tracked": len(current_symbols),
             "cache_duration_minutes": 15,  # Updated cache duration
