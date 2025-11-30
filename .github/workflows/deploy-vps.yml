@@ -69,41 +69,33 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
-          echo "🧹 Cleaning up Docker to free disk space..."
-          # Remove stopped containers
+          echo "🧹 AGGRESSIVE Docker cleanup to free disk space..."
+          # Stop all containers first to allow full cleanup
+          docker-compose --profile prod down || true
+
+          # Remove ALL stopped containers
           docker container prune -f || true
-          # Remove unused images (not just dangling)
-          docker image prune -a -f --filter "until=24h" || true
-          # Remove unused volumes
-          docker volume prune -f || true
-          # Remove build cache
-          docker builder prune -f --filter "until=24h" || true
-          # Show disk usage
+
+          # Remove ALL unused images (keeps nothing!)
+          docker image prune -a -f || true
+
+          # Remove ALL unused volumes (careful: this removes data volumes too)
+          # Only prune anonymous volumes, keep named ones
+          docker volume ls -qf dangling=true | xargs -r docker volume rm || true
+
+          # Remove ALL build cache
+          docker builder prune -a -f || true
+
+          # Show disk usage after cleanup
+          echo "📊 Disk usage after cleanup:"
           df -h /
           docker system df
 
-          echo "🔨 Building services..."
-          docker-compose --profile prod build rust-core-engine nextjs-ui-dashboard python-ai-service
+          echo "🔨 Building services (this may take a while on first build)..."
+          docker-compose --profile prod build --no-cache rust-core-engine nextjs-ui-dashboard python-ai-service
 
-          echo "🔄 Restarting services..."
-          docker-compose --profile prod up -d mongodb python-ai-service
-          sleep 10
-
-          # Restart rust and frontend
-          docker stop rust-core-engine nextjs-ui-dashboard 2>/dev/null || true
-          docker rm rust-core-engine nextjs-ui-dashboard 2>/dev/null || true
-
-          # Start rust-core-engine with config mount
-          docker run -d --name rust-core-engine \
-            --network bot-core_bot-network \
-            -p 8080:8080 \
-            -v /root/bot-core/rust-core-engine/config.toml:/app/config.toml:ro \
-            -e PYTHON_AI_SERVICE_URL='http://python-ai-service:8000' \
-            --restart unless-stopped \
-            bot-core_rust-core-engine
-
-          # Start frontend
-          docker-compose --profile prod up -d nextjs-ui-dashboard
+          echo "🔄 Starting all services..."
+          docker-compose --profile prod up -d
 
           echo "⏳ Waiting for services to be healthy..."
           sleep 30
@@ -132,6 +124,15 @@ jobs:
             echo "❌ Frontend unhealthy"
             exit 1
           fi
+
+          # Final cleanup - remove old images after successful deploy
+          echo "🧹 Final cleanup - removing old images..."
+          docker image prune -a -f || true
+          docker builder prune -f || true
+
+          echo ""
+          echo "📊 Final disk usage:"
+          df -h /
 
           echo ""
           echo "🎉 Deployment successful!"
