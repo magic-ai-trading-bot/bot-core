@@ -1,0 +1,157 @@
+name: Deploy to VPS
+
+on:
+  # Trigger after test-coverage workflow completes successfully
+  workflow_run:
+    workflows: ["Test Coverage & Quality Gates"]
+    types:
+      - completed
+    branches: [main]
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deploy even if tests not run'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Ensure only one deployment runs at a time
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production VPS
+    runs-on: ubuntu-latest
+    # Only deploy if:
+    # 1. Manual trigger with force_deploy, OR
+    # 2. Workflow run completed successfully
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+
+    environment:
+      name: production
+      url: http://${{ secrets.VPS_HOST }}:3000
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check deployment conditions
+        id: check
+        run: |
+          echo "🚀 Deployment triggered"
+          echo "Event: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            echo "Workflow: ${{ github.event.workflow_run.name }}"
+            echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+            echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          fi
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          echo "🔐 Connecting to VPS..."
+
+          # Create deploy script
+          cat > deploy.sh << 'DEPLOY_SCRIPT'
+          #!/bin/bash
+          set -e
+
+          echo "📦 Pulling latest code..."
+          cd /root/bot-core
+          git fetch origin main
+          git reset --hard origin/main
+
+          echo "🔨 Building services..."
+          docker-compose --profile prod build rust-core-engine nextjs-ui-dashboard python-ai-service
+
+          echo "🔄 Restarting services..."
+          docker-compose --profile prod up -d mongodb python-ai-service
+          sleep 10
+
+          # Restart rust and frontend
+          docker stop rust-core-engine nextjs-ui-dashboard 2>/dev/null || true
+          docker rm rust-core-engine nextjs-ui-dashboard 2>/dev/null || true
+
+          # Start rust-core-engine with config mount
+          docker run -d --name rust-core-engine \
+            --network bot-core_bot-network \
+            -p 8080:8080 \
+            -v /root/bot-core/rust-core-engine/config.toml:/app/config.toml:ro \
+            -e PYTHON_AI_SERVICE_URL='http://python-ai-service:8000' \
+            --restart unless-stopped \
+            bot-core_rust-core-engine
+
+          # Start frontend
+          docker-compose --profile prod up -d nextjs-ui-dashboard
+
+          echo "⏳ Waiting for services to be healthy..."
+          sleep 30
+
+          echo "✅ Checking service health..."
+          docker ps --format "table {{.Names}}\t{{.Status}}"
+
+          # Verify health
+          if curl -sf http://localhost:8080/api/health > /dev/null; then
+            echo "✅ Rust API healthy"
+          else
+            echo "❌ Rust API unhealthy"
+            exit 1
+          fi
+
+          if curl -sf http://localhost:8000/health > /dev/null; then
+            echo "✅ Python AI healthy"
+          else
+            echo "❌ Python AI unhealthy"
+            exit 1
+          fi
+
+          if curl -sf http://localhost:3000 > /dev/null; then
+            echo "✅ Frontend healthy"
+          else
+            echo "❌ Frontend unhealthy"
+            exit 1
+          fi
+
+          echo ""
+          echo "🎉 Deployment successful!"
+          echo "📊 Dashboard: http://$(curl -s ifconfig.me):3000"
+          DEPLOY_SCRIPT
+
+          # Execute deploy script on VPS
+          sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" 'bash -s' < deploy.sh
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment to production successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi
+
+      - name: Create deployment summary
+        if: success()
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | URL | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dashboard | http://${{ secrets.VPS_HOST }}:3000 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rust API | http://${{ secrets.VPS_HOST }}:8080 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python AI | http://${{ secrets.VPS_HOST }}:8000 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** main" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
