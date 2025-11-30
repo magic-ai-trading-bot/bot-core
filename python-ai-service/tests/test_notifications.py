@@ -640,5 +640,256 @@ class TestConvenienceNotificationFunctions:
         assert mock_slack.called
 
 
+@pytest.mark.unit
+class TestFormatDataFunction:
+    """Test format_data helper function."""
+
+    def test_format_data_simple(self):
+        """Test format_data with simple key-value pairs."""
+        from utils.notifications import format_data
+
+        data = {"key1": "value1", "key2": "value2"}
+        result = format_data(data)
+
+        assert "key1: value1" in result
+        assert "key2: value2" in result
+
+    def test_format_data_nested_dict(self):
+        """Test format_data with nested dictionary."""
+        from utils.notifications import format_data
+
+        data = {
+            "outer": {
+                "inner1": "value1",
+                "inner2": "value2",
+            }
+        }
+        result = format_data(data)
+
+        assert "outer:" in result
+        assert "inner1: value1" in result
+        assert "inner2: value2" in result
+
+    def test_format_data_with_list(self):
+        """Test format_data with list values."""
+        from utils.notifications import format_data
+
+        data = {"items": [1, 2, 3, 4, 5]}
+        result = format_data(data)
+
+        assert "items: [5 items]" in result
+
+    def test_format_data_with_indent(self):
+        """Test format_data with custom indent."""
+        from utils.notifications import format_data
+
+        data = {"key": "value"}
+        result = format_data(data, indent=2)
+
+        # Should have 4 spaces prefix (2 * 2)
+        assert "    key: value" in result
+
+    def test_format_data_complex_nested(self):
+        """Test format_data with complex nested structure."""
+        from utils.notifications import format_data
+
+        data = {
+            "level1": {
+                "level2": {
+                    "level3": "deep_value",
+                }
+            },
+            "list_field": [1, 2],
+            "simple": 42,
+        }
+        result = format_data(data)
+
+        assert "level1:" in result
+        assert "level2:" in result
+        assert "level3: deep_value" in result
+        assert "list_field: [2 items]" in result
+        assert "simple: 42" in result
+
+
+@pytest.mark.unit
+class TestDiscordNotificationDetails:
+    """Additional Discord notification tests."""
+
+    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch("utils.notifications.requests.post")
+    def test_send_discord_with_data_fields(self, mock_post):
+        """Test Discord notification includes data as embed fields."""
+        from utils.notifications import send_discord
+
+        mock_response = MagicMock()
+        mock_response.status_code = 204
+        mock_post.return_value = mock_response
+
+        send_discord(
+            title="Test",
+            message="Test message",
+            level="warning",
+            data={"cpu_usage": 95, "memory_mb": 512},
+        )
+
+        assert mock_post.called
+        payload = mock_post.call_args[1].get("json", {})
+        embed = payload.get("embeds", [{}])[0]
+        fields = embed.get("fields", [])
+
+        # Should have fields for data
+        assert len(fields) == 2
+        field_names = [f["name"] for f in fields]
+        assert "Cpu Usage" in field_names or "cpu_usage" in field_names
+
+    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch("utils.notifications.requests.post")
+    def test_send_discord_different_levels(self, mock_post):
+        """Test Discord notification colors for different levels."""
+        from utils.notifications import send_discord, NotificationLevel
+
+        mock_response = MagicMock()
+        mock_response.status_code = 204
+        mock_post.return_value = mock_response
+
+        # Test each level
+        levels = [NotificationLevel.INFO, NotificationLevel.WARNING, NotificationLevel.ERROR, NotificationLevel.CRITICAL]
+        for level in levels:
+            send_discord("Test", "Message", level)
+            assert mock_post.called
+
+    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch("utils.notifications.requests.post")
+    def test_send_discord_success_200_status(self, mock_post):
+        """Test Discord returns success for 200 status."""
+        from utils.notifications import send_discord
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200  # Some Discord endpoints return 200
+        mock_post.return_value = mock_response
+
+        result = send_discord("Test", "Message", "info")
+
+        assert result["status"] == "success"
+
+
+@pytest.mark.unit
+class TestTelegramNotificationDetails:
+    """Additional Telegram notification tests."""
+
+    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
+    @patch("utils.notifications.requests.post")
+    def test_send_telegram_with_data(self, mock_post):
+        """Test Telegram notification includes data in message."""
+        from utils.notifications import send_telegram
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"ok": True}
+        mock_post.return_value = mock_response
+
+        send_telegram(
+            title="Alert",
+            message="Test message",
+            level="warning",
+            data={"metric": "value", "count": 42},
+        )
+
+        assert mock_post.called
+        payload = mock_post.call_args[1].get("json", {})
+        text = payload.get("text", "")
+
+        # Should include data
+        assert "Additional Data" in text
+        assert "Metric" in text or "metric" in text
+
+    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
+    @patch("utils.notifications.requests.post")
+    def test_send_telegram_api_error(self, mock_post):
+        """Test Telegram handles API errors."""
+        from utils.notifications import send_telegram
+
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_post.return_value = mock_response
+
+        result = send_telegram("Test", "Message", "info")
+
+        assert result["status"] == "failed"
+        assert "400" in result["error"]
+
+    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_CHAT_ID": ""})
+    def test_send_telegram_missing_both_credentials(self):
+        """Test Telegram fails gracefully with missing credentials."""
+        from utils.notifications import send_telegram
+
+        result = send_telegram("Test", "Message", "info")
+
+        assert result["status"] == "failed"
+        assert "not configured" in result["error"]
+
+
+@pytest.mark.unit
+class TestConfigSuggestionsNotification:
+    """Test send_config_suggestions function."""
+
+    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch("utils.notifications.send_slack")
+    def test_send_config_suggestions(self, mock_slack):
+        """Test send_config_suggestions notification."""
+        from utils.notifications import send_config_suggestions
+
+        mock_slack.return_value = {"status": "success"}
+
+        result = {
+            "suggestions": {
+                "strategy": {"rsi_period": 12},
+                "risk": {"max_loss": 0.03},
+            },
+            "reasoning": "Based on recent performance analysis",
+        }
+
+        send_config_suggestions(result)
+
+        assert mock_slack.called
+
+
+@pytest.mark.unit
+class TestNotificationLevelClass:
+    """Test NotificationLevel constants."""
+
+    def test_notification_level_values(self):
+        """Test NotificationLevel has correct values."""
+        from utils.notifications import NotificationLevel
+
+        assert NotificationLevel.INFO == "info"
+        assert NotificationLevel.WARNING == "warning"
+        assert NotificationLevel.ERROR == "error"
+        assert NotificationLevel.CRITICAL == "critical"
+
+
+@pytest.mark.unit
+class TestIsEnabledFunction:
+    """Test is_enabled function."""
+
+    def test_is_enabled_false_when_disabled(self):
+        """Test is_enabled returns False when notifications disabled."""
+        from utils import notifications
+        import importlib
+
+        with patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "false", "NOTIFICATION_CHANNELS": ""}):
+            importlib.reload(notifications)
+            assert notifications.is_enabled() is False
+
+    def test_is_enabled_false_with_empty_channels(self):
+        """Test is_enabled returns False with empty channels."""
+        from utils import notifications
+        import importlib
+
+        with patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": ""}):
+            importlib.reload(notifications)
+            assert notifications.is_enabled() is False
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])

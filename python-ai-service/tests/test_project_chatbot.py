@@ -550,3 +550,188 @@ class TestFindProjectRoot:
                 # Note: function is already evaluated, test concept only
                 result = _find_project_root()
                 assert isinstance(result, Path)
+
+
+@pytest.mark.unit
+class TestDocumentIndexAdvanced:
+    """Additional tests for DocumentIndex edge cases."""
+
+    def test_search_numbers_in_query(self):
+        """Test search handles numbers in query."""
+        from services.project_chatbot import DocumentIndex
+
+        index = DocumentIndex()
+        index.add_document("doc1.md", "This has 7 layers of security", "guide", "Security Layers")
+        index.add_document("doc2.md", "This is about authentication", "guide", "Auth")
+
+        results = index.search("7 layer")
+
+        assert len(results) >= 1
+        # Should find the document with "7"
+        assert any("7" in doc["content"] or "layer" in doc["content"].lower() for doc in results)
+
+    def test_search_path_match_boost(self):
+        """Test search boosts documents with matching path."""
+        from services.project_chatbot import DocumentIndex
+
+        index = DocumentIndex()
+        index.add_document("risk/risk-management.md", "Risk content here", "guide", "Risk Guide")
+        index.add_document("other/general.md", "Some other content about risk", "guide", "General")
+
+        results = index.search("risk management")
+
+        assert len(results) >= 1
+        # Path match should boost the risk file
+        assert "risk" in results[0]["path"].lower()
+
+    def test_search_security_query_boost(self):
+        """Test search boosts security docs for security queries."""
+        from services.project_chatbot import DocumentIndex
+
+        index = DocumentIndex()
+        index.add_document("security/auth.md", "Security authentication details", "guide", "Security Auth")
+        index.add_document("guide/intro.md", "General intro content", "guide", "Intro")
+
+        # Vietnamese security query
+        results = index.search("bảo mật")
+
+        assert len(results) >= 1
+
+    def test_search_how_to_query_boost(self):
+        """Test search boosts feature docs for how-to queries."""
+        from services.project_chatbot import DocumentIndex
+
+        index = DocumentIndex()
+        index.add_document("features/trading.md", "How to trade", "feature", "Trading Feature")
+        index.add_document("api/endpoints.md", "API details", "api", "API")
+
+        results = index.search("how to trade")
+
+        assert len(results) >= 1
+
+    def test_search_vietnamese_synonyms_expansion(self):
+        """Test search expands Vietnamese synonyms correctly."""
+        from services.project_chatbot import DocumentIndex
+
+        index = DocumentIndex()
+        index.add_document("config.md", "Configuration and setup guide", "guide", "Config")
+        index.add_document("other.md", "Other content", "guide", "Other")
+
+        # Vietnamese for "configuration"
+        results = index.search("cấu hình")
+
+        assert len(results) >= 1
+
+
+@pytest.mark.unit
+class TestProjectChatbotIndexing:
+    """Tests for document indexing edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_index_documents_with_readme_files(self):
+        """Test _index_documents indexes README files."""
+        from services.project_chatbot import ProjectChatbot
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+
+            # Create README.md
+            readme = tmppath / "README.md"
+            readme.write_text("# Test README\nThis is content.")
+
+            # Create CLAUDE.md
+            claude_md = tmppath / "CLAUDE.md"
+            claude_md.write_text("# CLAUDE.md\nProject overview.")
+
+            chatbot = ProjectChatbot()
+
+            with patch("services.project_chatbot.PROJECT_ROOT", tmppath):
+                await chatbot._index_documents()
+
+            # Should have indexed the files
+            assert len(chatbot.index.documents) > 0
+
+    @pytest.mark.asyncio
+    async def test_index_documents_handles_read_error(self):
+        """Test _index_documents handles file read errors gracefully."""
+        from services.project_chatbot import ProjectChatbot
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+
+            # Create docs directory with a file
+            docs_dir = tmppath / "docs" / "features"
+            docs_dir.mkdir(parents=True)
+
+            md_file = docs_dir / "test.md"
+            md_file.write_text("Test content")
+
+            chatbot = ProjectChatbot()
+
+            # Mock read_text to raise exception
+            with patch("services.project_chatbot.PROJECT_ROOT", tmppath):
+                with patch.object(Path, "read_text", side_effect=Exception("Read error")):
+                    # Should not raise, just log warning
+                    await chatbot._index_documents()
+
+            # Should complete without error
+            assert chatbot.index.indexed is True
+
+
+@pytest.mark.unit
+class TestProjectChatbotFallbackResponses:
+    """Additional tests for fallback responses."""
+
+    @pytest.mark.asyncio
+    async def test_fallback_response_security_keywords(self):
+        """Test fallback response for security-related keywords."""
+        from services.project_chatbot import ProjectChatbot
+
+        chatbot = ProjectChatbot()
+        chatbot._indexed = True
+
+        # Test various security keywords
+        for keyword in ["security", "an toan", "risk"]:
+            result = await chatbot._fallback_response(f"What about {keyword}?", [])
+            assert result["success"] is True
+            assert result["type"] == "fallback"
+
+    @pytest.mark.asyncio
+    async def test_fallback_response_with_multiple_docs(self):
+        """Test fallback response with multiple relevant docs."""
+        from services.project_chatbot import ProjectChatbot
+
+        chatbot = ProjectChatbot()
+        chatbot._indexed = True
+
+        docs = [
+            {"title": "Doc1", "path": "doc1.md", "content": "First content"},
+            {"title": "Doc2", "path": "doc2.md", "content": "Second content"},
+            {"title": "Doc3", "path": "doc3.md", "content": "Third content"},
+        ]
+
+        result = await chatbot._fallback_response("unknown query", docs)
+
+        assert result["success"] is True
+        # Should include sources
+        assert len(result["sources"]) <= 3
+
+    @pytest.mark.asyncio
+    async def test_chat_with_no_history(self):
+        """Test chat without including history."""
+        from services.project_chatbot import ProjectChatbot
+
+        chatbot = ProjectChatbot()
+        chatbot._indexed = True
+        chatbot.conversation_history = [
+            {"role": "user", "content": "previous"},
+            {"role": "assistant", "content": "previous response"},
+        ]
+
+        result = await chatbot.chat("new message", include_history=False)
+
+        assert result["success"] is True
+
+
