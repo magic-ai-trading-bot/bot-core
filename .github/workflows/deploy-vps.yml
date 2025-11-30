@@ -69,6 +69,19 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
+          echo "🧹 Cleaning up Docker to free disk space..."
+          # Remove stopped containers
+          docker container prune -f || true
+          # Remove unused images (not just dangling)
+          docker image prune -a -f --filter "until=24h" || true
+          # Remove unused volumes
+          docker volume prune -f || true
+          # Remove build cache
+          docker builder prune -f --filter "until=24h" || true
+          # Show disk usage
+          df -h /
+          docker system df
+
           echo "🔨 Building services..."
           docker-compose --profile prod build rust-core-engine nextjs-ui-dashboard python-ai-service
 
