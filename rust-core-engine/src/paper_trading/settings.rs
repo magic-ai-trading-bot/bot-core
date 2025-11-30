@@ -530,7 +530,11 @@ impl Default for RiskSettings {
             ai_auto_enable_reversal: true, // Let AI decide automatically ✨
             reversal_min_confidence: 0.65, // LOWERED: 65% minimum confidence (was 75%)
             reversal_max_pnl_pct: 10.0,    // NEW: 10% max profit before using trailing stop
-            reversal_allowed_regimes: vec!["trending".to_string(), "ranging".to_string(), "volatile".to_string()], // Allow reversal in ALL market conditions
+            reversal_allowed_regimes: vec![
+                "trending".to_string(),
+                "ranging".to_string(),
+                "volatile".to_string(),
+            ], // Allow reversal in ALL market conditions
         }
     }
 }
@@ -878,11 +882,15 @@ mod tests {
         assert_eq!(settings.min_margin_level, 300.0); // FIXED: Up from 200% - extra buffer
         assert_eq!(settings.max_consecutive_losses, 3); // FIXED: Down from 5 - stop faster
 
-        // NEW: Signal reversal defaults
-        assert!(!settings.enable_signal_reversal); // Disabled by default for safety
-        assert_eq!(settings.reversal_min_confidence, 0.75); // 75% minimum
+        // NEW: Signal reversal defaults - ENABLED for better trade management
+        assert!(settings.enable_signal_reversal); // Enabled by default
+        assert!(settings.ai_auto_enable_reversal); // AI auto-enable enabled
+        assert_eq!(settings.reversal_min_confidence, 0.65); // 65% minimum (lowered)
         assert_eq!(settings.reversal_max_pnl_pct, 10.0); // 10% max P&L
-        assert_eq!(settings.reversal_allowed_regimes, vec!["trending"]); // Only trending
+        assert_eq!(
+            settings.reversal_allowed_regimes,
+            vec!["trending", "ranging", "volatile"]
+        ); // All market conditions
     }
 
     #[test]
