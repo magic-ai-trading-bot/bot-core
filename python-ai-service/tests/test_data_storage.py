@@ -1212,3 +1212,454 @@ class TestRetrainHistoryTracking:
         assert document["trigger_type"] == "manual"
         assert document["successful_count"] == 1
         assert document["deployed_count"] == 1
+
+
+@pytest.mark.unit
+class TestConfigSuggestionsStorage:
+    """Test config suggestions storage methods"""
+
+    def setup_method(self):
+        """Reset singleton before each test"""
+        DataStorage.reset_instance()
+
+    def teardown_method(self):
+        """Reset singleton after each test"""
+        DataStorage.reset_instance()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_config_suggestions_success(self, mock_mongo_client):
+        """Test storing config suggestions successfully"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "config_id_123"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        suggestions = {
+            "strategy_changes": {"rsi_period": 14, "macd_fast": 12},
+            "risk_changes": {"max_daily_loss": 0.05},
+            "confidence": 0.85,
+        }
+
+        result = storage.store_config_suggestions(suggestions)
+
+        assert result == "config_id_123"
+        mock_collection.insert_one.assert_called_once()
+        # Verify created_at is added
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert "created_at" in document
+        assert document["strategy_changes"]["rsi_period"] == 14
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_config_suggestions_not_connected(self, mock_mongo_client):
+        """Test storing config suggestions when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        result = storage.store_config_suggestions({"test": "data"})
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_config_suggestions_insert_failure(self, mock_mongo_client):
+        """Test handling insert failure for config suggestions"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.insert_one.side_effect = Exception("Insert failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        result = storage.store_config_suggestions({"test": "data"})
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_config_suggestions_history_success(self, mock_mongo_client):
+        """Test retrieving config suggestions history"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = [
+            {"strategy_changes": {"rsi_period": 14}, "created_at": datetime.utcnow()},
+            {"strategy_changes": {"rsi_period": 12}, "created_at": datetime.utcnow()},
+        ]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_config_suggestions_history(days=30, limit=50)
+
+        assert len(history) == 2
+        mock_collection.find.assert_called_once()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_config_suggestions_history_not_connected(self, mock_mongo_client):
+        """Test retrieving config suggestions when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        history = storage.get_config_suggestions_history()
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_config_suggestions_history_query_failure(self, mock_mongo_client):
+        """Test handling query failure for config suggestions"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_config_suggestions_history()
+
+        assert history == []
+
+
+@pytest.mark.unit
+class TestTradeAnalysisStorage:
+    """Test trade analysis storage methods"""
+
+    def setup_method(self):
+        """Reset singleton before each test"""
+        DataStorage.reset_instance()
+
+    def teardown_method(self):
+        """Reset singleton after each test"""
+        DataStorage.reset_instance()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_trade_analysis_success(self, mock_mongo_client):
+        """Test storing trade analysis successfully"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "analysis_id_123"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trade_data = {
+            "symbol": "BTCUSDT",
+            "trade_type": "LONG",
+            "entry_price": 50000,
+            "exit_price": 51000,
+            "pnl": 100.0,
+            "pnl_percentage": 2.0,
+            "close_reason": "take_profit",
+        }
+        analysis = {
+            "quality_score": 85,
+            "reasoning": "Good entry, proper risk management",
+            "suggestions": ["Consider tighter stop loss"],
+        }
+
+        result = storage.store_trade_analysis("trade_123", trade_data, analysis)
+
+        assert result == "analysis_id_123"
+        mock_collection.insert_one.assert_called_once()
+
+        # Verify document structure
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert document["trade_id"] == "trade_123"
+        assert document["is_winning"] is True
+        assert document["pnl_usdt"] == 100.0
+        assert document["symbol"] == "BTCUSDT"
+        assert document["side"] == "LONG"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_trade_analysis_losing_trade(self, mock_mongo_client):
+        """Test storing trade analysis for losing trade"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_result = MagicMock()
+        mock_result.inserted_id = "analysis_id_456"
+        mock_collection.insert_one.return_value = mock_result
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trade_data = {
+            "symbol": "ETHUSDT",
+            "side": "SHORT",  # Test legacy field name
+            "entry_price": 3000,
+            "exit_price": 3100,
+            "pnl_usdt": -50.0,  # Test legacy pnl field
+            "pnl_percentage": -1.67,
+            "close_reason": "stop_loss",
+        }
+        analysis = {"quality_score": 60, "reasoning": "Entry timing was off"}
+
+        result = storage.store_trade_analysis("trade_456", trade_data, analysis)
+
+        assert result == "analysis_id_456"
+        call_args = mock_collection.insert_one.call_args
+        document = call_args[0][0]
+        assert document["is_winning"] is False
+        assert document["pnl_usdt"] == -50.0
+        assert document["side"] == "SHORT"
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_trade_analysis_not_connected(self, mock_mongo_client):
+        """Test storing trade analysis when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        result = storage.store_trade_analysis("trade_123", {}, {})
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_store_trade_analysis_insert_failure(self, mock_mongo_client):
+        """Test handling insert failure for trade analysis"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.insert_one.side_effect = Exception("Insert failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        result = storage.store_trade_analysis("trade_123", {}, {})
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analysis_success(self, mock_mongo_client):
+        """Test retrieving trade analysis by trade ID"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find_one.return_value = {
+            "trade_id": "trade_123",
+            "analysis": {"quality_score": 85},
+        }
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        result = storage.get_trade_analysis("trade_123")
+
+        assert result is not None
+        assert result["trade_id"] == "trade_123"
+        mock_collection.find_one.assert_called_once_with({"trade_id": "trade_123"})
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analysis_not_found(self, mock_mongo_client):
+        """Test retrieving non-existent trade analysis"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find_one.return_value = None
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        result = storage.get_trade_analysis("nonexistent_trade")
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analysis_not_connected(self, mock_mongo_client):
+        """Test retrieving trade analysis when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        result = storage.get_trade_analysis("trade_123")
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analysis_query_failure(self, mock_mongo_client):
+        """Test handling query failure for trade analysis"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find_one.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        result = storage.get_trade_analysis("trade_123")
+
+        assert result is None
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analyses_history_success(self, mock_mongo_client):
+        """Test retrieving trade analyses history"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = [
+            {"trade_id": "trade_1", "is_winning": True, "pnl_usdt": 100},
+            {"trade_id": "trade_2", "is_winning": False, "pnl_usdt": -50},
+        ]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_trade_analyses_history(days=30, limit=100)
+
+        assert len(history) == 2
+        mock_collection.find.assert_called_once()
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analyses_history_only_losing(self, mock_mongo_client):
+        """Test retrieving only losing trade analyses"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = [
+            {"trade_id": "trade_2", "is_winning": False, "pnl_usdt": -50},
+        ]
+        mock_collection.find.return_value = mock_cursor
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_trade_analyses_history(days=30, limit=100, only_losing=True)
+
+        assert len(history) == 1
+        # Verify only_losing filter is applied
+        call_args = mock_collection.find.call_args
+        query = call_args[0][0]
+        assert query.get("is_winning") is False
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analyses_history_not_connected(self, mock_mongo_client):
+        """Test retrieving history when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        history = storage.get_trade_analyses_history()
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_trade_analyses_history_query_failure(self, mock_mongo_client):
+        """Test handling query failure for trade analyses history"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.find.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        history = storage.get_trade_analyses_history()
+
+        assert history == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_unanalyzed_trade_ids_success(self, mock_mongo_client):
+        """Test getting unanalyzed trade IDs"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        # Mock already analyzed trades
+        mock_collection.distinct.return_value = ["trade_1", "trade_3"]
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trade_ids = ["trade_1", "trade_2", "trade_3", "trade_4"]
+        unanalyzed = storage.get_unanalyzed_trade_ids(trade_ids)
+
+        assert "trade_2" in unanalyzed
+        assert "trade_4" in unanalyzed
+        assert "trade_1" not in unanalyzed
+        assert "trade_3" not in unanalyzed
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_unanalyzed_trade_ids_empty_input(self, mock_mongo_client):
+        """Test get_unanalyzed_trade_ids with empty input"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        unanalyzed = storage.get_unanalyzed_trade_ids([])
+
+        assert unanalyzed == []
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_unanalyzed_trade_ids_not_connected(self, mock_mongo_client):
+        """Test get_unanalyzed_trade_ids when not connected"""
+        mock_mongo_client.side_effect = Exception("Connection failed")
+
+        storage = DataStorage()
+        trade_ids = ["trade_1", "trade_2"]
+        unanalyzed = storage.get_unanalyzed_trade_ids(trade_ids)
+
+        # Should return original list when not connected
+        assert unanalyzed == trade_ids
+
+    @patch("utils.data_storage.MongoClient")
+    def test_get_unanalyzed_trade_ids_query_failure(self, mock_mongo_client):
+        """Test handling query failure for unanalyzed trade IDs"""
+        mock_client = MagicMock()
+        mock_client.server_info.return_value = {}
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_collection.distinct.side_effect = Exception("Query failed")
+        mock_db.__getitem__.return_value = mock_collection
+        mock_client.__getitem__.return_value = mock_db
+        mock_mongo_client.return_value = mock_client
+
+        storage = DataStorage()
+        trade_ids = ["trade_1", "trade_2"]
+        unanalyzed = storage.get_unanalyzed_trade_ids(trade_ids)
+
+        # Should return original list on error
+        assert unanalyzed == trade_ids
