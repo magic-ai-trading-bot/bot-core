@@ -3852,9 +3852,10 @@ mod tests {
     // ========== SIGNAL REVERSAL TESTS ==========
 
     #[tokio::test]
-    async fn test_reversal_disabled_by_default() {
+    async fn test_reversal_enabled_by_default() {
+        // Signal reversal is now ENABLED by default for better trade management
         let settings = PaperTradingSettings::default();
-        assert!(!settings.risk.enable_signal_reversal);
+        assert!(settings.risk.enable_signal_reversal);
     }
 
     #[tokio::test]

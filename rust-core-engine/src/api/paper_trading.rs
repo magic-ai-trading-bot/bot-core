@@ -1220,7 +1220,12 @@ async fn get_trade_analyses(
     let only_losing = query.only_losing.unwrap_or(false);
     let limit = query.limit;
 
-    match api.engine.storage().get_trade_analyses(only_losing, limit).await {
+    match api
+        .engine
+        .storage()
+        .get_trade_analyses(only_losing, limit)
+        .await
+    {
         Ok(analyses) => {
             log::info!(
                 "📊 Retrieved {} trade analyses (only_losing: {})",
@@ -1247,7 +1252,12 @@ async fn get_trade_analysis_by_id(
     trade_id: String,
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
-    match api.engine.storage().get_trade_analysis_by_id(&trade_id).await {
+    match api
+        .engine
+        .storage()
+        .get_trade_analysis_by_id(&trade_id)
+        .await
+    {
         Ok(Some(analysis)) => {
             log::info!("📊 Retrieved trade analysis for trade_id: {}", trade_id);
             Ok(warp::reply::with_status(
@@ -1281,7 +1291,12 @@ async fn get_config_suggestions(
     query: ConfigSuggestionsQuery,
     api: Arc<PaperTradingApi>,
 ) -> Result<impl Reply, Rejection> {
-    match api.engine.storage().get_config_suggestions(query.limit).await {
+    match api
+        .engine
+        .storage()
+        .get_config_suggestions(query.limit)
+        .await
+    {
         Ok(suggestions) => {
             log::info!("📊 Retrieved {} config suggestions", suggestions.len());
             Ok(warp::reply::with_status(
@@ -1300,9 +1315,7 @@ async fn get_config_suggestions(
 }
 
 /// Get the latest GPT-4 config suggestion
-async fn get_latest_config_suggestion(
-    api: Arc<PaperTradingApi>,
-) -> Result<impl Reply, Rejection> {
+async fn get_latest_config_suggestion(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     match api.engine.storage().get_latest_config_suggestion().await {
         Ok(Some(suggestion)) => {
             log::info!("📊 Retrieved latest config suggestion");
@@ -1315,7 +1328,7 @@ async fn get_latest_config_suggestion(
             log::info!("📊 No config suggestions found");
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(
-                    "No config suggestions found".to_string()
+                    "No config suggestions found".to_string(),
                 )),
                 StatusCode::NOT_FOUND,
             ))
