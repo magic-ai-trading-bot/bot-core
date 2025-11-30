@@ -1,0 +1,123 @@
+# Bot Core - Simplified VPS Deployment (4GB RAM)
+# Only essential services, optimized for low memory
+
+services:
+  # MongoDB - Primary database
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-secure_password_123}
+      - MONGO_INITDB_DATABASE=bot_core
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Python AI Service
+  python-ai-service:
+    build:
+      context: ./python-ai-service
+      dockerfile: Dockerfile
+    container_name: python-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=mongodb://admin:${MONGO_ROOT_PASSWORD:-secure_password_123}@mongodb:27017/bot_core?authSource=admin
+      - RUST_API_URL=http://rust-core-engine:8080
+    volumes:
+      - ./python-ai-service/models:/app/models
+      - ./python-ai-service/logs:/app/logs
+      - ./python-ai-service/config.yaml:/app/config.yaml
+    networks:
+      - bot-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1"
+
+  # Rust Core Engine
+  rust-core-engine:
+    build:
+      context: ./rust-core-engine
+      dockerfile: Dockerfile
+    container_name: rust-core-engine
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - DATABASE_URL=mongodb://admin:${MONGO_ROOT_PASSWORD:-secure_password_123}@mongodb:27017/bot_core?authSource=admin
+      - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
+      - BINANCE_API_KEY=${BINANCE_API_KEY:-}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-}
+      - BINANCE_TESTNET=false
+      - TRADING_ENABLED=false
+    volumes:
+      - ./rust-core-engine/data:/app/data
+      - ./rust-core-engine/logs:/app/logs
+      - ./rust-core-engine/config.toml:/app/config.toml
+    networks:
+      - bot-network
+    depends_on:
+      - python-ai-service
+      - mongodb
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1"
+
+  # Next.js UI Dashboard
+  nextjs-ui-dashboard:
+    build:
+      context: ./nextjs-ui-dashboard
+      dockerfile: Dockerfile
+    container_name: nextjs-ui-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - VITE_RUST_API_URL=http://180.93.2.247:8080
+      - VITE_PYTHON_AI_URL=http://180.93.2.247:8000
+      - VITE_WS_URL=ws://180.93.2.247:8080/ws
+    networks:
+      - bot-network
+    depends_on:
+      - rust-core-engine
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+networks:
+  bot-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
