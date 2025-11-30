@@ -631,7 +631,7 @@ impl ApiServer {
 
                 match ai_service.analyze_for_trading_signal(&request.into(), strategy_context).await {
                     Ok(response) => {
-                        // Broadcast AI signal via WebSocket
+                        // Broadcast AI signal via WebSocket with FULL analysis data
                         let signal_message = serde_json::json!({
                             "type": "AISignalReceived",
                             "data": {
@@ -642,7 +642,23 @@ impl ApiServer {
                                 "model_type": "GPT-4",
                                 "timeframe": "1h",
                                 "reasoning": response.reasoning,
-                                "strategy_scores": response.strategy_scores
+                                "strategy_scores": response.strategy_scores,
+                                "market_analysis": {
+                                    "trend_direction": response.market_analysis.trend_direction,
+                                    "trend_strength": response.market_analysis.trend_strength,
+                                    "support_levels": response.market_analysis.support_levels,
+                                    "resistance_levels": response.market_analysis.resistance_levels,
+                                    "volatility_level": response.market_analysis.volatility_level,
+                                    "volume_analysis": response.market_analysis.volume_analysis
+                                },
+                                "risk_assessment": {
+                                    "overall_risk": response.risk_assessment.overall_risk,
+                                    "technical_risk": response.risk_assessment.technical_risk,
+                                    "market_risk": response.risk_assessment.market_risk,
+                                    "recommended_position_size": response.risk_assessment.recommended_position_size,
+                                    "stop_loss_suggestion": response.risk_assessment.stop_loss_suggestion,
+                                    "take_profit_suggestion": response.risk_assessment.take_profit_suggestion
+                                }
                             },
                             "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64
                         });
