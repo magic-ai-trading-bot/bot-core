@@ -162,6 +162,12 @@ app.conf.beat_schedule = {
         "schedule": crontab(minute=0),  # Every hour at minute 0
         "kwargs": {"force_analysis": True},  # Always run analysis
     },
+    # Analyze recent closed trades with GPT-4 (every 30 minutes)
+    "analyze-recent-trades": {
+        "task": "tasks.ai_improvement.analyze_recent_trades",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+        "kwargs": {"only_losing": False, "limit": 10},  # Analyze all trades, max 10 per run
+    },
 }
 
 # Task result ignore setting
