@@ -65,13 +65,13 @@ Please provide analysis in JSON format:
 
         try:
             response = client.chat.completions.create(
-                model='gpt-5-mini',
+                model='gpt-4o-mini',
                 messages=[
                     {'role': 'system', 'content': 'You are a professional crypto trading analyst. Analyze trades and provide actionable feedback. Always respond in valid JSON format.'},
                     {'role': 'user', 'content': prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1000
+                max_completion_tokens=1000
             )
 
             analysis_text = response.choices[0].message.content

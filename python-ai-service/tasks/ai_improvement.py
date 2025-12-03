@@ -186,7 +186,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
@@ -198,7 +198,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                     },
                 ],
                 temperature=0.3,  # Lower temperature for more consistent decisions
-                max_tokens=1000,
+                max_completion_tokens=1000,
             )
 
             gpt4_response = response.choices[0].message.content
@@ -521,7 +521,7 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
         logger.info("🤖 Calling GPT-4 for config analysis...")
 
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -533,7 +533,7 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
                 },
             ],
             temperature=0.3,
-            max_tokens=2000,
+            max_completion_tokens=2000,
         )
 
         gpt4_response = response.choices[0].message.content
@@ -845,7 +845,7 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
         # Call GPT-4
         logger.info(f"🤖 Calling GPT-4 to analyze trade {trade_id}...")
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -857,7 +857,7 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
                 },
             ],
             temperature=0.3,
-            max_tokens=1500,
+            max_completion_tokens=1500,
         )
 
         gpt4_response = response.choices[0].message.content
@@ -1340,7 +1340,7 @@ You are a CONSERVATIVE trading bot configuration optimizer.
         # Call GPT-4
         logger.info("🤖 Calling GPT-4 for config analysis...")
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -1349,7 +1349,7 @@ You are a CONSERVATIVE trading bot configuration optimizer.
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,
-            max_tokens=2000,
+            max_completion_tokens=2000,
         )
 
         gpt4_response = response.choices[0].message.content
