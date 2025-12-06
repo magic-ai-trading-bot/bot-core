@@ -497,9 +497,12 @@ const AddSymbolDialog: React.FC<{
           Add Symbol
         </PremiumButton>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="add-symbol-description">
         <DialogHeader>
           <DialogTitle>Add New Trading Symbol</DialogTitle>
+          <p id="add-symbol-description" className="sr-only">
+            Enter a cryptocurrency trading pair symbol to add it to your watchlist.
+          </p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -507,10 +510,9 @@ const AddSymbolDialog: React.FC<{
             <PremiumInput
               id="symbol"
               value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
+              onChange={setSymbol}
               placeholder="BTCUSDT, ETHUSDT, XRPUSDT..."
               className="mt-1"
-              autoFocus
             />
             <p className="text-xs text-muted-foreground mt-1">
               All timeframes (1m, 5m, 15m, 1h, 4h, 1d) will be loaded automatically

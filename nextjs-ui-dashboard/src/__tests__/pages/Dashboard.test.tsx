@@ -153,6 +153,58 @@ vi.mock('../../contexts/AuthContext', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
+vi.mock('../../contexts/TradingModeContext', () => ({
+  useTradingModeContext: () => ({
+    mode: 'paper',
+    setMode: vi.fn(),
+    isPaperMode: true,
+    isLiveMode: false,
+  }),
+  TradingModeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
+vi.mock('../../hooks/usePaperTrading', () => ({
+  usePaperTrading: () => ({
+    portfolio: {
+      current_balance: 10000,
+      available_balance: 9000,
+      equity: 10000,
+      total_pnl: 150,
+      total_pnl_percentage: 1.5,
+      total_trades: 10,
+      margin_used: 1000,
+      free_margin: 9000,
+      win_rate: 60,
+      average_win: 25,
+      average_loss: -15,
+      profit_factor: 1.67,
+      max_drawdown: 500,
+      max_drawdown_percentage: 5,
+      sharpe_ratio: 1.2,
+      win_streak: 3,
+      loss_streak: 1,
+      best_trade: 100,
+      worst_trade: -50,
+    },
+    positions: [],
+    openTrades: [],
+    closedTrades: [],
+    recentSignals: [],
+    isActive: true,
+    isLoading: false,
+    error: null,
+    lastUpdated: new Date(),
+    startTrading: vi.fn(),
+    stopTrading: vi.fn(),
+    updateSettings: vi.fn(),
+    resetPortfolio: vi.fn(),
+    closeTrade: vi.fn(),
+    refreshAISignals: vi.fn(),
+    refreshSettings: vi.fn(),
+    refreshData: vi.fn(),
+  }),
+}))
+
 vi.mock('../../contexts/PaperTradingContext', () => ({
   usePaperTradingContext: () => ({
     portfolio: {
@@ -216,9 +268,8 @@ describe('Dashboard', () => {
     render(<Dashboard />)
 
     await waitFor(() => {
-      expect(screen.getByText('Bot')).toBeInTheDocument()
-      expect(screen.getByText('Core')).toBeInTheDocument()
-      expect(screen.getByText('AI Trading')).toBeInTheDocument()
+      // Dashboard shows Paper Trading mode indicator
+      expect(screen.getByText('Paper Trading')).toBeInTheDocument()
     })
   })
 
@@ -308,8 +359,8 @@ describe('Dashboard', () => {
 
     // Dashboard uses WebSocket data from state
     await waitFor(() => {
-      expect(screen.getByText('Bot')).toBeInTheDocument()
-      expect(screen.getByText('Core')).toBeInTheDocument()
+      // Dashboard shows Paper Trading mode when WebSocket is connected
+      expect(screen.getByText('Paper Trading')).toBeInTheDocument()
     })
   })
 

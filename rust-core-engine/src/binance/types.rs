@@ -1256,6 +1256,7 @@ mod tests {
 
     #[test]
     fn test_order_response_with_fills() {
+        // Note: OrderResponse uses snake_case, but nested Fill uses camelCase
         let json = r#"{
             "symbol": "BTCUSDT",
             "order_id": 12345,
@@ -1275,8 +1276,8 @@ mod tests {
                     "price": "34000.00",
                     "qty": "0.01",
                     "commission": "0.00001",
-                    "commission_asset": "BTC",
-                    "trade_id": 1001
+                    "commissionAsset": "BTC",
+                    "tradeId": 1001
                 }
             ]
         }"#;
@@ -2176,12 +2177,13 @@ mod tests {
 
     #[test]
     fn test_fill_deserialization() {
+        // Note: Fill struct uses #[serde(rename_all = "camelCase")]
         let json = r#"{
             "price": "2500.00",
             "qty": "1.0",
             "commission": "0.001",
-            "commission_asset": "ETH",
-            "trade_id": 8888
+            "commissionAsset": "ETH",
+            "tradeId": 8888
         }"#;
 
         let fill: Fill = serde_json::from_str(json).unwrap();
