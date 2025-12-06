@@ -453,8 +453,9 @@ export function PremiumButton({
 // ============================================================================
 
 interface PremiumInputProps {
+  id?: string;
   label?: string;
-  value: string;
+  value: string | number;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: 'text' | 'email' | 'password' | 'number';
@@ -466,6 +467,7 @@ interface PremiumInputProps {
 }
 
 export function PremiumInput({
+  id,
   label,
   value,
   onChange,
@@ -505,6 +507,7 @@ export function PremiumInput({
           </span>
         )}
         <input
+          id={id}
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}

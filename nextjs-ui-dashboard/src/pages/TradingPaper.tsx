@@ -1422,12 +1422,12 @@ const TradingPaper = () => {
                       id="initial-balance"
                       type="number"
                       value={settingsForm.basic.initial_balance}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setSettingsForm((prev) => ({
                           ...prev,
                           basic: {
                             ...prev.basic,
-                            initial_balance: parseFloat(e.target.value) || 0,
+                            initial_balance: parseFloat(value) || 0,
                           },
                         }))
                       }
@@ -1439,12 +1439,12 @@ const TradingPaper = () => {
                       id="max-leverage"
                       type="number"
                       value={settingsForm.risk.max_leverage}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setSettingsForm((prev) => ({
                           ...prev,
                           risk: {
                             ...prev.risk,
-                            max_leverage: parseFloat(e.target.value) || 1,
+                            max_leverage: parseFloat(value) || 1,
                           },
                         }))
                       }
@@ -1456,13 +1456,13 @@ const TradingPaper = () => {
                       id="position-size"
                       type="number"
                       value={settingsForm.basic.default_position_size_pct}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setSettingsForm((prev) => ({
                           ...prev,
                           basic: {
                             ...prev.basic,
                             default_position_size_pct:
-                              parseFloat(e.target.value) || 0,
+                              parseFloat(value) || 0,
                           },
                         }))
                       }
@@ -1474,13 +1474,13 @@ const TradingPaper = () => {
                       id="stop-loss"
                       type="number"
                       value={settingsForm.risk.default_stop_loss_pct}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setSettingsForm((prev) => ({
                           ...prev,
                           risk: {
                             ...prev.risk,
                             default_stop_loss_pct:
-                              parseFloat(e.target.value) || 0,
+                              parseFloat(value) || 0,
                           },
                         }))
                       }
@@ -1494,13 +1494,13 @@ const TradingPaper = () => {
                       id="take-profit"
                       type="number"
                       value={settingsForm.risk.default_take_profit_pct}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setSettingsForm((prev) => ({
                           ...prev,
                           risk: {
                             ...prev.risk,
                             default_take_profit_pct:
-                              parseFloat(e.target.value) || 0,
+                              parseFloat(value) || 0,
                           },
                         }))
                       }
@@ -1512,12 +1512,12 @@ const TradingPaper = () => {
                       id="trading-fee"
                       type="number"
                       value={settingsForm.basic.trading_fee_rate}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setSettingsForm((prev) => ({
                           ...prev,
                           basic: {
                             ...prev.basic,
-                            trading_fee_rate: parseFloat(e.target.value) || 0,
+                            trading_fee_rate: parseFloat(value) || 0,
                           },
                         }))
                       }
@@ -1960,7 +1960,7 @@ const TradingPaper = () => {
                             type="checkbox"
                             id={`enabled-${symbol}`}
                             checked={config.enabled}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setSymbolSettings((prev) => ({
                                 ...prev,
                                 [symbol]: {
@@ -1984,12 +1984,12 @@ const TradingPaper = () => {
                             min="1"
                             max="50"
                             value={config.leverage}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setSymbolSettings((prev) => ({
                                 ...prev,
                                 [symbol]: {
                                   ...prev[symbol],
-                                  leverage: parseInt(e.target.value) || 1,
+                                  leverage: parseInt(value) || 1,
                                 },
                               }))
                             }
@@ -2006,13 +2006,13 @@ const TradingPaper = () => {
                             max="100"
                             step="0.1"
                             value={config.position_size_pct}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setSymbolSettings((prev) => ({
                                 ...prev,
                                 [symbol]: {
                                   ...prev[symbol],
                                   position_size_pct:
-                                    parseFloat(e.target.value) || 0,
+                                    parseFloat(value) || 0,
                                 },
                               }))
                             }
@@ -2028,12 +2028,12 @@ const TradingPaper = () => {
                             min="1"
                             max="10"
                             value={config.max_positions}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setSymbolSettings((prev) => ({
                                 ...prev,
                                 [symbol]: {
                                   ...prev[symbol],
-                                  max_positions: parseInt(e.target.value) || 1,
+                                  max_positions: parseInt(value) || 1,
                                 },
                               }))
                             }
@@ -2052,13 +2052,13 @@ const TradingPaper = () => {
                             max="50"
                             step="0.1"
                             value={config.stop_loss_pct}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setSymbolSettings((prev) => ({
                                 ...prev,
                                 [symbol]: {
                                   ...prev[symbol],
                                   stop_loss_pct:
-                                    parseFloat(e.target.value) || 0,
+                                    parseFloat(value) || 0,
                                 },
                               }))
                             }
@@ -2075,13 +2075,13 @@ const TradingPaper = () => {
                             max="100"
                             step="0.1"
                             value={config.take_profit_pct}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setSymbolSettings((prev) => ({
                                 ...prev,
                                 [symbol]: {
                                   ...prev[symbol],
                                   take_profit_pct:
-                                    parseFloat(e.target.value) || 0,
+                                    parseFloat(value) || 0,
                                 },
                               }))
                             }
