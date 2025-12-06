@@ -406,8 +406,8 @@ async fn test_order_response_parsing() {
                 "price": "45000.00",
                 "qty": "0.001",
                 "commission": "0.00001",
-                "commission_asset": "BTC",
-                "trade_id": 987654321
+                "commissionAsset": "BTC",
+                "tradeId": 987654321
             }
         ]
     });
@@ -1169,7 +1169,7 @@ async fn test_execution_report_filled_status() {
         "t": 987654321,
         "I": 111222333,
         "w": false,
-        "m": false,
+        "m": true,
         "M": true,
         "O": 1701234567000i64,
         "Z": "45.12345000",

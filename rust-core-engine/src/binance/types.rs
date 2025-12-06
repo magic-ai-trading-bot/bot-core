@@ -248,6 +248,7 @@ pub struct OrderResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Fill {
     pub price: String,
     pub qty: String,
@@ -608,7 +609,9 @@ pub struct ListenKeyResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionReport {
     /// Event type - always "executionReport"
-    #[serde(rename = "e")]
+    /// Note: When deserializing via UserDataEvent (internally tagged by "e"),
+    /// this field won't be present as serde consumes it for variant selection.
+    #[serde(rename = "e", default)]
     pub event_type: String,
     /// Event time
     #[serde(rename = "E")]
