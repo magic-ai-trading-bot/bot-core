@@ -24,6 +24,45 @@ pub struct CloseTradeRequest {
     pub reason: Option<String>,
 }
 
+/// Request to create a manual order
+/// @spec:FR-PAPER-003 - Manual Order Placement
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateOrderRequest {
+    /// Trading symbol (e.g., "BTCUSDT")
+    pub symbol: String,
+    /// Order side: "buy" or "sell" (maps to Long/Short)
+    pub side: String,
+    /// Order type: "market", "limit", "stop-limit"
+    pub order_type: String,
+    /// Quantity to trade
+    pub quantity: f64,
+    /// Price for limit orders (optional for market orders)
+    pub price: Option<f64>,
+    /// Stop price for stop-limit orders
+    pub stop_price: Option<f64>,
+    /// Leverage (1-125)
+    pub leverage: Option<u8>,
+    /// Stop loss percentage (optional)
+    pub stop_loss_pct: Option<f64>,
+    /// Take profit percentage (optional)
+    pub take_profit_pct: Option<f64>,
+}
+
+/// Response for create order
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateOrderResponse {
+    pub trade_id: String,
+    pub symbol: String,
+    pub side: String,
+    pub quantity: f64,
+    pub entry_price: f64,
+    pub leverage: u8,
+    pub stop_loss: Option<f64>,
+    pub take_profit: Option<f64>,
+    pub status: String,
+    pub message: String,
+}
+
 /// Strategy Settings for the frontend
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TradingStrategySettings {
@@ -181,6 +220,18 @@ pub struct TradeAnalysesQuery {
 /// @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigSuggestionsQuery {
+    pub limit: Option<i64>,
+}
+
+/// Query params for AI signals history with outcome tracking
+/// @spec:FR-AI-012 - Signal Outcome Tracking
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignalsHistoryQuery {
+    /// Filter by symbol (e.g., "BTCUSDT")
+    pub symbol: Option<String>,
+    /// Filter by outcome ("win", "loss", "pending")
+    pub outcome: Option<String>,
+    /// Limit number of results (default 100)
     pub limit: Option<i64>,
 }
 
@@ -400,6 +451,35 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(stop_engine);
 
+        // POST /api/paper-trading/orders
+        // @spec:FR-PAPER-003 - Manual Order Placement
+        let create_order_route = base_path
+            .and(warp::path("orders"))
+            .and(warp::path::end())
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(create_manual_order);
+
+        // GET /api/paper-trading/pending-orders
+        // @spec:FR-PAPER-003 - Stop-Limit Pending Orders List
+        let get_pending_orders_route = base_path
+            .and(warp::path("pending-orders"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_pending_orders);
+
+        // DELETE /api/paper-trading/pending-orders/{order_id}
+        // @spec:FR-PAPER-003 - Cancel Pending Order
+        let cancel_pending_order_route = base_path
+            .and(warp::path("pending-orders"))
+            .and(warp::path::param::<String>())
+            .and(warp::path::end())
+            .and(warp::delete())
+            .and(with_api(api.clone()))
+            .and_then(cancel_pending_order);
+
         // POST /api/paper-trading/trigger-analysis
         let trigger_analysis_route = base_path
             .and(warp::path("trigger-analysis"))
@@ -475,6 +555,17 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(get_latest_config_suggestion);
 
+        // GET /api/paper-trading/signals-history
+        // @spec:FR-AI-012 - Signal Outcome Tracking
+        // Returns AI signals with their outcomes (win/loss/pending)
+        let get_signals_history_route = base_path
+            .and(warp::path("signals-history"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(warp::query::<SignalsHistoryQuery>())
+            .and(with_api(api.clone()))
+            .and_then(get_signals_history);
+
         status_route
             .or(portfolio_route)
             .or(open_trades_route)
@@ -490,6 +581,10 @@ impl PaperTradingApi {
             .or(reset_route)
             .or(start_route)
             .or(stop_route)
+            // @spec:FR-PAPER-003 - Manual Order Placement & Stop-Limit Orders
+            .or(create_order_route)
+            .or(get_pending_orders_route)
+            .or(cancel_pending_order_route)
             .or(trigger_analysis_route)
             .or(update_signal_interval_route)
             // @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified indicator/signal settings
@@ -501,6 +596,8 @@ impl PaperTradingApi {
             .or(get_trade_analysis_by_id_route)
             .or(get_config_suggestions_route)
             .or(get_latest_config_suggestion_route)
+            // @spec:FR-AI-012 - Signal Outcome Tracking
+            .or(get_signals_history_route)
             .with(cors)
     }
 }
@@ -677,6 +774,172 @@ async fn stop_engine(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection>
             warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
             StatusCode::INTERNAL_SERVER_ERROR,
         )),
+    }
+}
+
+/// Create a manual order
+/// @spec:FR-PAPER-003 - Manual Order Placement
+async fn create_manual_order(
+    request: CreateOrderRequest,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    log::info!("Creating manual order: {:?}", request);
+
+    // Validate request
+    if request.quantity <= 0.0 {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Quantity must be positive".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    // Validate order type
+    let order_type = request.order_type.to_lowercase();
+    if !["market", "limit", "stop-limit"].contains(&order_type.as_str()) {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Invalid order type. Must be 'market', 'limit', or 'stop-limit'".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    // For limit and stop-limit orders, price is required
+    if (order_type == "limit" || order_type == "stop-limit") && request.price.is_none() {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Price is required for limit and stop-limit orders".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    // For stop-limit orders, stop_price is also required
+    if order_type == "stop-limit" && request.stop_price.is_none() {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Stop price is required for stop-limit orders".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    // Execute the manual order
+    let is_stop_limit = order_type == "stop-limit";
+    match api
+        .engine
+        .execute_manual_order(
+            request.symbol.clone(),
+            request.side.clone(),
+            request.order_type.clone(),
+            request.quantity,
+            request.price,
+            request.stop_price,
+            request.leverage,
+            request.stop_loss_pct,
+            request.take_profit_pct,
+        )
+        .await
+    {
+        Ok(result) => {
+            // For stop-limit orders, trade_id is the pending order ID and execution_price is None
+            let status = if !result.success {
+                "failed".to_string()
+            } else if is_stop_limit && result.execution_price.is_none() {
+                "pending".to_string()
+            } else {
+                "filled".to_string()
+            };
+
+            let message = if !result.success {
+                result
+                    .error_message
+                    .clone()
+                    .unwrap_or("Unknown error".to_string())
+            } else if is_stop_limit && result.execution_price.is_none() {
+                format!(
+                    "Stop-limit order created. Will trigger when price reaches {}",
+                    request.stop_price.unwrap_or(0.0)
+                )
+            } else {
+                "Order executed successfully".to_string()
+            };
+
+            let response = CreateOrderResponse {
+                trade_id: result.trade_id.unwrap_or_default(),
+                symbol: request.symbol,
+                side: request.side,
+                quantity: request.quantity,
+                entry_price: result.execution_price.unwrap_or(0.0),
+                leverage: request.leverage.unwrap_or(1),
+                stop_loss: None, // Will be set from trade details
+                take_profit: None,
+                status,
+                message,
+            };
+
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => {
+            log::error!("Failed to execute manual order: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::BAD_REQUEST,
+            ))
+        },
+    }
+}
+
+/// @spec:FR-PAPER-003 - Get all pending stop-limit orders
+async fn get_pending_orders(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
+    let orders = api.engine.get_pending_orders().await;
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(orders)),
+        StatusCode::OK,
+    ))
+}
+
+/// @spec:FR-PAPER-003 - Cancel a pending stop-limit order
+async fn cancel_pending_order(
+    order_id: String,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    log::info!("Cancelling pending order: {}", order_id);
+
+    match api.engine.cancel_pending_order(&order_id).await {
+        Ok(cancelled) => {
+            if cancelled {
+                Ok(warp::reply::with_status(
+                    warp::reply::json(&ApiResponse::success(serde_json::json!({
+                        "success": true,
+                        "order_id": order_id,
+                        "message": "Order cancelled successfully"
+                    }))),
+                    StatusCode::OK,
+                ))
+            } else {
+                Ok(warp::reply::with_status(
+                    warp::reply::json(&ApiResponse::<()>::error(format!(
+                        "Order {} not found or already processed",
+                        order_id
+                    ))),
+                    StatusCode::NOT_FOUND,
+                ))
+            }
+        },
+        Err(e) => {
+            log::error!("Failed to cancel order {}: {}", order_id, e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::BAD_REQUEST,
+            ))
+        },
     }
 }
 
@@ -1343,6 +1606,90 @@ async fn get_latest_config_suggestion(api: Arc<PaperTradingApi>) -> Result<impl 
     }
 }
 
+/// Get AI signals history with outcome tracking
+/// @spec:FR-AI-012 - Signal Outcome Tracking
+async fn get_signals_history(
+    query: SignalsHistoryQuery,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    let symbol = query.symbol.as_deref();
+    let limit = query.limit.unwrap_or(100);
+
+    match api
+        .engine
+        .storage()
+        .get_ai_signals_history(symbol, Some(limit))
+        .await
+    {
+        Ok(mut signals) => {
+            // Filter by outcome if specified
+            if let Some(outcome_filter) = &query.outcome {
+                signals.retain(|s| {
+                    s.outcome
+                        .as_ref()
+                        .map(|o| o == outcome_filter)
+                        .unwrap_or(false)
+                });
+            }
+
+            // Calculate stats from signals
+            let total_signals = signals.len();
+            let wins = signals
+                .iter()
+                .filter(|s| s.outcome.as_ref().map(|o| o == "win").unwrap_or(false))
+                .count();
+            let losses = signals
+                .iter()
+                .filter(|s| s.outcome.as_ref().map(|o| o == "loss").unwrap_or(false))
+                .count();
+            let pending = signals
+                .iter()
+                .filter(|s| {
+                    s.outcome.is_none()
+                        || s.outcome.as_ref().map(|o| o == "pending").unwrap_or(false)
+                })
+                .count();
+            let win_rate = if wins + losses > 0 {
+                (wins as f64 / (wins + losses) as f64) * 100.0
+            } else {
+                0.0
+            };
+            let total_pnl: f64 = signals.iter().filter_map(|s| s.actual_pnl).sum();
+
+            let response = serde_json::json!({
+                "signals": signals,
+                "stats": {
+                    "total": total_signals,
+                    "wins": wins,
+                    "losses": losses,
+                    "pending": pending,
+                    "win_rate": win_rate,
+                    "total_pnl": total_pnl,
+                }
+            });
+
+            log::info!(
+                "📊 Retrieved {} AI signals (wins: {}, losses: {}, pending: {})",
+                total_signals,
+                wins,
+                losses,
+                pending
+            );
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => {
+            log::error!("❌ Failed to get AI signals history: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1377,6 +1724,7 @@ mod tests {
             ws_url: "wss://testnet.binance.vision/ws".to_string(),
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+            trading_mode: crate::config::TradingMode::RealTestnet,
         };
         let binance_client =
             BinanceClient::new(binance_config).expect("Failed to create binance client");
@@ -2561,7 +2909,7 @@ mod tests {
         assert!(body.data.is_some());
 
         let symbols = body.data.unwrap();
-        assert!(symbols.len() > 0);
+        assert!(!symbols.is_empty());
     }
 
     #[tokio::test]

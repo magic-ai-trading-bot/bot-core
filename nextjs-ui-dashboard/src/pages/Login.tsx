@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logger from "@/utils/logger";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import ChatBot from "@/components/ChatBot";
 import { Logo } from "@/components/ui/Logo";
+import { motion } from "framer-motion";
+import { Mail, Lock, Sparkles, Shield, TrendingUp, Brain, CheckCircle2 } from "lucide-react";
+import {
+  luxuryColors,
+  GlassCard,
+  GradientText,
+  PremiumButton,
+  PremiumInput,
+  containerVariants,
+  itemVariants,
+  GlowIcon,
+} from "@/styles/luxury-design-system";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -28,169 +35,269 @@ const Login = () => {
     e.preventDefault();
 
     if (!email || !password) {
-      toast.error("Lỗi đăng nhập", {
-        description: "Vui lòng nhập email và mật khẩu",
+      toast.error("Login Error", {
+        description: "Please enter your email and password",
       });
       return;
     }
 
     try {
-      toast.loading("Đang đăng nhập...", { id: "login-loading" });
+      toast.loading("Signing in...", { id: "login-loading" });
 
       const success = await login(email, password);
 
       if (success) {
-        toast.success("Đăng nhập thành công", {
-          description: "Chào mừng trở lại với Trading Bot Dashboard!",
+        toast.success("Login Successful", {
+          description: "Welcome back to Trading Bot Dashboard!",
           id: "login-loading",
         });
         navigate("/dashboard", { replace: true });
       } else {
-        toast.error("Lỗi đăng nhập", {
-          description: error || "Thông tin đăng nhập không chính xác",
+        toast.error("Login Error", {
+          description: error || "Invalid credentials",
           id: "login-loading",
         });
       }
     } catch (err) {
       logger.error("Login error:", err);
-      toast.error("Lỗi đăng nhập", {
-        description: "Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.",
+      toast.error("Login Error", {
+        description: "An error occurred while signing in. Please try again.",
         id: "login-loading",
       });
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
-
-      <div className="relative z-10 w-full max-w-sm md:max-w-md">
-        {/* Logo/Brand */}
-        <div className="text-center mb-6 md:mb-8">
-          <div className="flex justify-center mb-4">
-            <Logo size="xl" showText={false} />
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold">
-            <span className="text-foreground">Bot</span>
-            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Core</span>
-          </h1>
-          <p className="text-muted-foreground mt-2 text-sm md:text-base">
-            Đăng nhập để quản lý bot trading của bạn
-          </p>
-        </div>
-
-        <Card className="shadow-2xl border-border/50 bg-card/80 backdrop-blur">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Đăng nhập</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="trader@botcore.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Mật khẩu</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Nhập mật khẩu của bạn"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-profit hover:bg-profit/90 text-profit-foreground"
-                disabled={loading}
-              >
-                {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-              </Button>
-            </form>
-
-            {/* Register Link */}
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Chưa có tài khoản?{" "}
-                <Link
-                  to="/register"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Đăng ký ngay
-                </Link>
-              </p>
-            </div>
-
-            {/* Demo Credentials */}
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border/50">
-              <p className="text-sm text-muted-foreground mb-2">
-                Demo credentials:
-              </p>
-              <div className="text-xs space-y-1">
-                <p>
-                  <strong>Email:</strong> trader@botcore.com
-                </p>
-                <p>
-                  <strong>Password:</strong> password123
-                </p>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('trader@botcore.com');
-                    setPassword('password123');
-                  }}
-                  className="flex-1 px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 rounded border border-primary/30 transition-colors"
-                >
-                  Use Trader
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('admin@botcore.com');
-                    setPassword('password123');
-                  }}
-                  className="flex-1 px-3 py-1.5 text-xs bg-accent/10 hover:bg-accent/20 rounded border border-accent/30 transition-colors"
-                >
-                  Use Admin
-                </button>
-              </div>
-            </div>
-
-            {/* Features Preview */}
-            <div className="mt-6 space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-profit rounded-full"></div>
-                <span>AI-Powered Trading Signals</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-info rounded-full"></div>
-                <span>Real-time Performance Analytics</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-warning rounded-full"></div>
-                <span>Advanced Risk Management</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center mt-6 text-sm text-muted-foreground">
-          <p>Bảo mật với mã hóa end-to-end và xác thực 2FA</p>
-        </div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ backgroundColor: luxuryColors.bgPrimary }}
+    >
+      {/* Premium Background Effects */}
+      <div className="absolute inset-0">
+        {/* Radial gradient glow */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse at center top, ${luxuryColors.cyan}15 0%, transparent 50%)`,
+          }}
+        />
+        {/* Grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(${luxuryColors.borderSubtle} 1px, transparent 1px), linear-gradient(90deg, ${luxuryColors.borderSubtle} 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+          }}
+        />
       </div>
+
+      <motion.div
+        className="relative z-10 w-full max-w-md"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        {/* Logo/Brand */}
+        <motion.div variants={itemVariants} className="text-center mb-8">
+          <div className="flex justify-center mb-6">
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <Logo size="xl" showText={false} />
+            </motion.div>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">
+            <span style={{ color: luxuryColors.textPrimary }}>Bot</span>
+            <GradientText className="ml-1">Core</GradientText>
+          </h1>
+          <p
+            className="text-sm tracking-wide"
+            style={{ color: luxuryColors.textMuted }}
+          >
+            AI-Powered Trading Intelligence Platform
+          </p>
+        </motion.div>
+
+        {/* Login Form Card */}
+        <GlassCard className="mb-6">
+          <div className="mb-6">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <GlowIcon icon={Sparkles} size="sm" />
+              <h2 className="text-xl font-black" style={{ color: luxuryColors.textPrimary }}>
+                Sign In
+              </h2>
+            </div>
+            <p
+              className="text-xs text-center tracking-wide"
+              style={{ color: luxuryColors.textMuted }}
+            >
+              Access your premium trading dashboard
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <PremiumInput
+              label="Email Address"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="trader@botcore.com"
+              prefix={<Mail className="w-4 h-4" />}
+            />
+
+            <PremiumInput
+              label="Password"
+              type="password"
+              value={password}
+              onChange={setPassword}
+              placeholder="Enter your password"
+              prefix={<Lock className="w-4 h-4" />}
+            />
+
+            <PremiumButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              disabled={loading}
+              loading={loading}
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </PremiumButton>
+          </form>
+
+          {/* Register Link */}
+          <motion.div variants={itemVariants} className="mt-6 text-center">
+            <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
+              Don't have an account?{" "}
+              <Link
+                to="/register"
+                className="font-bold hover:underline transition-colors"
+                style={{ color: luxuryColors.cyan }}
+              >
+                Sign up now
+              </Link>
+            </p>
+          </motion.div>
+
+          {/* Demo Credentials */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-6 p-4 rounded-xl"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              border: `1px solid ${luxuryColors.borderSubtle}`,
+            }}
+          >
+            <p
+              className="text-[10px] uppercase tracking-wider mb-3 font-bold"
+              style={{ color: luxuryColors.textMuted }}
+            >
+              Demo Credentials
+            </p>
+            <div className="space-y-2 text-xs mb-3">
+              <div className="flex justify-between items-center">
+                <span style={{ color: luxuryColors.textMuted }}>Email:</span>
+                <span className="font-mono" style={{ color: luxuryColors.textSecondary }}>
+                  trader@botcore.com
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span style={{ color: luxuryColors.textMuted }}>Password:</span>
+                <span className="font-mono" style={{ color: luxuryColors.textSecondary }}>
+                  password123
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <motion.button
+                type="button"
+                onClick={() => {
+                  setEmail('trader@botcore.com');
+                  setPassword('password123');
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-all"
+                style={{
+                  background: `rgba(${34}, ${197}, ${94}, 0.1)`,
+                  border: `1px solid rgba(${34}, ${197}, ${94}, 0.3)`,
+                  color: luxuryColors.profit,
+                }}
+              >
+                Use Trader
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@botcore.com');
+                  setPassword('password123');
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-all"
+                style={{
+                  background: `rgba(${139}, ${92}, ${246}, 0.1)`,
+                  border: `1px solid rgba(${139}, ${92}, ${246}, 0.3)`,
+                  color: luxuryColors.purple,
+                }}
+              >
+                Use Admin
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* Features Preview */}
+          <motion.div variants={itemVariants} className="mt-6 space-y-3">
+            <div className="flex items-center gap-3 text-xs">
+              <div className="flex-shrink-0">
+                <CheckCircle2 className="w-4 h-4" style={{ color: luxuryColors.profit }} />
+              </div>
+              <span style={{ color: luxuryColors.textSecondary }}>
+                AI-Powered Trading Signals
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs">
+              <div className="flex-shrink-0">
+                <CheckCircle2 className="w-4 h-4" style={{ color: luxuryColors.cyan }} />
+              </div>
+              <span style={{ color: luxuryColors.textSecondary }}>
+                Real-time Performance Analytics
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs">
+              <div className="flex-shrink-0">
+                <CheckCircle2 className="w-4 h-4" style={{ color: luxuryColors.purple }} />
+              </div>
+              <span style={{ color: luxuryColors.textSecondary }}>
+                Advanced Risk Management
+              </span>
+            </div>
+          </motion.div>
+        </GlassCard>
+
+        {/* Security Badge */}
+        <motion.div
+          variants={itemVariants}
+          className="text-center"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              border: `1px solid ${luxuryColors.borderSubtle}`,
+            }}
+          >
+            <Shield className="w-3 h-3" style={{ color: luxuryColors.cyan }} />
+            <span
+              className="text-[10px] uppercase tracking-wider font-bold"
+              style={{ color: luxuryColors.textMuted }}
+            >
+              Secured with E2E Encryption & 2FA
+            </span>
+          </div>
+        </motion.div>
+      </motion.div>
 
       {/* Chatbot Widget */}
       <ChatBot />

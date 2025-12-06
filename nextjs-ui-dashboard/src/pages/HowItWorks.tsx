@@ -1,26 +1,29 @@
 /**
- * How It Works Page - Professional Redesign
+ * How It Works Page - Luxury OLED Design
  *
- * Trang giải thích cách bot hoạt động với UI chuyên nghiệp
+ * Trang giải thích cách bot hoạt động với UI cao cấp OLED
  * Verified data against rust-core-engine/src/paper_trading/settings.rs
  */
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { useState, Fragment } from 'react';
+import { motion } from 'framer-motion';
+import {
+  luxuryColors,
+  GlassCard,
+  GradientText,
+  Badge,
+  GlowIcon,
+  SectionHeader,
+  containerVariants,
+  itemVariants,
+  Divider,
+} from '@/styles/luxury-design-system';
 import {
   Database,
   TrendingUp,
   Brain,
   Shield,
   CheckCircle,
-  ArrowRight,
   Zap,
   BarChart3,
   Activity,
@@ -39,15 +42,14 @@ import {
 } from 'lucide-react';
 
 const HowItWorks = () => {
-  const { user } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
 
   // Verified against rust-core-engine settings
   const stats = [
-    { value: '5', label: 'Strategies', icon: <BarChart3 className="h-5 w-5" /> },
-    { value: '7', label: 'Risk Layers', icon: <Shield className="h-5 w-5" /> },
-    { value: '24/7', label: 'Uptime', icon: <Clock className="h-5 w-5" /> },
-    { value: '72%', label: 'AI Accuracy', icon: <Brain className="h-5 w-5" /> },
+    { value: '5', label: 'Strategies', icon: BarChart3, color: luxuryColors.cyan },
+    { value: '7', label: 'Risk Layers', icon: Shield, color: luxuryColors.emerald },
+    { value: '24/7', label: 'Uptime', icon: Clock, color: luxuryColors.amber },
+    { value: '72%', label: 'AI Accuracy', icon: Brain, color: luxuryColors.purple },
   ];
 
   const steps = [
@@ -55,64 +57,56 @@ const HowItWorks = () => {
       number: 1,
       title: 'Data Collection',
       subtitle: 'Real-time Market Data',
-      icon: <Database className="h-6 w-6" />,
-      color: 'from-blue-500 to-cyan-500',
-      bgColor: 'bg-blue-500/10',
-      borderColor: 'border-blue-500/20',
+      icon: Database,
+      color: luxuryColors.cyan,
       description: 'Continuous streaming from Binance exchange',
       details: [
-        { icon: <Activity className="h-4 w-4" />, text: 'OHLC price data every second' },
-        { icon: <BarChart3 className="h-4 w-4" />, text: 'Volume & market depth analysis' },
-        { icon: <Clock className="h-4 w-4" />, text: '1h & 4h timeframe monitoring' },
-        { icon: <Zap className="h-4 w-4" />, text: 'WebSocket real-time updates' },
+        { icon: Activity, text: 'OHLC price data every second' },
+        { icon: BarChart3, text: 'Volume & market depth analysis' },
+        { icon: Clock, text: '1h & 4h timeframe monitoring' },
+        { icon: Zap, text: 'WebSocket real-time updates' },
       ]
     },
     {
       number: 2,
       title: 'Technical Analysis',
       subtitle: '5 Optimized Strategies',
-      icon: <LineChart className="h-6 w-6" />,
-      color: 'from-emerald-500 to-green-500',
-      bgColor: 'bg-emerald-500/10',
-      borderColor: 'border-emerald-500/20',
+      icon: LineChart,
+      color: luxuryColors.emerald,
       description: 'Multi-strategy analysis with AI enhancement',
       details: [
-        { icon: <TrendingUp className="h-4 w-4" />, text: 'RSI: Overbought/Oversold (65%)' },
-        { icon: <BarChart3 className="h-4 w-4" />, text: 'MACD: Trend & Momentum (61%)' },
-        { icon: <Activity className="h-4 w-4" />, text: 'Bollinger: Volatility (63%)' },
-        { icon: <Layers className="h-4 w-4" />, text: 'Volume & Stochastic (58-64%)' },
+        { icon: TrendingUp, text: 'RSI: Overbought/Oversold (65%)' },
+        { icon: BarChart3, text: 'MACD: Trend & Momentum (61%)' },
+        { icon: Activity, text: 'Bollinger: Volatility (63%)' },
+        { icon: Layers, text: 'Volume & Stochastic (58-64%)' },
       ]
     },
     {
       number: 3,
       title: 'Signal Generation',
       subtitle: 'AI-Powered Decisions',
-      icon: <Brain className="h-6 w-6" />,
-      color: 'from-violet-500 to-purple-500',
-      bgColor: 'bg-violet-500/10',
-      borderColor: 'border-violet-500/20',
+      icon: Brain,
+      color: luxuryColors.purple,
       description: 'Smart signal generation with multi-confirmation',
       details: [
-        { icon: <Target className="h-4 w-4" />, text: 'Requires 4/5 strategy agreement' },
-        { icon: <Percent className="h-4 w-4" />, text: '65-100% confidence threshold' },
-        { icon: <Clock className="h-4 w-4" />, text: '60-minute signal interval' },
-        { icon: <Sparkles className="h-4 w-4" />, text: 'Multi-timeframe validation' },
+        { icon: Target, text: 'Requires 4/5 strategy agreement' },
+        { icon: Percent, text: '65-100% confidence threshold' },
+        { icon: Clock, text: '60-minute signal interval' },
+        { icon: Sparkles, text: 'Multi-timeframe validation' },
       ]
     },
     {
       number: 4,
       title: 'Risk Management',
       subtitle: '7 Protection Layers',
-      icon: <Shield className="h-6 w-6" />,
-      color: 'from-rose-500 to-red-500',
-      bgColor: 'bg-rose-500/10',
-      borderColor: 'border-rose-500/20',
+      icon: Shield,
+      color: luxuryColors.rose,
       description: 'Comprehensive risk control before execution',
       details: [
-        { icon: <Lock className="h-4 w-4" />, text: 'Max 1% risk per trade' },
-        { icon: <AlertTriangle className="h-4 w-4" />, text: '5% stop loss mandatory' },
-        { icon: <Timer className="h-4 w-4" />, text: '60min cool-down after losses' },
-        { icon: <TrendingDown className="h-4 w-4" />, text: '3% daily loss limit' },
+        { icon: Lock, text: 'Max 1% risk per trade' },
+        { icon: AlertTriangle, text: '5% stop loss mandatory' },
+        { icon: Timer, text: '60min cool-down after losses' },
+        { icon: TrendingDown, text: '3% daily loss limit' },
       ]
     },
   ];
@@ -123,373 +117,537 @@ const HowItWorks = () => {
       name: 'RSI Strategy',
       winRate: 65,
       description: 'Relative Strength Index',
-      icon: <TrendingUp className="h-5 w-5" />,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
+      icon: TrendingUp,
+      color: luxuryColors.cyan,
       signals: { buy: 'RSI < 25', sell: 'RSI > 75' }
     },
     {
       name: 'MACD Strategy',
       winRate: 61,
       description: 'Moving Average Convergence',
-      icon: <BarChart3 className="h-5 w-5" />,
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-500/10',
+      icon: BarChart3,
+      color: luxuryColors.emerald,
       signals: { buy: 'MACD crosses up', sell: 'MACD crosses down' }
     },
     {
       name: 'Bollinger Bands',
       winRate: 63,
       description: 'Volatility & Breakouts',
-      icon: <Activity className="h-5 w-5" />,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-500/10',
+      icon: Activity,
+      color: luxuryColors.amber,
       signals: { buy: 'Touch lower band', sell: 'Touch upper band' }
     },
     {
       name: 'Volume Strategy',
       winRate: 58,
       description: 'Trend Strength Confirmation',
-      icon: <Layers className="h-5 w-5" />,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
+      icon: Layers,
+      color: luxuryColors.purple,
       signals: { buy: 'Volume spike + up', sell: 'Volume spike + down' }
     },
     {
       name: 'Stochastic',
       winRate: 64,
       description: 'Momentum Oscillator',
-      icon: <Target className="h-5 w-5" />,
-      color: 'text-pink-500',
-      bgColor: 'bg-pink-500/10',
+      icon: Target,
+      color: luxuryColors.rose,
       signals: { buy: '%K crosses %D < 15', sell: '%K crosses %D > 85' }
     },
   ];
 
   // Verified against settings.rs defaults
   const riskLayers = [
-    { layer: 1, name: 'Position Risk', value: '≤1%', desc: 'Max risk per trade', icon: <Percent className="h-4 w-4" /> },
-    { layer: 2, name: 'Stop Loss', value: '5%', desc: 'Mandatory stop loss', icon: <AlertTriangle className="h-4 w-4" /> },
-    { layer: 3, name: 'Portfolio Risk', value: '≤10%', desc: 'Total exposure limit', icon: <Layers className="h-4 w-4" /> },
-    { layer: 4, name: 'Daily Loss', value: '3%', desc: 'Daily loss limit', icon: <TrendingDown className="h-4 w-4" /> },
-    { layer: 5, name: 'Consecutive Losses', value: '3 max', desc: 'Before cool-down', icon: <Timer className="h-4 w-4" /> },
-    { layer: 6, name: 'Cool-Down', value: '60 min', desc: 'Rest period', icon: <Clock className="h-4 w-4" /> },
-    { layer: 7, name: 'Correlation', value: '70%', desc: 'Position diversity', icon: <Activity className="h-4 w-4" /> },
+    { layer: 1, name: 'Position Risk', value: '≤1%', desc: 'Max risk per trade', icon: Percent },
+    { layer: 2, name: 'Stop Loss', value: '5%', desc: 'Mandatory stop loss', icon: AlertTriangle },
+    { layer: 3, name: 'Portfolio Risk', value: '≤10%', desc: 'Total exposure limit', icon: Layers },
+    { layer: 4, name: 'Daily Loss', value: '3%', desc: 'Daily loss limit', icon: TrendingDown },
+    { layer: 5, name: 'Consecutive Losses', value: '3 max', desc: 'Before cool-down', icon: Timer },
+    { layer: 6, name: 'Cool-Down', value: '60 min', desc: 'Rest period', icon: Clock },
+    { layer: 7, name: 'Correlation', value: '70%', desc: 'Position diversity', icon: Activity },
   ];
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-background">
-        {user && <DashboardHeader />}
-
+      <div className="min-h-screen" style={{ backgroundColor: luxuryColors.bgPrimary }}>
         {/* Hero Section */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse at top, rgba(0, 217, 255, 0.1), transparent)',
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.08), transparent)',
+            }}
+          />
 
-          <div className="relative max-w-7xl mx-auto px-4 py-16 lg:py-24">
+          <motion.div
+            className="relative max-w-7xl mx-auto px-4 py-16 lg:py-24"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
             <div className="text-center space-y-6">
-              <Badge variant="outline" className="px-4 py-1.5 text-sm font-medium">
-                <Sparkles className="h-3.5 w-3.5 mr-2" />
-                AI-Powered Trading Bot
-              </Badge>
+              <motion.div variants={itemVariants} className="flex justify-center">
+                <Badge variant="info" glow>
+                  <Sparkles className="h-3 w-3 mr-1.5" />
+                  AI-POWERED TRADING BOT
+                </Badge>
+              </motion.div>
 
-              <h1 className="text-4xl lg:text-6xl font-bold tracking-tight">
+              <motion.h1
+                variants={itemVariants}
+                className="text-4xl lg:text-6xl font-black tracking-tight"
+                style={{ color: luxuryColors.textPrimary }}
+              >
                 Smart Trading,{' '}
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <GradientText className="text-4xl lg:text-6xl font-black">
                   Zero Emotion
-                </span>
-              </h1>
+                </GradientText>
+              </motion.h1>
 
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              <motion.p
+                variants={itemVariants}
+                className="text-lg lg:text-xl max-w-2xl mx-auto"
+                style={{ color: luxuryColors.textSecondary }}
+              >
                 Automated cryptocurrency trading with advanced AI analysis,
                 multi-strategy confirmation, and comprehensive risk management.
-              </p>
+              </motion.p>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto pt-8">
+              <motion.div
+                variants={containerVariants}
+                className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto pt-8"
+              >
                 {stats.map((stat, index) => (
-                  <Card key={index} className="bg-card/50 backdrop-blur border-border/50">
-                    <CardContent className="p-4 text-center">
-                      <div className="flex justify-center mb-2 text-primary">{stat.icon}</div>
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <div className="text-xs text-muted-foreground">{stat.label}</div>
-                    </CardContent>
-                  </Card>
+                  <GlassCard key={index} hoverable>
+                    <div className="text-center">
+                      <div className="flex justify-center mb-2">
+                        <GlowIcon icon={stat.icon} color={stat.color} size="md" />
+                      </div>
+                      <div
+                        className="text-2xl font-black mb-1"
+                        style={{ color: stat.color }}
+                      >
+                        {stat.value}
+                      </div>
+                      <div
+                        className="text-[10px] uppercase tracking-wider"
+                        style={{ color: luxuryColors.textMuted }}
+                      >
+                        {stat.label}
+                      </div>
+                    </div>
+                  </GlassCard>
                 ))}
-              </div>
+              </motion.div>
 
-              {!user && (
-                <div className="pt-6">
-                  <Link to="/register">
-                    <Button size="lg" className="gap-2">
-                      Start Paper Trading
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <p className="text-sm text-muted-foreground mt-3">
-                    Free $10,000 virtual balance • No credit card required
-                  </p>
-                </div>
-              )}
             </div>
-          </div>
+          </motion.div>
         </section>
 
-        <div className="max-w-7xl mx-auto px-4 pb-16 space-y-16">
+        <motion.div
+          className="max-w-7xl mx-auto px-4 pb-16 space-y-16"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
 
           {/* How It Works - 4 Steps */}
           <section>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-3">How It Works</h2>
-              <p className="text-muted-foreground">Four-step automated trading process</p>
-            </div>
+            <motion.div variants={itemVariants}>
+              <SectionHeader
+                title="How It Works"
+                subtitle="Four-step automated trading process"
+                icon={Zap}
+                gradient
+              />
+            </motion.div>
 
             {/* Step Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <motion.div
+              variants={containerVariants}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            >
               {steps.map((step, index) => (
-                <Card
+                <GlassCard
                   key={step.number}
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                    activeStep === index
-                      ? `ring-2 ring-primary shadow-lg ${step.bgColor}`
-                      : 'hover:border-primary/50'
-                  }`}
+                  hoverable
                   onClick={() => setActiveStep(index)}
+                  glowColor={activeStep === index ? `0 8px 32px ${step.color}30` : undefined}
+                  className={activeStep === index ? 'ring-2' : ''}
+                  style={{
+                    borderColor: activeStep === index ? step.color : undefined,
+                  }}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${step.color} text-white`}>
-                        {step.icon}
-                      </div>
-                      <div>
-                        <Badge variant="secondary" className="text-xs mb-1">Step {step.number}</Badge>
-                        <CardTitle className="text-base">{step.title}</CardTitle>
-                      </div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className="p-2.5 rounded-xl"
+                      style={{
+                        background: `${step.color}20`,
+                        border: `1px solid ${step.color}40`,
+                      }}
+                    >
+                      <step.icon className="h-5 w-5" style={{ color: step.color }} />
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{step.subtitle}</p>
-                  </CardContent>
-                </Card>
+                    <div className="flex-1">
+                      <Badge size="sm">STEP {step.number}</Badge>
+                      <h3
+                        className="text-sm font-bold mt-1"
+                        style={{ color: luxuryColors.textPrimary }}
+                      >
+                        {step.title}
+                      </h3>
+                    </div>
+                  </div>
+                  <p
+                    className="text-xs"
+                    style={{ color: luxuryColors.textSecondary }}
+                  >
+                    {step.subtitle}
+                  </p>
+                </GlassCard>
               ))}
-            </div>
+            </motion.div>
 
             {/* Step Details */}
-            <Card className={`${steps[activeStep].bgColor} ${steps[activeStep].borderColor} border-2`}>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-br ${steps[activeStep].color} text-white`}>
-                    {steps[activeStep].icon}
-                  </div>
+            <motion.div variants={itemVariants}>
+              <GlassCard
+                className="border-2"
+                style={{
+                  borderColor: steps[activeStep].color,
+                  backgroundColor: `${steps[activeStep].color}05`,
+                }}
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <GlowIcon
+                    icon={steps[activeStep].icon}
+                    color={steps[activeStep].color}
+                    size="lg"
+                  />
                   <div>
-                    <CardTitle className="text-xl">
+                    <h3
+                      className="text-xl font-black"
+                      style={{ color: steps[activeStep].color }}
+                    >
                       Step {steps[activeStep].number}: {steps[activeStep].title}
-                    </CardTitle>
-                    <CardDescription className="text-base mt-1">
+                    </h3>
+                    <p
+                      className="text-sm mt-1"
+                      style={{ color: luxuryColors.textSecondary }}
+                    >
                       {steps[activeStep].description}
-                    </CardDescription>
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {steps[activeStep].details.map((detail, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
-                      <div className="text-primary">{detail.icon}</div>
-                      <span className="text-sm">{detail.text}</span>
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 p-3 rounded-xl"
+                      style={{
+                        backgroundColor: luxuryColors.bgSecondary,
+                        border: `1px solid ${luxuryColors.borderSubtle}`,
+                      }}
+                    >
+                      <GlowIcon
+                        icon={detail.icon}
+                        color={steps[activeStep].color}
+                        size="sm"
+                      />
+                      <span
+                        className="text-sm"
+                        style={{ color: luxuryColors.textPrimary }}
+                      >
+                        {detail.text}
+                      </span>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCard>
+            </motion.div>
           </section>
 
           {/* Trading Strategies */}
           <section>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-3">Trading Strategies</h2>
-              <p className="text-muted-foreground">Five optimized strategies working in harmony</p>
-            </div>
+            <motion.div variants={itemVariants}>
+              <SectionHeader
+                title="Trading Strategies"
+                subtitle="Five optimized strategies working in harmony"
+                icon={LineChart}
+                gradient
+              />
+            </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <motion.div
+              variants={containerVariants}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
+            >
               {strategies.map((strategy) => (
-                <Card key={strategy.name} className="group hover:shadow-lg transition-all duration-300">
-                  <CardHeader className="pb-3">
-                    <div className={`w-12 h-12 rounded-xl ${strategy.bgColor} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                      <div className={strategy.color}>{strategy.icon}</div>
+                <GlassCard key={strategy.name} hoverable>
+                  <div className="flex justify-center mb-4">
+                    <motion.div
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: 'spring', stiffness: 300 }}
+                    >
+                      <GlowIcon icon={strategy.icon} color={strategy.color} size="lg" />
+                    </motion.div>
+                  </div>
+                  <h3
+                    className="text-sm font-black mb-1"
+                    style={{ color: luxuryColors.textPrimary }}
+                  >
+                    {strategy.name}
+                  </h3>
+                  <p
+                    className="text-[10px] mb-4"
+                    style={{ color: luxuryColors.textMuted }}
+                  >
+                    {strategy.description}
+                  </p>
+
+                  <div className="flex items-center justify-between mb-3">
+                    <span
+                      className="text-[10px] uppercase tracking-wider"
+                      style={{ color: luxuryColors.textMuted }}
+                    >
+                      Win Rate
+                    </span>
+                    <Badge variant="success" size="sm">
+                      {strategy.winRate}%
+                    </Badge>
+                  </div>
+
+                  <Divider className="mb-3" />
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: luxuryColors.emerald }}
+                      />
+                      <span style={{ color: luxuryColors.textMuted }}>Buy:</span>
+                      <span style={{ color: luxuryColors.textSecondary }}>
+                        {strategy.signals.buy}
+                      </span>
                     </div>
-                    <CardTitle className="text-base">{strategy.name}</CardTitle>
-                    <CardDescription className="text-xs">{strategy.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Win Rate</span>
-                      <Badge variant="secondary" className="font-mono">{strategy.winRate}%</Badge>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: luxuryColors.rose }}
+                      />
+                      <span style={{ color: luxuryColors.textMuted }}>Sell:</span>
+                      <span style={{ color: luxuryColors.textSecondary }}>
+                        {strategy.signals.sell}
+                      </span>
                     </div>
-                    <Separator />
-                    <div className="space-y-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span className="text-muted-foreground">Buy:</span>
-                        <span>{strategy.signals.buy}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                        <span className="text-muted-foreground">Sell:</span>
-                        <span>{strategy.signals.sell}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </GlassCard>
               ))}
-            </div>
+            </motion.div>
 
             {/* Strategy Note */}
-            <Card className="mt-6 bg-primary/5 border-primary/20">
-              <CardContent className="p-4">
+            <motion.div variants={itemVariants} className="mt-6">
+              <GlassCard
+                className="border"
+                style={{
+                  borderColor: `${luxuryColors.cyan}40`,
+                  backgroundColor: `${luxuryColors.cyan}08`,
+                }}
+              >
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5" />
+                  <CheckCircle className="h-5 w-5 mt-0.5" style={{ color: luxuryColors.cyan }} />
                   <div>
-                    <p className="font-medium">Multi-Confirmation Required</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-bold text-sm" style={{ color: luxuryColors.textPrimary }}>
+                      Multi-Confirmation Required
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: luxuryColors.textSecondary }}>
                       Trades are only executed when at least 4 out of 5 strategies agree on the signal direction,
                       ensuring high-quality trade entries.
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCard>
+            </motion.div>
           </section>
 
           {/* Risk Management */}
           <section>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-3">Risk Management</h2>
-              <p className="text-muted-foreground">Seven layers of protection for your capital</p>
-            </div>
+            <motion.div variants={itemVariants}>
+              <SectionHeader
+                title="Risk Management"
+                subtitle="Seven layers of protection for your capital"
+                icon={Shield}
+                gradient
+              />
+            </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div
+              variants={containerVariants}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            >
               {riskLayers.slice(0, 4).map((layer) => (
-                <Card key={layer.layer} className="relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-accent" />
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-xs">Layer {layer.layer}</Badge>
-                      <div className="text-primary">{layer.icon}</div>
+                <GlassCard key={layer.layer} hoverable className="relative overflow-hidden">
+                  <div
+                    className="absolute top-0 left-0 w-1 h-full"
+                    style={{
+                      background: luxuryColors.gradientPremium,
+                    }}
+                  />
+                  <div className="pl-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge size="sm">LAYER {layer.layer}</Badge>
+                      <GlowIcon icon={layer.icon} color={luxuryColors.emerald} size="sm" />
                     </div>
-                    <CardTitle className="text-base">{layer.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary mb-1">{layer.value}</div>
-                    <p className="text-xs text-muted-foreground">{layer.desc}</p>
-                  </CardContent>
-                </Card>
+                    <h3
+                      className="text-sm font-bold mb-2"
+                      style={{ color: luxuryColors.textPrimary }}
+                    >
+                      {layer.name}
+                    </h3>
+                    <div
+                      className="text-2xl font-black mb-1"
+                      style={{ color: luxuryColors.emerald }}
+                    >
+                      {layer.value}
+                    </div>
+                    <p
+                      className="text-[10px]"
+                      style={{ color: luxuryColors.textMuted }}
+                    >
+                      {layer.desc}
+                    </p>
+                  </div>
+                </GlassCard>
               ))}
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+            <motion.div
+              variants={containerVariants}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4"
+            >
               {riskLayers.slice(4).map((layer) => (
-                <Card key={layer.layer} className="relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-accent" />
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-primary">{layer.icon}</div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{layer.name}</span>
-                          <Badge variant="secondary" className="font-mono">{layer.value}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{layer.desc}</p>
+                <GlassCard key={layer.layer} hoverable className="relative overflow-hidden">
+                  <div
+                    className="absolute top-0 left-0 w-1 h-full"
+                    style={{
+                      background: luxuryColors.gradientPremium,
+                    }}
+                  />
+                  <div className="pl-3 flex items-center gap-4">
+                    <GlowIcon icon={layer.icon} color={luxuryColors.emerald} size="md" />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className="text-sm font-bold"
+                          style={{ color: luxuryColors.textPrimary }}
+                        >
+                          {layer.name}
+                        </span>
+                        <Badge variant="success" size="sm">
+                          {layer.value}
+                        </Badge>
                       </div>
+                      <p
+                        className="text-[10px]"
+                        style={{ color: luxuryColors.textMuted }}
+                      >
+                        {layer.desc}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </GlassCard>
               ))}
-            </div>
+            </motion.div>
           </section>
 
           {/* Trailing Stop Example */}
           <section>
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-green-500/10">
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-emerald-500" />
-                  Trailing Stop Protection
-                </CardTitle>
-                <CardDescription>
-                  Automatically locks in profits as price moves in your favor
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
-                  {[
-                    { label: 'Entry', value: '$45,000', color: 'bg-muted', icon: <Play className="h-4 w-4" /> },
-                    { label: '+5% Profit', value: '$47,250', color: 'bg-emerald-500/10 text-emerald-600', icon: <TrendingUp className="h-4 w-4" /> },
-                    { label: 'Trailing Active', value: '$45,832', color: 'bg-amber-500/10 text-amber-600', icon: <Zap className="h-4 w-4" /> },
-                    { label: 'Peak Price', value: '$48,000', color: 'bg-emerald-500/10 text-emerald-600', icon: <TrendingUp className="h-4 w-4" /> },
-                    { label: 'Exit', value: '$46,560', color: 'bg-emerald-500/20 text-emerald-600 ring-2 ring-emerald-500', icon: <CheckCircle className="h-4 w-4" /> },
-                  ].map((step, idx) => (
-                    <React.Fragment key={idx}>
-                      <div className={`p-4 rounded-xl text-center min-w-[100px] ${step.color}`}>
-                        <div className="flex justify-center mb-2">{step.icon}</div>
-                        <div className="text-lg font-bold">{step.value}</div>
-                        <div className="text-xs opacity-80">{step.label}</div>
-                      </div>
-                      {idx < 4 && <ChevronRight className="h-5 w-5 text-muted-foreground hidden md:block" />}
-                    </React.Fragment>
-                  ))}
+            <motion.div variants={itemVariants}>
+              <GlassCard className="overflow-hidden">
+                <div
+                  className="p-4 rounded-t-2xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${luxuryColors.emerald}15, ${luxuryColors.cyan}10)`,
+                  }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <GlowIcon icon={TrendingUp} color={luxuryColors.emerald} size="md" />
+                    <h3 className="text-lg font-black" style={{ color: luxuryColors.textPrimary }}>
+                      Trailing Stop Protection
+                    </h3>
+                  </div>
+                  <p className="text-xs" style={{ color: luxuryColors.textSecondary }}>
+                    Automatically locks in profits as price moves in your favor
+                  </p>
                 </div>
-                <div className="mt-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <div className="flex items-center gap-2 text-emerald-600">
-                    <CheckCircle className="h-5 w-5" />
-                    <span className="font-medium">
-                      Result: +3.47% profit ($1,560) protected even when price dropped from peak
-                    </span>
+
+                <div className="p-6">
+                  <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+                    {[
+                      { label: 'Entry', value: '$45,000', color: luxuryColors.textMuted, icon: Play },
+                      { label: '+5% Profit', value: '$47,250', color: luxuryColors.emerald, icon: TrendingUp },
+                      { label: 'Trailing Active', value: '$45,832', color: luxuryColors.amber, icon: Zap },
+                      { label: 'Peak Price', value: '$48,000', color: luxuryColors.emerald, icon: TrendingUp },
+                      { label: 'Exit', value: '$46,560', color: luxuryColors.emerald, icon: CheckCircle, highlight: true },
+                    ].map((step, idx) => (
+                      <Fragment key={idx}>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          className={`p-4 rounded-xl text-center min-w-[100px] ${step.highlight ? 'ring-2' : ''}`}
+                          style={{
+                            backgroundColor: `${step.color}15`,
+                            border: `1px solid ${step.color}30`,
+                            borderColor: step.highlight ? step.color : undefined,
+                          }}
+                        >
+                          <div className="flex justify-center mb-2">
+                            <step.icon className="h-4 w-4" style={{ color: step.color }} />
+                          </div>
+                          <div className="text-lg font-black" style={{ color: step.color }}>
+                            {step.value}
+                          </div>
+                          <div className="text-[10px]" style={{ color: luxuryColors.textMuted }}>
+                            {step.label}
+                          </div>
+                        </motion.div>
+                        {idx < 4 && (
+                          <ChevronRight
+                            className="h-5 w-5 hidden md:block"
+                            style={{ color: luxuryColors.textMuted }}
+                          />
+                        )}
+                      </Fragment>
+                    ))}
+                  </div>
+
+                  <div
+                    className="mt-6 p-4 rounded-xl"
+                    style={{
+                      backgroundColor: `${luxuryColors.emerald}15`,
+                      border: `1px solid ${luxuryColors.emerald}30`,
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5" style={{ color: luxuryColors.emerald }} />
+                      <span
+                        className="font-bold text-sm"
+                        style={{ color: luxuryColors.emerald }}
+                      >
+                        Result: +3.47% profit ($1,560) protected even when price dropped from peak
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCard>
+            </motion.div>
           </section>
 
-          {/* CTA Section */}
-          {!user && (
-            <section>
-              <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground overflow-hidden relative">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
-                <CardContent className="relative p-8 md:p-12 text-center">
-                  <h2 className="text-3xl font-bold mb-4">Ready to Start?</h2>
-                  <p className="text-lg opacity-90 max-w-xl mx-auto mb-8">
-                    Try paper trading with $10,000 virtual balance.
-                    Real market data, zero risk.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3 mb-6">
-                    <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                      100% Free
-                    </Badge>
-                    <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                      No KYC Required
-                    </Badge>
-                    <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                      Real Binance Data
-                    </Badge>
-                  </div>
-                  <Link to="/register">
-                    <Button size="lg" variant="secondary" className="gap-2">
-                      Create Free Account
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </section>
-          )}
-        </div>
+        </motion.div>
       </div>
-    </ErrorBoundary>
   );
 };
 

@@ -6,8 +6,7 @@ import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PremiumButton, PremiumInput } from "@/styles/luxury-design-system";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -198,14 +197,14 @@ const PositionRow = memo(({
         <div className="text-sm">{formatDate(new Date(trade.open_time))}</div>
       </TableCell>
       <TableCell>
-        <Button
-          variant="outline"
+        <PremiumButton
+          variant="secondary"
           size="sm"
           onClick={handleCloseClick}
           className="hover:bg-destructive hover:text-destructive-foreground"
         >
           Đóng
-        </Button>
+        </PremiumButton>
       </TableCell>
     </TableRow>
   );
@@ -744,9 +743,9 @@ const TradingPaper = () => {
                   ></div>
                   {isActive ? "Đang hoạt động" : "Tạm dừng"}
                 </Badge>
-                <Button
+                <PremiumButton
                   onClick={() => togglePaperTrading(!isActive)}
-                  variant={isActive ? "destructive" : "default"}
+                  variant={isActive ? "danger" : "primary"}
                   size="sm"
                   disabled={isLoading}
                 >
@@ -758,10 +757,10 @@ const TradingPaper = () => {
                     <Play className="h-4 w-4 mr-2" />
                   )}
                   {isActive ? "Dừng Bot" : "Khởi động Bot"}
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   onClick={fetchAISignals}
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   disabled={isLoading}
                 >
@@ -771,7 +770,7 @@ const TradingPaper = () => {
                     }`}
                   />
                   Cập nhật
-                </Button>
+                </PremiumButton>
               </div>
             </div>
           </div>
@@ -782,9 +781,9 @@ const TradingPaper = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>{error}</span>
-              <Button variant="ghost" size="sm" onClick={clearError}>
+              <PremiumButton variant="ghost" size="sm" onClick={clearError}>
                 <X className="h-4 w-4" />
-              </Button>
+              </PremiumButton>
             </AlertDescription>
           </Alert>
         )}
@@ -1419,7 +1418,7 @@ const TradingPaper = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="initial-balance">Vốn ban đầu (USDT)</Label>
-                    <Input
+                    <PremiumInput
                       id="initial-balance"
                       type="number"
                       value={settingsForm.basic.initial_balance}
@@ -1436,7 +1435,7 @@ const TradingPaper = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="max-leverage">Đòn bẩy tối đa</Label>
-                    <Input
+                    <PremiumInput
                       id="max-leverage"
                       type="number"
                       value={settingsForm.risk.max_leverage}
@@ -1453,7 +1452,7 @@ const TradingPaper = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="position-size">Kích thước vị thế (%)</Label>
-                    <Input
+                    <PremiumInput
                       id="position-size"
                       type="number"
                       value={settingsForm.basic.default_position_size_pct}
@@ -1471,7 +1470,7 @@ const TradingPaper = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="stop-loss">Stop Loss mặc định (%)</Label>
-                    <Input
+                    <PremiumInput
                       id="stop-loss"
                       type="number"
                       value={settingsForm.risk.default_stop_loss_pct}
@@ -1491,7 +1490,7 @@ const TradingPaper = () => {
                     <Label htmlFor="take-profit">
                       Take Profit mặc định (%)
                     </Label>
-                    <Input
+                    <PremiumInput
                       id="take-profit"
                       type="number"
                       value={settingsForm.risk.default_take_profit_pct}
@@ -1509,7 +1508,7 @@ const TradingPaper = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="trading-fee">Phí giao dịch (%)</Label>
-                    <Input
+                    <PremiumInput
                       id="trading-fee"
                       type="number"
                       value={settingsForm.basic.trading_fee_rate}
@@ -1526,21 +1525,21 @@ const TradingPaper = () => {
                   </div>
                 </div>
                 <div className="flex gap-4 pt-4">
-                  <Button
+                  <PremiumButton
                     onClick={handleSettingsSubmit}
                     className="flex-1"
                     disabled={isLoading}
                   >
                     {isLoading ? "Đang lưu..." : "Lưu cài đặt"}
-                  </Button>
-                  <Button
-                    variant="outline"
+                  </PremiumButton>
+                  <PremiumButton
+                    variant="secondary"
                     onClick={() => setShowReset(true)}
                     className="flex-1"
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset dữ liệu
-                  </Button>
+                  </PremiumButton>
                 </div>
                 {showReset && (
                   <Alert>
@@ -1551,20 +1550,20 @@ const TradingPaper = () => {
                           Xác nhận reset toàn bộ dữ liệu paper trading?
                         </span>
                         <div className="flex gap-2">
-                          <Button
-                            variant="destructive"
+                          <PremiumButton
+                            variant="danger"
                             size="sm"
                             onClick={handleReset}
                           >
                             Xác nhận
-                          </Button>
-                          <Button
-                            variant="outline"
+                          </PremiumButton>
+                          <PremiumButton
+                            variant="secondary"
                             size="sm"
                             onClick={() => setShowReset(false)}
                           >
                             Hủy
-                          </Button>
+                          </PremiumButton>
                         </div>
                       </div>
                     </AlertDescription>
@@ -1599,14 +1598,14 @@ const TradingPaper = () => {
                 </p>
               </CardHeader>
               <CardContent>
-                <Button
+                <PremiumButton
                   onClick={() => setShowSymbolDialog(true)}
-                  variant="outline"
+                  variant="secondary"
                   className="w-full"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Mở cài đặt Symbols
-                </Button>
+                </PremiumButton>
               </CardContent>
             </Card>
 
@@ -1892,8 +1891,8 @@ const TradingPaper = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  variant="destructive"
+                <PremiumButton
+                  variant="danger"
                   className="flex-1"
                   onClick={() => {
                     closeTrade(selectedTrade.id);
@@ -1903,14 +1902,14 @@ const TradingPaper = () => {
                 >
                   <X className="w-4 h-4 mr-2" />
                   Đóng vị thế
-                </Button>
-                <Button
-                  variant="outline"
+                </PremiumButton>
+                <PremiumButton
+                  variant="secondary"
                   className="flex-1"
                   onClick={() => setIsTradeDetailOpen(false)}
                 >
                   Đóng popup
-                </Button>
+                </PremiumButton>
               </div>
             </div>
           )}
@@ -1979,7 +1978,7 @@ const TradingPaper = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor={`leverage-${symbol}`}>Đòn bẩy</Label>
-                          <Input
+                          <PremiumInput
                             id={`leverage-${symbol}`}
                             type="number"
                             min="1"
@@ -2000,7 +1999,7 @@ const TradingPaper = () => {
                           <Label htmlFor={`position-size-${symbol}`}>
                             Kích thước vị thế (%)
                           </Label>
-                          <Input
+                          <PremiumInput
                             id={`position-size-${symbol}`}
                             type="number"
                             min="0.1"
@@ -2023,7 +2022,7 @@ const TradingPaper = () => {
                           <Label htmlFor={`max-positions-${symbol}`}>
                             Số vị thế tối đa
                           </Label>
-                          <Input
+                          <PremiumInput
                             id={`max-positions-${symbol}`}
                             type="number"
                             min="1"
@@ -2046,7 +2045,7 @@ const TradingPaper = () => {
                           <Label htmlFor={`stop-loss-${symbol}`}>
                             Stop Loss (%)
                           </Label>
-                          <Input
+                          <PremiumInput
                             id={`stop-loss-${symbol}`}
                             type="number"
                             min="0.1"
@@ -2069,7 +2068,7 @@ const TradingPaper = () => {
                           <Label htmlFor={`take-profit-${symbol}`}>
                             Take Profit (%)
                           </Label>
-                          <Input
+                          <PremiumInput
                             id={`take-profit-${symbol}`}
                             type="number"
                             min="0.1"
@@ -2093,7 +2092,7 @@ const TradingPaper = () => {
                   </Card>
                 ))}
                 <div className="flex gap-4 pt-4">
-                  <Button
+                  <PremiumButton
                     onClick={updateSymbolSettings}
                     className="flex-1"
                     disabled={isLoadingSymbols}
@@ -2106,15 +2105,15 @@ const TradingPaper = () => {
                     ) : (
                       "Lưu cài đặt Symbols"
                     )}
-                  </Button>
-                  <Button
-                    variant="outline"
+                  </PremiumButton>
+                  <PremiumButton
+                    variant="secondary"
                     onClick={loadSymbolSettings}
                     disabled={isLoadingSymbols}
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Tải lại
-                  </Button>
+                  </PremiumButton>
                 </div>
               </>
             ) : (
@@ -2124,13 +2123,13 @@ const TradingPaper = () => {
                   <p className="text-muted-foreground">
                     Chưa có cài đặt symbols
                   </p>
-                  <Button
-                    variant="outline"
+                  <PremiumButton
+                    variant="secondary"
                     onClick={loadSymbolSettings}
                     className="mt-2"
                   >
                     Tải cài đặt
-                  </Button>
+                  </PremiumButton>
                 </div>
               </div>
             )}

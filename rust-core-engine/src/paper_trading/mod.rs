@@ -69,6 +69,87 @@ pub struct TradeExecutionResult {
     pub fees_paid: Option<f64>,
 }
 
+/// Order type for manual orders
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OrderType {
+    Market,
+    Limit,
+    StopLimit,
+}
+
+impl std::fmt::Display for OrderType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderType::Market => write!(f, "market"),
+            OrderType::Limit => write!(f, "limit"),
+            OrderType::StopLimit => write!(f, "stop-limit"),
+        }
+    }
+}
+
+/// Order status for pending orders
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OrderStatus {
+    /// Order is pending, waiting for stop price to be hit
+    Pending,
+    /// Stop price was hit, order is now active (for stop-limit)
+    Triggered,
+    /// Order has been fully executed
+    Filled,
+    /// Order was cancelled by user
+    Cancelled,
+    /// Order expired (if TTL was set)
+    Expired,
+}
+
+impl std::fmt::Display for OrderStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderStatus::Pending => write!(f, "pending"),
+            OrderStatus::Triggered => write!(f, "triggered"),
+            OrderStatus::Filled => write!(f, "filled"),
+            OrderStatus::Cancelled => write!(f, "cancelled"),
+            OrderStatus::Expired => write!(f, "expired"),
+        }
+    }
+}
+
+/// @spec:FR-PAPER-003 - Stop-Limit Order
+/// A pending order that waits for stop price to be hit before executing at limit price
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StopLimitOrder {
+    /// Unique order ID
+    pub id: String,
+    /// Trading symbol (e.g., "BTCUSDT")
+    pub symbol: String,
+    /// Order side: "buy" or "sell"
+    pub side: String,
+    /// Order type
+    pub order_type: OrderType,
+    /// Quantity to trade
+    pub quantity: f64,
+    /// Stop price - when market price hits this, order becomes active
+    pub stop_price: f64,
+    /// Limit price - the price at which order will be executed after triggered
+    pub limit_price: f64,
+    /// Leverage for the trade
+    pub leverage: u8,
+    /// Stop loss percentage (optional)
+    pub stop_loss_pct: Option<f64>,
+    /// Take profit percentage (optional)
+    pub take_profit_pct: Option<f64>,
+    /// Current order status
+    pub status: OrderStatus,
+    /// When the order was created
+    pub created_at: DateTime<Utc>,
+    /// When the order was triggered (if applicable)
+    pub triggered_at: Option<DateTime<Utc>>,
+    /// When the order was filled (if applicable)
+    pub filled_at: Option<DateTime<Utc>>,
+    /// Error message if order failed
+    pub error_message: Option<String>,
+}
+
 /// Portfolio performance summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceSummary {

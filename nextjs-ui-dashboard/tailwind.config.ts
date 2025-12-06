@@ -73,6 +73,21 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Paper/Real trading mode colors
+        paper: {
+          accent: "#0EA5E9",
+          badge: "#0284C7",
+          border: "#0EA5E9",
+          background: "#0EA5E9",
+          hover: "#38BDF8",
+        },
+        real: {
+          warning: "#EF4444",
+          banner: "#DC2626",
+          border: "#EF4444",
+          background: "#EF4444",
+          hover: "#F87171",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -96,10 +111,54 @@ export default {
             height: "0",
           },
         },
+        "number-change": {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.05)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "price-flash-green": {
+          "0%": { backgroundColor: "rgba(16, 185, 129, 0)" },
+          "50%": { backgroundColor: "rgba(16, 185, 129, 0.3)" },
+          "100%": { backgroundColor: "rgba(16, 185, 129, 0)" },
+        },
+        "price-flash-red": {
+          "0%": { backgroundColor: "rgba(239, 68, 68, 0)" },
+          "50%": { backgroundColor: "rgba(239, 68, 68, 0.3)" },
+          "100%": { backgroundColor: "rgba(239, 68, 68, 0)" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
+        "wave-slow": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        "wave-medium": {
+          "0%": { transform: "translateX(-100%) translateY(20px)" },
+          "100%": { transform: "translateX(100%) translateY(-20px)" },
+        },
+        "wave-fast": {
+          "0%": { transform: "translateX(-100%) translateY(-20px)" },
+          "100%": { transform: "translateX(100%) translateY(20px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "number-change": "number-change 0.3s ease-out",
+        "price-flash-green": "price-flash-green 0.5s ease-out",
+        "price-flash-red": "price-flash-red 0.5s ease-out",
+        "pulse-slow": "pulse-slow 3s ease-in-out infinite",
+        "wave-slow": "wave-slow 15s linear infinite",
+        "wave-medium": "wave-medium 12s linear infinite",
+        "wave-fast": "wave-fast 9s linear infinite",
+      },
+      backdropBlur: {
+        xs: "2px",
+      },
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
       },
     },
   },

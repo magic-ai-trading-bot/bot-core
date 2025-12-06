@@ -10,26 +10,34 @@ use warp::ws::{Message, WebSocket, Ws};
 use warp::{Filter, Reply};
 
 use crate::ai::AIService;
-use crate::auth::{AuthService, UserRepository};
-use crate::config::ApiConfig;
+use crate::auth::{AuthService, SecurityService, SessionRepository, UserRepository};
+use crate::config::{ApiConfig, BinanceConfig};
 use crate::market_data::MarketDataProcessor;
 use crate::monitoring::MonitoringService;
 use crate::paper_trading::PaperTradingEngine;
+use crate::real_trading::RealTradingEngine;
 use crate::storage::Storage;
 use crate::trading::TradingEngine;
 
+pub mod notifications;
 pub mod paper_trading;
+pub mod real_trading;
+pub mod settings;
 
 #[derive(Clone)]
 pub struct ApiServer {
     config: ApiConfig,
+    binance_config: BinanceConfig,
     market_data: MarketDataProcessor,
     trading_engine: TradingEngine,
     paper_trading_engine: Arc<PaperTradingEngine>,
+    real_trading_engine: Option<Arc<RealTradingEngine>>,
     monitoring: Arc<RwLock<MonitoringService>>,
     ws_broadcaster: broadcast::Sender<String>,
     auth_service: AuthService,
+    security_service: SecurityService,
     ai_service: AIService,
+    storage: Storage,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -74,21 +82,30 @@ impl<T> ApiResponse<T> {
 impl ApiServer {
     pub async fn new(
         config: ApiConfig,
+        binance_config: BinanceConfig,
         market_data: MarketDataProcessor,
         trading_engine: TradingEngine,
         paper_trading_engine: Arc<PaperTradingEngine>,
+        real_trading_engine: Option<Arc<RealTradingEngine>>,
         ws_broadcaster: broadcast::Sender<String>,
         storage: Storage,
     ) -> Result<Self> {
         // Initialize auth service - use dummy implementation if database is not available
-        let auth_service = if let Some(db) = storage.get_database() {
-            let user_repo = UserRepository::new(db).await?;
+        let (auth_service, security_service) = if let Some(db) = storage.get_database() {
+            let user_repo = UserRepository::new(&db).await?;
+            let session_repo = SessionRepository::new(&db).await?;
             let jwt_secret = std::env::var("JWT_SECRET")
                 .unwrap_or_else(|_| "default_jwt_secret_change_in_production".to_string());
-            AuthService::new(user_repo, jwt_secret)
+            let auth = AuthService::new(user_repo.clone(), jwt_secret.clone());
+            let security = SecurityService::new(
+                user_repo,
+                session_repo,
+                jwt_secret,
+            );
+            (auth, security)
         } else {
-            // Create a dummy auth service that returns errors for all operations
-            AuthService::new_dummy()
+            // Create dummy services that return errors for all operations
+            (AuthService::new_dummy(), SecurityService::new_dummy())
         };
 
         // Initialize AI service
@@ -105,13 +122,17 @@ impl ApiServer {
 
         Ok(Self {
             config,
+            binance_config,
             market_data,
             trading_engine,
             paper_trading_engine,
+            real_trading_engine,
             monitoring: Arc::new(RwLock::new(MonitoringService::new())),
             ws_broadcaster,
             auth_service,
+            security_service,
             ai_service,
+            storage,
         })
     }
 
@@ -162,6 +183,21 @@ impl ApiServer {
         let paper_trading =
             paper_trading::PaperTradingApi::new(self.paper_trading_engine.clone()).routes();
 
+        // Real trading routes - the API handles the None case internally
+        let real_trading =
+            real_trading::RealTradingApi::new(self.real_trading_engine.clone()).routes();
+
+        // Settings routes for API key management
+        let settings_routes =
+            settings::SettingsApi::new(self.storage.clone(), self.binance_config.clone()).routes();
+
+        // Notifications routes for user notification preferences
+        let notifications_routes =
+            notifications::NotificationsApi::new(self.storage.clone()).routes();
+
+        // Security routes for 2FA, sessions, password change
+        let security_routes = self.security_service.clone().routes();
+
         // Combine all routes
         let api_routes = health
             .or(market_data)
@@ -169,7 +205,11 @@ impl ApiServer {
             .or(monitoring)
             .or(ai_routes)
             .or(paper_trading)
-            .or(self.auth_service.clone().routes());
+            .or(real_trading)
+            .or(settings_routes)
+            .or(notifications_routes)
+            .or(self.auth_service.clone().routes())
+            .or(security_routes);
 
         let api = warp::path("api").and(api_routes);
 
@@ -1086,9 +1126,10 @@ mod tests {
 
     #[test]
     fn test_api_response_success_with_float() {
-        let response = ApiResponse::success(3.14159);
+        let test_value = 3.14159_f64;
+        let response = ApiResponse::success(test_value);
         assert!(response.success);
-        assert_eq!(response.data, Some(3.14159));
+        assert_eq!(response.data, Some(test_value));
     }
 
     #[test]

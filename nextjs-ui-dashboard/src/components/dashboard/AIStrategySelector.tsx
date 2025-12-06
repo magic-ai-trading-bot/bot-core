@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -1118,7 +1118,7 @@ export function AIStrategySelector() {
         )}
 
         {/* Analysis Button */}
-        <Button
+        <PremiumButton
           onClick={handleAnalyze}
           disabled={selectedStrategies.length === 0 || state.isLoading}
           className="w-full"
@@ -1126,7 +1126,7 @@ export function AIStrategySelector() {
           {state.isLoading
             ? "Analyzing..."
             : "Analyze with Selected Strategies"}
-        </Button>
+        </PremiumButton>
 
         {/* Selected Strategies Summary */}
         {selectedStrategies.length > 0 && (

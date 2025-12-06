@@ -444,8 +444,6 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
-      python-ai-service-dev:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "celery -A celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
       interval: 30s
@@ -495,8 +493,6 @@ services:
       rabbitmq:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      python-ai-service-dev:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'celery.*beat' || exit 1"]

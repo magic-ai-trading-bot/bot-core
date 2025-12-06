@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, LayoutDashboard, TrendingUp, Settings, LogOut, BookOpen, Brain } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,14 +49,14 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
+        <PremiumButton
           variant="ghost"
           size="sm"
           className="lg:hidden focus-custom"
           aria-label="Open navigation menu"
         >
           <Menu className="h-5 w-5" />
-        </Button>
+        </PremiumButton>
       </SheetTrigger>
       <SheetContent side="left" className="w-[280px] sm:w-[320px]">
         <SheetHeader>
@@ -101,8 +101,8 @@ export function MobileNav() {
 
           {/* Logout Button */}
           <div className="pt-4 border-t border-border">
-            <Button
-              variant="outline"
+            <PremiumButton
+              variant="secondary"
               className="w-full justify-start gap-3 focus-danger"
               onClick={() => {
                 handleLogout();
@@ -111,7 +111,7 @@ export function MobileNav() {
             >
               <LogOut className="h-5 w-5" aria-hidden="true" />
               <span>Đăng xuất</span>
-            </Button>
+            </PremiumButton>
           </div>
         </div>
       </SheetContent>

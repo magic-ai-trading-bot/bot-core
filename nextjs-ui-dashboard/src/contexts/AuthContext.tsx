@@ -23,6 +23,7 @@ interface AuthContextType {
     fullName?: string
   ) => Promise<boolean>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   loading: boolean;
   error: string | null;
 }
@@ -121,6 +122,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
   };
 
+  // Refresh user profile from server
+  // @spec:FR-AUTH-016 - Profile Refresh
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const userProfile = await apiClient.auth.getProfile();
+      setUser(userProfile);
+    } catch (error) {
+      logger.error("Failed to refresh user profile:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -129,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         register,
         logout,
+        refreshUser,
         loading,
         error,
       }}

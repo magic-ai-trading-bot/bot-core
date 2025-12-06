@@ -20,6 +20,51 @@ interface SimpleApiResponse {
   message: string;
 }
 
+// @spec:FR-PAPER-003 - Manual Order Placement
+export interface PlaceOrderRequest {
+  symbol: string;
+  side: "buy" | "sell";
+  order_type: "market" | "limit" | "stop-limit";
+  quantity: number;
+  price?: number;
+  stop_price?: number;
+  leverage?: number;
+  stop_loss_pct?: number;
+  take_profit_pct?: number;
+}
+
+// @spec:FR-PAPER-003 - Pending Stop-Limit Order
+export interface PendingOrder {
+  id: string;
+  symbol: string;
+  side: string;
+  order_type: string;
+  quantity: number;
+  stop_price: number;
+  limit_price: number;
+  leverage: number;
+  stop_loss_pct?: number;
+  take_profit_pct?: number;
+  status: "Pending" | "Triggered" | "Filled" | "Cancelled" | "Expired";
+  created_at: string;
+  triggered_at?: string;
+  filled_at?: string;
+  error_message?: string;
+}
+
+export interface PlaceOrderResponse {
+  trade_id: string;
+  symbol: string;
+  side: string;
+  quantity: number;
+  entry_price: number;
+  leverage: number;
+  stop_loss?: number;
+  take_profit?: number;
+  status: string;
+  message: string;
+}
+
 // Paper Trading Types - matching Rust backend
 export interface PaperTradingSettings {
   basic: {
@@ -115,6 +160,7 @@ export interface PaperTradingState {
   portfolio: PortfolioMetrics;
   openTrades: PaperTrade[];
   closedTrades: PaperTrade[];
+  pendingOrders: PendingOrder[];
   settings: PaperTradingSettings;
   recentSignals: AISignal[];
   isLoading: boolean;
@@ -175,6 +221,7 @@ export const usePaperTrading = () => {
     portfolio: defaultPortfolio,
     openTrades: [],
     closedTrades: [],
+    pendingOrders: [],
     settings: defaultSettings,
     recentSignals: [],
     isLoading: false,
@@ -193,6 +240,7 @@ export const usePaperTrading = () => {
   const fetchPortfolioStatusRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const fetchOpenTradesRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const fetchClosedTradesRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const fetchPendingOrdersRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const deduplicateSignalsRef = useRef<(signals: AISignal[]) => AISignal[]>((s) => s);
 
   // Fetch bot status to check if it's running
@@ -306,6 +354,74 @@ export const usePaperTrading = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API_BASE, fetchWithRetry]); // toast is stable, don't include in deps
 
+  // @spec:FR-PAPER-003 - Fetch Pending Stop-Limit Orders
+  const fetchPendingOrders = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/paper-trading/orders/pending`);
+      const data: RustPaperTradingResponse<PendingOrder[]> = await response.json();
+
+      if (data.success && data.data) {
+        setState((prev) => ({
+          ...prev,
+          pendingOrders: data.data!,
+        }));
+      }
+    } catch (error) {
+      logger.error("Failed to fetch pending orders:", error);
+    }
+  }, [API_BASE]);
+
+  // @spec:FR-PAPER-003 - Cancel Pending Stop-Limit Order
+  const cancelPendingOrder = useCallback(
+    async (orderId: string): Promise<boolean> => {
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        const response = await fetch(
+          `${API_BASE}/api/paper-trading/orders/${orderId}/cancel`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data: RustPaperTradingResponse<{ cancelled: boolean }> =
+          await response.json();
+
+        if (data.success && data.data?.cancelled) {
+          // Refresh pending orders after cancellation
+          await fetchPendingOrders();
+          setState((prev) => ({ ...prev, isLoading: false }));
+          toast({
+            title: "Order Cancelled",
+            description: `Pending order ${orderId.substring(0, 8)}... has been cancelled.`,
+          });
+          return true;
+        } else {
+          throw new Error(data.error || "Failed to cancel order");
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: errorMessage,
+        }));
+        logger.error("Failed to cancel pending order:", error);
+        toast({
+          title: "Cancel Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return false;
+      }
+    },
+    [API_BASE, fetchPendingOrders, toast]
+  );
+
   // Fetch current settings from backend
   const fetchCurrentSettings = useCallback(async () => {
     try {
@@ -365,6 +481,7 @@ export const usePaperTrading = () => {
   fetchPortfolioStatusRef.current = fetchPortfolioStatus;
   fetchOpenTradesRef.current = fetchOpenTrades;
   fetchClosedTradesRef.current = fetchClosedTrades;
+  fetchPendingOrdersRef.current = fetchPendingOrders;
   deduplicateSignalsRef.current = deduplicateSignals;
 
   // Manual fetch AI signals (for refresh button only)
@@ -674,6 +791,48 @@ export const usePaperTrading = () => {
     }
   }, [API_BASE, fetchPortfolioStatus, fetchOpenTrades, fetchClosedTrades]);
 
+  // @spec:FR-PAPER-003 - Manual Order Placement
+  // Place a manual order (buy/sell) through the backend API
+  const placeOrder = useCallback(
+    async (order: PlaceOrderRequest): Promise<PlaceOrderResponse | null> => {
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        const response = await fetch(`${API_BASE}/api/paper-trading/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(order),
+        });
+
+        const data: RustPaperTradingResponse<PlaceOrderResponse> =
+          await response.json();
+
+        if (data.success && data.data) {
+          // Refresh trades and portfolio after order placement
+          await fetchOpenTrades();
+          await fetchPortfolioStatus();
+          setState((prev) => ({ ...prev, isLoading: false }));
+          return data.data;
+        } else {
+          throw new Error(data.error || "Failed to place order");
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: errorMessage,
+        }));
+        logger.error("Failed to place order:", error);
+        return null;
+      }
+    },
+    [API_BASE, fetchOpenTrades, fetchPortfolioStatus]
+  );
+
   // Note: AI signals are now handled via WebSocket in real-time
   // The fetchAISignals function above provides manual refresh through the Rust API
 
@@ -683,6 +842,7 @@ export const usePaperTrading = () => {
     fetchBotStatus();
     fetchOpenTrades();
     fetchClosedTrades();
+    fetchPendingOrders();
     fetchCurrentSettings();
 
     // 🎯 FIXED: Fetch initial AI signals on load (with guard to prevent duplicates in Strict Mode)
@@ -818,6 +978,31 @@ export const usePaperTrading = () => {
             fetchClosedTradesRef.current();
             break;
 
+          // @spec:FR-PAPER-003 - Stop-Limit Order Events
+          case "stop_limit_created":
+            // New pending order created - refresh pending orders
+            fetchPendingOrdersRef.current();
+            break;
+
+          case "stop_limit_triggered":
+            // Stop price hit - order now active, refresh pending orders and trades
+            fetchPendingOrdersRef.current();
+            fetchOpenTradesRef.current();
+            fetchPortfolioStatusRef.current();
+            break;
+
+          case "stop_limit_filled":
+            // Order fully executed - refresh everything
+            fetchPendingOrdersRef.current();
+            fetchOpenTradesRef.current();
+            fetchPortfolioStatusRef.current();
+            break;
+
+          case "stop_limit_cancelled":
+            // Order cancelled - refresh pending orders
+            fetchPendingOrdersRef.current();
+            break;
+
           case "AISignalReceived":
             // Real-time AI signals
             if (data) {
@@ -888,12 +1073,15 @@ export const usePaperTrading = () => {
     closeTrade,
     updateSettings,
     resetPortfolio,
+    placeOrder,
+    cancelPendingOrder,
 
     // Manual refresh functions
     refreshData: fetchPortfolioStatus,
     refreshStatus: fetchBotStatus,
     refreshSettings: fetchCurrentSettings,
     refreshAISignals: fetchAISignals,
+    refreshPendingOrders: fetchPendingOrders,
     // fetchAISignalsFromAPI removed - use WebSocket for real-time signals
     refreshTrades: useCallback(async () => {
       await fetchOpenTrades();

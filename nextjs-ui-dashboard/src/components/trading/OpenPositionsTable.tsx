@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import {
   Table,
   TableBody,
@@ -223,8 +223,8 @@ export function OpenPositionsTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="outline"
+                  <PremiumButton
+                    variant="secondary"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -233,7 +233,7 @@ export function OpenPositionsTable({
                     className="hover:bg-destructive hover:text-destructive-foreground"
                   >
                     Đóng
-                  </Button>
+                  </PremiumButton>
                 </TableCell>
               </TableRow>
             ))}

@@ -1,9 +1,11 @@
 pub mod client;
 pub mod types;
+pub mod user_data_stream;
 pub mod websocket;
 
 pub use client::BinanceClient;
 pub use types::*;
+pub use user_data_stream::{UserDataStreamConfig, UserDataStreamEvent, UserDataStreamManager};
 pub use websocket::BinanceWebSocket;
 
 #[cfg(test)]
@@ -22,6 +24,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let _client = BinanceClient::new(config)?;
@@ -39,6 +42,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let (_ws, _receiver) = BinanceWebSocket::new(config);
@@ -55,6 +59,7 @@ mod tests {
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
             testnet: true,
+            trading_mode: crate::config::TradingMode::RealTestnet,
         };
 
         let _client = BinanceClient::new(config)?;
@@ -72,6 +77,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let (_ws, _receiver) = BinanceWebSocket::new(config);

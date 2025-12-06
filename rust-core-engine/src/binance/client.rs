@@ -387,6 +387,262 @@ impl BinanceClient {
         self.make_request(Method::GET, "/fapi/v1/fundingRate", Some(params), false)
             .await
     }
+
+    // ========================================================================
+    // SPOT ORDER METHODS (Phase 1: Real Trading)
+    // @spec:FR-REAL-001, FR-REAL-002, FR-REAL-003, FR-REAL-004, FR-REAL-005, FR-REAL-006
+    // @ref:plans/20251203-1353-binance-real-trading-system/phase-01-binance-order-api.md
+    // ========================================================================
+
+    /// Place a spot order (generic method)
+    pub async fn place_spot_order(&self, order: SpotOrderRequest) -> Result<SpotOrderResponse> {
+        let mut params = HashMap::new();
+
+        params.insert("symbol".to_string(), order.symbol);
+        params.insert("side".to_string(), order.side.to_string());
+        params.insert("type".to_string(), order.order_type.to_string());
+
+        if let Some(quantity) = order.quantity {
+            params.insert("quantity".to_string(), quantity);
+        }
+
+        if let Some(quote_order_qty) = order.quote_order_qty {
+            params.insert("quoteOrderQty".to_string(), quote_order_qty);
+        }
+
+        if let Some(price) = order.price {
+            params.insert("price".to_string(), price);
+        }
+
+        if let Some(stop_price) = order.stop_price {
+            params.insert("stopPrice".to_string(), stop_price);
+        }
+
+        if let Some(time_in_force) = order.time_in_force {
+            params.insert("timeInForce".to_string(), time_in_force.to_string());
+        }
+
+        if let Some(client_order_id) = order.client_order_id {
+            params.insert("newClientOrderId".to_string(), client_order_id);
+        }
+
+        if let Some(iceberg_qty) = order.iceberg_qty {
+            params.insert("icebergQty".to_string(), iceberg_qty);
+        }
+
+        if let Some(resp_type) = order.new_order_resp_type {
+            params.insert("newOrderRespType".to_string(), resp_type);
+        }
+
+        self.make_request(Method::POST, "/order", Some(params), true)
+            .await
+    }
+
+    /// Place a market order (convenience method)
+    /// @spec:FR-REAL-001
+    pub async fn place_market_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        quantity: &str,
+    ) -> Result<SpotOrderResponse> {
+        let order = SpotOrderRequest::market(symbol, side, quantity);
+        self.place_spot_order(order).await
+    }
+
+    /// Place a limit order (convenience method)
+    /// @spec:FR-REAL-002
+    pub async fn place_limit_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        quantity: &str,
+        price: &str,
+    ) -> Result<SpotOrderResponse> {
+        let order = SpotOrderRequest::limit(symbol, side, quantity, price);
+        self.place_spot_order(order).await
+    }
+
+    /// Place a stop loss limit order (convenience method)
+    /// @spec:FR-REAL-003
+    pub async fn place_stop_loss_limit_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        quantity: &str,
+        price: &str,
+        stop_price: &str,
+    ) -> Result<SpotOrderResponse> {
+        let order = SpotOrderRequest::stop_loss_limit(symbol, side, quantity, price, stop_price);
+        self.place_spot_order(order).await
+    }
+
+    /// Place a take profit limit order (convenience method)
+    /// @spec:FR-REAL-004
+    pub async fn place_take_profit_limit_order(
+        &self,
+        symbol: &str,
+        side: OrderSide,
+        quantity: &str,
+        price: &str,
+        stop_price: &str,
+    ) -> Result<SpotOrderResponse> {
+        let order = SpotOrderRequest::take_profit_limit(symbol, side, quantity, price, stop_price);
+        self.place_spot_order(order).await
+    }
+
+    /// Cancel a spot order by order ID or client order ID
+    /// @spec:FR-REAL-005
+    pub async fn cancel_spot_order(
+        &self,
+        symbol: &str,
+        order_id: Option<i64>,
+        client_order_id: Option<&str>,
+    ) -> Result<CancelOrderResponse> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+
+        if let Some(order_id) = order_id {
+            params.insert("orderId".to_string(), order_id.to_string());
+        }
+
+        if let Some(client_order_id) = client_order_id {
+            params.insert("origClientOrderId".to_string(), client_order_id.to_string());
+        }
+
+        self.make_request(Method::DELETE, "/order", Some(params), true)
+            .await
+    }
+
+    /// Get order status by order ID or client order ID
+    /// @spec:FR-REAL-006
+    pub async fn get_spot_order_status(
+        &self,
+        symbol: &str,
+        order_id: Option<i64>,
+        client_order_id: Option<&str>,
+    ) -> Result<QueryOrderResponse> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+
+        if let Some(order_id) = order_id {
+            params.insert("orderId".to_string(), order_id.to_string());
+        }
+
+        if let Some(client_order_id) = client_order_id {
+            params.insert("origClientOrderId".to_string(), client_order_id.to_string());
+        }
+
+        self.make_request(Method::GET, "/order", Some(params), true)
+            .await
+    }
+
+    /// Get all orders for a symbol (open and closed)
+    pub async fn get_all_spot_orders(
+        &self,
+        symbol: &str,
+        limit: Option<u16>,
+    ) -> Result<Vec<QueryOrderResponse>> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+
+        if let Some(limit) = limit {
+            params.insert("limit".to_string(), limit.to_string());
+        }
+
+        self.make_request(Method::GET, "/allOrders", Some(params), true)
+            .await
+    }
+
+    /// Get open orders for a symbol (or all symbols if None)
+    pub async fn get_open_spot_orders(
+        &self,
+        symbol: Option<&str>,
+    ) -> Result<Vec<QueryOrderResponse>> {
+        let mut params = HashMap::new();
+
+        if let Some(symbol) = symbol {
+            params.insert("symbol".to_string(), symbol.to_uppercase());
+        }
+
+        self.make_request(
+            Method::GET,
+            "/openOrders",
+            if params.is_empty() {
+                None
+            } else {
+                Some(params)
+            },
+            true,
+        )
+        .await
+    }
+
+    // ========================================================================
+    // USER DATA STREAM METHODS (Phase 1: Real Trading)
+    // @spec:FR-REAL-007
+    // @ref:plans/20251203-1353-binance-real-trading-system/research/researcher-02-binance-websocket-userdata.md
+    // ========================================================================
+
+    /// Create a listen key for user data stream
+    /// The listen key is valid for 60 minutes and must be kept alive
+    pub async fn create_listen_key(&self) -> Result<ListenKeyResponse> {
+        self.make_request(Method::POST, "/userDataStream", None, false)
+            .await
+    }
+
+    /// Keepalive a listen key (should be called every 30 minutes)
+    pub async fn keepalive_listen_key(&self, listen_key: &str) -> Result<()> {
+        let mut params = HashMap::new();
+        params.insert("listenKey".to_string(), listen_key.to_string());
+
+        let _: serde_json::Value = self
+            .make_request(Method::PUT, "/userDataStream", Some(params), false)
+            .await?;
+        Ok(())
+    }
+
+    /// Close/delete a listen key
+    pub async fn close_listen_key(&self, listen_key: &str) -> Result<()> {
+        let mut params = HashMap::new();
+        params.insert("listenKey".to_string(), listen_key.to_string());
+
+        let _: serde_json::Value = self
+            .make_request(Method::DELETE, "/userDataStream", Some(params), false)
+            .await?;
+        Ok(())
+    }
+
+    /// Get the WebSocket URL for user data stream
+    pub fn get_user_data_stream_url(&self, listen_key: &str) -> String {
+        format!(
+            "{}/ws/{}",
+            self.config.ws_url.trim_end_matches("/ws"),
+            listen_key
+        )
+    }
+
+    /// Create a user data stream handle
+    pub async fn create_user_data_stream(&self) -> Result<UserDataStreamHandle> {
+        let response = self.create_listen_key().await?;
+        let ws_url = self.get_user_data_stream_url(&response.listen_key);
+        Ok(UserDataStreamHandle::new(response.listen_key, ws_url))
+    }
+
+    /// Get base URL based on testnet flag
+    pub fn get_base_url(&self) -> &str {
+        &self.config.base_url
+    }
+
+    /// Get WebSocket URL based on testnet flag
+    pub fn get_ws_url(&self) -> &str {
+        &self.config.ws_url
+    }
+
+    /// Check if client is configured for testnet
+    pub fn is_testnet(&self) -> bool {
+        self.config.testnet
+    }
 }
 
 #[cfg(test)]
@@ -403,6 +659,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         }
     }
 
@@ -656,6 +913,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let client = BinanceClient::new(config.clone()).expect("Failed to create client");
@@ -674,6 +932,7 @@ mod tests {
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com".to_string(),
             testnet: true,
+            trading_mode: crate::config::TradingMode::RealTestnet,
         };
 
         let client = BinanceClient::new(config.clone()).expect("Failed to create client");
@@ -691,6 +950,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let client = BinanceClient::new(config).expect("Failed to create test client");
@@ -709,6 +969,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let client = BinanceClient::new(config).expect("Failed to create test client");
@@ -726,6 +987,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let client = BinanceClient::new(config.clone()).expect("Failed to create client");
@@ -1055,6 +1317,7 @@ mod tests {
             futures_base_url: "https://custom-futures.binance.com".to_string(),
             futures_ws_url: "wss://custom-futures.binance.com/ws".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let client = BinanceClient::new(config.clone()).expect("Failed to create client");
@@ -1184,6 +1447,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         };
 
         let client = BinanceClient::new(config.clone()).expect("Failed to create client");
@@ -1221,26 +1485,26 @@ mod tests {
 
         let signature = client.sign_request("test").expect("Failed to sign request");
 
-        // Should only contain 0-9 and a-f (hex)
-        for c in signature.chars() {
-            assert!(
-                ('0'..='9').contains(&c) || ('a'..='f').contains(&c),
-                "Invalid character in signature: {c}"
-            );
-        }
+        // Should only contain hex characters (0-9 and a-f)
+        assert!(
+            signature.chars().all(|c| c.is_ascii_hexdigit()),
+            "Signature should only contain hex characters"
+        );
     }
 
     #[test]
     fn test_client_creation_multiple_times() {
         let config = create_test_config();
 
-        // Create multiple clients
-        let _client1 = BinanceClient::new(config.clone());
-        let _client2 = BinanceClient::new(config.clone());
-        let _client3 = BinanceClient::new(config.clone());
+        // Create multiple clients - should not panic
+        let client1 = BinanceClient::new(config.clone());
+        let client2 = BinanceClient::new(config.clone());
+        let client3 = BinanceClient::new(config.clone());
 
-        // Should not panic
-        assert!(true);
+        // Verify all clients were created successfully
+        assert!(client1.is_ok());
+        assert!(client2.is_ok());
+        assert!(client3.is_ok());
     }
 
     #[test]

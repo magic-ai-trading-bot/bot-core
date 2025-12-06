@@ -23,8 +23,11 @@ use super::{
     strategy_optimizer::StrategyOptimizer,
     trade::{CloseReason, PaperTrade, TradeType},
     AITradingSignal,
+    OrderStatus,
+    OrderType,
     PaperTradingEvent,
     PerformanceSummary,
+    StopLimitOrder,
     TradeExecutionResult,
 };
 
@@ -68,6 +71,11 @@ pub struct PaperTradingEngine {
     /// Key: symbol (e.g., "BTCUSDT"), Value: Vec of recent klines
     /// Pre-loaded at startup to enable immediate trading without waiting
     historical_data_cache: Arc<RwLock<HashMap<String, Vec<crate::binance::types::Kline>>>>,
+
+    /// @spec:FR-PAPER-003 - Stop-Limit Orders Storage
+    /// Pending stop-limit orders waiting for stop price to be triggered
+    /// These orders are checked on every price update and executed when triggered
+    pending_stop_limit_orders: Arc<RwLock<Vec<StopLimitOrder>>>,
 }
 
 /// Pending trade for execution
@@ -136,6 +144,7 @@ impl PaperTradingEngine {
             execution_queue: Arc::new(RwLock::new(Vec::new())),
             trade_execution_lock: Arc::new(Mutex::new(())),
             historical_data_cache: Arc::new(RwLock::new(HashMap::new())),
+            pending_stop_limit_orders: Arc::new(RwLock::new(Vec::new())),
         })
     }
 
@@ -451,6 +460,11 @@ impl PaperTradingEngine {
             data: serde_json::to_value(&new_prices)?,
             timestamp: Utc::now(),
         });
+
+        // @spec:FR-PAPER-003 - Check pending stop-limit orders on every price update
+        if let Err(e) = self.check_pending_stop_limit_orders().await {
+            warn!("⚠️ Failed to check pending stop-limit orders: {}", e);
+        }
 
         Ok(())
     }
@@ -2450,6 +2464,60 @@ impl PaperTradingEngine {
                 },
             }
 
+            // Update AI signal outcome if trade was triggered by an AI signal
+            // @spec:FR-AI-012 - Signal Outcome Tracking
+            if let Some(ref signal_id) = trade.ai_signal_id {
+                let pnl = trade.realized_pnl.unwrap_or(0.0);
+                let outcome = if pnl >= 0.0 { "win" } else { "loss" };
+                let close_reason_str = trade
+                    .close_reason
+                    .as_ref()
+                    .map(|r| format!("{:?}", r))
+                    .unwrap_or_else(|| "Unknown".to_string());
+
+                info!(
+                    "📊 Updating AI signal {} outcome: {} (PnL: {:.2})",
+                    signal_id, outcome, pnl
+                );
+                match self
+                    .storage
+                    .update_signal_outcome(
+                        signal_id,
+                        outcome,
+                        pnl,
+                        trade.pnl_percentage,
+                        trade.exit_price.unwrap_or(0.0),
+                        &close_reason_str,
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        info!(
+                            "✅ Successfully updated signal {} outcome in database",
+                            signal_id
+                        );
+                    },
+                    Err(e) => {
+                        error!("❌ Failed to update signal {} outcome: {}", signal_id, e);
+                    },
+                }
+
+                // Broadcast signal outcome update event for frontend
+                let _ = self.event_broadcaster.send(PaperTradingEvent {
+                    event_type: "signal_outcome_updated".to_string(),
+                    data: serde_json::json!({
+                        "signal_id": signal_id,
+                        "outcome": outcome,
+                        "actual_pnl": pnl,
+                        "pnl_percentage": trade.pnl_percentage,
+                        "exit_price": trade.exit_price.unwrap_or(0.0),
+                        "close_reason": close_reason_str,
+                        "trade_id": trade_id,
+                    }),
+                    timestamp: Utc::now(),
+                });
+            }
+
             // Save portfolio snapshot after trade closure
             info!("💾 Saving portfolio snapshot after trade closure...");
             match self.storage.save_portfolio_snapshot(&portfolio).await {
@@ -2484,6 +2552,263 @@ impl PaperTradingEngine {
         });
 
         Ok(())
+    }
+
+    /// Execute a manual order placed by the user
+    /// @spec:FR-PAPER-003 - Manual Order Placement
+    /// @doc:docs/features/paper-trading.md#manual-orders
+    ///
+    /// # Arguments
+    /// * `symbol` - Trading pair (e.g., "BTCUSDT")
+    /// * `side` - "buy" for Long, "sell" for Short
+    /// * `order_type` - "market" or "limit"
+    /// * `quantity` - Position size in base asset
+    /// * `price` - Optional limit price (required for limit and stop-limit orders)
+    /// * `stop_price` - Optional stop price (required for stop-limit orders)
+    /// * `leverage` - Optional leverage (defaults to settings)
+    /// * `stop_loss_pct` - Optional stop loss percentage
+    /// * `take_profit_pct` - Optional take profit percentage
+    pub async fn execute_manual_order(
+        &self,
+        symbol: String,
+        side: String,
+        order_type: String,
+        quantity: f64,
+        price: Option<f64>,
+        stop_price: Option<f64>,
+        leverage: Option<u8>,
+        stop_loss_pct: Option<f64>,
+        take_profit_pct: Option<f64>,
+    ) -> Result<TradeExecutionResult> {
+        info!(
+            "📝 Processing manual order: {} {} {} qty={} price={:?} stop_price={:?}",
+            side, order_type, symbol, quantity, price, stop_price
+        );
+
+        // 1. Determine trade type from side
+        let signal_type = match side.to_lowercase().as_str() {
+            "buy" | "long" => crate::strategies::TradingSignal::Long,
+            "sell" | "short" => crate::strategies::TradingSignal::Short,
+            _ => {
+                return Ok(TradeExecutionResult {
+                    success: false,
+                    trade_id: None,
+                    error_message: Some(format!("Invalid side: {}. Must be 'buy' or 'sell'", side)),
+                    execution_price: None,
+                    fees_paid: None,
+                })
+            },
+        };
+
+        // 2. Handle order type - for stop-limit, create pending order instead of executing
+        let order_type_lower = order_type.to_lowercase();
+
+        // @spec:FR-PAPER-003 - Stop-Limit Order Handling
+        // Stop-limit orders are added to pending queue and executed when stop price is triggered
+        if order_type_lower == "stop-limit" {
+            // Validate required fields for stop-limit
+            let stop = match stop_price {
+                Some(p) if p > 0.0 => p,
+                _ => {
+                    return Ok(TradeExecutionResult {
+                        success: false,
+                        trade_id: None,
+                        error_message: Some(
+                            "Stop-limit orders require a valid stop_price > 0".to_string(),
+                        ),
+                        execution_price: None,
+                        fees_paid: None,
+                    })
+                },
+            };
+
+            let limit = match price {
+                Some(p) if p > 0.0 => p,
+                _ => {
+                    return Ok(TradeExecutionResult {
+                        success: false,
+                        trade_id: None,
+                        error_message: Some(
+                            "Stop-limit orders require a valid limit price > 0".to_string(),
+                        ),
+                        execution_price: None,
+                        fees_paid: None,
+                    })
+                },
+            };
+
+            // Get settings for defaults
+            let settings = self.settings.read().await;
+            let default_leverage = settings.basic.default_leverage;
+            drop(settings);
+
+            let calculated_leverage = leverage.unwrap_or(default_leverage);
+
+            // Create stop-limit order
+            let order_id = format!("stop-limit-{}", Uuid::new_v4());
+            let pending_order = StopLimitOrder {
+                id: order_id.clone(),
+                symbol: symbol.clone(),
+                side: side.clone(),
+                order_type: OrderType::StopLimit,
+                quantity,
+                stop_price: stop,
+                limit_price: limit,
+                leverage: calculated_leverage,
+                stop_loss_pct,
+                take_profit_pct,
+                status: OrderStatus::Pending,
+                created_at: Utc::now(),
+                triggered_at: None,
+                filled_at: None,
+                error_message: None,
+            };
+
+            // Add to pending orders
+            {
+                let mut pending_orders = self.pending_stop_limit_orders.write().await;
+                pending_orders.push(pending_order);
+            }
+
+            info!(
+                "📋 Stop-limit order created: {} {} qty={} stop={:.2} limit={:.2}",
+                side, symbol, quantity, stop, limit
+            );
+
+            // Broadcast event
+            let _ = self.event_broadcaster.send(PaperTradingEvent {
+                event_type: "stop_limit_order_created".to_string(),
+                data: serde_json::json!({
+                    "order_id": order_id,
+                    "symbol": symbol,
+                    "side": side,
+                    "quantity": quantity,
+                    "stop_price": stop,
+                    "limit_price": limit,
+                    "leverage": calculated_leverage,
+                    "status": "pending"
+                }),
+                timestamp: Utc::now(),
+            });
+
+            return Ok(TradeExecutionResult {
+                success: true,
+                trade_id: Some(order_id),
+                error_message: None,
+                execution_price: None, // Not executed yet
+                fees_paid: None,
+            });
+        }
+
+        // For market and limit orders, get entry price and execute immediately
+        let entry_price = match order_type_lower.as_str() {
+            "market" => {
+                // Get current market price
+                let current_price = self.current_prices.read().await.get(&symbol).copied();
+
+                match current_price {
+                    Some(p) => p,
+                    None => {
+                        return Ok(TradeExecutionResult {
+                            success: false,
+                            trade_id: None,
+                            error_message: Some(format!(
+                                "No market price available for {}. Please wait for price data.",
+                                symbol
+                            )),
+                            execution_price: None,
+                            fees_paid: None,
+                        })
+                    },
+                }
+            },
+            "limit" => match price {
+                Some(p) if p > 0.0 => p,
+                _ => {
+                    return Ok(TradeExecutionResult {
+                        success: false,
+                        trade_id: None,
+                        error_message: Some("Limit orders require a valid price > 0".to_string()),
+                        execution_price: None,
+                        fees_paid: None,
+                    })
+                },
+            },
+            _ => {
+                return Ok(TradeExecutionResult {
+                    success: false,
+                    trade_id: None,
+                    error_message: Some(format!(
+                        "Invalid order type: {}. Must be 'market', 'limit', or 'stop-limit'",
+                        order_type
+                    )),
+                    execution_price: None,
+                    fees_paid: None,
+                })
+            },
+        };
+
+        // 3. Get settings for defaults
+        let settings = self.settings.read().await;
+        let default_leverage = settings.basic.default_leverage;
+        let default_stop_loss_pct = settings.risk.default_stop_loss_pct;
+        let default_take_profit_pct = settings.risk.default_take_profit_pct;
+        drop(settings);
+
+        // 4. Calculate leverage, stop loss, and take profit
+        let calculated_leverage = leverage.unwrap_or(default_leverage);
+        let stop_loss =
+            entry_price * (1.0 - stop_loss_pct.unwrap_or(default_stop_loss_pct) / 100.0);
+        let take_profit =
+            entry_price * (1.0 + take_profit_pct.unwrap_or(default_take_profit_pct) / 100.0);
+
+        // 5. Create AI signal structure for manual order
+        let manual_signal = super::AITradingSignal {
+            id: format!("manual-{}", uuid::Uuid::new_v4()),
+            symbol: symbol.clone(),
+            signal_type,
+            confidence: 1.0, // Manual orders have 100% confidence (user intent)
+            reasoning: format!(
+                "Manual {} order placed by user via UI",
+                if matches!(signal_type, crate::strategies::TradingSignal::Long) {
+                    "BUY"
+                } else {
+                    "SELL"
+                }
+            ),
+            entry_price,
+            suggested_stop_loss: Some(stop_loss),
+            suggested_take_profit: Some(take_profit),
+            suggested_leverage: Some(calculated_leverage),
+            market_analysis: super::MarketAnalysisData {
+                trend_direction: "neutral".to_string(),
+                trend_strength: 0.0,
+                volatility: 0.0,
+                support_levels: vec![],
+                resistance_levels: vec![],
+                volume_analysis: "N/A".to_string(),
+                risk_score: 0.5,
+            },
+            timestamp: Utc::now(),
+        };
+
+        // 6. Create pending trade
+        let pending_trade = PendingTrade {
+            signal: manual_signal,
+            calculated_quantity: quantity,
+            calculated_leverage,
+            stop_loss,
+            take_profit,
+            timestamp: Utc::now(),
+        };
+
+        // 7. Execute using existing trade execution logic
+        info!(
+            "🚀 Executing manual order: {} {} {} @ {:.2} with {}x leverage",
+            side, quantity, symbol, entry_price, calculated_leverage
+        );
+
+        self.execute_trade(pending_trade).await
     }
 
     /// Update settings
@@ -2844,6 +3169,201 @@ impl PaperTradingEngine {
             Ok(())
         }
     }
+
+    // ============================================================================
+    // STOP-LIMIT ORDER MANAGEMENT
+    // @spec:FR-PAPER-003 - Stop-Limit Order Functionality
+    // ============================================================================
+
+    /// Check and trigger pending stop-limit orders based on current prices
+    /// This should be called whenever prices are updated
+    pub async fn check_pending_stop_limit_orders(&self) -> Result<()> {
+        let current_prices = self.current_prices.read().await;
+        let mut orders_to_execute: Vec<StopLimitOrder> = Vec::new();
+
+        // Check each pending order
+        {
+            let mut pending_orders = self.pending_stop_limit_orders.write().await;
+            let mut i = 0;
+            while i < pending_orders.len() {
+                let order = &pending_orders[i];
+
+                // Skip non-pending orders
+                if order.status != OrderStatus::Pending {
+                    i += 1;
+                    continue;
+                }
+
+                // Get current price for the symbol
+                if let Some(&current_price) = current_prices.get(&order.symbol) {
+                    // Check if stop price is triggered
+                    // For BUY: price goes UP to or above stop price
+                    // For SELL: price goes DOWN to or below stop price
+                    let is_triggered = match order.side.to_lowercase().as_str() {
+                        "buy" | "long" => current_price >= order.stop_price,
+                        "sell" | "short" => current_price <= order.stop_price,
+                        _ => false,
+                    };
+
+                    if is_triggered {
+                        info!(
+                            "🎯 Stop-limit order triggered: {} {} {} stop={:.2} current={:.2}",
+                            order.side,
+                            order.quantity,
+                            order.symbol,
+                            order.stop_price,
+                            current_price
+                        );
+
+                        // Mark as triggered and prepare for execution
+                        let mut triggered_order = order.clone();
+                        triggered_order.status = OrderStatus::Triggered;
+                        triggered_order.triggered_at = Some(Utc::now());
+                        orders_to_execute.push(triggered_order);
+
+                        // Remove from pending list
+                        pending_orders.remove(i);
+                        // Don't increment i since we removed an element
+                        continue;
+                    }
+                }
+                i += 1;
+            }
+        }
+        drop(current_prices);
+
+        // Execute triggered orders
+        for order in orders_to_execute {
+            self.execute_triggered_stop_limit_order(order).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Execute a triggered stop-limit order
+    async fn execute_triggered_stop_limit_order(&self, order: StopLimitOrder) -> Result<()> {
+        info!(
+            "🚀 Executing triggered stop-limit order: {} {} {} @ limit {:.2}",
+            order.side, order.quantity, order.symbol, order.limit_price
+        );
+
+        // Execute as a limit order at the limit price
+        let result = self
+            .execute_manual_order(
+                order.symbol.clone(),
+                order.side.clone(),
+                "limit".to_string(),
+                order.quantity,
+                Some(order.limit_price),
+                None, // No stop price for limit execution
+                Some(order.leverage),
+                order.stop_loss_pct,
+                order.take_profit_pct,
+            )
+            .await?;
+
+        // Broadcast execution event
+        let _ = self.event_broadcaster.send(PaperTradingEvent {
+            event_type: "stop_limit_order_executed".to_string(),
+            data: serde_json::json!({
+                "order_id": order.id,
+                "symbol": order.symbol,
+                "side": order.side,
+                "quantity": order.quantity,
+                "stop_price": order.stop_price,
+                "limit_price": order.limit_price,
+                "execution_result": {
+                    "success": result.success,
+                    "trade_id": result.trade_id,
+                    "execution_price": result.execution_price,
+                    "error": result.error_message
+                },
+                "triggered_at": order.triggered_at,
+                "filled_at": Utc::now()
+            }),
+            timestamp: Utc::now(),
+        });
+
+        if result.success {
+            info!(
+                "✅ Stop-limit order filled: {} trade_id={:?} @ {:.2}",
+                order.id,
+                result.trade_id,
+                result.execution_price.unwrap_or(order.limit_price)
+            );
+        } else {
+            warn!(
+                "❌ Stop-limit order failed: {} error={:?}",
+                order.id, result.error_message
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Get all pending stop-limit orders
+    pub async fn get_pending_orders(&self) -> Vec<StopLimitOrder> {
+        let pending_orders = self.pending_stop_limit_orders.read().await;
+        pending_orders
+            .iter()
+            .filter(|o| o.status == OrderStatus::Pending)
+            .cloned()
+            .collect()
+    }
+
+    /// Get all stop-limit orders (including triggered/filled/cancelled)
+    pub async fn get_all_stop_limit_orders(&self) -> Vec<StopLimitOrder> {
+        let pending_orders = self.pending_stop_limit_orders.read().await;
+        pending_orders.clone()
+    }
+
+    /// Cancel a pending stop-limit order by ID
+    pub async fn cancel_pending_order(&self, order_id: &str) -> Result<bool> {
+        let mut pending_orders = self.pending_stop_limit_orders.write().await;
+
+        for order in pending_orders.iter_mut() {
+            if order.id == order_id {
+                if order.status == OrderStatus::Pending {
+                    order.status = OrderStatus::Cancelled;
+
+                    info!("🚫 Stop-limit order cancelled: {}", order_id);
+
+                    // Broadcast cancellation event
+                    let _ = self.event_broadcaster.send(PaperTradingEvent {
+                        event_type: "stop_limit_order_cancelled".to_string(),
+                        data: serde_json::json!({
+                            "order_id": order_id,
+                            "symbol": order.symbol,
+                            "side": order.side,
+                            "quantity": order.quantity,
+                            "stop_price": order.stop_price,
+                            "limit_price": order.limit_price
+                        }),
+                        timestamp: Utc::now(),
+                    });
+
+                    return Ok(true);
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "Cannot cancel order {}: status is {:?}",
+                        order_id,
+                        order.status
+                    ));
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!("Order not found: {}", order_id))
+    }
+
+    /// Get pending order count for a symbol
+    pub async fn get_pending_order_count(&self, symbol: Option<&str>) -> usize {
+        let pending_orders = self.pending_stop_limit_orders.read().await;
+        pending_orders
+            .iter()
+            .filter(|o| o.status == OrderStatus::Pending && symbol.map_or(true, |s| o.symbol == s))
+            .count()
+    }
 }
 
 #[cfg(test)]
@@ -2882,6 +3402,7 @@ mod tests {
             ws_url: "wss://testnet.binance.vision/ws".to_string(),
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+            trading_mode: crate::config::TradingMode::RealTestnet,
         };
         BinanceClient::new(config).expect("Failed to create mock binance client")
     }

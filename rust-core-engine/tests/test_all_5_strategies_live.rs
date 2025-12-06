@@ -39,6 +39,7 @@ async fn test_all_5_strategies_with_real_binance_data() {
         ws_url: "wss://stream.binance.com:9443".to_string(),
         futures_base_url: "https://fapi.binance.com".to_string(),
         futures_ws_url: "wss://fstream.binance.com".to_string(),
+        trading_mode: binance_trading_bot::config::TradingMode::PaperTrading,
     };
 
     let client = BinanceClient::new(config).expect("Failed to create Binance client");

@@ -325,6 +325,540 @@ pub enum WebSocketEvent {
     Error { message: String },
 }
 
+// ============================================================================
+// SPOT ORDER TYPES (Phase 1: Real Trading)
+// @spec:FR-REAL-001, FR-REAL-002, FR-REAL-003, FR-REAL-004
+// @ref:specs/02-design/2.3-api/API-RUST-CORE.md
+// ============================================================================
+
+/// Order side for spot trading
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OrderSide {
+    Buy,
+    Sell,
+}
+
+impl std::fmt::Display for OrderSide {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderSide::Buy => write!(f, "BUY"),
+            OrderSide::Sell => write!(f, "SELL"),
+        }
+    }
+}
+
+/// Order type for spot trading
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SpotOrderType {
+    Market,
+    Limit,
+    StopLossLimit,
+    TakeProfitLimit,
+    LimitMaker,
+}
+
+impl std::fmt::Display for SpotOrderType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SpotOrderType::Market => write!(f, "MARKET"),
+            SpotOrderType::Limit => write!(f, "LIMIT"),
+            SpotOrderType::StopLossLimit => write!(f, "STOP_LOSS_LIMIT"),
+            SpotOrderType::TakeProfitLimit => write!(f, "TAKE_PROFIT_LIMIT"),
+            SpotOrderType::LimitMaker => write!(f, "LIMIT_MAKER"),
+        }
+    }
+}
+
+/// Time in force options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TimeInForce {
+    /// Good Till Cancelled
+    Gtc,
+    /// Immediate or Cancel
+    Ioc,
+    /// Fill or Kill
+    Fok,
+}
+
+impl std::fmt::Display for TimeInForce {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TimeInForce::Gtc => write!(f, "GTC"),
+            TimeInForce::Ioc => write!(f, "IOC"),
+            TimeInForce::Fok => write!(f, "FOK"),
+        }
+    }
+}
+
+/// Spot order request - for placing orders on spot market
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpotOrderRequest {
+    pub symbol: String,
+    pub side: OrderSide,
+    pub order_type: SpotOrderType,
+    /// Quantity in base asset (e.g., BTC for BTCUSDT)
+    pub quantity: Option<String>,
+    /// Quantity in quote asset (e.g., USDT for BTCUSDT) - for MARKET orders
+    pub quote_order_qty: Option<String>,
+    /// Price for LIMIT orders
+    pub price: Option<String>,
+    /// Stop/trigger price for STOP_LOSS_LIMIT and TAKE_PROFIT_LIMIT
+    pub stop_price: Option<String>,
+    /// Time in force
+    pub time_in_force: Option<TimeInForce>,
+    /// Custom order ID for tracking
+    pub client_order_id: Option<String>,
+    /// Iceberg quantity
+    pub iceberg_qty: Option<String>,
+    /// Response type: ACK, RESULT, or FULL
+    pub new_order_resp_type: Option<String>,
+}
+
+impl SpotOrderRequest {
+    /// Create a market order
+    pub fn market(symbol: &str, side: OrderSide, quantity: &str) -> Self {
+        Self {
+            symbol: symbol.to_uppercase(),
+            side,
+            order_type: SpotOrderType::Market,
+            quantity: Some(quantity.to_string()),
+            quote_order_qty: None,
+            price: None,
+            stop_price: None,
+            time_in_force: None,
+            client_order_id: None,
+            iceberg_qty: None,
+            new_order_resp_type: Some("FULL".to_string()),
+        }
+    }
+
+    /// Create a limit order
+    pub fn limit(symbol: &str, side: OrderSide, quantity: &str, price: &str) -> Self {
+        Self {
+            symbol: symbol.to_uppercase(),
+            side,
+            order_type: SpotOrderType::Limit,
+            quantity: Some(quantity.to_string()),
+            quote_order_qty: None,
+            price: Some(price.to_string()),
+            stop_price: None,
+            time_in_force: Some(TimeInForce::Gtc),
+            client_order_id: None,
+            iceberg_qty: None,
+            new_order_resp_type: Some("FULL".to_string()),
+        }
+    }
+
+    /// Create a stop loss limit order
+    pub fn stop_loss_limit(
+        symbol: &str,
+        side: OrderSide,
+        quantity: &str,
+        price: &str,
+        stop_price: &str,
+    ) -> Self {
+        Self {
+            symbol: symbol.to_uppercase(),
+            side,
+            order_type: SpotOrderType::StopLossLimit,
+            quantity: Some(quantity.to_string()),
+            quote_order_qty: None,
+            price: Some(price.to_string()),
+            stop_price: Some(stop_price.to_string()),
+            time_in_force: Some(TimeInForce::Gtc),
+            client_order_id: None,
+            iceberg_qty: None,
+            new_order_resp_type: Some("FULL".to_string()),
+        }
+    }
+
+    /// Create a take profit limit order
+    pub fn take_profit_limit(
+        symbol: &str,
+        side: OrderSide,
+        quantity: &str,
+        price: &str,
+        stop_price: &str,
+    ) -> Self {
+        Self {
+            symbol: symbol.to_uppercase(),
+            side,
+            order_type: SpotOrderType::TakeProfitLimit,
+            quantity: Some(quantity.to_string()),
+            quote_order_qty: None,
+            price: Some(price.to_string()),
+            stop_price: Some(stop_price.to_string()),
+            time_in_force: Some(TimeInForce::Gtc),
+            client_order_id: None,
+            iceberg_qty: None,
+            new_order_resp_type: Some("FULL".to_string()),
+        }
+    }
+
+    /// Set custom client order ID
+    pub fn with_client_order_id(mut self, client_order_id: &str) -> Self {
+        self.client_order_id = Some(client_order_id.to_string());
+        self
+    }
+
+    /// Set time in force
+    pub fn with_time_in_force(mut self, tif: TimeInForce) -> Self {
+        self.time_in_force = Some(tif);
+        self
+    }
+
+    /// Set quote order quantity (for market orders - buy X amount in quote currency)
+    pub fn with_quote_qty(mut self, quote_qty: &str) -> Self {
+        self.quote_order_qty = Some(quote_qty.to_string());
+        self
+    }
+}
+
+/// Spot order response from Binance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpotOrderResponse {
+    pub symbol: String,
+    pub order_id: i64,
+    pub order_list_id: Option<i64>,
+    pub client_order_id: String,
+    pub transact_time: i64,
+    #[serde(default)]
+    pub price: String,
+    #[serde(default)]
+    pub orig_qty: String,
+    #[serde(default)]
+    pub executed_qty: String,
+    #[serde(default, rename = "cummulativeQuoteQty")]
+    pub cumulative_quote_qty: String,
+    pub status: String,
+    pub time_in_force: Option<String>,
+    #[serde(rename = "type")]
+    pub order_type: String,
+    pub side: String,
+    #[serde(default)]
+    pub fills: Vec<Fill>,
+}
+
+/// Query order response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryOrderResponse {
+    pub symbol: String,
+    pub order_id: i64,
+    pub order_list_id: Option<i64>,
+    pub client_order_id: String,
+    pub price: String,
+    pub orig_qty: String,
+    pub executed_qty: String,
+    #[serde(rename = "cummulativeQuoteQty")]
+    pub cumulative_quote_qty: String,
+    pub status: String,
+    pub time_in_force: String,
+    #[serde(rename = "type")]
+    pub order_type: String,
+    pub side: String,
+    pub stop_price: Option<String>,
+    pub iceberg_qty: Option<String>,
+    pub time: i64,
+    pub update_time: i64,
+    pub is_working: bool,
+    pub orig_quote_order_qty: Option<String>,
+}
+
+/// Cancel order response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelOrderResponse {
+    pub symbol: String,
+    pub orig_client_order_id: Option<String>,
+    pub order_id: i64,
+    pub order_list_id: Option<i64>,
+    pub client_order_id: String,
+    pub price: String,
+    pub orig_qty: String,
+    pub executed_qty: String,
+    #[serde(rename = "cummulativeQuoteQty")]
+    pub cumulative_quote_qty: String,
+    pub status: String,
+    pub time_in_force: String,
+    #[serde(rename = "type")]
+    pub order_type: String,
+    pub side: String,
+}
+
+// ============================================================================
+// USER DATA STREAM TYPES (Phase 1: Real Trading)
+// @spec:FR-REAL-007, FR-REAL-008
+// @ref:plans/20251203-1353-binance-real-trading-system/research/researcher-02-binance-websocket-userdata.md
+// ============================================================================
+
+/// Listen key response from Binance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListenKeyResponse {
+    pub listen_key: String,
+}
+
+/// Execution report from WebSocket user data stream
+/// This is sent when order status changes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutionReport {
+    /// Event type - always "executionReport"
+    #[serde(rename = "e")]
+    pub event_type: String,
+    /// Event time
+    #[serde(rename = "E")]
+    pub event_time: i64,
+    /// Symbol
+    #[serde(rename = "s")]
+    pub symbol: String,
+    /// Client order ID
+    #[serde(rename = "c")]
+    pub client_order_id: String,
+    /// Side (BUY/SELL)
+    #[serde(rename = "S")]
+    pub side: String,
+    /// Order type
+    #[serde(rename = "o")]
+    pub order_type: String,
+    /// Time in force
+    #[serde(rename = "f")]
+    pub time_in_force: String,
+    /// Order quantity
+    #[serde(rename = "q")]
+    pub order_quantity: String,
+    /// Order price
+    #[serde(rename = "p")]
+    pub order_price: String,
+    /// Stop price
+    #[serde(rename = "P")]
+    pub stop_price: String,
+    /// Iceberg quantity
+    #[serde(rename = "F")]
+    pub iceberg_quantity: String,
+    /// Original client order ID (for cancel)
+    #[serde(rename = "C")]
+    pub original_client_order_id: String,
+    /// Current execution type: NEW, CANCELED, REPLACED, REJECTED, TRADE, EXPIRED
+    #[serde(rename = "x")]
+    pub execution_type: String,
+    /// Current order status: NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED, EXPIRED
+    #[serde(rename = "X")]
+    pub order_status: String,
+    /// Order reject reason
+    #[serde(rename = "r")]
+    pub order_reject_reason: String,
+    /// Order ID
+    #[serde(rename = "i")]
+    pub order_id: i64,
+    /// Last executed quantity
+    #[serde(rename = "l")]
+    pub last_executed_quantity: String,
+    /// Cumulative filled quantity
+    #[serde(rename = "z")]
+    pub cumulative_filled_quantity: String,
+    /// Last executed price
+    #[serde(rename = "L")]
+    pub last_executed_price: String,
+    /// Commission amount
+    #[serde(rename = "n")]
+    pub commission_amount: String,
+    /// Commission asset
+    #[serde(rename = "N")]
+    pub commission_asset: Option<String>,
+    /// Transaction time
+    #[serde(rename = "T")]
+    pub transaction_time: i64,
+    /// Trade ID
+    #[serde(rename = "t")]
+    pub trade_id: i64,
+    /// Is the order on the book?
+    #[serde(rename = "w")]
+    pub is_on_book: bool,
+    /// Is this trade the maker side?
+    #[serde(rename = "m")]
+    pub is_maker: bool,
+    /// Order creation time
+    #[serde(rename = "O")]
+    pub order_creation_time: i64,
+    /// Cumulative quote asset transacted quantity
+    #[serde(rename = "Z")]
+    pub cumulative_quote_qty: String,
+    /// Last quote asset transacted quantity
+    #[serde(rename = "Y")]
+    pub last_quote_qty: String,
+    /// Quote order quantity
+    #[serde(rename = "Q")]
+    pub quote_order_qty: String,
+}
+
+impl ExecutionReport {
+    /// Check if order is fully filled
+    pub fn is_filled(&self) -> bool {
+        self.order_status == "FILLED"
+    }
+
+    /// Check if order is partially filled
+    pub fn is_partially_filled(&self) -> bool {
+        self.order_status == "PARTIALLY_FILLED"
+    }
+
+    /// Check if order is cancelled
+    pub fn is_cancelled(&self) -> bool {
+        self.order_status == "CANCELED"
+    }
+
+    /// Check if order is rejected
+    pub fn is_rejected(&self) -> bool {
+        self.order_status == "REJECTED"
+    }
+
+    /// Check if order is new (just placed)
+    pub fn is_new(&self) -> bool {
+        self.execution_type == "NEW"
+    }
+
+    /// Check if this is a trade execution
+    pub fn is_trade(&self) -> bool {
+        self.execution_type == "TRADE"
+    }
+
+    /// Get filled percentage
+    pub fn fill_percentage(&self) -> f64 {
+        let filled: f64 = self.cumulative_filled_quantity.parse().unwrap_or(0.0);
+        let total: f64 = self.order_quantity.parse().unwrap_or(1.0);
+        if total > 0.0 {
+            (filled / total) * 100.0
+        } else {
+            0.0
+        }
+    }
+}
+
+/// Account position update from WebSocket user data stream
+/// This is sent when account balance changes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OutboundAccountPosition {
+    /// Event type - always "outboundAccountPosition"
+    /// Note: When deserialized via UserDataEvent tagged enum, this field uses default
+    /// because serde consumes "e" for enum discrimination
+    #[serde(rename = "e", default)]
+    pub event_type: String,
+    /// Event time
+    #[serde(rename = "E")]
+    pub event_time: i64,
+    /// Last account update time
+    #[serde(rename = "u")]
+    pub last_update_time: i64,
+    /// Balances array
+    #[serde(rename = "B")]
+    pub balances: Vec<AccountBalance>,
+}
+
+/// Balance update in account position
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountBalance {
+    /// Asset
+    #[serde(rename = "a")]
+    pub asset: String,
+    /// Free amount
+    #[serde(rename = "f")]
+    pub free: String,
+    /// Locked amount
+    #[serde(rename = "l")]
+    pub locked: String,
+}
+
+/// Balance update event from WebSocket
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BalanceUpdate {
+    /// Event type - always "balanceUpdate"
+    /// Note: When deserialized via UserDataEvent tagged enum, this field uses default
+    /// because serde consumes "e" for enum discrimination
+    #[serde(rename = "e", default)]
+    pub event_type: String,
+    /// Event time
+    #[serde(rename = "E")]
+    pub event_time: i64,
+    /// Asset
+    #[serde(rename = "a")]
+    pub asset: String,
+    /// Balance delta
+    #[serde(rename = "d")]
+    pub balance_delta: String,
+    /// Clear time
+    #[serde(rename = "T")]
+    pub clear_time: i64,
+}
+
+/// Union type for all user data stream events
+/// Note: ExecutionReport is boxed to reduce enum size difference between variants
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "e")]
+pub enum UserDataEvent {
+    #[serde(rename = "executionReport")]
+    ExecutionReport(Box<ExecutionReport>),
+    #[serde(rename = "outboundAccountPosition")]
+    AccountPosition(OutboundAccountPosition),
+    #[serde(rename = "balanceUpdate")]
+    BalanceUpdate(BalanceUpdate),
+}
+
+/// User data stream handle for tracking connection
+#[derive(Debug, Clone)]
+pub struct UserDataStreamHandle {
+    pub listen_key: String,
+    pub ws_url: String,
+    pub created_at: i64,
+    pub last_keepalive: i64,
+}
+
+impl UserDataStreamHandle {
+    pub fn new(listen_key: String, ws_url: String) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        Self {
+            listen_key,
+            ws_url,
+            created_at: now,
+            last_keepalive: now,
+        }
+    }
+
+    /// Check if keepalive is needed (every 30 minutes)
+    pub fn needs_keepalive(&self) -> bool {
+        let now = chrono::Utc::now().timestamp_millis();
+        let thirty_minutes_ms = 30 * 60 * 1000;
+        now - self.last_keepalive > thirty_minutes_ms
+    }
+
+    /// Check if listen key is expired (60 minutes)
+    pub fn is_expired(&self) -> bool {
+        let now = chrono::Utc::now().timestamp_millis();
+        let sixty_minutes_ms = 60 * 60 * 1000;
+        now - self.last_keepalive > sixty_minutes_ms
+    }
+
+    /// Update last keepalive time
+    pub fn update_keepalive(&mut self) {
+        self.last_keepalive = chrono::Utc::now().timestamp_millis();
+    }
+}
+
+// ============================================================================
+// TRADING MODE (Re-exported from config.rs)
+// @spec:FR-REAL-011
+// ============================================================================
+// TradingMode is defined in config.rs to avoid circular dependencies
+// Use: crate::config::TradingMode
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 // Utility functions for type conversions
 impl Kline {
     pub fn to_decimal_values(

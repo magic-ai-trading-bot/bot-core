@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PremiumButton, PremiumInput } from "@/styles/luxury-design-system";
 import {
 
 
@@ -290,14 +289,14 @@ const ChartCard: React.FC<ChartCardProps> = React.memo(
 
     return (
       <Card className="relative">
-        <Button
+        <PremiumButton
           variant="ghost"
           size="sm"
           className="absolute top-2 right-2 h-6 w-6 p-0 opacity-60 hover:opacity-100"
           onClick={() => onRemove(chartData.symbol)}
         >
           <X className="h-3 w-3" />
-        </Button>
+        </PremiumButton>
 
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -493,10 +492,10 @@ const AddSymbolDialog: React.FC<{
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <PremiumButton variant="secondary" size="sm">
           <Plus className="h-4 w-4 mr-2" />
           Add Symbol
-        </Button>
+        </PremiumButton>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -505,7 +504,7 @@ const AddSymbolDialog: React.FC<{
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="symbol">Symbol</Label>
-            <Input
+            <PremiumInput
               id="symbol"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
@@ -519,14 +518,14 @@ const AddSymbolDialog: React.FC<{
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button
+            <PremiumButton
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={() => setOpen(false)}
             >
               Cancel
-            </Button>
-            <Button type="submit">Add Symbol</Button>
+            </PremiumButton>
+            <PremiumButton type="submit">Add Symbol</PremiumButton>
           </div>
         </form>
       </DialogContent>

@@ -71,6 +71,8 @@ mod optional_date_time_serde {
     }
 }
 
+// @spec:FR-AUTH-010 - User Model with 2FA Support
+// @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -78,8 +80,16 @@ pub struct User {
     pub email: String,
     pub password_hash: String,
     pub full_name: Option<String>,
+    #[serde(default)]
+    pub display_name: Option<String>,
+    #[serde(default)]
+    pub avatar_url: Option<String>,
     pub is_active: bool,
     pub is_admin: bool,
+    #[serde(default)]
+    pub two_factor_enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub two_factor_secret: Option<String>,
     #[serde(with = "date_time_serde")]
     pub created_at: DateTime<Utc>,
     #[serde(with = "date_time_serde")]
@@ -140,13 +150,90 @@ pub struct UserProfile {
     pub id: String,
     pub email: String,
     pub full_name: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
     pub is_active: bool,
     pub is_admin: bool,
+    pub two_factor_enabled: bool,
     #[serde(with = "date_time_serde")]
     pub created_at: DateTime<Utc>,
     #[serde(with = "optional_date_time_serde")]
     pub last_login: Option<DateTime<Utc>>,
     pub settings: UserSettings,
+}
+
+// @spec:FR-AUTH-011 - Session Model for Active Sessions Management
+// @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Session {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
+    pub session_id: String,
+    pub user_id: ObjectId,
+    pub device: String,
+    pub browser: String,
+    pub os: String,
+    pub ip_address: String,
+    pub location: String,
+    pub user_agent: String,
+    #[serde(with = "date_time_serde")]
+    pub created_at: DateTime<Utc>,
+    #[serde(with = "date_time_serde")]
+    pub last_active: DateTime<Utc>,
+    #[serde(with = "date_time_serde")]
+    pub expires_at: DateTime<Utc>,
+    #[serde(default)]
+    pub revoked: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionInfo {
+    pub session_id: String,
+    pub device: String,
+    pub browser: String,
+    pub os: String,
+    pub location: String,
+    pub is_current: bool,
+    #[serde(with = "date_time_serde")]
+    pub created_at: DateTime<Utc>,
+    #[serde(with = "date_time_serde")]
+    pub last_active: DateTime<Utc>,
+}
+
+// Request/Response types for security endpoints
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+pub struct ChangePasswordRequest {
+    #[validate(length(min = 1, message = "Current password is required"))]
+    pub current_password: String,
+    #[validate(length(min = 6, message = "New password must be at least 6 characters"))]
+    pub new_password: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+pub struct UpdateProfileRequest {
+    #[validate(length(max = 100, message = "Display name too long"))]
+    pub display_name: Option<String>,
+    /// Avatar as base64 encoded image (max 500KB)
+    #[validate(length(max = 700000, message = "Avatar too large (max 500KB)"))]
+    pub avatar_base64: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Setup2FAResponse {
+    pub secret: String,
+    pub qr_code: String,
+    pub otpauth_url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+pub struct Verify2FARequest {
+    #[validate(length(equal = 6, message = "Code must be 6 digits"))]
+    pub code: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionListResponse {
+    pub sessions: Vec<SessionInfo>,
 }
 
 impl Default for UserSettings {
@@ -179,8 +266,12 @@ impl User {
             email,
             password_hash,
             full_name,
+            display_name: None,
+            avatar_url: None,
             is_active: true,
             is_admin: false,
+            two_factor_enabled: false,
+            two_factor_secret: None,
             created_at: now,
             updated_at: now,
             last_login: None,
@@ -193,8 +284,11 @@ impl User {
             id: self.id.as_ref().map(|id| id.to_hex()).unwrap_or_default(),
             email: self.email.clone(),
             full_name: self.full_name.clone(),
+            display_name: self.display_name.clone(),
+            avatar_url: self.avatar_url.clone(),
             is_active: self.is_active,
             is_admin: self.is_admin,
+            two_factor_enabled: self.two_factor_enabled,
             created_at: self.created_at,
             last_login: self.last_login,
             settings: self.settings.clone(),
@@ -204,6 +298,48 @@ impl User {
     pub fn update_last_login(&mut self) {
         self.last_login = Some(Utc::now());
         self.updated_at = Utc::now();
+    }
+}
+
+impl Session {
+    pub fn new(
+        user_id: ObjectId,
+        device: String,
+        browser: String,
+        os: String,
+        ip_address: String,
+        location: String,
+        user_agent: String,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            id: None,
+            session_id: uuid::Uuid::new_v4().to_string(),
+            user_id,
+            device,
+            browser,
+            os,
+            ip_address,
+            location,
+            user_agent,
+            created_at: now,
+            last_active: now,
+            expires_at: now + chrono::Duration::days(7),
+            revoked: false,
+        }
+    }
+
+    pub fn to_info(&self, current_session_id: &str) -> SessionInfo {
+        SessionInfo {
+            session_id: self.session_id.clone(),
+            device: self.device.clone(),
+            browser: self.browser.clone(),
+            os: self.os.clone(),
+            location: self.location.clone(),
+            is_current: self.session_id == current_session_id,
+            created_at: self.created_at,
+            last_active: self.last_active,
+        }
     }
 }
 
@@ -742,11 +878,13 @@ mod tests {
 
     #[test]
     fn test_user_settings_custom_values() {
-        let mut settings = UserSettings::default();
-        settings.trading_enabled = true;
-        settings.risk_level = RiskLevel::High;
-        settings.max_positions = 10;
-        settings.default_quantity = 0.5;
+        let settings = UserSettings {
+            trading_enabled: true,
+            risk_level: RiskLevel::High,
+            max_positions: 10,
+            default_quantity: 0.5,
+            ..Default::default()
+        };
 
         assert!(settings.trading_enabled);
         assert!(matches!(settings.risk_level, RiskLevel::High));
@@ -756,10 +894,11 @@ mod tests {
 
     #[test]
     fn test_notification_settings_custom_values() {
-        let mut notif = NotificationSettings::default();
-        notif.email_alerts = false;
-        notif.trade_notifications = false;
-        notif.system_alerts = false;
+        let notif = NotificationSettings {
+            email_alerts: false,
+            trade_notifications: false,
+            system_alerts: false,
+        };
 
         assert!(!notif.email_alerts);
         assert!(!notif.trade_notifications);

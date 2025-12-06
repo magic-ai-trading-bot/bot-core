@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Card, CardContent } from "@/components/ui/card";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -107,7 +107,7 @@ export function ProductTour() {
       >
         <CardContent className="p-6">
           {/* Close Button */}
-          <Button
+          <PremiumButton
             variant="ghost"
             size="sm"
             className="absolute top-2 right-2 h-8 w-8 p-0 focus-custom"
@@ -115,7 +115,7 @@ export function ProductTour() {
             aria-label="Close tour"
           >
             <X className="h-4 w-4" />
-          </Button>
+          </PremiumButton>
 
           {/* Progress Bar */}
           <div className="mb-6">
@@ -152,27 +152,27 @@ export function ProductTour() {
 
           {/* Navigation */}
           <div className="flex items-center justify-between mt-8">
-            <Button
-              variant="outline"
+            <PremiumButton
+              variant="secondary"
               onClick={handlePrev}
               disabled={currentStep === 0}
               className="focus-custom"
             >
               <ChevronLeft className="h-4 w-4 mr-1" aria-hidden="true" />
               Previous
-            </Button>
+            </PremiumButton>
 
             <div className="flex gap-2">
-              <Button
+              <PremiumButton
                 variant="ghost"
                 onClick={handleSkip}
                 className="focus-custom"
               >
                 Skip Tour
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleNext}
-                className="bg-profit hover:bg-profit/90 focus-custom"
+                className="focus-custom"
               >
                 {currentStep === tourSteps.length - 1 ? (
                   "Get Started"
@@ -182,7 +182,7 @@ export function ProductTour() {
                     <ChevronRight className="h-4 w-4 ml-1" aria-hidden="true" />
                   </>
                 )}
-              </Button>
+              </PremiumButton>
             </div>
           </div>
         </CardContent>

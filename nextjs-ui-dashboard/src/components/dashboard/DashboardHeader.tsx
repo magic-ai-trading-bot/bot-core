@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,7 +29,7 @@ export function DashboardHeader() {
         <div className="bg-warning/10 border-b border-warning/20 px-4 py-2">
           <div className="flex items-center gap-2 text-warning text-sm">
             <WifiOff className="h-4 w-4" />
-            <span>Bạn đang offline. Một số tính năng có thể không khả dụng.</span>
+            <span>You are offline. Some features may be unavailable.</span>
           </div>
         </div>
       )}
@@ -50,54 +50,54 @@ export function DashboardHeader() {
       {/* Center: Navigation Menu - Absolutely centered on desktop */}
       <div className="hidden lg:flex items-center gap-2 lg:absolute lg:left-1/2 lg:-translate-x-1/2">
         <Link to="/dashboard">
-          <Button
+          <PremiumButton
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
-          </Button>
+          </PremiumButton>
         </Link>
         <Link to="/trading-paper">
-          <Button
+          <PremiumButton
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
             <TrendingUp className="h-4 w-4" />
             Trading Paper
-          </Button>
+          </PremiumButton>
         </Link>
         <Link to="/trade-analyses">
-          <Button
+          <PremiumButton
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
             <Brain className="h-4 w-4" />
             AI Analyses
-          </Button>
+          </PremiumButton>
         </Link>
         <Link to="/settings">
-          <Button
+          <PremiumButton
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
             <SettingsIcon className="h-4 w-4" />
             Settings
-          </Button>
+          </PremiumButton>
         </Link>
         <Link to="/how-it-works">
-          <Button
+          <PremiumButton
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground text-sm flex items-center gap-2"
           >
             <BookOpen className="h-4 w-4" />
-            Hướng Dẫn
-          </Button>
+            How It Works
+          </PremiumButton>
         </Link>
       </div>
 
@@ -143,17 +143,17 @@ export function DashboardHeader() {
           {/* Logout Button */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
+              <PremiumButton
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={handleLogout}
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
               >
                 <LogOut className="h-4 w-4" />
-              </Button>
+              </PremiumButton>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Đăng xuất</p>
+              <p>Sign Out</p>
             </TooltipContent>
           </Tooltip>
         </div>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
@@ -355,23 +355,23 @@ export function BotSettings() {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-3 pt-4">
-          <Button
-            variant="outline"
+          <PremiumButton
+            variant="secondary"
             className="w-full"
             onClick={handleReset}
             disabled={isResetting || isSaving}
           >
             {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Reset to Default
-          </Button>
-          <Button
+          </PremiumButton>
+          <PremiumButton
             className="w-full bg-profit hover:bg-profit/90"
             onClick={handleSaveSettings}
             disabled={isSaving || isResetting}
           >
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Settings
-          </Button>
+          </PremiumButton>
         </div>
 
         {/* Emergency Stop */}
@@ -383,15 +383,15 @@ export function BotSettings() {
                 Immediately close all positions and stop trading
               </p>
             </div>
-            <Button
-              variant="destructive"
+            <PremiumButton
+              variant="danger"
               size="sm"
               onClick={handleEmergencyStop}
               disabled={isStoppingAll}
             >
               {isStoppingAll && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               STOP ALL
-            </Button>
+            </PremiumButton>
           </div>
         </div>
       </CardContent>

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Zap, Rocket } from "lucide-react";
@@ -155,18 +155,14 @@ export function PricingSection() {
               </CardHeader>
               
               <CardContent className="space-y-6">
-                <Button 
-                  className={`w-full ${
-                    plan.featured 
-                      ? 'bg-profit hover:bg-profit/90 text-profit-foreground' 
-                      : 'bg-primary hover:bg-primary/90'
-                  }`}
+                <PremiumButton
+                  className="w-full"
                   size="lg"
                   onClick={() => handleSubscribe(plan.name, plan.price)}
                   disabled={isProcessing === plan.name}
                 >
                   {isProcessing === plan.name ? 'Processing...' : t('pricing.getStarted')}
-                </Button>
+                </PremiumButton>
                 
                 <div className="space-y-3">
                   <h4 className="font-semibold text-sm">{t('pricing.features')}</h4>
