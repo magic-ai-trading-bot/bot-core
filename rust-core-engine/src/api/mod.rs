@@ -92,8 +92,8 @@ impl ApiServer {
     ) -> Result<Self> {
         // Initialize auth service - use dummy implementation if database is not available
         let (auth_service, security_service) = if let Some(db) = storage.get_database() {
-            let user_repo = UserRepository::new(&db).await?;
-            let session_repo = SessionRepository::new(&db).await?;
+            let user_repo = UserRepository::new(db).await?;
+            let session_repo = SessionRepository::new(db).await?;
             let jwt_secret = std::env::var("JWT_SECRET")
                 .unwrap_or_else(|_| "default_jwt_secret_change_in_production".to_string());
             let auth = AuthService::new(user_repo.clone(), jwt_secret.clone());

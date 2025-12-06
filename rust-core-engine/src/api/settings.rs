@@ -155,7 +155,7 @@ fn encrypt_secret(secret: &str) -> Result<(String, String), String> {
     key.seal_in_place_append_tag(nonce, Aad::empty(), &mut in_out)
         .map_err(|e| format!("Encryption failed: {:?}", e))?;
 
-    Ok((BASE64.encode(&in_out), BASE64.encode(&nonce_bytes)))
+    Ok((BASE64.encode(&in_out), BASE64.encode(nonce_bytes)))
 }
 
 /// Decrypt API secret using AES-256-GCM

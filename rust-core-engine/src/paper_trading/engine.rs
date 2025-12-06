@@ -3361,7 +3361,7 @@ impl PaperTradingEngine {
         let pending_orders = self.pending_stop_limit_orders.read().await;
         pending_orders
             .iter()
-            .filter(|o| o.status == OrderStatus::Pending && symbol.map_or(true, |s| o.symbol == s))
+            .filter(|o| o.status == OrderStatus::Pending && symbol.is_none_or(|s| o.symbol == s))
             .count()
     }
 }

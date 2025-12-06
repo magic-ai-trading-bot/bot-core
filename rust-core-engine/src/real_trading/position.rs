@@ -267,7 +267,7 @@ impl RealPosition {
                     if price >= activation {
                         let new_stop = price * (1.0 - percent / 100.0);
                         // Only update if new stop is higher
-                        if self.trailing_stop_price.map_or(true, |s| new_stop > s) {
+                        if self.trailing_stop_price.is_none_or(|s| new_stop > s) {
                             self.trailing_stop_price = Some(new_stop);
                         }
                     }
@@ -277,7 +277,7 @@ impl RealPosition {
                     if price <= activation {
                         let new_stop = price * (1.0 + percent / 100.0);
                         // Only update if new stop is lower
-                        if self.trailing_stop_price.map_or(true, |s| new_stop < s) {
+                        if self.trailing_stop_price.is_none_or(|s| new_stop < s) {
                             self.trailing_stop_price = Some(new_stop);
                         }
                     }
