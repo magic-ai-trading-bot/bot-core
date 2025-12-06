@@ -17,6 +17,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -678,9 +679,9 @@ export function TradingSettings() {
               <GradientText className="text-xl font-bold">
                 Trading Bot Settings
               </GradientText>
-              <p className="text-xs font-normal" style={{ color: luxuryColors.textMuted }}>
+              <DialogDescription className="text-xs font-normal" style={{ color: luxuryColors.textMuted }}>
                 Advanced Configuration
-              </p>
+              </DialogDescription>
             </div>
             <Badge variant="info" size="sm" className="ml-auto">
               Paper Mode
