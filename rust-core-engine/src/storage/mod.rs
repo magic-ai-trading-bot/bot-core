@@ -918,7 +918,10 @@ impl Storage {
                 };
                 self.api_keys()?.insert_one(insert_doc).await?;
 
-                info!("API key saved to database (testnet: {})", api_key.use_testnet);
+                info!(
+                    "API key saved to database (testnet: {})",
+                    api_key.use_testnet
+                );
                 return Ok(());
             }
         }
@@ -953,8 +956,14 @@ impl Storage {
 
                     let stored_key = crate::api::settings::StoredApiKey {
                         api_key: record.get_str("api_key").unwrap_or("").to_string(),
-                        api_secret_encrypted: record.get_str("api_secret_encrypted").unwrap_or("").to_string(),
-                        api_secret_nonce: record.get_str("api_secret_nonce").unwrap_or("").to_string(),
+                        api_secret_encrypted: record
+                            .get_str("api_secret_encrypted")
+                            .unwrap_or("")
+                            .to_string(),
+                        api_secret_nonce: record
+                            .get_str("api_secret_nonce")
+                            .unwrap_or("")
+                            .to_string(),
                         use_testnet: record.get_bool("use_testnet").unwrap_or(true),
                         permissions,
                         created_at: record
@@ -1023,7 +1032,9 @@ impl Storage {
         {
             if let Some(_db) = &self.db {
                 // Only one preferences record per user (for now, single-user system)
-                self.notification_preferences()?.delete_many(doc! {}).await?;
+                self.notification_preferences()?
+                    .delete_many(doc! {})
+                    .await?;
 
                 let insert_doc = doc! {
                     "enabled": prefs.enabled,
@@ -1056,7 +1067,9 @@ impl Storage {
                     "created_at": prefs.created_at,
                     "updated_at": prefs.updated_at,
                 };
-                self.notification_preferences()?.insert_one(insert_doc).await?;
+                self.notification_preferences()?
+                    .insert_one(insert_doc)
+                    .await?;
 
                 info!("Notification preferences saved to database");
                 return Ok(());
@@ -1079,7 +1092,8 @@ impl Storage {
                         // Parse channels
                         let channels_doc = record.get_document("channels").ok();
                         let push_doc = channels_doc.and_then(|c| c.get_document("push").ok());
-                        let telegram_doc = channels_doc.and_then(|c| c.get_document("telegram").ok());
+                        let telegram_doc =
+                            channels_doc.and_then(|c| c.get_document("telegram").ok());
                         let discord_doc = channels_doc.and_then(|c| c.get_document("discord").ok());
 
                         let push = crate::api::notifications::PushSettings {

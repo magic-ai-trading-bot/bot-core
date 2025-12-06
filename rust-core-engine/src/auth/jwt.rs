@@ -11,13 +11,13 @@ use serde::{Deserialize, Serialize};
 // @test:TC-AUTH-001, TC-AUTH-002, TC-AUTH-003
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,                      // user id
+    pub sub: String, // user id
     pub email: String,
     pub is_admin: bool,
-    pub exp: i64,                         // expiration time
-    pub iat: i64,                         // issued at
+    pub exp: i64, // expiration time
+    pub iat: i64, // issued at
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub session_id: Option<String>,       // session tracking
+    pub session_id: Option<String>, // session tracking
 }
 
 #[derive(Clone)]
@@ -305,7 +305,12 @@ mod tests {
         let jwt_service = JwtService::new("test_secret".to_string(), Some(1));
         let session_id = "session_xyz789".to_string();
         let token = jwt_service
-            .generate_token_with_session("user123", "test@example.com", false, Some(session_id.clone()))
+            .generate_token_with_session(
+                "user123",
+                "test@example.com",
+                false,
+                Some(session_id.clone()),
+            )
             .unwrap();
 
         let claims = jwt_service.verify_token(&token).unwrap();

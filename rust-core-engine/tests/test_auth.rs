@@ -202,7 +202,12 @@ fn test_jwt_with_session_id() {
 
     // Generate token with session_id
     let token = jwt_service
-        .generate_token_with_session("user123", "test@example.com", false, Some(session_id.clone()))
+        .generate_token_with_session(
+            "user123",
+            "test@example.com",
+            false,
+            Some(session_id.clone()),
+        )
         .unwrap();
 
     // Verify token contains session_id
@@ -233,11 +238,21 @@ fn test_jwt_session_tracking() {
 
     // Create multiple sessions for same user
     let session1 = jwt_service
-        .generate_token_with_session("user1", "user@test.com", false, Some("session_001".to_string()))
+        .generate_token_with_session(
+            "user1",
+            "user@test.com",
+            false,
+            Some("session_001".to_string()),
+        )
         .unwrap();
 
     let session2 = jwt_service
-        .generate_token_with_session("user1", "user@test.com", false, Some("session_002".to_string()))
+        .generate_token_with_session(
+            "user1",
+            "user@test.com",
+            false,
+            Some("session_002".to_string()),
+        )
         .unwrap();
 
     // Both tokens should be valid and have different session IDs
