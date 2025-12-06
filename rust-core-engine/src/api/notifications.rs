@@ -64,7 +64,7 @@ pub struct ChannelSettings {
 }
 
 /// Push notification settings with VAPID keys
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PushSettings {
     pub enabled: bool,
     pub vapid_public_key: Option<String>,
@@ -72,7 +72,7 @@ pub struct PushSettings {
 }
 
 /// Telegram notification settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TelegramSettings {
     pub enabled: bool,
     pub bot_token: Option<String>,
@@ -80,7 +80,7 @@ pub struct TelegramSettings {
 }
 
 /// Discord notification settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DiscordSettings {
     pub enabled: bool,
     pub webhook_url: Option<String>,
@@ -194,35 +194,6 @@ impl Default for ChannelSettings {
             telegram: TelegramSettings::default(),
             discord: DiscordSettings::default(),
             sound: true,
-        }
-    }
-}
-
-impl Default for PushSettings {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            vapid_public_key: None,
-            vapid_private_key: None,
-        }
-    }
-}
-
-impl Default for TelegramSettings {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            bot_token: None,
-            chat_id: None,
-        }
-    }
-}
-
-impl Default for DiscordSettings {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            webhook_url: None,
         }
     }
 }
@@ -360,7 +331,7 @@ async fn update_notification_preferences(
     }
 
     if let Some(threshold) = request.price_alert_threshold {
-        if threshold < 0.1 || threshold > 100.0 {
+        if !(0.1..=100.0).contains(&threshold) {
             return Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(
                     "Price alert threshold must be between 0.1 and 100".to_string(),

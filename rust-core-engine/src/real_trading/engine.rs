@@ -29,7 +29,7 @@ use super::position::{PositionSide, RealPosition};
 use super::risk::RealTradingRiskManager;
 
 /// Circuit breaker state for error handling
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CircuitBreakerState {
     /// Whether circuit breaker is open (trading halted)
     pub is_open: bool,
@@ -39,17 +39,6 @@ pub struct CircuitBreakerState {
     pub opened_at: Option<DateTime<Utc>>,
     /// Last error message
     pub last_error: Option<String>,
-}
-
-impl Default for CircuitBreakerState {
-    fn default() -> Self {
-        Self {
-            is_open: false,
-            error_count: 0,
-            opened_at: None,
-            last_error: None,
-        }
-    }
 }
 
 impl CircuitBreakerState {
@@ -582,13 +571,13 @@ impl RealTradingEngine {
         }
 
         // Pre-trade risk checks using comprehensive risk manager
-        self.check_risk_limits(symbol, side.clone(), quantity, price)
+        self.check_risk_limits(symbol, side, quantity, price)
             .await?;
 
         // Generate client order ID
         let client_order_id = format!(
             "real_{}",
-            Uuid::new_v4().to_string().replace("-", "")[..16].to_string()
+            &Uuid::new_v4().to_string().replace("-", "")[..16]
         );
 
         // Convert side to string
@@ -626,7 +615,7 @@ impl RealTradingEngine {
         let request = SpotOrderRequest {
             symbol: symbol.to_string(),
             side,
-            order_type: order_type.clone(),
+            order_type,
             time_in_force: if order_type == SpotOrderType::Limit {
                 Some(TimeInForce::Gtc)
             } else {
@@ -982,14 +971,14 @@ impl RealTradingEngine {
         }
 
         // Check max positions
-        if self.positions.len() >= config.max_positions as usize {
-            if !self.positions.contains_key(symbol) {
-                return Err(anyhow!(
-                    "Max positions reached: {} >= {}",
-                    self.positions.len(),
-                    config.max_positions
-                ));
-            }
+        if self.positions.len() >= config.max_positions as usize
+            && !self.positions.contains_key(symbol)
+        {
+            return Err(anyhow!(
+                "Max positions reached: {} >= {}",
+                self.positions.len(),
+                config.max_positions
+            ));
         }
 
         // Check position size
@@ -1379,7 +1368,7 @@ impl RealTradingEngine {
             metrics.balance_mismatches += balance_discrepancies as u64;
             metrics.order_mismatches += order_discrepancies as u64;
             metrics.stale_orders_cancelled += stale_cleaned as u64;
-            metrics.terminal_orders_cleaned += terminal_cleaned as u64;
+            metrics.terminal_orders_cleaned += terminal_cleaned;
         }
 
         Ok(discrepancies)
@@ -1809,7 +1798,7 @@ impl RealTradingEngine {
             .iter()
             .filter(|o| {
                 let order = o.value();
-                order.is_active() && symbol.map_or(true, |s| order.symbol == s)
+                order.is_active() && symbol.is_none_or(|s| order.symbol == s)
             })
             .map(|o| o.key().clone())
             .collect();
@@ -2056,7 +2045,7 @@ impl RealTradingEngine {
 
         // Close triggered positions
         for symbol in &triggered {
-            if let Err(e) = self.close_position(&symbol).await {
+            if let Err(e) = self.close_position(symbol).await {
                 error!("Failed to close {} on SL/TP trigger: {}", symbol, e);
             }
         }
