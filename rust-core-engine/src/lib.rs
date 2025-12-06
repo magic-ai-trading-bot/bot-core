@@ -1,3 +1,7 @@
+// Increase recursion limit for Warp's deeply nested filter types
+// Required when chaining many .or() filters in API routes
+#![recursion_limit = "512"]
+
 // Re-export modules for tests
 pub mod ai;
 pub mod api;
