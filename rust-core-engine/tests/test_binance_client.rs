@@ -2,7 +2,7 @@ mod common;
 
 use binance_trading_bot::binance::client::BinanceClient;
 use binance_trading_bot::binance::types::*;
-use binance_trading_bot::config::BinanceConfig;
+use binance_trading_bot::config::{binance_urls, BinanceConfig, TradingMode};
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -12,10 +12,11 @@ fn create_test_config() -> BinanceConfig {
         api_key: "test_api_key".to_string(),
         secret_key: "test_secret_key".to_string(),
         testnet: true,
-        base_url: "https://testnet.binance.vision".to_string(),
-        ws_url: "wss://testnet.binance.vision/ws".to_string(),
-        futures_base_url: "https://testnet.binancefuture.com".to_string(),
-        futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+        base_url: binance_urls::TESTNET_BASE_URL.to_string(),
+        ws_url: binance_urls::TESTNET_WS_URL.to_string(),
+        futures_base_url: binance_urls::FUTURES_TESTNET_BASE_URL.to_string(),
+        futures_ws_url: binance_urls::FUTURES_TESTNET_WS_URL.to_string(),
+        trading_mode: TradingMode::PaperTrading,
     }
 }
 
@@ -70,10 +71,11 @@ async fn test_sign_request() {
         api_key: "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A".to_string(),
         secret_key: "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j".to_string(),
         testnet: true,
-        base_url: "https://api.binance.com".to_string(),
-        ws_url: "wss://stream.binance.com:9443/ws".to_string(),
-        futures_base_url: "https://fapi.binance.com".to_string(),
-        futures_ws_url: "wss://fstream.binance.com/ws".to_string(),
+        base_url: binance_urls::MAINNET_BASE_URL.to_string(),
+        ws_url: binance_urls::MAINNET_WS_URL.to_string(),
+        futures_base_url: binance_urls::FUTURES_MAINNET_BASE_URL.to_string(),
+        futures_ws_url: binance_urls::FUTURES_MAINNET_WS_URL.to_string(),
+        trading_mode: TradingMode::PaperTrading,
     };
 
     let _client = BinanceClient::new(config);
@@ -647,10 +649,11 @@ async fn test_empty_api_key_handling() {
         api_key: "".to_string(),
         secret_key: "".to_string(),
         testnet: true,
-        base_url: "https://testnet.binance.vision".to_string(),
-        ws_url: "wss://testnet.binance.vision/ws".to_string(),
-        futures_base_url: "https://testnet.binancefuture.com".to_string(),
-        futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+        base_url: binance_urls::TESTNET_BASE_URL.to_string(),
+        ws_url: binance_urls::TESTNET_WS_URL.to_string(),
+        futures_base_url: binance_urls::FUTURES_TESTNET_BASE_URL.to_string(),
+        futures_ws_url: binance_urls::FUTURES_TESTNET_WS_URL.to_string(),
+        trading_mode: TradingMode::PaperTrading,
     };
 
     assert!(config.api_key.is_empty());
@@ -725,26 +728,30 @@ async fn test_testnet_vs_production_urls() {
         api_key: "test".to_string(),
         secret_key: "test".to_string(),
         testnet: true,
-        base_url: "https://testnet.binance.vision".to_string(),
-        ws_url: "wss://testnet.binance.vision/ws".to_string(),
-        futures_base_url: "https://testnet.binancefuture.com".to_string(),
-        futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+        base_url: binance_urls::TESTNET_BASE_URL.to_string(),
+        ws_url: binance_urls::TESTNET_WS_URL.to_string(),
+        futures_base_url: binance_urls::FUTURES_TESTNET_BASE_URL.to_string(),
+        futures_ws_url: binance_urls::FUTURES_TESTNET_WS_URL.to_string(),
+        trading_mode: TradingMode::RealTestnet,
     };
 
     let production_config = BinanceConfig {
         api_key: "test".to_string(),
         secret_key: "test".to_string(),
         testnet: false,
-        base_url: "https://api.binance.com".to_string(),
-        ws_url: "wss://stream.binance.com:9443/ws".to_string(),
-        futures_base_url: "https://fapi.binance.com".to_string(),
-        futures_ws_url: "wss://fstream.binance.com/ws".to_string(),
+        base_url: binance_urls::MAINNET_BASE_URL.to_string(),
+        ws_url: binance_urls::MAINNET_WS_URL.to_string(),
+        futures_base_url: binance_urls::FUTURES_MAINNET_BASE_URL.to_string(),
+        futures_ws_url: binance_urls::FUTURES_MAINNET_WS_URL.to_string(),
+        trading_mode: TradingMode::RealMainnet,
     };
 
     assert_ne!(testnet_config.base_url, production_config.base_url);
     assert_ne!(testnet_config.ws_url, production_config.ws_url);
     assert!(testnet_config.testnet);
     assert!(!production_config.testnet);
+    assert!(testnet_config.trading_mode.is_testnet());
+    assert!(production_config.trading_mode.is_mainnet());
 }
 
 #[tokio::test]
@@ -832,4 +839,598 @@ async fn test_margin_type_values() {
     assert_eq!(isolated, "ISOLATED");
     assert_eq!(crossed, "CROSSED");
     assert_ne!(isolated, crossed);
+}
+
+// ============================================================================
+// SPOT ORDER TYPES TESTS (Phase 1: Real Trading System)
+// @spec:FR-TRADING-001 - Binance Spot Order API Integration
+// ============================================================================
+
+#[tokio::test]
+async fn test_order_side_serialization() {
+    // Test OrderSide enum serialization
+    let buy = OrderSide::Buy;
+    let sell = OrderSide::Sell;
+
+    // Serialize to JSON
+    let buy_json = serde_json::to_string(&buy).unwrap();
+    let sell_json = serde_json::to_string(&sell).unwrap();
+
+    assert_eq!(buy_json, "\"BUY\"");
+    assert_eq!(sell_json, "\"SELL\"");
+
+    // Deserialize from JSON
+    let buy_parsed: OrderSide = serde_json::from_str("\"BUY\"").unwrap();
+    let sell_parsed: OrderSide = serde_json::from_str("\"SELL\"").unwrap();
+
+    assert_eq!(buy_parsed, OrderSide::Buy);
+    assert_eq!(sell_parsed, OrderSide::Sell);
+}
+
+#[tokio::test]
+async fn test_spot_order_type_serialization() {
+    // Test SpotOrderType enum serialization
+    let types = vec![
+        (SpotOrderType::Market, "\"MARKET\""),
+        (SpotOrderType::Limit, "\"LIMIT\""),
+        (SpotOrderType::StopLossLimit, "\"STOP_LOSS_LIMIT\""),
+        (SpotOrderType::TakeProfitLimit, "\"TAKE_PROFIT_LIMIT\""),
+        (SpotOrderType::LimitMaker, "\"LIMIT_MAKER\""),
+    ];
+
+    for (order_type, expected_json) in types {
+        let json = serde_json::to_string(&order_type).unwrap();
+        assert_eq!(json, expected_json);
+
+        // Roundtrip test
+        let parsed: SpotOrderType = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, order_type);
+    }
+}
+
+#[tokio::test]
+async fn test_time_in_force_serialization() {
+    // Test TimeInForce enum serialization
+    let tifs = vec![
+        (TimeInForce::Gtc, "\"GTC\""),
+        (TimeInForce::Ioc, "\"IOC\""),
+        (TimeInForce::Fok, "\"FOK\""),
+    ];
+
+    for (tif, expected_json) in tifs {
+        let json = serde_json::to_string(&tif).unwrap();
+        assert_eq!(json, expected_json);
+
+        // Roundtrip test
+        let parsed: TimeInForce = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, tif);
+    }
+}
+
+#[tokio::test]
+async fn test_spot_order_request_builder() {
+    // Test SpotOrderRequest builder methods
+    let order = SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0.001");
+
+    assert_eq!(order.symbol, "BTCUSDT");
+    assert_eq!(order.side, OrderSide::Buy);
+    assert_eq!(order.order_type, SpotOrderType::Market);
+    assert_eq!(order.quantity.as_deref(), Some("0.001"));
+    assert!(order.price.is_none());
+    assert!(order.stop_price.is_none());
+}
+
+#[tokio::test]
+async fn test_spot_order_request_limit_builder() {
+    // Test limit order builder
+    let order = SpotOrderRequest::limit("ETHUSDT", OrderSide::Sell, "1.5", "2000.00");
+
+    assert_eq!(order.symbol, "ETHUSDT");
+    assert_eq!(order.side, OrderSide::Sell);
+    assert_eq!(order.order_type, SpotOrderType::Limit);
+    assert_eq!(order.quantity.as_deref(), Some("1.5"));
+    assert_eq!(order.price.as_deref(), Some("2000.00"));
+    assert_eq!(order.time_in_force, Some(TimeInForce::Gtc));
+}
+
+#[tokio::test]
+async fn test_spot_order_request_stop_loss_limit_builder() {
+    // Test stop loss limit order builder
+    let order = SpotOrderRequest::stop_loss_limit(
+        "BTCUSDT",
+        OrderSide::Sell,
+        "0.01",
+        "44000.00",
+        "44500.00",
+    );
+
+    assert_eq!(order.symbol, "BTCUSDT");
+    assert_eq!(order.side, OrderSide::Sell);
+    assert_eq!(order.order_type, SpotOrderType::StopLossLimit);
+    assert_eq!(order.quantity.as_deref(), Some("0.01"));
+    assert_eq!(order.price.as_deref(), Some("44000.00"));
+    assert_eq!(order.stop_price.as_deref(), Some("44500.00"));
+    assert_eq!(order.time_in_force, Some(TimeInForce::Gtc));
+}
+
+#[tokio::test]
+async fn test_spot_order_request_with_client_order_id() {
+    // Test adding client order ID
+    let order = SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0.001")
+        .with_client_order_id("my-order-123");
+
+    assert_eq!(order.client_order_id.as_deref(), Some("my-order-123"));
+}
+
+#[tokio::test]
+async fn test_spot_order_request_with_quote_qty() {
+    // Test quote order quantity (buy $100 worth of BTC)
+    let order = SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0").with_quote_qty("100.00");
+
+    assert_eq!(order.quote_order_qty.as_deref(), Some("100.00"));
+}
+
+#[tokio::test]
+async fn test_spot_order_response_parsing() {
+    // Test SpotOrderResponse deserialization
+    let json_data = json!({
+        "symbol": "BTCUSDT",
+        "orderId": 123456789,
+        "orderListId": -1,
+        "clientOrderId": "my-order-123",
+        "transactTime": 1701234567000i64,
+        "price": "45000.00000000",
+        "origQty": "0.00100000",
+        "executedQty": "0.00100000",
+        "cummulativeQuoteQty": "45.00000000",
+        "status": "FILLED",
+        "timeInForce": "GTC",
+        "type": "LIMIT",
+        "side": "BUY",
+        "workingTime": 1701234567000i64,
+        "selfTradePreventionMode": "NONE",
+        "fills": [
+            {
+                "price": "45000.00000000",
+                "qty": "0.00100000",
+                "commission": "0.00000100",
+                "commissionAsset": "BTC",
+                "tradeId": 987654321
+            }
+        ]
+    });
+
+    let response: SpotOrderResponse = serde_json::from_value(json_data).unwrap();
+    assert_eq!(response.symbol, "BTCUSDT");
+    assert_eq!(response.order_id, 123456789);
+    assert_eq!(response.client_order_id, "my-order-123");
+    assert_eq!(response.status, "FILLED");
+    assert_eq!(response.order_type, "LIMIT");
+    assert_eq!(response.side, "BUY");
+    assert_eq!(response.fills.len(), 1);
+    assert_eq!(response.fills[0].price, "45000.00000000");
+}
+
+#[tokio::test]
+async fn test_query_order_response_parsing() {
+    // Test QueryOrderResponse deserialization
+    let json_data = json!({
+        "symbol": "BTCUSDT",
+        "orderId": 123456789,
+        "orderListId": -1,
+        "clientOrderId": "my-order-123",
+        "price": "45000.00000000",
+        "origQty": "0.00100000",
+        "executedQty": "0.00100000",
+        "cummulativeQuoteQty": "45.00000000",
+        "status": "FILLED",
+        "timeInForce": "GTC",
+        "type": "LIMIT",
+        "side": "BUY",
+        "stopPrice": "0.00000000",
+        "icebergQty": "0.00000000",
+        "time": 1701234567000i64,
+        "updateTime": 1701234568000i64,
+        "isWorking": true,
+        "workingTime": 1701234567000i64,
+        "origQuoteOrderQty": "0.00000000",
+        "selfTradePreventionMode": "NONE"
+    });
+
+    let response: QueryOrderResponse = serde_json::from_value(json_data).unwrap();
+    assert_eq!(response.symbol, "BTCUSDT");
+    assert_eq!(response.order_id, 123456789);
+    assert_eq!(response.status, "FILLED");
+    assert!(response.is_working);
+}
+
+#[tokio::test]
+async fn test_cancel_order_response_parsing() {
+    // Test CancelOrderResponse deserialization
+    let json_data = json!({
+        "symbol": "BTCUSDT",
+        "origClientOrderId": "my-order-123",
+        "orderId": 123456789,
+        "orderListId": -1,
+        "clientOrderId": "cancel-123",
+        "price": "45000.00000000",
+        "origQty": "0.00100000",
+        "executedQty": "0.00000000",
+        "cummulativeQuoteQty": "0.00000000",
+        "status": "CANCELED",
+        "timeInForce": "GTC",
+        "type": "LIMIT",
+        "side": "BUY"
+    });
+
+    let response: CancelOrderResponse = serde_json::from_value(json_data).unwrap();
+    assert_eq!(response.symbol, "BTCUSDT");
+    assert_eq!(response.order_id, 123456789);
+    assert_eq!(response.status, "CANCELED");
+    assert_eq!(
+        response.orig_client_order_id.as_deref(),
+        Some("my-order-123")
+    );
+}
+
+// ============================================================================
+// USER DATA STREAM TYPES TESTS
+// @spec:FR-TRADING-002 - User Data Stream Integration
+// ============================================================================
+
+#[tokio::test]
+async fn test_listen_key_response_parsing() {
+    // Test ListenKeyResponse deserialization
+    let json_data = json!({
+        "listenKey": "pqia91ma19a5s61cv6a81va65sdf19v8a65a1a5s61cv6a81va65sdf19v8a65a1"
+    });
+
+    let response: ListenKeyResponse = serde_json::from_value(json_data).unwrap();
+    assert!(response.listen_key.len() > 0);
+    assert!(response.listen_key.starts_with("pqia91ma"));
+}
+
+#[tokio::test]
+async fn test_execution_report_parsing() {
+    // Test ExecutionReport deserialization (from WebSocket user data stream)
+    let json_data = json!({
+        "e": "executionReport",
+        "E": 1701234567000i64,
+        "s": "BTCUSDT",
+        "c": "my-order-123",
+        "S": "BUY",
+        "o": "LIMIT",
+        "f": "GTC",
+        "q": "0.00100000",
+        "p": "45000.00000000",
+        "P": "0.00000000",
+        "F": "0.00000000",
+        "g": -1,
+        "C": "",
+        "x": "NEW",
+        "X": "NEW",
+        "r": "NONE",
+        "i": 123456789,
+        "l": "0.00000000",
+        "z": "0.00000000",
+        "L": "0.00000000",
+        "n": "0",
+        "N": null,
+        "T": 1701234567000i64,
+        "t": -1,
+        "I": 987654321,
+        "w": true,
+        "m": false,
+        "M": false,
+        "O": 1701234567000i64,
+        "Z": "0.00000000",
+        "Y": "0.00000000",
+        "Q": "0.00000000"
+    });
+
+    let report: ExecutionReport = serde_json::from_value(json_data).unwrap();
+    assert_eq!(report.event_type, "executionReport");
+    assert_eq!(report.symbol, "BTCUSDT");
+    assert_eq!(report.client_order_id, "my-order-123");
+    assert_eq!(report.side, "BUY");
+    assert_eq!(report.order_type, "LIMIT");
+    assert_eq!(report.execution_type, "NEW");
+    assert_eq!(report.order_status, "NEW");
+    assert_eq!(report.order_id, 123456789);
+}
+
+#[tokio::test]
+async fn test_execution_report_filled_status() {
+    // Test ExecutionReport with FILLED status
+    let json_data = json!({
+        "e": "executionReport",
+        "E": 1701234567000i64,
+        "s": "BTCUSDT",
+        "c": "my-order-123",
+        "S": "BUY",
+        "o": "MARKET",
+        "f": "GTC",
+        "q": "0.00100000",
+        "p": "0.00000000",
+        "P": "0.00000000",
+        "F": "0.00000000",
+        "g": -1,
+        "C": "",
+        "x": "TRADE",
+        "X": "FILLED",
+        "r": "NONE",
+        "i": 123456789,
+        "l": "0.00100000",
+        "z": "0.00100000",
+        "L": "45123.45000000",
+        "n": "0.00000100",
+        "N": "BTC",
+        "T": 1701234567000i64,
+        "t": 987654321,
+        "I": 111222333,
+        "w": false,
+        "m": false,
+        "M": true,
+        "O": 1701234567000i64,
+        "Z": "45.12345000",
+        "Y": "45.12345000",
+        "Q": "0.00000000"
+    });
+
+    let report: ExecutionReport = serde_json::from_value(json_data).unwrap();
+    assert_eq!(report.execution_type, "TRADE");
+    assert_eq!(report.order_status, "FILLED");
+    assert_eq!(report.last_executed_quantity, "0.00100000");
+    assert_eq!(report.cumulative_filled_quantity, "0.00100000");
+    assert_eq!(report.last_executed_price, "45123.45000000");
+    assert_eq!(report.commission_amount, "0.00000100");
+    assert_eq!(report.commission_asset.as_deref(), Some("BTC"));
+    assert!(report.is_maker); // "M": true in the JSON
+}
+
+#[tokio::test]
+async fn test_outbound_account_position_parsing() {
+    // Test OutboundAccountPosition deserialization
+    let json_data = json!({
+        "e": "outboundAccountPosition",
+        "E": 1701234567000i64,
+        "u": 1701234567000i64,
+        "B": [
+            {
+                "a": "BTC",
+                "f": "0.00100000",
+                "l": "0.00000000"
+            },
+            {
+                "a": "USDT",
+                "f": "1000.00000000",
+                "l": "100.00000000"
+            }
+        ]
+    });
+
+    let position: OutboundAccountPosition = serde_json::from_value(json_data).unwrap();
+    assert_eq!(position.event_type, "outboundAccountPosition");
+    assert_eq!(position.balances.len(), 2);
+    assert_eq!(position.balances[0].asset, "BTC");
+    assert_eq!(position.balances[0].free, "0.00100000");
+    assert_eq!(position.balances[1].asset, "USDT");
+    assert_eq!(position.balances[1].locked, "100.00000000");
+}
+
+#[tokio::test]
+async fn test_balance_update_parsing() {
+    // Test BalanceUpdate deserialization
+    let json_data = json!({
+        "e": "balanceUpdate",
+        "E": 1701234567000i64,
+        "a": "BTC",
+        "d": "0.00100000",
+        "T": 1701234567000i64
+    });
+
+    let update: BalanceUpdate = serde_json::from_value(json_data).unwrap();
+    assert_eq!(update.event_type, "balanceUpdate");
+    assert_eq!(update.asset, "BTC");
+    assert_eq!(update.balance_delta, "0.00100000");
+}
+
+#[tokio::test]
+async fn test_user_data_event_parsing() {
+    // Test UserDataEvent enum parsing
+    let execution_json = json!({
+        "e": "executionReport",
+        "E": 1701234567000i64,
+        "s": "BTCUSDT",
+        "c": "test",
+        "S": "BUY",
+        "o": "MARKET",
+        "f": "GTC",
+        "q": "0.001",
+        "p": "0",
+        "P": "0",
+        "F": "0",
+        "g": -1,
+        "C": "",
+        "x": "NEW",
+        "X": "NEW",
+        "r": "NONE",
+        "i": 123,
+        "l": "0",
+        "z": "0",
+        "L": "0",
+        "n": "0",
+        "N": null,
+        "T": 1701234567000i64,
+        "t": -1,
+        "I": 456,
+        "w": true,
+        "m": false,
+        "M": false,
+        "O": 1701234567000i64,
+        "Z": "0",
+        "Y": "0",
+        "Q": "0"
+    });
+
+    let event: UserDataEvent = serde_json::from_value(execution_json).unwrap();
+    match event {
+        UserDataEvent::ExecutionReport(report) => {
+            assert_eq!(report.symbol, "BTCUSDT");
+        },
+        _ => panic!("Expected ExecutionReport"),
+    }
+}
+
+// ============================================================================
+// TRADING MODE TESTS
+// @spec:FR-TRADING-002 - Trading Mode Configuration
+// ============================================================================
+
+#[tokio::test]
+async fn test_trading_mode_default() {
+    // Test default trading mode is PaperTrading
+    let mode = TradingMode::default();
+    assert_eq!(mode, TradingMode::PaperTrading);
+    assert!(mode.is_paper());
+    assert!(!mode.is_real_trading());
+}
+
+#[tokio::test]
+async fn test_trading_mode_real_testnet() {
+    // Test RealTestnet mode
+    let mode = TradingMode::RealTestnet;
+    assert!(mode.is_real_trading());
+    assert!(mode.is_testnet());
+    assert!(!mode.is_mainnet());
+    assert!(!mode.is_paper());
+}
+
+#[tokio::test]
+async fn test_trading_mode_real_mainnet() {
+    // Test RealMainnet mode
+    let mode = TradingMode::RealMainnet;
+    assert!(mode.is_real_trading());
+    assert!(mode.is_mainnet());
+    assert!(!mode.is_testnet());
+    assert!(!mode.is_paper());
+}
+
+#[tokio::test]
+async fn test_trading_mode_url_methods() {
+    // Test URL getter methods for each mode
+    let paper = TradingMode::PaperTrading;
+    assert_eq!(paper.get_base_url(), binance_urls::MAINNET_BASE_URL);
+    assert_eq!(paper.get_ws_url(), binance_urls::MAINNET_WS_URL);
+
+    let testnet = TradingMode::RealTestnet;
+    assert_eq!(testnet.get_base_url(), binance_urls::TESTNET_BASE_URL);
+    assert_eq!(testnet.get_ws_url(), binance_urls::TESTNET_WS_URL);
+
+    let mainnet = TradingMode::RealMainnet;
+    assert_eq!(mainnet.get_base_url(), binance_urls::MAINNET_BASE_URL);
+    assert_eq!(mainnet.get_ws_url(), binance_urls::MAINNET_WS_URL);
+}
+
+#[tokio::test]
+async fn test_trading_mode_serialization() {
+    // Test TradingMode serialization
+    let modes = vec![
+        (TradingMode::PaperTrading, "\"paper_trading\""),
+        (TradingMode::RealTestnet, "\"real_testnet\""),
+        (TradingMode::RealMainnet, "\"real_mainnet\""),
+    ];
+
+    for (mode, expected_json) in modes {
+        let json = serde_json::to_string(&mode).unwrap();
+        assert_eq!(json, expected_json);
+
+        // Roundtrip test
+        let parsed: TradingMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, mode);
+    }
+}
+
+#[tokio::test]
+async fn test_user_data_stream_handle() {
+    // Test UserDataStreamHandle creation
+    let handle = UserDataStreamHandle::new(
+        "test_listen_key_12345".to_string(),
+        "wss://stream.binance.com:9443/ws/test_listen_key_12345".to_string(),
+    );
+
+    assert_eq!(handle.listen_key, "test_listen_key_12345");
+    assert!(handle.ws_url.contains("test_listen_key_12345"));
+}
+
+#[tokio::test]
+async fn test_binance_config_with_trading_mode() {
+    // Test BinanceConfig with trading_mode field
+    let config = create_test_config();
+
+    assert_eq!(config.trading_mode, TradingMode::PaperTrading);
+    assert!(config.trading_mode.is_paper());
+
+    // Create config with different mode
+    let mut mainnet_config = config.clone();
+    mainnet_config.trading_mode = TradingMode::RealMainnet;
+    assert!(mainnet_config.trading_mode.is_mainnet());
+}
+
+#[tokio::test]
+async fn test_client_creation_with_trading_mode() {
+    // Test that client can be created with trading_mode config
+    let mut config = create_test_config();
+    config.trading_mode = TradingMode::RealTestnet;
+
+    let client = BinanceClient::new(config);
+    assert!(client.is_ok());
+}
+
+#[tokio::test]
+async fn test_spot_order_types_display() {
+    // Test that order types have correct enum values
+    let market = SpotOrderType::Market;
+    let limit = SpotOrderType::Limit;
+    let stop_loss = SpotOrderType::StopLossLimit;
+
+    // Verify variants exist and are distinct
+    assert_ne!(
+        std::mem::discriminant(&market),
+        std::mem::discriminant(&limit)
+    );
+    assert_ne!(
+        std::mem::discriminant(&limit),
+        std::mem::discriminant(&stop_loss)
+    );
+}
+
+#[tokio::test]
+async fn test_order_status_values() {
+    // Test common order status values that come from Binance API
+    let statuses = vec![
+        "NEW",
+        "PARTIALLY_FILLED",
+        "FILLED",
+        "CANCELED",
+        "PENDING_CANCEL",
+        "REJECTED",
+        "EXPIRED",
+    ];
+
+    for status in statuses {
+        assert!(!status.is_empty());
+    }
+}
+
+#[tokio::test]
+async fn test_execution_type_values() {
+    // Test execution type values from user data stream
+    let execution_types = vec![
+        "NEW", "CANCELED", "REPLACED", "REJECTED", "TRADE", "EXPIRED",
+    ];
+
+    for exec_type in execution_types {
+        assert!(!exec_type.is_empty());
+    }
 }

@@ -36,8 +36,8 @@ You are an expert in conversion optimization. Analyze the content based on repor
 
 ## Workflow
 
-- If the user provides a screenshots or videos, use `eyes_analyze` tool from Human MCP to describe as detailed as possible the issue, make sure copywriter can fully understand the issue easily based on the description.
-- If the user provides a URL, use `web_fetch` tool to fetch the content of the URL and analyze the current issues.
-- You can use `screenshot` tools from "human" mcp server to capture screenshots of the exact parent container and analyze the current issues with `eyes_analyze` tool.
-- Use multiple `scouter` agents to scout the current codebase or given codebase (if any) to understand the context, then report back to `copywriter` agent.
+- If the user provides screenshots, use `ai-multimodal` skill to analyze and describe conversion optimization issues in detail.
+- If the user provides videos, use `ai-multimodal` (`video-analysis`) skill to analyze video content and identify conversion bottlenecks.
+- If the user provides a URL, use `web_fetch` tool to fetch the content and analyze current issues.
+- Use `/scout:ext` (preferred) or `/scout` (fallback) slash command to search the codebase for files needed to complete the task
 - Use `copywriter` agent to write the enhanced copy into the code files, then report back to main agent.

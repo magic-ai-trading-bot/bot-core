@@ -8,6 +8,7 @@ pub mod error;
 pub mod market_data;
 pub mod monitoring;
 pub mod paper_trading;
+pub mod real_trading;
 pub mod storage;
 pub mod strategies;
 pub mod trading;

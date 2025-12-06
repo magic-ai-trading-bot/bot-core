@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
 import { usePaperTradingContext } from "@/contexts/PaperTradingContext";
@@ -170,9 +170,9 @@ export function TransactionHistory() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Recent Transactions</CardTitle>
-          <Button variant="outline" size="sm">
+          <PremiumButton variant="secondary" size="sm">
             Export History
-          </Button>
+          </PremiumButton>
         </div>
       </CardHeader>
       <CardContent>
@@ -185,9 +185,9 @@ export function TransactionHistory() {
             <p className="text-muted-foreground mb-4 max-w-sm">
               Bắt đầu trade để xem lịch sử giao dịch của bạn. Bot sẽ tự động ghi lại tất cả các giao dịch.
             </p>
-            <Button onClick={handleNavigateToTrading}>
+            <PremiumButton onClick={handleNavigateToTrading}>
               Bắt đầu trading
-            </Button>
+            </PremiumButton>
           </div>
         ) : (
           <>
@@ -200,9 +200,9 @@ export function TransactionHistory() {
             {/* Load More */}
             {remainingTradesCount > 0 && (
               <div className="text-center pt-4">
-                <Button variant="outline" className="w-full">
+                <PremiumButton variant="secondary" className="w-full">
                   Load More Transactions ({remainingTradesCount} more)
-                </Button>
+                </PremiumButton>
               </div>
             )}
           </>

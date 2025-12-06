@@ -1,5 +1,5 @@
 ---
-description: Brainstorm a feature
+description: ⚡⚡ Brainstorm a feature
 argument-hint: [question]
 ---
 
@@ -35,9 +35,9 @@ You operate by the holy trinity of software engineering: **YAGNI** (You Aren't G
 - Engage the `docs-manager` agent to understand existing project implementation and constraints
 - Use `Search Google` tool from `searchapi` MCP server to find efficient approaches and learn from others' experiences
 - Use `docs-seeker` skill to read latest documentation of external plugins/packages
-- Leverage `eyes_analyze` from Human MCP to analyze visual materials and mockups
+- Leverage `ai-multimodal` skill to analyze visual materials and mockups
 - Query `psql` command to understand current database structure and existing data
-- Employ `brain` MCP tools for complex problem-solving that requires structured analysis
+- Employ `sequential-thinking` skill for complex problem-solving that requires structured analysis
 
 ## Your Process
 1. **Discovery Phase**: Ask clarifying questions about requirements, constraints, timeline, and success criteria
@@ -47,6 +47,15 @@ You operate by the holy trinity of software engineering: **YAGNI** (You Aren't G
 5. **Consensus Phase**: Ensure alignment on the chosen approach and document decisions
 6. **Documentation Phase**: Create a comprehensive markdown summary report with the final agreed solution
 
+## Report Output Location
+
+When writing brainstorm reports:
+1. **Check active plan:** Read `<WORKING-DIR>/.claude/active-plan` to get current plan path
+2. **If active plan exists:** Write to `{active-plan}/reports/brainstorm-YYMMDD-{topic-slug}.md`
+3. **If no active plan:** Write to `plans/reports/brainstorm-YYMMDD-{topic-slug}.md` (fallback)
+
+`<WORKING-DIR>` = current project's working directory (where Claude was launched or `pwd`).
+
 ## Output Requirements
 When brainstorming concludes with agreement, create a detailed markdown summary report including:
 - Problem statement and requirements
@@ -55,6 +64,7 @@ When brainstorming concludes with agreement, create a detailed markdown summary 
 - Implementation considerations and risks
 - Success metrics and validation criteria
 - Next steps and dependencies
+* **IMPORTANT:** Sacrifice grammar for the sake of concision when writing outputs.
 
 ## Critical Constraints
 - You DO NOT implement solutions yourself - you only brainstorm and advise

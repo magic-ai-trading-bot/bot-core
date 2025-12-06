@@ -576,9 +576,59 @@ impl Storage {
             trade_id,
             created_at: Utc::now(),
             timestamp: signal.timestamp,
+            // Initialize outcome fields as pending
+            outcome: Some("pending".to_string()),
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
         };
 
         self.ai_signals()?.insert_one(record).await?;
+        Ok(())
+    }
+
+    /// Update AI signal outcome when trade closes
+    /// @spec:FR-AI-012 - Signal Outcome Tracking
+    pub async fn update_signal_outcome(
+        &self,
+        signal_id: &str,
+        outcome: &str,
+        actual_pnl: f64,
+        pnl_percentage: f64,
+        exit_price: f64,
+        close_reason: &str,
+    ) -> Result<()> {
+        let filter = doc! { "signal_id": signal_id };
+        let update = doc! {
+            "$set": {
+                "outcome": outcome,
+                "actual_pnl": actual_pnl,
+                "pnl_percentage": pnl_percentage,
+                "exit_price": exit_price,
+                "close_reason": close_reason,
+                "closed_at": Utc::now(),
+            }
+        };
+
+        let result = self.ai_signals()?.update_one(filter, update).await?;
+
+        if result.matched_count == 0 {
+            tracing::warn!(
+                "⚠️ Signal {} not found in database for outcome update",
+                signal_id
+            );
+        } else {
+            tracing::info!(
+                "✅ Updated signal {} outcome: {} (PnL: {:.2} USDT, {:.2}%)",
+                signal_id,
+                outcome,
+                actual_pnl,
+                pnl_percentage
+            );
+        }
+
         Ok(())
     }
 
@@ -833,6 +883,379 @@ impl Storage {
     }
 
     // =========================================================================
+    // API KEYS (Encrypted storage for Binance credentials)
+    // =========================================================================
+
+    /// Get API keys collection
+    #[cfg(feature = "database")]
+    fn api_keys(&self) -> Result<Collection<Document>> {
+        self.db
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("api_keys"))
+    }
+
+    /// Save API key (encrypted) to database
+    pub async fn save_api_key(&self, api_key: &crate::api::settings::StoredApiKey) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                // First delete any existing key, then insert new one (only one API key allowed)
+                self.api_keys()?.delete_many(doc! {}).await?;
+                let insert_doc = doc! {
+                    "api_key": &api_key.api_key,
+                    "api_secret_encrypted": &api_key.api_secret_encrypted,
+                    "api_secret_nonce": &api_key.api_secret_nonce,
+                    "use_testnet": api_key.use_testnet,
+                    "permissions": {
+                        "spot_trading": api_key.permissions.spot_trading,
+                        "futures_trading": api_key.permissions.futures_trading,
+                        "margin_trading": api_key.permissions.margin_trading,
+                        "options_trading": api_key.permissions.options_trading,
+                    },
+                    "created_at": api_key.created_at,
+                    "updated_at": api_key.updated_at,
+                };
+                self.api_keys()?.insert_one(insert_doc).await?;
+
+                info!("API key saved to database (testnet: {})", api_key.use_testnet);
+                return Ok(());
+            }
+        }
+
+        warn!("Database not available, API key not saved");
+        Ok(())
+    }
+
+    /// Load API key from database
+    pub async fn load_api_key(&self) -> Result<Option<crate::api::settings::StoredApiKey>> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                let record: Option<Document> = self.api_keys()?.find_one(doc! {}).await?;
+
+                if let Some(record) = record {
+                    let permissions_doc = record.get_document("permissions").ok();
+                    let permissions = crate::api::settings::ApiKeyPermissions {
+                        spot_trading: permissions_doc
+                            .and_then(|p| p.get_bool("spot_trading").ok())
+                            .unwrap_or(false),
+                        futures_trading: permissions_doc
+                            .and_then(|p| p.get_bool("futures_trading").ok())
+                            .unwrap_or(true),
+                        margin_trading: permissions_doc
+                            .and_then(|p| p.get_bool("margin_trading").ok())
+                            .unwrap_or(false),
+                        options_trading: permissions_doc
+                            .and_then(|p| p.get_bool("options_trading").ok())
+                            .unwrap_or(false),
+                    };
+
+                    let stored_key = crate::api::settings::StoredApiKey {
+                        api_key: record.get_str("api_key").unwrap_or("").to_string(),
+                        api_secret_encrypted: record.get_str("api_secret_encrypted").unwrap_or("").to_string(),
+                        api_secret_nonce: record.get_str("api_secret_nonce").unwrap_or("").to_string(),
+                        use_testnet: record.get_bool("use_testnet").unwrap_or(true),
+                        permissions,
+                        created_at: record
+                            .get_datetime("created_at")
+                            .map(|dt| dt.to_chrono())
+                            .unwrap_or_else(|_| chrono::Utc::now()),
+                        updated_at: record
+                            .get_datetime("updated_at")
+                            .map(|dt| dt.to_chrono())
+                            .unwrap_or_else(|_| chrono::Utc::now()),
+                    };
+
+                    info!("API key loaded from database");
+                    return Ok(Some(stored_key));
+                }
+            }
+        }
+
+        debug!("No API key found in database");
+        Ok(None)
+    }
+
+    /// Delete API key from database
+    pub async fn delete_api_key(&self) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                self.api_keys()?.delete_many(doc! {}).await?;
+                info!("API key deleted from database");
+                return Ok(());
+            }
+        }
+
+        warn!("Database not available, API key not deleted");
+        Ok(())
+    }
+
+    // =========================================================================
+    // NOTIFICATION PREFERENCES
+    // =========================================================================
+
+    /// Get notification preferences collection
+    #[cfg(feature = "database")]
+    fn notification_preferences(&self) -> Result<Collection<Document>> {
+        self.db
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("notification_preferences"))
+    }
+
+    /// Get push subscriptions collection
+    #[cfg(feature = "database")]
+    fn push_subscriptions(&self) -> Result<Collection<Document>> {
+        self.db
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Database not initialized"))
+            .map(|db| db.collection("push_subscriptions"))
+    }
+
+    /// Save notification preferences to database
+    pub async fn save_notification_preferences(
+        &self,
+        prefs: &crate::api::notifications::NotificationPreferences,
+    ) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                // Only one preferences record per user (for now, single-user system)
+                self.notification_preferences()?.delete_many(doc! {}).await?;
+
+                let insert_doc = doc! {
+                    "enabled": prefs.enabled,
+                    "channels": {
+                        "email": prefs.channels.email,
+                        "push": {
+                            "enabled": prefs.channels.push.enabled,
+                            "vapid_public_key": prefs.channels.push.vapid_public_key.as_deref().unwrap_or(""),
+                            "vapid_private_key": prefs.channels.push.vapid_private_key.as_deref().unwrap_or(""),
+                        },
+                        "sound": prefs.channels.sound,
+                        "telegram": {
+                            "enabled": prefs.channels.telegram.enabled,
+                            "bot_token": prefs.channels.telegram.bot_token.as_deref().unwrap_or(""),
+                            "chat_id": prefs.channels.telegram.chat_id.as_deref().unwrap_or(""),
+                        },
+                        "discord": {
+                            "enabled": prefs.channels.discord.enabled,
+                            "webhook_url": prefs.channels.discord.webhook_url.as_deref().unwrap_or(""),
+                        },
+                    },
+                    "alerts": {
+                        "price_alerts": prefs.alerts.price_alerts,
+                        "trade_alerts": prefs.alerts.trade_alerts,
+                        "system_alerts": prefs.alerts.system_alerts,
+                        "signal_alerts": prefs.alerts.signal_alerts,
+                        "risk_alerts": prefs.alerts.risk_alerts,
+                    },
+                    "price_alert_threshold": prefs.price_alert_threshold,
+                    "created_at": prefs.created_at,
+                    "updated_at": prefs.updated_at,
+                };
+                self.notification_preferences()?.insert_one(insert_doc).await?;
+
+                info!("Notification preferences saved to database");
+                return Ok(());
+            }
+        }
+
+        warn!("Database not available, notification preferences not saved");
+        Ok(())
+    }
+
+    /// Load notification preferences from database
+    pub async fn load_notification_preferences(
+        &self,
+    ) -> crate::api::notifications::NotificationPreferences {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                if let Ok(collection) = self.notification_preferences() {
+                    if let Ok(Some(record)) = collection.find_one(doc! {}).await {
+                        // Parse channels
+                        let channels_doc = record.get_document("channels").ok();
+                        let push_doc = channels_doc.and_then(|c| c.get_document("push").ok());
+                        let telegram_doc = channels_doc.and_then(|c| c.get_document("telegram").ok());
+                        let discord_doc = channels_doc.and_then(|c| c.get_document("discord").ok());
+
+                        let push = crate::api::notifications::PushSettings {
+                            enabled: push_doc
+                                .and_then(|p| p.get_bool("enabled").ok())
+                                .unwrap_or(false),
+                            vapid_public_key: push_doc
+                                .and_then(|p| p.get_str("vapid_public_key").ok())
+                                .filter(|s| !s.is_empty())
+                                .map(|s| s.to_string()),
+                            vapid_private_key: push_doc
+                                .and_then(|p| p.get_str("vapid_private_key").ok())
+                                .filter(|s| !s.is_empty())
+                                .map(|s| s.to_string()),
+                        };
+
+                        let telegram = crate::api::notifications::TelegramSettings {
+                            enabled: telegram_doc
+                                .and_then(|t| t.get_bool("enabled").ok())
+                                .unwrap_or(false),
+                            bot_token: telegram_doc
+                                .and_then(|t| t.get_str("bot_token").ok())
+                                .filter(|s| !s.is_empty())
+                                .map(|s| s.to_string()),
+                            chat_id: telegram_doc
+                                .and_then(|t| t.get_str("chat_id").ok())
+                                .filter(|s| !s.is_empty())
+                                .map(|s| s.to_string()),
+                        };
+
+                        let discord = crate::api::notifications::DiscordSettings {
+                            enabled: discord_doc
+                                .and_then(|d| d.get_bool("enabled").ok())
+                                .unwrap_or(false),
+                            webhook_url: discord_doc
+                                .and_then(|d| d.get_str("webhook_url").ok())
+                                .filter(|s| !s.is_empty())
+                                .map(|s| s.to_string()),
+                        };
+
+                        let channels = crate::api::notifications::ChannelSettings {
+                            email: channels_doc
+                                .and_then(|c| c.get_bool("email").ok())
+                                .unwrap_or(false),
+                            push,
+                            sound: channels_doc
+                                .and_then(|c| c.get_bool("sound").ok())
+                                .unwrap_or(true),
+                            telegram,
+                            discord,
+                        };
+
+                        // Parse alerts
+                        let alerts_doc = record.get_document("alerts").ok();
+                        let alerts = crate::api::notifications::AlertSettings {
+                            price_alerts: alerts_doc
+                                .and_then(|a| a.get_bool("price_alerts").ok())
+                                .unwrap_or(true),
+                            trade_alerts: alerts_doc
+                                .and_then(|a| a.get_bool("trade_alerts").ok())
+                                .unwrap_or(true),
+                            system_alerts: alerts_doc
+                                .and_then(|a| a.get_bool("system_alerts").ok())
+                                .unwrap_or(true),
+                            signal_alerts: alerts_doc
+                                .and_then(|a| a.get_bool("signal_alerts").ok())
+                                .unwrap_or(true),
+                            risk_alerts: alerts_doc
+                                .and_then(|a| a.get_bool("risk_alerts").ok())
+                                .unwrap_or(true),
+                        };
+
+                        let prefs = crate::api::notifications::NotificationPreferences {
+                            enabled: record.get_bool("enabled").unwrap_or(true),
+                            channels,
+                            alerts,
+                            price_alert_threshold: record
+                                .get_f64("price_alert_threshold")
+                                .unwrap_or(5.0),
+                            created_at: record
+                                .get_datetime("created_at")
+                                .map(|dt| dt.to_chrono())
+                                .unwrap_or_else(|_| chrono::Utc::now()),
+                            updated_at: record
+                                .get_datetime("updated_at")
+                                .map(|dt| dt.to_chrono())
+                                .unwrap_or_else(|_| chrono::Utc::now()),
+                        };
+
+                        info!("Notification preferences loaded from database");
+                        return prefs;
+                    }
+                }
+            }
+        }
+
+        debug!("No notification preferences found, using defaults");
+        crate::api::notifications::NotificationPreferences::default()
+    }
+
+    /// Save push notification subscription
+    pub async fn save_push_subscription(
+        &self,
+        subscription: &crate::api::notifications::PushSubscription,
+    ) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                // Only one subscription per user (for now)
+                self.push_subscriptions()?.delete_many(doc! {}).await?;
+
+                let insert_doc = doc! {
+                    "endpoint": &subscription.endpoint,
+                    "keys": {
+                        "p256dh": &subscription.keys.p256dh,
+                        "auth": &subscription.keys.auth,
+                    },
+                    "created_at": subscription.created_at,
+                };
+                self.push_subscriptions()?.insert_one(insert_doc).await?;
+
+                info!("Push subscription saved to database");
+                return Ok(());
+            }
+        }
+
+        warn!("Database not available, push subscription not saved");
+        Ok(())
+    }
+
+    /// Load push subscription from database
+    pub async fn load_push_subscription(
+        &self,
+    ) -> Option<crate::api::notifications::PushSubscription> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                if let Ok(collection) = self.push_subscriptions() {
+                    if let Ok(Some(record)) = collection.find_one(doc! {}).await {
+                        let keys_doc = record.get_document("keys").ok()?;
+
+                        return Some(crate::api::notifications::PushSubscription {
+                            endpoint: record.get_str("endpoint").ok()?.to_string(),
+                            keys: crate::api::notifications::PushSubscriptionKeys {
+                                p256dh: keys_doc.get_str("p256dh").ok()?.to_string(),
+                                auth: keys_doc.get_str("auth").ok()?.to_string(),
+                            },
+                            created_at: record
+                                .get_datetime("created_at")
+                                .map(|dt| dt.to_chrono())
+                                .unwrap_or_else(|_| chrono::Utc::now()),
+                        });
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Delete push subscription from database
+    pub async fn delete_push_subscription(&self) -> Result<()> {
+        #[cfg(feature = "database")]
+        {
+            if let Some(_db) = &self.db {
+                self.push_subscriptions()?.delete_many(doc! {}).await?;
+                info!("Push subscription deleted from database");
+                return Ok(());
+            }
+        }
+
+        warn!("Database not available, push subscription not deleted");
+        Ok(())
+    }
+
+    // =========================================================================
     // TRADE ANALYSES (GPT-4 Analysis from Python AI Service)
     // =========================================================================
 
@@ -1055,6 +1478,19 @@ pub struct AISignalRecord {
     pub trade_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub timestamp: DateTime<Utc>,
+    // Outcome tracking fields - updated when trade closes
+    #[serde(default)]
+    pub outcome: Option<String>, // "win", "loss", "pending"
+    #[serde(default)]
+    pub actual_pnl: Option<f64>, // PnL in USDT
+    #[serde(default)]
+    pub pnl_percentage: Option<f64>, // PnL as percentage
+    #[serde(default)]
+    pub exit_price: Option<f64>, // Price when trade closed
+    #[serde(default)]
+    pub close_reason: Option<String>, // TakeProfit, StopLoss, Manual, etc.
+    #[serde(default)]
+    pub closed_at: Option<DateTime<Utc>>, // When trade was closed
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1430,6 +1866,12 @@ mod tests {
             trade_id: Some("trade999".to_string()),
             created_at: timestamp,
             timestamp,
+            outcome: None,
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
         };
 
         let json = serde_json::to_string(&record).unwrap();
@@ -1595,6 +2037,12 @@ mod tests {
             trade_id: None,
             created_at: timestamp,
             timestamp,
+            outcome: None,
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
         };
 
         let json = serde_json::to_string(&record).unwrap();
@@ -2706,6 +3154,12 @@ mod tests {
             trade_id: Some("trade_executed_001".to_string()),
             created_at: timestamp,
             timestamp,
+            outcome: Some("win".to_string()),
+            actual_pnl: Some(500.0),
+            pnl_percentage: Some(2.5),
+            exit_price: Some(51250.0),
+            close_reason: Some("TAKE_PROFIT".to_string()),
+            closed_at: Some(timestamp),
         };
 
         let json = serde_json::to_string(&record).unwrap();

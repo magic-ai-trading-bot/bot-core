@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Badge } from "@/components/ui/badge";
 import { Rocket, ArrowRight, Shield, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -33,13 +33,13 @@ export function CTASection() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <Button size="lg" className="bg-profit hover:bg-profit/90 text-profit-foreground px-8 py-4 text-lg group" onClick={scrollToPricing}>
+          <PremiumButton size="lg" className="px-8 py-4 text-lg group" onClick={scrollToPricing}>
             {t('cta.startTrial')}
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-          </Button>
-          <Button variant="outline" size="lg" className="px-8 py-4 text-lg">
+          </PremiumButton>
+          <PremiumButton variant="secondary" size="lg" className="px-8 py-4 text-lg">
             {t('cta.scheduleDemo')}
-          </Button>
+          </PremiumButton>
         </div>
         
         {/* Trust indicators */}

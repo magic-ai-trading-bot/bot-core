@@ -3,6 +3,93 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+// @spec:FR-TRADING-001 - Binance API Configuration
+// @ref:specs/01-requirements/1.1-functional-requirements/FR-TRADING.md
+
+/// Binance API URL constants for mainnet (production)
+pub mod binance_urls {
+    // Spot mainnet
+    pub const MAINNET_BASE_URL: &str = "https://api.binance.com";
+    pub const MAINNET_WS_URL: &str = "wss://stream.binance.com:9443/ws";
+    pub const MAINNET_USER_DATA_WS_URL: &str = "wss://stream.binance.com:9443/ws";
+
+    // Spot testnet
+    pub const TESTNET_BASE_URL: &str = "https://testnet.binance.vision";
+    pub const TESTNET_WS_URL: &str = "wss://testnet.binance.vision/ws";
+    pub const TESTNET_USER_DATA_WS_URL: &str = "wss://testnet.binance.vision/ws";
+
+    // Futures mainnet
+    pub const FUTURES_MAINNET_BASE_URL: &str = "https://fapi.binance.com";
+    pub const FUTURES_MAINNET_WS_URL: &str = "wss://fstream.binance.com";
+
+    // Futures testnet
+    pub const FUTURES_TESTNET_BASE_URL: &str = "https://testnet.binancefuture.com";
+    pub const FUTURES_TESTNET_WS_URL: &str = "wss://stream.binancefuture.com/ws";
+}
+
+/// Trading mode for the system
+/// @spec:FR-TRADING-002 - Trading Mode Selection
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TradingMode {
+    /// Paper trading with simulated orders (uses real prices)
+    #[default]
+    PaperTrading,
+    /// Real trading on Binance testnet
+    RealTestnet,
+    /// Real trading on Binance mainnet (PRODUCTION - USE WITH CAUTION)
+    RealMainnet,
+}
+
+impl TradingMode {
+    /// Check if this mode executes real orders
+    pub fn is_real_trading(&self) -> bool {
+        matches!(self, TradingMode::RealTestnet | TradingMode::RealMainnet)
+    }
+
+    /// Check if this mode uses testnet
+    pub fn is_testnet(&self) -> bool {
+        matches!(self, TradingMode::RealTestnet)
+    }
+
+    /// Check if this mode uses mainnet (production)
+    pub fn is_mainnet(&self) -> bool {
+        matches!(self, TradingMode::RealMainnet)
+    }
+
+    /// Check if this is paper trading
+    pub fn is_paper(&self) -> bool {
+        matches!(self, TradingMode::PaperTrading)
+    }
+
+    /// Get the appropriate base URL for this trading mode
+    pub fn get_base_url(&self) -> &'static str {
+        match self {
+            TradingMode::PaperTrading => binance_urls::MAINNET_BASE_URL, // Real prices
+            TradingMode::RealTestnet => binance_urls::TESTNET_BASE_URL,
+            TradingMode::RealMainnet => binance_urls::MAINNET_BASE_URL,
+        }
+    }
+
+    /// Get the appropriate WebSocket URL for this trading mode
+    pub fn get_ws_url(&self) -> &'static str {
+        match self {
+            TradingMode::PaperTrading => binance_urls::MAINNET_WS_URL, // Real prices
+            TradingMode::RealTestnet => binance_urls::TESTNET_WS_URL,
+            TradingMode::RealMainnet => binance_urls::MAINNET_WS_URL,
+        }
+    }
+
+    /// Get the appropriate User Data Stream WebSocket URL
+    pub fn get_user_data_ws_url(&self) -> &'static str {
+        match self {
+            TradingMode::PaperTrading => binance_urls::MAINNET_USER_DATA_WS_URL,
+            TradingMode::RealTestnet => binance_urls::TESTNET_USER_DATA_WS_URL,
+            TradingMode::RealMainnet => binance_urls::MAINNET_USER_DATA_WS_URL,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub binance: BinanceConfig,
@@ -21,6 +108,9 @@ pub struct BinanceConfig {
     pub ws_url: String,
     pub futures_base_url: String,
     pub futures_ws_url: String,
+    /// Trading mode: paper_trading, real_testnet, or real_mainnet
+    #[serde(default)]
+    pub trading_mode: TradingMode,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,10 +162,11 @@ impl Default for Config {
                 api_key: String::new(),
                 secret_key: String::new(),
                 testnet: true,
-                base_url: "https://testnet.binance.vision".to_string(),
-                ws_url: "wss://testnet.binance.vision/ws".to_string(),
-                futures_base_url: "https://testnet.binancefuture.com".to_string(),
-                futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+                base_url: binance_urls::TESTNET_BASE_URL.to_string(),
+                ws_url: binance_urls::TESTNET_WS_URL.to_string(),
+                futures_base_url: binance_urls::FUTURES_TESTNET_BASE_URL.to_string(),
+                futures_ws_url: binance_urls::FUTURES_TESTNET_WS_URL.to_string(),
+                trading_mode: TradingMode::default(), // PaperTrading by default
             },
             market_data: MarketDataConfig {
                 symbols: vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()],
@@ -158,18 +249,36 @@ impl Config {
             // CRITICAL: Also update URLs based on testnet flag
             // This ensures paper trading uses real prices from production API
             if use_testnet {
-                config.binance.base_url = "https://testnet.binance.vision".to_string();
-                config.binance.ws_url = "wss://testnet.binance.vision/ws".to_string();
-                config.binance.futures_base_url = "https://testnet.binancefuture.com".to_string();
-                config.binance.futures_ws_url = "wss://stream.binancefuture.com/ws".to_string();
+                config.binance.base_url = binance_urls::TESTNET_BASE_URL.to_string();
+                config.binance.ws_url = binance_urls::TESTNET_WS_URL.to_string();
+                config.binance.futures_base_url =
+                    binance_urls::FUTURES_TESTNET_BASE_URL.to_string();
+                config.binance.futures_ws_url = binance_urls::FUTURES_TESTNET_WS_URL.to_string();
             } else {
                 // Use PRODUCTION API for real market prices
                 // This is safe because paper trading doesn't execute real trades
-                config.binance.base_url = "https://api.binance.com".to_string();
-                config.binance.ws_url = "wss://stream.binance.com:9443/ws".to_string();
-                config.binance.futures_base_url = "https://fapi.binance.com".to_string();
-                config.binance.futures_ws_url = "wss://fstream.binance.com".to_string();
+                config.binance.base_url = binance_urls::MAINNET_BASE_URL.to_string();
+                config.binance.ws_url = binance_urls::MAINNET_WS_URL.to_string();
+                config.binance.futures_base_url =
+                    binance_urls::FUTURES_MAINNET_BASE_URL.to_string();
+                config.binance.futures_ws_url = binance_urls::FUTURES_MAINNET_WS_URL.to_string();
             }
+        }
+
+        // Trading mode override (paper_trading, real_testnet, real_mainnet)
+        if let Ok(mode) = std::env::var("TRADING_MODE") {
+            config.binance.trading_mode = match mode.to_lowercase().as_str() {
+                "paper_trading" | "paper" => TradingMode::PaperTrading,
+                "real_testnet" | "testnet" => TradingMode::RealTestnet,
+                "real_mainnet" | "mainnet" | "production" => TradingMode::RealMainnet,
+                _ => {
+                    eprintln!(
+                        "⚠️  Invalid TRADING_MODE '{}', defaulting to PaperTrading",
+                        mode
+                    );
+                    TradingMode::PaperTrading
+                },
+            };
         }
 
         if let Ok(python_url) = std::env::var("PYTHON_AI_SERVICE_URL") {
@@ -460,11 +569,13 @@ mod tests {
         );
         // Verify URLs are updated to production
         assert_eq!(
-            config.binance.base_url, "https://api.binance.com",
+            config.binance.base_url,
+            binance_urls::MAINNET_BASE_URL,
             "Expected production base_url when testnet=false"
         );
         assert_eq!(
-            config.binance.ws_url, "wss://stream.binance.com:9443/ws",
+            config.binance.ws_url,
+            binance_urls::MAINNET_WS_URL,
             "Expected production ws_url when testnet=false"
         );
 
@@ -478,7 +589,8 @@ mod tests {
         );
         // Verify URLs are updated to testnet
         assert_eq!(
-            config.binance.base_url, "https://testnet.binance.vision",
+            config.binance.base_url,
+            binance_urls::TESTNET_BASE_URL,
             "Expected testnet base_url when testnet=true"
         );
 

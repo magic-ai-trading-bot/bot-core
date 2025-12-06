@@ -238,11 +238,49 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name?: string;
+  display_name?: string;
   is_active: boolean;
   is_admin: boolean;
+  two_factor_enabled: boolean;
   created_at: string;
   last_login?: string;
   settings: UserSettings;
+}
+
+// Security & Account Management types
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface UpdateProfileRequest {
+  display_name?: string;
+}
+
+export interface Setup2FAResponse {
+  secret: string;
+  qr_code: string;
+  otpauth_url: string;
+}
+
+export interface Verify2FARequest {
+  code: string;
+}
+
+export interface SessionInfo {
+  session_id: string;
+  device: string;
+  browser: string;
+  os: string;
+  ip_address: string;
+  location: string;
+  created_at: string;
+  last_active: string;
+  is_current: boolean;
+}
+
+export interface SessionListResponse {
+  sessions: SessionInfo[];
 }
 
 export interface UserSettings {
@@ -787,6 +825,104 @@ class AuthApiClient extends BaseApiClient {
     } catch {
       return true;
     }
+  }
+
+  // @spec:FR-AUTH-012 - Change Password
+  async changePassword(request: ChangePasswordRequest): Promise<{ success: boolean; message: string }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/auth/change-password", request);
+      if (response.data.success) {
+        return { success: true, message: response.data.message || "Password changed successfully" };
+      } else {
+        throw new Error(response.data.error || "Failed to change password");
+      }
+    });
+  }
+
+  // @spec:FR-AUTH-013 - Update Profile
+  async updateProfile(request: UpdateProfileRequest): Promise<UserProfile> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.patch("/api/auth/profile", request);
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || "Failed to update profile");
+      }
+    });
+  }
+
+  // @spec:FR-AUTH-014 - 2FA Setup
+  async setup2FA(): Promise<Setup2FAResponse> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/auth/2fa/setup");
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error || "Failed to setup 2FA");
+      }
+    });
+  }
+
+  // @spec:FR-AUTH-014 - 2FA Verify
+  async verify2FA(request: Verify2FARequest): Promise<{ success: boolean; message: string }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/auth/2fa/verify", request);
+      if (response.data.success) {
+        return { success: true, message: response.data.message || "2FA enabled successfully" };
+      } else {
+        throw new Error(response.data.error || "Failed to verify 2FA code");
+      }
+    });
+  }
+
+  // @spec:FR-AUTH-014 - 2FA Disable
+  async disable2FA(request: Verify2FARequest): Promise<{ success: boolean; message: string }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/auth/2fa/disable", request);
+      if (response.data.success) {
+        return { success: true, message: response.data.message || "2FA disabled successfully" };
+      } else {
+        throw new Error(response.data.error || "Failed to disable 2FA");
+      }
+    });
+  }
+
+  // @spec:FR-AUTH-015 - Session Management
+  async getSessions(): Promise<SessionInfo[]> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.get("/api/auth/sessions");
+      if (response.data.success) {
+        return response.data.data.sessions;
+      } else {
+        throw new Error(response.data.error || "Failed to get sessions");
+      }
+    });
+  }
+
+  async revokeSession(sessionId: string): Promise<{ success: boolean; message: string }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.delete(`/api/auth/sessions/${sessionId}`);
+      if (response.data.success) {
+        return { success: true, message: response.data.message || "Session revoked" };
+      } else {
+        throw new Error(response.data.error || "Failed to revoke session");
+      }
+    });
+  }
+
+  async revokeAllSessions(): Promise<{ success: boolean; message: string; revoked_count: number }> {
+    return this.requestWithRetry(async () => {
+      const response = await this.client.post("/api/auth/sessions/revoke-all");
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message || "All sessions revoked",
+          revoked_count: response.data.data?.revoked_count || 0,
+        };
+      } else {
+        throw new Error(response.data.error || "Failed to revoke all sessions");
+      }
+    });
   }
 }
 

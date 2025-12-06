@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   TrendingUp,
@@ -81,9 +81,9 @@ export function PortfolioQuickActions() {
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
-              <Button
+              <PremiumButton
                 key={action.id}
-                variant="outline"
+                variant="secondary"
                 className={`h-auto flex-col gap-2 p-4 focus-custom touch-target ${
                   action.color === "profit"
                     ? "hover:bg-profit/10 hover:border-profit/50"
@@ -117,7 +117,7 @@ export function PortfolioQuickActions() {
                     {action.description}
                   </p>
                 </div>
-              </Button>
+              </PremiumButton>
             );
           })}
         </div>

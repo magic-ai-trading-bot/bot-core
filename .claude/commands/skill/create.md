@@ -1,28 +1,28 @@
 ---
 description: Create a new agent skill
-argument-hint: [prompt]
+argument-hint: [prompt-or-llms-or-github-url]
 ---
 
 Ultrathink.
+Use `skill-creator` and `claude-code` skills.
+Use `docs-seeker` skills to search for documentation if needed.
 
-**IMPORTANT:** 
-- Read this skill documentation carefully before starting: https://docs.claude.com/en/docs/claude-code/skills.md
-- Read the Agent Skills Spec carefully before starting: `.claude/skills/agent_skills_spec.md`
+## Your mission
+Create a new skill in `.claude/skills/` directory.
 
-Create a new **Agent Skill** for Claude Code based on the given prompt:
-<prompt>$ARGUMENTS</prompt>
+## Requirements
+<user-prompt>$ARGUMENTS</user-prompt>
 
-- **Skills location:** `./.claude/skills`
-- Skill file name (uppercase): `SKILL.md`
-- Skill folder name (hyphen-case): `<skill-name>`
-- Full path: `./.claude/skills/<skill-name>/SKILL.md`
-- Script files (if any): `./.claude/skills/<skill-name>/scripts/my-script.py` or `./.claude/skills/<skill-name>/scripts/my-script.sh`
-- Reference files (if any): `./.claude/skills/<skill-name>/references/ref-0.md`
+## Rules of Skill Creation:
+Base on the requirements:
+- Always keep in mind that `SKILL.md` and reference files should be token consumption efficient, so that **progressive disclosure** can be leveraged at best.
+- `SKILL.md` is always short and concise, straight to the point, treat it as a quick reference guide.
+- If you're given an URL, it's documentation page, use `Explore` subagent to explore every internal link and report back to main agent, don't skip any link.
+- If you receive a lot of URLs, use multiple `Explore` subagents to explore them in parallel, then report back to main agent.
+- If you receive a lot of files, use multiple `Explore` subagents to explore them in parallel, then report back to main agent.
+- If you're given a Github URL, use [`repomix`](https://repomix.com/guide/usage) command to summarize ([install it](https://repomix.com/guide/installation) if needed) and spawn multiple `Explore` subagents to explore it in parallel, then report back to main agent.
 
-## References (MUST READ):
-- [Agent Skills Overview](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview.md)
-- [Best Practices](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices.md)
-
-## Important Notes:
-- If you receive a lot of URLs, use multiple `Explorer` subagents to explore them in parallel, then report back to main agent.
-- If you receive a lot of files, use multiple `Explorer` subagents to explore them in parallel, then report back to main agent.
+**IMPORTANT:**
+- Skills are not documentation, they are practical instructions for Claude Code to use the tools, packages, plugins or APIs to achieve the tasks.
+- Each skill teaches Claude how to perform a specific development task, not what a tool does.
+- Claude Code can activate multiple skills automatically to achieve the user's request.

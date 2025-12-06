@@ -1,8 +1,8 @@
 import { lazy, Suspense, useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { TrendingUp, Zap, Shield, BarChart3, Play, Users, DollarSign, Activity } from "lucide-react";
+import { TrendingUp, Zap, Shield, BarChart3, Users, DollarSign, Activity } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -105,13 +105,13 @@ export function HeroSection() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <Button size="lg" className="bg-profit hover:bg-profit/90 text-profit-foreground px-8 py-4 text-lg" onClick={scrollToPricing}>
+          <PremiumButton size="lg" className="px-8 py-4 text-lg" onClick={scrollToPricing}>
             {t('hero.startTrading')}
-          </Button>
-          <Button variant="outline" size="lg" className="px-8 py-4 text-lg group" onClick={() => setIsVideoOpen(true)}>
-            <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-            {t('hero.watchDemo')}
-          </Button>
+          </PremiumButton>
+          <PremiumButton variant="secondary" size="lg" className="px-8 py-4 text-lg group" onClick={() => setIsVideoOpen(true)}>
+            <BarChart3 className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+            {t('hero.watchDemo') || 'See Features'}
+          </PremiumButton>
         </div>
 
         {/* Live Trading Stats */}
@@ -141,38 +141,72 @@ export function HeroSection() {
         </div>
       </div>
 
-      {/* Video Demo Modal */}
+      {/* Product Preview Modal */}
       <Dialog open={isVideoOpen} onOpenChange={setIsVideoOpen}>
         <DialogContent className="max-w-4xl p-0 overflow-hidden bg-card border-border">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="flex items-center gap-2">
-              <Play className="w-5 h-5 text-profit" />
-              BotCore Demo - AI Trading in Action
+              <BarChart3 className="w-5 h-5 text-profit" />
+              BotCore - AI Trading Dashboard Preview
             </DialogTitle>
           </DialogHeader>
-          <div className="aspect-video bg-black/90 flex items-center justify-center">
-            {/* Placeholder for demo video */}
-            <div className="text-center p-8">
-              <div className="w-20 h-20 rounded-full bg-profit/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                <Play className="w-10 h-10 text-profit" />
+          <div className="p-6 space-y-6">
+            {/* Feature Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-profit/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-profit" />
+                  </div>
+                  <h4 className="font-semibold">AI Signal Generation</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Multi-timeframe analysis with LSTM, GRU, and Transformer models achieving 70%+ accuracy.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Demo Video Coming Soon</h3>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                Watch our AI trading bot analyze markets, generate signals, and execute trades automatically.
-                <br />
-                <span className="text-profit font-medium">Average 73% accuracy rate</span>
+              <div className="p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                  </div>
+                  <h4 className="font-semibold">Real-Time Charts</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Live TradingView charts with WebSocket price updates and technical indicators.
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-info/20 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-info" />
+                  </div>
+                  <h4 className="font-semibold">Risk Management</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  6-layer protection with daily loss limits, cool-down periods, and trailing stops.
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <h4 className="font-semibold">Paper Trading</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Test strategies risk-free with realistic execution simulation and performance tracking.
+                </p>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="text-center pt-4 border-t border-border/50">
+              <p className="text-muted-foreground text-sm mb-4">
+                Ready to experience AI-powered trading?
               </p>
-              <div className="flex justify-center gap-4 mt-6">
-                <Badge variant="outline" className="bg-profit/10 text-profit border-profit/20">
-                  Real-time Analysis
-                </Badge>
-                <Badge variant="outline" className="bg-info/10 text-info border-info/20">
-                  Live Trading
-                </Badge>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                  Risk Management
-                </Badge>
-              </div>
+              <PremiumButton onClick={() => { setIsVideoOpen(false); scrollToPricing(); }}>
+                Start Free Paper Trading
+              </PremiumButton>
             </div>
           </div>
         </DialogContent>

@@ -17,6 +17,7 @@ mod error;
 mod market_data;
 mod monitoring;
 mod paper_trading;
+mod real_trading;
 mod storage;
 mod strategies;
 mod trading;
@@ -169,11 +170,15 @@ async fn main() -> Result<()> {
     );
 
     // Initialize API server with WebSocket broadcaster
+    // Note: real_trading_engine is None for now - set ENABLE_REAL_TRADING=true
+    // and configure Binance API keys to enable real trading
     let api_server = ApiServer::new(
         config.api.clone(),
+        config.binance.clone(),
         market_data_processor.clone(),
         trading_engine.clone(),
         paper_trading_engine.clone(),
+        None, // Real trading engine - configure via ENABLE_REAL_TRADING env var
         ws_sender.clone(),
         storage.clone(),
     )

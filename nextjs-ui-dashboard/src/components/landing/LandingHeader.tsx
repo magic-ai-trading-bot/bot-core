@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { useState } from "react";
 import { Menu, X, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -70,18 +70,18 @@ export function LandingHeader() {
           <div className="hidden md:flex items-center gap-3">
             <LanguageSelector />
             {isAuthenticated ? (
-              <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground" onClick={() => navigate('/dashboard')}>
+              <PremiumButton size="sm" onClick={() => navigate('/dashboard')}>
                 <LayoutDashboard className="w-4 h-4 mr-2" />
                 Dashboard
-              </Button>
+              </PremiumButton>
             ) : (
               <>
-                <Button variant="ghost" size="sm" onClick={handleSignIn}>
+                <PremiumButton variant="ghost" size="sm" onClick={handleSignIn}>
                   {t('nav.signIn')}
-                </Button>
-                <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground" onClick={handleStartTrial}>
+                </PremiumButton>
+                <PremiumButton size="sm" onClick={handleStartTrial}>
                   {t('nav.startTrial')}
-                </Button>
+                </PremiumButton>
               </>
             )}
           </div>
@@ -126,18 +126,18 @@ export function LandingHeader() {
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
                 <LanguageSelector />
                 {isAuthenticated ? (
-                  <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground justify-start" onClick={() => navigate('/dashboard')}>
+                  <PremiumButton size="sm" className="justify-start" onClick={() => navigate('/dashboard')}>
                     <LayoutDashboard className="w-4 h-4 mr-2" />
                     Dashboard
-                  </Button>
+                  </PremiumButton>
                 ) : (
                   <>
-                    <Button variant="ghost" size="sm" className="justify-start" onClick={handleSignIn}>
+                    <PremiumButton variant="ghost" size="sm" className="justify-start" onClick={handleSignIn}>
                       {t('nav.signIn')}
-                    </Button>
-                    <Button size="sm" className="bg-profit hover:bg-profit/90 text-profit-foreground justify-start" onClick={handleStartTrial}>
+                    </PremiumButton>
+                    <PremiumButton size="sm" className="justify-start" onClick={handleStartTrial}>
                       {t('nav.startTrial')}
-                    </Button>
+                    </PremiumButton>
                   </>
                 )}
               </div>

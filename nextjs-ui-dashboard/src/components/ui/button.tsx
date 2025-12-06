@@ -1,3 +1,11 @@
+/**
+ * @deprecated This Button component is for internal shadcn/ui use only.
+ * For feature components, use PremiumButton from "@/styles/luxury-design-system" instead.
+ *
+ * Example:
+ * import { PremiumButton } from "@/styles/luxury-design-system";
+ * <PremiumButton variant="primary">Click me</PremiumButton>
+ */
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"

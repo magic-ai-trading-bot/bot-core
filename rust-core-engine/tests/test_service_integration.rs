@@ -51,7 +51,7 @@ mod service_integration_tests {
         }
 
         // Simulate signals from multiple strategies
-        let signals = vec![
+        let signals = [
             StrategySignal {
                 name: "RSI".to_string(),
                 signal: "LONG".to_string(),
@@ -134,10 +134,11 @@ mod service_integration_tests {
         let signal_threshold = 0.8;
         let mock_signal_strength = 0.85;
 
-        if mock_signal_strength > signal_threshold {
-            // Execute trade logic would go here
-            assert!(true, "Trade should be executed");
-        }
+        // Verify trade should be executed based on signal strength
+        assert!(
+            mock_signal_strength > signal_threshold,
+            "Trade should be executed when signal strength exceeds threshold"
+        );
     }
 
     #[tokio::test]
@@ -287,7 +288,7 @@ mod service_integration_tests {
             source: String,
         }
 
-        let data_sources = vec![
+        let data_sources = [
             MarketData {
                 symbol: "BTCUSDT".to_string(),
                 price: 50000.0,
@@ -409,7 +410,7 @@ mod service_integration_tests {
     async fn test_performance_metrics_calculation() {
         // Test calculating trading performance metrics
 
-        let trades = vec![
+        let trades = [
             (100.0, true),  // win
             (-50.0, false), // loss
             (150.0, true),  // win

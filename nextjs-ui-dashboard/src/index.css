@@ -6,70 +6,111 @@
 
 @layer base {
   :root {
-    /* Dark crypto theme */
-    --background: 222 15% 8%;
-    --foreground: 210 40% 98%;
+    /* ============================================================
+       Dark OLED Luxury Theme - Premium Trading Dashboard
+       Based on TradingView, Binance, Bybit design research
+       ============================================================ */
 
-    --card: 222 15% 11%;
-    --card-foreground: 210 40% 98%;
+    /* Core backgrounds - True OLED Black */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --popover: 222 15% 11%;
-    --popover-foreground: 210 40% 98%;
+    /* Card - Deep Navy for elevation */
+    --card: 240 35% 9%;
+    --card-foreground: 0 0% 100%;
 
-    --primary: 142 76% 36%;
-    --primary-foreground: 222 15% 8%;
+    /* Popover - Same as card for consistency */
+    --popover: 240 35% 9%;
+    --popover-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    /* Primary - Premium Blue (TradingView inspired) */
+    --primary: 224 100% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    /* Secondary - Slate surface */
+    --secondary: 240 28% 14%;
+    --secondary-foreground: 240 11% 72%;
 
-    --accent: 47 96% 53%;
-    --accent-foreground: 222 15% 8%;
+    /* Muted - Subdued elements */
+    --muted: 240 28% 14%;
+    --muted-foreground: 240 9% 52%;
 
+    /* Accent - Neon Cyan for highlights */
+    --accent: 189 100% 50%;
+    --accent-foreground: 0 0% 0%;
+
+    /* Destructive - Error/Loss red */
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 142 76% 36%;
+    /* Borders - Subtle separation */
+    --border: 240 13% 20%;
+    --input: 240 28% 14%;
+    --ring: 224 100% 58%;
 
-    /* Trading specific colors */
-    --profit: 142 76% 36%;
+    /* Trading specific colors - Industry standard */
+    --profit: 160 84% 39%;
+    --profit-foreground: 0 0% 100%;
     --loss: 0 84% 60%;
-    --warning: 47 96% 53%;
-    --info: 217 91% 60%;
-    
-    /* Chart colors */
-    --chart-1: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 224 100% 58%;
+
+    /* Chart colors - Vibrant & distinct */
+    --chart-1: 160 84% 39%;
     --chart-2: 0 84% 60%;
-    --chart-3: 47 96% 53%;
-    --chart-4: 217 91% 60%;
-    --chart-5: 267 57% 78%;
+    --chart-3: 44 89% 57%;
+    --chart-4: 224 100% 58%;
+    --chart-5: 270 75% 60%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 46%));
-    --gradient-profit: linear-gradient(135deg, hsl(142 76% 36% / 0.1), hsl(142 76% 36% / 0.05));
+    --gradient-primary: linear-gradient(135deg, hsl(224 100% 58%), hsl(189 100% 50%));
+    --gradient-profit: linear-gradient(135deg, hsl(160 84% 39% / 0.1), hsl(160 84% 39% / 0.05));
     --gradient-loss: linear-gradient(135deg, hsl(0 84% 60% / 0.1), hsl(0 84% 60% / 0.05));
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Paper Mode Colors - Cyan/Sky for simulated trading */
+    --paper-accent: #00D9FF;
+    --paper-badge: #0891B2;
+    --paper-border: #00D9FF;
+    --paper-background: #0891B2;
+    --paper-hover: #22D3EE;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Real Mode Colors - Warning red for live trading */
+    --real-warning: #EF4444;
+    --real-banner: #DC2626;
+    --real-border: #EF4444;
+    --real-background: #DC2626;
+    --real-hover: #F87171;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Design System Extended Colors */
+    --bg-primary: #000000;
+    --bg-secondary: #0F0F1E;
+    --bg-tertiary: #1A1A2E;
+    --bg-surface: #0D0D14;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    --text-primary: #FFFFFF;
+    --text-secondary: #B0B0C0;
+    --text-muted: #7A7A8E;
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    --grid-color: #1A1A2E;
+    --border-color: rgba(176, 176, 192, 0.15);
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    /* Brand Colors */
+    --brand-blue: #2962FF;
+    --brand-cyan: #00D9FF;
+    --brand-gold: #F3BA2F;
+    --brand-purple: #A855F7;
 
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar - Dark luxury */
+    --sidebar-background: 240 35% 9%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 224 100% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 28% 14%;
+    --sidebar-accent-foreground: 240 11% 72%;
+    --sidebar-border: 240 13% 20%;
+    --sidebar-ring: 224 100% 58%;
   }
 
   .dark {
@@ -159,6 +200,37 @@
     @apply min-h-[48px] min-w-[48px];
   }
 
+  /* Glassmorphism utilities */
+  .glass {
+    @apply backdrop-blur-md bg-slate-900/70 border border-slate-700/50 rounded-xl shadow-xl;
+  }
+
+  .glass-sm {
+    @apply backdrop-blur-sm bg-slate-900/60 border border-slate-700/40 rounded-lg shadow-lg;
+  }
+
+  .glass-lg {
+    @apply backdrop-blur-lg bg-slate-900/80 border border-slate-700/60 rounded-2xl shadow-2xl;
+  }
+
+  /* Paper mode utilities */
+  .paper-border {
+    border-color: rgba(14, 165, 233, 0.2);
+  }
+
+  .paper-bg {
+    background-color: rgba(14, 165, 233, 0.1);
+  }
+
+  /* Real mode utilities */
+  .real-border {
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  .real-bg {
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+
   /* Reduced motion support - WCAG 2.3.3 */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -170,4 +242,80 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* Custom keyframes for animations */
+@keyframes numberChange {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes priceFlashGreen {
+  0% {
+    background-color: rgba(16, 185, 129, 0);
+  }
+  50% {
+    background-color: rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    background-color: rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes priceFlashRed {
+  0% {
+    background-color: rgba(239, 68, 68, 0);
+  }
+  50% {
+    background-color: rgba(239, 68, 68, 0.3);
+  }
+  100% {
+    background-color: rgba(239, 68, 68, 0);
+  }
+}
+
+/* Custom Scrollbar Styles - Cyan theme for trading tables */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 217, 255, 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 217, 255, 0.5);
+}
+
+/* Thin scrollbar for compact tables */
+.custom-scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 217, 255, 0.2);
+  border-radius: 2px;
+}
+
+.custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 217, 255, 0.4);
 }

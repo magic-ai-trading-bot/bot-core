@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import logger from "@/utils/logger";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import ChatBot from "@/components/ChatBot";
 import { Logo } from "@/components/ui/Logo";
+import {
+  luxuryColors,
+  GlassCard,
+  GradientText,
+  PremiumButton,
+  PremiumInput,
+  containerVariants,
+  itemVariants,
+  GlowIcon,
+  Badge,
+} from '@/styles/luxury-design-system';
+import { Sparkles, TrendingUp, BarChart3, Shield } from "lucide-react";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -30,173 +38,221 @@ const Register = () => {
     e.preventDefault();
 
     if (!email || !password || !confirmPassword) {
-      toast.error("Lỗi đăng ký", {
-        description: "Vui lòng điền đầy đủ thông tin",
+      toast.error("Registration Error", {
+        description: "Please fill in all required fields",
       });
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Lỗi đăng ký", {
-        description: "Mật khẩu xác nhận không khớp",
+      toast.error("Registration Error", {
+        description: "Passwords do not match",
       });
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Lỗi đăng ký", {
-        description: "Mật khẩu phải có ít nhất 6 ký tự",
+      toast.error("Registration Error", {
+        description: "Password must be at least 6 characters",
       });
       return;
     }
 
     try {
-      toast.loading("Đang đăng ký...", { id: "register-loading" });
+      toast.loading("Creating account...", { id: "register-loading" });
 
       const success = await register(email, password, fullName || undefined);
 
       if (success) {
-        toast.success("Đăng ký thành công", {
-          description: "Chào mừng bạn đến với Trading Bot Dashboard!",
+        toast.success("Registration Successful", {
+          description: "Welcome to Trading Bot Dashboard!",
           id: "register-loading",
         });
         navigate("/dashboard", { replace: true });
       } else {
-        toast.error("Lỗi đăng ký", {
-          description: error || "Không thể tạo tài khoản. Vui lòng thử lại.",
+        toast.error("Registration Error", {
+          description: error || "Could not create account. Please try again.",
           id: "register-loading",
         });
       }
     } catch (err) {
       logger.error("Registration error:", err);
-      toast.error("Lỗi đăng ký", {
-        description: "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.",
+      toast.error("Registration Error", {
+        description: "An error occurred during registration. Please try again.",
         id: "register-loading",
       });
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ backgroundColor: luxuryColors.bgPrimary }}
+    >
+      {/* Premium Background Effects */}
+      <div className="absolute inset-0">
+        {/* Gradient Orbs */}
+        <div
+          className="absolute top-1/4 -left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
+          style={{
+            background: luxuryColors.gradientPremium,
+          }}
+        />
+        <div
+          className="absolute bottom-1/4 -right-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
+          style={{
+            background: luxuryColors.gradientProfit,
+          }}
+        />
+      </div>
 
-      <div className="relative z-10 w-full max-w-sm md:max-w-md">
+      <motion.div
+        className="relative z-10 w-full max-w-sm md:max-w-md"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Logo/Brand */}
-        <div className="text-center mb-6 md:mb-8">
+        <motion.div className="text-center mb-6 md:mb-8" variants={itemVariants}>
           <div className="flex justify-center mb-4">
-            <Logo size="xl" showText={false} />
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <Logo size="xl" showText={false} />
+            </motion.div>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold">
-            <span className="text-foreground">Bot</span>
-            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Core</span>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight">
+            <span style={{ color: luxuryColors.textPrimary }}>Bot</span>
+            <GradientText className="ml-1">Core</GradientText>
           </h1>
-          <p className="text-muted-foreground mt-2 text-sm md:text-base">
-            Tạo tài khoản để bắt đầu giao dịch
+          <p
+            className="mt-2 text-sm md:text-base tracking-wide"
+            style={{ color: luxuryColors.textMuted }}
+          >
+            Create an account to start trading
           </p>
-        </div>
+        </motion.div>
 
-        <Card className="shadow-2xl border-border/50 bg-card/80 backdrop-blur">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Đăng ký</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Họ và tên (tùy chọn)</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Nguyễn Văn A"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="bg-background/50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-background/50"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Mật khẩu</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Nhập mật khẩu của bạn"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-background/50"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Nhập lại mật khẩu"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="bg-background/50"
-                  required
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-profit hover:bg-profit/90 text-profit-foreground"
-                disabled={loading}
+        {/* Register Card */}
+        <GlassCard>
+          <motion.div variants={itemVariants} className="space-y-6">
+            {/* Header */}
+            <div className="text-center">
+              <h2 className="text-2xl font-black tracking-tight">
+                <GradientText>Sign Up</GradientText>
+              </h2>
+              <p
+                className="text-xs mt-1.5 tracking-wide"
+                style={{ color: luxuryColors.textMuted }}
               >
-                {loading ? "Đang đăng ký..." : "Đăng ký"}
-              </Button>
-            </form>
-
-            {/* Login Link */}
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Đã có tài khoản?{" "}
-                <Link
-                  to="/login"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Đăng nhập ngay
-                </Link>
+                Join the next generation of traders
               </p>
             </div>
 
-            {/* Features Preview */}
-            <div className="mt-6 space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-profit rounded-full"></div>
-                <span>AI-Powered Trading Signals</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-info rounded-full"></div>
-                <span>Real-time Performance Analytics</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-warning rounded-full"></div>
-                <span>Advanced Risk Management</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Form */}
+            <form onSubmit={handleRegister} className="space-y-4">
+              <PremiumInput
+                label="Full Name (optional)"
+                value={fullName}
+                onChange={setFullName}
+                placeholder="John Doe"
+                type="text"
+              />
 
-        <div className="text-center mt-6 text-sm text-muted-foreground">
-          <p>Bảo mật với mã hóa end-to-end và xác thực 2FA</p>
-        </div>
-      </div>
+              <PremiumInput
+                label="Email"
+                value={email}
+                onChange={setEmail}
+                placeholder="your@email.com"
+                type="email"
+              />
+
+              <PremiumInput
+                label="Password"
+                value={password}
+                onChange={setPassword}
+                placeholder="Enter your password"
+                type="password"
+              />
+
+              <PremiumInput
+                label="Confirm Password"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="Re-enter your password"
+                type="password"
+              />
+
+              <PremiumButton
+                type="submit"
+                variant="success"
+                size="lg"
+                fullWidth
+                disabled={loading}
+                loading={loading}
+              >
+                {loading ? "Creating account..." : "Create Account"}
+              </PremiumButton>
+            </form>
+
+            {/* Login Link */}
+            <motion.div
+              className="text-center pt-4 border-t"
+              style={{ borderColor: luxuryColors.borderSubtle }}
+              variants={itemVariants}
+            >
+              <p className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="font-bold hover:underline transition-all"
+                  style={{ color: luxuryColors.cyan }}
+                >
+                  Sign in now
+                </Link>
+              </p>
+            </motion.div>
+
+            {/* Features Preview */}
+            <motion.div
+              className="pt-4 border-t space-y-3"
+              style={{ borderColor: luxuryColors.borderSubtle }}
+              variants={itemVariants}
+            >
+              <div className="flex items-center gap-3">
+                <GlowIcon icon={Sparkles} color={luxuryColors.emerald} size="sm" />
+                <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                  AI-Powered Trading Signals
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <GlowIcon icon={TrendingUp} color={luxuryColors.cyan} size="sm" />
+                <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                  Real-time Performance Analytics
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <GlowIcon icon={BarChart3} color={luxuryColors.amber} size="sm" />
+                <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                  Advanced Risk Management
+                </span>
+              </div>
+            </motion.div>
+          </motion.div>
+        </GlassCard>
+
+        {/* Security Badge */}
+        <motion.div
+          className="text-center mt-6 flex items-center justify-center gap-2"
+          variants={itemVariants}
+        >
+          <GlowIcon icon={Shield} color={luxuryColors.emerald} size="sm" />
+          <p className="text-xs tracking-wide" style={{ color: luxuryColors.textMuted }}>
+            Secured with end-to-end encryption and 2FA
+          </p>
+        </motion.div>
+      </motion.div>
 
       {/* Chatbot Widget */}
       <ChatBot />

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PremiumButton, PremiumInput } from "@/styles/luxury-design-system";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -230,13 +229,13 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
   if (!isOpen) {
     return (
       <div className={`fixed bottom-4 right-4 z-50 ${className}`}>
-        <Button
+        <PremiumButton
           onClick={handleToggle}
           size="lg"
           className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-green-500 via-green-500 to-green-600 hover:from-green-400 hover:via-green-500 hover:to-green-600 hover:scale-110 active:scale-95 shadow-green-500/25 hover:shadow-green-500/40"
         >
           <MessageCircle className="h-6 w-6" />
-        </Button>
+        </PremiumButton>
       </div>
     );
   }
@@ -262,7 +261,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
               </div>
             </div>
             <div className="flex items-center space-x-1">
-              <Button
+              <PremiumButton
                 variant="ghost"
                 size="sm"
                 onClick={() => setSoundEnabled(!soundEnabled)}
@@ -273,8 +272,8 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                 ) : (
                   <VolumeX className="h-4 w-4" />
                 )}
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 variant="ghost"
                 size="sm"
                 onClick={handleMinimize}
@@ -285,15 +284,15 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                 ) : (
                   <Minimize2 className="h-4 w-4" />
                 )}
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 variant="ghost"
                 size="sm"
                 onClick={handleToggle}
                 className="text-white hover:bg-white/20"
               >
                 <X className="h-4 w-4" />
-              </Button>
+              </PremiumButton>
             </div>
           </div>
         </CardHeader>
@@ -371,16 +370,16 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                     </div>
                     <div className="space-y-2">
                       {suggestedQuestions.slice(0, 4).map((question, index) => (
-                        <Button
+                        <PremiumButton
                           key={index}
-                          variant="outline"
+                          variant="secondary"
                           size="sm"
                           className="w-full justify-start text-left h-auto p-2 text-xs"
                           onClick={() => handleSuggestedQuestion(question)}
                         >
                           <HelpCircle className="h-3 w-3 mr-2 flex-shrink-0" />
                           {question}
-                        </Button>
+                        </PremiumButton>
                       ))}
                     </div>
                   </div>
@@ -393,7 +392,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
             <div className="border-t p-4">
               <div className="flex items-center space-x-2">
                 <div className="flex-1 relative">
-                  <Input
+                  <PremiumInput
                     ref={inputRef}
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
@@ -403,17 +402,17 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                     className="pr-10"
                   />
                   {messages.length > 1 && (
-                    <Button
+                    <PremiumButton
                       variant="ghost"
                       size="sm"
                       onClick={handleClearChat}
                       className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-destructive/10"
                     >
                       <Trash2 className="h-3 w-3" />
-                    </Button>
+                    </PremiumButton>
                   )}
                 </div>
-                <Button
+                <PremiumButton
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isLoading}
                   size="sm"
@@ -424,7 +423,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
                   ) : (
                     <Send className="h-4 w-4" />
                   )}
-                </Button>
+                </PremiumButton>
               </div>
 
               {/* Status */}

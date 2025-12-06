@@ -1014,6 +1014,7 @@ mod tests {
             ws_url: "wss://stream.binancefuture.com".to_string(),
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
             futures_ws_url: "wss://stream.binancefuture.com".to_string(),
+            trading_mode: crate::config::TradingMode::RealTestnet,
         }
     }
 

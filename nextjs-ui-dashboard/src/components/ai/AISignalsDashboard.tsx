@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { useAIAnalysisContext } from "@/contexts/AIAnalysisContext";
 import { useWebSocketContext } from "@/contexts/WebSocketContext";
@@ -139,14 +139,14 @@ export function AISignalsDashboard() {
             <span className="text-sm text-destructive">
               {aiState.error || wsState.error}
             </span>
-            <Button
-              variant="outline"
+            <PremiumButton
+              variant="secondary"
               size="sm"
               onClick={clearError}
               className="ml-auto"
             >
               Dismiss
-            </Button>
+            </PremiumButton>
           </div>
         )}
 

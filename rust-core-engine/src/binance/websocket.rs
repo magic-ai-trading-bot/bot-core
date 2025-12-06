@@ -439,6 +439,7 @@ mod tests {
             futures_base_url: "https://fapi.binance.com".to_string(),
             futures_ws_url: "wss://fstream.binance.com".to_string(),
             testnet: false,
+            trading_mode: crate::config::TradingMode::PaperTrading,
         }
     }
 

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/styles/luxury-design-system";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1376,33 +1376,33 @@ export function StrategyTuningSettings() {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
+          <PremiumButton
+            variant="secondary"
             onClick={handleResetToDefaults}
             disabled={isSaving}
             className="w-full"
           >
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset
-          </Button>
-          <Button
-            variant="outline"
+          </PremiumButton>
+          <PremiumButton
+            variant="secondary"
             onClick={handleExportConfig}
             disabled={isSaving}
             className="w-full"
           >
             <Download className="mr-2 h-4 w-4" />
             Export
-          </Button>
-          <Button
-            variant="outline"
+          </PremiumButton>
+          <PremiumButton
+            variant="secondary"
             onClick={() => document.getElementById("import-config")?.click()}
             disabled={isSaving}
             className="w-full"
           >
             <Upload className="mr-2 h-4 w-4" />
             Import
-          </Button>
+          </PremiumButton>
           <input
             id="import-config"
             type="file"
@@ -1410,7 +1410,7 @@ export function StrategyTuningSettings() {
             onChange={handleImportConfig}
             className="hidden"
           />
-          <Button
+          <PremiumButton
             className="w-full bg-profit hover:bg-profit/90"
             onClick={handleSaveSettings}
             disabled={isSaving || validationErrors.length > 0}
@@ -1426,7 +1426,7 @@ export function StrategyTuningSettings() {
                 Save Settings
               </>
             )}
-          </Button>
+          </PremiumButton>
         </div>
       </CardContent>
     </Card>

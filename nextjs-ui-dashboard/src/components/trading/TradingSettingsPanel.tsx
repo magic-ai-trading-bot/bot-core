@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PremiumButton, PremiumInput } from "@/styles/luxury-design-system";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -59,7 +58,7 @@ export function TradingSettingsPanel({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="initial-balance">Vốn ban đầu (USDT)</Label>
-              <Input
+              <PremiumInput
                 id="initial-balance"
                 type="number"
                 value={settingsForm.basic.initial_balance}
@@ -76,7 +75,7 @@ export function TradingSettingsPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="max-leverage">Đòn bẩy tối đa</Label>
-              <Input
+              <PremiumInput
                 id="max-leverage"
                 type="number"
                 value={settingsForm.risk.max_leverage}
@@ -93,7 +92,7 @@ export function TradingSettingsPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="position-size">Kích thước vị thế (%)</Label>
-              <Input
+              <PremiumInput
                 id="position-size"
                 type="number"
                 value={settingsForm.basic.default_position_size_pct}
@@ -111,7 +110,7 @@ export function TradingSettingsPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="stop-loss">Stop Loss mặc định (%)</Label>
-              <Input
+              <PremiumInput
                 id="stop-loss"
                 type="number"
                 value={settingsForm.risk.default_stop_loss_pct}
@@ -131,7 +130,7 @@ export function TradingSettingsPanel({
               <Label htmlFor="take-profit">
                 Take Profit mặc định (%)
               </Label>
-              <Input
+              <PremiumInput
                 id="take-profit"
                 type="number"
                 value={settingsForm.risk.default_take_profit_pct}
@@ -149,7 +148,7 @@ export function TradingSettingsPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="trading-fee">Phí giao dịch (%)</Label>
-              <Input
+              <PremiumInput
                 id="trading-fee"
                 type="number"
                 value={settingsForm.basic.trading_fee_rate}
@@ -166,21 +165,21 @@ export function TradingSettingsPanel({
             </div>
           </div>
           <div className="flex gap-4 pt-4">
-            <Button
+            <PremiumButton
               onClick={handleSettingsSubmit}
               className="flex-1"
               disabled={isLoading}
             >
               {isLoading ? "Đang lưu..." : "Lưu cài đặt"}
-            </Button>
-            <Button
-              variant="outline"
+            </PremiumButton>
+            <PremiumButton
+              variant="secondary"
               onClick={() => setShowReset(true)}
               className="flex-1"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Reset dữ liệu
-            </Button>
+            </PremiumButton>
           </div>
           {showReset && (
             <Alert>
@@ -191,20 +190,20 @@ export function TradingSettingsPanel({
                     Xác nhận reset toàn bộ dữ liệu paper trading?
                   </span>
                   <div className="flex gap-2">
-                    <Button
-                      variant="destructive"
+                    <PremiumButton
+                      variant="danger"
                       size="sm"
                       onClick={handleReset}
                     >
                       Xác nhận
-                    </Button>
-                    <Button
-                      variant="outline"
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
                       size="sm"
                       onClick={() => setShowReset(false)}
                     >
                       Hủy
-                    </Button>
+                    </PremiumButton>
                   </div>
                 </div>
               </AlertDescription>
@@ -239,14 +238,14 @@ export function TradingSettingsPanel({
           </p>
         </CardHeader>
         <CardContent>
-          <Button
+          <PremiumButton
             onClick={() => setShowSymbolDialog(true)}
-            variant="outline"
+            variant="secondary"
             className="w-full"
           >
             <Settings className="h-4 w-4 mr-2" />
             Mở cài đặt Symbols
-          </Button>
+          </PremiumButton>
         </CardContent>
       </Card>
 

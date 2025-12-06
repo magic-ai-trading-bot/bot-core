@@ -539,3 +539,254 @@ Summary: {suggestions.get('summary', 'N/A')[:200]}..."""
             "applied_changes": len(applied),
         },
     )
+
+
+# =============================================================================
+# PER-USER NOTIFICATION PREFERENCES (FROM RUST API)
+# @spec:FR-NOTIFICATION-001 - Per-User Notification Preferences
+# =============================================================================
+
+# Rust API URL for fetching user notification preferences
+RUST_API_URL = os.getenv("RUST_API_URL", "http://localhost:8080")
+
+# Cache for notification preferences (refresh every 5 minutes)
+_preferences_cache: Optional[Dict[str, Any]] = None
+_preferences_cache_time: Optional[datetime] = None
+_CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def get_user_notification_preferences() -> Optional[Dict[str, Any]]:
+    """
+    Fetch user notification preferences from Rust API.
+    Caches the result for 5 minutes to reduce API calls.
+
+    Returns:
+        Dict with notification preferences or None if not available
+    """
+    global _preferences_cache, _preferences_cache_time
+
+    # Check cache first
+    if _preferences_cache is not None and _preferences_cache_time is not None:
+        cache_age = (datetime.utcnow() - _preferences_cache_time).total_seconds()
+        if cache_age < _CACHE_TTL_SECONDS:
+            return _preferences_cache
+
+    try:
+        rust_api_url = os.getenv("RUST_API_URL", RUST_API_URL)
+        response = requests.get(
+            f"{rust_api_url}/api/notifications/preferences",
+            timeout=5,
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("success") and data.get("data"):
+                _preferences_cache = data["data"]
+                _preferences_cache_time = datetime.utcnow()
+                logger.info("✅ Loaded user notification preferences from API")
+                return _preferences_cache
+
+        logger.warning(f"Failed to fetch notification preferences: HTTP {response.status_code}")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error fetching notification preferences: {e}")
+        return None
+
+
+def send_notification_with_user_prefs(
+    title: str,
+    message: str,
+    level: str = NotificationLevel.INFO,
+    data: Optional[Dict[str, Any]] = None,
+    alert_type: str = "system_alerts",
+) -> Dict[str, bool]:
+    """
+    Send notification using user preferences from the Rust API.
+    Falls back to environment-based config if API is unavailable.
+
+    Args:
+        title: Notification title
+        message: Notification message
+        level: Severity level (info/warning/error/critical)
+        data: Additional data to include
+        alert_type: Type of alert (price_alerts, trade_alerts, system_alerts, signal_alerts, risk_alerts)
+
+    Returns:
+        Dict with success status for each channel
+    """
+    # Try to get user preferences
+    prefs = get_user_notification_preferences()
+
+    # Fall back to environment-based notifications if no user prefs
+    if prefs is None:
+        return send_notification(title, message, level, data)
+
+    # Check if notifications are globally enabled
+    if not prefs.get("enabled", True):
+        logger.debug("Notifications disabled by user, skipping")
+        return {"skipped": True, "reason": "notifications_disabled"}
+
+    # Check if this alert type is enabled
+    alerts = prefs.get("alerts", {})
+    if not alerts.get(alert_type, True):
+        logger.debug(f"Alert type '{alert_type}' disabled by user, skipping")
+        return {"skipped": True, "reason": f"{alert_type}_disabled"}
+
+    results = {}
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    channels = prefs.get("channels", {})
+
+    # Prepare full message with metadata
+    full_message = f"""
+{message}
+
+Level: {level.upper()}
+Time: {timestamp}
+"""
+    if data:
+        full_message += f"\nAdditional Data:\n{format_data(data)}"
+
+    # Send to Discord (using user's webhook URL)
+    if channels.get("discord", {}).get("enabled", False):
+        discord_webhook = channels.get("discord", {}).get("webhook_url")
+        if discord_webhook:
+            try:
+                results["discord"] = send_discord_with_url(title, message, level, data, discord_webhook)
+            except Exception as e:
+                logger.error(f"Failed to send Discord notification: {e}")
+                results["discord"] = {"status": "failed", "error": str(e)}
+
+    # Send to Telegram (using user's bot token and chat ID)
+    if channels.get("telegram", {}).get("enabled", False):
+        telegram_config = channels.get("telegram", {})
+        bot_token = telegram_config.get("bot_token")
+        chat_id = telegram_config.get("chat_id")
+        if bot_token and chat_id:
+            try:
+                results["telegram"] = send_telegram_with_config(title, message, level, data, bot_token, chat_id)
+            except Exception as e:
+                logger.error(f"Failed to send Telegram notification: {e}")
+                results["telegram"] = {"status": "failed", "error": str(e)}
+
+    # Email notifications still use environment config (no per-user SMTP)
+    if channels.get("email", False):
+        try:
+            results["email"] = send_email(title, full_message, level)
+        except Exception as e:
+            logger.error(f"Failed to send email notification: {e}")
+            results["email"] = {"status": "failed", "error": str(e)}
+
+    return results
+
+
+def send_discord_with_url(
+    title: str,
+    message: str,
+    level: str,
+    data: Optional[Dict[str, Any]],
+    webhook_url: str,
+) -> Dict[str, Any]:
+    """Send notification to Discord using a specific webhook URL"""
+    # Color based on level (Discord uses integer colors)
+    color_map = {
+        NotificationLevel.INFO: 3447003,  # Blue
+        NotificationLevel.WARNING: 16776960,  # Yellow
+        NotificationLevel.ERROR: 16711680,  # Red
+        NotificationLevel.CRITICAL: 10038562,  # Dark red
+    }
+    color = color_map.get(level, 8421504)
+
+    # Emoji based on level
+    emoji_map = {
+        NotificationLevel.INFO: "ℹ️",
+        NotificationLevel.WARNING: "⚠️",
+        NotificationLevel.ERROR: "❌",
+        NotificationLevel.CRITICAL: "🚨",
+    }
+    emoji = emoji_map.get(level, "📢")
+
+    # Build Discord embed
+    embed = {
+        "title": f"{emoji} {title}",
+        "description": message,
+        "color": color,
+        "fields": [],
+        "footer": {"text": "Bot Core Trading"},
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+    # Add data fields
+    if data:
+        for key, value in data.items():
+            embed["fields"].append({
+                "name": key.replace("_", " ").title(),
+                "value": str(value),
+                "inline": True,
+            })
+
+    payload = {"embeds": [embed]}
+
+    # Send to Discord
+    response = requests.post(webhook_url, json=payload, timeout=10)
+
+    if response.status_code == 429:
+        retry_after = response.json().get("retry_after", 1.5)
+        return {"status": "failed", "error": f"Rate limited, retry after {retry_after}s"}
+
+    if response.status_code not in [200, 204]:
+        return {"status": "failed", "error": f"HTTP {response.status_code}"}
+
+    logger.info(f"📢 Discord notification sent: {title}")
+    return {"status": "success"}
+
+
+def send_telegram_with_config(
+    title: str,
+    message: str,
+    level: str,
+    data: Optional[Dict[str, Any]],
+    bot_token: str,
+    chat_id: str,
+) -> Dict[str, Any]:
+    """Send notification to Telegram using specific bot token and chat ID"""
+    # Emoji based on level
+    emoji_map = {
+        NotificationLevel.INFO: "ℹ️",
+        NotificationLevel.WARNING: "⚠️",
+        NotificationLevel.ERROR: "❌",
+        NotificationLevel.CRITICAL: "🚨",
+    }
+    emoji = emoji_map.get(level, "📢")
+
+    # Build message
+    telegram_message = f"{emoji} <b>{title}</b>\n\n{message}"
+
+    if data:
+        telegram_message += "\n\n<b>Additional Data:</b>"
+        for key, value in data.items():
+            telegram_message += f"\n• {key.replace('_', ' ').title()}: {value}"
+
+    # Send to Telegram
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": telegram_message,
+        "parse_mode": "HTML",
+    }
+
+    response = requests.post(url, json=payload, timeout=10)
+
+    if response.status_code != 200:
+        return {"status": "failed", "error": f"HTTP {response.status_code}"}
+
+    logger.info(f"📢 Telegram notification sent: {title}")
+    return {"status": "success"}
+
+
+def clear_preferences_cache():
+    """Clear the notification preferences cache (useful for testing)"""
+    global _preferences_cache, _preferences_cache_time
+    _preferences_cache = None
+    _preferences_cache_time = None
+    logger.info("Notification preferences cache cleared")

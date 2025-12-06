@@ -1,0 +1,378 @@
+{
+  "metadata": {
+    "reportDate": "2025-12-03",
+    "scope": "Frontend pages requiring redesign in nextjs-ui-dashboard",
+    "totalPages": 6,
+    "totalLOC": 1272,
+    "status": "Complete - Ready for Redesign Planning"
+  },
+  "pages": [
+    {
+      "name": "Dashboard",
+      "filePath": "/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/pages/Dashboard.tsx",
+      "lineCount": 121,
+      "status": "Functional",
+      "description": "Bento grid layout with 5 dashboard widgets, fully functional portfolio overview",
+      "mainSections": [
+        "DashboardContentHeader - portfolio summary (balance, P&L)",
+        "PriceTickerRow - horizontal price ticker",
+        "BentoGrid - responsive widget layout"
+      ],
+      "keyComponents": [
+        "DashboardContentHeader",
+        "PriceTickerRow",
+        "BentoGrid/BentoWidget (layout system)",
+        "PerformanceWidget (large)",
+        "AISignalsWidget (medium)",
+        "RecentTradesWidget (medium)",
+        "RiskMetricsWidget (small)",
+        "MarketOverviewWidget (small)"
+      ],
+      "dataProps": {
+        "portfolio": ["balance", "pnl", "pnlPercentage"],
+        "websocket": ["wsState.botStatus", "wsState.positions", "wsState.aiSignals", "wsState.recentTrades"],
+        "state": ["isLoading"]
+      },
+      "issues": [
+        "Widgets are static size (large/medium/small) - limited customization",
+        "No drag-drop reordering capability",
+        "Risk metrics calculation is hard-coded",
+        "Performance widget data source undefined",
+        "Market overview widget data source undefined"
+      ]
+    },
+    {
+      "name": "Paper Trading",
+      "filePath": "/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/pages/PaperTrading.tsx",
+      "lineCount": 173,
+      "status": "Functional",
+      "description": "Complete trading interface with chart, order form, positions panel. Blue accent styling",
+      "mainSections": [
+        "Page Header - title and mode badge",
+        "Portfolio Overview Card - portfolio metrics",
+        "TradingLayout (3-column layout)",
+        "  - Left: Chart + OrderBook/RecentTrades",
+        "  - Center: OrderForm + RiskWarning",
+        "  - Right: Positions/History/AI (tabbed)"
+      ],
+      "keyComponents": [
+        "TradingLayout (3-column wrapper)",
+        "TradingViewChart",
+        "OrderForm",
+        "OrderBook",
+        "RecentTradesList",
+        "RiskWarningCard",
+        "OpenPositions",
+        "TradeHistory",
+        "AIInsightsPanel",
+        "Card/Badge/Tabs (UI)"
+      ],
+      "dataProps": {
+        "portfolio": ["current_balance", "equity", "total_pnl", "win_rate", "total_trades", "sharpe_ratio"],
+        "trades": ["openTrades", "closedTrades", "recentSignals", "recentTrades"],
+        "form": ["symbol", "side", "quantity", "price", "orderType"],
+        "risk": ["dailyLossLimit: 5%", "maxDrawdown: 15%"],
+        "state": ["selectedSymbol", "isLoading"]
+      },
+      "issues": [
+        "Hard-coded symbol selection (BTCUSDT)",
+        "OrderForm submission not integrated (TODO comment)",
+        "Portfolio overview uses grid layout (hard to customize)",
+        "No real-time profit/loss updates",
+        "Price click handler not connected to OrderForm",
+        "No trade confirmation for paper trading"
+      ]
+    },
+    {
+      "name": "Real Trading",
+      "filePath": "/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/pages/RealTrading.tsx",
+      "lineCount": 285,
+      "status": "Functional",
+      "description": "Extended trading interface with 2-step confirmation, warning banner. Red warning accents",
+      "mainSections": [
+        "RealModeWarningBanner - always visible warning",
+        "Page Header + Mode Badge - title and REAL MONEY MODE badge",
+        "Conditional Render - if not in real mode, show mode switch prompt",
+        "TradingLayout - same as Paper Trading (if in real mode)",
+        "TradeConfirmationDialog - 2-step order confirmation modal"
+      ],
+      "keyComponents": [
+        "RealModeWarningBanner",
+        "TradingLayout (same as PaperTrading)",
+        "TradingViewChart",
+        "OrderForm (with confirmation required)",
+        "OrderBook",
+        "RecentTradesList",
+        "RiskWarningCard",
+        "OpenPositions",
+        "TradeHistory",
+        "AIInsightsPanel",
+        "TradeConfirmationDialog",
+        "Card/Badge/Tabs (UI)"
+      ],
+      "dataProps": {
+        "portfolio": ["current_balance", "equity", "total_pnl", "win_rate", "total_trades", "sharpe_ratio"],
+        "trades": ["openTrades", "closedTrades", "recentSignals", "recentTrades"],
+        "confirmation": ["isConfirmationOpen", "pendingOrder"],
+        "risk": ["dailyLossLimit: 3%", "maxDrawdown: 10%"],
+        "mode": ["tradingMode: 'real'"]
+      },
+      "issues": [
+        "Different risk limits than paper trading (paper: 5%/15%, real: 3%/10%)",
+        "Confirmation dialog state managed in page (could be extracted)",
+        "Mode switch card only shown if not in real mode",
+        "API submission still has TODO comment",
+        "No persistence of order confirmation decisions"
+      ]
+    },
+    {
+      "name": "Portfolio",
+      "filePath": "/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/pages/Portfolio.tsx",
+      "lineCount": 140,
+      "status": "Placeholder - Coming Soon",
+      "description": "Portfolio management placeholder with glass morphism hero card and upcoming features",
+      "mainSections": [
+        "Header - title and subtitle",
+        "Hero Coming Soon Card - animated glow, glass morphism, decorative accents",
+        "Upcoming Features Grid - 4 feature cards (Asset Allocation, Performance, Balance, Risk)"
+      ],
+      "keyComponents": [
+        "Lucide Icons: PieChart, TrendingUp, Wallet, BarChart3, Sparkles, ArrowUpRight, Shield, Zap",
+        "Custom styled cards with glassmorphism, gradients, animated glows, decorative accents"
+      ],
+      "dataProps": {
+        "static": ["upcomingFeatures (4 items)", "stats (3 items)"],
+        "dynamic": "None - placeholder only"
+      },
+      "issues": [
+        "Placeholder only - needs full implementation",
+        "No actual portfolio data displayed",
+        "No real-time updates",
+        "No data integration",
+        "Missing: holdings, allocations, performance, risk metrics"
+      ]
+    },
+    {
+      "name": "AI Signals",
+      "filePath": "/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/pages/AISignals.tsx",
+      "lineCount": 195,
+      "status": "Placeholder - Coming Soon",
+      "description": "AI signals placeholder with neural network decoration and AI model showcase",
+      "mainSections": [
+        "Header - title and subtitle",
+        "Hero Coming Soon Card - animated glow (purple/AI themed), glass morphism, neural network SVG",
+        "AI Models Section - 4 model cards (LSTM, GRU, Transformer, GPT-4)",
+        "Upcoming Features Grid - 4 feature cards (ML Price, Real-time, Entry/Exit, Sentiment)"
+      ],
+      "keyComponents": [
+        "Lucide Icons: Brain, Zap, Target, LineChart, Sparkles, Activity, Cpu, Network",
+        "Custom styled cards with glassmorphism, gradients, animated glows, hover effects",
+        "Neural network SVG decoration"
+      ],
+      "dataProps": {
+        "static": ["aiModels (4 items with accuracy)", "upcomingFeatures (4 items)", "stats (3 items)"],
+        "dynamic": "None - placeholder only"
+      },
+      "issues": [
+        "Placeholder only - needs full implementation",
+        "No actual AI signals displayed",
+        "No real trading signals",
+        "No signal history/performance",
+        "Missing: latest signals, signal history, model performance, accuracy metrics"
+      ]
+    },
+    {
+      "name": "Settings",
+      "filePath": "/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/pages/Settings.tsx",
+      "lineCount": 358,
+      "status": "Functional",
+      "description": "Comprehensive 7-tab settings interface for bot configuration, API keys, notifications, security",
+      "mainSections": [
+        "Page Header - title and subtitle",
+        "Tabs Navigation (7 tabs) - Bot Settings, Per-Symbol, Strategy Tuning, System Health, API Keys, Notifications, Security",
+        "Tab 1: Bot Settings - <BotSettings /> component",
+        "Tab 2: Per-Symbol Settings - <PerSymbolSettings /> component",
+        "Tab 3: Strategy Tuning - <StrategyTuningSettings /> component",
+        "Tab 4: System Monitoring - <SystemMonitoring /> component",
+        "Tab 5: API Keys - Binance config, trading permissions",
+        "Tab 6: Notifications - email, push, telegram, discord toggles",
+        "Tab 7: Security - 2FA, password change, active sessions",
+        "ChatBot Widget (footer)"
+      ],
+      "keyComponents": [
+        "BotSettings (complex subcomponent)",
+        "PerSymbolSettings (complex subcomponent)",
+        "StrategyTuningSettings (complex subcomponent)",
+        "SystemMonitoring (complex subcomponent)",
+        "Card/CardHeader/CardTitle/CardContent",
+        "Tabs/TabsList/TabsTrigger/TabsContent",
+        "Input/Label/Button/Badge/Switch (form controls)",
+        "ChatBot (footer widget)"
+      ],
+      "dataProps": {
+        "apiKeys": ["apiKey (masked)", "secretKey (masked)"],
+        "notifications": ["email", "push", "telegram", "discord", "telegramToken (conditional)"],
+        "portfolio": ["current_balance (from context)"],
+        "form": ["all input field states"],
+        "permissions": ["spot", "futures", "margin", "options"]
+      },
+      "issues": [
+        "7 tabs is too many - navigation crowded on mobile",
+        "API keys are hard-coded demo strings (no real integration)",
+        "Notification settings not integrated with backend",
+        "Per-symbol and strategy settings offloaded to separate components",
+        "ChatBot widget at footer may be distracting",
+        "No form validation shown",
+        "No success/error feedback"
+      ]
+    }
+  ],
+  "componentDependencies": {
+    "dashboard": {
+      "direct": [
+        "DashboardContentHeader",
+        "PriceTickerRow",
+        "BentoGrid",
+        "BentoWidget",
+        "PerformanceWidget",
+        "AISignalsWidget",
+        "RecentTradesWidget",
+        "RiskMetricsWidget",
+        "MarketOverviewWidget"
+      ],
+      "contextDependencies": ["WebSocket (useWebSocket hook)", "TradingMode (useTradingModeContext)"]
+    },
+    "paperTrading": {
+      "direct": [
+        "TradingLayout",
+        "TradingViewChart",
+        "OrderForm",
+        "OrderBook",
+        "RecentTradesList",
+        "RiskWarningCard",
+        "OpenPositions",
+        "TradeHistory",
+        "AIInsightsPanel",
+        "Card",
+        "Badge",
+        "Tabs"
+      ],
+      "hookDependencies": ["usePaperTrading", "useToast"],
+      "contextDependencies": []
+    },
+    "realTrading": {
+      "direct": [
+        "RealModeWarningBanner",
+        "TradingLayout",
+        "TradingViewChart",
+        "OrderForm",
+        "OrderBook",
+        "RecentTradesList",
+        "RiskWarningCard",
+        "OpenPositions",
+        "TradeHistory",
+        "AIInsightsPanel",
+        "TradeConfirmationDialog",
+        "Card",
+        "Badge",
+        "Tabs"
+      ],
+      "hookDependencies": ["useRealTrading", "useTradingMode", "useToast"],
+      "contextDependencies": []
+    },
+    "portfolio": {
+      "direct": [],
+      "dependencies": "None - static placeholder"
+    },
+    "aiSignals": {
+      "direct": [],
+      "dependencies": "None - static placeholder"
+    },
+    "settings": {
+      "direct": [
+        "BotSettings",
+        "PerSymbolSettings",
+        "StrategyTuningSettings",
+        "SystemMonitoring",
+        "Card",
+        "CardHeader",
+        "CardTitle",
+        "CardContent",
+        "Button",
+        "Input",
+        "Label",
+        "Switch",
+        "Tabs",
+        "Badge",
+        "ChatBot"
+      ],
+      "contextDependencies": ["PaperTradingContext"]
+    }
+  },
+  "keyInsights": {
+    "strengths": [
+      "Dashboard: Bento grid layout is flexible and modern",
+      "Trading Pages: 3-column layout works well for trading scenario",
+      "Settings: Tabbed interface is comprehensive",
+      "Visual Design: Glass morphism effects on placeholders are polished"
+    ],
+    "opportunities": [
+      "Dashboard: Could add customizable widgets, drag-drop reordering",
+      "Paper/Real Trading: Could streamline UI, reduce clutter",
+      "Portfolio & AI Signals: Placeholders need full-featured implementations",
+      "Settings: Tab overflow on mobile, could use drawer/accordion"
+    ],
+    "technicalConsiderations": [
+      "Data Sources: Many components have undefined data sources (need integration)",
+      "WebSocket State: Dashboard tightly coupled to WebSocket context",
+      "Responsive: Current layouts may need mobile optimization",
+      "Performance: BentoGrid with 5 widgets could be heavy",
+      "Settings complexity: 4 complex subcomponents may need refactoring"
+    ]
+  },
+  "unresolvedQuestions": [
+    "Performance Widget Data: Where does performance chart data come from?",
+    "Market Overview Widget: Data source for market overview?",
+    "Portfolio Page: Should show paper portfolio or real portfolio or both?",
+    "AI Signals Page: Should show real signals from ML backend or placeholder signals?",
+    "Settings: Are complex subcomponents (BotSettings, PerSymbolSettings, etc.) finalized?",
+    "Data Persistence: Should settings/preferences be persisted to localStorage or backend?",
+    "WebSocket Integration: Is websocket state management finalized?",
+    "Mobile Layout: Current 3-column trading layout works on mobile?"
+  ],
+  "recommendedPhases": [
+    {
+      "phase": 1,
+      "title": "High-Impact Redesigns (Quick Wins)",
+      "tasks": [
+        "Dashboard: Add customization features, improve widget loading",
+        "Settings: Reorganize tabs, improve mobile layout, add form validation"
+      ]
+    },
+    {
+      "phase": 2,
+      "title": "Feature-Complete Placeholders",
+      "tasks": [
+        "Portfolio: Implement full portfolio tracking with real data",
+        "AI Signals: Implement full signals display with history"
+      ]
+    },
+    {
+      "phase": 3,
+      "title": "Enhanced Trading UX",
+      "tasks": [
+        "Paper Trading: Streamline interface, add quick actions",
+        "Real Trading: Improve confirmation flow, better warnings"
+      ]
+    },
+    {
+      "phase": 4,
+      "title": "Polish & Optimization",
+      "tasks": [
+        "Performance optimization (reduce re-renders, optimize widgets)",
+        "Accessibility improvements",
+        "Mobile responsiveness enhancements"
+      ]
+    }
+  ]
+}

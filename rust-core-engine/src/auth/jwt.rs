@@ -5,13 +5,19 @@ use jsonwebtoken::{
 };
 use serde::{Deserialize, Serialize};
 
+// @spec:FR-AUTH-001 - JWT Token Generation
+// @spec:FR-AUTH-015 - Session Tracking in JWT
+// @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+// @test:TC-AUTH-001, TC-AUTH-002, TC-AUTH-003
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String, // user id
+    pub sub: String,                      // user id
     pub email: String,
     pub is_admin: bool,
-    pub exp: i64, // expiration time
-    pub iat: i64, // issued at
+    pub exp: i64,                         // expiration time
+    pub iat: i64,                         // issued at
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,       // session tracking
 }
 
 #[derive(Clone)]
@@ -29,12 +35,25 @@ impl JwtService {
     }
 
     // @spec:FR-AUTH-001 - JWT Token Generation
+    // @spec:FR-AUTH-015 - Session Tracking in JWT
     // @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md#jwt-implementation
     // @ref:specs/02-design/2.3-api/API-RUST-CORE.md#authentication
     // @test:TC-AUTH-001, TC-AUTH-002, TC-AUTH-003
     // @spec:FR-AUTH-005 - Token Expiration (expiration time set here)
     // @test:TC-AUTH-011, TC-AUTH-012
     pub fn generate_token(&self, user_id: &str, email: &str, is_admin: bool) -> Result<String> {
+        self.generate_token_with_session(user_id, email, is_admin, None)
+    }
+
+    /// Generate token with session tracking
+    /// @spec:FR-AUTH-015 - Session Tracking
+    pub fn generate_token_with_session(
+        &self,
+        user_id: &str,
+        email: &str,
+        is_admin: bool,
+        session_id: Option<String>,
+    ) -> Result<String> {
         let now = Utc::now();
         let exp = now + Duration::hours(self.expiration_hours);
 
@@ -44,6 +63,7 @@ impl JwtService {
             is_admin,
             exp: exp.timestamp(),
             iat: now.timestamp(),
+            session_id,
         };
 
         let header = Header::new(Algorithm::HS256);
@@ -265,6 +285,7 @@ mod tests {
             is_admin: false,
             exp: 1234567890,
             iat: 1234567800,
+            session_id: Some("session_abc123".to_string()),
         };
 
         // Test that claims can be serialized and deserialized
@@ -276,5 +297,43 @@ mod tests {
         assert!(!deserialized.is_admin);
         assert_eq!(deserialized.exp, 1234567890);
         assert_eq!(deserialized.iat, 1234567800);
+        assert_eq!(deserialized.session_id, Some("session_abc123".to_string()));
+    }
+
+    #[test]
+    fn test_generate_token_with_session() {
+        let jwt_service = JwtService::new("test_secret".to_string(), Some(1));
+        let session_id = "session_xyz789".to_string();
+        let token = jwt_service
+            .generate_token_with_session("user123", "test@example.com", false, Some(session_id.clone()))
+            .unwrap();
+
+        let claims = jwt_service.verify_token(&token).unwrap();
+        assert_eq!(claims.sub, "user123");
+        assert_eq!(claims.email, "test@example.com");
+        assert!(!claims.is_admin);
+        assert_eq!(claims.session_id, Some(session_id));
+    }
+
+    #[test]
+    fn test_generate_token_without_session() {
+        let jwt_service = JwtService::new("test_secret".to_string(), Some(1));
+        let token = jwt_service
+            .generate_token("user123", "test@example.com", false)
+            .unwrap();
+
+        let claims = jwt_service.verify_token(&token).unwrap();
+        assert_eq!(claims.sub, "user123");
+        assert_eq!(claims.session_id, None);
+    }
+
+    #[test]
+    fn test_claims_without_session_id_deserialize() {
+        // Test backward compatibility - old tokens without session_id should still work
+        let json = r#"{"sub":"user123","email":"test@example.com","is_admin":false,"exp":1234567890,"iat":1234567800}"#;
+        let deserialized: Claims = serde_json::from_str(json).unwrap();
+
+        assert_eq!(deserialized.sub, "user123");
+        assert_eq!(deserialized.session_id, None); // Should default to None
     }
 }

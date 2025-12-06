@@ -156,16 +156,96 @@ fn test_claims_serialization() {
         is_admin: false,
         exp: 1234567890,
         iat: 1234567800,
+        session_id: Some("session_abc123".to_string()),
     };
 
     // Test serialization
     let json = serde_json::to_string(&claims).unwrap();
     assert!(json.contains("\"sub\":\"user123\""));
     assert!(json.contains("\"email\":\"test@example.com\""));
+    assert!(json.contains("\"session_id\":\"session_abc123\""));
 
     // Test deserialization
     let deserialized: Claims = serde_json::from_str(&json).unwrap();
     assert_eq!(deserialized.sub, claims.sub);
     assert_eq!(deserialized.email, claims.email);
     assert_eq!(deserialized.is_admin, claims.is_admin);
+    assert_eq!(deserialized.session_id, Some("session_abc123".to_string()));
+}
+
+#[test]
+fn test_claims_without_session_id() {
+    let claims = Claims {
+        sub: "user123".to_string(),
+        email: "test@example.com".to_string(),
+        is_admin: false,
+        exp: 1234567890,
+        iat: 1234567800,
+        session_id: None,
+    };
+
+    // Test serialization - session_id should be skipped
+    let json = serde_json::to_string(&claims).unwrap();
+    assert!(!json.contains("session_id"));
+
+    // Test backward compatibility - old tokens without session_id
+    let old_json = r#"{"sub":"user123","email":"test@example.com","is_admin":false,"exp":1234567890,"iat":1234567800}"#;
+    let deserialized: Claims = serde_json::from_str(old_json).unwrap();
+    assert_eq!(deserialized.sub, "user123");
+    assert_eq!(deserialized.session_id, None);
+}
+
+#[test]
+fn test_jwt_with_session_id() {
+    let jwt_service = JwtService::new("test_secret".to_string(), Some(1));
+    let session_id = "session_xyz789".to_string();
+
+    // Generate token with session_id
+    let token = jwt_service
+        .generate_token_with_session("user123", "test@example.com", false, Some(session_id.clone()))
+        .unwrap();
+
+    // Verify token contains session_id
+    let claims = jwt_service.verify_token(&token).unwrap();
+    assert_eq!(claims.sub, "user123");
+    assert_eq!(claims.email, "test@example.com");
+    assert!(!claims.is_admin);
+    assert_eq!(claims.session_id, Some(session_id));
+}
+
+#[test]
+fn test_jwt_without_session_id() {
+    let jwt_service = JwtService::new("test_secret".to_string(), Some(1));
+
+    // Generate token without session_id (backward compatible)
+    let token = jwt_service
+        .generate_token("user123", "test@example.com", false)
+        .unwrap();
+
+    let claims = jwt_service.verify_token(&token).unwrap();
+    assert_eq!(claims.sub, "user123");
+    assert_eq!(claims.session_id, None);
+}
+
+#[test]
+fn test_jwt_session_tracking() {
+    let jwt_service = JwtService::new("secret".to_string(), Some(24));
+
+    // Create multiple sessions for same user
+    let session1 = jwt_service
+        .generate_token_with_session("user1", "user@test.com", false, Some("session_001".to_string()))
+        .unwrap();
+
+    let session2 = jwt_service
+        .generate_token_with_session("user1", "user@test.com", false, Some("session_002".to_string()))
+        .unwrap();
+
+    // Both tokens should be valid and have different session IDs
+    let claims1 = jwt_service.verify_token(&session1).unwrap();
+    let claims2 = jwt_service.verify_token(&session2).unwrap();
+
+    assert_eq!(claims1.sub, claims2.sub); // Same user
+    assert_ne!(claims1.session_id, claims2.session_id); // Different sessions
+    assert_eq!(claims1.session_id, Some("session_001".to_string()));
+    assert_eq!(claims2.session_id, Some("session_002".to_string()));
 }

@@ -1,3 +1,11 @@
+/**
+ * @deprecated This Input component is for internal shadcn/ui use only.
+ * For feature components, use PremiumInput from "@/styles/luxury-design-system" instead.
+ *
+ * Example:
+ * import { PremiumInput } from "@/styles/luxury-design-system";
+ * <PremiumInput placeholder="Enter value..." />
+ */
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
