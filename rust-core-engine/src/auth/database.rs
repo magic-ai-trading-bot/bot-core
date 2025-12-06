@@ -181,7 +181,11 @@ impl UserRepository {
     }
 
     // @spec:FR-AUTH-013 - Profile Update
-    pub async fn update_display_name(&self, id: &ObjectId, display_name: Option<String>) -> Result<()> {
+    pub async fn update_display_name(
+        &self,
+        id: &ObjectId,
+        display_name: Option<String>,
+    ) -> Result<()> {
         let collection = self
             .collection
             .as_ref()
@@ -244,7 +248,12 @@ impl UserRepository {
     }
 
     // @spec:FR-AUTH-014 - 2FA Management
-    pub async fn update_2fa(&self, id: &ObjectId, enabled: bool, secret: Option<String>) -> Result<()> {
+    pub async fn update_2fa(
+        &self,
+        id: &ObjectId,
+        enabled: bool,
+        secret: Option<String>,
+    ) -> Result<()> {
         let collection = self
             .collection
             .as_ref()
@@ -278,7 +287,11 @@ impl SessionRepository {
         // Create indexes
         let session_id_index = mongodb::IndexModel::builder()
             .keys(doc! { "session_id": 1 })
-            .options(mongodb::options::IndexOptions::builder().unique(true).build())
+            .options(
+                mongodb::options::IndexOptions::builder()
+                    .unique(true)
+                    .build(),
+            )
             .build();
 
         let user_id_index = mongodb::IndexModel::builder()
@@ -288,7 +301,11 @@ impl SessionRepository {
         // TTL index for auto-expiry
         let ttl_index = mongodb::IndexModel::builder()
             .keys(doc! { "expires_at": 1 })
-            .options(mongodb::options::IndexOptions::builder().expire_after(std::time::Duration::from_secs(0)).build())
+            .options(
+                mongodb::options::IndexOptions::builder()
+                    .expire_after(std::time::Duration::from_secs(0))
+                    .build(),
+            )
             .build();
 
         if let Err(e) = collection.create_index(session_id_index).await {
@@ -370,7 +387,11 @@ impl SessionRepository {
         Ok(())
     }
 
-    pub async fn revoke_all_except(&self, user_id: &ObjectId, current_session_id: &str) -> Result<u64> {
+    pub async fn revoke_all_except(
+        &self,
+        user_id: &ObjectId,
+        current_session_id: &str,
+    ) -> Result<u64> {
         let collection = self
             .collection
             .as_ref()

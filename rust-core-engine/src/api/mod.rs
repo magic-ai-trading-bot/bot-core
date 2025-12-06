@@ -97,11 +97,7 @@ impl ApiServer {
             let jwt_secret = std::env::var("JWT_SECRET")
                 .unwrap_or_else(|_| "default_jwt_secret_change_in_production".to_string());
             let auth = AuthService::new(user_repo.clone(), jwt_secret.clone());
-            let security = SecurityService::new(
-                user_repo,
-                session_repo,
-                jwt_secret,
-            );
+            let security = SecurityService::new(user_repo, session_repo, jwt_secret);
             (auth, security)
         } else {
             // Create dummy services that return errors for all operations

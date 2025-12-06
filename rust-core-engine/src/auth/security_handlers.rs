@@ -197,7 +197,9 @@ async fn handle_change_password(
     if let Err(e) = request.validate() {
         warn!("Validation failed: {:?}", e);
         return Ok(warp::reply::with_status(
-            warp::reply::json(&json!({"success": false, "error": "Validation failed", "details": e.to_string()})),
+            warp::reply::json(
+                &json!({"success": false, "error": "Validation failed", "details": e.to_string()}),
+            ),
             warp::http::StatusCode::BAD_REQUEST,
         ));
     }
@@ -215,33 +217,35 @@ async fn handle_change_password(
                 warp::reply::json(&json!({"success": false, "error": "User not found"})),
                 warp::http::StatusCode::NOT_FOUND,
             ));
-        }
+        },
         Err(e) => {
             error!("Database error: {}", e);
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     // Verify current password
     match PasswordService::verify_password(&request.current_password, &user.password_hash) {
-        Ok(true) => {}
+        Ok(true) => {},
         Ok(false) => {
             warn!("Current password incorrect for user: {}", user.email);
             return Ok(warp::reply::with_status(
-                warp::reply::json(&json!({"success": false, "error": "Current password is incorrect"})),
+                warp::reply::json(
+                    &json!({"success": false, "error": "Current password is incorrect"}),
+                ),
                 warp::http::StatusCode::UNAUTHORIZED,
             ));
-        }
+        },
         Err(e) => {
             error!("Password verification failed: {}", e);
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     }
 
     // Hash new password
@@ -253,7 +257,7 @@ async fn handle_change_password(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     // Update password in database
@@ -283,7 +287,9 @@ async fn handle_update_profile(
 
     if let Err(e) = request.validate() {
         return Ok(warp::reply::with_status(
-            warp::reply::json(&json!({"success": false, "error": "Validation failed", "details": e.to_string()})),
+            warp::reply::json(
+                &json!({"success": false, "error": "Validation failed", "details": e.to_string()}),
+            ),
             warp::http::StatusCode::BAD_REQUEST,
         ));
     }
@@ -325,7 +331,7 @@ async fn handle_update_profile(
                 warp::reply::json(&json!({"success": true, "data": user.to_profile()})),
                 warp::http::StatusCode::OK,
             ))
-        }
+        },
         _ => Ok(warp::reply::with_status(
             warp::reply::json(&json!({"success": true, "message": "Profile updated"})),
             warp::http::StatusCode::OK,
@@ -352,14 +358,14 @@ async fn handle_setup_2fa(
                 warp::reply::json(&json!({"success": false, "error": "User not found"})),
                 warp::http::StatusCode::NOT_FOUND,
             ));
-        }
+        },
         Err(e) => {
             error!("Database error: {}", e);
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     if user.two_factor_enabled {
@@ -389,7 +395,7 @@ async fn handle_setup_2fa(
                 warp::reply::json(&json!({"success": false, "error": "Failed to setup 2FA"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     // Generate QR code
@@ -398,10 +404,12 @@ async fn handle_setup_2fa(
         Err(e) => {
             error!("Failed to generate QR code: {}", e);
             return Ok(warp::reply::with_status(
-                warp::reply::json(&json!({"success": false, "error": "Failed to generate QR code"})),
+                warp::reply::json(
+                    &json!({"success": false, "error": "Failed to generate QR code"}),
+                ),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     // Store secret temporarily (will be confirmed on verify)
@@ -440,7 +448,9 @@ async fn handle_verify_2fa(
 
     if let Err(e) = request.validate() {
         return Ok(warp::reply::with_status(
-            warp::reply::json(&json!({"success": false, "error": "Validation failed", "details": e.to_string()})),
+            warp::reply::json(
+                &json!({"success": false, "error": "Validation failed", "details": e.to_string()}),
+            ),
             warp::http::StatusCode::BAD_REQUEST,
         ));
     }
@@ -457,24 +467,26 @@ async fn handle_verify_2fa(
                 warp::reply::json(&json!({"success": false, "error": "User not found"})),
                 warp::http::StatusCode::NOT_FOUND,
             ));
-        }
+        },
         Err(e) => {
             error!("Database error: {}", e);
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     let secret = match &user.two_factor_secret {
         Some(s) => s.clone(),
         None => {
             return Ok(warp::reply::with_status(
-                warp::reply::json(&json!({"success": false, "error": "2FA not set up. Please call setup first."})),
+                warp::reply::json(
+                    &json!({"success": false, "error": "2FA not set up. Please call setup first."}),
+                ),
                 warp::http::StatusCode::BAD_REQUEST,
             ));
-        }
+        },
     };
 
     // Verify the code
@@ -486,7 +498,7 @@ async fn handle_verify_2fa(
                 warp::reply::json(&json!({"success": false, "error": "Invalid 2FA configuration"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     let totp = match TOTP::new(
@@ -505,7 +517,7 @@ async fn handle_verify_2fa(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     if !totp.check_current(&request.code).unwrap_or(false) {
@@ -556,14 +568,14 @@ async fn handle_disable_2fa(
                 warp::reply::json(&json!({"success": false, "error": "User not found"})),
                 warp::http::StatusCode::NOT_FOUND,
             ));
-        }
+        },
         Err(e) => {
             error!("Database error: {}", e);
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     if !user.two_factor_enabled {
@@ -581,7 +593,7 @@ async fn handle_disable_2fa(
                 warp::reply::json(&json!({"success": false, "error": "2FA secret not found"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     let secret_bytes = match Secret::Encoded(secret).to_bytes() {
@@ -591,7 +603,7 @@ async fn handle_disable_2fa(
                 warp::reply::json(&json!({"success": false, "error": "Invalid 2FA configuration"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     let totp = match TOTP::new(
@@ -609,7 +621,7 @@ async fn handle_disable_2fa(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     if !totp.check_current(&request.code).unwrap_or(false) {
@@ -660,7 +672,7 @@ async fn handle_list_sessions(
                 warp::reply::json(&json!({"success": false, "error": "Failed to fetch sessions"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     let session_infos: Vec<SessionInfo> = sessions
@@ -699,20 +711,20 @@ async fn handle_revoke_session(
                 warp::reply::json(&json!({"success": false, "error": "Session not found"})),
                 warp::http::StatusCode::NOT_FOUND,
             ));
-        }
+        },
         Ok(None) => {
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"success": false, "error": "Session not found"})),
                 warp::http::StatusCode::NOT_FOUND,
             ));
-        }
+        },
         Err(e) => {
             error!("Database error: {}", e);
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"success": false, "error": "Internal server error"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     // Revoke the session
@@ -761,12 +773,14 @@ async fn handle_revoke_all_sessions(
                 warp::reply::json(&json!({"success": false, "error": "Failed to revoke sessions"})),
                 warp::http::StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     info!("Revoked {} sessions", count);
     Ok(warp::reply::with_status(
-        warp::reply::json(&json!({"success": true, "message": format!("{} sessions revoked", count), "revoked_count": count})),
+        warp::reply::json(
+            &json!({"success": true, "message": format!("{} sessions revoked", count), "revoked_count": count}),
+        ),
         warp::http::StatusCode::OK,
     ))
 }

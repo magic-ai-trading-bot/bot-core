@@ -396,10 +396,18 @@ async fn update_notification_preferences(
                 prefs.channels.telegram.enabled = enabled;
             }
             if let Some(bot_token) = telegram.bot_token {
-                prefs.channels.telegram.bot_token = if bot_token.is_empty() { None } else { Some(bot_token) };
+                prefs.channels.telegram.bot_token = if bot_token.is_empty() {
+                    None
+                } else {
+                    Some(bot_token)
+                };
             }
             if let Some(chat_id) = telegram.chat_id {
-                prefs.channels.telegram.chat_id = if chat_id.is_empty() { None } else { Some(chat_id) };
+                prefs.channels.telegram.chat_id = if chat_id.is_empty() {
+                    None
+                } else {
+                    Some(chat_id)
+                };
             }
         }
 
@@ -409,8 +417,10 @@ async fn update_notification_preferences(
             }
             if let Some(webhook_url) = discord.webhook_url {
                 // Validate Discord webhook URL format
-                if !webhook_url.is_empty() && !webhook_url.starts_with("https://discord.com/api/webhooks/")
-                    && !webhook_url.starts_with("https://discordapp.com/api/webhooks/") {
+                if !webhook_url.is_empty()
+                    && !webhook_url.starts_with("https://discord.com/api/webhooks/")
+                    && !webhook_url.starts_with("https://discordapp.com/api/webhooks/")
+                {
                     return Ok(warp::reply::with_status(
                         warp::reply::json(&ApiResponse::<()>::error(
                             "Invalid Discord webhook URL format".to_string(),
@@ -418,7 +428,11 @@ async fn update_notification_preferences(
                         StatusCode::BAD_REQUEST,
                     ));
                 }
-                prefs.channels.discord.webhook_url = if webhook_url.is_empty() { None } else { Some(webhook_url) };
+                prefs.channels.discord.webhook_url = if webhook_url.is_empty() {
+                    None
+                } else {
+                    Some(webhook_url)
+                };
             }
         }
     }
@@ -535,17 +549,21 @@ async fn send_test_notification(
         "telegram" => {
             if !prefs.channels.telegram.enabled {
                 return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()>::error("Telegram is not enabled".to_string())),
+                    warp::reply::json(&ApiResponse::<()>::error(
+                        "Telegram is not enabled".to_string(),
+                    )),
                     StatusCode::BAD_REQUEST,
                 ));
             }
             // Telegram test would be handled by Python AI service
             Ok("Test notification sent to Telegram".to_string())
-        }
+        },
         "discord" => {
             if !prefs.channels.discord.enabled {
                 return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()>::error("Discord is not enabled".to_string())),
+                    warp::reply::json(&ApiResponse::<()>::error(
+                        "Discord is not enabled".to_string(),
+                    )),
                     StatusCode::BAD_REQUEST,
                 ));
             }
@@ -558,27 +576,31 @@ async fn send_test_notification(
             } else {
                 Err("Discord webhook URL not configured".to_string())
             }
-        }
+        },
         "email" => {
             if !prefs.channels.email {
                 return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()>::error("Email is not enabled".to_string())),
+                    warp::reply::json(&ApiResponse::<()>::error(
+                        "Email is not enabled".to_string(),
+                    )),
                     StatusCode::BAD_REQUEST,
                 ));
             }
             // Email test would be handled by Python AI service
             Ok("Test notification sent via Email".to_string())
-        }
+        },
         "push" => {
             if !prefs.channels.push.enabled {
                 return Ok(warp::reply::with_status(
-                    warp::reply::json(&ApiResponse::<()>::error("Push notifications not enabled".to_string())),
+                    warp::reply::json(&ApiResponse::<()>::error(
+                        "Push notifications not enabled".to_string(),
+                    )),
                     StatusCode::BAD_REQUEST,
                 ));
             }
             // Push notification test
             Ok("Test push notification triggered".to_string())
-        }
+        },
         _ => {
             return Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(format!(
@@ -587,7 +609,7 @@ async fn send_test_notification(
                 ))),
                 StatusCode::BAD_REQUEST,
             ));
-        }
+        },
     };
 
     match result {
@@ -608,8 +630,7 @@ async fn send_test_notification(
 /// GET /api/notifications/vapid-key - Get VAPID public key
 async fn get_vapid_public_key() -> Result<impl Reply, Rejection> {
     // VAPID public key should be configured via environment variable
-    let vapid_public_key = std::env::var("VAPID_PUBLIC_KEY")
-        .unwrap_or_else(|_| "".to_string());
+    let vapid_public_key = std::env::var("VAPID_PUBLIC_KEY").unwrap_or_else(|_| "".to_string());
 
     if vapid_public_key.is_empty() {
         return Ok(warp::reply::with_status(
@@ -708,7 +729,10 @@ mod tests {
             serde_json::from_str(&json).expect("Deserialization should succeed");
 
         assert_eq!(deserialized.enabled, prefs.enabled);
-        assert_eq!(deserialized.price_alert_threshold, prefs.price_alert_threshold);
+        assert_eq!(
+            deserialized.price_alert_threshold,
+            prefs.price_alert_threshold
+        );
     }
 
     #[test]

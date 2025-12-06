@@ -125,9 +125,9 @@ pub struct ConnectionStatus {
 /// Stored API key record (encrypted)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoredApiKey {
-    pub api_key: String,                          // Plain text (not sensitive)
-    pub api_secret_encrypted: String,             // Base64 encoded encrypted secret
-    pub api_secret_nonce: String,                 // Base64 encoded nonce
+    pub api_key: String,              // Plain text (not sensitive)
+    pub api_secret_encrypted: String, // Base64 encoded encrypted secret
+    pub api_secret_nonce: String,     // Base64 encoded nonce
     pub use_testnet: bool,
     pub permissions: ApiKeyPermissions,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -192,7 +192,7 @@ fn mask_api_key(key: &str) -> String {
     let start = &key[..visible_chars];
     let end = &key[key.len() - visible_chars..];
     let masked_len = key.len() - (visible_chars * 2);
-    format!("{}{}{}",start, "*".repeat(masked_len.min(20)), end)
+    format!("{}{}{}", start, "*".repeat(masked_len.min(20)), end)
 }
 
 // ============================================================================
@@ -362,7 +362,7 @@ async fn save_api_keys(
                 )),
                 StatusCode::INTERNAL_SERVER_ERROR,
             ));
-        }
+        },
     };
 
     let now = chrono::Utc::now();
@@ -441,7 +441,7 @@ async fn test_connection(api: Arc<SettingsApi>) -> Result<impl Reply, Rejection>
                 })),
                 StatusCode::OK,
             ));
-        }
+        },
     };
 
     let (api_key, api_secret, use_testnet) = credentials;
@@ -487,7 +487,7 @@ async fn test_connection(api: Arc<SettingsApi>) -> Result<impl Reply, Rejection>
                 })),
                 StatusCode::OK,
             ));
-        }
+        },
     };
 
     // Test connection by fetching account info
@@ -520,7 +520,7 @@ async fn test_connection(api: Arc<SettingsApi>) -> Result<impl Reply, Rejection>
                 })),
                 StatusCode::OK,
             ))
-        }
+        },
         Err(e) => {
             let error_msg = format!("{}", e);
             let user_message = if error_msg.contains("Invalid API-key") {
@@ -546,7 +546,7 @@ async fn test_connection(api: Arc<SettingsApi>) -> Result<impl Reply, Rejection>
                 })),
                 StatusCode::OK,
             ))
-        }
+        },
     }
 }
 
