@@ -3167,7 +3167,7 @@ async def trigger_config_analysis(request: Request):
         else:
             return {
                 "success": False,
-                "message": f"Config analysis failed: {result.get('reason') or result.get('error')}",
+                "message": "Config analysis failed. Check server logs for details.",
                 "status": result.get("status"),
             }
 
