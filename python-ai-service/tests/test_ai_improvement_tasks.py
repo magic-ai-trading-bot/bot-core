@@ -28,6 +28,7 @@ class TestGPT4SelfAnalysis:
 
     def _mock_http_response(self, url, **kwargs):
         """Helper to create mock HTTP responses based on URL"""
+        from urllib.parse import urlparse
         mock_resp = MagicMock()
         mock_resp.status_code = 200
 
@@ -35,7 +36,7 @@ class TestGPT4SelfAnalysis:
             mock_resp.json.return_value = {"success": True, "data": []}
         elif "accuracy_history" in url:
             mock_resp.json.return_value = {}
-        elif "binance.com" in url:
+        elif urlparse(url).netloc.endswith("binance.com"):
             mock_resp.json.return_value = {"priceChangePercent": "1.5"}
         else:
             mock_resp.json.return_value = {}
@@ -551,13 +552,14 @@ class TestAIImprovementTasksIntegration:
 
         # Mock HTTP requests with proper API response format
         def mock_http_response(url, **kwargs):
+            from urllib.parse import urlparse
             mock_resp = MagicMock()
             mock_resp.status_code = 200
             if "trades/closed" in url:
                 mock_resp.json.return_value = {"success": True, "data": []}
             elif "accuracy_history" in url:
                 mock_resp.json.return_value = {}
-            elif "binance.com" in url:
+            elif urlparse(url).netloc.endswith("binance.com"):
                 mock_resp.json.return_value = {"priceChangePercent": "1.5"}
             else:
                 mock_resp.json.return_value = {}

@@ -115,7 +115,7 @@ def find_api_key():
 
         if api_key:
             print_success("API key found via centralized resolver")
-            print_info(f"Key length: {len(api_key)} chars (starts with {api_key[:4]}...)")
+            print_info(f"Key length: {len(api_key)} characters")
 
             # Show hierarchy
             print_info("\nTo see where the key was found, run:")
@@ -133,7 +133,7 @@ def find_api_key():
         api_key = os.getenv('GEMINI_API_KEY')
         if api_key:
             print_success("API key found in process.env")
-            print_info(f"Key length: {len(api_key)} chars (starts with {api_key[:4]}...)")
+            print_info(f"Key length: {len(api_key)} characters")
             return api_key
         else:
             print_error("API key not found")
