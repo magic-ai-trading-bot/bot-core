@@ -61,7 +61,7 @@ services:
       - ENABLE_HOT_RELOAD=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATABASE_URL=${DATABASE_URL}
-      - RUST_API_URL=http://rust-core-engine-dev:8080
+      - RUST_API_URL=http://rust-core-engine:8080
     volumes:
       - ./python-ai-service:/app
       - /app/__pycache__
@@ -159,7 +159,7 @@ services:
       - RUST_LOG=debug
       - RUST_BACKTRACE=1
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
-      - PYTHON_AI_SERVICE_URL=http://python-ai-service-dev:8000
+      - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-default_binance_api_key}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-default_binance_secret}
       # CRITICAL: Use production API (false) for paper trading to get REAL prices
@@ -429,8 +429,8 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - RUST_API_URL=http://rust-core-engine-dev:8080
-      - PYTHON_API_URL=http://python-ai-service-dev:8000
+      - RUST_API_URL=http://rust-core-engine:8080
+      - PYTHON_API_URL=http://python-ai-service:8000
     volumes:
       - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
@@ -482,8 +482,8 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - RUST_API_URL=http://rust-core-engine-dev:8080
-      - PYTHON_API_URL=http://python-ai-service-dev:8000
+      - RUST_API_URL=http://rust-core-engine:8080
+      - PYTHON_API_URL=http://python-ai-service:8000
     volumes:
       - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
@@ -529,7 +529,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_default_password}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - RUST_API_URL=http://rust-core-engine-dev:8080
+      - RUST_API_URL=http://rust-core-engine:8080
     volumes:
       - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
