@@ -30,7 +30,7 @@ sha2 = "0.10"
 hex = "0.4"
 rust_decimal = { version = "1.39", features = ["serde"] }
 mongodb = { version = "3.3", optional = true }
-bson = { version = "2.15", features = ["chrono-0_4"], optional = true }
+bson = { version = "3.1", features = ["chrono-0_4"], optional = true }
 structopt = "0.3"
 jsonwebtoken = { version = "10.2", default-features = false, features = ["use_pem", "rust_crypto"] }
 base64 = "0.22.1"
