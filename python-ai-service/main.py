@@ -1410,7 +1410,7 @@ class GPTTradingAnalyzer:
 
         except Exception as e:
             logger.error(f"Analysis error: {e}")
-            raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
+            raise HTTPException(status_code=500, detail="AI analysis failed. Check server logs for details.")
 
     async def _gpt_analysis(
         self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
@@ -2231,7 +2231,7 @@ async def get_analysis_statistics() -> Dict[str, Any]:
         }
     except Exception as e:
         logger.error(f"Failed to get analysis stats: {e}")
-        return {"error": str(e)}
+        return {"error": "Failed to get analysis stats. Check server logs for details."}
 
 
 async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
@@ -3108,7 +3108,8 @@ async def get_storage_statistics(request: Request):
             "collection_name": AI_ANALYSIS_COLLECTION,
         }
     except Exception as e:
-        return {"error": f"Failed to get storage stats: {e}"}
+        logger.error(f"Failed to get storage stats: {e}")
+        return {"error": "Failed to get storage stats. Check server logs for details."}
 
 
 @app.post("/ai/storage/clear")
@@ -3127,7 +3128,8 @@ async def clear_storage(request: Request):
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
-        return {"error": f"Failed to clear storage: {e}"}
+        logger.error(f"Failed to clear storage: {e}")
+        return {"error": "Failed to clear storage. Check server logs for details."}
 
 
 # === CONFIG SUGGESTIONS ENDPOINTS ===
@@ -3171,7 +3173,7 @@ async def trigger_config_analysis(request: Request):
 
     except Exception as e:
         logger.error(f"Failed to trigger config analysis: {e}")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "Config analysis failed. Check server logs for details."}
 
 
 @app.get("/ai/config-suggestions")
@@ -3212,7 +3214,7 @@ async def get_config_suggestions(
 
     except Exception as e:
         logger.error(f"Failed to get config suggestions: {e}")
-        return {"success": False, "error": str(e), "suggestions": []}
+        return {"success": False, "error": "Failed to get config suggestions. Check server logs for details.", "suggestions": []}
 
 
 @app.get("/ai/gpt4-analysis-history")
@@ -3253,7 +3255,7 @@ async def get_gpt4_analysis_history(
 
     except Exception as e:
         logger.error(f"Failed to get GPT-4 analysis history: {e}")
-        return {"success": False, "error": str(e), "analyses": []}
+        return {"success": False, "error": "Failed to get analysis history. Check server logs for details.", "analyses": []}
 
 
 # === PROJECT CHATBOT ENDPOINTS ===
