@@ -69,33 +69,31 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
-          echo "🧹 AGGRESSIVE Docker cleanup to free disk space..."
-          # Stop all containers first to allow full cleanup
-          docker-compose --profile prod down || true
+          echo "🧹 Docker cleanup (preserving data volumes)..."
+          # Stop containers gracefully (without removing volumes)
+          docker compose down --remove-orphans || true
 
-          # Remove ALL stopped containers
+          # Remove stopped containers and dangling images only
           docker container prune -f || true
+          docker image prune -f || true
 
-          # Remove ALL unused images (keeps nothing!)
-          docker image prune -a -f || true
-
-          # Remove ALL unused volumes (careful: this removes data volumes too)
-          # Only prune anonymous volumes, keep named ones
+          # Remove dangling volumes only (keeps named volumes like mongodb_data)
           docker volume ls -qf dangling=true | xargs -r docker volume rm || true
 
-          # Remove ALL build cache
-          docker builder prune -a -f || true
+          # Remove build cache
+          docker builder prune -f || true
 
           # Show disk usage after cleanup
           echo "📊 Disk usage after cleanup:"
           df -h /
           docker system df
 
-          echo "🔨 Building services (this may take a while on first build)..."
-          docker-compose --profile prod build --no-cache rust-core-engine nextjs-ui-dashboard python-ai-service
+          echo "🔨 Building services..."
+          docker compose build rust-core-engine nextjs-ui-dashboard python-ai-service
 
-          echo "🔄 Starting all services..."
-          docker-compose --profile prod up -d
+          echo "🔄 Starting ALL services (including enterprise features)..."
+          # Start with all profiles: prod + redis + messaging + monitoring + api-gateway
+          docker compose --profile prod --profile redis --profile messaging --profile monitoring --profile api-gateway up -d
 
           echo "⏳ Waiting for services to be healthy..."
           sleep 30
@@ -103,7 +101,7 @@ jobs:
           echo "✅ Checking service health..."
           docker ps --format "table {{.Names}}\t{{.Status}}"
 
-          # Verify health
+          # Core services health check
           if curl -sf http://localhost:8080/api/health > /dev/null; then
             echo "✅ Rust API healthy"
           else
@@ -125,10 +123,33 @@ jobs:
             exit 1
           fi
 
-          # Final cleanup - remove old images after successful deploy
-          echo "🧹 Final cleanup - removing old images..."
-          docker image prune -a -f || true
-          docker builder prune -f || true
+          # Enterprise services health check
+          if docker ps | grep -q "celery-worker.*healthy"; then
+            echo "✅ Celery Worker healthy"
+          else
+            echo "⚠️ Celery Worker not healthy (non-critical)"
+          fi
+
+          if docker ps | grep -q "celery-beat.*healthy"; then
+            echo "✅ Celery Beat healthy"
+          else
+            echo "⚠️ Celery Beat not healthy (non-critical)"
+          fi
+
+          if docker ps | grep -q "rabbitmq.*healthy"; then
+            echo "✅ RabbitMQ healthy"
+          else
+            echo "⚠️ RabbitMQ not healthy (non-critical)"
+          fi
+
+          # Show all running services
+          echo ""
+          echo "📋 All running services:"
+          docker compose ps --format "table {{.Names}}\t{{.Status}}" | grep -v "Created\|Exited"
+
+          # Cleanup dangling images only (not all unused)
+          echo "🧹 Final cleanup..."
+          docker image prune -f || true
 
           echo ""
           echo "📊 Final disk usage:"
@@ -156,11 +177,21 @@ jobs:
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Core Services" >> $GITHUB_STEP_SUMMARY
           echo "| Service | URL | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Dashboard | http://${{ secrets.VPS_HOST }}:3000 | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "| Rust API | http://${{ secrets.VPS_HOST }}:8080 | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "| Python AI | http://${{ secrets.VPS_HOST }}:8000 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Enterprise Services" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Port | Description |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| RabbitMQ | 15672 | Message Queue |" >> $GITHUB_STEP_SUMMARY
+          echo "| Flower | 5555 | Celery Monitor |" >> $GITHUB_STEP_SUMMARY
+          echo "| Grafana | 3001 | Monitoring |" >> $GITHUB_STEP_SUMMARY
+          echo "| Prometheus | 9090 | Metrics |" >> $GITHUB_STEP_SUMMARY
+          echo "| Kong | 8100 | API Gateway |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** main" >> $GITHUB_STEP_SUMMARY
