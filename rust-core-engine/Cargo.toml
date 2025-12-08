@@ -55,4 +55,4 @@ actix-web = { version = "4.12", features = ["macros"] }
 futures-util = "0.3"
 tempfile = "3.8"
 anyhow = "1.0"
-criterion = { version = "0.7", features = ["html_reports"] } 
+criterion = { version = "0.8", features = ["html_reports"] } 
