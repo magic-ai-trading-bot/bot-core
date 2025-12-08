@@ -25,8 +25,8 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
 # Runtime stage
 FROM python:3.11-slim
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Install runtime dependencies and security patches
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     curl \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
