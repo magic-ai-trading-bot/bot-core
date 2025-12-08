@@ -45,8 +45,8 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
       // TODO: Upload to server
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Handle upload
-        console.log('Upload avatar:', file.name);
+        // TODO: Implement avatar upload to server
+        // For now, preview locally (actual upload will be handled by API)
       };
       reader.readAsDataURL(file);
     }
