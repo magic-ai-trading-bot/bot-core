@@ -231,7 +231,7 @@ export default function TradeAnalyses() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("analyses");
-  const [showOnlyLosing, setShowOnlyLosing] = useState(true);
+  const [showOnlyLosing, setShowOnlyLosing] = useState(false);  // Default to show ALL trades
 
   // Fetch trade analyses
   const fetchTradeAnalyses = useCallback(async (onlyLosing: boolean = true) => {
@@ -396,7 +396,7 @@ export default function TradeAnalyses() {
         {/* Stats Cards */}
         <motion.div
           variants={itemVariants}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8"
         >
           <StatCard
             icon={BarChart2}
@@ -423,8 +423,16 @@ export default function TradeAnalyses() {
 
           <StatCard
             icon={DollarSign}
+            iconColor={stats.totalPnL >= 0 ? luxuryColors.status.success : luxuryColors.status.error}
+            label="Total P&L"
+            value={formatCurrency(stats.totalPnL)}
+            valueColor={stats.totalPnL >= 0 ? luxuryColors.status.success : luxuryColors.status.error}
+          />
+
+          <StatCard
+            icon={DollarSign}
             iconColor={luxuryColors.accent.gold}
-            label="Average P&L"
+            label="Avg P&L / Trade"
             value={formatCurrency(stats.averagePnL)}
             valueColor={stats.averagePnL >= 0 ? luxuryColors.status.success : luxuryColors.status.error}
           />
