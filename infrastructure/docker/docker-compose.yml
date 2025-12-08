@@ -432,7 +432,6 @@ services:
       - RUST_API_URL=http://rust-core-engine:8080
       - PYTHON_API_URL=http://python-ai-service:8000
     volumes:
-      - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
       - ./python-ai-service/models:/app/models
     networks:
@@ -468,7 +467,7 @@ services:
       dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: celery-beat
     restart: unless-stopped
-    command: celery -A celery_app beat --loglevel=info
+    command: celery -A celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
@@ -485,7 +484,6 @@ services:
       - RUST_API_URL=http://rust-core-engine:8080
       - PYTHON_API_URL=http://python-ai-service:8000
     volumes:
-      - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
     networks:
       - bot-network
@@ -531,7 +529,6 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - RUST_API_URL=http://rust-core-engine:8080
     volumes:
-      - ./python-ai-service:/app
       - ./python-ai-service/logs:/app/logs
       - flower_tmp:/tmp
     ports:
