@@ -1256,7 +1256,7 @@ class DirectOpenAIClient:
 
             try:
                 logger.info(
-                    f"🔑 Using API key {key_index + 1}/{len(self.api_keys)} (...{current_key[-8:]})"
+                    f"🔑 Using API key {key_index + 1}/{len(self.api_keys)}"
                 )
 
                 async with httpx.AsyncClient(timeout=30.0) as client:

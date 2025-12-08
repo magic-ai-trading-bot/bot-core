@@ -49,9 +49,11 @@ class TestCORSMiddleware:
         ]
 
         assert len(allowed_origins) == 3
-        assert "http://origin1.com" in allowed_origins
-        assert "http://origin2.com" in allowed_origins
-        assert "http://origin3.com" in allowed_origins
+        # Use set for exact membership check (not substring matching)
+        origins_set = set(allowed_origins)
+        assert "http://origin1.com" in origins_set
+        assert "http://origin2.com" in origins_set
+        assert "http://origin3.com" in origins_set
 
     def test_cors_origins_handles_whitespace(self):
         """Test that CORS origins properly handle whitespace"""
