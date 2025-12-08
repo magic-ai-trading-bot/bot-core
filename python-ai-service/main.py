@@ -2421,7 +2421,7 @@ async def debug_gpt4(request: Request):
 
     except Exception as e:
         result["status"] = "failed"
-        result["error"] = str(e)
+        result["error"] = "GPT-4 test failed. Check server logs for details."
         result["error_type"] = type(e).__name__
         logger.error(f"❌ GPT-4 test failed: {e}")
 
@@ -2603,7 +2603,7 @@ async def analyze_trading_signals(
         return response
     except Exception as e:
         logger.error(f"❌ Analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Analysis failed. Check server logs for details.")
 
 
 @app.post("/ai/strategy-recommendations", response_model=List[StrategyRecommendation])
@@ -2768,7 +2768,7 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
         logger.error(f"❌ Error predicting trend for {request.symbol}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to predict trend: {str(e)}"
+            detail="Failed to predict trend. Check server logs for details."
         )
 
 
@@ -3312,7 +3312,7 @@ async def chat_with_project(request: ProjectChatRequest):
         logger.error(f"Project chatbot error: {e}")
         return ProjectChatResponse(
             success=False,
-            message=f"Xin lỗi, có lỗi xảy ra: {str(e)}",
+            message="Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.",
             sources=[],
             confidence=0.0,
             type="error",
