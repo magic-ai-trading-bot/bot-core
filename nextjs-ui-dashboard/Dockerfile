@@ -10,6 +10,9 @@ COPY package.json bun.lockb* ./
 # Install dependencies with all optional dependencies
 RUN bun install --frozen-lockfile
 
+# Update dependencies to get security patches
+RUN bun update esbuild || true
+
 # Add missing rollup dependencies for ARM64
 RUN bun add -D @rollup/rollup-linux-arm64-gnu @rollup/rollup-linux-arm64-musl || true
 
@@ -22,8 +25,8 @@ RUN bun run build
 # Production stage
 FROM oven/bun:1-alpine
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Update system packages for security patches and install curl for health checks
+RUN apk update && apk upgrade && apk add --no-cache curl
 
 # Create app user
 RUN addgroup -g 1001 -S appuser && \

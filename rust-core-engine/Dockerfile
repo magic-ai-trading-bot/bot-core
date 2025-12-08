@@ -32,7 +32,8 @@ RUN touch src/main.rs && cargo build --release
 FROM debian:bookworm-slim
 
 # Install runtime dependencies (including curl for healthcheck)
-RUN apt-get update && apt-get install -y \
+# Run apt-get upgrade to install security patches for CVEs
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     ca-certificates \
     libssl3 \
     curl \
