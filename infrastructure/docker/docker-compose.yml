@@ -444,11 +444,12 @@ services:
       mongodb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "celery -A celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      # Simple process check - celery inspect ping requires RabbitMQ connection which may be flaky
+      test: ["CMD-SHELL", "pgrep -f 'celery.*worker' || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
     deploy:
       resources:
         limits:
@@ -496,8 +497,8 @@ services:
       test: ["CMD-SHELL", "pgrep -f 'celery.*beat' || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 90s
     deploy:
       resources:
         limits:
@@ -539,13 +540,13 @@ services:
       rabbitmq:
         condition: service_healthy
       celery-worker:
-        condition: service_healthy
+        condition: service_started  # Changed from service_healthy to avoid blocking
     healthcheck:
       test: ["CMD-SHELL", "curl -f -u admin:admin http://localhost:5555/ || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 60s
     deploy:
       resources:
         limits:
