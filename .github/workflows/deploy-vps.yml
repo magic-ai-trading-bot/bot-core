@@ -92,14 +92,15 @@ jobs:
           docker compose build rust-core-engine nextjs-ui-dashboard python-ai-service
 
           echo "🔄 Starting ALL services (including enterprise features)..."
-          # Start core services first (mongodb has no profile, must start explicitly)
-          docker compose up -d mongodb redis-cache
+          # Start mongodb first (no profile required)
+          docker compose up -d mongodb
 
           # Wait for mongodb to be healthy
           echo "⏳ Waiting for MongoDB to be healthy..."
           sleep 10
 
           # Start all profiled services: prod + redis + messaging + monitoring + api-gateway
+          # This includes redis service which requires --profile redis or --profile messaging
           docker compose --profile prod --profile redis --profile messaging --profile monitoring --profile api-gateway up -d
 
           echo "⏳ Waiting for services to be healthy..."
