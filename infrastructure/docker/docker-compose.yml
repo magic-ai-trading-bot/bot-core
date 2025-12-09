@@ -444,12 +444,12 @@ services:
       mongodb:
         condition: service_healthy
     healthcheck:
-      # Check if celery worker process is running
-      test: ["CMD-SHELL", "ps aux | grep '[c]elery' | grep -q worker"]
+      # Check if celery worker is responding via inspect ping
+      test: ["CMD-SHELL", "celery -A celery_app inspect ping -t 10 || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 3
-      start_period: 60s
+      start_period: 90s
     deploy:
       resources:
         limits:
@@ -468,7 +468,7 @@ services:
       dockerfile: ${DOCKERFILE:-Dockerfile}
     container_name: celery-beat
     restart: unless-stopped
-    command: celery -A celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    command: celery -A celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule --pidfile=/tmp/celerybeat.pid
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
@@ -494,8 +494,8 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      # Check if celery beat process is running
-      test: ["CMD-SHELL", "ps aux | grep '[c]elery' | grep -q beat"]
+      # Check if celery beat pidfile exists (beat is running)
+      test: ["CMD-SHELL", "test -f /tmp/celerybeat.pid && kill -0 $(cat /tmp/celerybeat.pid) 2>/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
