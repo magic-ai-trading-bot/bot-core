@@ -19,9 +19,10 @@ import subprocess
 logger = get_logger("MonitoringTasks")
 
 # Service URLs (using Docker container hostnames)
-RUST_API_URL = os.getenv("RUST_API_URL", "http://rust-core-engine-dev:8080")
-PYTHON_API_URL = os.getenv("PYTHON_API_URL", "http://python-ai-service-dev:8000")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://nextjs-ui-dashboard-dev:3000")
+# Default to production names; dev environments should override via env vars
+RUST_API_URL = os.getenv("RUST_API_URL", "http://rust-core-engine:8080")
+PYTHON_API_URL = os.getenv("PYTHON_API_URL", "http://python-ai-service:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://nextjs-ui-dashboard:3000")
 MONGODB_HOST = os.getenv("MONGODB_HOST", "mongodb")
 MONGODB_PORT = os.getenv("MONGODB_PORT", "27017")
 REDIS_HOST = os.getenv("REDIS_HOST", "redis-cache")
