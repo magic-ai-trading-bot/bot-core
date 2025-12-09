@@ -91,20 +91,45 @@ jobs:
           echo "🔨 Building services..."
           docker compose build rust-core-engine nextjs-ui-dashboard python-ai-service
 
-          echo "🔄 Starting ALL services (including enterprise features)..."
-          # Start mongodb first (no profile required)
+          echo "🔄 Starting services in correct order..."
+
+          # Step 1: Start infrastructure services (mongodb, redis)
+          echo "📦 Step 1: Starting infrastructure services..."
           docker compose up -d mongodb
+          docker compose --profile redis up -d redis
+          sleep 15
 
-          # Wait for mongodb to be healthy
-          echo "⏳ Waiting for MongoDB to be healthy..."
-          sleep 10
+          # Step 2: Start core application services
+          echo "🚀 Step 2: Starting core services..."
+          docker compose --profile prod up -d rust-core-engine python-ai-service nextjs-ui-dashboard
+          sleep 30
 
-          # Start all profiled services: prod + redis + messaging + monitoring + api-gateway
-          # This includes redis service which requires --profile redis or --profile messaging
-          docker compose --profile prod --profile redis --profile messaging --profile monitoring --profile api-gateway up -d
+          # Step 3: Start messaging services (RabbitMQ first, then Celery)
+          echo "📨 Step 3: Starting messaging services..."
+          docker compose --profile messaging up -d rabbitmq
+          sleep 20
+
+          # Ensure RabbitMQ has proper setup (user/vhost)
+          echo "🔧 Initializing RabbitMQ..."
+          for i in {1..5}; do
+            if docker exec rabbitmq rabbitmqctl list_vhosts 2>/dev/null | grep -q "bot-core"; then
+              echo "✅ RabbitMQ vhost exists"
+              break
+            fi
+            echo "⏳ Waiting for RabbitMQ initialization (attempt $i/5)..."
+            sleep 5
+          done
+
+          # Start Celery services (non-blocking)
+          echo "🔄 Starting Celery services..."
+          docker compose --profile messaging up -d celery-worker celery-beat flower || true
+
+          # Step 4: Start monitoring and gateway
+          echo "📊 Step 4: Starting monitoring and gateway..."
+          docker compose --profile monitoring --profile api-gateway up -d || true
 
           echo "⏳ Waiting for services to be healthy..."
-          sleep 60
+          sleep 45
 
           echo "✅ Checking service health with retries..."
           docker ps --format "table {{.Names}}\t{{.Status}}"
