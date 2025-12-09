@@ -178,7 +178,7 @@ jobs:
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        extra_args: --debug --only-verified --since-commit="" --max-depth=1000
+        extra_args: --debug --only-verified --max-depth=1000
 
     - name: Run GitLeaks
       uses: gitleaks/gitleaks-action@v2
