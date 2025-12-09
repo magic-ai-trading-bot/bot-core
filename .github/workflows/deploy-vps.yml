@@ -104,32 +104,36 @@ jobs:
           docker compose --profile prod --profile redis --profile messaging --profile monitoring --profile api-gateway up -d
 
           echo "⏳ Waiting for services to be healthy..."
-          sleep 30
+          sleep 60
 
-          echo "✅ Checking service health..."
+          echo "✅ Checking service health with retries..."
           docker ps --format "table {{.Names}}\t{{.Status}}"
 
-          # Core services health check
-          if curl -sf http://localhost:8080/api/health > /dev/null; then
-            echo "✅ Rust API healthy"
-          else
-            echo "❌ Rust API unhealthy"
-            exit 1
-          fi
+          # Function to check service with retries
+          check_service() {
+            local name=$1
+            local url=$2
+            local max_attempts=10
+            local attempt=1
 
-          if curl -sf http://localhost:8000/health > /dev/null; then
-            echo "✅ Python AI healthy"
-          else
-            echo "❌ Python AI unhealthy"
-            exit 1
-          fi
+            while [ $attempt -le $max_attempts ]; do
+              if curl -sf "$url" > /dev/null 2>&1; then
+                echo "✅ $name healthy"
+                return 0
+              fi
+              echo "⏳ $name not ready, attempt $attempt/$max_attempts..."
+              sleep 5
+              attempt=$((attempt + 1))
+            done
 
-          if curl -sf http://localhost:3000 > /dev/null; then
-            echo "✅ Frontend healthy"
-          else
-            echo "❌ Frontend unhealthy"
-            exit 1
-          fi
+            echo "❌ $name unhealthy after $max_attempts attempts"
+            return 1
+          }
+
+          # Core services health check with retries
+          check_service "Rust API" "http://localhost:8080/api/health" || exit 1
+          check_service "Python AI" "http://localhost:8000/health" || exit 1
+          check_service "Frontend" "http://localhost:3000" || exit 1
 
           # Enterprise services health check
           if docker ps | grep -q "celery-worker.*healthy"; then
