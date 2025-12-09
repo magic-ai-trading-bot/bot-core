@@ -104,13 +104,7 @@ def get_media_info(file_path: str) -> Dict[str, Any]:
             if stream['codec_type'] == 'video':
                 info['width'] = stream.get('width', 0)
                 info['height'] = stream.get('height', 0)
-                # Safe frame rate parsing (avoid eval() security risk)
-                fps_str = stream.get('r_frame_rate', '0/1')
-                if '/' in fps_str:
-                    num, den = fps_str.split('/')
-                    info['fps'] = float(num) / float(den) if float(den) != 0 else 0.0
-                else:
-                    info['fps'] = float(fps_str)
+                info['fps'] = eval(stream.get('r_frame_rate', '0/1'))
             elif stream['codec_type'] == 'audio':
                 info['sample_rate'] = int(stream.get('sample_rate', 0))
                 info['channels'] = stream.get('channels', 0)
