@@ -113,7 +113,7 @@ jobs:
         import pymongo
         import sys
         try:
-            client = pymongo.MongoClient('mongodb://root:password@localhost:27017/', serverSelectionTimeoutMS=5000)
+            client = pymongo.MongoClient('mongodb://root:password@localhost:27017/?authSource=admin', serverSelectionTimeoutMS=5000)
             client.admin.command('ping')
             print('MongoDB is accessible')
             sys.exit(0)
@@ -164,7 +164,7 @@ jobs:
 
     - name: Start all services
       env:
-        DATABASE_URL: mongodb://root:password@localhost:27017/integration_test
+        DATABASE_URL: mongodb://root:password@localhost:27017/integration_test?authSource=admin
         JWT_SECRET: integration_test_jwt_secret_key
         OPENAI_API_KEYS: test_key_1,test_key_2
         BINANCE_TESTNET: true
@@ -321,7 +321,7 @@ jobs:
 
     - name: Test database operations
       env:
-        DATABASE_URL: mongodb://root:password@localhost:27017/integration_test
+        DATABASE_URL: mongodb://root:password@localhost:27017/integration_test?authSource=admin
       run: |
         echo "🗄️ Testing database operations..."
         
