@@ -1148,10 +1148,16 @@ interface QuickStatsProps {
 
 const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading, colors }: QuickStatsProps) => {
   const { t } = useTranslation('dashboard');
+
+  // Format numbers to avoid long decimals
+  const formattedWinRate = Number(winRate).toFixed(1);
+  const formattedAvgProfit = Number(avgProfit).toFixed(2);
+  const profitSign = avgProfit >= 0 ? '+' : '';
+
   const stats = [
     {
       label: t('stats.winRate'),
-      value: `${winRate}%`,
+      value: `${formattedWinRate}%`,
       icon: Sparkles,
       color: colors.profit,
       bgColor: 'rgba(34, 197, 94, 0.1)',
@@ -1167,11 +1173,11 @@ const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading, co
     },
     {
       label: t('stats.avgProfit'),
-      value: `+${avgProfit}%`,
+      value: `${profitSign}${formattedAvgProfit}%`,
       icon: TrendingUp,
-      color: colors.profit,
-      bgColor: 'rgba(34, 197, 94, 0.1)',
-      borderColor: 'rgba(34, 197, 94, 0.2)',
+      color: avgProfit >= 0 ? colors.profit : colors.loss,
+      bgColor: avgProfit >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+      borderColor: avgProfit >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
     },
     {
       label: t('stats.riskScore'),
