@@ -268,8 +268,8 @@ describe('Dashboard', () => {
     render(<Dashboard />)
 
     await waitFor(() => {
-      // Dashboard shows Paper Trading mode indicator
-      expect(screen.getByText('Paper Trading')).toBeInTheDocument()
+      // Dashboard shows Paper Trading mode indicator (Vietnamese: Giao dịch mô phỏng)
+      expect(screen.getByText(/Giao dịch mô phỏng/i)).toBeInTheDocument()
     })
   })
 
@@ -359,8 +359,8 @@ describe('Dashboard', () => {
 
     // Dashboard uses WebSocket data from state
     await waitFor(() => {
-      // Dashboard shows Paper Trading mode when WebSocket is connected
-      expect(screen.getByText('Paper Trading')).toBeInTheDocument()
+      // Dashboard shows Paper Trading mode when WebSocket is connected (Vietnamese: Giao dịch mô phỏng)
+      expect(screen.getByText(/Giao dịch mô phỏng/i)).toBeInTheDocument()
     })
   })
 
