@@ -1,10 +1,12 @@
 """Tests for utils/logger.py"""
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 from loguru import logger
-from utils.logger import setup_logger, get_logger
+
+from utils.logger import get_logger, setup_logger
 
 
 class TestSetupLogger:
@@ -32,8 +34,8 @@ class TestSetupLogger:
     @patch("utils.logger.config")
     def test_setup_logger_creates_log_directory(self, mock_config):
         """Test that log directory is created"""
-        import tempfile
         import os
+        import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
             log_file = os.path.join(tmpdir, "nested", "test.log")

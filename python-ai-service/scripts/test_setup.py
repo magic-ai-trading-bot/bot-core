@@ -5,9 +5,9 @@ Test Setup Script for Cryptocurrency AI Trading Service
 This script performs basic tests to verify the installation and setup.
 """
 
-import sys
-import os
 import importlib
+import os
+import sys
 from pathlib import Path
 
 
@@ -125,10 +125,10 @@ def test_model_imports():
     print("\n🔍 Testing model imports...")
 
     try:
-        from models.lstm_model import LSTMModel
         from models.gru_model import GRUModel
-        from models.transformer_model import TransformerModel
+        from models.lstm_model import LSTMModel
         from models.model_manager import ModelManager
+        from models.transformer_model import TransformerModel
 
         print("✅ All model classes imported successfully")
         return True
@@ -143,8 +143,8 @@ def test_feature_engineering():
     print("\n🔍 Testing feature engineering...")
 
     try:
-        from features.technical_indicators import TechnicalIndicators
         from features.feature_engineering import FeatureEngineer
+        from features.technical_indicators import TechnicalIndicators
 
         print("✅ Feature engineering classes imported successfully")
         return True
@@ -159,8 +159,9 @@ def test_utilities():
     print("\n🔍 Testing utilities...")
 
     try:
-        from utils.logger import setup_logger, get_logger
-        from utils.helpers import validate_ohlcv_data, create_dataframe_from_ohlcv
+        from utils.helpers import (create_dataframe_from_ohlcv,
+                                   validate_ohlcv_data)
+        from utils.logger import get_logger, setup_logger
 
         print("✅ Utility functions imported successfully")
         return True

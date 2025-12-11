@@ -2,15 +2,15 @@
 Test GPTTradingAnalyzer class functionality.
 """
 
-import pytest
 import json
-from unittest.mock import patch, AsyncMock, MagicMock
-from datetime import datetime, timezone
-import httpx
-
+import os
 # Import after adding to path in conftest
 import sys
-import os
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import httpx
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -116,12 +116,9 @@ class TestGPTTradingAnalyzer:
     @pytest.mark.asyncio
     async def test_rate_limiting(self, gpt_analyzer, sample_ai_analysis_request):
         """Test rate limiting behavior."""
-        from main import (
-            AIAnalysisRequest,
-            last_openai_request_time,
-            OPENAI_REQUEST_DELAY,
-        )
         import main
+        from main import (OPENAI_REQUEST_DELAY, AIAnalysisRequest,
+                          last_openai_request_time)
 
         request = AIAnalysisRequest(**sample_ai_analysis_request)
 

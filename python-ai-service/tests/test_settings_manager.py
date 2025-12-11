@@ -5,17 +5,15 @@ Tests for settings_manager.py
 @spec:FR-SETTINGS-002 - Unified signal generation settings
 """
 
-import pytest
 import asyncio
-from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta
-import httpx
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from settings_manager import (
-    SettingsManager,
-    settings_manager,
-    refresh_settings_periodically,
-)
+import httpx
+import pytest
+
+from settings_manager import (SettingsManager, refresh_settings_periodically,
+                              settings_manager)
 
 
 @pytest.mark.unit

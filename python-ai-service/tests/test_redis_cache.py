@@ -1,14 +1,15 @@
 """Tests for utils/redis_cache.py"""
 
-import pytest
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Skip redis tests if dependencies not available
 pytest.importorskip("redis", reason="redis not installed")
 pytest.importorskip("aioredis", reason="aioredis not installed")
 
-from utils.redis_cache import RedisCache, cache_result, CacheManager
+from utils.redis_cache import CacheManager, RedisCache, cache_result
 
 
 class TestRedisCache:

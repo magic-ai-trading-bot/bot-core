@@ -4,9 +4,10 @@ Unit Tests for Notification System
 Tests email, Slack, Discord, and Telegram notifications
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, Mock
 import os
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 
 class TestNotificationConfiguration:
@@ -560,8 +561,9 @@ class TestNotificationErrorHandling:
     @patch("utils.notifications.requests.post")
     def test_notification_with_timeout(self, mock_post):
         """Test notification handles request timeout"""
-        from utils.notifications import send_slack
         import requests
+
+        from utils.notifications import send_slack
 
         # Mock timeout
         mock_post.side_effect = requests.exceptions.Timeout("Request timeout")
@@ -798,7 +800,7 @@ class TestDiscordNotificationDetails:
     @patch("utils.notifications.requests.post")
     def test_send_discord_different_levels(self, mock_post):
         """Test Discord notification colors for different levels."""
-        from utils.notifications import send_discord, NotificationLevel
+        from utils.notifications import NotificationLevel, send_discord
 
         mock_response = MagicMock()
         mock_response.status_code = 204
@@ -941,8 +943,9 @@ class TestIsEnabledFunction:
 
     def test_is_enabled_false_when_disabled(self):
         """Test is_enabled returns False when notifications disabled."""
-        from utils import notifications
         import importlib
+
+        from utils import notifications
 
         with patch.dict(
             os.environ, {"NOTIFICATIONS_ENABLED": "false", "NOTIFICATION_CHANNELS": ""}
@@ -952,8 +955,9 @@ class TestIsEnabledFunction:
 
     def test_is_enabled_false_with_empty_channels(self):
         """Test is_enabled returns False with empty channels."""
-        from utils import notifications
         import importlib
+
+        from utils import notifications
 
         with patch.dict(
             os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": ""}

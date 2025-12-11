@@ -1,13 +1,15 @@
+from typing import Any, Dict, Optional, Tuple
+
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import GRU, Dense, Dropout, BatchNormalization
+from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
+                                        ReduceLROnPlateau)
+from tensorflow.keras.layers import GRU, BatchNormalization, Dense, Dropout
+from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-from typing import Dict, Any, Optional, Tuple
+
 from config.config import config
 from utils.logger import get_logger
-
 
 # @spec:FR-AI-002 - GRU Model Prediction
 # @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md

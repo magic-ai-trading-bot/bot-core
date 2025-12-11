@@ -2,20 +2,17 @@
 Tests for app.core.config module to boost coverage.
 """
 
-import pytest
 import os
 from unittest.mock import patch
-from app.core.config import (
-    get_mongodb_url,
-    get_openai_api_keys,
-    OPENAI_REQUEST_DELAY,
-    GPT4O_MINI_INPUT_COST_PER_1M,
-    GPT4O_MINI_OUTPUT_COST_PER_1M,
-    AI_ANALYSIS_COLLECTION,
-    ANALYSIS_INTERVAL_MINUTES,
-    ANALYSIS_SYMBOLS,
-    ALLOWED_ORIGINS,
-)
+
+import pytest
+
+from app.core.config import (AI_ANALYSIS_COLLECTION, ALLOWED_ORIGINS,
+                             ANALYSIS_INTERVAL_MINUTES, ANALYSIS_SYMBOLS,
+                             GPT4O_MINI_INPUT_COST_PER_1M,
+                             GPT4O_MINI_OUTPUT_COST_PER_1M,
+                             OPENAI_REQUEST_DELAY, get_mongodb_url,
+                             get_openai_api_keys)
 
 
 class TestConfigConstants:

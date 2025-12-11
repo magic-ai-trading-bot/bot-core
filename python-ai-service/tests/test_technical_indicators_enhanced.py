@@ -3,9 +3,10 @@ Enhanced tests for technical indicators with exact value assertions
 to improve mutation testing scores from ~55% to 75%+
 """
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+
 from features.technical_indicators import TechnicalIndicators
 
 

@@ -3,10 +3,11 @@ Configuration loader for Python AI Service
 Loads settings from config.yaml
 """
 
-import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import yaml
 
 logger = logging.getLogger(__name__)
 

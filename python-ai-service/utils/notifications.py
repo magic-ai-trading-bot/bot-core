@@ -6,11 +6,13 @@ Supports: Email, Slack, Discord, Telegram webhooks
 
 import os
 import smtplib
-import requests
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Optional, Dict, Any, List
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Any, Dict, List, Optional
+
+import requests
+
 from utils.logger import get_logger
 
 logger = get_logger("Notifications")

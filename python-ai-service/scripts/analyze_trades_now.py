@@ -3,10 +3,12 @@
 Run GPT-4 analysis on closed trades
 """
 
-import requests
-import os
 import json
+import os
+
+import requests
 from openai import OpenAI
+
 from utils.data_storage import DataStorage
 
 

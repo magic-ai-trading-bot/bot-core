@@ -2,8 +2,10 @@
 Tests for app.core.state module to boost coverage.
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
+
 from app.core.state import AppState
 
 

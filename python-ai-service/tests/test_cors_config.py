@@ -2,10 +2,11 @@
 Tests for CORS configuration
 """
 
-import pytest
 import os
-from fastapi.testclient import TestClient
 from unittest.mock import patch
+
+import pytest
+from fastapi.testclient import TestClient
 
 
 class TestCORSMiddleware:

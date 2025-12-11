@@ -9,14 +9,16 @@ Never use dummy/fake data for trading decisions!
 
 import asyncio
 import os
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+import httpx
+import numpy as np
+import pandas as pd
 from celery import Task
+
 from celery_app import app
 from models.model_manager import ModelManager
 from utils.logger import get_logger
-import pandas as pd
-import numpy as np
-import httpx
 
 logger = get_logger("MLTasks")
 

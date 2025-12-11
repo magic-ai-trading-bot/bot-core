@@ -4,10 +4,11 @@ Additional tests for notification system to boost coverage.
 Covers user preferences, Discord/Telegram with custom config, and edge cases.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, Mock
-from datetime import datetime, timedelta
 import os
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 
 class TestUserNotificationPreferences:

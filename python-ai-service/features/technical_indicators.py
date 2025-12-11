@@ -1,9 +1,10 @@
+from typing import Dict, Optional
+
 import pandas as pd
 import ta
-from typing import Dict, Optional
+
 from config.config import config
 from utils.logger import get_logger
-
 
 # @spec:FR-AI-004 - Technical Indicators
 # @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md

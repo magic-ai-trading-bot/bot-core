@@ -3,8 +3,9 @@ Application state management.
 Provides thread-safe state management using FastAPI's app.state.
 """
 
-from typing import Any, Optional, Set
 from datetime import datetime
+from typing import Any, Optional, Set
+
 from fastapi import WebSocket
 from motor.motor_asyncio import AsyncIOMotorClient
 
