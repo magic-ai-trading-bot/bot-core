@@ -275,7 +275,16 @@
       "pnl": "Lãi/Lỗ",
       "winRate": "Tỷ lệ thắng",
       "trades": "Giao dịch",
-      "paperMode": "Chế độ mô phỏng"
+      "paperMode": "Chế độ mô phỏng",
+      "reset": "Đặt lại",
+      "confirmReset": "Bạn có chắc muốn xóa toàn bộ dữ liệu giao dịch mô phỏng?",
+      "confirmYes": "Có, Đặt lại",
+      "confirmNo": "Hủy",
+      "resetting": "Đang đặt lại...",
+      "resetSuccess": "Đặt lại thành công",
+      "resetSuccessDesc": "Toàn bộ dữ liệu giao dịch đã được xóa và danh mục đầu tư được khôi phục về trạng thái ban đầu.",
+      "resetError": "Đặt lại thất bại",
+      "resetErrorDesc": "Đã xảy ra lỗi khi đặt lại. Vui lòng thử lại."
     },
     "orderBook": {
       "title": "Sổ lệnh",

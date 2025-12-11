@@ -275,7 +275,16 @@
       "pnl": "損益",
       "winRate": "勝率",
       "trades": "取引数",
-      "paperMode": "デモモード"
+      "paperMode": "デモモード",
+      "reset": "リセット",
+      "confirmReset": "すべてのデモ取引データをリセットしますか？",
+      "confirmYes": "はい、リセット",
+      "confirmNo": "キャンセル",
+      "resetting": "リセット中...",
+      "resetSuccess": "リセット完了",
+      "resetSuccessDesc": "すべてのデモ取引データがクリアされ、ポートフォリオが初期状態にリセットされました。",
+      "resetError": "リセット失敗",
+      "resetErrorDesc": "リセット中にエラーが発生しました。もう一度お試しください。"
     },
     "orderBook": {
       "title": "オーダーブック",

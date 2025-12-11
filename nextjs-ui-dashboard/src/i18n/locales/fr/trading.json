@@ -275,7 +275,16 @@
       "pnl": "P&L",
       "winRate": "Taux de réussite",
       "trades": "Trades",
-      "paperMode": "Mode Démo"
+      "paperMode": "Mode Démo",
+      "reset": "Réinitialiser",
+      "confirmReset": "Voulez-vous vraiment réinitialiser toutes les données de trading simulé ?",
+      "confirmYes": "Oui, Réinitialiser",
+      "confirmNo": "Annuler",
+      "resetting": "Réinitialisation...",
+      "resetSuccess": "Réinitialisation réussie",
+      "resetSuccessDesc": "Toutes les données de trading simulé ont été effacées et le portefeuille a été réinitialisé.",
+      "resetError": "Échec de la réinitialisation",
+      "resetErrorDesc": "Une erreur s'est produite lors de la réinitialisation. Veuillez réessayer."
     },
     "orderBook": {
       "title": "Carnet d'ordres",

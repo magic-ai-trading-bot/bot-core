@@ -25,8 +25,8 @@ export function MobileNav() {
       icon: LayoutDashboard,
     },
     {
-      label: "Trading Paper",
-      href: "/trading-paper",
+      label: "Paper Trading",
+      href: "/trading/paper",
       icon: TrendingUp,
     },
     {

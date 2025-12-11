@@ -275,7 +275,16 @@
       "pnl": "P&L",
       "winRate": "Win Rate",
       "trades": "Trades",
-      "paperMode": "Paper Mode"
+      "paperMode": "Paper Mode",
+      "reset": "Reset",
+      "confirmReset": "Are you sure you want to reset all paper trading data?",
+      "confirmYes": "Yes, Reset",
+      "confirmNo": "Cancel",
+      "resetting": "Resetting...",
+      "resetSuccess": "Reset Successful",
+      "resetSuccessDesc": "All paper trading data has been cleared and portfolio reset to initial state.",
+      "resetError": "Reset Failed",
+      "resetErrorDesc": "An error occurred while resetting. Please try again."
     },
     "orderBook": {
       "title": "Order Book",
