@@ -159,8 +159,7 @@ def test_utilities():
     print("\n🔍 Testing utilities...")
 
     try:
-        from utils.helpers import (create_dataframe_from_ohlcv,
-                                   validate_ohlcv_data)
+        from utils.helpers import create_dataframe_from_ohlcv, validate_ohlcv_data
         from utils.logger import get_logger, setup_logger
 
         print("✅ Utility functions imported successfully")

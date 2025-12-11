@@ -7,12 +7,17 @@ from unittest.mock import patch
 
 import pytest
 
-from app.core.config import (AI_ANALYSIS_COLLECTION, ALLOWED_ORIGINS,
-                             ANALYSIS_INTERVAL_MINUTES, ANALYSIS_SYMBOLS,
-                             GPT4O_MINI_INPUT_COST_PER_1M,
-                             GPT4O_MINI_OUTPUT_COST_PER_1M,
-                             OPENAI_REQUEST_DELAY, get_mongodb_url,
-                             get_openai_api_keys)
+from app.core.config import (
+    AI_ANALYSIS_COLLECTION,
+    ALLOWED_ORIGINS,
+    ANALYSIS_INTERVAL_MINUTES,
+    ANALYSIS_SYMBOLS,
+    GPT4O_MINI_INPUT_COST_PER_1M,
+    GPT4O_MINI_OUTPUT_COST_PER_1M,
+    OPENAI_REQUEST_DELAY,
+    get_mongodb_url,
+    get_openai_api_keys,
+)
 
 
 class TestConfigConstants:

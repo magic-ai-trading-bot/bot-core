@@ -2,8 +2,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
-                                        ReduceLROnPlateau)
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.layers import GRU, BatchNormalization, Dense, Dropout
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.optimizers import Adam

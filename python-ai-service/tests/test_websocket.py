@@ -4,6 +4,7 @@ Test WebSocket functionality.
 
 import asyncio
 import os
+
 # Import after adding to path in conftest
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch

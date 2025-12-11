@@ -8,11 +8,15 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from utils.helpers import (calculate_percentage_change,
-                           convert_timeframe_to_minutes,
-                           create_dataframe_from_ohlcv,
-                           ensure_directory_exists, format_confidence_score,
-                           get_current_timestamp, validate_ohlcv_data)
+from utils.helpers import (
+    calculate_percentage_change,
+    convert_timeframe_to_minutes,
+    create_dataframe_from_ohlcv,
+    ensure_directory_exists,
+    format_confidence_score,
+    get_current_timestamp,
+    validate_ohlcv_data,
+)
 
 
 class TestEnsureDirectoryExists:

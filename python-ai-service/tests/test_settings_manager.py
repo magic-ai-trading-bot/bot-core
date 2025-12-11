@@ -12,8 +12,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from settings_manager import (SettingsManager, refresh_settings_periodically,
-                              settings_manager)
+from settings_manager import (
+    SettingsManager,
+    refresh_settings_periodically,
+    settings_manager,
+)
 
 
 @pytest.mark.unit

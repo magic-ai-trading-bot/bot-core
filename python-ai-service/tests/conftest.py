@@ -4,6 +4,7 @@ Pytest configuration and fixtures for Python AI Service tests.
 
 import asyncio
 import os
+
 # Import the FastAPI app
 import sys
 from datetime import datetime, timezone

@@ -4,6 +4,7 @@ Test GPTTradingAnalyzer class functionality.
 
 import json
 import os
+
 # Import after adding to path in conftest
 import sys
 from datetime import datetime, timezone
@@ -117,8 +118,11 @@ class TestGPTTradingAnalyzer:
     async def test_rate_limiting(self, gpt_analyzer, sample_ai_analysis_request):
         """Test rate limiting behavior."""
         import main
-        from main import (OPENAI_REQUEST_DELAY, AIAnalysisRequest,
-                          last_openai_request_time)
+        from main import (
+            OPENAI_REQUEST_DELAY,
+            AIAnalysisRequest,
+            last_openai_request_time,
+        )
 
         request = AIAnalysisRequest(**sample_ai_analysis_request)
 

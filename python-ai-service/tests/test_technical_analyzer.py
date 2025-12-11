@@ -3,6 +3,7 @@ Test TechnicalAnalyzer class functionality.
 """
 
 import os
+
 # Import after adding to path in conftest
 import sys
 from datetime import datetime, timezone

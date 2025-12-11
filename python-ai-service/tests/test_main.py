@@ -12,10 +12,18 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from main import (AIAnalysisRequest, AIStrategyContext, CandleData,
-                  DirectOpenAIClient, GPTTradingAnalyzer, TechnicalAnalyzer,
-                  WebSocketManager, fetch_real_market_data,
-                  get_latest_analysis, store_analysis_result)
+from main import (
+    AIAnalysisRequest,
+    AIStrategyContext,
+    CandleData,
+    DirectOpenAIClient,
+    GPTTradingAnalyzer,
+    TechnicalAnalyzer,
+    WebSocketManager,
+    fetch_real_market_data,
+    get_latest_analysis,
+    store_analysis_result,
+)
 
 
 @pytest.mark.unit
@@ -3040,11 +3048,17 @@ class TestHelperFunctions:
 
     def test_get_helper_functions_with_settings_manager(self):
         """Test helper functions use settings_manager correctly."""
-        from main import (get_bollinger_settings, get_macd_periods,
-                          get_rsi_period, get_signal_confidence_base,
-                          get_signal_confidence_per_tf,
-                          get_signal_min_indicators, get_signal_min_timeframes,
-                          get_signal_trend_threshold, get_stochastic_periods)
+        from main import (
+            get_bollinger_settings,
+            get_macd_periods,
+            get_rsi_period,
+            get_signal_confidence_base,
+            get_signal_confidence_per_tf,
+            get_signal_min_indicators,
+            get_signal_min_timeframes,
+            get_signal_trend_threshold,
+            get_stochastic_periods,
+        )
 
         # These should return default values when settings_manager has no cache
         assert isinstance(get_signal_trend_threshold(), float)

@@ -274,8 +274,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                         f"⚠️ Celery queue failed ({celery_error}), running config analysis directly..."
                     )
                     try:
-                        from tasks.ai_improvement import \
-                            _run_config_analysis_direct
+                        from tasks.ai_improvement import _run_config_analysis_direct
 
                         direct_result = _run_config_analysis_direct(analysis_result)
                         if direct_result.get("status") == "success":
