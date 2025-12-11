@@ -2,9 +2,14 @@ import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { I18nextProvider } from 'react-i18next'
+import i18n from '../i18n/config'
 import { AuthProvider } from '../contexts/AuthContext'
 import { WebSocketProvider } from '../contexts/WebSocketContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
+
+// Initialize i18n for tests with Vietnamese as default (to match existing test assertions)
+i18n.changeLanguage('vi')
 
 // NOTE: AIAnalysisProvider NOT included by default - tests that need it should mock useAIAnalysis hook
 // This prevents conflicts with test-specific API mocks
@@ -35,13 +40,15 @@ const AllTheProviders: React.FC<{ children: React.ReactNode; queryClient: QueryC
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthProvider>
-            <WebSocketProvider>
-              {children}
-            </WebSocketProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <I18nextProvider i18n={i18n}>
+          <ThemeProvider>
+            <AuthProvider>
+              <WebSocketProvider>
+                {children}
+              </WebSocketProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </I18nextProvider>
       </QueryClientProvider>
     </BrowserRouter>
   )
