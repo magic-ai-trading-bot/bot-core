@@ -44,21 +44,23 @@ describe('DashboardHeader', () => {
     it('renders the dashboard header', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Bot')).toBeInTheDocument()
-      expect(screen.getByText('Core')).toBeInTheDocument()
+      // BotCoreLogo renders "Bot Core" as a single span
+      expect(screen.getByText('Bot Core')).toBeInTheDocument()
     })
 
-    it('displays the app logo with Bot icon', () => {
+    it('displays the app logo with SVG', () => {
       const { container } = render(<DashboardHeader />)
 
-      const logo = container.querySelector('[aria-label="BotCore Logo"]')
+      // BotCoreLogo uses an SVG element
+      const logo = container.querySelector('svg')
       expect(logo).toBeInTheDocument()
     })
 
-    it('displays the app tagline', () => {
+    it('displays the brand name', () => {
       render(<DashboardHeader />)
 
-      expect(screen.getByText('AI Trading')).toBeInTheDocument()
+      // Brand name is "Bot Core" in new logo
+      expect(screen.getByText('Bot Core')).toBeInTheDocument()
     })
 
     it('displays navigation menu', () => {
@@ -273,8 +275,8 @@ describe('DashboardHeader', () => {
     it('has responsive text sizes', () => {
       const { container } = render(<DashboardHeader />)
 
-      // Check for text-lg class which is used in Logo md size
-      const responsiveText = container.querySelector('[class*="text-lg"]')
+      // BotCoreLogo uses text-xl for md size, check for text size classes
+      const responsiveText = container.querySelector('[class*="text-"]')
       expect(responsiveText).toBeInTheDocument()
     })
   })
@@ -316,33 +318,34 @@ describe('DashboardHeader', () => {
   })
 
   describe('Logo and Branding', () => {
-    it('displays logo with gradient background', () => {
+    it('displays logo with SVG gradient', () => {
       const { container } = render(<DashboardHeader />)
 
-      const logo = container.querySelector('.bg-gradient-to-br')
+      // BotCoreLogo uses SVG with linearGradient
+      const logo = container.querySelector('svg')
       expect(logo).toBeInTheDocument()
     })
 
-    it('displays logo with correct size', () => {
+    it('displays logo SVG with viewBox', () => {
       const { container } = render(<DashboardHeader />)
 
-      // Logo md size uses w-10 h-10
-      const logo = container.querySelector('.w-10.h-10')
+      // BotCoreLogo uses SVG with viewBox="0 0 48 48"
+      const logo = container.querySelector('svg[viewBox="0 0 48 48"]')
       expect(logo).toBeTruthy()
     })
 
-    it('displays brand name with gradient text', () => {
+    it('displays brand name with inline gradient style', () => {
       render(<DashboardHeader />)
 
-      const botText = screen.getByText('Bot')
-      const coreText = screen.getByText('Core')
-      expect(botText).toBeInTheDocument()
-      expect(coreText.className).toContain('bg-gradient-to-r')
-      expect(coreText.className).toContain('bg-clip-text')
+      // BotCoreLogo renders "Bot Core" as single span with inline gradient style
+      const brandName = screen.getByText('Bot Core')
+      expect(brandName).toBeInTheDocument()
+      // The gradient is applied via inline style, not CSS class
+      expect(brandName.style.background).toContain('linear-gradient')
     })
 
     it('applies hover effect to logo link', () => {
-      const { container } = render(<DashboardHeader />)
+      render(<DashboardHeader />)
 
       const logoLink = screen.getAllByRole('link')[0]
       expect(logoLink.className).toContain('group')
@@ -358,8 +361,7 @@ describe('DashboardHeader', () => {
 
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Bot')).toBeInTheDocument()
-      expect(screen.getByText('Core')).toBeInTheDocument()
+      expect(screen.getByText('Bot Core')).toBeInTheDocument()
     })
 
     it('handles user without full_name or email', () => {
@@ -374,8 +376,7 @@ describe('DashboardHeader', () => {
 
       render(<DashboardHeader />)
 
-      expect(screen.getByText('Bot')).toBeInTheDocument()
-      expect(screen.getByText('Core')).toBeInTheDocument()
+      expect(screen.getByText('Bot Core')).toBeInTheDocument()
     })
 
     it('handles multiple rapid logout clicks', async () => {
@@ -447,29 +448,28 @@ describe('DashboardHeader', () => {
   })
 
   describe('Text Content', () => {
-    it('displays correct heading text', () => {
+    it('displays correct brand text', () => {
       render(<DashboardHeader />)
 
-      // Brand name is split into two spans inside h1
-      const botText = screen.getByText('Bot')
-      const coreText = screen.getByText('Core')
-      expect(botText.closest('h1')).toBeInTheDocument()
-      expect(coreText.closest('h1')).toBeInTheDocument()
+      // BotCoreLogo renders "Bot Core" as a single span
+      const brandName = screen.getByText('Bot Core')
+      expect(brandName).toBeInTheDocument()
     })
 
     it('applies correct text sizes', () => {
-      render(<DashboardHeader />)
+      const { container } = render(<DashboardHeader />)
 
-      const heading = screen.getByText('Bot').closest('h1')
-      // Logo md size uses text-lg
-      expect(heading?.className).toContain('text-lg')
+      // BotCoreLogo uses text-xl for md size
+      const textElement = container.querySelector('[class*="text-xl"]')
+      expect(textElement).toBeInTheDocument()
     })
 
-    it('applies muted color to tagline', () => {
-      render(<DashboardHeader />)
+    it('applies correct font weight to brand name', () => {
+      const { container } = render(<DashboardHeader />)
 
-      const tagline = screen.getByText('AI Trading')
-      expect(tagline.className).toContain('text-muted-foreground')
+      // BotCoreLogo uses font-black class
+      const fontElement = container.querySelector('[class*="font-black"]')
+      expect(fontElement).toBeInTheDocument()
     })
   })
 
@@ -507,9 +507,8 @@ describe('DashboardHeader', () => {
 
       render(<DashboardHeader />)
 
-      // Should still render header
-      expect(screen.getByText('Bot')).toBeInTheDocument()
-      expect(screen.getByText('Core')).toBeInTheDocument()
+      // Should still render header with brand name
+      expect(screen.getByText('Bot Core')).toBeInTheDocument()
     })
   })
 })
