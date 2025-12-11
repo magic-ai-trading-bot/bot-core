@@ -275,7 +275,16 @@
       "pnl": "盈亏",
       "winRate": "胜率",
       "trades": "交易",
-      "paperMode": "模拟模式"
+      "paperMode": "模拟模式",
+      "reset": "重置",
+      "confirmReset": "确定要重置所有模拟交易数据吗？",
+      "confirmYes": "是的，重置",
+      "confirmNo": "取消",
+      "resetting": "重置中...",
+      "resetSuccess": "重置成功",
+      "resetSuccessDesc": "所有模拟交易数据已清除，投资组合已重置为初始状态。",
+      "resetError": "重置失败",
+      "resetErrorDesc": "重置时发生错误，请重试。"
     },
     "orderBook": {
       "title": "订单簿",

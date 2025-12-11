@@ -27,7 +27,6 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Profile = lazy(() => import("./pages/Profile"));
 const PaperTrading = lazy(() => import("./pages/PaperTrading"));
 const RealTrading = lazy(() => import("./pages/RealTrading"));
-const TradingPaper = lazy(() => import("./pages/TradingPaper"));
 const TradeAnalyses = lazy(() => import("./pages/TradeAnalyses"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
@@ -175,16 +174,10 @@ const App = () => (
                   }
                 />
 
-                {/* Keep old route for backward compatibility */}
+                {/* Redirect old route to new path */}
                 <Route
                   path="/trading-paper"
-                  element={
-                    <ProtectedRoute>
-                      <MainLayout>
-                        <TradingPaper />
-                      </MainLayout>
-                    </ProtectedRoute>
-                  }
+                  element={<Navigate to="/trading/paper" replace />}
                 />
 
                 {/* Public pages - no layout */}

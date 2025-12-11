@@ -59,7 +59,7 @@ export function DashboardHeader() {
             Dashboard
           </PremiumButton>
         </Link>
-        <Link to="/trading-paper">
+        <Link to="/trading/paper">
           <PremiumButton
             variant="ghost"
             size="sm"

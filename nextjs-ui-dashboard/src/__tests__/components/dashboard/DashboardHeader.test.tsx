@@ -110,11 +110,11 @@ describe('DashboardHeader', () => {
       expect(dashboardLink).toBeInTheDocument()
     })
 
-    it('renders Trading Paper navigation link', () => {
+    it('renders Paper Trading navigation link', () => {
       render(<DashboardHeader />)
 
       const links = screen.getAllByRole('link')
-      const tradingPaperLink = links.find(link => link.getAttribute('href') === '/trading-paper')
+      const tradingPaperLink = links.find(link => link.getAttribute('href') === '/trading/paper')
 
       expect(tradingPaperLink).toBeInTheDocument()
     })

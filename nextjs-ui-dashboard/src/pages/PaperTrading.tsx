@@ -13,6 +13,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { usePaperTrading } from '@/hooks/usePaperTrading';
@@ -36,6 +37,8 @@ import {
   RefreshCw,
   ChevronDown,
   LineChart,
+  RotateCcw,
+  AlertCircle,
 } from 'lucide-react';
 import type { PaperTrade } from '@/hooks/usePaperTrading';
 
@@ -273,6 +276,11 @@ function PortfolioStatsBar({
   winRate,
   totalTrades,
   t,
+  onResetClick,
+  showResetConfirm,
+  onResetConfirm,
+  onResetCancel,
+  isResetting,
 }: {
   balance: number;
   equity: number;
@@ -281,6 +289,11 @@ function PortfolioStatsBar({
   winRate: number;
   totalTrades: number;
   t: (key: string, options?: Record<string, unknown>) => string;
+  onResetClick: () => void;
+  showResetConfirm: boolean;
+  onResetConfirm: () => void;
+  onResetCancel: () => void;
+  isResetting: boolean;
 }) {
   const colors = useThemeColors();
   const isProfitable = totalPnl >= 0;
@@ -289,7 +302,7 @@ function PortfolioStatsBar({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden"
+      className="relative"
       style={{ backgroundColor: colors.bgPrimary }}
     >
       {/* Background glow effect */}
@@ -339,6 +352,23 @@ function PortfolioStatsBar({
           </div>
         </div>
 
+        {/* Mobile Reset Button - visible only on mobile/tablet */}
+        <motion.button
+          onClick={onResetClick}
+          disabled={isResetting}
+          className="flex lg:hidden items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+          style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            color: '#ef4444',
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">{t('paperTradingPage.stats.reset')}</span>
+        </motion.button>
+
         {/* PnL with glow - hidden on mobile */}
         <motion.div
           className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl"
@@ -378,6 +408,23 @@ function PortfolioStatsBar({
             <MonoText className="text-base font-bold">{totalTrades}</MonoText>
           </div>
 
+          {/* Reset Button */}
+          <motion.button
+            onClick={onResetClick}
+            disabled={isResetting}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: '#ef4444',
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
+            <span className="hidden xl:inline">{t('paperTradingPage.stats.reset')}</span>
+          </motion.button>
+
           {/* Paper Mode Badge */}
           <motion.div
             className="flex items-center gap-2 px-4 py-2 rounded-full"
@@ -399,6 +446,93 @@ function PortfolioStatsBar({
             </span>
           </motion.div>
         </div>
+
+        {/* Reset Confirmation Modal - Portal to render above header */}
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence>
+            {showResetConfirm && (
+              <>
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm"
+                  onClick={onResetCancel}
+                />
+
+                {/* Dialog container - flex center */}
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative w-full max-w-md rounded-2xl p-6 shadow-2xl"
+                    style={{
+                      backgroundColor: colors.bgPrimary,
+                      border: `1px solid ${colors.borderSubtle}`,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Icon */}
+                    <div className="flex justify-center mb-4">
+                      <div
+                        className="p-4 rounded-full"
+                        style={{
+                          background: `${colors.loss}15`,
+                          border: `1px solid ${colors.loss}30`,
+                        }}
+                      >
+                        <AlertCircle className="w-8 h-8" style={{ color: colors.loss }} />
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-lg font-bold text-center mb-2" style={{ color: colors.textPrimary }}>
+                      {t('paperTradingPage.stats.reset')}
+                    </h3>
+
+                    {/* Message */}
+                    <p className="text-sm text-center mb-6" style={{ color: colors.textSecondary }}>
+                      {t('paperTradingPage.stats.confirmReset')}
+                    </p>
+
+                    {/* Buttons */}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={onResetCancel}
+                        disabled={isResetting}
+                        className="flex-1 px-4 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+                        style={{
+                          backgroundColor: colors.bgSecondary,
+                          color: colors.textPrimary,
+                          border: `1px solid ${colors.borderSubtle}`,
+                        }}
+                      >
+                        {t('paperTradingPage.stats.confirmNo')}
+                      </button>
+                      <button
+                        onClick={onResetConfirm}
+                        disabled={isResetting}
+                        className="flex-1 px-4 py-3 rounded-xl font-medium text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        style={{
+                          backgroundColor: colors.loss,
+                          boxShadow: `0 0 20px ${colors.loss}40`,
+                        }}
+                      >
+                        {isResetting && <RotateCcw className="w-4 h-4 animate-spin" />}
+                        {isResetting ? t('paperTradingPage.stats.resetting') : t('paperTradingPage.stats.confirmYes')}
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
       </div>
     </motion.div>
   );
@@ -1134,8 +1268,33 @@ export default function PaperTrading() {
   const [selectedPrice, setSelectedPrice] = useState<number | undefined>();
   const [activeTab, setActiveTab] = useState<'positions' | 'history'>('positions');
   const [selectedTimeframe, setSelectedTimeframe] = useState('5m');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const timeframes = ['1m', '5m', '15m', '1h', '4h', '1D'];
+
+  // Reset paper trading data
+  const handleReset = async () => {
+    try {
+      setIsResetting(true);
+      await paperTrading.resetPortfolio();
+      setShowResetConfirm(false);
+      toast({
+        title: t('paperTradingPage.stats.resetSuccess'),
+        description: t('paperTradingPage.stats.resetSuccessDesc'),
+      });
+    } catch (error) {
+      logger.error('Failed to reset portfolio:', error);
+      toast({
+        title: t('paperTradingPage.stats.resetError'),
+        description: t('paperTradingPage.stats.resetErrorDesc'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResetting(false);
+      setShowResetConfirm(false);
+    }
+  };
 
   // @spec:FR-PAPER-003 - Manual Order Placement
   const handleOrderSubmit = async (order: OrderFormData) => {
@@ -1187,6 +1346,11 @@ export default function PaperTrading() {
         winRate={paperTrading.portfolio.win_rate}
         totalTrades={paperTrading.portfolio.total_trades}
         t={t}
+        onResetClick={() => setShowResetConfirm(true)}
+        showResetConfirm={showResetConfirm}
+        onResetConfirm={handleReset}
+        onResetCancel={() => setShowResetConfirm(false)}
+        isResetting={isResetting}
       />
 
       {/* Main Trading Grid - Responsive: stacked on mobile, side-by-side on lg+ */}
