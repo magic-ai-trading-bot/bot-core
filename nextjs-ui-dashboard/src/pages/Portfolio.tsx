@@ -129,6 +129,8 @@ interface ChartTooltipProps {
 }
 
 const PerformanceTooltip = ({ active, payload, label }: ChartTooltipProps) => {
+  const themeColors = useThemeColors();
+
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
@@ -174,6 +176,8 @@ interface SortIconProps {
 }
 
 const SortIcon = ({ columnKey, sortKey, sortDirection }: SortIconProps) => {
+  const themeColors = useThemeColors();
+
   if (sortKey !== columnKey) {
     return <ChevronUp className="w-4 h-4 ml-1" style={{ color: themeColors.textMuted }} />;
   }
