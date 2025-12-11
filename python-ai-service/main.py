@@ -2496,7 +2496,7 @@ async def health_check():
             # Use a short timeout to avoid blocking health check
             await asyncio.wait_for(
                 mongodb_client.admin.command("ping"),
-                timeout=3.0  # 3 second timeout for MongoDB ping
+                timeout=3.0,  # 3 second timeout for MongoDB ping
             )
             mongodb_status = True
     except (Exception, asyncio.TimeoutError):
