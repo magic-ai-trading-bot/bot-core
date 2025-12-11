@@ -13,6 +13,7 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
+
 # Project root directory - try multiple locations
 def _find_project_root() -> Path:
     """Find the project root directory."""
@@ -47,6 +48,7 @@ def _find_project_root() -> Path:
     logger.warning(f"Could not find project root with CLAUDE.md, using: {local_root}")
     return local_root
 
+
 PROJECT_ROOT = _find_project_root()
 logger.info(f"📁 Project root: {PROJECT_ROOT}")
 
@@ -64,16 +66,20 @@ class DocumentIndex:
         chunks = self._chunk_content(content, chunk_size=1500, overlap=200)
 
         for i, chunk in enumerate(chunks):
-            self.documents.append({
-                "path": path,
-                "content": chunk,
-                "doc_type": doc_type,
-                "title": title or Path(path).stem,
-                "chunk_index": i,
-                "total_chunks": len(chunks),
-            })
+            self.documents.append(
+                {
+                    "path": path,
+                    "content": chunk,
+                    "doc_type": doc_type,
+                    "title": title or Path(path).stem,
+                    "chunk_index": i,
+                    "total_chunks": len(chunks),
+                }
+            )
 
-    def _chunk_content(self, content: str, chunk_size: int = 1500, overlap: int = 200) -> List[str]:
+    def _chunk_content(
+        self, content: str, chunk_size: int = 1500, overlap: int = 200
+    ) -> List[str]:
         """Split content into overlapping chunks."""
         if len(content) <= chunk_size:
             return [content]
@@ -87,15 +93,15 @@ class DocumentIndex:
             # Try to break at paragraph or sentence boundary
             if end < len(content):
                 # Look for paragraph break
-                last_para = chunk.rfind('\n\n')
+                last_para = chunk.rfind("\n\n")
                 if last_para > chunk_size * 0.5:
                     chunk = chunk[:last_para]
                     end = start + last_para
                 else:
                     # Look for sentence break
-                    last_sentence = max(chunk.rfind('. '), chunk.rfind('.\n'))
+                    last_sentence = max(chunk.rfind(". "), chunk.rfind(".\n"))
                     if last_sentence > chunk_size * 0.5:
-                        chunk = chunk[:last_sentence + 1]
+                        chunk = chunk[: last_sentence + 1]
                         end = start + last_sentence + 1
 
             chunks.append(chunk.strip())
@@ -132,7 +138,8 @@ class DocumentIndex:
 
         # Extract numbers from query
         import re
-        numbers = re.findall(r'\d+', query)
+
+        numbers = re.findall(r"\d+", query)
         expanded_terms.update(numbers)
 
         scored_docs = []
@@ -165,11 +172,21 @@ class DocumentIndex:
             if any(t in query_lower for t in ["api", "endpoint", "request"]):
                 if "api" in doc["doc_type"].lower():
                     score += 5
-            if any(t in query_lower for t in ["how", "làm sao", "cách", "hướng dẫn", "giải thích"]):
+            if any(
+                t in query_lower
+                for t in ["how", "làm sao", "cách", "hướng dẫn", "giải thích"]
+            ):
                 if "feature" in doc["doc_type"].lower() or "readme" in path_lower:
                     score += 5
-            if any(t in query_lower for t in ["bảo mật", "security", "risk", "rủi ro", "lớp", "layer"]):
-                if "risk" in path_lower or "security" in path_lower or "layer" in path_lower:
+            if any(
+                t in query_lower
+                for t in ["bảo mật", "security", "risk", "rủi ro", "lớp", "layer"]
+            ):
+                if (
+                    "risk" in path_lower
+                    or "security" in path_lower
+                    or "layer" in path_lower
+                ):
                     score += 10
                 if "report" in doc["doc_type"].lower():
                     score += 5
@@ -221,14 +238,15 @@ class ProjectChatbot:
         if claude_md.exists():
             content = claude_md.read_text(encoding="utf-8")
             self.index.add_document(
-                str(claude_md),
-                content,
-                "overview",
-                "Project Overview (CLAUDE.md)"
+                str(claude_md), content, "overview", "Project Overview (CLAUDE.md)"
             )
 
         # Index README files
-        for readme in ["README.md", "nextjs-ui-dashboard/README.md", "rust-core-engine/README.md"]:
+        for readme in [
+            "README.md",
+            "nextjs-ui-dashboard/README.md",
+            "rust-core-engine/README.md",
+        ]:
             readme_path = PROJECT_ROOT / readme
             if readme_path.exists():
                 content = readme_path.read_text(encoding="utf-8")
@@ -244,7 +262,9 @@ class ProjectChatbot:
                 try:
                     content = md_file.read_text(encoding="utf-8")
                     relative_path = str(md_file.relative_to(PROJECT_ROOT))
-                    self.index.add_document(relative_path, content, doc_type, md_file.stem)
+                    self.index.add_document(
+                        relative_path, content, doc_type, md_file.stem
+                    )
                 except Exception as e:
                     logger.warning(f"Failed to index {md_file}: {e}")
 
@@ -327,7 +347,9 @@ CÂU HỎI CỦA USER:
 
                 # Update conversation history
                 self.conversation_history.append({"role": "user", "content": message})
-                self.conversation_history.append({"role": "assistant", "content": assistant_message})
+                self.conversation_history.append(
+                    {"role": "assistant", "content": assistant_message}
+                )
 
                 # Keep history limited
                 if len(self.conversation_history) > 20:
@@ -336,7 +358,10 @@ CÂU HỎI CỦA USER:
                 return {
                     "success": True,
                     "message": assistant_message,
-                    "sources": [{"title": doc["title"], "path": doc["path"]} for doc in relevant_docs[:3]],
+                    "sources": [
+                        {"title": doc["title"], "path": doc["path"]}
+                        for doc in relevant_docs[:3]
+                    ],
                     "confidence": 0.9 if relevant_docs else 0.6,
                     "type": "rag",
                     "tokens_used": response.get("usage", {}),
@@ -348,7 +373,9 @@ CÂU HỎI CỦA USER:
         else:
             return await self._fallback_response(message, relevant_docs)
 
-    async def _fallback_response(self, message: str, relevant_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _fallback_response(
+        self, message: str, relevant_docs: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Fallback response when GPT is not available."""
         # Simple keyword-based responses
         message_lower = message.lower()
@@ -368,7 +395,9 @@ CÂU HỎI CỦA USER:
 
 💡 Khuyên dùng Paper Trading để test trước!"""
 
-        elif any(word in message_lower for word in ["bắt đầu", "start", "setup", "cài đặt"]):
+        elif any(
+            word in message_lower for word in ["bắt đầu", "start", "setup", "cài đặt"]
+        ):
             response = """🚀 **Bắt đầu với BotCore:**
 
 1. **Clone repo và setup:**
@@ -391,7 +420,9 @@ CÂU HỎI CỦA USER:
 
 ⚠️ Bắt đầu với Paper Trading mode để làm quen!"""
 
-        elif any(word in message_lower for word in ["chiến lược", "strategy", "rsi", "macd"]):
+        elif any(
+            word in message_lower for word in ["chiến lược", "strategy", "rsi", "macd"]
+        ):
             response = """📊 **Các chiến lược trading của BotCore:**
 
 1. **RSI Strategy** (Win rate: 62%)
@@ -412,7 +443,9 @@ CÂU HỎI CỦA USER:
 
 💡 Có thể bật/tắt từng strategy trong Settings"""
 
-        elif any(word in message_lower for word in ["an toàn", "bảo mật", "security", "risk"]):
+        elif any(
+            word in message_lower for word in ["an toàn", "bảo mật", "security", "risk"]
+        ):
             response = """🔒 **Bảo mật & Quản lý rủi ro:**
 
 **Bảo mật:**
@@ -453,7 +486,10 @@ Hoặc liên hệ support để được hỗ trợ trực tiếp!"""
         return {
             "success": True,
             "message": response,
-            "sources": [{"title": doc["title"], "path": doc["path"]} for doc in relevant_docs[:3]],
+            "sources": [
+                {"title": doc["title"], "path": doc["path"]}
+                for doc in relevant_docs[:3]
+            ],
             "confidence": 0.7 if relevant_docs else 0.5,
             "type": "fallback",
         }

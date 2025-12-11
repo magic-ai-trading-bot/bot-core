@@ -133,11 +133,13 @@ def system_health_check(self) -> Dict[str, Any]:
             # Try one more time with fresh connection
             if "Frontend" in service_name:
                 try:
-                    response = requests.get(url, timeout=2, headers={"Connection": "close"})
+                    response = requests.get(
+                        url, timeout=2, headers={"Connection": "close"}
+                    )
                     if response.status_code == 200:
                         health_report["services"][service_name] = {
                             "status": "healthy",
-                            "note": "Recovered after connection reset"
+                            "note": "Recovered after connection reset",
                         }
                         logger.info(f"  ✅ {service_name}: OK (recovered)")
                         continue
@@ -167,11 +169,10 @@ def system_health_check(self) -> Dict[str, Any]:
 
         # Connect and ping MongoDB
         client = MongoClient(
-            f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}",
-            serverSelectionTimeoutMS=5000
+            f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}", serverSelectionTimeoutMS=5000
         )
         # Ping command
-        client.admin.command('ping')
+        client.admin.command("ping")
         health_report["services"]["MongoDB"] = {"status": "healthy"}
         logger.info("  ✅ MongoDB: OK")
         client.close()
@@ -199,7 +200,7 @@ def system_health_check(self) -> Dict[str, Any]:
             port=int(REDIS_PORT),
             password=redis_password,
             socket_timeout=5,
-            socket_connect_timeout=5
+            socket_connect_timeout=5,
         )
         # Ping command
         if r.ping():
@@ -575,7 +576,9 @@ def daily_performance_analysis(self) -> Dict[str, Any]:
 
                 # Calculate metrics
                 total_trades = len(trades)
-                winning_trades = sum(1 for t in trades if t.get("profit_percent", 0) > 0)
+                winning_trades = sum(
+                    1 for t in trades if t.get("profit_percent", 0) > 0
+                )
                 win_rate = (winning_trades / total_trades) * 100
 
                 profits = [t.get("profit_percent", 0) for t in trades]
@@ -636,9 +639,9 @@ def daily_performance_analysis(self) -> Dict[str, Any]:
                 ),
             },
             "performance_status": (
-                "good" if win_rate >= TARGET_WIN_RATE and sharpe_ratio >= TARGET_SHARPE
-                else "warning" if win_rate >= 55 and sharpe_ratio >= 1.0
-                else "critical"
+                "good"
+                if win_rate >= TARGET_WIN_RATE and sharpe_ratio >= TARGET_SHARPE
+                else "warning" if win_rate >= 55 and sharpe_ratio >= 1.0 else "critical"
             ),
             "alerts": [],
             "trigger_ai_analysis": False,

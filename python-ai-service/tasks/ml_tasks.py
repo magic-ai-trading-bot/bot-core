@@ -24,7 +24,9 @@ logger = get_logger("MLTasks")
 RUST_API_URL = os.getenv("RUST_API_URL", "http://rust-core-engine:8080")
 
 
-def fetch_real_candles_sync(symbol: str, timeframe: str = "1h", limit: int = 100) -> pd.DataFrame:
+def fetch_real_candles_sync(
+    symbol: str, timeframe: str = "1h", limit: int = 100
+) -> pd.DataFrame:
     """
     Fetch REAL candle data from Rust Core Engine API (synchronous version for Celery).
 
@@ -55,7 +57,9 @@ def fetch_real_candles_sync(symbol: str, timeframe: str = "1h", limit: int = 100
 
                 df = pd.DataFrame(candles)
                 df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-                logger.info(f"✅ Fetched {len(df)} real candles for {symbol}/{timeframe}")
+                logger.info(
+                    f"✅ Fetched {len(df)} real candles for {symbol}/{timeframe}"
+                )
                 return df
             else:
                 logger.error(f"❌ Failed to fetch candles: {response.status_code}")
@@ -162,7 +166,9 @@ def train_model(
         df = fetch_real_candles_sync(symbol, "1h", days_of_data * 24)
 
         if df.empty:
-            raise ValueError(f"No real market data available for {symbol}. Cannot train on fake data!")
+            raise ValueError(
+                f"No real market data available for {symbol}. Cannot train on fake data!"
+            )
 
         # Update progress: Training
         self.update_state(
@@ -341,7 +347,9 @@ def predict_price(
         df = fetch_real_candles_sync(symbol, "1h", 100)
 
         if current_price == 0 or df.empty:
-            raise ValueError(f"No real market data available for {symbol}. Cannot make predictions without real data!")
+            raise ValueError(
+                f"No real market data available for {symbol}. Cannot make predictions without real data!"
+            )
 
         # Calculate trend from real historical data
         close_prices = df["close"].values
@@ -367,11 +375,15 @@ def predict_price(
                     "hour": h + 1,
                     "predicted_price": round(pred_price, 2),
                     "confidence": round(confidence, 3),
-                    "trend_direction": "UP" if avg_change > 0 else "DOWN" if avg_change < 0 else "FLAT",
+                    "trend_direction": (
+                        "UP" if avg_change > 0 else "DOWN" if avg_change < 0 else "FLAT"
+                    ),
                 }
             )
 
-        logger.info(f"✅ Prediction complete: {symbol} (current: ${current_price:.2f}, trend: {avg_change*100:.2f}%/hr)")
+        logger.info(
+            f"✅ Prediction complete: {symbol} (current: ${current_price:.2f}, trend: {avg_change*100:.2f}%/hr)"
+        )
 
         return {
             "status": "success",

@@ -41,9 +41,7 @@ class SettingsManager:
     - Thread-safe with asyncio lock
     """
 
-    def __init__(
-        self, rust_api_url: str = None, cache_duration_minutes: int = 5
-    ):
+    def __init__(self, rust_api_url: str = None, cache_duration_minutes: int = 5):
         """
         Initialize settings manager.
 
@@ -61,7 +59,9 @@ class SettingsManager:
         self.lock = asyncio.Lock()
         self._initialized = False
 
-        logger.info(f"📊 SettingsManager initialized with Rust API: {self.rust_api_url}")
+        logger.info(
+            f"📊 SettingsManager initialized with Rust API: {self.rust_api_url}"
+        )
 
     async def initialize(self) -> bool:
         """
@@ -75,8 +75,12 @@ class SettingsManager:
             settings = await self.get_settings(force_refresh=True)
             self._initialized = True
             logger.info(f"✅ SettingsManager initialized successfully")
-            logger.info(f"📊 RSI period: {settings.get('data', {}).get('indicators', {}).get('rsi_period', 'N/A')}")
-            logger.info(f"📊 Trend threshold: {settings.get('data', {}).get('signal', {}).get('trend_threshold_percent', 'N/A')}%")
+            logger.info(
+                f"📊 RSI period: {settings.get('data', {}).get('indicators', {}).get('rsi_period', 'N/A')}"
+            )
+            logger.info(
+                f"📊 Trend threshold: {settings.get('data', {}).get('signal', {}).get('trend_threshold_percent', 'N/A')}%"
+            )
             return True
         except Exception as e:
             logger.error(f"❌ Failed to initialize SettingsManager: {e}")
@@ -96,7 +100,10 @@ class SettingsManager:
         async with self.lock:
             # Check cache
             if not force_refresh and self.settings_cache is not None:
-                if self.last_fetch and datetime.now() - self.last_fetch < self.cache_duration:
+                if (
+                    self.last_fetch
+                    and datetime.now() - self.last_fetch < self.cache_duration
+                ):
                     logger.debug("✅ Using cached settings")
                     return self.settings_cache
 
@@ -111,9 +118,13 @@ class SettingsManager:
                     api_response = response.json()
                     # API wraps in ApiResponse {success, data, error, timestamp}
                     if api_response.get("success"):
-                        settings = api_response.get("data", self._get_default_settings())
+                        settings = api_response.get(
+                            "data", self._get_default_settings()
+                        )
                     else:
-                        logger.warning(f"⚠️ API returned error: {api_response.get('error')}")
+                        logger.warning(
+                            f"⚠️ API returned error: {api_response.get('error')}"
+                        )
                         settings = self._get_default_settings()
 
                     self.settings_cache = settings
@@ -163,7 +174,7 @@ class SettingsManager:
                 "min_required_indicators": 4,
                 "confidence_base": 0.5,
                 "confidence_per_timeframe": 0.08,
-            }
+            },
         }
 
     def get_indicator_value(self, key: str, default: Any = None) -> Any:
@@ -207,7 +218,9 @@ class SettingsManager:
         """
         if self.settings_cache is None:
             return self._get_default_settings()["indicators"]
-        return self.settings_cache.get("indicators", self._get_default_settings()["indicators"])
+        return self.settings_cache.get(
+            "indicators", self._get_default_settings()["indicators"]
+        )
 
     def get_all_signal_settings(self) -> Dict[str, Any]:
         """

@@ -16,6 +16,7 @@ class TestUserNotificationPreferences:
     def setup_method(self):
         """Reset cache before each test"""
         from utils import notifications
+
         notifications._preferences_cache = None
         notifications._preferences_cache_time = None
 
@@ -37,12 +38,14 @@ class TestUserNotificationPreferences:
 
         # Set up expired cache
         notifications._preferences_cache = {"enabled": True}
-        notifications._preferences_cache_time = datetime.utcnow() - timedelta(seconds=400)
+        notifications._preferences_cache_time = datetime.utcnow() - timedelta(
+            seconds=400
+        )
 
-        with patch('utils.notifications.requests.get') as mock_get:
+        with patch("utils.notifications.requests.get") as mock_get:
             mock_get.return_value = Mock(
                 status_code=200,
-                json=lambda: {"success": True, "data": {"enabled": False}}
+                json=lambda: {"success": True, "data": {"enabled": False}},
             )
 
             result = notifications.get_user_notification_preferences()
@@ -55,7 +58,7 @@ class TestUserNotificationPreferences:
         """Test handling of API error"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.get') as mock_get:
+        with patch("utils.notifications.requests.get") as mock_get:
             mock_get.side_effect = Exception("Connection refused")
 
             result = notifications.get_user_notification_preferences()
@@ -66,7 +69,7 @@ class TestUserNotificationPreferences:
         """Test handling of non-200 response"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.get') as mock_get:
+        with patch("utils.notifications.requests.get") as mock_get:
             mock_get.return_value = Mock(status_code=500)
 
             result = notifications.get_user_notification_preferences()
@@ -77,10 +80,9 @@ class TestUserNotificationPreferences:
         """Test handling of success response without data"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.get') as mock_get:
+        with patch("utils.notifications.requests.get") as mock_get:
             mock_get.return_value = Mock(
-                status_code=200,
-                json=lambda: {"success": False}
+                status_code=200, json=lambda: {"success": False}
             )
 
             result = notifications.get_user_notification_preferences()
@@ -107,6 +109,7 @@ class TestSendNotificationWithUserPrefs:
     def setup_method(self):
         """Reset cache before each test"""
         from utils import notifications
+
         notifications._preferences_cache = None
         notifications._preferences_cache_time = None
 
@@ -114,14 +117,14 @@ class TestSendNotificationWithUserPrefs:
         """Test fallback to env-based notifications when no prefs available"""
         from utils import notifications
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=None):
-            with patch('utils.notifications.send_notification') as mock_send:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=None
+        ):
+            with patch("utils.notifications.send_notification") as mock_send:
                 mock_send.return_value = {"status": "success"}
 
                 result = notifications.send_notification_with_user_prefs(
-                    title="Test",
-                    message="Test message",
-                    level="info"
+                    title="Test", message="Test message", level="info"
                 )
 
                 mock_send.assert_called_once()
@@ -132,10 +135,11 @@ class TestSendNotificationWithUserPrefs:
 
         prefs = {"enabled": False}
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
             result = notifications.send_notification_with_user_prefs(
-                title="Test",
-                message="Test message"
+                title="Test", message="Test message"
             )
 
             assert result.get("skipped") == True
@@ -145,16 +149,13 @@ class TestSendNotificationWithUserPrefs:
         """Test when specific alert type is disabled"""
         from utils import notifications
 
-        prefs = {
-            "enabled": True,
-            "alerts": {"trade_alerts": False}
-        }
+        prefs = {"enabled": True, "alerts": {"trade_alerts": False}}
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
             result = notifications.send_notification_with_user_prefs(
-                title="Test",
-                message="Test message",
-                alert_type="trade_alerts"
+                title="Test", message="Test message", alert_type="trade_alerts"
             )
 
             assert result.get("skipped") == True
@@ -170,18 +171,19 @@ class TestSendNotificationWithUserPrefs:
             "channels": {
                 "discord": {
                     "enabled": True,
-                    "webhook_url": "https://discord.com/api/webhooks/test"
+                    "webhook_url": "https://discord.com/api/webhooks/test",
                 }
-            }
+            },
         }
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
-            with patch('utils.notifications.send_discord_with_url') as mock_discord:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
+            with patch("utils.notifications.send_discord_with_url") as mock_discord:
                 mock_discord.return_value = {"status": "success"}
 
                 result = notifications.send_notification_with_user_prefs(
-                    title="Test",
-                    message="Test message"
+                    title="Test", message="Test message"
                 )
 
                 mock_discord.assert_called_once()
@@ -197,18 +199,19 @@ class TestSendNotificationWithUserPrefs:
             "channels": {
                 "discord": {
                     "enabled": True,
-                    "webhook_url": "https://discord.com/api/webhooks/test"
+                    "webhook_url": "https://discord.com/api/webhooks/test",
                 }
-            }
+            },
         }
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
-            with patch('utils.notifications.send_discord_with_url') as mock_discord:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
+            with patch("utils.notifications.send_discord_with_url") as mock_discord:
                 mock_discord.side_effect = Exception("Discord error")
 
                 result = notifications.send_notification_with_user_prefs(
-                    title="Test",
-                    message="Test message"
+                    title="Test", message="Test message"
                 )
 
                 assert result.get("discord", {}).get("status") == "failed"
@@ -224,18 +227,21 @@ class TestSendNotificationWithUserPrefs:
                 "telegram": {
                     "enabled": True,
                     "bot_token": "test_token",
-                    "chat_id": "12345"
+                    "chat_id": "12345",
                 }
-            }
+            },
         }
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
-            with patch('utils.notifications.send_telegram_with_config') as mock_telegram:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
+            with patch(
+                "utils.notifications.send_telegram_with_config"
+            ) as mock_telegram:
                 mock_telegram.return_value = {"status": "success"}
 
                 result = notifications.send_notification_with_user_prefs(
-                    title="Test",
-                    message="Test message"
+                    title="Test", message="Test message"
                 )
 
                 mock_telegram.assert_called_once()
@@ -252,18 +258,21 @@ class TestSendNotificationWithUserPrefs:
                 "telegram": {
                     "enabled": True,
                     "bot_token": "test_token",
-                    "chat_id": "12345"
+                    "chat_id": "12345",
                 }
-            }
+            },
         }
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
-            with patch('utils.notifications.send_telegram_with_config') as mock_telegram:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
+            with patch(
+                "utils.notifications.send_telegram_with_config"
+            ) as mock_telegram:
                 mock_telegram.side_effect = Exception("Telegram error")
 
                 result = notifications.send_notification_with_user_prefs(
-                    title="Test",
-                    message="Test message"
+                    title="Test", message="Test message"
                 )
 
                 assert result.get("telegram", {}).get("status") == "failed"
@@ -275,16 +284,17 @@ class TestSendNotificationWithUserPrefs:
         prefs = {
             "enabled": True,
             "alerts": {"system_alerts": True},
-            "channels": {"email": True}
+            "channels": {"email": True},
         }
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
-            with patch('utils.notifications.send_email') as mock_email:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
+            with patch("utils.notifications.send_email") as mock_email:
                 mock_email.return_value = {"status": "success"}
 
                 result = notifications.send_notification_with_user_prefs(
-                    title="Test",
-                    message="Test message"
+                    title="Test", message="Test message"
                 )
 
                 mock_email.assert_called_once()
@@ -296,16 +306,17 @@ class TestSendNotificationWithUserPrefs:
         prefs = {
             "enabled": True,
             "alerts": {"system_alerts": True},
-            "channels": {"email": True}
+            "channels": {"email": True},
         }
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
-            with patch('utils.notifications.send_email') as mock_email:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
+            with patch("utils.notifications.send_email") as mock_email:
                 mock_email.side_effect = Exception("Email error")
 
                 result = notifications.send_notification_with_user_prefs(
-                    title="Test",
-                    message="Test message"
+                    title="Test", message="Test message"
                 )
 
                 assert result.get("email", {}).get("status") == "failed"
@@ -317,17 +328,19 @@ class TestSendNotificationWithUserPrefs:
         prefs = {
             "enabled": True,
             "alerts": {"system_alerts": True},
-            "channels": {"email": True}
+            "channels": {"email": True},
         }
 
-        with patch('utils.notifications.get_user_notification_preferences', return_value=prefs):
-            with patch('utils.notifications.send_email') as mock_email:
+        with patch(
+            "utils.notifications.get_user_notification_preferences", return_value=prefs
+        ):
+            with patch("utils.notifications.send_email") as mock_email:
                 mock_email.return_value = {"status": "success"}
 
                 result = notifications.send_notification_with_user_prefs(
                     title="Test",
                     message="Test message",
-                    data={"key1": "value1", "key2": 123}
+                    data={"key1": "value1", "key2": 123},
                 )
 
                 # Verify email was called with formatted data
@@ -342,7 +355,7 @@ class TestSendDiscordWithUrl:
         """Test successful Discord notification"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.post') as mock_post:
+        with patch("utils.notifications.requests.post") as mock_post:
             mock_post.return_value = Mock(status_code=204)
 
             result = notifications.send_discord_with_url(
@@ -350,7 +363,7 @@ class TestSendDiscordWithUrl:
                 message="Test message",
                 level="info",
                 data=None,
-                webhook_url="https://discord.com/api/webhooks/test"
+                webhook_url="https://discord.com/api/webhooks/test",
             )
 
             assert result["status"] == "success"
@@ -359,7 +372,7 @@ class TestSendDiscordWithUrl:
         """Test Discord notification with additional data"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.post') as mock_post:
+        with patch("utils.notifications.requests.post") as mock_post:
             mock_post.return_value = Mock(status_code=200)
 
             result = notifications.send_discord_with_url(
@@ -367,7 +380,7 @@ class TestSendDiscordWithUrl:
                 message="Test message",
                 level="warning",
                 data={"price": "50000", "change": "+5%"},
-                webhook_url="https://discord.com/api/webhooks/test"
+                webhook_url="https://discord.com/api/webhooks/test",
             )
 
             assert result["status"] == "success"
@@ -376,10 +389,9 @@ class TestSendDiscordWithUrl:
         """Test Discord rate limit handling"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.post') as mock_post:
+        with patch("utils.notifications.requests.post") as mock_post:
             mock_post.return_value = Mock(
-                status_code=429,
-                json=lambda: {"retry_after": 2.5}
+                status_code=429, json=lambda: {"retry_after": 2.5}
             )
 
             result = notifications.send_discord_with_url(
@@ -387,7 +399,7 @@ class TestSendDiscordWithUrl:
                 message="Test message",
                 level="info",
                 data=None,
-                webhook_url="https://discord.com/api/webhooks/test"
+                webhook_url="https://discord.com/api/webhooks/test",
             )
 
             assert result["status"] == "failed"
@@ -397,7 +409,7 @@ class TestSendDiscordWithUrl:
         """Test Discord HTTP error handling"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.post') as mock_post:
+        with patch("utils.notifications.requests.post") as mock_post:
             mock_post.return_value = Mock(status_code=500)
 
             result = notifications.send_discord_with_url(
@@ -405,7 +417,7 @@ class TestSendDiscordWithUrl:
                 message="Test message",
                 level="error",
                 data=None,
-                webhook_url="https://discord.com/api/webhooks/test"
+                webhook_url="https://discord.com/api/webhooks/test",
             )
 
             assert result["status"] == "failed"
@@ -418,7 +430,7 @@ class TestSendDiscordWithUrl:
         levels = ["info", "warning", "error", "critical"]
 
         for level in levels:
-            with patch('utils.notifications.requests.post') as mock_post:
+            with patch("utils.notifications.requests.post") as mock_post:
                 mock_post.return_value = Mock(status_code=204)
 
                 result = notifications.send_discord_with_url(
@@ -426,7 +438,7 @@ class TestSendDiscordWithUrl:
                     message="Test message",
                     level=level,
                     data=None,
-                    webhook_url="https://discord.com/api/webhooks/test"
+                    webhook_url="https://discord.com/api/webhooks/test",
                 )
 
                 assert result["status"] == "success"
@@ -439,7 +451,7 @@ class TestSendTelegramWithConfig:
         """Test successful Telegram notification"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.post') as mock_post:
+        with patch("utils.notifications.requests.post") as mock_post:
             mock_post.return_value = Mock(status_code=200)
 
             result = notifications.send_telegram_with_config(
@@ -448,7 +460,7 @@ class TestSendTelegramWithConfig:
                 level="info",
                 data=None,
                 bot_token="test_token",
-                chat_id="12345"
+                chat_id="12345",
             )
 
             assert result["status"] == "success"
@@ -457,7 +469,7 @@ class TestSendTelegramWithConfig:
         """Test Telegram notification with additional data"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.post') as mock_post:
+        with patch("utils.notifications.requests.post") as mock_post:
             mock_post.return_value = Mock(status_code=200)
 
             result = notifications.send_telegram_with_config(
@@ -466,7 +478,7 @@ class TestSendTelegramWithConfig:
                 level="warning",
                 data={"price": "50000", "symbol": "BTCUSDT"},
                 bot_token="test_token",
-                chat_id="12345"
+                chat_id="12345",
             )
 
             assert result["status"] == "success"
@@ -475,7 +487,7 @@ class TestSendTelegramWithConfig:
         """Test Telegram HTTP error handling"""
         from utils import notifications
 
-        with patch('utils.notifications.requests.post') as mock_post:
+        with patch("utils.notifications.requests.post") as mock_post:
             mock_post.return_value = Mock(status_code=401)
 
             result = notifications.send_telegram_with_config(
@@ -484,7 +496,7 @@ class TestSendTelegramWithConfig:
                 level="error",
                 data=None,
                 bot_token="invalid_token",
-                chat_id="12345"
+                chat_id="12345",
             )
 
             assert result["status"] == "failed"
@@ -497,7 +509,7 @@ class TestSendTelegramWithConfig:
         levels = ["info", "warning", "error", "critical"]
 
         for level in levels:
-            with patch('utils.notifications.requests.post') as mock_post:
+            with patch("utils.notifications.requests.post") as mock_post:
                 mock_post.return_value = Mock(status_code=200)
 
                 result = notifications.send_telegram_with_config(
@@ -506,7 +518,7 @@ class TestSendTelegramWithConfig:
                     level=level,
                     data=None,
                     bot_token="test_token",
-                    chat_id="12345"
+                    chat_id="12345",
                 )
 
                 assert result["status"] == "success"
@@ -520,11 +532,9 @@ class TestSendDiscordEdgeCases:
         from utils import notifications
 
         with patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": ""}, clear=False):
-            with patch.object(notifications, 'DISCORD_WEBHOOK_URL', ""):
+            with patch.object(notifications, "DISCORD_WEBHOOK_URL", ""):
                 result = notifications.send_discord(
-                    title="Test",
-                    message="Test message",
-                    level="info"
+                    title="Test", message="Test message", level="info"
                 )
 
                 assert result["status"] == "failed"
@@ -534,18 +544,17 @@ class TestSendDiscordEdgeCases:
         """Test Discord rate limit response"""
         from utils import notifications
 
-        with patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://test.com"}, clear=False):
-            with patch.object(notifications, 'DISCORD_WEBHOOK_URL', "https://test.com"):
-                with patch('utils.notifications.requests.post') as mock_post:
+        with patch.dict(
+            os.environ, {"DISCORD_WEBHOOK_URL": "https://test.com"}, clear=False
+        ):
+            with patch.object(notifications, "DISCORD_WEBHOOK_URL", "https://test.com"):
+                with patch("utils.notifications.requests.post") as mock_post:
                     mock_post.return_value = Mock(
-                        status_code=429,
-                        json=lambda: {"retry_after": 1.5}
+                        status_code=429, json=lambda: {"retry_after": 1.5}
                     )
 
                     result = notifications.send_discord(
-                        title="Test",
-                        message="Test message",
-                        level="info"
+                        title="Test", message="Test message", level="info"
                     )
 
                     assert result["status"] == "failed"
@@ -555,15 +564,15 @@ class TestSendDiscordEdgeCases:
         """Test Discord non-success HTTP status"""
         from utils import notifications
 
-        with patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://test.com"}, clear=False):
-            with patch.object(notifications, 'DISCORD_WEBHOOK_URL', "https://test.com"):
-                with patch('utils.notifications.requests.post') as mock_post:
+        with patch.dict(
+            os.environ, {"DISCORD_WEBHOOK_URL": "https://test.com"}, clear=False
+        ):
+            with patch.object(notifications, "DISCORD_WEBHOOK_URL", "https://test.com"):
+                with patch("utils.notifications.requests.post") as mock_post:
                     mock_post.return_value = Mock(status_code=400)
 
                     result = notifications.send_discord(
-                        title="Test",
-                        message="Test message",
-                        level="info"
+                        title="Test", message="Test message", level="info"
                     )
 
                     assert result["status"] == "failed"
@@ -573,15 +582,15 @@ class TestSendDiscordEdgeCases:
         """Test Discord exception handling"""
         from utils import notifications
 
-        with patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://test.com"}, clear=False):
-            with patch.object(notifications, 'DISCORD_WEBHOOK_URL', "https://test.com"):
-                with patch('utils.notifications.requests.post') as mock_post:
+        with patch.dict(
+            os.environ, {"DISCORD_WEBHOOK_URL": "https://test.com"}, clear=False
+        ):
+            with patch.object(notifications, "DISCORD_WEBHOOK_URL", "https://test.com"):
+                with patch("utils.notifications.requests.post") as mock_post:
                     mock_post.side_effect = Exception("Connection failed")
 
                     result = notifications.send_discord(
-                        title="Test",
-                        message="Test message",
-                        level="info"
+                        title="Test", message="Test message", level="info"
                     )
 
                     assert result["status"] == "failed"
@@ -595,19 +604,18 @@ class TestSendTelegramEdgeCases:
         """Test Telegram exception handling"""
         from utils import notifications
 
-        with patch.dict(os.environ, {
-            "TELEGRAM_BOT_TOKEN": "test_token",
-            "TELEGRAM_CHAT_ID": "12345"
-        }, clear=False):
-            with patch.object(notifications, 'TELEGRAM_BOT_TOKEN', "test_token"):
-                with patch.object(notifications, 'TELEGRAM_CHAT_ID', "12345"):
-                    with patch('utils.notifications.requests.post') as mock_post:
+        with patch.dict(
+            os.environ,
+            {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "12345"},
+            clear=False,
+        ):
+            with patch.object(notifications, "TELEGRAM_BOT_TOKEN", "test_token"):
+                with patch.object(notifications, "TELEGRAM_CHAT_ID", "12345"):
+                    with patch("utils.notifications.requests.post") as mock_post:
                         mock_post.side_effect = Exception("API error")
 
                         result = notifications.send_telegram(
-                            title="Test",
-                            message="Test message",
-                            level="info"
+                            title="Test", message="Test message", level="info"
                         )
 
                         assert result["status"] == "failed"
@@ -629,9 +637,7 @@ class TestFormatData:
         """Test formatting nested data"""
         from utils import notifications
 
-        result = notifications.format_data({
-            "outer": {"inner": "value"}
-        })
+        result = notifications.format_data({"outer": {"inner": "value"}})
         assert "outer" in result
         assert "inner" in result
 
@@ -639,7 +645,5 @@ class TestFormatData:
         """Test formatting data with list values"""
         from utils import notifications
 
-        result = notifications.format_data({
-            "items": ["a", "b", "c"]
-        })
+        result = notifications.format_data({"items": ["a", "b", "c"]})
         assert "items" in result

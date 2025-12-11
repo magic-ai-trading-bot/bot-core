@@ -209,7 +209,9 @@ class TestSlackNotifications:
 class TestDiscordNotifications:
     """Test Discord webhook notifications"""
 
-    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch.dict(
+        os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"}
+    )
     @patch("utils.notifications.requests.post")
     def test_send_discord_success(self, mock_post):
         """Test successful Discord notification"""
@@ -226,7 +228,9 @@ class TestDiscordNotifications:
         assert result["status"] == "success"
         assert mock_post.called
 
-    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch.dict(
+        os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"}
+    )
     @patch("utils.notifications.requests.post")
     def test_send_discord_with_embed(self, mock_post):
         """Test Discord notification uses embed format"""
@@ -249,7 +253,9 @@ class TestDiscordNotifications:
         # Discord uses 'embeds' field
         assert "embeds" in payload or "content" in payload
 
-    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch.dict(
+        os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"}
+    )
     @patch("utils.notifications.requests.post")
     def test_send_discord_rate_limit(self, mock_post):
         """Test Discord notification handles rate limiting"""
@@ -270,7 +276,10 @@ class TestDiscordNotifications:
 class TestTelegramNotifications:
     """Test Telegram bot notifications"""
 
-    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
+    @patch.dict(
+        os.environ,
+        {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"},
+    )
     @patch("utils.notifications.requests.post")
     def test_send_telegram_success(self, mock_post):
         """Test successful Telegram notification"""
@@ -288,7 +297,10 @@ class TestTelegramNotifications:
         assert result["status"] == "success"
         assert mock_post.called
 
-    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
+    @patch.dict(
+        os.environ,
+        {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"},
+    )
     @patch("utils.notifications.requests.post")
     def test_send_telegram_with_markdown(self, mock_post):
         """Test Telegram notification supports markdown"""
@@ -340,7 +352,13 @@ class TestTelegramNotifications:
 class TestUnifiedNotificationSystem:
     """Test unified notification functions"""
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "email,slack,discord,telegram"})
+    @patch.dict(
+        os.environ,
+        {
+            "NOTIFICATIONS_ENABLED": "true",
+            "NOTIFICATION_CHANNELS": "email,slack,discord,telegram",
+        },
+    )
     @patch("utils.notifications.send_email")
     @patch("utils.notifications.send_slack")
     @patch("utils.notifications.send_discord")
@@ -365,7 +383,9 @@ class TestUnifiedNotificationSystem:
         assert mock_discord.called
         assert mock_telegram.called
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_critical_uses_critical_level(self, mock_slack):
         """Test send_critical helper uses critical level"""
@@ -384,7 +404,9 @@ class TestUnifiedNotificationSystem:
         call_args = mock_slack.call_args
         assert call_args[0][2] == "critical" or call_args[1].get("level") == "critical"
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_warning_uses_warning_level(self, mock_slack):
         """Test send_warning helper uses warning level"""
@@ -396,7 +418,9 @@ class TestUnifiedNotificationSystem:
 
         assert mock_slack.called
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_info_uses_info_level(self, mock_slack):
         """Test send_info helper uses info level"""
@@ -430,7 +454,10 @@ class TestUnifiedNotificationSystem:
 class TestNotificationErrorHandling:
     """Test notification error handling"""
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "email,slack"})
+    @patch.dict(
+        os.environ,
+        {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "email,slack"},
+    )
     @patch("utils.notifications.send_email")
     @patch("utils.notifications.send_slack")
     def test_notification_continues_on_channel_failure(self, mock_slack, mock_email):
@@ -448,7 +475,10 @@ class TestNotificationErrorHandling:
         assert mock_email.called
         assert mock_slack.called
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack,discord"})
+    @patch.dict(
+        os.environ,
+        {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack,discord"},
+    )
     @patch("utils.notifications.send_slack")
     @patch("utils.notifications.send_discord")
     def test_notification_slack_exception_caught(self, mock_discord, mock_slack):
@@ -468,7 +498,10 @@ class TestNotificationErrorHandling:
         assert result["slack"]["status"] == "failed"
         assert "error" in result["slack"]
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "discord,telegram"})
+    @patch.dict(
+        os.environ,
+        {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "discord,telegram"},
+    )
     @patch("utils.notifications.send_discord")
     @patch("utils.notifications.send_telegram")
     def test_notification_discord_exception_caught(self, mock_telegram, mock_discord):
@@ -488,7 +521,10 @@ class TestNotificationErrorHandling:
         assert result["discord"]["status"] == "failed"
         assert "error" in result["discord"]
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack,telegram"})
+    @patch.dict(
+        os.environ,
+        {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack,telegram"},
+    )
     @patch("utils.notifications.send_telegram")
     @patch("utils.notifications.send_slack")
     def test_notification_telegram_exception_caught(self, mock_slack, mock_telegram):
@@ -540,7 +576,9 @@ class TestNotificationErrorHandling:
 class TestConvenienceNotificationFunctions:
     """Test convenience wrapper functions."""
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_error_function(self, mock_slack):
         """Test send_error convenience function."""
@@ -555,7 +593,9 @@ class TestConvenienceNotificationFunctions:
         call_args = mock_slack.call_args
         assert call_args[0][2] == "error" or call_args[1].get("level") == "error"
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_health_alert_function(self, mock_slack):
         """Test send_health_alert convenience function."""
@@ -570,7 +610,9 @@ class TestConvenienceNotificationFunctions:
         call_args = mock_slack.call_args
         assert call_args[0][2] == "critical" or call_args[1].get("level") == "critical"
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_performance_alert_function(self, mock_slack):
         """Test send_performance_alert convenience function."""
@@ -586,7 +628,9 @@ class TestConvenienceNotificationFunctions:
         call_args = mock_slack.call_args
         assert call_args[0][2] == "warning" or call_args[1].get("level") == "warning"
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_cost_alert_function(self, mock_slack):
         """Test send_cost_alert convenience function."""
@@ -602,7 +646,9 @@ class TestConvenienceNotificationFunctions:
         call_args = mock_slack.call_args
         assert call_args[0][2] == "warning" or call_args[1].get("level") == "warning"
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_retrain_complete_function(self, mock_slack):
         """Test send_retrain_complete convenience function."""
@@ -625,7 +671,9 @@ class TestConvenienceNotificationFunctions:
         call_args = mock_slack.call_args
         assert call_args[0][2] == "info" or call_args[1].get("level") == "info"
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_retrain_complete_empty_models(self, mock_slack):
         """Test send_retrain_complete with empty models dict."""
@@ -715,7 +763,9 @@ class TestFormatDataFunction:
 class TestDiscordNotificationDetails:
     """Additional Discord notification tests."""
 
-    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch.dict(
+        os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"}
+    )
     @patch("utils.notifications.requests.post")
     def test_send_discord_with_data_fields(self, mock_post):
         """Test Discord notification includes data as embed fields."""
@@ -742,7 +792,9 @@ class TestDiscordNotificationDetails:
         field_names = [f["name"] for f in fields]
         assert "Cpu Usage" in field_names or "cpu_usage" in field_names
 
-    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch.dict(
+        os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"}
+    )
     @patch("utils.notifications.requests.post")
     def test_send_discord_different_levels(self, mock_post):
         """Test Discord notification colors for different levels."""
@@ -753,12 +805,19 @@ class TestDiscordNotificationDetails:
         mock_post.return_value = mock_response
 
         # Test each level
-        levels = [NotificationLevel.INFO, NotificationLevel.WARNING, NotificationLevel.ERROR, NotificationLevel.CRITICAL]
+        levels = [
+            NotificationLevel.INFO,
+            NotificationLevel.WARNING,
+            NotificationLevel.ERROR,
+            NotificationLevel.CRITICAL,
+        ]
         for level in levels:
             send_discord("Test", "Message", level)
             assert mock_post.called
 
-    @patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"})
+    @patch.dict(
+        os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/test"}
+    )
     @patch("utils.notifications.requests.post")
     def test_send_discord_success_200_status(self, mock_post):
         """Test Discord returns success for 200 status."""
@@ -777,7 +836,10 @@ class TestDiscordNotificationDetails:
 class TestTelegramNotificationDetails:
     """Additional Telegram notification tests."""
 
-    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
+    @patch.dict(
+        os.environ,
+        {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"},
+    )
     @patch("utils.notifications.requests.post")
     def test_send_telegram_with_data(self, mock_post):
         """Test Telegram notification includes data in message."""
@@ -803,7 +865,10 @@ class TestTelegramNotificationDetails:
         assert "Additional Data" in text
         assert "Metric" in text or "metric" in text
 
-    @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"})
+    @patch.dict(
+        os.environ,
+        {"TELEGRAM_BOT_TOKEN": "test_token", "TELEGRAM_CHAT_ID": "test_chat_id"},
+    )
     @patch("utils.notifications.requests.post")
     def test_send_telegram_api_error(self, mock_post):
         """Test Telegram handles API errors."""
@@ -833,7 +898,9 @@ class TestTelegramNotificationDetails:
 class TestConfigSuggestionsNotification:
     """Test send_config_suggestions function."""
 
-    @patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"})
+    @patch.dict(
+        os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": "slack"}
+    )
     @patch("utils.notifications.send_slack")
     def test_send_config_suggestions(self, mock_slack):
         """Test send_config_suggestions notification."""
@@ -877,7 +944,9 @@ class TestIsEnabledFunction:
         from utils import notifications
         import importlib
 
-        with patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "false", "NOTIFICATION_CHANNELS": ""}):
+        with patch.dict(
+            os.environ, {"NOTIFICATIONS_ENABLED": "false", "NOTIFICATION_CHANNELS": ""}
+        ):
             importlib.reload(notifications)
             assert notifications.is_enabled() is False
 
@@ -886,7 +955,9 @@ class TestIsEnabledFunction:
         from utils import notifications
         import importlib
 
-        with patch.dict(os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": ""}):
+        with patch.dict(
+            os.environ, {"NOTIFICATIONS_ENABLED": "true", "NOTIFICATION_CHANNELS": ""}
+        ):
             importlib.reload(notifications)
             assert notifications.is_enabled() is False
 

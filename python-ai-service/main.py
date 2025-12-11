@@ -93,27 +93,37 @@ ANALYSIS_INTERVAL_MINUTES = AI_CACHE_DURATION_MINUTES
 # These helper functions get settings from settings_manager with fallback to config.yaml
 def get_signal_trend_threshold() -> float:
     """Get trend threshold with fallback to config.yaml"""
-    return settings_manager.get_signal_value("trend_threshold_percent", CONFIG_SIGNAL_TREND_THRESHOLD)
+    return settings_manager.get_signal_value(
+        "trend_threshold_percent", CONFIG_SIGNAL_TREND_THRESHOLD
+    )
 
 
 def get_signal_min_timeframes() -> int:
     """Get min required timeframes with fallback to config.yaml"""
-    return settings_manager.get_signal_value("min_required_timeframes", CONFIG_SIGNAL_MIN_TIMEFRAMES)
+    return settings_manager.get_signal_value(
+        "min_required_timeframes", CONFIG_SIGNAL_MIN_TIMEFRAMES
+    )
 
 
 def get_signal_min_indicators() -> int:
     """Get min required indicators with fallback to config.yaml"""
-    return settings_manager.get_signal_value("min_required_indicators", CONFIG_SIGNAL_MIN_INDICATORS)
+    return settings_manager.get_signal_value(
+        "min_required_indicators", CONFIG_SIGNAL_MIN_INDICATORS
+    )
 
 
 def get_signal_confidence_base() -> float:
     """Get confidence base with fallback to config.yaml"""
-    return settings_manager.get_signal_value("confidence_base", CONFIG_SIGNAL_CONFIDENCE_BASE)
+    return settings_manager.get_signal_value(
+        "confidence_base", CONFIG_SIGNAL_CONFIDENCE_BASE
+    )
 
 
 def get_signal_confidence_per_tf() -> float:
     """Get confidence per timeframe with fallback to config.yaml"""
-    return settings_manager.get_signal_value("confidence_per_timeframe", CONFIG_SIGNAL_CONFIDENCE_PER_TF)
+    return settings_manager.get_signal_value(
+        "confidence_per_timeframe", CONFIG_SIGNAL_CONFIDENCE_PER_TF
+    )
 
 
 def get_rsi_period() -> int:
@@ -153,7 +163,9 @@ SIGNAL_TREND_THRESHOLD = CONFIG_SIGNAL_TREND_THRESHOLD  # Use helper function in
 SIGNAL_MIN_TIMEFRAMES = CONFIG_SIGNAL_MIN_TIMEFRAMES  # Use helper function in code
 SIGNAL_MIN_INDICATORS = CONFIG_SIGNAL_MIN_INDICATORS  # Use helper function in code
 SIGNAL_CONFIDENCE_BASE = CONFIG_SIGNAL_CONFIDENCE_BASE  # Use helper function in code
-SIGNAL_CONFIDENCE_PER_TF = CONFIG_SIGNAL_CONFIDENCE_PER_TF  # Use helper function in code
+SIGNAL_CONFIDENCE_PER_TF = (
+    CONFIG_SIGNAL_CONFIDENCE_PER_TF  # Use helper function in code
+)
 
 
 # === WEBSOCKET MANAGER ===
@@ -252,7 +264,9 @@ async def fetch_analysis_symbols() -> List[str]:
                     # Try nested structure first (data.symbols), then flat structure (symbols)
                     symbols = data.get("data", {}).get("symbols") or data.get("symbols")
                     if symbols:
-                        logger.info(f"📊 Fetched {len(symbols)} symbols from Rust API: {symbols}")
+                        logger.info(
+                            f"📊 Fetched {len(symbols)} symbols from Rust API: {symbols}"
+                        )
                         return symbols
 
         logger.warning("⚠️ Rust API returned no symbols, using fallback")
@@ -311,7 +325,9 @@ async def periodic_analysis_runner():
         try:
             # Fetch symbols dynamically from Rust API (includes user-added symbols)
             analysis_symbols = await fetch_analysis_symbols()
-            logger.info(f"🤖 Starting periodic AI analysis cycle for {len(analysis_symbols)} symbols")
+            logger.info(
+                f"🤖 Starting periodic AI analysis cycle for {len(analysis_symbols)} symbols"
+            )
 
             # Analyze each symbol
             for symbol in analysis_symbols:
@@ -719,7 +735,9 @@ class TrendPredictionRequest(BaseModel):
 class TrendPredictionResponse(BaseModel):
     """Trend prediction response model."""
 
-    trend: str = Field(..., description="Predicted trend direction (Uptrend/Downtrend/Neutral)")
+    trend: str = Field(
+        ..., description="Predicted trend direction (Uptrend/Downtrend/Neutral)"
+    )
     confidence: float = Field(
         ..., ge=0, le=1, description="Confidence in prediction (0.0-1.0)"
     )
@@ -776,18 +794,23 @@ class AIModelPerformance(BaseModel):
 
 class ProjectChatRequest(BaseModel):
     """Request model for project chatbot."""
+
     message: str = Field(..., min_length=1, max_length=2000, description="User message")
-    include_history: bool = Field(default=True, description="Include conversation history")
+    include_history: bool = Field(
+        default=True, description="Include conversation history"
+    )
 
 
 class ProjectChatSource(BaseModel):
     """Source document reference."""
+
     title: str
     path: str
 
 
 class ProjectChatResponse(BaseModel):
     """Response model for project chatbot."""
+
     success: bool
     message: str
     sources: List[ProjectChatSource] = Field(default_factory=list)
@@ -1255,9 +1278,7 @@ class DirectOpenAIClient:
                 }
 
             try:
-                logger.info(
-                    f"🔑 Using API key {key_index + 1}/{len(self.api_keys)}"
-                )
+                logger.info(f"🔑 Using API key {key_index + 1}/{len(self.api_keys)}")
 
                 async with httpx.AsyncClient(timeout=30.0) as client:
                     response = await client.post(
@@ -1351,10 +1372,14 @@ class GPTTradingAnalyzer:
             indicators_4h = {}
 
             if "15m" in dataframes and len(dataframes["15m"]) >= 2:
-                indicators_15m = TechnicalAnalyzer.calculate_indicators(dataframes["15m"])
+                indicators_15m = TechnicalAnalyzer.calculate_indicators(
+                    dataframes["15m"]
+                )
 
             if "30m" in dataframes and len(dataframes["30m"]) >= 2:
-                indicators_30m = TechnicalAnalyzer.calculate_indicators(dataframes["30m"])
+                indicators_30m = TechnicalAnalyzer.calculate_indicators(
+                    dataframes["30m"]
+                )
 
             if "1h" in dataframes and len(dataframes["1h"]) >= 2:
                 indicators_1h = TechnicalAnalyzer.calculate_indicators(dataframes["1h"])
@@ -1366,11 +1391,19 @@ class GPTTradingAnalyzer:
             # Pass all 4 timeframes for comprehensive multi-timeframe analysis
             if self.client is not None:
                 ai_analysis = await self._gpt_analysis(
-                    request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+                    request,
+                    indicators_15m,
+                    indicators_30m,
+                    indicators_1h,
+                    indicators_4h,
                 )
             else:
                 ai_analysis = self._fallback_analysis(
-                    request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+                    request,
+                    indicators_15m,
+                    indicators_30m,
+                    indicators_1h,
+                    indicators_4h,
                 )
 
             # Create response
@@ -1410,10 +1443,18 @@ class GPTTradingAnalyzer:
 
         except Exception as e:
             logger.error(f"Analysis error: {e}")
-            raise HTTPException(status_code=500, detail="AI analysis failed. Check server logs for details.")
+            raise HTTPException(
+                status_code=500,
+                detail="AI analysis failed. Check server logs for details.",
+            )
 
     async def _gpt_analysis(
-        self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
+        self,
+        request: AIAnalysisRequest,
+        indicators_15m: Dict,
+        indicators_30m: Dict,
+        indicators_1h: Dict,
+        indicators_4h: Dict,
     ) -> Dict[str, Any]:
         """GPT-4 powered analysis with multi-timeframe support (15m, 30m, 1h, 4h)."""
         try:
@@ -1480,19 +1521,24 @@ class GPTTradingAnalyzer:
 
             # Parse GPT-4 response
             parsed_result = self._parse_gpt_response(response_content)
-            strategy_scores = parsed_result.get('strategy_scores', {})
-            gpt_confidence = parsed_result.get('confidence', 0.5)
-            gpt_signal = parsed_result.get('signal', 'Neutral')
+            strategy_scores = parsed_result.get("strategy_scores", {})
+            gpt_confidence = parsed_result.get("confidence", 0.5)
+            gpt_signal = parsed_result.get("signal", "Neutral")
 
             # POST-PROCESS: Recalculate confidence based on timeframe agreement
             # GPT-4 often returns 0.5 as default, so we calculate proper confidence ourselves
             recalculated_confidence = self._recalculate_confidence(
-                gpt_signal, request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+                gpt_signal,
+                request,
+                indicators_15m,
+                indicators_30m,
+                indicators_1h,
+                indicators_4h,
             )
 
             # Use recalculated confidence for directional signals, keep GPT's for Neutral
             if gpt_signal in ["Long", "Short"] and gpt_confidence == 0.5:
-                parsed_result['confidence'] = recalculated_confidence
+                parsed_result["confidence"] = recalculated_confidence
                 logger.info(
                     f"📈 Confidence recalculated: GPT returned {gpt_confidence} -> adjusted to {recalculated_confidence}"
                 )
@@ -1522,7 +1568,9 @@ class GPTTradingAnalyzer:
 
             # Fall back to technical analysis
             logger.warning("🔄 Falling back to technical analysis...")
-            return self._fallback_analysis(request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
+            return self._fallback_analysis(
+                request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+            )
 
     def _classify_timeframe(
         self, tf_name: str, indicators: Dict, candles: List, threshold: float
@@ -1608,11 +1656,20 @@ class GPTTradingAnalyzer:
 
         # Apply classification rules (min_indicators required, default 4/5)
         if bullish_points >= min_indicators:
-            return "BULLISH", f"{tf_name}: ✅ BULLISH ({bullish_points}/5 bull) [{signal_str}]"
+            return (
+                "BULLISH",
+                f"{tf_name}: ✅ BULLISH ({bullish_points}/5 bull) [{signal_str}]",
+            )
         elif bearish_points >= min_indicators:
-            return "BEARISH", f"{tf_name}: ⚠️ BEARISH ({bearish_points}/5 bear) [{signal_str}]"
+            return (
+                "BEARISH",
+                f"{tf_name}: ⚠️ BEARISH ({bearish_points}/5 bear) [{signal_str}]",
+            )
         else:
-            return "NEUTRAL", f"{tf_name}: ➖ NEUTRAL ({bullish_points}↑ {bearish_points}↓) [{signal_str}]"
+            return (
+                "NEUTRAL",
+                f"{tf_name}: ➖ NEUTRAL ({bullish_points}↑ {bearish_points}↓) [{signal_str}]",
+            )
 
     def _recalculate_confidence(
         self,
@@ -1649,18 +1706,26 @@ class GPTTradingAnalyzer:
         candles_1h = request.timeframe_data.get("1h", [])
         candles_4h = request.timeframe_data.get("4h", [])
 
-        tf_15m, _ = self._classify_timeframe("15M", indicators_15m, candles_15m, trend_threshold)
-        tf_30m, _ = self._classify_timeframe("30M", indicators_30m, candles_30m, trend_threshold)
-        tf_1h, _ = self._classify_timeframe("1H", indicators_1h, candles_1h, trend_threshold)
-        tf_4h, _ = self._classify_timeframe("4H", indicators_4h, candles_4h, trend_threshold)
+        tf_15m, _ = self._classify_timeframe(
+            "15M", indicators_15m, candles_15m, trend_threshold
+        )
+        tf_30m, _ = self._classify_timeframe(
+            "30M", indicators_30m, candles_30m, trend_threshold
+        )
+        tf_1h, _ = self._classify_timeframe(
+            "1H", indicators_1h, candles_1h, trend_threshold
+        )
+        tf_4h, _ = self._classify_timeframe(
+            "4H", indicators_4h, candles_4h, trend_threshold
+        )
 
         # ==================== WEIGHTED TIMEFRAME VOTING ====================
         # Same weights as fallback_analysis for consistency
         TIMEFRAME_WEIGHTS = {
-            "15M": 0.5,   # Short-term noise, least important
-            "30M": 1.0,   # Short-term trend
-            "1H": 1.5,    # Medium-term trend
-            "4H": 2.0,    # MAIN TREND - most important
+            "15M": 0.5,  # Short-term noise, least important
+            "30M": 1.0,  # Short-term trend
+            "1H": 1.5,  # Medium-term trend
+            "4H": 2.0,  # MAIN TREND - most important
         }
 
         tf_results = {"15M": tf_15m, "30M": tf_30m, "1H": tf_1h, "4H": tf_4h}
@@ -1680,8 +1745,12 @@ class GPTTradingAnalyzer:
                 weighted_bearish += weight
 
         # Normalize to percentage (0-100%)
-        bullish_score = (weighted_bullish / total_weight) * 100 if total_weight > 0 else 0
-        bearish_score = (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
+        bullish_score = (
+            (weighted_bullish / total_weight) * 100 if total_weight > 0 else 0
+        )
+        bearish_score = (
+            (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
+        )
 
         # Main trend (4H) for counter-trend detection
         main_trend = tf_4h
@@ -1691,18 +1760,26 @@ class GPTTradingAnalyzer:
             if main_trend == "BEARISH":
                 # Counter-trend Long = lower confidence
                 confidence = 0.45
-                logger.debug(f"🔄 Confidence: Long but 4H BEARISH (counter-trend) → {confidence}")
+                logger.debug(
+                    f"🔄 Confidence: Long but 4H BEARISH (counter-trend) → {confidence}"
+                )
             else:
                 confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
-                logger.debug(f"🔄 Confidence: Long, bullish_score={bullish_score:.1f}% → {confidence:.2f}")
+                logger.debug(
+                    f"🔄 Confidence: Long, bullish_score={bullish_score:.1f}% → {confidence:.2f}"
+                )
         elif signal == "Short":
             if main_trend == "BULLISH":
                 # Counter-trend Short = lower confidence
                 confidence = 0.45
-                logger.debug(f"🔄 Confidence: Short but 4H BULLISH (counter-trend) → {confidence}")
+                logger.debug(
+                    f"🔄 Confidence: Short but 4H BULLISH (counter-trend) → {confidence}"
+                )
             else:
                 confidence = min(0.85, confidence_base + (bearish_score / 100) * 0.35)
-                logger.debug(f"🔄 Confidence: Short, bearish_score={bearish_score:.1f}% → {confidence:.2f}")
+                logger.debug(
+                    f"🔄 Confidence: Short, bearish_score={bearish_score:.1f}% → {confidence:.2f}"
+                )
         else:
             # Neutral signal
             confidence = 0.40
@@ -1715,7 +1792,12 @@ class GPTTradingAnalyzer:
         return confidence
 
     def _fallback_analysis(
-        self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
+        self,
+        request: AIAnalysisRequest,
+        indicators_15m: Dict,
+        indicators_30m: Dict,
+        indicators_1h: Dict,
+        indicators_4h: Dict,
     ) -> Dict[str, Any]:
         """
         Fallback technical analysis when GPT-4 is not available.
@@ -1742,22 +1824,30 @@ class GPTTradingAnalyzer:
         # Classify each timeframe using unified logic
         # 15M
         candles_15m = request.timeframe_data.get("15m", [])
-        tf_15m, reason_15m = self._classify_timeframe("15M", indicators_15m, candles_15m, trend_threshold)
+        tf_15m, reason_15m = self._classify_timeframe(
+            "15M", indicators_15m, candles_15m, trend_threshold
+        )
         timeframe_results.append((tf_15m, reason_15m))
 
         # 30M
         candles_30m = request.timeframe_data.get("30m", [])
-        tf_30m, reason_30m = self._classify_timeframe("30M", indicators_30m, candles_30m, trend_threshold)
+        tf_30m, reason_30m = self._classify_timeframe(
+            "30M", indicators_30m, candles_30m, trend_threshold
+        )
         timeframe_results.append((tf_30m, reason_30m))
 
         # 1H
         candles_1h = request.timeframe_data.get("1h", [])
-        tf_1h, reason_1h = self._classify_timeframe("1H", indicators_1h, candles_1h, trend_threshold)
+        tf_1h, reason_1h = self._classify_timeframe(
+            "1H", indicators_1h, candles_1h, trend_threshold
+        )
         timeframe_results.append((tf_1h, reason_1h))
 
         # 4H
         candles_4h = request.timeframe_data.get("4h", [])
-        tf_4h, reason_4h = self._classify_timeframe("4H", indicators_4h, candles_4h, trend_threshold)
+        tf_4h, reason_4h = self._classify_timeframe(
+            "4H", indicators_4h, candles_4h, trend_threshold
+        )
         timeframe_results.append((tf_4h, reason_4h))
 
         # Count bullish/bearish timeframes (for logging)
@@ -1777,10 +1867,10 @@ class GPTTradingAnalyzer:
         # Total weight = 5.0
         # ===================================================================
         TIMEFRAME_WEIGHTS = {
-            "15M": 0.5,   # Short-term noise, least important
-            "30M": 1.0,   # Short-term trend
-            "1H": 1.5,    # Medium-term trend
-            "4H": 2.0,    # MAIN TREND - most important
+            "15M": 0.5,  # Short-term noise, least important
+            "30M": 1.0,  # Short-term trend
+            "1H": 1.5,  # Medium-term trend
+            "4H": 2.0,  # MAIN TREND - most important
         }
 
         # Calculate weighted scores
@@ -1800,8 +1890,12 @@ class GPTTradingAnalyzer:
                 weighted_bearish += weight
 
         # Normalize to percentage (0-100%)
-        bullish_score = (weighted_bullish / total_weight) * 100 if total_weight > 0 else 0
-        bearish_score = (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
+        bullish_score = (
+            (weighted_bullish / total_weight) * 100 if total_weight > 0 else 0
+        )
+        bearish_score = (
+            (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
+        )
 
         # SAFETY RULE: Don't trade against main trend (4H)
         # If 4H is BULLISH, don't SHORT. If 4H is BEARISH, don't LONG.
@@ -1816,7 +1910,9 @@ class GPTTradingAnalyzer:
                 # 4H is BEARISH but lower TFs bullish = potential reversal, stay NEUTRAL
                 signal = "Neutral"
                 confidence = 0.45
-                logger.info(f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 4H is BEARISH - staying NEUTRAL")
+                logger.info(
+                    f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 4H is BEARISH - staying NEUTRAL"
+                )
             else:
                 signal = "Long"
                 confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
@@ -1825,7 +1921,9 @@ class GPTTradingAnalyzer:
                 # 4H is BULLISH but lower TFs bearish = pullback, stay NEUTRAL (DON'T SHORT!)
                 signal = "Neutral"
                 confidence = 0.45
-                logger.info(f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 4H is BULLISH - staying NEUTRAL (no counter-trend)")
+                logger.info(
+                    f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 4H is BULLISH - staying NEUTRAL (no counter-trend)"
+                )
             else:
                 signal = "Short"
                 confidence = min(0.85, confidence_base + (bearish_score / 100) * 0.35)
@@ -1842,7 +1940,9 @@ class GPTTradingAnalyzer:
         # Build reasoning string with weighted analysis
         reasons = [reason for _, reason in timeframe_results]
         reasoning += "; ".join(reasons)
-        reasoning += f" | Weighted: Bullish={bullish_score:.0f}%, Bearish={bearish_score:.0f}%"
+        reasoning += (
+            f" | Weighted: Bullish={bullish_score:.0f}%, Bearish={bearish_score:.0f}%"
+        )
         reasoning += f" | 4H_Trend={main_trend}"
         if main_trend == "BULLISH" and bearish_score >= MIN_WEIGHTED_THRESHOLD:
             reasoning += " | ⚠️ Blocked SHORT (counter-trend protection)"
@@ -1858,10 +1958,20 @@ class GPTTradingAnalyzer:
 
         # Create strategy scores based on actual indicator values (not keyword matching)
         # Average scores across all available timeframes for more accurate assessment
-        all_indicators = [ind for ind in [indicators_15m, indicators_30m, indicators_1h, indicators_4h] if ind]
-        selected_strategies = request.strategy_context.selected_strategies if request.strategy_context else None
+        all_indicators = [
+            ind
+            for ind in [indicators_15m, indicators_30m, indicators_1h, indicators_4h]
+            if ind
+        ]
+        selected_strategies = (
+            request.strategy_context.selected_strategies
+            if request.strategy_context
+            else None
+        )
 
-        strategy_scores = self._calculate_strategy_scores_from_indicators(all_indicators, selected_strategies)
+        strategy_scores = self._calculate_strategy_scores_from_indicators(
+            all_indicators, selected_strategies
+        )
         logger.info(f"📊 {symbol} Fallback strategy scores: {strategy_scores}")
 
         return {
@@ -1980,7 +2090,9 @@ class GPTTradingAnalyzer:
 
             # Average scores across timeframes, default to 0.3 if no data
             if scores_per_tf:
-                strategy_scores[strategy] = round(sum(scores_per_tf) / len(scores_per_tf), 2)
+                strategy_scores[strategy] = round(
+                    sum(scores_per_tf) / len(scores_per_tf), 2
+                )
             else:
                 strategy_scores[strategy] = 0.3
 
@@ -2046,7 +2158,12 @@ class GPTTradingAnalyzer:
         )
 
     def _prepare_market_context(
-        self, request: AIAnalysisRequest, indicators_15m: Dict, indicators_30m: Dict, indicators_1h: Dict, indicators_4h: Dict
+        self,
+        request: AIAnalysisRequest,
+        indicators_15m: Dict,
+        indicators_30m: Dict,
+        indicators_1h: Dict,
+        indicators_4h: Dict,
     ) -> str:
         """Prepare market context for GPT-4 with multi-timeframe analysis (15m, 30m, 1h, 4h).
 
@@ -2255,7 +2372,7 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
             try:
                 response_1h = await client.get(
                     f"{RUST_API_URL}/api/market/candles/{symbol}/1h",
-                    params={"limit": 100}  # Need 100 candles for indicators
+                    params={"limit": 100},  # Need 100 candles for indicators
                 )
                 if response_1h.status_code == 200:
                     data = response_1h.json()
@@ -2273,7 +2390,9 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
                         )
                     logger.info(f"📊 Fetched {len(candles_1h)} 1H candles for {symbol}")
                 else:
-                    logger.warning(f"⚠️ Failed to fetch 1H candles for {symbol}: {response_1h.status_code}")
+                    logger.warning(
+                        f"⚠️ Failed to fetch 1H candles for {symbol}: {response_1h.status_code}"
+                    )
             except Exception as e:
                 logger.error(f"❌ Error fetching 1H candles for {symbol}: {e}")
 
@@ -2281,7 +2400,7 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
             try:
                 response_4h = await client.get(
                     f"{RUST_API_URL}/api/market/candles/{symbol}/4h",
-                    params={"limit": 60}  # Need 60 candles for indicators
+                    params={"limit": 60},  # Need 60 candles for indicators
                 )
                 if response_4h.status_code == 200:
                     data = response_4h.json()
@@ -2299,7 +2418,9 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
                         )
                     logger.info(f"📊 Fetched {len(candles_4h)} 4H candles for {symbol}")
                 else:
-                    logger.warning(f"⚠️ Failed to fetch 4H candles for {symbol}: {response_4h.status_code}")
+                    logger.warning(
+                        f"⚠️ Failed to fetch 4H candles for {symbol}: {response_4h.status_code}"
+                    )
             except Exception as e:
                 logger.error(f"❌ Error fetching 4H candles for {symbol}: {e}")
 
@@ -2323,9 +2444,13 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
 
     # Validate we have sufficient data
     if len(candles_1h) < 50:
-        logger.warning(f"⚠️ Insufficient 1H data for {symbol}: {len(candles_1h)} candles (need 50+)")
+        logger.warning(
+            f"⚠️ Insufficient 1H data for {symbol}: {len(candles_1h)} candles (need 50+)"
+        )
     if len(candles_4h) < 50:
-        logger.warning(f"⚠️ Insufficient 4H data for {symbol}: {len(candles_4h)} candles (need 50+)")
+        logger.warning(
+            f"⚠️ Insufficient 4H data for {symbol}: {len(candles_4h)} candles (need 50+)"
+        )
     if current_price == 0:
         logger.warning(f"⚠️ No current price for {symbol}, using last close price")
         if candles_1h:
@@ -2603,7 +2728,9 @@ async def analyze_trading_signals(
         return response
     except Exception as e:
         logger.error(f"❌ Analysis failed: {e}")
-        raise HTTPException(status_code=500, detail="Analysis failed. Check server logs for details.")
+        raise HTTPException(
+            status_code=500, detail="Analysis failed. Check server logs for details."
+        )
 
 
 @app.post("/ai/strategy-recommendations", response_model=List[StrategyRecommendation])
@@ -2634,7 +2761,9 @@ async def get_strategy_recommendations(
 
 @app.post("/ai/market-condition", response_model=MarketConditionAnalysis)
 @limiter.limit("300/minute")  # Rate limit: 300 requests per minute (5 per second)
-async def analyze_market_condition(request: MarketConditionRequest, http_request: Request):
+async def analyze_market_condition(
+    request: MarketConditionRequest, http_request: Request
+):
     """Analyze market condition."""
     logger.info(f"🔍 Market condition analysis for {request.symbol}")
 
@@ -2684,7 +2813,9 @@ async def send_performance_feedback(feedback: PerformanceFeedback, request: Requ
 
 
 @app.post("/predict-trend", response_model=TrendPredictionResponse)
-@limiter.limit("600/minute")  # Rate limit: 600 requests per minute (10 per second) - main prediction endpoint
+@limiter.limit(
+    "600/minute"
+)  # Rate limit: 600 requests per minute (10 per second) - main prediction endpoint
 async def predict_trend(request: TrendPredictionRequest, http_request: Request):
     """
     Predict trend direction using GPT-4 powered multi-timeframe analysis.
@@ -2697,7 +2828,9 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
     GPT-4 considers: EMA200, momentum, RSI, MACD, volume, and price action.
     Falls back to technical analysis if GPT-4 unavailable.
     """
-    logger.info(f"🔮 GPT-4 trend prediction request for {request.symbol} on {request.timeframe}")
+    logger.info(
+        f"🔮 GPT-4 trend prediction request for {request.symbol} on {request.timeframe}"
+    )
 
     try:
         # Fetch market data from MongoDB
@@ -2708,17 +2841,20 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
 
         # Fetch multi-timeframe data for comprehensive analysis
         timeframes = {
-            "1d": 250,   # Daily for major trend
-            "4h": 250,   # 4H for intermediate trend
-            request.timeframe: 250  # Requested timeframe
+            "1d": 250,  # Daily for major trend
+            "4h": 250,  # 4H for intermediate trend
+            request.timeframe: 250,  # Requested timeframe
         }
 
         candles_by_tf = {}
         for tf, limit in timeframes.items():
-            cursor = candles_collection.find(
-                {"symbol": request.symbol, "timeframe": tf},
-                {"_id": 0}
-            ).sort("open_time", ASCENDING).limit(limit)
+            cursor = (
+                candles_collection.find(
+                    {"symbol": request.symbol, "timeframe": tf}, {"_id": 0}
+                )
+                .sort("open_time", ASCENDING)
+                .limit(limit)
+            )
 
             candles = await cursor.to_list(length=limit)
             if len(candles) >= 50:  # Minimum data requirement
@@ -2730,7 +2866,7 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
                 trend="Neutral",
                 confidence=0.3,
                 model="Insufficient Data",
-                timestamp=int(datetime.now(timezone.utc).timestamp())
+                timestamp=int(datetime.now(timezone.utc).timestamp()),
             )
 
         # Try GPT-4 analysis first
@@ -2745,13 +2881,17 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
                     trend=result["trend"],
                     confidence=result["confidence"],
                     model="GPT-5-mini",
-                    timestamp=int(datetime.now(timezone.utc).timestamp())
+                    timestamp=int(datetime.now(timezone.utc).timestamp()),
                 )
             except Exception as e:
-                logger.warning(f"⚠️ GPT-4 analysis failed, falling back to technical: {e}")
+                logger.warning(
+                    f"⚠️ GPT-4 analysis failed, falling back to technical: {e}"
+                )
 
         # Fallback to technical analysis
-        result = _predict_trend_technical(request.symbol, candles_by_tf, request.timeframe)
+        result = _predict_trend_technical(
+            request.symbol, candles_by_tf, request.timeframe
+        )
         logger.info(
             f"✅ Technical trend prediction for {request.symbol}: {result['trend']} "
             f"(confidence: {result['confidence']:.2f})"
@@ -2761,18 +2901,20 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
             trend=result["trend"],
             confidence=result["confidence"],
             model="EMA200-Technical-Fallback",
-            timestamp=int(datetime.now(timezone.utc).timestamp())
+            timestamp=int(datetime.now(timezone.utc).timestamp()),
         )
 
     except Exception as e:
         logger.error(f"❌ Error predicting trend for {request.symbol}: {e}")
         raise HTTPException(
             status_code=500,
-            detail="Failed to predict trend. Check server logs for details."
+            detail="Failed to predict trend. Check server logs for details.",
         )
 
 
-async def _predict_trend_gpt4(symbol: str, candles_by_tf: Dict[str, List]) -> Dict[str, Any]:
+async def _predict_trend_gpt4(
+    symbol: str, candles_by_tf: Dict[str, List]
+) -> Dict[str, Any]:
     """
     Use GPT-4 to predict trend direction based on multi-timeframe analysis.
 
@@ -2791,8 +2933,16 @@ async def _predict_trend_gpt4(symbol: str, candles_by_tf: Dict[str, List]) -> Di
         df = df.sort_values("open_time")
 
         # Calculate key indicators
-        df["ema_200"] = df["close"].ewm(span=200, adjust=False).mean() if len(df) >= 200 else df["close"]
-        df["ema_50"] = df["close"].ewm(span=50, adjust=False).mean() if len(df) >= 50 else df["close"]
+        df["ema_200"] = (
+            df["close"].ewm(span=200, adjust=False).mean()
+            if len(df) >= 200
+            else df["close"]
+        )
+        df["ema_50"] = (
+            df["close"].ewm(span=50, adjust=False).mean()
+            if len(df) >= 50
+            else df["close"]
+        )
 
         current_price = df["close"].iloc[-1]
         ema_200 = df["ema_200"].iloc[-1] if len(df) >= 200 else current_price
@@ -2803,10 +2953,18 @@ async def _predict_trend_gpt4(symbol: str, candles_by_tf: Dict[str, List]) -> Di
         distance_50 = ((current_price - ema_50) / ema_50) * 100 if ema_50 > 0 else 0
 
         # Momentum (last 20 periods)
-        momentum_20 = ((df["close"].iloc[-1] / df["close"].iloc[-20]) - 1) * 100 if len(df) >= 20 else 0
+        momentum_20 = (
+            ((df["close"].iloc[-1] / df["close"].iloc[-20]) - 1) * 100
+            if len(df) >= 20
+            else 0
+        )
 
         # Volume trend
-        volume_ma = df["volume"].rolling(20).mean().iloc[-1] if len(df) >= 20 else df["volume"].iloc[-1]
+        volume_ma = (
+            df["volume"].rolling(20).mean().iloc[-1]
+            if len(df) >= 20
+            else df["volume"].iloc[-1]
+        )
         volume_ratio = df["volume"].iloc[-1] / volume_ma if volume_ma > 0 else 1.0
 
         # RSI if enough data
@@ -2831,7 +2989,7 @@ async def _predict_trend_gpt4(symbol: str, candles_by_tf: Dict[str, List]) -> Di
             "momentum_20": float(momentum_20),
             "volume_ratio": float(volume_ratio),
             "rsi": float(current_rsi),
-            "last_5_closes": [float(x) for x in df["close"].tail(5).tolist()]
+            "last_5_closes": [float(x) for x in df["close"].tail(5).tolist()],
         }
 
     # Build GPT-4 prompt
@@ -2872,15 +3030,12 @@ OUTPUT FORMAT (JSON only, no markdown):
         messages=[
             {
                 "role": "system",
-                "content": "You are an expert cryptocurrency technical analyst. Analyze trends conservatively and explain your reasoning clearly. Always respond with valid JSON."
+                "content": "You are an expert cryptocurrency technical analyst. Analyze trends conservatively and explain your reasoning clearly. Always respond with valid JSON.",
             },
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "user", "content": prompt},
         ],
         temperature=0.0,  # Deterministic
-        max_tokens=400,   # Short response = cheaper
+        max_tokens=400,  # Short response = cheaper
     )
 
     # Parse response
@@ -2899,11 +3054,14 @@ OUTPUT FORMAT (JSON only, no markdown):
         total_requests_count += 1
         total_cost_usd += cost
 
-        logger.info(f"💰 Trend prediction cost: ${cost:.5f} | Tokens: {input_tokens}+{output_tokens} | Total: ${total_cost_usd:.3f}")
+        logger.info(
+            f"💰 Trend prediction cost: ${cost:.5f} | Tokens: {input_tokens}+{output_tokens} | Total: ${total_cost_usd:.3f}"
+        )
 
     # Parse JSON from response (handle markdown code blocks if present)
     import re
-    json_match = re.search(r'\{.*\}', response_content, re.DOTALL)
+
+    json_match = re.search(r"\{.*\}", response_content, re.DOTALL)
     if json_match:
         result = json.loads(json_match.group())
     else:
@@ -2926,7 +3084,9 @@ def _format_tf_data(tf_name: str, indicators: Dict) -> str:
 - Last 5 closes: {indicators.get('last_5_closes', [])}"""
 
 
-def _predict_trend_technical(symbol: str, candles_by_tf: Dict[str, List], primary_tf: str) -> Dict[str, Any]:
+def _predict_trend_technical(
+    symbol: str, candles_by_tf: Dict[str, List], primary_tf: str
+) -> Dict[str, Any]:
     """
     Fallback technical analysis when GPT-4 is unavailable.
     Uses simple EMA200 + momentum logic.
@@ -2965,11 +3125,7 @@ def _predict_trend_technical(symbol: str, candles_by_tf: Dict[str, List], primar
         confidence = 0.50
         reasoning = "Mixed signals - price near EMA200 or conflicting momentum"
 
-    return {
-        "trend": trend,
-        "confidence": confidence,
-        "reasoning": reasoning
-    }
+    return {"trend": trend, "confidence": confidence, "reasoning": reasoning}
 
 
 @app.get("/ai/info", response_model=AIServiceInfo)
@@ -3173,16 +3329,15 @@ async def trigger_config_analysis(request: Request):
 
     except Exception as e:
         logger.error(f"Failed to trigger config analysis: {e}")
-        return {"success": False, "error": "Config analysis failed. Check server logs for details."}
+        return {
+            "success": False,
+            "error": "Config analysis failed. Check server logs for details.",
+        }
 
 
 @app.get("/ai/config-suggestions")
 @limiter.limit("60/minute")  # Rate limit: 60 requests per minute
-async def get_config_suggestions(
-    request: Request,
-    days: int = 30,
-    limit: int = 20
-):
+async def get_config_suggestions(request: Request, days: int = 30, limit: int = 20):
     """
     Get config improvement suggestions history.
 
@@ -3214,16 +3369,16 @@ async def get_config_suggestions(
 
     except Exception as e:
         logger.error(f"Failed to get config suggestions: {e}")
-        return {"success": False, "error": "Failed to get config suggestions. Check server logs for details.", "suggestions": []}
+        return {
+            "success": False,
+            "error": "Failed to get config suggestions. Check server logs for details.",
+            "suggestions": [],
+        }
 
 
 @app.get("/ai/gpt4-analysis-history")
 @limiter.limit("60/minute")  # Rate limit: 60 requests per minute
-async def get_gpt4_analysis_history(
-    request: Request,
-    days: int = 30,
-    limit: int = 20
-):
+async def get_gpt4_analysis_history(request: Request, days: int = 30, limit: int = 20):
     """
     Get GPT-4 self-analysis history.
 
@@ -3255,7 +3410,11 @@ async def get_gpt4_analysis_history(
 
     except Exception as e:
         logger.error(f"Failed to get GPT-4 analysis history: {e}")
-        return {"success": False, "error": "Failed to get analysis history. Check server logs for details.", "analyses": []}
+        return {
+            "success": False,
+            "error": "Failed to get analysis history. Check server logs for details.",
+            "analyses": [],
+        }
 
 
 # === PROJECT CHATBOT ENDPOINTS ===
@@ -3292,8 +3451,7 @@ async def chat_with_project(request: ProjectChatRequest):
 
         # Process the message
         result = await _project_chatbot.chat(
-            message=request.message,
-            include_history=request.include_history
+            message=request.message, include_history=request.include_history
         )
 
         return ProjectChatResponse(

@@ -166,7 +166,10 @@ app.conf.beat_schedule = {
     "analyze-recent-trades": {
         "task": "tasks.ai_improvement.analyze_recent_trades",
         "schedule": crontab(minute="*/30"),  # Every 30 minutes
-        "kwargs": {"only_losing": False, "limit": 10},  # Analyze all trades, max 10 per run
+        "kwargs": {
+            "only_losing": False,
+            "limit": 10,
+        },  # Analyze all trades, max 10 per run
     },
 }
 
