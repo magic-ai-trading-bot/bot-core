@@ -49,7 +49,10 @@ export function Header({ className }: HeaderProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-16 items-center justify-between gap-4 px-6',
+        // Responsive height: h-14 on mobile, h-16 on tablet+
+        'sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between',
+        // Responsive padding: tighter on mobile
+        'gap-2 sm:gap-4 px-3 sm:px-4 md:px-6',
         'backdrop-blur-xl',
         className
       )}
@@ -60,15 +63,15 @@ export function Header({ className }: HeaderProps) {
       }}
     >
       {/* Left section - Mobile menu button + Breadcrumbs */}
-      <div className="flex items-center gap-4">
-        {/* Mobile menu button */}
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Mobile menu button - 44px touch target (WCAG 2.5.5) */}
         {isMobile && (
           <motion.button
             onClick={openMobile}
             whileHover={{ scale: 1.05, backgroundColor: colors.bgHover }}
             whileTap={{ scale: 0.95 }}
             className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-xl',
+              'flex h-11 w-11 items-center justify-center rounded-xl',
               'transition-all duration-200'
             )}
             style={{
@@ -87,33 +90,36 @@ export function Header({ className }: HeaderProps) {
       </div>
 
       {/* Right section - Mode indicator + Theme + Language + Notifications + User menu */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
         {/* Mode indicator badge - clickable to switch modes */}
+        {/* Hide text on very small screens, show icon only */}
         <button
           onClick={handleModeToggle}
           className="cursor-pointer transition-transform hover:scale-105 active:scale-95"
           aria-label={`Switch to ${tradingMode === 'paper' ? 'real' : 'paper'} trading mode`}
         >
-          <ModeIndicatorBadge mode={tradingMode} />
+          <ModeIndicatorBadge mode={tradingMode} compact={isMobile} />
         </button>
 
         {/* Theme toggle */}
         <ThemeToggle />
 
-        {/* Language selector */}
-        <LanguageSelector />
+        {/* Language selector - hidden on mobile to save space */}
+        <div className="hidden sm:block">
+          <LanguageSelector />
+        </div>
 
         {/* Notification dropdown */}
         <NotificationDropdown />
 
-        {/* User menu */}
+        {/* User menu - 44px touch target (WCAG 2.5.5) */}
         <div className="relative">
           <motion.button
             onClick={() => setShowUserMenu(!showUserMenu)}
             whileHover={{ scale: 1.05, backgroundColor: colors.bgHover }}
             whileTap={{ scale: 0.95 }}
             className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-xl',
+              'flex h-11 w-11 items-center justify-center rounded-xl',
               'transition-all duration-200'
             )}
             style={{

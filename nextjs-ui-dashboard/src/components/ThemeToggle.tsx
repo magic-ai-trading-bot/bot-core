@@ -42,10 +42,10 @@ export function ThemeToggle() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Trigger Button */}
+      {/* Trigger Button - 44px touch target (WCAG 2.5.5) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center h-9 w-9 rounded-lg transition-all duration-200"
+        className="flex items-center justify-center h-11 w-11 rounded-xl transition-all duration-200"
         style={{
           backgroundColor: isOpen ? colors.bgSecondary : 'transparent',
           color: colors.textSecondary,

@@ -241,21 +241,21 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading, colors }: HeroStats
 
   if (isLoading) {
     return (
-      <GlassCard className="p-8">
+      <GlassCard className="p-4 sm:p-6 md:p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-4 w-24 bg-white/10 rounded" />
-          <div className="h-16 w-64 bg-white/10 rounded" />
-          <div className="h-8 w-48 bg-white/10 rounded" />
+          <div className="h-12 sm:h-16 w-48 sm:w-64 bg-white/10 rounded" />
+          <div className="h-8 w-36 sm:w-48 bg-white/10 rounded" />
         </div>
       </GlassCard>
     );
   }
 
   return (
-    <GlassCard className="relative p-8">
-      {/* Background glow effect */}
+    <GlassCard className="relative p-4 sm:p-6 md:p-8">
+      {/* Background glow effect - hidden on mobile for performance */}
       <div
-        className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
+        className="hidden sm:block absolute top-0 right-0 w-48 sm:w-64 md:w-96 h-48 sm:h-64 md:h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
         style={{
           background: isProfitable
             ? 'radial-gradient(circle, rgba(34, 197, 94, 0.4), transparent 70%)'
@@ -285,31 +285,31 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading, colors }: HeroStats
       </div>
 
       <div className="relative z-10">
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
+        {/* Header row - responsive flex direction */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div
-              className="p-2 rounded-xl"
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl"
               style={{
                 background: 'rgba(0, 217, 255, 0.1)',
                 border: '1px solid rgba(0, 217, 255, 0.2)',
               }}
             >
-              <BarChart3 className="w-5 h-5 text-cyan-400" />
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
             </div>
             <div>
-              <p className="text-sm uppercase tracking-wider font-medium" style={{ color: colors.textMuted }}>
+              <p className="text-xs sm:text-sm uppercase tracking-wider font-medium" style={{ color: colors.textMuted }}>
                 {t('hero.totalBalance')}
               </p>
-              <p className="text-xs" style={{ color: colors.textMuted }}>
+              <p className="text-xs hidden sm:block" style={{ color: colors.textMuted }}>
                 {mode === 'paper' ? t('hero.paperTrading') : t('hero.liveTrading')}
               </p>
             </div>
           </div>
 
-          {/* Mode badge */}
+          {/* Mode badge - smaller on mobile */}
           <motion.div
-            className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider"
             style={{
               background:
                 mode === 'paper'
@@ -328,23 +328,23 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading, colors }: HeroStats
           </motion.div>
         </div>
 
-        {/* Main balance with gradient text */}
+        {/* Main balance with gradient text - responsive typography */}
         <motion.div
-          className="mb-6"
+          className="mb-4 sm:mb-6"
           variants={pulseVariants}
           animate={isProfitable ? 'pulse' : undefined}
         >
           <GradientText
-            className="text-6xl md:text-7xl font-black tracking-tight"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight"
             gradient={isProfitable ? colors.gradientProfit : colors.gradientLoss}
           >
             <AnimatedValue value={balance} prefix="$" decimals={2} />
           </GradientText>
         </motion.div>
 
-        {/* PnL section with glow */}
+        {/* PnL section with glow - responsive */}
         <motion.div
-          className="inline-flex items-center gap-4 p-4 rounded-xl"
+          className="inline-flex items-center gap-2 sm:gap-4 p-2 sm:p-4 rounded-lg sm:rounded-xl"
           style={{
             background: isProfitable
               ? 'rgba(34, 197, 94, 0.1)'
@@ -703,11 +703,11 @@ const PerformanceChart = ({ isLoading, closedTrades = [], currentBalance = 10000
 
   return (
     <GlassCard className="p-6 h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      {/* Header - Responsive: stack on mobile, row on desktop */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
           <div
-            className="p-2 rounded-xl"
+            className="p-2 rounded-xl flex-shrink-0"
             style={{
               background: 'rgba(0, 217, 255, 0.1)',
               border: '1px solid rgba(0, 217, 255, 0.2)',
@@ -715,20 +715,20 @@ const PerformanceChart = ({ isLoading, closedTrades = [], currentBalance = 10000
           >
             <Activity className="w-5 h-5 text-cyan-400" />
           </div>
-          <div>
-            <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{t('chart.portfolioPerformance')}</h3>
-            <p className="text-sm" style={{ color: colors.textMuted }}>{t('chart.trackGains')}</p>
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-bold truncate sm:whitespace-normal" style={{ color: colors.textPrimary }}>{t('chart.portfolioPerformance')}</h3>
+            <p className="text-xs sm:text-sm truncate sm:whitespace-normal" style={{ color: colors.textMuted }}>{t('chart.trackGains')}</p>
           </div>
         </div>
 
         {/* Time range selector */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.borderSubtle}` }}>
+        <div className="flex gap-1 p-1 rounded-xl flex-shrink-0 self-start sm:self-auto" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.borderSubtle}` }}>
           {timeRanges.map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
               className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider',
+                'px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider',
                 'transition-all duration-300',
                 timeRange === range
                   ? 'bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-cyan-400 border border-cyan-500/20'
@@ -861,11 +861,11 @@ const AISignalsPanel = ({ signals = [], isLoading, colors }: AISignalsPanelProps
 
   return (
     <GlassCard className="p-6 h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
           <motion.div
-            className="p-2 rounded-xl"
+            className="p-2 rounded-xl flex-shrink-0"
             style={{
               background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(0, 217, 255, 0.2))',
               border: '1px solid rgba(0, 217, 255, 0.3)',
@@ -881,14 +881,14 @@ const AISignalsPanel = ({ signals = [], isLoading, colors }: AISignalsPanelProps
           >
             <Brain className="w-5 h-5 text-cyan-400" />
           </motion.div>
-          <div>
-            <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{t('aiSignals.title')}</h3>
-            <p className="text-sm" style={{ color: colors.textMuted }}>{t('aiSignals.subtitle')}</p>
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-bold truncate sm:whitespace-normal" style={{ color: colors.textPrimary }}>{t('aiSignals.title')}</h3>
+            <p className="text-xs sm:text-sm truncate sm:whitespace-normal" style={{ color: colors.textMuted }}>{t('aiSignals.subtitle')}</p>
           </div>
         </div>
 
         {/* Live indicator */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0 self-start sm:self-auto">
           <motion.div
             className="w-2 h-2 rounded-full bg-emerald-500"
             animate={{ opacity: [1, 0.3, 1] }}
@@ -1024,11 +1024,11 @@ const RecentTrades = ({ trades = [], isLoading, colors }: RecentTradesProps) => 
 
   return (
     <GlassCard className="p-6 h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
           <div
-            className="p-2 rounded-xl"
+            className="p-2 rounded-xl flex-shrink-0"
             style={{
               background: 'rgba(245, 158, 11, 0.1)',
               border: '1px solid rgba(245, 158, 11, 0.2)',
@@ -1036,13 +1036,13 @@ const RecentTrades = ({ trades = [], isLoading, colors }: RecentTradesProps) => 
           >
             <Clock className="w-5 h-5 text-amber-400" />
           </div>
-          <div>
-            <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{t('trades.title')}</h3>
-            <p className="text-sm" style={{ color: colors.textMuted }}>{t('trades.subtitle')}</p>
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-bold truncate sm:whitespace-normal" style={{ color: colors.textPrimary }}>{t('trades.title')}</h3>
+            <p className="text-xs sm:text-sm truncate sm:whitespace-normal" style={{ color: colors.textMuted }}>{t('trades.subtitle')}</p>
           </div>
         </div>
 
-        <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-white/5 transition-all" style={{ color: colors.textMuted }}>
+        <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-white/5 transition-all flex-shrink-0 self-start sm:self-auto" style={{ color: colors.textMuted }}>
           {t('trades.viewAll')}
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -1191,11 +1191,11 @@ const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading, co
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         {[...Array(4)].map((_, i) => (
           <div
             key={i}
-            className="h-24 bg-white/[0.03] rounded-xl animate-pulse"
+            className="h-20 sm:h-24 bg-white/[0.03] rounded-xl animate-pulse"
           />
         ))}
       </div>
@@ -1204,7 +1204,7 @@ const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading, co
 
   return (
     <motion.div
-      className="grid grid-cols-2 md:grid-cols-4 gap-4"
+      className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -1214,21 +1214,21 @@ const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading, co
           key={stat.label}
           variants={itemVariants}
           whileHover={{ y: -2, scale: 1.02 }}
-          className="p-4 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300"
+          className="p-3 sm:p-4 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300"
         >
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
             <div
-              className="p-2 rounded-lg"
+              className="p-1.5 sm:p-2 rounded-lg"
               style={{
                 background: stat.bgColor,
                 border: `1px solid ${stat.borderColor}`,
               }}
             >
-              <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
+              <stat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: stat.color }} />
             </div>
-            <span className="text-sm font-medium" style={{ color: colors.textMuted }}>{stat.label}</span>
+            <span className="text-xs sm:text-sm font-medium truncate" style={{ color: colors.textMuted }}>{stat.label}</span>
           </div>
-          <div className="text-2xl font-bold" style={{ color: stat.color }}>
+          <div className="text-lg sm:text-xl md:text-2xl font-bold" style={{ color: stat.color }}>
             {stat.value}
           </div>
         </motion.div>
@@ -1301,7 +1301,7 @@ const Dashboard = () => {
   return (
     <ErrorBoundary>
       <motion.div
-        className="min-h-screen p-6 space-y-8"
+        className="min-h-screen p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 md:space-y-8"
         style={{ backgroundColor: colors.bgPrimary }}
         variants={containerVariants}
         initial="hidden"
@@ -1332,20 +1332,20 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {/* Header */}
-        <motion.div variants={itemVariants} className="flex items-center justify-between">
+        {/* Header - responsive with flex-wrap for mobile */}
+        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-black tracking-tight" style={{ color: colors.textPrimary }}>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: colors.textPrimary }}>
               {t('welcomeBack')}
             </h1>
-            <p className="mt-1" style={{ color: colors.textMuted }}>
+            <p className="mt-1 text-sm sm:text-base" style={{ color: colors.textMuted }}>
               {t('subtitle')}
             </p>
           </div>
 
-          {/* Live status indicator */}
+          {/* Live status indicator - compact on mobile */}
           <div
-            className="flex items-center gap-3 px-4 py-2 rounded-full"
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full"
             style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.borderSubtle}` }}
           >
             <motion.div
@@ -1353,7 +1353,7 @@ const Dashboard = () => {
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
-            <span className="text-sm font-medium" style={{ color: colors.textSecondary }}>{t('marketsOpen')}</span>
+            <span className="text-xs sm:text-sm font-medium" style={{ color: colors.textSecondary }}>{t('marketsOpen')}</span>
           </div>
         </motion.div>
 
@@ -1389,7 +1389,7 @@ const Dashboard = () => {
         </motion.div>
 
         {/* Main Grid: Performance Chart + AI Signals + Recent Trades */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {/* Performance Chart - Takes 2 columns on XL */}
           <motion.div variants={itemVariants} className="lg:col-span-2 xl:col-span-2">
             <PerformanceChart

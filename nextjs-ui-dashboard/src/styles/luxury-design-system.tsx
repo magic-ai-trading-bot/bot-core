@@ -253,10 +253,11 @@ export function GlowIcon({
   size = 'md',
   className = '',
 }: GlowIconProps) {
+  // WCAG 2.5.5: Touch targets must be at least 44x44px for interactive elements
   const sizes = {
-    sm: { container: 'p-1.5', icon: 'w-3.5 h-3.5' },
-    md: { container: 'p-2', icon: 'w-4 h-4' },
-    lg: { container: 'p-3', icon: 'w-5 h-5' },
+    sm: { container: 'p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center', icon: 'w-4 h-4' },
+    md: { container: 'p-3 min-w-[44px] min-h-[44px] flex items-center justify-center', icon: 'w-5 h-5' },
+    lg: { container: 'p-3.5 min-w-[48px] min-h-[48px] flex items-center justify-center', icon: 'w-6 h-6' },
   };
 
   const rgb = color === luxuryColors.cyan ? '0, 217, 255' :
@@ -410,10 +411,11 @@ export function PremiumButton({
     },
   };
 
+  // WCAG 2.5.5: Touch targets must be at least 44x44px
   const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2.5 text-sm',
-    lg: 'px-6 py-3.5 text-base',
+    sm: 'px-4 py-2.5 text-xs min-h-[44px]',      // 44px height
+    md: 'px-5 py-3 text-sm min-h-[44px]',        // 44px height
+    lg: 'px-6 py-4 text-base min-h-[48px]',      // 48px height
   };
 
   const style = variants[variant];

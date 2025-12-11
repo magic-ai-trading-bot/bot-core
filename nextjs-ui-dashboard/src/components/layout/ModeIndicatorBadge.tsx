@@ -16,9 +16,11 @@ import { duration } from '@/styles/tokens/animations';
 interface ModeIndicatorBadgeProps {
   mode: 'paper' | 'real';
   className?: string;
+  /** Hide text label on mobile - show icon only */
+  compact?: boolean;
 }
 
-export function ModeIndicatorBadge({ mode, className }: ModeIndicatorBadgeProps) {
+export function ModeIndicatorBadge({ mode, className, compact = false }: ModeIndicatorBadgeProps) {
   const { t } = useTranslation('common');
   const isPaper = mode === 'paper';
 
@@ -28,8 +30,10 @@ export function ModeIndicatorBadge({ mode, className }: ModeIndicatorBadgeProps)
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: duration.normal }}
       className={cn(
-        'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium',
+        'inline-flex items-center rounded-full text-sm font-medium',
         'border transition-all',
+        // Compact mode: smaller padding, no gap (icon only)
+        compact ? 'p-2' : 'gap-2 px-3 py-1.5',
         className
       )}
       style={{
@@ -69,13 +73,15 @@ export function ModeIndicatorBadge({ mode, className }: ModeIndicatorBadgeProps)
         )}
       </motion.div>
 
-      {/* Label */}
-      <span className="font-semibold">
-        {isPaper ? t('mode.paper') : t('mode.real')}
-      </span>
+      {/* Label - hidden in compact mode */}
+      {!compact && (
+        <span className="font-semibold">
+          {isPaper ? t('mode.paper') : t('mode.real')}
+        </span>
+      )}
 
-      {/* Pulse dot for real mode */}
-      {!isPaper && (
+      {/* Pulse dot for real mode - hidden in compact mode */}
+      {!isPaper && !compact && (
         <motion.div
           animate={{
             scale: [1, 1.3, 1],

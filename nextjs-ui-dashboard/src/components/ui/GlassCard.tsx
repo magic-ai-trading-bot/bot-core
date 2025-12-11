@@ -103,14 +103,14 @@ export function GlassCardWithHeader({
 }: GlassCardWithHeaderProps) {
   return (
     <GlassCard {...props}>
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-100">{title}</h3>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div className="min-w-0 flex-shrink">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-100 truncate sm:whitespace-normal">{title}</h3>
           {subtitle && (
-            <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">{subtitle}</p>
           )}
         </div>
-        {action && <div>{action}</div>}
+        {action && <div className="flex-shrink-0">{action}</div>}
       </div>
       {children}
     </GlassCard>

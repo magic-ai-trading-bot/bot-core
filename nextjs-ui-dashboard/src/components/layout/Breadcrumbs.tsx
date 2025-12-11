@@ -66,7 +66,7 @@ export function Breadcrumbs() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1">
+    <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1">
       {breadcrumbs.map((crumb, index) => {
         const isLast = index === breadcrumbs.length - 1;
         const isFirst = index === 0;
