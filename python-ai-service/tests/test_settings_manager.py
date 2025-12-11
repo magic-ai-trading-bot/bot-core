@@ -105,7 +105,7 @@ class TestSettingsManagerGetIndicatorValue:
         sm = SettingsManager()
         sm.settings_cache = {
             "indicators": {"rsi_period": 20, "macd_fast": 15},
-            "signal": {}
+            "signal": {},
         }
         assert sm.get_indicator_value("rsi_period") == 20
         assert sm.get_indicator_value("macd_fast") == 15
@@ -136,7 +136,7 @@ class TestSettingsManagerGetSignalValue:
         sm = SettingsManager()
         sm.settings_cache = {
             "indicators": {},
-            "signal": {"trend_threshold_percent": 1.0, "min_required_timeframes": 4}
+            "signal": {"trend_threshold_percent": 1.0, "min_required_timeframes": 4},
         }
         assert sm.get_signal_value("trend_threshold_percent") == 1.0
         assert sm.get_signal_value("min_required_timeframes") == 4
@@ -163,7 +163,7 @@ class TestSettingsManagerGetAllSettings:
         sm = SettingsManager()
         sm.settings_cache = {
             "indicators": {"rsi_period": 21, "custom": "value"},
-            "signal": {}
+            "signal": {},
         }
         indicators = sm.get_all_indicator_settings()
         assert indicators["rsi_period"] == 21
@@ -181,7 +181,7 @@ class TestSettingsManagerGetAllSettings:
         sm = SettingsManager()
         sm.settings_cache = {
             "indicators": {},
-            "signal": {"trend_threshold_percent": 1.5, "custom": "value"}
+            "signal": {"trend_threshold_percent": 1.5, "custom": "value"},
         }
         signal = sm.get_all_signal_settings()
         assert signal["trend_threshold_percent"] == 1.5
@@ -209,8 +209,8 @@ class TestSettingsManagerInitialize:
             "success": True,
             "data": {
                 "indicators": {"rsi_period": 14},
-                "signal": {"trend_threshold_percent": 0.8}
-            }
+                "signal": {"trend_threshold_percent": 0.8},
+            },
         }
         mock_response.raise_for_status = MagicMock()
 
@@ -261,7 +261,7 @@ class TestSettingsManagerGetSettings:
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "success": True,
-            "data": {"indicators": {"rsi_period": 20}, "signal": {}}
+            "data": {"indicators": {"rsi_period": 20}, "signal": {}},
         }
         mock_response.raise_for_status = MagicMock()
 
@@ -282,7 +282,7 @@ class TestSettingsManagerGetSettings:
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "success": True,
-            "data": {"indicators": {"rsi_period": 25}, "signal": {}}
+            "data": {"indicators": {"rsi_period": 25}, "signal": {}},
         }
         mock_response.raise_for_status = MagicMock()
 
@@ -299,10 +299,7 @@ class TestSettingsManagerGetSettings:
         sm = SettingsManager()
 
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "success": False,
-            "error": "Internal error"
-        }
+        mock_response.json.return_value = {"success": False, "error": "Internal error"}
         mock_response.raise_for_status = MagicMock()
 
         with patch("httpx.AsyncClient") as mock_client:
@@ -397,7 +394,7 @@ class TestRefreshSettingsPeriodically:
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "success": True,
-            "data": {"indicators": {"rsi_period": 14}, "signal": {}}
+            "data": {"indicators": {"rsi_period": 14}, "signal": {}},
         }
         mock_response.raise_for_status = MagicMock()
 
@@ -451,4 +448,7 @@ class TestGlobalSettingsManager:
     def test_global_settings_manager_default_url(self):
         """Test global settings_manager uses default URL."""
         # The global instance should have the default URL
-        assert "rust-core-engine" in settings_manager.rust_api_url or "RUST_API_URL" in str(settings_manager.rust_api_url)
+        assert (
+            "rust-core-engine" in settings_manager.rust_api_url
+            or "RUST_API_URL" in str(settings_manager.rust_api_url)
+        )

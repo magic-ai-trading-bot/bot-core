@@ -12,6 +12,7 @@ import json
 # Skip all tests if celery is not installed
 try:
     import celery
+
     CELERY_AVAILABLE = True
 except ImportError:
     CELERY_AVAILABLE = False
@@ -29,6 +30,7 @@ class TestGPT4SelfAnalysis:
     def _mock_http_response(self, url, **kwargs):
         """Helper to create mock HTTP responses based on URL"""
         from urllib.parse import urlparse
+
         mock_resp = MagicMock()
         mock_resp.status_code = 200
 
@@ -47,7 +49,9 @@ class TestGPT4SelfAnalysis:
     @patch("tasks.ai_improvement.adaptive_retrain")
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.OpenAI")
-    def test_gpt4_analysis_recommends_retrain(self, mock_openai_class, mock_requests, mock_adaptive_retrain):
+    def test_gpt4_analysis_recommends_retrain(
+        self, mock_openai_class, mock_requests, mock_adaptive_retrain
+    ):
         """Test GPT-4 analysis recommending retraining"""
         from tasks.ai_improvement import gpt4_self_analysis
 
@@ -192,7 +196,9 @@ class TestGPT4SelfAnalysis:
         # Mock OpenAI client that raises exception
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
-        mock_client.chat.completions.create.side_effect = Exception("OpenAI API rate limit exceeded")
+        mock_client.chat.completions.create.side_effect = Exception(
+            "OpenAI API rate limit exceeded"
+        )
 
         with pytest.raises(Exception):
             gpt4_self_analysis()
@@ -221,7 +227,9 @@ class TestGPT4SelfAnalysis:
     @patch("tasks.ai_improvement.adaptive_retrain")
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.OpenAI")
-    def test_gpt4_analysis_insufficient_data(self, mock_openai_class, mock_requests, mock_adaptive_retrain):
+    def test_gpt4_analysis_insufficient_data(
+        self, mock_openai_class, mock_requests, mock_adaptive_retrain
+    ):
         """Test GPT-4 analysis with insufficient historical data"""
         from tasks.ai_improvement import gpt4_self_analysis
 
@@ -235,13 +243,15 @@ class TestGPT4SelfAnalysis:
             choices=[
                 MagicMock(
                     message=MagicMock(
-                        content=json.dumps({
-                            "recommendation": "wait",
-                            "confidence": 0.50,
-                            "reasoning": "Insufficient data for analysis",
-                            "urgency": "low",
-                            "suggested_actions": ["gather_more_data"],
-                        })
+                        content=json.dumps(
+                            {
+                                "recommendation": "wait",
+                                "confidence": 0.50,
+                                "reasoning": "Insufficient data for analysis",
+                                "urgency": "low",
+                                "suggested_actions": ["gather_more_data"],
+                            }
+                        )
                     )
                 )
             ],
@@ -270,7 +280,9 @@ class TestAdaptiveRetrain:
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.OpenAI")
     @patch("tasks.ai_improvement.storage")
-    def test_adaptive_retrain_single_model(self, mock_storage, mock_openai_class, mock_get):
+    def test_adaptive_retrain_single_model(
+        self, mock_storage, mock_openai_class, mock_get
+    ):
         """Test adaptive config optimization with GPT-4"""
         from tasks.ai_improvement import adaptive_retrain
 
@@ -279,7 +291,10 @@ class TestAdaptiveRetrain:
             mock_resp = MagicMock()
             mock_resp.status_code = 200
             if "indicator-settings" in url:
-                mock_resp.json.return_value = {"rsi": {"period": 14}, "macd": {"fast": 12}}
+                mock_resp.json.return_value = {
+                    "rsi": {"period": 14},
+                    "macd": {"fast": 12},
+                }
             elif "signal-settings" in url:
                 mock_resp.json.return_value = {"min_confidence": 0.65}
             elif "trades/closed" in url:
@@ -319,7 +334,9 @@ class TestAdaptiveRetrain:
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.OpenAI")
     @patch("tasks.ai_improvement.storage")
-    def test_adaptive_retrain_multiple_models(self, mock_storage, mock_openai_class, mock_get):
+    def test_adaptive_retrain_multiple_models(
+        self, mock_storage, mock_openai_class, mock_get
+    ):
         """Test adaptive config optimization analyzes multiple aspects"""
         from tasks.ai_improvement import adaptive_retrain
 
@@ -361,7 +378,9 @@ class TestAdaptiveRetrain:
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.OpenAI")
     @patch("tasks.ai_improvement.storage")
-    def test_adaptive_retrain_api_failure(self, mock_storage, mock_openai_class, mock_get):
+    def test_adaptive_retrain_api_failure(
+        self, mock_storage, mock_openai_class, mock_get
+    ):
         """Test adaptive retrain handles API failures gracefully"""
         from tasks.ai_improvement import adaptive_retrain
 
@@ -375,7 +394,9 @@ class TestAdaptiveRetrain:
 
         # Should handle error gracefully
         try:
-            result = adaptive_retrain(model_types=["lstm"], analysis_result=analysis_result)
+            result = adaptive_retrain(
+                model_types=["lstm"], analysis_result=analysis_result
+            )
             assert result["status"] in ["success", "error", "skipped"]
         except Exception:
             # It's also acceptable if it raises an exception
@@ -385,7 +406,9 @@ class TestAdaptiveRetrain:
     @patch("tasks.ai_improvement.requests.get")
     @patch("tasks.ai_improvement.OpenAI")
     @patch("tasks.ai_improvement.storage")
-    def test_adaptive_retrain_stores_history(self, mock_storage, mock_openai_class, mock_get):
+    def test_adaptive_retrain_stores_history(
+        self, mock_storage, mock_openai_class, mock_get
+    ):
         """Test that config suggestions are stored in MongoDB"""
         from tasks.ai_improvement import adaptive_retrain
 
@@ -553,6 +576,7 @@ class TestAIImprovementTasksIntegration:
         # Mock HTTP requests with proper API response format
         def mock_http_response(url, **kwargs):
             from urllib.parse import urlparse
+
             mock_resp = MagicMock()
             mock_resp.status_code = 200
             if "trades/closed" in url:

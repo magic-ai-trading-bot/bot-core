@@ -30,7 +30,7 @@ class TestDocumentIndex:
             path="test/path.md",
             content="Short content",
             doc_type="test",
-            title="Test Title"
+            title="Test Title",
         )
 
         assert len(index.documents) == 1
@@ -63,10 +63,7 @@ class TestDocumentIndex:
         long_content = "A" * 3000
 
         index.add_document(
-            path="test/long.md",
-            content=long_content,
-            doc_type="test",
-            title="Long Doc"
+            path="test/long.md", content=long_content, doc_type="test", title="Long Doc"
         )
 
         # Should have multiple chunks
@@ -121,13 +118,18 @@ class TestDocumentIndex:
         from services.project_chatbot import DocumentIndex
 
         index = DocumentIndex()
-        index.add_document("doc1.md", "This is about trading strategies", "guide", "Trading")
+        index.add_document(
+            "doc1.md", "This is about trading strategies", "guide", "Trading"
+        )
         index.add_document("doc2.md", "This is about authentication", "guide", "Auth")
 
         results = index.search("trading")
 
         assert len(results) >= 1
-        assert "trading" in results[0]["content"].lower() or "trading" in results[0]["title"].lower()
+        assert (
+            "trading" in results[0]["content"].lower()
+            or "trading" in results[0]["title"].lower()
+        )
 
     def test_search_title_match_higher_score(self):
         """Test search gives higher score to title matches."""
@@ -141,14 +143,19 @@ class TestDocumentIndex:
 
         # Title match should come first
         assert len(results) >= 2
-        assert "trading" in results[0]["title"].lower() or "trading" in results[0]["content"].lower()
+        assert (
+            "trading" in results[0]["title"].lower()
+            or "trading" in results[0]["content"].lower()
+        )
 
     def test_search_with_synonyms(self):
         """Test search expands Vietnamese synonyms."""
         from services.project_chatbot import DocumentIndex
 
         index = DocumentIndex()
-        index.add_document("doc1.md", "Content about security features", "guide", "Security")
+        index.add_document(
+            "doc1.md", "Content about security features", "guide", "Security"
+        )
         index.add_document("doc2.md", "Content about other topics", "guide", "Other")
 
         # Search with Vietnamese term should find security doc
@@ -168,7 +175,10 @@ class TestDocumentIndex:
 
         assert len(results) >= 1
         # API doc should be boosted
-        assert "api" in results[0]["doc_type"].lower() or "api" in results[0]["path"].lower()
+        assert (
+            "api" in results[0]["doc_type"].lower()
+            or "api" in results[0]["path"].lower()
+        )
 
     def test_search_top_k_limit(self):
         """Test search respects top_k limit."""
@@ -176,7 +186,9 @@ class TestDocumentIndex:
 
         index = DocumentIndex()
         for i in range(10):
-            index.add_document(f"doc{i}.md", f"Trading content {i}", "guide", f"Doc {i}")
+            index.add_document(
+                f"doc{i}.md", f"Trading content {i}", "guide", f"Doc {i}"
+            )
 
         results = index.search("trading", top_k=3)
 
@@ -239,7 +251,10 @@ class TestProjectChatbot:
         chatbot = ProjectChatbot()
         context = chatbot._build_context([])
 
-        assert context == "Khong tim thay tai lieu lien quan." or "Không tìm thấy" in context
+        assert (
+            context == "Khong tim thay tai lieu lien quan."
+            or "Không tìm thấy" in context
+        )
 
     def test_build_context_with_docs(self):
         """Test _build_context with documents."""
@@ -277,7 +292,9 @@ class TestProjectChatbot:
         chatbot._indexed = False
 
         with patch.object(chatbot, "initialize", new_callable=AsyncMock) as mock_init:
-            with patch.object(chatbot, "_fallback_response", new_callable=AsyncMock) as mock_fallback:
+            with patch.object(
+                chatbot, "_fallback_response", new_callable=AsyncMock
+            ) as mock_fallback:
                 mock_fallback.return_value = {"success": True, "message": "Test"}
                 await chatbot.chat("test message")
 
@@ -289,10 +306,12 @@ class TestProjectChatbot:
         from services.project_chatbot import ProjectChatbot
 
         mock_client = AsyncMock()
-        mock_client.chat_completions_create = AsyncMock(return_value={
-            "choices": [{"message": {"content": "GPT response"}}],
-            "usage": {"total_tokens": 100}
-        })
+        mock_client.chat_completions_create = AsyncMock(
+            return_value={
+                "choices": [{"message": {"content": "GPT response"}}],
+                "usage": {"total_tokens": 100},
+            }
+        )
 
         chatbot = ProjectChatbot(openai_client=mock_client)
         chatbot._indexed = True
@@ -310,7 +329,9 @@ class TestProjectChatbot:
         from services.project_chatbot import ProjectChatbot
 
         mock_client = AsyncMock()
-        mock_client.chat_completions_create = AsyncMock(side_effect=Exception("API Error"))
+        mock_client.chat_completions_create = AsyncMock(
+            side_effect=Exception("API Error")
+        )
 
         chatbot = ProjectChatbot(openai_client=mock_client)
         chatbot._indexed = True
@@ -339,10 +360,12 @@ class TestProjectChatbot:
         from services.project_chatbot import ProjectChatbot
 
         mock_client = AsyncMock()
-        mock_client.chat_completions_create = AsyncMock(return_value={
-            "choices": [{"message": {"content": "Response"}}],
-            "usage": {}
-        })
+        mock_client.chat_completions_create = AsyncMock(
+            return_value={
+                "choices": [{"message": {"content": "Response"}}],
+                "usage": {},
+            }
+        )
 
         chatbot = ProjectChatbot(openai_client=mock_client)
         chatbot._indexed = True
@@ -350,7 +373,9 @@ class TestProjectChatbot:
         # Add many messages to history
         for i in range(25):
             chatbot.conversation_history.append({"role": "user", "content": f"msg{i}"})
-            chatbot.conversation_history.append({"role": "assistant", "content": f"resp{i}"})
+            chatbot.conversation_history.append(
+                {"role": "assistant", "content": f"resp{i}"}
+            )
 
         await chatbot.chat("new message")
 
@@ -384,7 +409,11 @@ class TestProjectChatbot:
         result = await chatbot._fallback_response("Cách bắt đầu sử dụng?", [])
 
         assert result["success"] is True
-        assert "setup" in result["message"].lower() or "clone" in result["message"].lower() or "git" in result["message"].lower()
+        assert (
+            "setup" in result["message"].lower()
+            or "clone" in result["message"].lower()
+            or "git" in result["message"].lower()
+        )
 
     @pytest.mark.asyncio
     async def test_fallback_response_strategies(self):
@@ -411,7 +440,10 @@ class TestProjectChatbot:
 
         assert result["success"] is True
         # Should mention security features
-        assert any(word in result["message"].lower() for word in ["bao mat", "security", "risk", "an toan", "bảo mật"])
+        assert any(
+            word in result["message"].lower()
+            for word in ["bao mat", "security", "risk", "an toan", "bảo mật"]
+        )
 
     @pytest.mark.asyncio
     async def test_fallback_response_with_relevant_docs(self):
@@ -421,7 +453,9 @@ class TestProjectChatbot:
         chatbot = ProjectChatbot()
         chatbot._indexed = True
 
-        docs = [{"title": "Test", "path": "test.md", "content": "Relevant content here"}]
+        docs = [
+            {"title": "Test", "path": "test.md", "content": "Relevant content here"}
+        ]
         result = await chatbot._fallback_response("unknown question", docs)
 
         assert result["success"] is True
@@ -448,7 +482,7 @@ class TestProjectChatbot:
         chatbot = ProjectChatbot()
         chatbot.conversation_history = [
             {"role": "user", "content": "msg1"},
-            {"role": "assistant", "content": "resp1"}
+            {"role": "assistant", "content": "resp1"},
         ]
 
         chatbot.clear_history()
@@ -479,7 +513,9 @@ class TestGetChatbot:
         # Reset singleton
         project_chatbot._chatbot_instance = None
 
-        with patch.object(project_chatbot.ProjectChatbot, "initialize", new_callable=AsyncMock):
+        with patch.object(
+            project_chatbot.ProjectChatbot, "initialize", new_callable=AsyncMock
+        ):
             result = await project_chatbot.get_chatbot(None)
 
         assert result is not None
@@ -561,22 +597,31 @@ class TestDocumentIndexAdvanced:
         from services.project_chatbot import DocumentIndex
 
         index = DocumentIndex()
-        index.add_document("doc1.md", "This has 7 layers of security", "guide", "Security Layers")
+        index.add_document(
+            "doc1.md", "This has 7 layers of security", "guide", "Security Layers"
+        )
         index.add_document("doc2.md", "This is about authentication", "guide", "Auth")
 
         results = index.search("7 layer")
 
         assert len(results) >= 1
         # Should find the document with "7"
-        assert any("7" in doc["content"] or "layer" in doc["content"].lower() for doc in results)
+        assert any(
+            "7" in doc["content"] or "layer" in doc["content"].lower()
+            for doc in results
+        )
 
     def test_search_path_match_boost(self):
         """Test search boosts documents with matching path."""
         from services.project_chatbot import DocumentIndex
 
         index = DocumentIndex()
-        index.add_document("risk/risk-management.md", "Risk content here", "guide", "Risk Guide")
-        index.add_document("other/general.md", "Some other content about risk", "guide", "General")
+        index.add_document(
+            "risk/risk-management.md", "Risk content here", "guide", "Risk Guide"
+        )
+        index.add_document(
+            "other/general.md", "Some other content about risk", "guide", "General"
+        )
 
         results = index.search("risk management")
 
@@ -589,7 +634,12 @@ class TestDocumentIndexAdvanced:
         from services.project_chatbot import DocumentIndex
 
         index = DocumentIndex()
-        index.add_document("security/auth.md", "Security authentication details", "guide", "Security Auth")
+        index.add_document(
+            "security/auth.md",
+            "Security authentication details",
+            "guide",
+            "Security Auth",
+        )
         index.add_document("guide/intro.md", "General intro content", "guide", "Intro")
 
         # Vietnamese security query
@@ -602,7 +652,9 @@ class TestDocumentIndexAdvanced:
         from services.project_chatbot import DocumentIndex
 
         index = DocumentIndex()
-        index.add_document("features/trading.md", "How to trade", "feature", "Trading Feature")
+        index.add_document(
+            "features/trading.md", "How to trade", "feature", "Trading Feature"
+        )
         index.add_document("api/endpoints.md", "API details", "api", "API")
 
         results = index.search("how to trade")
@@ -614,7 +666,9 @@ class TestDocumentIndexAdvanced:
         from services.project_chatbot import DocumentIndex
 
         index = DocumentIndex()
-        index.add_document("config.md", "Configuration and setup guide", "guide", "Config")
+        index.add_document(
+            "config.md", "Configuration and setup guide", "guide", "Config"
+        )
         index.add_document("other.md", "Other content", "guide", "Other")
 
         # Vietnamese for "configuration"
@@ -672,7 +726,9 @@ class TestProjectChatbotIndexing:
 
             # Mock read_text to raise exception
             with patch("services.project_chatbot.PROJECT_ROOT", tmppath):
-                with patch.object(Path, "read_text", side_effect=Exception("Read error")):
+                with patch.object(
+                    Path, "read_text", side_effect=Exception("Read error")
+                ):
                     # Should not raise, just log warning
                     await chatbot._index_documents()
 
@@ -733,5 +789,3 @@ class TestProjectChatbotFallbackResponses:
         result = await chatbot.chat("new message", include_history=False)
 
         assert result["success"] is True
-
-

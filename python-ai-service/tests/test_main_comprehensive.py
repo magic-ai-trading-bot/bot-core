@@ -59,13 +59,17 @@ class TestLifecycleHandlers:
         except asyncio.CancelledError:
             pass  # Expected
 
-    @pytest.mark.skip(reason="generate_dummy_market_data function does not exist in main.py")
+    @pytest.mark.skip(
+        reason="generate_dummy_market_data function does not exist in main.py"
+    )
     async def test_periodic_analysis_runner_with_error(self, client):
         """Test periodic analysis runner handles errors."""
         from main import periodic_analysis_runner
         import asyncio
 
-        with patch("main.generate_dummy_market_data", side_effect=Exception("Test error")):
+        with patch(
+            "main.generate_dummy_market_data", side_effect=Exception("Test error")
+        ):
             # Run briefly and cancel
             task = asyncio.create_task(periodic_analysis_runner())
             await asyncio.sleep(0.05)
@@ -160,21 +164,33 @@ class TestStrategyRecommendations:
 
     async def test_strategy_recommendations_basic(self, client):
         """Test strategy recommendations with basic request."""
-        payload = {"symbol": "BTCUSDT", "risk_tolerance": "moderate", "time_horizon": "medium"}
+        payload = {
+            "symbol": "BTCUSDT",
+            "risk_tolerance": "moderate",
+            "time_horizon": "medium",
+        }
 
         response = await client.post("/ai/strategy-recommendations", json=payload)
         assert response.status_code in [200, 500, 422]
 
     async def test_strategy_recommendations_conservative(self, client):
         """Test strategy recommendations with conservative risk."""
-        payload = {"symbol": "ETHUSDT", "risk_tolerance": "conservative", "time_horizon": "long"}
+        payload = {
+            "symbol": "ETHUSDT",
+            "risk_tolerance": "conservative",
+            "time_horizon": "long",
+        }
 
         response = await client.post("/ai/strategy-recommendations", json=payload)
         assert response.status_code in [200, 500, 422]
 
     async def test_strategy_recommendations_aggressive(self, client):
         """Test strategy recommendations with aggressive risk."""
-        payload = {"symbol": "BNBUSDT", "risk_tolerance": "aggressive", "time_horizon": "short"}
+        payload = {
+            "symbol": "BNBUSDT",
+            "risk_tolerance": "aggressive",
+            "time_horizon": "short",
+        }
 
         response = await client.post("/ai/strategy-recommendations", json=payload)
         assert response.status_code in [200, 500, 422]
@@ -200,7 +216,10 @@ class TestMarketConditionAnalysis:
 
     async def test_market_condition_multiple_symbols(self, client):
         """Test market condition with multiple symbols."""
-        payload = {"symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT"], "timeframe": "1d"}
+        payload = {
+            "symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT"],
+            "timeframe": "1d",
+        }
 
         response = await client.post("/ai/market-condition", json=payload)
         assert response.status_code in [200, 500, 422]
@@ -258,7 +277,9 @@ class TestUtilityFunctions:
         stats = await get_analysis_statistics()
         assert isinstance(stats, dict)
 
-    @pytest.mark.skip(reason="generate_dummy_market_data function does not exist in main.py")
+    @pytest.mark.skip(
+        reason="generate_dummy_market_data function does not exist in main.py"
+    )
     async def test_generate_dummy_market_data(self, client):
         """Test dummy market data generation."""
         from main import generate_dummy_market_data
@@ -372,7 +393,11 @@ class TestEdgeCases:
 
     async def test_strategy_recommendations_with_invalid_risk(self, client):
         """Test strategy recommendations with invalid risk tolerance."""
-        payload = {"symbol": "BTCUSDT", "risk_tolerance": "invalid_value", "time_horizon": "medium"}
+        payload = {
+            "symbol": "BTCUSDT",
+            "risk_tolerance": "invalid_value",
+            "time_horizon": "medium",
+        }
 
         response = await client.post("/ai/strategy-recommendations", json=payload)
         assert response.status_code in [422, 500]
@@ -492,13 +517,17 @@ class TestPeriodicAnalysisErrorBranches:
             except asyncio.CancelledError:
                 pass
 
-    @pytest.mark.skip(reason="ANALYSIS_SYMBOLS does not exist in main.py, use FALLBACK_ANALYSIS_SYMBOLS")
+    @pytest.mark.skip(
+        reason="ANALYSIS_SYMBOLS does not exist in main.py, use FALLBACK_ANALYSIS_SYMBOLS"
+    )
     async def test_periodic_analysis_outer_exception(self, client):
         """Test periodic analysis handles outer loop exceptions."""
         from main import periodic_analysis_runner
         import asyncio
 
-        with patch("main.FALLBACK_ANALYSIS_SYMBOLS", side_effect=Exception("Outer error")):
+        with patch(
+            "main.FALLBACK_ANALYSIS_SYMBOLS", side_effect=Exception("Outer error")
+        ):
             task = asyncio.create_task(periodic_analysis_runner())
             await asyncio.sleep(0.1)
             task.cancel()
@@ -611,7 +640,13 @@ class TestSecurityHeadersMiddleware:
 
     async def test_security_headers_on_different_endpoints(self, client):
         """Test security headers are added to various endpoints."""
-        endpoints = ["/health", "/", "/ai/info", "/ai/strategies", "/ai/cost/statistics"]
+        endpoints = [
+            "/health",
+            "/",
+            "/ai/info",
+            "/ai/strategies",
+            "/ai/cost/statistics",
+        ]
 
         for endpoint in endpoints:
             response = await client.get(endpoint)
@@ -623,7 +658,9 @@ class TestSecurityHeadersMiddleware:
 class TestDummyDataGeneration:
     """Test dummy market data generation function."""
 
-    @pytest.mark.skip(reason="generate_dummy_market_data function does not exist in main.py")
+    @pytest.mark.skip(
+        reason="generate_dummy_market_data function does not exist in main.py"
+    )
     async def test_generate_dummy_data_various_symbols(self, client):
         """Test dummy data generation for various symbols."""
         from main import generate_dummy_market_data

@@ -237,8 +237,10 @@ class DataStorage:
                 "task_id": task_id,
                 "total_trades": metrics.get("total_trades"),
                 "win_rate": metrics.get("win_rate"),
-                "avg_profit_per_trade": metrics.get("avg_profit_per_trade") or metrics.get("avg_profit"),
-                "avg_profit": metrics.get("avg_profit") or metrics.get("avg_profit_per_trade"),
+                "avg_profit_per_trade": metrics.get("avg_profit_per_trade")
+                or metrics.get("avg_profit"),
+                "avg_profit": metrics.get("avg_profit")
+                or metrics.get("avg_profit_per_trade"),
                 "sharpe_ratio": metrics.get("sharpe_ratio"),
                 "performance_status": {
                     "win_rate_status": metrics.get("performance", {}).get(
@@ -684,13 +686,16 @@ class DataStorage:
                 "pnl_usdt": pnl_value,
                 "pnl_percentage": trade_data.get("pnl_percentage", 0),
                 "symbol": trade_data.get("symbol"),
-                "side": trade_data.get("trade_type") or trade_data.get("side"),  # Rust uses trade_type
+                "side": trade_data.get("trade_type")
+                or trade_data.get("side"),  # Rust uses trade_type
                 "entry_price": trade_data.get("entry_price"),
                 "exit_price": trade_data.get("exit_price"),
                 "close_reason": trade_data.get("close_reason"),
             }
             result = self._db[COLLECTION_TRADE_ANALYSES].insert_one(document)
-            logger.info(f"✅ Stored trade analysis for {trade_id}: {result.inserted_id}")
+            logger.info(
+                f"✅ Stored trade analysis for {trade_id}: {result.inserted_id}"
+            )
             return str(result.inserted_id)
         except Exception as e:
             logger.error(f"❌ Failed to store trade analysis: {e}")
@@ -768,8 +773,7 @@ class DataStorage:
 
         try:
             analyzed = self._db[COLLECTION_TRADE_ANALYSES].distinct(
-                "trade_id",
-                {"trade_id": {"$in": trade_ids}}
+                "trade_id", {"trade_id": {"$in": trade_ids}}
             )
             return [tid for tid in trade_ids if tid not in analyzed]
         except Exception as e:

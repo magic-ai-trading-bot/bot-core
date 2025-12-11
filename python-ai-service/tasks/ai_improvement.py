@@ -104,7 +104,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                     "reasoning": "Cannot run analysis without OpenAI API key",
                 },
                 "trigger_retrain": False,
-                "task_id": self.request.id if hasattr(self, 'request') else None,
+                "task_id": self.request.id if hasattr(self, "request") else None,
             }
 
         # Create OpenAI client (v1.0+ syntax)
@@ -120,7 +120,9 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
         response.raise_for_status()
         trades_response = response.json()
         # Extract trades from response data
-        trades = trades_response.get("data", []) if trades_response.get("success") else []
+        trades = (
+            trades_response.get("data", []) if trades_response.get("success") else []
+        )
 
         # Calculate daily metrics
         daily_metrics = calculate_daily_metrics(trades)
@@ -258,26 +260,37 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                         analysis_result=analysis_result,
                     )
 
-                    logger.info(f"✅ Config improvement task queued via Celery: {retrain_task.id}")
+                    logger.info(
+                        f"✅ Config improvement task queued via Celery: {retrain_task.id}"
+                    )
                     analysis_result["retrain_task_id"] = retrain_task.id
                     analysis_result["retrain_triggered"] = True
                     trigger_retrain = True
                 except Exception as celery_error:
                     # If Celery/Redis fails, run directly (synchronously)
-                    logger.warning(f"⚠️ Celery queue failed ({celery_error}), running config analysis directly...")
+                    logger.warning(
+                        f"⚠️ Celery queue failed ({celery_error}), running config analysis directly..."
+                    )
                     try:
                         from tasks.ai_improvement import _run_config_analysis_direct
+
                         direct_result = _run_config_analysis_direct(analysis_result)
                         if direct_result.get("status") == "success":
-                            logger.info(f"✅ Config improvement analysis completed directly (bypassed Celery)")
+                            logger.info(
+                                f"✅ Config improvement analysis completed directly (bypassed Celery)"
+                            )
                             analysis_result["retrain_triggered"] = True
                             analysis_result["retrain_mode"] = "direct"
                             trigger_retrain = True
                         else:
-                            logger.warning(f"⚠️ Direct config analysis returned: {direct_result.get('status')}")
+                            logger.warning(
+                                f"⚠️ Direct config analysis returned: {direct_result.get('status')}"
+                            )
                             analysis_result["retrain_triggered"] = False
                     except Exception as direct_error:
-                        logger.error(f"❌ Direct config analysis also failed: {direct_error}")
+                        logger.error(
+                            f"❌ Direct config analysis also failed: {direct_error}"
+                        )
                         analysis_result["retrain_triggered"] = False
             else:
                 logger.info(
@@ -398,7 +411,11 @@ def adaptive_retrain(
             )
             response.raise_for_status()
             trades_response = response.json()
-            trades = trades_response.get("data", []) if trades_response.get("success") else []
+            trades = (
+                trades_response.get("data", [])
+                if trades_response.get("success")
+                else []
+            )
         except Exception as e:
             logger.warning(f"⚠️ Could not fetch trades: {e}")
             trades = []
@@ -409,7 +426,11 @@ def adaptive_retrain(
         losing_trades = sum(1 for t in trades if (t.get("pnl_percentage") or 0) < 0)
         win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
         total_pnl = sum(t.get("pnl_usdt") or 0 for t in trades)
-        avg_pnl_percent = sum(t.get("pnl_percentage") or 0 for t in trades) / total_trades if total_trades > 0 else 0
+        avg_pnl_percent = (
+            sum(t.get("pnl_percentage") or 0 for t in trades) / total_trades
+            if total_trades > 0
+            else 0
+        )
 
         # STEP 4: Build GPT-4 prompt
         logger.info("🤖 Building GPT-4 config analysis prompt...")
@@ -548,14 +569,21 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
         suggestions = json.loads(gpt4_response)
 
         logger.info("🤖 GPT-4 Config Analysis Complete:")
-        logger.info(f"  📋 Root Cause: {suggestions.get('analysis', {}).get('root_cause', 'N/A')}")
+        logger.info(
+            f"  📋 Root Cause: {suggestions.get('analysis', {}).get('root_cause', 'N/A')}"
+        )
         logger.info(f"  🎯 Confidence: {suggestions.get('confidence', 0):.0%}")
-        logger.info(f"  ✅ Auto-apply Safe: {suggestions.get('auto_apply_safe', False)}")
+        logger.info(
+            f"  ✅ Auto-apply Safe: {suggestions.get('auto_apply_safe', False)}"
+        )
         logger.info(f"  💡 Summary: {suggestions.get('summary', 'N/A')[:100]}...")
 
         # STEP 6: (Optional) Auto-apply if safe and confidence is high
         applied_changes = []
-        if suggestions.get("auto_apply_safe") and suggestions.get("confidence", 0) >= 0.8:
+        if (
+            suggestions.get("auto_apply_safe")
+            and suggestions.get("confidence", 0) >= 0.8
+        ):
             logger.info("🚀 Auto-applying safe config changes...")
 
             # Apply indicator settings
@@ -564,7 +592,9 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
                 for key, change in suggestions["indicator_suggestions"].items():
                     if isinstance(change, dict) and "suggested" in change:
                         new_indicators[key] = change["suggested"]
-                        applied_changes.append(f"indicator.{key}: {change.get('current')} → {change['suggested']}")
+                        applied_changes.append(
+                            f"indicator.{key}: {change.get('current')} → {change['suggested']}"
+                        )
 
                 if new_indicators:
                     try:
@@ -584,7 +614,9 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
                 for key, change in suggestions["signal_suggestions"].items():
                     if isinstance(change, dict) and "suggested" in change:
                         new_signal[key] = change["suggested"]
-                        applied_changes.append(f"signal.{key}: {change.get('current')} → {change['suggested']}")
+                        applied_changes.append(
+                            f"signal.{key}: {change.get('current')} → {change['suggested']}"
+                        )
 
                 if new_signal:
                     try:
@@ -598,7 +630,9 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
                     except Exception as e:
                         logger.error(f"❌ Failed to apply signal changes: {e}")
         else:
-            logger.info("⏸️ Changes NOT auto-applied (confidence < 80% or not marked safe)")
+            logger.info(
+                "⏸️ Changes NOT auto-applied (confidence < 80% or not marked safe)"
+            )
 
         # STEP 7: Store suggestions in MongoDB
         result = {
@@ -616,7 +650,7 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
             },
             "suggestions": suggestions,
             "applied_changes": applied_changes,
-            "task_id": self.request.id if hasattr(self, 'request') else None,
+            "task_id": self.request.id if hasattr(self, "request") else None,
         }
 
         storage.store_config_suggestions(result)
@@ -628,8 +662,12 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
         if applied_changes:
             logger.info(f"  📝 Applied {len(applied_changes)} changes automatically")
         else:
-            logger.info(f"  📝 {len(suggestions.get('indicator_suggestions', {}))} indicator suggestions")
-            logger.info(f"  📝 {len(suggestions.get('signal_suggestions', {}))} signal suggestions")
+            logger.info(
+                f"  📝 {len(suggestions.get('indicator_suggestions', {}))} indicator suggestions"
+            )
+            logger.info(
+                f"  📝 {len(suggestions.get('signal_suggestions', {}))} signal suggestions"
+            )
 
         return result
 
@@ -743,7 +781,9 @@ def analyze_trade(
         # Check if already analyzed
         existing = storage.get_trade_analysis(trade_id)
         if existing:
-            logger.info(f"✅ Trade {trade_id} already analyzed, returning cached result")
+            logger.info(
+                f"✅ Trade {trade_id} already analyzed, returning cached result"
+            )
             return {
                 "status": "cached",
                 "trade_id": trade_id,
@@ -765,7 +805,9 @@ def analyze_trade(
 
         # Determine if winning or losing
         pnl = trade_data.get("pnl_usdt") or trade_data.get("profit_usdt", 0)
-        pnl_pct = trade_data.get("pnl_percentage") or trade_data.get("profit_percent", 0)
+        pnl_pct = trade_data.get("pnl_percentage") or trade_data.get(
+            "profit_percent", 0
+        )
         is_winning = pnl > 0
 
         # Fetch current market conditions
@@ -873,8 +915,12 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
 
         logger.info(f"🤖 GPT-4 Trade Analysis Complete for {trade_id}:")
         logger.info(f"  📋 Verdict: {analysis.get('trade_verdict', 'N/A')}")
-        logger.info(f"  🎯 Entry Quality: {analysis.get('entry_analysis', {}).get('quality', 'N/A')}")
-        logger.info(f"  🎯 Exit Quality: {analysis.get('exit_analysis', {}).get('quality', 'N/A')}")
+        logger.info(
+            f"  🎯 Entry Quality: {analysis.get('entry_analysis', {}).get('quality', 'N/A')}"
+        )
+        logger.info(
+            f"  🎯 Exit Quality: {analysis.get('exit_analysis', {}).get('quality', 'N/A')}"
+        )
         logger.info(f"  💡 Summary: {analysis.get('summary', 'N/A')[:100]}...")
 
         # Store analysis in MongoDB
@@ -886,7 +932,7 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
             "is_winning": is_winning,
             "pnl_usdt": pnl,
             "analysis": analysis,
-            "task_id": self.request.id if hasattr(self, 'request') else None,
+            "task_id": self.request.id if hasattr(self, "request") else None,
         }
 
     except json.JSONDecodeError as e:
@@ -921,7 +967,9 @@ def analyze_recent_trades(
     Returns:
         Summary of analyzed trades
     """
-    logger.info(f"🔍 Analyzing recent {'losing ' if only_losing else ''}trades (limit: {limit})...")
+    logger.info(
+        f"🔍 Analyzing recent {'losing ' if only_losing else ''}trades (limit: {limit})..."
+    )
 
     try:
         # Fetch recent closed trades
@@ -931,11 +979,17 @@ def analyze_recent_trades(
         )
         response.raise_for_status()
         trades_response = response.json()
-        trades = trades_response.get("data", []) if trades_response.get("success") else []
+        trades = (
+            trades_response.get("data", []) if trades_response.get("success") else []
+        )
 
         if not trades:
             logger.info("✅ No trades to analyze")
-            return {"status": "success", "analyzed_count": 0, "message": "No trades found"}
+            return {
+                "status": "success",
+                "analyzed_count": 0,
+                "message": "No trades found",
+            }
 
         # Filter losing trades if requested
         if only_losing:
@@ -943,23 +997,37 @@ def analyze_recent_trades(
 
         if not trades:
             logger.info("✅ No losing trades to analyze")
-            return {"status": "success", "analyzed_count": 0, "message": "No losing trades found"}
+            return {
+                "status": "success",
+                "analyzed_count": 0,
+                "message": "No losing trades found",
+            }
 
         # Get trade IDs
-        trade_ids = [t.get("id") or t.get("trade_id") for t in trades if t.get("id") or t.get("trade_id")]
+        trade_ids = [
+            t.get("id") or t.get("trade_id")
+            for t in trades
+            if t.get("id") or t.get("trade_id")
+        ]
 
         # Filter out already analyzed trades
         unanalyzed_ids = storage.get_unanalyzed_trade_ids(trade_ids)
 
         if not unanalyzed_ids:
             logger.info("✅ All trades already analyzed")
-            return {"status": "success", "analyzed_count": 0, "message": "All trades already analyzed"}
+            return {
+                "status": "success",
+                "analyzed_count": 0,
+                "message": "All trades already analyzed",
+            }
 
         # Limit to requested number
         unanalyzed_ids = unanalyzed_ids[:limit]
 
         # Get full trade data for unanalyzed trades
-        trades_to_analyze = [t for t in trades if (t.get("id") or t.get("trade_id")) in unanalyzed_ids]
+        trades_to_analyze = [
+            t for t in trades if (t.get("id") or t.get("trade_id")) in unanalyzed_ids
+        ]
 
         logger.info(f"📊 Found {len(trades_to_analyze)} trades to analyze")
 
@@ -968,18 +1036,22 @@ def analyze_recent_trades(
         for trade in trades_to_analyze:
             try:
                 result = analyze_trade(trade)
-                results.append({
-                    "trade_id": trade.get("id") or trade.get("trade_id"),
-                    "status": result.get("status"),
-                    "is_winning": result.get("is_winning"),
-                })
+                results.append(
+                    {
+                        "trade_id": trade.get("id") or trade.get("trade_id"),
+                        "status": result.get("status"),
+                        "is_winning": result.get("is_winning"),
+                    }
+                )
             except Exception as e:
                 logger.error(f"❌ Failed to analyze trade: {e}")
-                results.append({
-                    "trade_id": trade.get("id") or trade.get("trade_id"),
-                    "status": "error",
-                    "error": str(e),
-                })
+                results.append(
+                    {
+                        "trade_id": trade.get("id") or trade.get("trade_id"),
+                        "status": "error",
+                        "error": str(e),
+                    }
+                )
 
         successful = sum(1 for r in results if r.get("status") == "success")
         logger.info(f"✅ Analyzed {successful}/{len(results)} trades successfully")
@@ -989,7 +1061,7 @@ def analyze_recent_trades(
             "analyzed_count": successful,
             "total_attempted": len(results),
             "results": results,
-            "task_id": self.request.id if hasattr(self, 'request') else None,
+            "task_id": self.request.id if hasattr(self, "request") else None,
         }
 
     except Exception as e:
@@ -1025,11 +1097,17 @@ def calculate_daily_metrics(trades: List[Dict]) -> List[Dict]:
         day_trades = daily_trades[date]
 
         # Support both old format (profit_percent) and new format (pnl_percentage)
-        winning = sum(1 for t in day_trades if (t.get("pnl_percentage") or t.get("profit_percent", 0)) > 0)
+        winning = sum(
+            1
+            for t in day_trades
+            if (t.get("pnl_percentage") or t.get("profit_percent", 0)) > 0
+        )
         total = len(day_trades)
         win_rate = (winning / total * 100) if total > 0 else 0
 
-        profits = [t.get("pnl_percentage") or t.get("profit_percent", 0) for t in day_trades]
+        profits = [
+            t.get("pnl_percentage") or t.get("profit_percent", 0) for t in day_trades
+        ]
         avg_profit = sum(profits) / len(profits) if profits else 0
 
         # Simple Sharpe approximation
@@ -1086,24 +1164,34 @@ def _build_gpt4_analysis_prompt() -> str:
                 serialized[key] = value
         model_accuracy_serializable.append(serialized)
 
-    model_accuracy = {
-        "models": model_accuracy_serializable
-    }
+    model_accuracy = {"models": model_accuracy_serializable}
 
     # Extract trends (serialize date objects in daily_metrics)
     daily_metrics_serializable = []
-    for metric in (daily_metrics or []):
+    for metric in daily_metrics or []:
         serialized = {}
         for key, value in metric.items():
-            if hasattr(value, 'isoformat'):  # date or datetime
+            if hasattr(value, "isoformat"):  # date or datetime
                 serialized[key] = value.isoformat()
             else:
                 serialized[key] = value
         daily_metrics_serializable.append(serialized)
 
-    win_rates = [m.get("win_rate", 0) for m in daily_metrics_serializable] if daily_metrics_serializable else []
-    profits = [m.get("avg_profit", 0) for m in daily_metrics_serializable] if daily_metrics_serializable else []
-    sharpes = [m.get("sharpe_ratio", 0) for m in daily_metrics_serializable] if daily_metrics_serializable else []
+    win_rates = (
+        [m.get("win_rate", 0) for m in daily_metrics_serializable]
+        if daily_metrics_serializable
+        else []
+    )
+    profits = (
+        [m.get("avg_profit", 0) for m in daily_metrics_serializable]
+        if daily_metrics_serializable
+        else []
+    )
+    sharpes = (
+        [m.get("sharpe_ratio", 0) for m in daily_metrics_serializable]
+        if daily_metrics_serializable
+        else []
+    )
 
     current_win_rate = win_rates[-1] if win_rates else 0
     current_profit = profits[-1] if profits else 0
@@ -1168,9 +1256,7 @@ def _calculate_model_metrics(
         Dict with avg_accuracy and trend
     """
     # Filter for the specific model type
-    model_data = [
-        d for d in accuracy_data if d.get("model_type") == model_type
-    ]
+    model_data = [d for d in accuracy_data if d.get("model_type") == model_type]
 
     if not model_data:
         return {
@@ -1206,7 +1292,9 @@ def _calculate_model_metrics(
     }
 
 
-def _run_config_analysis_direct(analysis_result: Dict[str, Any] = None) -> Dict[str, Any]:
+def _run_config_analysis_direct(
+    analysis_result: Dict[str, Any] = None,
+) -> Dict[str, Any]:
     """
     Run config improvement analysis DIRECTLY (bypass Celery/Redis).
     This is a fallback when Redis is unavailable.
@@ -1264,7 +1352,11 @@ def _run_config_analysis_direct(analysis_result: Dict[str, Any] = None) -> Dict[
             )
             response.raise_for_status()
             trades_response = response.json()
-            trades = trades_response.get("data", []) if trades_response.get("success") else []
+            trades = (
+                trades_response.get("data", [])
+                if trades_response.get("success")
+                else []
+            )
         except Exception as e:
             logger.warning(f"⚠️ Could not fetch trades: {e}")
             trades = []
@@ -1275,7 +1367,11 @@ def _run_config_analysis_direct(analysis_result: Dict[str, Any] = None) -> Dict[
         losing_trades = sum(1 for t in trades if (t.get("pnl_percentage") or 0) < 0)
         win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
         total_pnl = sum(t.get("pnl_usdt") or 0 for t in trades)
-        avg_pnl_percent = sum(t.get("pnl_percentage") or 0 for t in trades) / total_trades if total_trades > 0 else 0
+        avg_pnl_percent = (
+            sum(t.get("pnl_percentage") or 0 for t in trades) / total_trades
+            if total_trades > 0
+            else 0
+        )
 
         # Determine risk level
         is_losing = total_pnl < 0 or win_rate < 50
@@ -1363,7 +1459,9 @@ You are a CONSERVATIVE trading bot configuration optimizer.
         suggestions = json.loads(gpt4_response)
 
         logger.info(f"🤖 GPT-4 Config Analysis Complete:")
-        logger.info(f"  📋 Root Cause: {suggestions.get('analysis', {}).get('root_cause', 'N/A')}")
+        logger.info(
+            f"  📋 Root Cause: {suggestions.get('analysis', {}).get('root_cause', 'N/A')}"
+        )
         logger.info(f"  🎯 Confidence: {suggestions.get('confidence', 0):.0%}")
 
         # Store in MongoDB

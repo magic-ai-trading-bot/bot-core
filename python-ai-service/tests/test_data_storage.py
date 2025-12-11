@@ -690,10 +690,20 @@ class TestModelAccuracyHistoryRetrieval:
         mock_cursor.sort.return_value = mock_cursor
 
         # Mock accuracy history data
-        mock_cursor.__iter__.return_value = iter([
-            {"model_type": "LSTM", "accuracy": 0.85, "timestamp": datetime.utcnow()},
-            {"model_type": "LSTM", "accuracy": 0.83, "timestamp": datetime.utcnow() - timedelta(days=1)},
-        ])
+        mock_cursor.__iter__.return_value = iter(
+            [
+                {
+                    "model_type": "LSTM",
+                    "accuracy": 0.85,
+                    "timestamp": datetime.utcnow(),
+                },
+                {
+                    "model_type": "LSTM",
+                    "accuracy": 0.83,
+                    "timestamp": datetime.utcnow() - timedelta(days=1),
+                },
+            ]
+        )
 
         mock_collection.find.return_value = mock_cursor
         mock_db.__getitem__.return_value = mock_collection
@@ -724,11 +734,21 @@ class TestModelAccuracyHistoryRetrieval:
         mock_cursor.sort.return_value = mock_cursor
 
         # Mock accuracy history data for multiple models
-        mock_cursor.__iter__.return_value = iter([
-            {"model_type": "LSTM", "accuracy": 0.85, "timestamp": datetime.utcnow()},
-            {"model_type": "GRU", "accuracy": 0.82, "timestamp": datetime.utcnow()},
-            {"model_type": "Transformer", "accuracy": 0.88, "timestamp": datetime.utcnow()},
-        ])
+        mock_cursor.__iter__.return_value = iter(
+            [
+                {
+                    "model_type": "LSTM",
+                    "accuracy": 0.85,
+                    "timestamp": datetime.utcnow(),
+                },
+                {"model_type": "GRU", "accuracy": 0.82, "timestamp": datetime.utcnow()},
+                {
+                    "model_type": "Transformer",
+                    "accuracy": 0.88,
+                    "timestamp": datetime.utcnow(),
+                },
+            ]
+        )
 
         mock_collection.find.return_value = mock_cursor
         mock_db.__getitem__.return_value = mock_collection
@@ -904,11 +924,25 @@ class TestAPICostTracking:
         mock_cursor.sort.return_value = mock_cursor
 
         # Mock cost history data
-        mock_cursor.__iter__.return_value = iter([
-            {"session_id": "session_1", "total_cost": 0.50, "timestamp": datetime.utcnow()},
-            {"session_id": "session_2", "total_cost": 0.30, "timestamp": datetime.utcnow() - timedelta(days=1)},
-            {"session_id": "session_3", "total_cost": 0.20, "timestamp": datetime.utcnow() - timedelta(days=2)},
-        ])
+        mock_cursor.__iter__.return_value = iter(
+            [
+                {
+                    "session_id": "session_1",
+                    "total_cost": 0.50,
+                    "timestamp": datetime.utcnow(),
+                },
+                {
+                    "session_id": "session_2",
+                    "total_cost": 0.30,
+                    "timestamp": datetime.utcnow() - timedelta(days=1),
+                },
+                {
+                    "session_id": "session_3",
+                    "total_cost": 0.20,
+                    "timestamp": datetime.utcnow() - timedelta(days=2),
+                },
+            ]
+        )
 
         mock_collection.find.return_value = mock_cursor
         mock_db.__getitem__.return_value = mock_collection
@@ -1101,20 +1135,22 @@ class TestRetrainHistoryTracking:
         mock_cursor.limit.return_value = mock_cursor
 
         # Mock retrain history data
-        mock_cursor.__iter__.return_value = iter([
-            {
-                "task_id": "task_1",
-                "successful_count": 2,
-                "deployed_count": 1,
-                "timestamp": datetime.utcnow(),
-            },
-            {
-                "task_id": "task_2",
-                "successful_count": 3,
-                "deployed_count": 2,
-                "timestamp": datetime.utcnow() - timedelta(days=1),
-            },
-        ])
+        mock_cursor.__iter__.return_value = iter(
+            [
+                {
+                    "task_id": "task_1",
+                    "successful_count": 2,
+                    "deployed_count": 1,
+                    "timestamp": datetime.utcnow(),
+                },
+                {
+                    "task_id": "task_2",
+                    "successful_count": 3,
+                    "deployed_count": 2,
+                    "timestamp": datetime.utcnow() - timedelta(days=1),
+                },
+            ]
+        )
 
         mock_collection.find.return_value = mock_cursor
         mock_db.__getitem__.return_value = mock_collection
@@ -1562,7 +1598,9 @@ class TestTradeAnalysisStorage:
         mock_mongo_client.return_value = mock_client
 
         storage = DataStorage()
-        history = storage.get_trade_analyses_history(days=30, limit=100, only_losing=True)
+        history = storage.get_trade_analyses_history(
+            days=30, limit=100, only_losing=True
+        )
 
         assert len(history) == 1
         # Verify only_losing filter is applied

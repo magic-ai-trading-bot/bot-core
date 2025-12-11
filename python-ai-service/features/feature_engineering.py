@@ -96,7 +96,9 @@ class FeatureEngineer:
             df["month_cos"] = np.cos(2 * np.pi * df["month"] / 12)
 
             # Drop original time features
-            df.drop(["hour", "day_of_week", "day_of_month", "month"], axis=1, inplace=True)
+            df.drop(
+                ["hour", "day_of_week", "day_of_month", "month"], axis=1, inplace=True
+            )
 
             return df
         except Exception as e:
@@ -261,7 +263,9 @@ class FeatureEngineer:
             if not self.feature_columns:
                 # If feature columns not set, use all except target columns
                 feature_cols = [
-                    col for col in processed_df.columns if col not in ["target", "signal"]
+                    col
+                    for col in processed_df.columns
+                    if col not in ["target", "signal"]
                 ]
             else:
                 feature_cols = self.feature_columns
@@ -292,7 +296,9 @@ class FeatureEngineer:
             processed_df["target"] = target
 
             # Calculate correlations
-            correlations = processed_df.corr()["target"].abs().sort_values(ascending=False)
+            correlations = (
+                processed_df.corr()["target"].abs().sort_values(ascending=False)
+            )
 
             # Convert to dictionary
             feature_importance = correlations.drop("target").to_dict()

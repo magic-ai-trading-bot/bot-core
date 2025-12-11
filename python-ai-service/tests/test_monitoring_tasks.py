@@ -12,6 +12,7 @@ import requests
 # Skip all tests if celery is not installed
 try:
     import celery
+
     CELERY_AVAILABLE = True
 except ImportError:
     CELERY_AVAILABLE = False

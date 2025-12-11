@@ -788,22 +788,35 @@ class TestGPTTradingAnalyzer:
         base_price = 44000
         for i in range(100):
             price = base_price + (i * 50)
-            candles.append(CandleData(
-                timestamp=base_time + i * 3600000,
-                open=price,
-                high=price + 100,
-                low=price - 50,
-                close=price + 80,
-                volume=100.0,
-            ))
+            candles.append(
+                CandleData(
+                    timestamp=base_time + i * 3600000,
+                    open=price,
+                    high=price + 100,
+                    low=price - 50,
+                    close=price + 80,
+                    volume=100.0,
+                )
+            )
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=49500.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy"]),
+            strategy_context=AIStrategyContext(
+                selected_strategies=[
+                    "RSI Strategy",
+                    "MACD Strategy",
+                    "Bollinger Bands Strategy",
+                ]
+            ),
         )
 
         # Need 4+ bullish indicators per timeframe AND 3+ timeframes to agree for Long
@@ -812,11 +825,18 @@ class TestGPTTradingAnalyzer:
             "rsi": 25.0,  # Oversold (<45) = bullish
             "macd_histogram": 0.5,  # Positive = bullish
             "bb_position": 0.1,  # <0.3 = bullish
-            "stochastic_k": 75.0, "stochastic_d": 60.0,  # K>D and K<80 = bullish
+            "stochastic_k": 75.0,
+            "stochastic_d": 60.0,  # K>D and K<80 = bullish
             "volume_ratio": 1.5,  # >1.2 confirms trend
         }
         # Pass same bullish indicators to all 4 timeframes
-        result = analyzer._fallback_analysis(request, bullish_indicators, bullish_indicators, bullish_indicators, bullish_indicators)
+        result = analyzer._fallback_analysis(
+            request,
+            bullish_indicators,
+            bullish_indicators,
+            bullish_indicators,
+            bullish_indicators,
+        )
         assert result["signal"] == "Long"
         assert "Bullish=" in result["reasoning"]
 
@@ -833,22 +853,35 @@ class TestGPTTradingAnalyzer:
         base_price = 50000
         for i in range(100):
             price = base_price - (i * 50)
-            candles.append(CandleData(
-                timestamp=base_time + i * 3600000,
-                open=price,
-                high=price + 50,
-                low=price - 100,
-                close=price - 80,
-                volume=100.0,
-            ))
+            candles.append(
+                CandleData(
+                    timestamp=base_time + i * 3600000,
+                    open=price,
+                    high=price + 50,
+                    low=price - 100,
+                    close=price - 80,
+                    volume=100.0,
+                )
+            )
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45400.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
-            strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy"]),
+            strategy_context=AIStrategyContext(
+                selected_strategies=[
+                    "RSI Strategy",
+                    "MACD Strategy",
+                    "Bollinger Bands Strategy",
+                ]
+            ),
         )
 
         # Need 4+ bearish indicators per timeframe AND 3+ timeframes to agree for Short
@@ -856,11 +889,18 @@ class TestGPTTradingAnalyzer:
             "rsi": 75.0,  # Overbought (>55) = bearish
             "macd_histogram": -0.5,  # Negative = bearish
             "bb_position": 0.9,  # >0.7 = bearish
-            "stochastic_k": 25.0, "stochastic_d": 40.0,  # K<D and K>20 = bearish
+            "stochastic_k": 25.0,
+            "stochastic_d": 40.0,  # K<D and K>20 = bearish
             "volume_ratio": 1.5,  # >1.2 confirms trend
         }
         # Pass same bearish indicators to all 4 timeframes
-        result = analyzer._fallback_analysis(request, bearish_indicators, bearish_indicators, bearish_indicators, bearish_indicators)
+        result = analyzer._fallback_analysis(
+            request,
+            bearish_indicators,
+            bearish_indicators,
+            bearish_indicators,
+            bearish_indicators,
+        )
         assert result["signal"] == "Short"
         assert "Bearish=" in result["reasoning"]
 
@@ -1005,11 +1045,25 @@ class TestFetchRealMarketData:
 
         # Mock candle data
         mock_candles_1h = [
-            {"timestamp": 1700000000000 + i * 3600000, "open": 50000, "high": 50100, "low": 49900, "close": 50050, "volume": 100.0}
+            {
+                "timestamp": 1700000000000 + i * 3600000,
+                "open": 50000,
+                "high": 50100,
+                "low": 49900,
+                "close": 50050,
+                "volume": 100.0,
+            }
             for i in range(100)
         ]
         mock_candles_4h = [
-            {"timestamp": 1700000000000 + i * 14400000, "open": 50000, "high": 50200, "low": 49800, "close": 50100, "volume": 400.0}
+            {
+                "timestamp": 1700000000000 + i * 14400000,
+                "open": 50000,
+                "high": 50200,
+                "low": 49800,
+                "close": 50100,
+                "volume": 400.0,
+            }
             for i in range(60)
         ]
         mock_prices = {"BTCUSDT": 50000.0, "ETHUSDT": 3000.0}
@@ -1022,13 +1076,19 @@ class TestFetchRealMarketData:
                 response = Mock()  # Use regular Mock for response object
                 if "/api/market/candles/" in url and "/1h" in url:
                     response.status_code = 200
-                    response.json = Mock(return_value={"success": True, "data": mock_candles_1h})
+                    response.json = Mock(
+                        return_value={"success": True, "data": mock_candles_1h}
+                    )
                 elif "/api/market/candles/" in url and "/4h" in url:
                     response.status_code = 200
-                    response.json = Mock(return_value={"success": True, "data": mock_candles_4h})
+                    response.json = Mock(
+                        return_value={"success": True, "data": mock_candles_4h}
+                    )
                 elif "/api/market/prices" in url:
                     response.status_code = 200
-                    response.json = Mock(return_value={"success": True, "data": mock_prices})
+                    response.json = Mock(
+                        return_value={"success": True, "data": mock_prices}
+                    )
                 else:
                     response.status_code = 404
                 return response
@@ -1301,7 +1361,12 @@ class TestMoreGPTAnalyzerMethods:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -1309,8 +1374,16 @@ class TestMoreGPTAnalyzerMethods:
         )
 
         # Provide MACD bullish signal (macd_histogram > 0)
-        indicators = {"macd_histogram": 50.0, "rsi": 50.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
-        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        indicators = {
+            "macd_histogram": 50.0,
+            "rsi": 50.0,
+            "bb_position": 0.5,
+            "stochastic_k": 50.0,
+            "stochastic_d": 50.0,
+        }
+        result = analyzer._fallback_analysis(
+            request, indicators, indicators, indicators, indicators
+        )
         # New format shows "MACD↑" or "MACD↓" in the indicator breakdown
         assert "MACD" in result["reasoning"]
         assert result["signal"] in ["Long", "Short", "Neutral"]
@@ -1336,7 +1409,12 @@ class TestMoreGPTAnalyzerMethods:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -1344,8 +1422,17 @@ class TestMoreGPTAnalyzerMethods:
         )
 
         # Provide volume ratio > 1.2 for bullish volume confirmation
-        indicators = {"volume_ratio": 2.0, "rsi": 50.0, "macd_histogram": 0.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
-        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        indicators = {
+            "volume_ratio": 2.0,
+            "rsi": 50.0,
+            "macd_histogram": 0.0,
+            "bb_position": 0.5,
+            "stochastic_k": 50.0,
+            "stochastic_d": 50.0,
+        }
+        result = analyzer._fallback_analysis(
+            request, indicators, indicators, indicators, indicators
+        )
         # New format shows "Vol↑" in the indicator breakdown
         assert "Vol" in result["reasoning"] or "NEUTRAL" in result["reasoning"]
         assert result["signal"] in ["Long", "Short", "Neutral"]
@@ -1372,7 +1459,12 @@ class TestMoreGPTAnalyzerMethods:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -1383,8 +1475,16 @@ class TestMoreGPTAnalyzerMethods:
 
         # Only 2 bullish signals: BB near lower + RSI oversold
         # This is NOT enough - need 4/5 indicators per timeframe
-        indicators = {"bb_position": 0.05, "rsi": 25.0, "macd_histogram": 0.0, "stochastic_k": 50.0, "stochastic_d": 50.0}
-        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        indicators = {
+            "bb_position": 0.05,
+            "rsi": 25.0,
+            "macd_histogram": 0.0,
+            "stochastic_k": 50.0,
+            "stochastic_d": 50.0,
+        }
+        result = analyzer._fallback_analysis(
+            request, indicators, indicators, indicators, indicators
+        )
         # With only 2 bullish indicators per timeframe, each TF is NEUTRAL
         # Result should be Neutral (no 3+ timeframes agree)
         assert result["signal"] == "Neutral"
@@ -1420,7 +1520,12 @@ class TestMoreGPTAnalyzerMethods:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45500.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -1430,7 +1535,10 @@ class TestMoreGPTAnalyzerMethods:
         # With empty indicators, all timeframes show "insufficient data"
         result = analyzer._fallback_analysis(request, {}, {}, {}, {})
         # New format shows "Summary: Bullish=X, Bearish=Y, Neutral=Z"
-        assert "Summary" in result["reasoning"] or "insufficient" in result["reasoning"].lower()
+        assert (
+            "Summary" in result["reasoning"]
+            or "insufficient" in result["reasoning"].lower()
+        )
         assert result["signal"] == "Neutral"
 
 
@@ -2110,7 +2218,12 @@ class TestGPTAnalyzerFallbackStrategies:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -2119,8 +2232,16 @@ class TestGPTAnalyzerFallbackStrategies:
 
         # Only 1 bearish signal (MACD), others neutral - need 4/5 per timeframe
         # Each timeframe will be NEUTRAL, so overall signal is Neutral
-        indicators = {"macd_histogram": -50.0, "rsi": 50.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
-        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        indicators = {
+            "macd_histogram": -50.0,
+            "rsi": 50.0,
+            "bb_position": 0.5,
+            "stochastic_k": 50.0,
+            "stochastic_d": 50.0,
+        }
+        result = analyzer._fallback_analysis(
+            request, indicators, indicators, indicators, indicators
+        )
         # Signal should be Neutral since only 1 bearish indicator per timeframe
         assert result["signal"] == "Neutral"
         assert "MACD" in result["reasoning"]
@@ -2147,7 +2268,12 @@ class TestGPTAnalyzerFallbackStrategies:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -2155,8 +2281,17 @@ class TestGPTAnalyzerFallbackStrategies:
         )
 
         # Low volume ratio doesn't contribute to signals
-        indicators = {"volume_ratio": 0.3, "rsi": 50.0, "macd_histogram": 0.0, "bb_position": 0.5, "stochastic_k": 50.0, "stochastic_d": 50.0}
-        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        indicators = {
+            "volume_ratio": 0.3,
+            "rsi": 50.0,
+            "macd_histogram": 0.0,
+            "bb_position": 0.5,
+            "stochastic_k": 50.0,
+            "stochastic_d": 50.0,
+        }
+        result = analyzer._fallback_analysis(
+            request, indicators, indicators, indicators, indicators
+        )
         # All indicators neutral, so result is Neutral
         assert result["signal"] == "Neutral"
         assert "NEUTRAL" in result["reasoning"]
@@ -2182,7 +2317,12 @@ class TestGPTAnalyzerFallbackStrategies:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -2192,8 +2332,16 @@ class TestGPTAnalyzerFallbackStrategies:
         )
 
         # Only BB bearish (0.95 > 0.7), others neutral - need 4/5 per timeframe
-        indicators = {"bb_position": 0.95, "rsi": 50.0, "macd_histogram": 0.0, "stochastic_k": 50.0, "stochastic_d": 50.0}
-        result = analyzer._fallback_analysis(request, indicators, indicators, indicators, indicators)
+        indicators = {
+            "bb_position": 0.95,
+            "rsi": 50.0,
+            "macd_histogram": 0.0,
+            "stochastic_k": 50.0,
+            "stochastic_d": 50.0,
+        }
+        result = analyzer._fallback_analysis(
+            request, indicators, indicators, indicators, indicators
+        )
         # Single BB upper signal per timeframe = each TF is NEUTRAL
         assert result["signal"] == "Neutral"
         assert "BB" in result["reasoning"]
@@ -2227,7 +2375,12 @@ class TestGPTAnalyzerFallbackStrategies:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"15m": candles, "30m": candles, "1h": candles, "4h": candles},
+            timeframe_data={
+                "15m": candles,
+                "30m": candles,
+                "1h": candles,
+                "4h": candles,
+            },
             current_price=44000.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -2237,7 +2390,10 @@ class TestGPTAnalyzerFallbackStrategies:
         # Empty indicators = all timeframes show "insufficient data"
         result = analyzer._fallback_analysis(request, {}, {}, {}, {})
         # New format shows summary
-        assert "Summary" in result["reasoning"] or "insufficient" in result["reasoning"].lower()
+        assert (
+            "Summary" in result["reasoning"]
+            or "insufficient" in result["reasoning"].lower()
+        )
         assert result["signal"] == "Neutral"
 
 
@@ -2426,8 +2582,14 @@ class TestCostStatisticsEndpoint:
 
                             # Check session statistics
                             assert data["session_statistics"]["total_requests"] == 100
-                            assert data["session_statistics"]["total_input_tokens"] == 50000
-                            assert data["session_statistics"]["total_output_tokens"] == 25000
+                            assert (
+                                data["session_statistics"]["total_input_tokens"]
+                                == 50000
+                            )
+                            assert (
+                                data["session_statistics"]["total_output_tokens"]
+                                == 25000
+                            )
                             assert data["session_statistics"]["total_cost_usd"] == 0.5
 
                             # Check projections exist
@@ -2439,7 +2601,9 @@ class TestCostStatisticsEndpoint:
                             assert data["configuration"]["symbols_tracked"] == 4
 
                             # Check optimization status
-                            assert data["optimization_status"]["cache_optimized"] is True
+                            assert (
+                                data["optimization_status"]["cache_optimized"] is True
+                            )
 
     @pytest.mark.asyncio
     async def test_cost_statistics_no_usage(self, client):
@@ -2474,7 +2638,10 @@ class TestSecurityHeadersMiddleware:
             assert response.headers.get("X-Content-Type-Options") == "nosniff"
             assert response.headers.get("X-XSS-Protection") == "1; mode=block"
             assert "Content-Security-Policy" in response.headers
-            assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+            assert (
+                response.headers.get("Referrer-Policy")
+                == "strict-origin-when-cross-origin"
+            )
             assert "Permissions-Policy" in response.headers
 
             # HSTS should NOT be present in development
@@ -2505,31 +2672,39 @@ class TestPeriodicAnalysisRunner:
         mock_gpt_client = AsyncMock()
         mock_gpt_client.chat_completions_create = AsyncMock(
             return_value={
-                "choices": [{
-                    "message": {
-                        "content": json.dumps({
-                            "signal": "Long",
-                            "confidence": 0.75,
-                            "reasoning": "Test",
-                            "strategy_scores": {},
-                            "market_analysis": {
-                                "trend_direction": "Bullish",
-                                "trend_strength": 0.8,
-                                "support_levels": [],
-                                "resistance_levels": [],
-                                "volatility_level": "Medium",
-                                "volume_analysis": "Normal"
-                            },
-                            "risk_assessment": {
-                                "overall_risk": "Medium",
-                                "technical_risk": 0.5,
-                                "market_risk": 0.5,
-                                "recommended_position_size": 0.02
-                            }
-                        })
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "signal": "Long",
+                                    "confidence": 0.75,
+                                    "reasoning": "Test",
+                                    "strategy_scores": {},
+                                    "market_analysis": {
+                                        "trend_direction": "Bullish",
+                                        "trend_strength": 0.8,
+                                        "support_levels": [],
+                                        "resistance_levels": [],
+                                        "volatility_level": "Medium",
+                                        "volume_analysis": "Normal",
+                                    },
+                                    "risk_assessment": {
+                                        "overall_risk": "Medium",
+                                        "technical_risk": 0.5,
+                                        "market_risk": 0.5,
+                                        "recommended_position_size": 0.02,
+                                    },
+                                }
+                            )
+                        }
                     }
-                }],
-                "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
+                ],
+                "usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 50,
+                    "total_tokens": 150,
+                },
             }
         )
 
@@ -2538,7 +2713,9 @@ class TestPeriodicAnalysisRunner:
         try:
             with patch("main.openai_client", mock_gpt_client):
                 with patch("main.mongodb_db", None):  # Disable storage for test
-                    with patch("main.ANALYSIS_INTERVAL_MINUTES", 0.001):  # Very short interval
+                    with patch(
+                        "main.ANALYSIS_INTERVAL_MINUTES", 0.001
+                    ):  # Very short interval
                         # Create task
                         task = asyncio.create_task(periodic_analysis_runner())
 
@@ -2623,7 +2800,7 @@ class TestAnalysisStorageErrorHandling:
         from main import get_latest_analysis
         import main
 
-        # Mock MongoDB to raise exception  
+        # Mock MongoDB to raise exception
         mock_db = AsyncMock()
         mock_collection = AsyncMock()
         mock_collection.find_one = AsyncMock(side_effect=Exception("Database error"))
@@ -2686,7 +2863,7 @@ class TestFetchAnalysisSymbols:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "success": True,
-            "data": {"symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT"]}
+            "data": {"symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT"]},
         }
 
         with patch("httpx.AsyncClient") as mock_client:
@@ -2706,7 +2883,7 @@ class TestFetchAnalysisSymbols:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "success": True,
-            "symbols": ["BTCUSDT", "ETHUSDT"]
+            "symbols": ["BTCUSDT", "ETHUSDT"],
         }
 
         with patch("httpx.AsyncClient") as mock_client:
@@ -2778,14 +2955,16 @@ class TestTrendPrediction:
         candles = []
         base_price = 50000
         for i in range(250):
-            candles.append({
-                "open_time": 1700000000000 + i * 3600000,
-                "open": base_price + i * 10,
-                "high": base_price + i * 10 + 100,
-                "low": base_price + i * 10 - 50,
-                "close": base_price + i * 10 + 50,
-                "volume": 1000000
-            })
+            candles.append(
+                {
+                    "open_time": 1700000000000 + i * 3600000,
+                    "open": base_price + i * 10,
+                    "high": base_price + i * 10 + 100,
+                    "low": base_price + i * 10 - 50,
+                    "close": base_price + i * 10 + 50,
+                    "volume": 1000000,
+                }
+            )
 
         candles_by_tf = {"1d": candles, "4h": candles}
 
@@ -2803,7 +2982,14 @@ class TestTrendPrediction:
 
         # Create minimal candles data
         candles = [
-            {"open_time": 1700000000000, "open": 50000, "high": 50100, "low": 49900, "close": 50050, "volume": 1000000}
+            {
+                "open_time": 1700000000000,
+                "open": 50000,
+                "high": 50100,
+                "low": 49900,
+                "close": 50050,
+                "volume": 1000000,
+            }
             for _ in range(10)  # Only 10 candles
         ]
 
@@ -2837,7 +3023,9 @@ class TestConfigLoaderEdgeCases:
         import yaml
 
         mock_file = MagicMock()
-        mock_file.__enter__ = MagicMock(return_value=MagicMock(read=MagicMock(return_value="")))
+        mock_file.__enter__ = MagicMock(
+            return_value=MagicMock(read=MagicMock(return_value=""))
+        )
         mock_file.__exit__ = MagicMock(return_value=False)
 
         with patch("builtins.open", return_value=mock_file):
@@ -2899,12 +3087,14 @@ class TestWebSocketManagerBroadcast:
         ws_manager = WebSocketManager()
 
         # Test broadcast with no connections (should not raise)
-        await ws_manager.broadcast_signal({
-            "symbol": "BTCUSDT",
-            "signal": "Long",
-            "confidence": 0.75,
-            "reasoning": "Test signal"
-        })
+        await ws_manager.broadcast_signal(
+            {
+                "symbol": "BTCUSDT",
+                "signal": "Long",
+                "confidence": 0.75,
+                "reasoning": "Test signal",
+            }
+        )
 
     @pytest.mark.asyncio
     async def test_ws_manager_multiple_signals(self):
@@ -2941,8 +3131,7 @@ class TestDirectOpenAIClientErrorHandling:
             )
             try:
                 result = await client.chat_completions_create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": "test"}]
+                    model="gpt-4o-mini", messages=[{"role": "user", "content": "test"}]
                 )
             except Exception as e:
                 # Should handle timeout gracefully
@@ -2969,8 +3158,7 @@ class TestDirectOpenAIClientErrorHandling:
             )
             try:
                 result = await client.chat_completions_create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": "test"}]
+                    model="gpt-4o-mini", messages=[{"role": "user", "content": "test"}]
                 )
             except Exception:
                 pass  # Expected to fail on rate limit

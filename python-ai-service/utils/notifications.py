@@ -311,7 +311,10 @@ def send_discord(
 
         if response.status_code == 429:
             retry_after = response.json().get("retry_after", 1.5)
-            return {"status": "failed", "error": f"Rate limited, retry after {retry_after}s"}
+            return {
+                "status": "failed",
+                "error": f"Rate limited, retry after {retry_after}s",
+            }
 
         if response.status_code not in [200, 204]:
             return {"status": "failed", "error": f"HTTP {response.status_code}"}
@@ -343,7 +346,10 @@ def send_telegram(
 
         # Check if Telegram credentials are configured
         if not bot_token or not chat_id:
-            return {"status": "failed", "error": "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured"}
+            return {
+                "status": "failed",
+                "error": "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured",
+            }
 
         # Emoji based on level
         emoji_map = {
@@ -526,7 +532,9 @@ Suggestions:
 Summary: {suggestions.get('summary', 'N/A')[:200]}..."""
 
     if applied:
-        message += f"\n\n✅ Auto-applied {len(applied)} changes:\n" + "\n".join(f"  • {c}" for c in applied)
+        message += f"\n\n✅ Auto-applied {len(applied)} changes:\n" + "\n".join(
+            f"  • {c}" for c in applied
+        )
 
     return send_notification(
         title="GPT-4 Config Improvement Suggestions",
@@ -586,7 +594,9 @@ def get_user_notification_preferences() -> Optional[Dict[str, Any]]:
                 logger.info("✅ Loaded user notification preferences from API")
                 return _preferences_cache
 
-        logger.warning(f"Failed to fetch notification preferences: HTTP {response.status_code}")
+        logger.warning(
+            f"Failed to fetch notification preferences: HTTP {response.status_code}"
+        )
         return None
 
     except Exception as e:
@@ -652,7 +662,9 @@ Time: {timestamp}
         discord_webhook = channels.get("discord", {}).get("webhook_url")
         if discord_webhook:
             try:
-                results["discord"] = send_discord_with_url(title, message, level, data, discord_webhook)
+                results["discord"] = send_discord_with_url(
+                    title, message, level, data, discord_webhook
+                )
             except Exception as e:
                 logger.error(f"Failed to send Discord notification: {e}")
                 results["discord"] = {"status": "failed", "error": str(e)}
@@ -664,7 +676,9 @@ Time: {timestamp}
         chat_id = telegram_config.get("chat_id")
         if bot_token and chat_id:
             try:
-                results["telegram"] = send_telegram_with_config(title, message, level, data, bot_token, chat_id)
+                results["telegram"] = send_telegram_with_config(
+                    title, message, level, data, bot_token, chat_id
+                )
             except Exception as e:
                 logger.error(f"Failed to send Telegram notification: {e}")
                 results["telegram"] = {"status": "failed", "error": str(e)}
@@ -719,11 +733,13 @@ def send_discord_with_url(
     # Add data fields
     if data:
         for key, value in data.items():
-            embed["fields"].append({
-                "name": key.replace("_", " ").title(),
-                "value": str(value),
-                "inline": True,
-            })
+            embed["fields"].append(
+                {
+                    "name": key.replace("_", " ").title(),
+                    "value": str(value),
+                    "inline": True,
+                }
+            )
 
     payload = {"embeds": [embed]}
 
@@ -732,7 +748,10 @@ def send_discord_with_url(
 
     if response.status_code == 429:
         retry_after = response.json().get("retry_after", 1.5)
-        return {"status": "failed", "error": f"Rate limited, retry after {retry_after}s"}
+        return {
+            "status": "failed",
+            "error": f"Rate limited, retry after {retry_after}s",
+        }
 
     if response.status_code not in [200, 204]:
         return {"status": "failed", "error": f"HTTP {response.status_code}"}

@@ -67,7 +67,9 @@ def mock_mongodb():
     mock_collection = AsyncMock()
 
     # Use side_effect=None to ensure fresh mock behavior each time
-    mock_collection.insert_one = AsyncMock(return_value=MagicMock(inserted_id="test_id_123"))
+    mock_collection.insert_one = AsyncMock(
+        return_value=MagicMock(inserted_id="test_id_123")
+    )
     mock_collection.find_one = AsyncMock(return_value=None)
     mock_collection.count_documents = AsyncMock(return_value=100)
     mock_collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=50))
@@ -76,7 +78,9 @@ def mock_mongodb():
     def get_collection(name):
         # Return a fresh mock collection for each access
         collection = AsyncMock()
-        collection.insert_one = AsyncMock(return_value=MagicMock(inserted_id="test_id_123"))
+        collection.insert_one = AsyncMock(
+            return_value=MagicMock(inserted_id="test_id_123")
+        )
         collection.find_one = AsyncMock(return_value=None)
         collection.count_documents = AsyncMock(return_value=100)
         collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=50))
@@ -140,7 +144,9 @@ def app(mock_openai_client, mock_mongodb):
 @pytest_asyncio.fixture
 async def client(app) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client using ASGITransport for httpx 0.24+."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         yield ac
 
 
