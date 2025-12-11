@@ -352,7 +352,9 @@ const PremiumSlider = ({
   step: number;
   onChange: (value: number) => void;
   description?: string;
-}) => (
+}) => {
+  const colors = useThemeColors();
+  return (
   <div className="space-y-3">
     <div className="flex justify-between items-center">
       <Label className="text-sm" style={{ color: colors.textSecondary }}>
@@ -380,7 +382,8 @@ const PremiumSlider = ({
       </p>
     )}
   </div>
-);
+  );
+};
 
 // Premium Switch Component
 const PremiumSwitch = ({
@@ -389,13 +392,16 @@ const PremiumSwitch = ({
 }: {
   checked: boolean;
   onCheckedChange?: (checked: boolean) => void;
-}) => (
+}) => {
+  const colors = useThemeColors();
+  return (
   <Switch
     checked={checked}
     onCheckedChange={onCheckedChange}
     className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-profit data-[state=checked]:to-emerald-400 data-[state=unchecked]:bg-muted"
   />
-);
+  );
+};
 
 // Strategy Card Component
 const StrategyCard = ({
@@ -410,7 +416,9 @@ const StrategyCard = ({
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
   children: React.ReactNode;
-}) => (
+}) => {
+  const colors = useThemeColors();
+  return (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
@@ -444,7 +452,8 @@ const StrategyCard = ({
     </div>
     <div className="space-y-4">{children}</div>
   </motion.div>
-);
+  );
+};
 
 // Preset Card Component
 const PresetCard = ({
@@ -457,7 +466,9 @@ const PresetCard = ({
   preset: (typeof MARKET_PRESETS)[keyof typeof MARKET_PRESETS];
   isSelected: boolean;
   onClick: () => void;
-}) => (
+}) => {
+  const colors = useThemeColors();
+  return (
   <motion.div
     whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
@@ -514,7 +525,8 @@ const PresetCard = ({
       </div>
     </div>
   </motion.div>
-);
+  );
+};
 
 // Premium Select Component
 const PremiumSelect = ({
@@ -529,7 +541,9 @@ const PremiumSelect = ({
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   description?: string;
-}) => (
+}) => {
+  const colors = useThemeColors();
+  return (
   <div className="space-y-2">
     <Label className="text-sm" style={{ color: colors.textSecondary }}>
       {label}
@@ -568,7 +582,8 @@ const PremiumSelect = ({
       </p>
     )}
   </div>
-);
+  );
+};
 
 export function TradingSettings() {
   const colors = useThemeColors();
