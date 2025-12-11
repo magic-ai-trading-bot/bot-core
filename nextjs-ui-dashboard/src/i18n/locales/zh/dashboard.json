@@ -1,0 +1,365 @@
+{
+  "title": "仪表板",
+  "welcomeBack": "欢迎回来",
+  "welcome": "欢迎回来，{{name}}",
+  "subtitle": "这是您投资组合的业绩概览",
+  "overview": "概览",
+  "performance": "业绩",
+  "recentTrades": "最近交易",
+  "marketSummary": "市场摘要",
+  "aiInsights": "AI分析",
+  "quickActions": "快速操作",
+  "marketsOpen": "市场开放",
+  "marketsClosed": "市场关闭",
+  "hero": {
+    "totalBalance": "总余额",
+    "paperTrading": "模拟交易",
+    "liveTrading": "实盘交易",
+    "paperMode": "模拟模式",
+    "liveMode": "实盘模式",
+    "change24h": "24小时变化"
+  },
+  "stats": {
+    "totalProfit": "总利润",
+    "winRate": "胜率",
+    "totalTrades": "总交易数",
+    "activeTrades": "活跃交易",
+    "todayPnl": "今日盈亏",
+    "weeklyPnl": "周盈亏",
+    "monthlyPnl": "月盈亏",
+    "avgProfit": "平均利润",
+    "riskScore": "风险评分",
+    "riskLow": "低",
+    "riskMedium": "中",
+    "riskHigh": "高"
+  },
+  "ticker": {
+    "trendingMarkets": "热门市场"
+  },
+  "chart": {
+    "profit": "利润",
+    "loss": "亏损",
+    "balance": "余额历史",
+    "trades": "交易历史",
+    "performance": "业绩图表",
+    "portfolioPerformance": "投资组合业绩",
+    "trackGains": "跟踪您的收益",
+    "value": "价值"
+  },
+  "aiSignals": {
+    "title": "AI信号",
+    "subtitle": "机器学习预测",
+    "live": "实时",
+    "noSignals": "暂无信号",
+    "noSignalsDesc": "AI分析将在此显示",
+    "justNow": "刚刚",
+    "minutesAgo": "{{minutes}}分钟前",
+    "hoursAgo": "{{hours}}小时前"
+  },
+  "trades": {
+    "title": "最近交易",
+    "subtitle": "您的交易历史",
+    "viewAll": "查看全部",
+    "noTrades": "暂无交易",
+    "noTradesDesc": "开始交易后将在此显示历史记录",
+    "open": "持仓",
+    "closed": "已平仓",
+    "daysAgo": "{{days}}天前"
+  },
+  "table": {
+    "symbol": "交易对",
+    "type": "类型",
+    "side": "方向",
+    "amount": "数量",
+    "price": "价格",
+    "pnl": "盈亏",
+    "time": "时间",
+    "status": "状态"
+  },
+  "notification": {
+    "newSignal": "新的交易信号已生成",
+    "tradeExecuted": "交易执行成功",
+    "stopLossHit": "止损触发",
+    "takeProfitHit": "止盈达成"
+  },
+  "error": {
+    "apiConnection": "API连接错误",
+    "retry": "重试"
+  },
+  "portfolio": {
+    "title": "模拟交易组合",
+    "subtitle": "实时绩效追踪",
+    "currentBalance": "当前余额",
+    "totalBalance": "总余额",
+    "sections": {
+      "allocation": "持仓分布",
+      "recentTrades": "近期交易",
+      "performance": "绩效历史"
+    },
+    "stats": {
+      "winRate": "胜率",
+      "totalTrades": "总交易数",
+      "profitFactor": "盈利因子",
+      "totalPnl": "总盈亏",
+      "openPositions": "持仓中"
+    },
+    "cards": {
+      "bestTrade": "最佳交易",
+      "worstTrade": "最差交易",
+      "maxDrawdown": "最大回撤",
+      "sharpeRatio": "夏普比率",
+      "riskAdjusted": "风险调整收益",
+      "noTradesYet": "暂无交易"
+    },
+    "status": {
+      "live": "实时",
+      "inactive": "未激活",
+      "safe": "安全",
+      "moderate": "中等",
+      "high": "高",
+      "excellent": "优秀",
+      "good": "良好",
+      "low": "低"
+    },
+    "table": {
+      "symbol": "交易对",
+      "type": "类型",
+      "entryExit": "入场 / 出场",
+      "pnl": "盈亏",
+      "date": "日期"
+    },
+    "empty": {
+      "noPositions": "暂无持仓",
+      "startTrading": "开始交易以查看分布",
+      "noClosedTrades": "暂无已平仓交易"
+    }
+  },
+  "profile": {
+    "title": "交易表现",
+    "subtitle": "来自模拟交易的真实交易统计",
+    "advancedMetrics": "高级指标",
+    "memberSince": "加入时间",
+    "authenticated": "已验证",
+    "errors": {
+      "emptyName": "显示名称不能为空",
+      "updateFailed": "无法更新个人资料，请重试",
+      "invalidImage": "请选择图片文件",
+      "imageTooLarge": "图片必须小于500KB",
+      "avatarUploadFailed": "无法上传头像，请重试",
+      "readImageFailed": "无法读取图片文件"
+    },
+    "success": {
+      "profileUpdated": "个人资料更新成功",
+      "avatarUpdated": "头像更新成功"
+    },
+    "achievements": {
+      "title": "成就",
+      "subtitle": "您的交易里程碑",
+      "firstTrade": "首次交易",
+      "firstTradeDesc": "完成您的第一笔交易",
+      "tenTrades": "10笔交易",
+      "tenTradesDesc": "完成10笔交易",
+      "inProfit": "盈利中",
+      "inProfitDesc": "达到正向总盈亏",
+      "winningStreak": "连胜",
+      "winningStreakDesc": "连续获胜5笔交易",
+      "notYet": "尚未达成",
+      "achieved": "已达成",
+      "active": "活跃",
+      "inProgress": "进行中",
+      "current": "当前"
+    },
+    "activity": {
+      "title": "最近活动",
+      "subtitle": "您最近的交易操作",
+      "noActivity": "暂无活动",
+      "startTrading": "开始交易以查看活动",
+      "long": "做多",
+      "short": "做空",
+      "closed": "已平仓",
+      "unlocked": "已解锁",
+      "milestone": "里程碑"
+    }
+  },
+  "realTrading": {
+    "title": "实盘交易",
+    "subtitle": "在币安使用真实资金进行实时交易",
+    "warning": {
+      "title": "真实资金交易",
+      "message": "您即将使用真实资金进行交易。请确保您了解相关风险。",
+      "confirm": "我了解风险"
+    },
+    "orderBook": {
+      "title": "订单簿",
+      "price": "价格",
+      "amount": "数量",
+      "total": "总计"
+    },
+    "orderForm": {
+      "buy": "买入",
+      "sell": "卖出",
+      "market": "市价",
+      "limit": "限价",
+      "stopLimit": "止损限价",
+      "amount": "数量",
+      "price": "价格",
+      "total": "总计",
+      "available": "可用",
+      "submit": "下单",
+      "stopPrice": "止损价"
+    },
+    "positions": {
+      "title": "持仓",
+      "symbol": "交易对",
+      "side": "方向",
+      "size": "数量",
+      "entry": "开仓价",
+      "mark": "标记价",
+      "pnl": "盈亏",
+      "close": "平仓",
+      "noPositions": "暂无持仓"
+    },
+    "orders": {
+      "title": "挂单",
+      "cancel": "取消",
+      "cancelAll": "全部取消",
+      "noOrders": "暂无挂单"
+    },
+    "history": {
+      "title": "交易历史",
+      "time": "时间",
+      "type": "类型",
+      "filled": "已成交",
+      "status": "状态"
+    },
+    "status": {
+      "connected": "已连接",
+      "disconnected": "已断开",
+      "connecting": "连接中..."
+    },
+    "modeSwitch": {
+      "title": "模拟交易模式已激活",
+      "description": "切换到实盘交易模式以使用真实资金进行交易。",
+      "badge": "模拟模式：安全练习",
+      "hint": "使用顶部栏的模式切换按钮在模拟和实盘交易模式之间切换。"
+    },
+    "comingSoon": {
+      "title": "即将推出",
+      "subtitle": "实盘交易模块",
+      "description": "实盘交易API正在开发中。此功能将允许您在币安交易所使用真实资金进行交易。",
+      "features": {
+        "spotApi": "币安现货订单API集成",
+        "websocket": "通过WebSocket实时跟踪仓位",
+        "riskManagement": "高级风险管理和熔断机制",
+        "underDevelopment": "API端点开发中"
+      },
+      "tryPaperTrading": "试用模拟交易",
+      "hint": "模拟交易提供相同的豪华界面和模拟资金 - 非常适合测试策略！"
+    },
+    "confirm": {
+      "title": "确认实盘交易",
+      "step": "第 {{current}} 步，共 {{total}} 步",
+      "riskWarning": "风险警告",
+      "realMoney": "此交易使用真实资金",
+      "leverageWarning": "杠杆交易可能导致损失超过本金",
+      "orderValue": "订单价值",
+      "exposure": "风险敞口 ({{leverage}}x)",
+      "acceptRisk": "我理解风险并对此交易承担全部责任。",
+      "finalTitle": "最终确认",
+      "executeQuestion": "执行 {{direction}} {{quantity}} {{symbol}}，风险敞口 ${{exposure}}？",
+      "cannotUndo": "此操作无法撤销",
+      "cancel": "取消",
+      "continue": "继续",
+      "executeTrade": "执行交易"
+    },
+    "riskWarning": {
+      "message": "所有订单需要两步确认。每笔交易设置止损。永远不要冒险超过您能承受的损失。"
+    }
+  },
+  "aiSignalsPage": {
+    "title": "AI交易信号",
+    "subtitle": "由先进神经网络提供的实时机器学习预测",
+    "refresh": "刷新",
+    "lastUpdate": "最后更新",
+    "justNow": "刚刚",
+    "engine": {
+      "status": "AI引擎状态",
+      "active": "活跃",
+      "offline": "离线",
+      "description": "神经网络实时分析市场模式"
+    },
+    "accuracy": {
+      "label": "模型准确率",
+      "value": "{{value}}%"
+    },
+    "signals": {
+      "live": "实时信号",
+      "active": "活跃",
+      "waiting": "等待信号",
+      "waitingDesc": "AI引擎正在分析市场状况。新信号将自动显示。"
+    },
+    "history": {
+      "title": "信号历史",
+      "all": "全部",
+      "win": "盈利",
+      "loss": "亏损",
+      "noHistory": "暂无信号历史"
+    },
+    "stats": {
+      "wins": "盈利",
+      "losses": "亏损",
+      "winRate": "胜率",
+      "totalPnl": "总盈亏"
+    }
+  },
+  "tradeAnalyses": {
+    "title": "GPT-4交易分析",
+    "subtitle": "AI分析帮助您了解问题所在并改进策略",
+    "refresh": "刷新",
+    "stats": {
+      "totalAnalyses": "总分析数",
+      "losingTrades": "亏损交易",
+      "winningTrades": "盈利交易",
+      "totalPnl": "总盈亏",
+      "avgPnl": "平均盈亏/交易"
+    },
+    "tabs": {
+      "analyses": "交易分析",
+      "suggestions": "配置建议"
+    },
+    "filter": {
+      "losingOnly": "显示: 仅亏损",
+      "allTrades": "显示: 全部"
+    },
+    "empty": {
+      "noAnalyses": "暂无分析",
+      "analysesDesc": "完成一些交易后查看AI分析",
+      "noSuggestions": "暂无配置建议",
+      "suggestionsDesc": "GPT-4将在分析您的交易后提供优化建议"
+    },
+    "suggestion": {
+      "latest": "最新GPT-4建议",
+      "rootCause": "根本原因",
+      "applied": "已应用的更改"
+    },
+    "analysis": {
+      "verdict": "结论",
+      "summary": "摘要",
+      "whatWentWrong": "问题所在",
+      "keyFactors": "关键因素",
+      "lessons": "经验教训",
+      "recommendations": "建议"
+    },
+    "details": {
+      "entry": "入场",
+      "exit": "出场",
+      "tradeId": "交易ID",
+      "closeReason": "平仓原因"
+    },
+    "verdict": {
+      "win": "盈利",
+      "loss": "亏损",
+      "breakeven": "持平"
+    }
+  }
+}

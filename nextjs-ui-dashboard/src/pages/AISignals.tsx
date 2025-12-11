@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -33,8 +34,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { AISignal } from "@/services/api";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -42,11 +43,6 @@ import {
   GlowIcon,
   SectionHeader,
   PageWrapper,
-  StatCard,
-  LoadingSpinner,
-  EmptyState,
-  containerVariants,
-  itemVariants,
 } from "@/styles/luxury-design-system";
 
 // ============================================================================
@@ -130,19 +126,21 @@ function formatPrice(price: number, symbol: string): string {
 // ============================================================================
 
 // Neural Network Background Animation
-const NeuralNetworkBg = () => (
+const NeuralNetworkBg = () => {
+  const themeColors = useThemeColors();
+  return (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {/* Gradient orbs */}
     <div
       className="absolute top-0 left-1/4 w-[600px] h-[600px] blur-[120px] animate-pulse-slow"
       style={{
-        background: `radial-gradient(circle, ${luxuryColors.purple}20, ${luxuryColors.cyan}10, transparent)`,
+        background: `radial-gradient(circle, ${themeColors.purple}20, ${themeColors.cyan}10, transparent)`,
       }}
     />
     <div
       className="absolute bottom-0 right-1/4 w-[400px] h-[400px] blur-[100px] animate-pulse-slow"
       style={{
-        background: `radial-gradient(circle, ${luxuryColors.cyan}15, ${luxuryColors.purple}10, transparent)`,
+        background: `radial-gradient(circle, ${themeColors.cyan}15, ${themeColors.purple}10, transparent)`,
         animationDelay: "1s",
       }}
     />
@@ -151,8 +149,8 @@ const NeuralNetworkBg = () => (
     <svg className="absolute inset-0 w-full h-full opacity-[0.03]" viewBox="0 0 800 600">
       <defs>
         <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={luxuryColors.purple} />
-          <stop offset="100%" stopColor={luxuryColors.cyan} />
+          <stop offset="0%" stopColor={themeColors.purple} />
+          <stop offset="100%" stopColor={themeColors.cyan} />
         </linearGradient>
       </defs>
       {/* Neural connections */}
@@ -181,34 +179,40 @@ const NeuralNetworkBg = () => (
       ))}
     </svg>
   </div>
-);
+  );
+};
 
 // Pulse Animation Ring
-const PulseRing = ({ color = luxuryColors.purple, size = 80 }: { color?: string; size?: number }) => (
-  <div className="relative" style={{ width: size, height: size }}>
-    <motion.div
-      className="absolute inset-0 rounded-full"
-      style={{ backgroundColor: color, opacity: 0.4 }}
-      animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
-      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-    />
-    <motion.div
-      className="absolute inset-0 rounded-full"
-      style={{ backgroundColor: color, opacity: 0.3 }}
-      animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
-      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-    />
-  </div>
-);
+const PulseRing = ({ color, size = 80 }: { color?: string; size?: number }) => {
+  const themeColors = useThemeColors();
+  const ringColor = color || themeColors.purple;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{ backgroundColor: ringColor, opacity: 0.4 }}
+        animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{ backgroundColor: ringColor, opacity: 0.3 }}
+        animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+      />
+    </div>
+  );
+};
 
 // Confidence Meter Component
 const ConfidenceMeter = ({ value, size = "md" }: { value: number; size?: "sm" | "md" | "lg" }) => {
+  const themeColors = useThemeColors();
   const percentage = Math.round(value * 100);
   const getColor = () => {
-    if (percentage >= 85) return { main: luxuryColors.emerald, glow: `${luxuryColors.emerald}80` };
-    if (percentage >= 70) return { main: luxuryColors.cyan, glow: `${luxuryColors.cyan}80` };
-    if (percentage >= 55) return { main: luxuryColors.amber, glow: `${luxuryColors.amber}80` };
-    return { main: luxuryColors.loss, glow: `${luxuryColors.loss}80` };
+    if (percentage >= 85) return { main: themeColors.emerald, glow: `${themeColors.emerald}80` };
+    if (percentage >= 70) return { main: themeColors.cyan, glow: `${themeColors.cyan}80` };
+    if (percentage >= 55) return { main: themeColors.amber, glow: `${themeColors.amber}80` };
+    return { main: themeColors.loss, glow: `${themeColors.loss}80` };
   };
 
   const colors = getColor();
@@ -226,7 +230,7 @@ const ConfidenceMeter = ({ value, size = "md" }: { value: number; size?: "sm" | 
         style={{
           width: dim.width,
           height: dim.height,
-          backgroundColor: luxuryColors.bgTertiary,
+          backgroundColor: themeColors.bgTertiary,
         }}
       >
         <motion.div
@@ -280,22 +284,24 @@ const SignalBadge = ({ signal, size = "md" }: { signal: "long" | "short" | "neut
 
 // AI Status Hero Section
 const AIStatusHero = ({ isActive, accuracy, lastUpdate }: { isActive: boolean; accuracy: number; lastUpdate: string }) => {
-  const statusColor = isActive ? luxuryColors.emerald : luxuryColors.loss;
+  const { t } = useTranslation('dashboard');
+  const themeColors = useThemeColors();
+  const statusColor = isActive ? themeColors.emerald : themeColors.loss;
 
   return (
-    <GlassCard hoverable glowColor={`0 8px 32px ${luxuryColors.purple}40`}>
+    <GlassCard hoverable glowColor={`0 8px 32px ${themeColors.purple}40`}>
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
           className="absolute top-0 right-0 w-[300px] h-[300px] blur-[80px]"
           style={{
-            background: `radial-gradient(circle, ${luxuryColors.purple}20, ${luxuryColors.cyan}10, transparent)`,
+            background: `radial-gradient(circle, ${themeColors.purple}20, ${themeColors.cyan}10, transparent)`,
           }}
         />
         <div
           className="absolute bottom-0 left-0 w-[200px] h-[200px] blur-[60px]"
           style={{
-            background: `radial-gradient(circle, ${luxuryColors.cyan}15, transparent)`,
+            background: `radial-gradient(circle, ${themeColors.cyan}15, transparent)`,
           }}
         />
       </div>
@@ -317,13 +323,13 @@ const AIStatusHero = ({ isActive, accuracy, lastUpdate }: { isActive: boolean; a
           </div>
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <GradientText className="text-2xl md:text-3xl font-bold">AI Engine</GradientText>
+              <GradientText className="text-2xl md:text-3xl font-bold">{t('trading:aiEngine.title')}</GradientText>
               <Badge variant={isActive ? "success" : "error"} glow>
-                {isActive ? "Active" : "Offline"}
+                {isActive ? t('aiSignalsPage.engine.active') : t('aiSignalsPage.engine.offline')}
               </Badge>
             </div>
-            <p className="text-sm md:text-base" style={{ color: luxuryColors.textMuted }}>
-              Real-time market analysis with multi-model ensemble
+            <p className="text-sm md:text-base" style={{ color: themeColors.textMuted }}>
+              {t('aiSignalsPage.engine.description')}
             </p>
           </div>
         </div>
@@ -332,23 +338,23 @@ const AIStatusHero = ({ isActive, accuracy, lastUpdate }: { isActive: boolean; a
         <div className="flex items-center gap-6 md:gap-8">
           <div className="text-center">
             <GradientText className="text-3xl md:text-4xl font-bold">{accuracy}%</GradientText>
-            <div className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-              Model Accuracy
+            <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
+              {t('aiSignalsPage.accuracy.label')}
             </div>
           </div>
           <div
             className="w-px h-12"
             style={{
-              background: `linear-gradient(to bottom, transparent, ${luxuryColors.purple}30, transparent)`,
+              background: `linear-gradient(to bottom, transparent, ${themeColors.purple}30, transparent)`,
             }}
           />
           <div className="text-center">
-            <div className="flex items-center gap-1" style={{ color: luxuryColors.cyan }}>
+            <div className="flex items-center gap-1" style={{ color: themeColors.cyan }}>
               <Clock className="w-4 h-4" />
               <span className="text-lg font-semibold">{lastUpdate}</span>
             </div>
-            <div className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-              Last Update
+            <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
+              {t('aiSignalsPage.lastUpdate')}
             </div>
           </div>
         </div>
@@ -359,14 +365,15 @@ const AIStatusHero = ({ isActive, accuracy, lastUpdate }: { isActive: boolean; a
 
 // Signal Card Component
 const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index: number; onExpand: () => void }) => {
+  const themeColors = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const signalColor =
     signal.signal === "long"
-      ? luxuryColors.emerald
+      ? themeColors.emerald
       : signal.signal === "short"
-        ? luxuryColors.loss
-        : luxuryColors.textMuted;
+        ? themeColors.loss
+        : themeColors.textMuted;
 
   return (
     <motion.div
@@ -408,12 +415,12 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
               {/* Live indicator */}
               <div
                 className="absolute -top-1 -right-1 w-3 h-3 rounded-full animate-pulse"
-                style={{ backgroundColor: luxuryColors.emerald }}
+                style={{ backgroundColor: themeColors.emerald }}
               />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg" style={{ color: luxuryColors.textPrimary }}>
+                <span className="font-bold text-lg" style={{ color: themeColors.textPrimary }}>
                   {signal.symbol.replace("USDT", "")}
                 </span>
                 <Badge variant="default" size="sm">
@@ -421,13 +428,13 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
                 </Badge>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs" style={{ color: luxuryColors.textMuted }}>
+                <span className="text-xs" style={{ color: themeColors.textMuted }}>
                   {signal.model_type.toUpperCase()}
                 </span>
-                <span className="text-xs" style={{ color: luxuryColors.textMuted }}>
+                <span className="text-xs" style={{ color: themeColors.textMuted }}>
                   |
                 </span>
-                <span className="text-xs" style={{ color: luxuryColors.textMuted }}>
+                <span className="text-xs" style={{ color: themeColors.textMuted }}>
                   {formatTimeAgo(signal.timestamp)}
                 </span>
               </div>
@@ -439,17 +446,17 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
         {/* Confidence Row */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="text-xs block mb-1" style={{ color: luxuryColors.textMuted }}>
+            <span className="text-xs block mb-1" style={{ color: themeColors.textMuted }}>
               Confidence
             </span>
             <ConfidenceMeter value={signal.confidence} size="md" />
           </div>
           {signal.entry_price && (
             <div className="text-right">
-              <span className="text-xs block mb-1" style={{ color: luxuryColors.textMuted }}>
+              <span className="text-xs block mb-1" style={{ color: themeColors.textMuted }}>
                 Entry Price
               </span>
-              <span className="font-mono font-semibold" style={{ color: luxuryColors.textPrimary }}>
+              <span className="font-mono font-semibold" style={{ color: themeColors.textPrimary }}>
                 {formatPrice(signal.entry_price, signal.symbol)}
               </span>
             </div>
@@ -463,15 +470,15 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
               <div
                 className="flex-1 p-2 rounded-lg border"
                 style={{
-                  backgroundColor: `${luxuryColors.emerald}10`,
-                  borderColor: `${luxuryColors.emerald}20`,
+                  backgroundColor: `${themeColors.emerald}10`,
+                  borderColor: `${themeColors.emerald}20`,
                 }}
               >
-                <div className="flex items-center gap-1 text-xs mb-1" style={{ color: luxuryColors.emerald }}>
+                <div className="flex items-center gap-1 text-xs mb-1" style={{ color: themeColors.emerald }}>
                   <Target className="w-3 h-3" />
                   Target
                 </div>
-                <span className="font-mono font-semibold" style={{ color: luxuryColors.emerald }}>
+                <span className="font-mono font-semibold" style={{ color: themeColors.emerald }}>
                   {formatPrice(signal.target_price, signal.symbol)}
                 </span>
               </div>
@@ -480,15 +487,15 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
               <div
                 className="flex-1 p-2 rounded-lg border"
                 style={{
-                  backgroundColor: `${luxuryColors.loss}10`,
-                  borderColor: `${luxuryColors.loss}20`,
+                  backgroundColor: `${themeColors.loss}10`,
+                  borderColor: `${themeColors.loss}20`,
                 }}
               >
-                <div className="flex items-center gap-1 text-xs mb-1" style={{ color: luxuryColors.loss }}>
+                <div className="flex items-center gap-1 text-xs mb-1" style={{ color: themeColors.loss }}>
                   <Shield className="w-3 h-3" />
                   Stop Loss
                 </div>
-                <span className="font-mono font-semibold" style={{ color: luxuryColors.loss }}>
+                <span className="font-mono font-semibold" style={{ color: themeColors.loss }}>
                   {formatPrice(signal.stop_loss, signal.symbol)}
                 </span>
               </div>
@@ -501,8 +508,8 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full flex items-center justify-between p-2 rounded-lg transition-colors text-sm"
           style={{
-            backgroundColor: luxuryColors.bgSecondary,
-            color: luxuryColors.textMuted,
+            backgroundColor: themeColors.bgSecondary,
+            color: themeColors.textMuted,
           }}
         >
           <span className="flex items-center gap-2">
@@ -525,12 +532,12 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
                 {signal.reasoning && (
                   <div
                     className="p-3 rounded-lg"
-                    style={{ backgroundColor: luxuryColors.bgSecondary }}
+                    style={{ backgroundColor: themeColors.bgSecondary }}
                   >
-                    <div className="text-xs font-semibold mb-1" style={{ color: luxuryColors.purple }}>
+                    <div className="text-xs font-semibold mb-1" style={{ color: themeColors.purple }}>
                       AI Reasoning
                     </div>
-                    <p className="text-sm leading-relaxed" style={{ color: luxuryColors.textSecondary }}>
+                    <p className="text-sm leading-relaxed" style={{ color: themeColors.textSecondary }}>
                       {signal.reasoning}
                     </p>
                   </div>
@@ -538,15 +545,15 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
                 {signal.strategy_scores && (
                   <div
                     className="p-3 rounded-lg"
-                    style={{ backgroundColor: luxuryColors.bgSecondary }}
+                    style={{ backgroundColor: themeColors.bgSecondary }}
                   >
-                    <div className="text-xs font-semibold mb-2" style={{ color: luxuryColors.cyan }}>
+                    <div className="text-xs font-semibold mb-2" style={{ color: themeColors.cyan }}>
                       Strategy Scores
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(signal.strategy_scores).map(([strategy, score]) => (
                         <div key={strategy} className="flex items-center justify-between">
-                          <span className="text-xs capitalize" style={{ color: luxuryColors.textMuted }}>
+                          <span className="text-xs capitalize" style={{ color: themeColors.textMuted }}>
                             {strategy}
                           </span>
                           <ConfidenceMeter value={score} size="sm" />
@@ -567,12 +574,13 @@ const SignalCard = ({ signal, index, onExpand }: { signal: SignalWithMeta; index
 
 // Signal History Row
 const HistoryRow = ({ signal, index }: { signal: SignalWithMeta; index: number }) => {
+  const themeColors = useThemeColors();
   const outcomeColor =
     signal.outcome === "win"
-      ? luxuryColors.emerald
+      ? themeColors.emerald
       : signal.outcome === "loss"
-        ? luxuryColors.loss
-        : luxuryColors.amber;
+        ? themeColors.loss
+        : themeColors.amber;
 
   return (
     <motion.div
@@ -581,7 +589,7 @@ const HistoryRow = ({ signal, index }: { signal: SignalWithMeta; index: number }
       transition={{ delay: index * 0.05 }}
       className="p-3 rounded-lg transition-colors"
       style={{
-        backgroundColor: luxuryColors.bgSecondary,
+        backgroundColor: themeColors.bgSecondary,
       }}
     >
       <div className="flex items-center justify-between">
@@ -599,12 +607,12 @@ const HistoryRow = ({ signal, index }: { signal: SignalWithMeta; index: number }
           />
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+              <span className="font-semibold" style={{ color: themeColors.textPrimary }}>
                 {signal.symbol.replace("USDT", "")}
               </span>
               <SignalBadge signal={signal.signal} size="sm" />
             </div>
-            <span className="text-xs" style={{ color: luxuryColors.textMuted }}>
+            <span className="text-xs" style={{ color: themeColors.textMuted }}>
               {formatTimeAgo(signal.timestamp)} | {signal.model_type.toUpperCase()}
             </span>
           </div>
@@ -615,17 +623,17 @@ const HistoryRow = ({ signal, index }: { signal: SignalWithMeta; index: number }
             style={{
               color:
                 signal.actual_pnl && signal.actual_pnl > 0
-                  ? luxuryColors.emerald
+                  ? themeColors.emerald
                   : signal.actual_pnl && signal.actual_pnl < 0
-                    ? luxuryColors.loss
-                    : luxuryColors.amber,
+                    ? themeColors.loss
+                    : themeColors.amber,
             }}
           >
             {signal.actual_pnl
               ? `${signal.actual_pnl > 0 ? "+" : ""}${signal.actual_pnl.toFixed(2)}%`
               : "Pending"}
           </div>
-          <span className="text-xs" style={{ color: luxuryColors.textMuted }}>
+          <span className="text-xs" style={{ color: themeColors.textMuted }}>
             Conf: {Math.round(signal.confidence * 100)}%
           </span>
         </div>
@@ -639,7 +647,9 @@ const HistoryRow = ({ signal, index }: { signal: SignalWithMeta; index: number }
 // ============================================================================
 
 const AISignals = () => {
+  const { t } = useTranslation('dashboard');
   const { state: wsState } = useWebSocket();
+  const themeColors = useThemeColors();
   const [selectedFilter, setSelectedFilter] = useState<"all" | "win" | "loss">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [historySignals, setHistorySignals] = useState<SignalWithMeta[]>([]);
@@ -778,7 +788,7 @@ const AISignals = () => {
     const signalMap = new Map<string, SignalWithMeta>();
 
     // Process signals - keep only the latest for each symbol
-    wsState.aiSignals.forEach((s, i) => {
+    wsState.aiSignals.forEach((s, _i) => {
       const signal: SignalWithMeta = {
         ...s,
         id: `ws-${s.symbol}-${s.timestamp}`,
@@ -873,9 +883,9 @@ const AISignals = () => {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <GradientText className="text-3xl font-bold tracking-tight">AI Signals</GradientText>
-            <p className="mt-1" style={{ color: luxuryColors.textMuted }}>
-              Real-time AI-powered trading signals and market analysis
+            <GradientText className="text-3xl font-bold tracking-tight">{t('aiSignalsPage.title')}</GradientText>
+            <p className="mt-1" style={{ color: themeColors.textMuted }}>
+              {t('aiSignalsPage.subtitle')}
             </p>
           </div>
           <PremiumButton
@@ -885,7 +895,7 @@ const AISignals = () => {
             loading={isRefreshing}
           >
             <RefreshCw className="w-4 h-4" />
-            Refresh
+            {t('tradeAnalyses.refresh')}
           </PremiumButton>
         </div>
 
@@ -893,7 +903,7 @@ const AISignals = () => {
         <AIStatusHero
           isActive={wsState.isConnected || true}
           accuracy={78}
-          lastUpdate="Just now"
+          lastUpdate={t('aiSignalsPage.justNow')}
         />
 
         {/* Main Content Grid */}
@@ -901,11 +911,11 @@ const AISignals = () => {
           {/* Live Signals - 2 columns */}
           <div className="lg:col-span-2 space-y-4">
             <SectionHeader
-              title="Live Signals"
+              title={t('aiSignalsPage.signals.live')}
               icon={Zap}
               action={
                 <Badge variant="success" glow>
-                  {liveSignals.length} Active
+                  {liveSignals.length} {t('aiSignalsPage.signals.active')}
                 </Badge>
               }
             />
@@ -923,12 +933,12 @@ const AISignals = () => {
               </div>
             ) : (
               <GlassCard className="text-center py-12">
-                <GlowIcon icon={Zap} color={luxuryColors.cyan} size="lg" className="mx-auto mb-4" />
+                <GlowIcon icon={Zap} color={themeColors.cyan} size="lg" className="mx-auto mb-4" />
                 <GradientText className="text-lg font-semibold mb-2">
-                  Waiting for Signals...
+                  {t('aiSignalsPage.signals.waiting')}
                 </GradientText>
-                <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                  AI signals will appear here when the trading engine generates them
+                <p className="text-sm" style={{ color: themeColors.textMuted }}>
+                  {t('aiSignalsPage.signals.waitingDesc')}
                 </p>
               </GlassCard>
             )}
@@ -937,26 +947,26 @@ const AISignals = () => {
           {/* Signal History - 1 column */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <SectionHeader title="History" icon={BarChart3} />
+              <SectionHeader title={t('aiSignalsPage.history.title')} icon={BarChart3} />
               <div
                 className="flex items-center gap-1 p-1 rounded-lg"
-                style={{ backgroundColor: luxuryColors.bgSecondary }}
+                style={{ backgroundColor: themeColors.bgSecondary }}
               >
                 {(["all", "win", "loss"] as const).map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setSelectedFilter(filter)}
-                    className="px-3 py-1 text-xs rounded-md transition-colors capitalize"
+                    className="px-3 py-1 text-xs rounded-md transition-colors"
                     style={{
                       backgroundColor:
-                        selectedFilter === filter ? luxuryColors.purple : "transparent",
+                        selectedFilter === filter ? themeColors.purple : "transparent",
                       color:
                         selectedFilter === filter
-                          ? luxuryColors.textPrimary
-                          : luxuryColors.textMuted,
+                          ? themeColors.textPrimary
+                          : themeColors.textMuted,
                     }}
                   >
-                    {filter}
+                    {t(`aiSignalsPage.history.${filter}`)}
                   </button>
                 ))}
               </div>
@@ -965,27 +975,27 @@ const AISignals = () => {
             {/* Stats Summary */}
             <div className="grid grid-cols-2 gap-2">
               <GlassCard noPadding className="text-center p-3">
-                <div className="text-lg font-bold" style={{ color: luxuryColors.emerald }}>
+                <div className="text-lg font-bold" style={{ color: themeColors.emerald }}>
                   {isLoadingHistory ? "-" : stats.wins}
                 </div>
-                <div className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                  Wins
+                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                  {t('aiSignalsPage.stats.wins')}
                 </div>
               </GlassCard>
               <GlassCard noPadding className="text-center p-3">
-                <div className="text-lg font-bold" style={{ color: luxuryColors.loss }}>
+                <div className="text-lg font-bold" style={{ color: themeColors.loss }}>
                   {isLoadingHistory ? "-" : stats.losses}
                 </div>
-                <div className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                  Losses
+                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                  {t('aiSignalsPage.stats.losses')}
                 </div>
               </GlassCard>
               <GlassCard noPadding className="text-center p-3">
                 <GradientText className="text-lg font-bold">
                   {isLoadingHistory ? "-" : `${stats.winRate}%`}
                 </GradientText>
-                <div className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                  Win Rate
+                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                  {t('aiSignalsPage.stats.winRate')}
                 </div>
               </GlassCard>
               <GlassCard noPadding className="text-center p-3">
@@ -993,18 +1003,18 @@ const AISignals = () => {
                   className="text-lg font-bold font-mono"
                   style={{
                     color: isLoadingHistory
-                      ? luxuryColors.textMuted
+                      ? themeColors.textMuted
                       : stats.totalPnl >= 0
-                        ? luxuryColors.emerald
-                        : luxuryColors.loss,
+                        ? themeColors.emerald
+                        : themeColors.loss,
                   }}
                 >
                   {isLoadingHistory
                     ? "-"
                     : `${stats.totalPnl >= 0 ? "+" : ""}${stats.totalPnl.toFixed(2)}`}
                 </div>
-                <div className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                  Total PnL (USDT)
+                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                  {t('aiSignalsPage.stats.totalPnl')} (USDT)
                 </div>
               </GlassCard>
             </div>
@@ -1018,11 +1028,11 @@ const AISignals = () => {
               ) : (
                 <div
                   className="text-center py-8 rounded-lg"
-                  style={{ backgroundColor: luxuryColors.bgSecondary }}
+                  style={{ backgroundColor: themeColors.bgSecondary }}
                 >
-                  <BarChart3 className="w-8 h-8 mx-auto mb-2" style={{ color: luxuryColors.textMuted }} />
-                  <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                    No signal history yet
+                  <BarChart3 className="w-8 h-8 mx-auto mb-2" style={{ color: themeColors.textMuted }} />
+                  <p className="text-sm" style={{ color: themeColors.textMuted }}>
+                    {t('aiSignalsPage.history.noHistory')}
                   </p>
                 </div>
               )}
@@ -1038,15 +1048,15 @@ const AISignals = () => {
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: ${luxuryColors.bgSecondary};
+          background: ${themeColors.bgSecondary};
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: ${luxuryColors.purple}50;
+          background: ${themeColors.purple}50;
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: ${luxuryColors.purple}80;
+          background: ${themeColors.purple}80;
         }
       `}</style>
     </PageWrapper>

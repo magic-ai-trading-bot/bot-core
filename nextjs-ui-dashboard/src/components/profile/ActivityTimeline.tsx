@@ -6,7 +6,7 @@
 
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Settings, Trophy, Key, Bell } from 'lucide-react';
+import { TrendingUp, Settings, Trophy, Key, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Activity {

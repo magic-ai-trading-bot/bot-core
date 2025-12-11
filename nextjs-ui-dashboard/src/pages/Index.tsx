@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -11,8 +10,8 @@ import {
   itemVariants,
   StatCard,
 } from '@/styles/luxury-design-system';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
-  Sparkles,
   TrendingUp,
   Shield,
   Zap,
@@ -27,71 +26,70 @@ import {
   Quote,
   Menu,
   X,
+  PlayCircle,
 } from 'lucide-react';
+import { BotCoreLogo } from '@/components/BotCoreLogo';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ChatBot from '@/components/ChatBot';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { lazy, Suspense } from 'react';
+
+// Lazy load 3D component for performance
+const HeroScene3D = lazy(() => import('@/components/3d/HeroScene3D'));
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation('landing');
+  const colors = useThemeColors();
 
   return (
-    <div style={{ backgroundColor: luxuryColors.bgPrimary, minHeight: '100vh' }}>
+    <div style={{ backgroundColor: colors.bgPrimary, minHeight: '100vh' }}>
       {/* Header */}
       <motion.header
         className="sticky top-0 z-50 border-b backdrop-blur-xl"
         style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          borderColor: luxuryColors.borderSubtle,
+          backgroundColor: colors.bgHeader,
+          borderColor: colors.borderSubtle,
         }}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{
-                  background: luxuryColors.gradientPremium,
-                  boxShadow: luxuryColors.glowCyan,
-                }}
-              >
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <GradientText className="text-xl font-black">Bot Core</GradientText>
+          <div className="flex items-center h-16">
+            {/* Logo - Left section (flex-1 to balance with right) */}
+            <div className="flex-1 flex items-center">
+              <BotCoreLogo size="md" />
             </div>
 
-            {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-6">
-              {['Features', 'Stats', 'Pricing', 'Testimonials', 'FAQ'].map((item) => (
-                <a
-                  key={item}
-                  href={`#${item.toLowerCase()}`}
-                  className="text-sm font-medium transition-colors hover:text-white"
-                  style={{ color: luxuryColors.textSecondary }}
-                >
-                  {item}
-                </a>
-              ))}
-            </nav>
+            {/* Desktop Nav - Centered (spacer for balance) */}
+            <div className="hidden md:flex flex-1" />
 
-            {/* CTA Buttons */}
-            <div className="hidden md:flex items-center gap-4">
-              <PremiumButton variant="ghost" size="md" onClick={() => navigate('/login')}>
-                Sign In
-              </PremiumButton>
+            {/* CTA Buttons + Theme & Language - Right section (flex-1 to balance with left) */}
+            <div className="flex-1 hidden md:flex items-center justify-end gap-3">
+              <ThemeToggle />
+              <LanguageSelector />
+              <Link
+                to="/login"
+                className="text-sm font-medium px-4 py-2 rounded-lg transition-colors hover:opacity-80"
+                style={{ color: colors.textSecondary }}
+              >
+                {t('nav.signIn')}
+              </Link>
               <PremiumButton variant="primary" size="md" onClick={() => navigate('/register')}>
-                Get Started
+                {t('nav.startTrial')}
               </PremiumButton>
             </div>
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden text-white"
+              className="md:hidden"
+              style={{ color: colors.textPrimary }}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X /> : <Menu />}
@@ -104,31 +102,32 @@ const Index = () => {
           <motion.div
             className="md:hidden border-t"
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.95)',
-              borderColor: luxuryColors.borderSubtle,
+              backgroundColor: colors.bgMobileMenu,
+              borderColor: colors.borderSubtle,
             }}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
           >
             <div className="px-4 py-4 space-y-3">
-              {['Features', 'Stats', 'Pricing', 'Testimonials', 'FAQ'].map((item) => (
-                <a
-                  key={item}
-                  href={`#${item.toLowerCase()}`}
-                  className="block text-sm font-medium py-2"
-                  style={{ color: luxuryColors.textSecondary }}
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <LanguageSelector />
+              </div>
+              <div className="pt-3 flex flex-col gap-2">
+                <Link
+                  to="/login"
+                  className="block text-center text-sm font-medium py-2.5 rounded-lg transition-colors"
+                  style={{
+                    color: colors.textSecondary,
+                    backgroundColor: colors.bgSecondary,
+                  }}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {item}
-                </a>
-              ))}
-              <div className="pt-3 space-y-2">
-                <PremiumButton variant="ghost" size="md" fullWidth onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}>
-                  Sign In
-                </PremiumButton>
+                  {t('nav.signIn')}
+                </Link>
                 <PremiumButton variant="primary" size="md" fullWidth onClick={() => { navigate('/register'); setMobileMenuOpen(false); }}>
-                  Get Started
+                  {t('nav.startTrial')}
                 </PremiumButton>
               </div>
             </div>
@@ -138,30 +137,21 @@ const Index = () => {
 
       <main>
         {/* Hero Section */}
-        <section className="relative overflow-hidden">
-          {/* Background Decorations */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Gradient Orbs */}
-            <div
-              className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
-              style={{ background: luxuryColors.gradientCyan }}
-            />
-            <div
-              className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
-              style={{ background: luxuryColors.gradientProfit }}
-            />
-            {/* Grid Pattern */}
-            <div
-              className="absolute inset-0 opacity-[0.02]"
-              style={{
-                backgroundImage: `linear-gradient(${luxuryColors.borderSubtle} 1px, transparent 1px),
-                                  linear-gradient(90deg, ${luxuryColors.borderSubtle} 1px, transparent 1px)`,
-                backgroundSize: '50px 50px',
-              }}
-            />
-          </div>
+        <section className="relative overflow-hidden min-h-[90vh] flex items-center justify-center">
+          {/* 3D Background Scene */}
+          <Suspense fallback={null}>
+            <HeroScene3D className="z-0" />
+          </Suspense>
 
-          <PageWrapper>
+          {/* Gradient Overlay for better text readability */}
+          <div
+            className="absolute inset-0 z-[1] pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse at center, transparent 0%, ${colors.bgPrimary}90 70%, ${colors.bgPrimary} 100%)`,
+            }}
+          />
+
+          <PageWrapper className="relative z-10 w-full">
             <motion.div
               className="container mx-auto text-center py-20 md:py-32"
               variants={containerVariants}
@@ -169,27 +159,27 @@ const Index = () => {
               {/* Badge */}
               <motion.div className="flex justify-center mb-6" variants={itemVariants}>
                 <Badge variant="info" glow>
-                  AI-Powered Trading Platform
+                  {t('hero.badge')}
                 </Badge>
               </motion.div>
 
               {/* Hero Title */}
               <motion.h1
                 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight"
+                style={{ color: colors.textPrimary }}
                 variants={itemVariants}
               >
-                Trade Smarter with{' '}
-                <GradientText className="block">AI-Driven Insights</GradientText>
+                {t('hero.title')}{' '}
+                <GradientText className="block">{t('hero.subtitle')}</GradientText>
               </motion.h1>
 
               {/* Hero Description */}
               <motion.p
                 className="text-lg md:text-xl max-w-2xl mx-auto mb-10"
-                style={{ color: luxuryColors.textSecondary }}
+                style={{ color: colors.textSecondary }}
                 variants={itemVariants}
               >
-                Advanced AI algorithms, real-time market analysis, and automated risk
-                management. Your competitive edge in cryptocurrency trading.
+                {t('hero.description')}
               </motion.p>
 
               {/* CTA Buttons */}
@@ -197,12 +187,13 @@ const Index = () => {
                 className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                 variants={itemVariants}
               >
-                <PremiumButton variant="primary" size="lg">
-                  Start Trading Now
+                <PremiumButton variant="primary" size="lg" onClick={() => navigate('/register')}>
+                  {t('hero.startTrading')}
                   <ArrowRight className="w-5 h-5" />
                 </PremiumButton>
-                <PremiumButton variant="secondary" size="lg">
-                  Watch Demo
+                <PremiumButton variant="secondary" size="lg" onClick={() => setVideoModalOpen(true)}>
+                  <PlayCircle className="w-5 h-5" />
+                  {t('hero.watchDemo')}
                 </PremiumButton>
               </motion.div>
 
@@ -213,28 +204,28 @@ const Index = () => {
               >
                 <div className="text-center">
                   <GradientText className="text-3xl font-black">10K+</GradientText>
-                  <p className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-                    Active Traders
+                  <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+                    {t('stats.activeTraders')}
                   </p>
                 </div>
                 <div
                   className="hidden sm:block w-px h-8"
-                  style={{ backgroundColor: luxuryColors.borderSubtle }}
+                  style={{ backgroundColor: colors.borderSubtle }}
                 />
                 <div className="text-center">
                   <GradientText className="text-3xl font-black">$50M+</GradientText>
-                  <p className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-                    Trading Volume
+                  <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+                    {t('stats.tradingVolume')}
                   </p>
                 </div>
                 <div
                   className="hidden sm:block w-px h-8"
-                  style={{ backgroundColor: luxuryColors.borderSubtle }}
+                  style={{ backgroundColor: colors.borderSubtle }}
                 />
                 <div className="text-center">
                   <GradientText className="text-3xl font-black">99.9%</GradientText>
-                  <p className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-                    Uptime
+                  <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+                    {t('stats.uptime')}
                   </p>
                 </div>
               </motion.div>
@@ -253,18 +244,19 @@ const Index = () => {
               variants={containerVariants}
             >
               {/* Section Header */}
-              <motion.div className="text-center mb-16" variants={itemVariants}>
-                <Badge variant="purple" className="mb-4">
-                  Features
+              <motion.div className="text-center mb-20" variants={itemVariants}>
+                <Badge variant="purple" className="mb-10">
+                  {t('features.badge')}
                 </Badge>
-                <h2 className="text-3xl md:text-5xl font-black mb-4">
-                  <GradientText>Everything You Need</GradientText> to Succeed
+                <h2 className="text-3xl md:text-5xl font-black mb-6">
+                  <GradientText>{t('features.title')}</GradientText>{' '}
+                  <span style={{ color: colors.textPrimary }}>{t('features.subtitle')}</span>
                 </h2>
                 <p
                   className="text-lg max-w-2xl mx-auto"
-                  style={{ color: luxuryColors.textSecondary }}
+                  style={{ color: colors.textSecondary }}
                 >
-                  Professional-grade tools designed for both beginners and experienced traders.
+                  {t('features.description')}
                 </p>
               </motion.div>
 
@@ -273,48 +265,51 @@ const Index = () => {
                 {[
                   {
                     icon: Brain,
-                    title: 'AI-Powered Analysis',
-                    description: 'Advanced machine learning models analyze market trends and predict price movements with 70%+ accuracy.',
-                    color: luxuryColors.purple,
+                    title: t('features.aiAnalysis.title'),
+                    description: t('features.aiAnalysis.description'),
+                    color: colors.purple,
                   },
                   {
                     icon: Shield,
-                    title: 'Risk Management',
-                    description: 'Automated stop-loss, position sizing, and portfolio rebalancing to protect your capital.',
-                    color: luxuryColors.emerald,
+                    title: t('features.riskManagement.title'),
+                    description: t('features.riskManagement.description'),
+                    color: colors.emerald,
                   },
                   {
                     icon: Zap,
-                    title: 'Real-Time Execution',
-                    description: 'Lightning-fast order execution with <100ms latency for optimal entry and exit points.',
-                    color: luxuryColors.amber,
+                    title: t('features.realTimeExecution.title'),
+                    description: t('features.realTimeExecution.description'),
+                    color: colors.amber,
                   },
                   {
                     icon: BarChart3,
-                    title: 'Advanced Analytics',
-                    description: 'Comprehensive charts, technical indicators, and custom dashboards for data-driven decisions.',
-                    color: luxuryColors.cyan,
+                    title: t('features.advancedAnalytics.title'),
+                    description: t('features.advancedAnalytics.description'),
+                    color: colors.cyan,
                   },
                   {
                     icon: TrendingUp,
-                    title: 'Strategy Backtesting',
-                    description: 'Test your strategies against historical data before risking real capital.',
-                    color: luxuryColors.rose,
+                    title: t('features.backtesting.title'),
+                    description: t('features.backtesting.description'),
+                    color: colors.rose,
                   },
                   {
                     icon: Activity,
-                    title: 'Live Market Data',
-                    description: 'Real-time market data feeds from multiple exchanges with WebSocket connectivity.',
-                    color: luxuryColors.purple,
+                    title: t('features.liveData.title'),
+                    description: t('features.liveData.description'),
+                    color: colors.purple,
                   },
                 ].map((feature, index) => (
                   <motion.div key={index} variants={itemVariants}>
                     <GlassCard hoverable glowColor={`0 8px 32px ${feature.color}30`}>
                       <GlowIcon icon={feature.icon} color={feature.color} size="lg" />
-                      <h3 className="text-lg font-bold text-white mt-4 mb-2">
+                      <h3
+                        className="text-lg font-bold mt-4 mb-2"
+                        style={{ color: colors.textPrimary }}
+                      >
                         {feature.title}
                       </h3>
-                      <p className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                      <p className="text-sm" style={{ color: colors.textSecondary }}>
                         {feature.description}
                       </p>
                     </GlassCard>
@@ -338,44 +333,46 @@ const Index = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <motion.div variants={itemVariants}>
                   <StatCard
-                    label="Total Users"
+                    label={t('stats.totalUsers')}
                     value="10,234"
                     icon={Users}
                     trend={12.5}
-                    trendLabel="vs last month"
-                    iconColor={luxuryColors.cyan}
+                    trendLabel={t('stats.vsLastMonth')}
+                    iconColor={colors.cyan}
                     gradient
                   />
                 </motion.div>
                 <motion.div variants={itemVariants}>
                   <StatCard
-                    label="Trading Volume"
+                    label={t('stats.tradingVolume')}
                     value="$50.2M"
                     icon={DollarSign}
                     trend={8.3}
-                    trendLabel="vs last month"
-                    iconColor={luxuryColors.emerald}
+                    trendLabel={t('stats.vsLastMonth')}
+                    iconColor={colors.emerald}
                     gradient
                   />
                 </motion.div>
                 <motion.div variants={itemVariants}>
                   <StatCard
-                    label="Win Rate"
+                    label={t('stats.winRate')}
                     value="65%"
                     icon={TrendingUp}
                     trend={2.1}
-                    trendLabel="vs last month"
-                    iconColor={luxuryColors.purple}
-                    valueColor={luxuryColors.profit}
+                    trendLabel={t('stats.vsLastMonth')}
+                    iconColor={colors.purple}
+                    valueColor={colors.profit}
                   />
                 </motion.div>
                 <motion.div variants={itemVariants}>
                   <StatCard
-                    label="Avg Response Time"
+                    label={t('stats.responseTime')}
                     value="<100ms"
                     icon={Activity}
-                    iconColor={luxuryColors.amber}
-                    valueColor={luxuryColors.cyan}
+                    trend={-15.2}
+                    trendLabel={t('stats.faster')}
+                    iconColor={colors.amber}
+                    valueColor={colors.cyan}
                   />
                 </motion.div>
               </div>
@@ -394,18 +391,19 @@ const Index = () => {
               variants={containerVariants}
             >
               {/* Section Header */}
-              <motion.div className="text-center mb-16" variants={itemVariants}>
-                <Badge variant="success" className="mb-4">
-                  Pricing
+              <motion.div className="text-center mb-20" variants={itemVariants}>
+                <Badge variant="success" className="mb-10">
+                  {t('pricing.badge')}
                 </Badge>
-                <h2 className="text-3xl md:text-5xl font-black mb-4">
-                  <GradientText>Simple, Transparent</GradientText> Pricing
+                <h2 className="text-3xl md:text-5xl font-black mb-6">
+                  <GradientText>{t('pricing.title')}</GradientText>{' '}
+                  <span style={{ color: colors.textPrimary }}>{t('pricing.subtitle')}</span>
                 </h2>
                 <p
                   className="text-lg max-w-2xl mx-auto"
-                  style={{ color: luxuryColors.textSecondary }}
+                  style={{ color: colors.textSecondary }}
                 >
-                  Choose the plan that fits your trading needs. No hidden fees.
+                  {t('pricing.description')}
                 </p>
               </motion.div>
 
@@ -413,89 +411,69 @@ const Index = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {[
                   {
-                    name: 'Starter',
+                    planKey: 'starter',
                     price: '$29',
-                    period: '/month',
-                    features: [
-                      'Basic AI Trading Signals',
-                      'Up to 5 Active Positions',
-                      'Standard Support',
-                      'Basic Analytics',
-                    ],
                     variant: 'secondary' as const,
                   },
                   {
-                    name: 'Pro',
+                    planKey: 'pro',
                     price: '$99',
-                    period: '/month',
-                    badge: 'Most Popular',
-                    features: [
-                      'Advanced AI Trading Signals',
-                      'Unlimited Active Positions',
-                      'Priority Support',
-                      'Advanced Analytics & Backtesting',
-                      'Custom Strategies',
-                      'API Access',
-                    ],
+                    badge: t('pricing.mostPopular'),
                     variant: 'primary' as const,
                   },
                   {
-                    name: 'Enterprise',
+                    planKey: 'enterprise',
                     price: '$299',
-                    period: '/month',
-                    features: [
-                      'Everything in Pro',
-                      'Dedicated Account Manager',
-                      'Custom AI Model Training',
-                      'White-Label Solution',
-                      'SLA Guarantee',
-                    ],
                     variant: 'success' as const,
                   },
-                ].map((plan, index) => (
-                  <motion.div key={index} variants={itemVariants}>
-                    <GlassCard hoverable noPadding>
-                      <div className="p-6">
-                        {plan.badge && (
-                          <Badge variant="info" glow className="mb-4">
-                            {plan.badge}
-                          </Badge>
-                        )}
-                        <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                        <div className="flex items-baseline mb-6">
-                          <GradientText className="text-4xl font-black">
-                            {plan.price}
-                          </GradientText>
-                          <span
-                            className="text-sm ml-2"
-                            style={{ color: luxuryColors.textMuted }}
-                          >
-                            {plan.period}
-                          </span>
+                ].map((plan, index) => {
+                  const planFeatures = t(`pricing.plans.${plan.planKey}.features`, { returnObjects: true }) as string[];
+                  const planName = t(`pricing.plans.${plan.planKey}.name`);
+                  return (
+                    <motion.div key={index} variants={itemVariants}>
+                      <GlassCard hoverable noPadding>
+                        <div className="p-6">
+                          {plan.badge && (
+                            <Badge variant="info" glow className="mb-4">
+                              {plan.badge}
+                            </Badge>
+                          )}
+                          <h3 className="text-xl font-bold mb-2" style={{ color: colors.textPrimary }}>{planName}</h3>
+                          <div className="flex items-baseline mb-6">
+                            <GradientText className="text-4xl font-black">
+                              {plan.price}
+                            </GradientText>
+                            <span
+                              className="text-sm ml-2"
+                              style={{ color: colors.textMuted }}
+                            >
+                              {t('pricing.month')}
+                            </span>
+                          </div>
+                          <ul className="space-y-3 mb-6">
+                            {planFeatures.map((feature, fIndex) => (
+                              <li key={fIndex} className="flex items-start gap-2">
+                                <CheckCircle2
+                                  className="w-4 h-4 mt-0.5 flex-shrink-0"
+                                  style={{ color: colors.emerald }}
+                                />
+                                <span
+                                  className="text-sm"
+                                  style={{ color: colors.textSecondary }}
+                                >
+                                  {feature}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                          <PremiumButton variant={plan.variant} fullWidth>
+                            {t('pricing.getStarted')}
+                          </PremiumButton>
                         </div>
-                        <ul className="space-y-3 mb-6">
-                          {plan.features.map((feature, fIndex) => (
-                            <li key={fIndex} className="flex items-start gap-2">
-                              <CheckCircle2
-                                className="w-4 h-4 mt-0.5 flex-shrink-0"
-                                style={{ color: luxuryColors.emerald }}
-                              />
-                              <span
-                                className="text-sm"
-                                style={{ color: luxuryColors.textSecondary }}
-                              >
-                                {feature}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                        <PremiumButton variant={plan.variant} fullWidth>
-                          Get Started
-                        </PremiumButton>
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                ))}
+                      </GlassCard>
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.div>
           </PageWrapper>
@@ -512,51 +490,32 @@ const Index = () => {
               variants={containerVariants}
             >
               {/* Section Header */}
-              <motion.div className="text-center mb-16" variants={itemVariants}>
-                <Badge variant="warning" className="mb-4">
-                  Testimonials
+              <motion.div className="text-center mb-20" variants={itemVariants}>
+                <Badge variant="warning" className="mb-10">
+                  {t('testimonials.badge')}
                 </Badge>
-                <h2 className="text-3xl md:text-5xl font-black mb-4">
-                  Loved by <GradientText>Traders Worldwide</GradientText>
+                <h2 className="text-3xl md:text-5xl font-black mb-6">
+                  <span style={{ color: colors.textPrimary }}>{t('testimonials.title')}</span> <GradientText>{t('testimonials.subtitle')}</GradientText>
                 </h2>
               </motion.div>
 
               {/* Testimonial Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  {
-                    name: 'Sarah Chen',
-                    role: 'Day Trader',
-                    avatar: '👩‍💼',
-                    rating: 5,
-                    text: 'The AI signals are incredibly accurate. Increased my win rate from 45% to 68% in just 3 months!',
-                  },
-                  {
-                    name: 'Michael Rodriguez',
-                    role: 'Crypto Investor',
-                    avatar: '👨‍💻',
-                    rating: 5,
-                    text: 'Best trading platform I have used. The risk management features saved me from major losses multiple times.',
-                  },
-                  {
-                    name: 'Alex Thompson',
-                    role: 'Algorithmic Trader',
-                    avatar: '👨‍🔬',
-                    rating: 5,
-                    text: 'The API is robust and the backtesting features are top-notch. Perfect for testing strategies before going live.',
-                  },
-                ].map((testimonial, index) => (
+                {(t('testimonials.reviews', { returnObjects: true }) as Array<{ name: string; role: string; text: string }>).map((testimonial, index) => {
+                  const avatars = ['👩‍💼', '👨‍💻', '👨‍🔬'];
+                  return { ...testimonial, avatar: avatars[index % avatars.length], rating: 5 };
+                }).map((testimonial, index) => (
                   <motion.div key={index} variants={itemVariants}>
                     <GlassCard hoverable>
                       <div className="flex items-center gap-3 mb-4">
                         <div className="text-3xl">{testimonial.avatar}</div>
                         <div>
-                          <h4 className="text-sm font-bold text-white">
+                          <h4 className="text-sm font-bold" style={{ color: colors.textPrimary }}>
                             {testimonial.name}
                           </h4>
                           <p
                             className="text-xs"
-                            style={{ color: luxuryColors.textMuted }}
+                            style={{ color: colors.textMuted }}
                           >
                             {testimonial.role}
                           </p>
@@ -567,16 +526,16 @@ const Index = () => {
                           <Star
                             key={i}
                             className="w-4 h-4"
-                            fill={luxuryColors.amber}
-                            style={{ color: luxuryColors.amber }}
+                            fill={colors.amber}
+                            style={{ color: colors.amber }}
                           />
                         ))}
                       </div>
                       <Quote
                         className="w-6 h-6 mb-2 opacity-20"
-                        style={{ color: luxuryColors.cyan }}
+                        style={{ color: colors.cyan }}
                       />
-                      <p className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                      <p className="text-sm" style={{ color: colors.textSecondary }}>
                         {testimonial.text}
                       </p>
                     </GlassCard>
@@ -598,40 +557,24 @@ const Index = () => {
               variants={containerVariants}
             >
               {/* Section Header */}
-              <motion.div className="text-center mb-16" variants={itemVariants}>
-                <Badge variant="info" className="mb-4">
-                  FAQ
+              <motion.div className="text-center mb-20" variants={itemVariants}>
+                <Badge variant="info" className="mb-10">
+                  {t('faq.badge')}
                 </Badge>
-                <h2 className="text-3xl md:text-5xl font-black mb-4">
-                  <GradientText>Frequently Asked</GradientText> Questions
+                <h2 className="text-3xl md:text-5xl font-black mb-6">
+                  <GradientText>{t('faq.title')}</GradientText>{' '}
+                  <span style={{ color: colors.textPrimary }}>{t('faq.subtitle')}</span>
                 </h2>
               </motion.div>
 
               {/* FAQ Items */}
               <div className="max-w-3xl mx-auto space-y-4">
-                {[
-                  {
-                    q: 'How accurate are the AI trading signals?',
-                    a: 'Our AI models achieve 70%+ directional accuracy across multiple timeframes and market conditions. We continuously train and improve our models using the latest data.',
-                  },
-                  {
-                    q: 'Is my capital safe?',
-                    a: 'We never hold your funds. You maintain full custody of your assets on your exchange. We only execute trades through secure API connections with read and trade permissions.',
-                  },
-                  {
-                    q: 'Can I use my own strategies?',
-                    a: 'Absolutely! Pro and Enterprise plans include custom strategy support. You can backtest and deploy your own algorithms alongside our AI signals.',
-                  },
-                  {
-                    q: 'What exchanges do you support?',
-                    a: 'We currently support Binance, Coinbase Pro, Kraken, and Bybit. More exchanges are being added regularly based on user demand.',
-                  },
-                ].map((faq, index) => (
+                {(t('faq.items', { returnObjects: true }) as Array<{ question: string; answer: string }>).map((faq, index) => (
                   <motion.div key={index} variants={itemVariants}>
                     <GlassCard hoverable>
-                      <h3 className="text-base font-bold text-white mb-2">{faq.q}</h3>
-                      <p className="text-sm" style={{ color: luxuryColors.textSecondary }}>
-                        {faq.a}
+                      <h3 className="text-base font-bold mb-2" style={{ color: colors.textPrimary }}>{faq.question}</h3>
+                      <p className="text-sm" style={{ color: colors.textSecondary }}>
+                        {faq.answer}
                       </p>
                     </GlassCard>
                   </motion.div>
@@ -654,22 +597,26 @@ const Index = () => {
               <motion.div variants={itemVariants}>
                 <GlassCard className="text-center">
                   <div className="max-w-3xl mx-auto py-8">
+                    <Badge variant="info" glow className="mb-4">
+                      {t('cta.badge')}
+                    </Badge>
                     <h2 className="text-3xl md:text-5xl font-black mb-6">
-                      Ready to <GradientText>Transform</GradientText> Your Trading?
+                      <span style={{ color: colors.textPrimary }}>{t('cta.title')}</span>{' '}
+                      <GradientText>{t('cta.subtitle')}</GradientText>
                     </h2>
                     <p
                       className="text-lg mb-8"
-                      style={{ color: luxuryColors.textSecondary }}
+                      style={{ color: colors.textSecondary }}
                     >
-                      Join thousands of traders who are already using AI to gain a competitive edge in the market.
+                      {t('cta.description')}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                      <PremiumButton variant="primary" size="lg">
-                        Start Free Trial
+                      <PremiumButton variant="primary" size="lg" onClick={() => navigate('/register')}>
+                        {t('cta.startTrial')}
                         <ArrowRight className="w-5 h-5" />
                       </PremiumButton>
-                      <PremiumButton variant="secondary" size="lg">
-                        Schedule Demo
+                      <PremiumButton variant="secondary" size="lg" onClick={() => navigate('/contact')}>
+                        {t('cta.scheduleDemo')}
                       </PremiumButton>
                     </div>
                   </div>
@@ -684,65 +631,56 @@ const Index = () => {
       <footer
         className="border-t"
         style={{
-          backgroundColor: luxuryColors.bgPrimary,
-          borderColor: luxuryColors.borderSubtle,
+          backgroundColor: colors.bgPrimary,
+          borderColor: colors.borderSubtle,
         }}
       >
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* Brand */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{
-                    background: luxuryColors.gradientPremium,
-                    boxShadow: luxuryColors.glowCyan,
-                  }}
-                >
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <GradientText className="text-xl font-black">Bot Core</GradientText>
+              <div className="mb-4">
+                <BotCoreLogo size="md" />
               </div>
-              <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                AI-powered trading platform for the modern trader.
+              <p className="text-xs" style={{ color: colors.textMuted }}>
+                {t('footer.description')}
               </p>
             </div>
 
             {/* Links */}
             {[
               {
-                title: 'Product',
+                title: t('footer.product'),
                 links: [
-                  { label: 'Features', path: '/features' },
-                  { label: 'Pricing', path: '/pricing' },
-                  { label: 'API', path: '/api' },
-                  { label: 'Documentation', path: '/docs' },
+                  { label: t('footer.features'), path: '/features' },
+                  { label: t('footer.pricing'), path: '/pricing' },
+                  { label: t('footer.api'), path: '/api' },
+                  { label: t('footer.documentation'), path: '/docs' },
                 ],
               },
               {
-                title: 'Company',
+                title: t('footer.company'),
                 links: [
-                  { label: 'About', path: '/about' },
-                  { label: 'Blog', path: '/blog' },
-                  { label: 'Careers', path: '/careers' },
-                  { label: 'Contact', path: '/contact' },
+                  { label: t('footer.about'), path: '/about' },
+                  { label: t('footer.blog'), path: '/blog' },
+                  { label: t('footer.careers'), path: '/careers' },
+                  { label: t('footer.contact'), path: '/contact' },
                 ],
               },
               {
-                title: 'Legal',
+                title: t('footer.legal'),
                 links: [
-                  { label: 'Privacy', path: '/privacy' },
-                  { label: 'Terms', path: '/terms' },
-                  { label: 'Security', path: '/security' },
-                  { label: 'Compliance', path: '/compliance' },
+                  { label: t('footer.privacy'), path: '/privacy' },
+                  { label: t('footer.terms'), path: '/terms' },
+                  { label: t('footer.security'), path: '/security' },
+                  { label: t('footer.compliance'), path: '/compliance' },
                 ],
               },
             ].map((column, index) => (
               <div key={index}>
                 <h4
-                  className="text-sm font-bold text-white mb-3"
-                  style={{ color: luxuryColors.textPrimary }}
+                  className="text-sm font-bold mb-3"
+                  style={{ color: colors.textPrimary }}
                 >
                   {column.title}
                 </h4>
@@ -751,8 +689,10 @@ const Index = () => {
                     <li key={linkIndex}>
                       <Link
                         to={link.path}
-                        className="text-xs hover:text-white transition-colors"
-                        style={{ color: luxuryColors.textMuted }}
+                        className="text-xs transition-colors"
+                        style={{ color: colors.textMuted }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = colors.textPrimary}
+                        onMouseLeave={(e) => e.currentTarget.style.color = colors.textMuted}
                       >
                         {link.label}
                       </Link>
@@ -766,10 +706,10 @@ const Index = () => {
           {/* Bottom Bar */}
           <div
             className="pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4"
-            style={{ borderColor: luxuryColors.borderSubtle }}
+            style={{ borderColor: colors.borderSubtle }}
           >
-            <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
-              © 2025 Bot Core. All rights reserved.
+            <p className="text-xs" style={{ color: colors.textMuted }}>
+              {t('footer.copyright')}
             </p>
             <div className="flex gap-6">
               {[
@@ -782,8 +722,10 @@ const Index = () => {
                   href={social.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs hover:text-white transition-colors"
-                  style={{ color: luxuryColors.textMuted }}
+                  className="text-xs transition-colors"
+                  style={{ color: colors.textMuted }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = colors.textPrimary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = colors.textMuted}
                 >
                   {social.name}
                 </a>
@@ -795,6 +737,90 @@ const Index = () => {
 
       {/* Chatbot Widget */}
       <ChatBot />
+
+      {/* Video Demo Modal */}
+      {videoModalOpen && (
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setVideoModalOpen(false)}
+          />
+
+          {/* Modal Content */}
+          <motion.div
+            className="relative z-10 w-full max-w-4xl rounded-2xl overflow-hidden"
+            style={{
+              backgroundColor: colors.bgCard,
+              boxShadow: `0 25px 50px -12px ${colors.cyan}40`,
+            }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setVideoModalOpen(false)}
+              className="absolute top-4 right-4 z-20 p-2 rounded-full transition-colors hover:bg-white/10"
+              style={{ color: colors.textPrimary }}
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Video Header */}
+            <div className="p-6 border-b" style={{ borderColor: colors.borderSubtle }}>
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{
+                    background: colors.gradientPremium,
+                    boxShadow: colors.glowCyan,
+                  }}
+                >
+                  <PlayCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>
+                    {t('videoModal.title')}
+                  </h3>
+                  <p className="text-sm" style={{ color: colors.textMuted }}>
+                    {t('videoModal.subtitle')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Video Player */}
+            <div className="relative aspect-video bg-black">
+              <video
+                className="w-full h-full object-cover"
+                controls
+                autoPlay
+                poster="/demo-poster.jpg"
+              >
+                <source src="/demo/bot-core-demo.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+
+            {/* Video Footer */}
+            <div className="p-4 flex items-center justify-between" style={{ backgroundColor: colors.bgSecondary }}>
+              <p className="text-sm" style={{ color: colors.textSecondary }}>
+                {t('videoModal.cta')}
+              </p>
+              <PremiumButton variant="primary" size="sm" onClick={() => { setVideoModalOpen(false); navigate('/register'); }}>
+                {t('videoModal.getStarted')}
+                <ArrowRight className="w-4 h-4" />
+              </PremiumButton>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };

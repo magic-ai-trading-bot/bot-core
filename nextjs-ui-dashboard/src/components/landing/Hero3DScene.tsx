@@ -13,7 +13,6 @@ import { Canvas } from '@react-three/fiber';
 import { Float, Environment, Stars, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import * as THREE from 'three';
 
 // Crypto coin component
 function CryptoCoin({ position, color }: { position: [number, number, number]; color: string }) {

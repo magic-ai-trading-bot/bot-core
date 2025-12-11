@@ -1,0 +1,75 @@
+{
+  "button": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "submit": "Soumettre",
+    "loading": "Chargement...",
+    "back": "Retour",
+    "next": "Suivant",
+    "edit": "Modifier",
+    "view": "Voir"
+  },
+  "label": {
+    "language": "Langue",
+    "theme": "Thème",
+    "settings": "Paramètres",
+    "profile": "Profil",
+    "logout": "Déconnexion",
+    "login": "Connexion",
+    "register": "S'inscrire"
+  },
+  "theme": {
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système",
+    "toggle": "Changer le thème"
+  },
+  "nav": {
+    "home": "Accueil",
+    "dashboard": "Tableau de bord",
+    "trading": "Trading",
+    "paperTrading": "Trading simulé",
+    "realTrading": "Trading réel",
+    "portfolio": "Portefeuille",
+    "signals": "Signaux IA",
+    "tradeAnalyses": "Analyses de trades",
+    "howItWorks": "Comment ça marche",
+    "settings": "Paramètres",
+    "features": "Fonctionnalités",
+    "pricing": "Tarification",
+    "reviews": "Avis",
+    "faq": "FAQ"
+  },
+  "status": {
+    "active": "Actif",
+    "inactive": "Inactif",
+    "pending": "En attente",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "loading": "Chargement",
+    "online": "En ligne",
+    "offline": "Hors ligne"
+  },
+  "time": {
+    "now": "À l'instant",
+    "minutesAgo": "Il y a {{count}}m",
+    "hoursAgo": "Il y a {{count}}h",
+    "daysAgo": "Il y a {{count}}j"
+  },
+  "mode": {
+    "paper": "Trading Simulé",
+    "real": "TRADING RÉEL"
+  },
+  "notification": {
+    "title": "Notifications",
+    "new": "{{count}} nouveau(x)",
+    "empty": "Aucune notification",
+    "emptyDesc": "Nous vous préviendrons quand il se passera quelque chose",
+    "showing": "Affichage de {{current}} sur {{total}} notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "clearAll": "Tout effacer"
+  }
+}

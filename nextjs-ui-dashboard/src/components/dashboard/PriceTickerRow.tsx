@@ -5,7 +5,6 @@
  * Real-time price updates via WebSocket.
  */
 
-import { useState, useEffect } from 'react';
 import { PriceFlash } from '@/components/ui/PriceFlash';
 import { AnimatedPercentage } from '@/components/ui/AnimatedNumber';
 import { cn } from '@/lib/utils';

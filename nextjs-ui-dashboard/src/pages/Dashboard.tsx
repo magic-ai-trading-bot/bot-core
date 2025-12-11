@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -22,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/services/api';
 import { cn } from '@/lib/utils';
 import logger from '@/utils/logger';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
   TrendingUp,
   TrendingDown,
@@ -48,36 +50,8 @@ import {
 } from 'recharts';
 
 // =============================================================================
-// DESIGN TOKENS - Premium Dark OLED Luxury
+// DESIGN TOKENS - Now using useThemeColors() hook for theme-aware colors
 // =============================================================================
-
-const luxuryColors = {
-  // Backgrounds
-  bgPrimary: '#000000',
-  bgSecondary: 'rgba(255, 255, 255, 0.03)',
-  bgTertiary: 'rgba(255, 255, 255, 0.05)',
-
-  // Accents
-  emerald: '#22c55e',
-  cyan: '#00D9FF',
-  profit: '#22c55e',
-  loss: '#ef4444',
-  warning: '#f59e0b',
-
-  // Text
-  textPrimary: '#ffffff',
-  textSecondary: 'rgba(255, 255, 255, 0.7)',
-  textMuted: 'rgba(255, 255, 255, 0.4)',
-
-  // Borders
-  borderSubtle: 'rgba(255, 255, 255, 0.08)',
-  borderLight: 'rgba(255, 255, 255, 0.12)',
-
-  // Gradients
-  gradientProfit: 'linear-gradient(135deg, #22c55e, #00D9FF)',
-  gradientLoss: 'linear-gradient(135deg, #ef4444, #f97316)',
-  gradientPremium: 'linear-gradient(135deg, #00D9FF, #22c55e)',
-};
 
 // =============================================================================
 // ANIMATION VARIANTS
@@ -187,15 +161,18 @@ interface GradientTextProps {
 const GradientText = ({
   children,
   className,
-  gradient = luxuryColors.gradientPremium,
-}: GradientTextProps) => (
-  <span
-    className={cn('bg-clip-text text-transparent', className)}
-    style={{ backgroundImage: gradient }}
-  >
-    {children}
-  </span>
-);
+  gradient,
+}: GradientTextProps) => {
+  const colors = useThemeColors();
+  return (
+    <span
+      className={cn('bg-clip-text text-transparent', className)}
+      style={{ backgroundImage: gradient || colors.gradientPremium }}
+    >
+      {children}
+    </span>
+  );
+};
 
 interface AnimatedValueProps {
   value: number;
@@ -216,6 +193,7 @@ const AnimatedValue = ({
   showSign = false,
   colorize = false,
 }: AnimatedValueProps) => {
+  const colors = useThemeColors();
   const formattedValue = useMemo(() => {
     const sign = showSign && value > 0 ? '+' : '';
     return `${prefix}${sign}${value.toLocaleString('en-US', {
@@ -226,8 +204,8 @@ const AnimatedValue = ({
 
   const color = colorize
     ? value >= 0
-      ? luxuryColors.profit
-      : luxuryColors.loss
+      ? colors.profit
+      : colors.loss
     : undefined;
 
   return (
@@ -253,9 +231,11 @@ interface HeroStatsProps {
   pnl: number;
   pnlPercentage: number;
   isLoading: boolean;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
-const HeroStats = ({ balance, pnl, pnlPercentage, isLoading }: HeroStatsProps) => {
+const HeroStats = ({ balance, pnl, pnlPercentage, isLoading, colors }: HeroStatsProps) => {
+  const { t } = useTranslation('dashboard');
   const { mode } = useTradingModeContext();
   const isProfitable = pnl >= 0;
 
@@ -318,11 +298,11 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading }: HeroStatsProps) =
               <BarChart3 className="w-5 h-5 text-cyan-400" />
             </div>
             <div>
-              <p className="text-sm text-white/40 uppercase tracking-wider font-medium">
-                Total Balance
+              <p className="text-sm uppercase tracking-wider font-medium" style={{ color: colors.textMuted }}>
+                {t('hero.totalBalance')}
               </p>
-              <p className="text-xs text-white/30">
-                {mode === 'paper' ? 'Paper Trading' : 'Live Trading'}
+              <p className="text-xs" style={{ color: colors.textMuted }}>
+                {mode === 'paper' ? t('hero.paperTrading') : t('hero.liveTrading')}
               </p>
             </div>
           </div>
@@ -344,7 +324,7 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading }: HeroStatsProps) =
             animate={{ scale: [1, 1.02, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            {mode === 'paper' ? 'Paper Mode' : 'Live Mode'}
+            {mode === 'paper' ? t('hero.paperMode') : t('hero.liveMode')}
           </motion.div>
         </div>
 
@@ -356,7 +336,7 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading }: HeroStatsProps) =
         >
           <GradientText
             className="text-6xl md:text-7xl font-black tracking-tight"
-            gradient={isProfitable ? luxuryColors.gradientProfit : luxuryColors.gradientLoss}
+            gradient={isProfitable ? colors.gradientProfit : colors.gradientLoss}
           >
             <AnimatedValue value={balance} prefix="$" decimals={2} />
           </GradientText>
@@ -389,9 +369,9 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading }: HeroStatsProps) =
             }}
           >
             {isProfitable ? (
-              <TrendingUp className="w-6 h-6" style={{ color: luxuryColors.profit }} />
+              <TrendingUp className="w-6 h-6" style={{ color: colors.profit }} />
             ) : (
-              <TrendingDown className="w-6 h-6" style={{ color: luxuryColors.loss }} />
+              <TrendingDown className="w-6 h-6" style={{ color: colors.loss }} />
             )}
           </div>
 
@@ -405,7 +385,7 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading }: HeroStatsProps) =
                 colorize
                 className="text-2xl font-bold"
               />
-              <span className="text-white/30">|</span>
+              <span style={{ color: colors.textMuted }}>|</span>
               <AnimatedValue
                 value={pnlPercentage}
                 suffix="%"
@@ -414,7 +394,7 @@ const HeroStats = ({ balance, pnl, pnlPercentage, isLoading }: HeroStatsProps) =
                 className="text-xl font-semibold"
               />
             </div>
-            <p className="text-sm text-white/40 mt-1">24h Change</p>
+            <p className="text-sm mt-1" style={{ color: colors.textMuted }}>{t('hero.change24h')}</p>
           </div>
         </motion.div>
       </div>
@@ -448,9 +428,10 @@ const TICKER_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', '
 
 interface PriceTickerProps {
   isLoading: boolean;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
-const PriceTicker = ({ isLoading: parentLoading }: PriceTickerProps) => {
+const PriceTicker = ({ isLoading: parentLoading, colors }: PriceTickerProps) => {
   const navigate = useNavigate();
   const [coins, setCoins] = useState<CoinPrice[]>(FALLBACK_COINS);
   const [isTickerLoading, setIsTickerLoading] = useState(true);
@@ -492,7 +473,7 @@ const PriceTicker = ({ isLoading: parentLoading }: PriceTickerProps) => {
     fetchPrices();
     const interval = setInterval(fetchPrices, 10000);
     return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   const isLoading = parentLoading || isTickerLoading;
 
@@ -539,14 +520,14 @@ const PriceTicker = ({ isLoading: parentLoading }: PriceTickerProps) => {
           >
             {/* Symbol */}
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-bold text-white/90 group-hover:text-white">
+              <span className="text-sm font-bold group-hover:opacity-100" style={{ color: colors.textPrimary }}>
                 {coin.symbol.replace('USDT', '')}
               </span>
-              <span className="text-xs text-white/30">/USDT</span>
+              <span className="text-xs" style={{ color: colors.textMuted }}>/USDT</span>
             </div>
 
             {/* Price */}
-            <div className="text-lg font-bold text-white mb-2 font-mono">
+            <div className="text-lg font-bold mb-2 font-mono" style={{ color: colors.textPrimary }}>
               {hasData
                 ? `$${coin.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: coin.price < 1 ? 4 : 2 })}`
                 : '--'}
@@ -566,20 +547,20 @@ const PriceTicker = ({ isLoading: parentLoading }: PriceTickerProps) => {
               {hasData ? (
                 <>
                   {isPositive ? (
-                    <TrendingUp className="w-3 h-3" style={{ color: luxuryColors.profit }} />
+                    <TrendingUp className="w-3 h-3" style={{ color: colors.profit }} />
                   ) : (
-                    <TrendingDown className="w-3 h-3" style={{ color: luxuryColors.loss }} />
+                    <TrendingDown className="w-3 h-3" style={{ color: colors.loss }} />
                   )}
                   <span
                     className="text-xs font-bold"
-                    style={{ color: isPositive ? luxuryColors.profit : luxuryColors.loss }}
+                    style={{ color: isPositive ? colors.profit : colors.loss }}
                   >
                     {isPositive ? '+' : ''}
                     {coin.changePercent24h.toFixed(2)}%
                   </span>
                 </>
               ) : (
-                <span className="text-xs text-white/40">--</span>
+                <span className="text-xs" style={{ color: colors.textMuted }}>--</span>
               )}
             </div>
           </motion.button>
@@ -616,6 +597,7 @@ interface PerformanceChartProps {
   isLoading: boolean;
   closedTrades?: Trade[];
   currentBalance?: number;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
 // Generate chart data from real closed trades
@@ -698,7 +680,8 @@ const generateChartDataFromTrades = (
   return dataPoints;
 };
 
-const PerformanceChart = ({ isLoading, closedTrades = [], currentBalance = 10000 }: PerformanceChartProps) => {
+const PerformanceChart = ({ isLoading, closedTrades = [], currentBalance = 10000, colors }: PerformanceChartProps) => {
+  const { t } = useTranslation('dashboard');
   const [timeRange, setTimeRange] = useState<TimeRange>('7d');
   const chartData = useMemo(
     () => generateChartDataFromTrades(closedTrades, timeRange, currentBalance),
@@ -733,13 +716,13 @@ const PerformanceChart = ({ isLoading, closedTrades = [], currentBalance = 10000
             <Activity className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Portfolio Performance</h3>
-            <p className="text-sm text-white/40">Track your gains over time</p>
+            <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{t('chart.portfolioPerformance')}</h3>
+            <p className="text-sm" style={{ color: colors.textMuted }}>{t('chart.trackGains')}</p>
           </div>
         </div>
 
         {/* Time range selector */}
-        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.05] border border-white/[0.08]">
+        <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.borderSubtle}` }}>
           {timeRanges.map((range) => (
             <button
               key={range}
@@ -749,8 +732,9 @@ const PerformanceChart = ({ isLoading, closedTrades = [], currentBalance = 10000
                 'transition-all duration-300',
                 timeRange === range
                   ? 'bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-cyan-400 border border-cyan-500/20'
-                  : 'text-white/40 hover:text-white/60'
+                  : ''
               )}
+              style={timeRange !== range ? { color: colors.textMuted } : undefined}
             >
               {range}
             </button>
@@ -850,14 +834,16 @@ interface AISignal {
 interface AISignalsPanelProps {
   signals?: AISignal[];
   isLoading: boolean;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
-const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
+const AISignalsPanel = ({ signals = [], isLoading, colors }: AISignalsPanelProps) => {
+  const { t } = useTranslation('dashboard');
   const formatTime = (timestamp: string) => {
     const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
-    if (diff < 1) return 'Just now';
-    if (diff < 60) return `${diff}m ago`;
-    return `${Math.floor(diff / 60)}h ago`;
+    if (diff < 1) return t('aiSignals.justNow');
+    if (diff < 60) return t('aiSignals.minutesAgo', { minutes: diff });
+    return t('aiSignals.hoursAgo', { hours: Math.floor(diff / 60) });
   };
 
   if (isLoading) {
@@ -896,8 +882,8 @@ const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
             <Brain className="w-5 h-5 text-cyan-400" />
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-white">AI Signals</h3>
-            <p className="text-sm text-white/40">ML-powered predictions</p>
+            <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{t('aiSignals.title')}</h3>
+            <p className="text-sm" style={{ color: colors.textMuted }}>{t('aiSignals.subtitle')}</p>
           </div>
         </div>
 
@@ -908,7 +894,7 @@ const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Live</span>
+          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{t('aiSignals.live')}</span>
         </div>
       </div>
 
@@ -916,14 +902,14 @@ const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
       <div className="space-y-3">
         {signals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Brain className="w-10 h-10 text-white/20 mb-3" />
-            <p className="text-white/50 font-medium">No signals yet</p>
-            <p className="text-white/30 text-sm mt-1">AI analysis will appear here</p>
+            <Brain className="w-10 h-10 mb-3" style={{ color: colors.textMuted }} />
+            <p className="font-medium" style={{ color: colors.textSecondary }}>{t('aiSignals.noSignals')}</p>
+            <p className="text-sm mt-1" style={{ color: colors.textMuted }}>{t('aiSignals.noSignalsDesc')}</p>
           </div>
         ) : signals.map((signal, index) => {
           const isLong = signal.signal === 'long';
           const isShort = signal.signal === 'short';
-          const signalColor = isLong ? luxuryColors.profit : isShort ? luxuryColors.loss : luxuryColors.warning;
+          const signalColor = isLong ? colors.profit : isShort ? colors.loss : colors.warning;
           const confidencePercent = Math.round(signal.confidence * 100);
 
           return (
@@ -955,7 +941,7 @@ const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">
+                      <span className="font-bold" style={{ color: colors.textPrimary }}>
                         {signal.symbol.replace('USDT', '')}
                       </span>
                       <span
@@ -968,7 +954,7 @@ const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
                         {signal.signal}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-white/40">
+                    <div className="flex items-center gap-2 mt-1 text-xs" style={{ color: colors.textMuted }}>
                       <span>{signal.model_type}</span>
                       <span>.</span>
                       <span>{signal.timeframe}</span>
@@ -980,14 +966,14 @@ const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
 
                 {/* Confidence meter */}
                 <div className="text-right">
-                  <div className="text-lg font-bold" style={{ color: luxuryColors.cyan }}>
+                  <div className="text-lg font-bold" style={{ color: colors.cyan }}>
                     {confidencePercent}%
                   </div>
                   <div className="w-20 h-1.5 mt-1 rounded-full bg-white/10 overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
                       style={{
-                        background: luxuryColors.gradientPremium,
+                        background: colors.gradientPremium,
                       }}
                       initial={{ width: 0 }}
                       animate={{ width: `${confidencePercent}%` }}
@@ -1011,14 +997,16 @@ const AISignalsPanel = ({ signals = [], isLoading }: AISignalsPanelProps) => {
 interface RecentTradesProps {
   trades?: Trade[];
   isLoading: boolean;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
-const RecentTrades = ({ trades = [], isLoading }: RecentTradesProps) => {
+const RecentTrades = ({ trades = [], isLoading, colors }: RecentTradesProps) => {
+  const { t } = useTranslation('dashboard');
   const formatTime = (timestamp: string) => {
     const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
-    if (diff < 60) return `${diff}m ago`;
-    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
-    return `${Math.floor(diff / 1440)}d ago`;
+    if (diff < 60) return t('aiSignals.minutesAgo', { minutes: diff });
+    if (diff < 1440) return t('aiSignals.hoursAgo', { hours: Math.floor(diff / 60) });
+    return t('trades.daysAgo', { days: Math.floor(diff / 1440) });
   };
 
   if (isLoading) {
@@ -1049,13 +1037,13 @@ const RecentTrades = ({ trades = [], isLoading }: RecentTradesProps) => {
             <Clock className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Recent Trades</h3>
-            <p className="text-sm text-white/40">Your trading history</p>
+            <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{t('trades.title')}</h3>
+            <p className="text-sm" style={{ color: colors.textMuted }}>{t('trades.subtitle')}</p>
           </div>
         </div>
 
-        <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white/40 hover:text-white/70 hover:bg-white/5 transition-all">
-          View All
+        <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-white/5 transition-all" style={{ color: colors.textMuted }}>
+          {t('trades.viewAll')}
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
@@ -1064,9 +1052,9 @@ const RecentTrades = ({ trades = [], isLoading }: RecentTradesProps) => {
       <div className="space-y-3">
         {trades.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Clock className="w-12 h-12 text-white/20 mb-4" />
-            <p className="text-white/50 font-medium">No trades yet</p>
-            <p className="text-white/30 text-sm mt-1">Start trading to see your history here</p>
+            <Clock className="w-12 h-12 mb-4" style={{ color: colors.textMuted }} />
+            <p className="font-medium" style={{ color: colors.textSecondary }}>{t('trades.noTrades')}</p>
+            <p className="text-sm mt-1" style={{ color: colors.textMuted }}>{t('trades.noTradesDesc')}</p>
           </div>
         ) : trades.map((trade, index) => {
           const isBuy = trade.side === 'BUY';
@@ -1092,15 +1080,15 @@ const RecentTrades = ({ trades = [], isLoading }: RecentTradesProps) => {
                     }}
                   >
                     {isBuy ? (
-                      <ArrowUpRight className="w-4 h-4" style={{ color: luxuryColors.profit }} />
+                      <ArrowUpRight className="w-4 h-4" style={{ color: colors.profit }} />
                     ) : (
-                      <ArrowDownRight className="w-4 h-4" style={{ color: luxuryColors.loss }} />
+                      <ArrowDownRight className="w-4 h-4" style={{ color: colors.loss }} />
                     )}
                   </div>
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">
+                      <span className="font-bold" style={{ color: colors.textPrimary }}>
                         {trade.symbol.replace('USDT', '')}
                       </span>
                       {isOpen && (
@@ -1108,17 +1096,17 @@ const RecentTrades = ({ trades = [], isLoading }: RecentTradesProps) => {
                           className="text-xs font-bold uppercase px-2 py-0.5 rounded-full"
                           style={{
                             background: 'rgba(0, 217, 255, 0.15)',
-                            color: luxuryColors.cyan,
+                            color: colors.cyan,
                             border: '1px solid rgba(0, 217, 255, 0.3)',
                           }}
                           animate={{ opacity: [1, 0.6, 1] }}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
-                          Open
+                          {t('trades.open')}
                         </motion.span>
                       )}
                     </div>
-                    <div className="text-xs text-white/40 mt-1">
+                    <div className="text-xs mt-1" style={{ color: colors.textMuted }}>
                       {trade.quantity} @ ${trade.entry_price.toFixed(2)}
                       {!isOpen && ` . ${formatTime(trade.exit_time || trade.entry_time)}`}
                     </div>
@@ -1130,11 +1118,11 @@ const RecentTrades = ({ trades = [], isLoading }: RecentTradesProps) => {
                   <div className="text-right">
                     <div
                       className="text-lg font-bold"
-                      style={{ color: isProfitable ? luxuryColors.profit : luxuryColors.loss }}
+                      style={{ color: isProfitable ? colors.profit : colors.loss }}
                     >
                       {isProfitable ? '+' : ''}${trade.pnl.toFixed(2)}
                     </div>
-                    <div className="text-xs text-white/30">{trade.side}</div>
+                    <div className="text-xs" style={{ color: colors.textMuted }}>{trade.side}</div>
                   </div>
                 )}
               </div>
@@ -1155,39 +1143,41 @@ interface QuickStatsProps {
   totalTrades: number;
   avgProfit: number;
   isLoading: boolean;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
-const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading }: QuickStatsProps) => {
+const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading, colors }: QuickStatsProps) => {
+  const { t } = useTranslation('dashboard');
   const stats = [
     {
-      label: 'Win Rate',
+      label: t('stats.winRate'),
       value: `${winRate}%`,
       icon: Sparkles,
-      color: luxuryColors.profit,
+      color: colors.profit,
       bgColor: 'rgba(34, 197, 94, 0.1)',
       borderColor: 'rgba(34, 197, 94, 0.2)',
     },
     {
-      label: 'Total Trades',
+      label: t('stats.totalTrades'),
       value: totalTrades.toString(),
       icon: Zap,
-      color: luxuryColors.cyan,
+      color: colors.cyan,
       bgColor: 'rgba(0, 217, 255, 0.1)',
       borderColor: 'rgba(0, 217, 255, 0.2)',
     },
     {
-      label: 'Avg Profit',
+      label: t('stats.avgProfit'),
       value: `+${avgProfit}%`,
       icon: TrendingUp,
-      color: luxuryColors.profit,
+      color: colors.profit,
       bgColor: 'rgba(34, 197, 94, 0.1)',
       borderColor: 'rgba(34, 197, 94, 0.2)',
     },
     {
-      label: 'Risk Score',
-      value: 'Low',
+      label: t('stats.riskScore'),
+      value: t('stats.riskLow'),
       icon: Shield,
-      color: luxuryColors.profit,
+      color: colors.profit,
       bgColor: 'rgba(34, 197, 94, 0.1)',
       borderColor: 'rgba(34, 197, 94, 0.2)',
     },
@@ -1230,7 +1220,7 @@ const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading }: 
             >
               <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
             </div>
-            <span className="text-sm text-white/40 font-medium">{stat.label}</span>
+            <span className="text-sm font-medium" style={{ color: colors.textMuted }}>{stat.label}</span>
           </div>
           <div className="text-2xl font-bold" style={{ color: stat.color }}>
             {stat.value}
@@ -1246,6 +1236,8 @@ const QuickStats = ({ winRate = 0, totalTrades = 0, avgProfit = 0, isLoading }: 
 // =============================================================================
 
 const Dashboard = () => {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   const { state: wsState } = useWebSocket();
   const { portfolio, closedTrades, recentSignals, isLoading: isPaperTradingLoading, error: paperTradingError, refreshData } = usePaperTrading();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -1304,7 +1296,7 @@ const Dashboard = () => {
     <ErrorBoundary>
       <motion.div
         className="min-h-screen p-6 space-y-8"
-        style={{ backgroundColor: luxuryColors.bgPrimary }}
+        style={{ backgroundColor: colors.bgPrimary }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -1321,14 +1313,14 @@ const Dashboard = () => {
                 <Shield className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-red-400">API Connection Error</p>
+                <p className="text-sm font-medium text-red-400">{t('error.apiConnection')}</p>
                 <p className="text-xs text-red-400/60">{paperTradingError}</p>
               </div>
               <button
                 onClick={() => refreshData()}
                 className="ml-auto px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition-colors"
               >
-                Retry
+                {t('error.retry')}
               </button>
             </div>
           </motion.div>
@@ -1337,22 +1329,25 @@ const Dashboard = () => {
         {/* Header */}
         <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tight">
-              Welcome back
+            <h1 className="text-3xl font-black tracking-tight" style={{ color: colors.textPrimary }}>
+              {t('welcomeBack')}
             </h1>
-            <p className="text-white/40 mt-1">
-              Here's your portfolio performance at a glance
+            <p className="mt-1" style={{ color: colors.textMuted }}>
+              {t('subtitle')}
             </p>
           </div>
 
           {/* Live status indicator */}
-          <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.1]">
+          <div
+            className="flex items-center gap-3 px-4 py-2 rounded-full"
+            style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.borderSubtle}` }}
+          >
             <motion.div
               className="w-2 h-2 rounded-full bg-emerald-500"
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
-            <span className="text-sm font-medium text-white/60">Markets Open</span>
+            <span className="text-sm font-medium" style={{ color: colors.textSecondary }}>{t('marketsOpen')}</span>
           </div>
         </motion.div>
 
@@ -1363,6 +1358,7 @@ const Dashboard = () => {
             pnl={pnl}
             pnlPercentage={pnlPercentage}
             isLoading={isLoading}
+            colors={colors}
           />
         </motion.div>
 
@@ -1373,16 +1369,17 @@ const Dashboard = () => {
             totalTrades={statsData.totalTrades}
             avgProfit={statsData.avgProfit}
             isLoading={isLoading}
+            colors={colors}
           />
         </motion.div>
 
         {/* Price Ticker */}
         <motion.div variants={itemVariants}>
           <div className="flex items-center gap-3 mb-4">
-            <Flame className="w-5 h-5 text-amber-400" />
-            <h2 className="text-lg font-bold text-white">Trending Markets</h2>
+            <Flame className="w-5 h-5" style={{ color: colors.amber }} />
+            <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{t('ticker.trendingMarkets')}</h2>
           </div>
-          <PriceTicker isLoading={isLoading} />
+          <PriceTicker isLoading={isLoading} colors={colors} />
         </motion.div>
 
         {/* Main Grid: Performance Chart + AI Signals + Recent Trades */}
@@ -1393,6 +1390,7 @@ const Dashboard = () => {
               isLoading={isLoading}
               closedTrades={closedTrades}
               currentBalance={portfolio.current_balance || portfolio.equity || 10000}
+              colors={colors}
             />
           </motion.div>
 
@@ -1401,6 +1399,7 @@ const Dashboard = () => {
             <AISignalsPanel
               signals={recentSignals?.length ? recentSignals : (wsState.aiSignals?.length ? wsState.aiSignals : undefined)}
               isLoading={isLoading}
+              colors={colors}
             />
           </motion.div>
 
@@ -1409,6 +1408,7 @@ const Dashboard = () => {
             <RecentTrades
               trades={closedTrades?.length ? closedTrades.slice(0, 10) : (wsState.recentTrades?.length ? wsState.recentTrades : undefined)}
               isLoading={isLoading}
+              colors={colors}
             />
           </motion.div>
         </div>

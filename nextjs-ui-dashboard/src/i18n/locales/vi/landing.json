@@ -1,0 +1,177 @@
+{
+  "nav": {
+    "features": "Tính năng",
+    "pricing": "Bảng giá",
+    "reviews": "Đánh giá",
+    "faq": "FAQ",
+    "signIn": "Đăng nhập",
+    "startTrial": "Dùng thử miễn phí"
+  },
+  "hero": {
+    "badge": "Cách mạng giao dịch AI",
+    "title": "Giao dịch Crypto",
+    "subtitle": "Được định nghĩa lại bởi AI",
+    "description": "Khai thác sức mạnh của trí tuệ nhân tạo để phân tích thị trường crypto, dự đoán xu hướng và thực hiện giao dịch sinh lời tự động trên Binance Futures.",
+    "startTrading": "Bắt đầu giao dịch",
+    "watchDemo": "Xem demo"
+  },
+  "stats": {
+    "totalUsers": "Tổng người dùng",
+    "tradingVolume": "Khối lượng giao dịch",
+    "winRate": "Tỷ lệ thắng",
+    "responseTime": "Thời gian phản hồi",
+    "vsLastMonth": "so với tháng trước",
+    "faster": "nhanh hơn",
+    "activeTraders": "Trader hoạt động",
+    "uptime": "Thời gian hoạt động"
+  },
+  "features": {
+    "badge": "Tính năng nâng cao",
+    "title": "Được xây dựng cho",
+    "subtitle": "Trader chuyên nghiệp",
+    "description": "Trải nghiệm nền tảng giao dịch crypto tinh vi nhất được hỗ trợ bởi công nghệ AI tiên tiến",
+    "aiAnalysis": {
+      "title": "Phân tích AI",
+      "description": "Mô hình machine learning tiên tiến phân tích xu hướng thị trường và dự đoán biến động giá với độ chính xác trên 70%."
+    },
+    "riskManagement": {
+      "title": "Quản lý rủi ro",
+      "description": "Stop-loss tự động, định cỡ vị thế và cân bằng danh mục để bảo vệ vốn của bạn."
+    },
+    "realTimeExecution": {
+      "title": "Thực thi thời gian thực",
+      "description": "Thực hiện lệnh cực nhanh với độ trễ <100ms để đạt điểm vào/ra tối ưu."
+    },
+    "advancedAnalytics": {
+      "title": "Phân tích nâng cao",
+      "description": "Biểu đồ toàn diện, chỉ báo kỹ thuật và bảng điều khiển tùy chỉnh cho quyết định dựa trên dữ liệu."
+    },
+    "backtesting": {
+      "title": "Backtest chiến lược",
+      "description": "Kiểm tra chiến lược của bạn với dữ liệu lịch sử trước khi mạo hiểm vốn thực."
+    },
+    "liveData": {
+      "title": "Dữ liệu thị trường trực tiếp",
+      "description": "Nguồn dữ liệu thị trường thời gian thực từ nhiều sàn giao dịch với kết nối WebSocket."
+    }
+  },
+  "pricing": {
+    "badge": "Bảng giá",
+    "title": "Chọn",
+    "subtitle": "Lợi thế giao dịch",
+    "description": "Gói giá linh hoạt được thiết kế để phát triển cùng tham vọng giao dịch của bạn",
+    "mostPopular": "Phổ biến nhất",
+    "getStarted": "Bắt đầu",
+    "month": "/tháng",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "features": [
+          "Tín hiệu giao dịch AI cơ bản",
+          "Tối đa 5 vị thế hoạt động",
+          "Hỗ trợ tiêu chuẩn",
+          "Phân tích cơ bản"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "features": [
+          "Tín hiệu giao dịch AI nâng cao",
+          "Vị thế hoạt động không giới hạn",
+          "Hỗ trợ ưu tiên",
+          "Phân tích nâng cao & Backtesting",
+          "Chiến lược tùy chỉnh",
+          "Truy cập API"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "features": [
+          "Tất cả tính năng Pro",
+          "Quản lý tài khoản riêng",
+          "Huấn luyện mô hình AI tùy chỉnh",
+          "Giải pháp White-Label",
+          "Đảm bảo SLA"
+        ]
+      }
+    }
+  },
+  "testimonials": {
+    "badge": "Đánh giá",
+    "title": "Được yêu thích bởi",
+    "subtitle": "Trader toàn cầu",
+    "reviews": [
+      {
+        "name": "Sarah Chen",
+        "role": "Day Trader",
+        "text": "Tín hiệu AI cực kỳ chính xác. Tăng tỷ lệ thắng từ 45% lên 68% chỉ trong 3 tháng!"
+      },
+      {
+        "name": "Michael Rodriguez",
+        "role": "Nhà đầu tư Crypto",
+        "text": "Nền tảng giao dịch tốt nhất tôi từng sử dụng. Tính năng quản lý rủi ro đã cứu tôi khỏi nhiều khoản lỗ lớn."
+      },
+      {
+        "name": "Alex Thompson",
+        "role": "Algorithmic Trader",
+        "text": "API mạnh mẽ và tính năng backtesting hàng đầu. Hoàn hảo để kiểm tra chiến lược trước khi chạy thực."
+      }
+    ]
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Câu hỏi",
+    "subtitle": "thường gặp",
+    "items": [
+      {
+        "question": "Tín hiệu giao dịch AI chính xác đến mức nào?",
+        "answer": "Mô hình AI của chúng tôi đạt độ chính xác hướng trên 70% trong nhiều khung thời gian và điều kiện thị trường. Chúng tôi liên tục huấn luyện và cải thiện mô hình với dữ liệu mới nhất."
+      },
+      {
+        "question": "Vốn của tôi có an toàn không?",
+        "answer": "Chúng tôi không bao giờ giữ tiền của bạn. Bạn duy trì toàn quyền kiểm soát tài sản trên sàn giao dịch. Chúng tôi chỉ thực hiện giao dịch thông qua kết nối API bảo mật với quyền đọc và giao dịch."
+      },
+      {
+        "question": "Tôi có thể sử dụng chiến lược riêng không?",
+        "answer": "Hoàn toàn có thể! Gói Pro và Enterprise bao gồm hỗ trợ chiến lược tùy chỉnh. Bạn có thể backtest và triển khai thuật toán riêng cùng với tín hiệu AI của chúng tôi."
+      },
+      {
+        "question": "Các sàn giao dịch nào được hỗ trợ?",
+        "answer": "Hiện tại chúng tôi hỗ trợ Binance, Coinbase Pro, Kraken và Bybit. Thêm nhiều sàn đang được bổ sung dựa trên nhu cầu người dùng."
+      }
+    ]
+  },
+  "cta": {
+    "badge": "Sẵn sàng bắt đầu?",
+    "title": "Bắt đầu hành trình",
+    "subtitle": "Giao dịch AI",
+    "description": "Tham gia cùng hàng nghìn trader thành công tin tưởng AI của chúng tôi để phát triển danh mục crypto. Bắt đầu với bản dùng thử miễn phí và trải nghiệm sự khác biệt của tự động hóa thông minh.",
+    "startTrial": "Dùng thử 7 ngày miễn phí",
+    "scheduleDemo": "Đặt lịch Demo"
+  },
+  "footer": {
+    "description": "Nền tảng giao dịch AI cho trader hiện đại.",
+    "product": "Sản phẩm",
+    "company": "Công ty",
+    "legal": "Pháp lý",
+    "features": "Tính năng",
+    "pricing": "Bảng giá",
+    "api": "API",
+    "documentation": "Tài liệu",
+    "about": "Về chúng tôi",
+    "blog": "Blog",
+    "careers": "Tuyển dụng",
+    "contact": "Liên hệ",
+    "privacy": "Quyền riêng tư",
+    "terms": "Điều khoản",
+    "security": "Bảo mật",
+    "compliance": "Tuân thủ",
+    "copyright": "© 2025 Bot Core. Đã đăng ký bản quyền."
+  },
+  "videoModal": {
+    "title": "Bot Core Demo",
+    "subtitle": "Nền tảng giao dịch Crypto AI",
+    "cta": "Xem cách Bot Core thay đổi giao dịch của bạn",
+    "getStarted": "Bắt đầu miễn phí"
+  }
+}

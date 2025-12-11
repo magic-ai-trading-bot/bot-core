@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { colors } from '@/styles/tokens/colors';
 import { Save, RotateCcw, AlertCircle } from 'lucide-react';
 import { debounce } from 'lodash';
 import { toast } from 'sonner';

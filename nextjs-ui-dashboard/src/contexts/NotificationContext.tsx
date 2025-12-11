@@ -17,7 +17,6 @@ import React, {
 } from 'react';
 import {
   AppNotification,
-  NotificationType,
   NotificationPriority,
   NotificationPreferences,
 } from '@/types/notification';

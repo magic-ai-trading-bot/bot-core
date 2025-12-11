@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { usePaperTradingContext, PaperTrade } from "@/contexts/PaperTradingContext";
 import { useState, useEffect } from "react";
@@ -34,7 +33,7 @@ import { OpenPositionsTable } from "@/components/trading/OpenPositionsTable";
 import { ClosedTradesTable } from "@/components/trading/ClosedTradesTable";
 import { TradingChartPanel } from "@/components/trading/TradingChartPanel";
 import { TradingSettingsPanel } from "@/components/trading/TradingSettingsPanel";
-import { SymbolConfig, Trade as TradingType } from "@/components/trading/types";
+import { SymbolConfig } from "@/components/trading/types";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

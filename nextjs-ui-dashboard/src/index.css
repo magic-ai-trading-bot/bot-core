@@ -3,9 +3,118 @@
 @tailwind utilities;
 
 /* Crypto Trading Dashboard Design System */
+/* @spec:FR-THEME-001 - Light/Dark Theme System */
 
 @layer base {
   :root {
+    /* ============================================================
+       Light Mode - Premium Trading Dashboard
+       Sophisticated off-white with refined accents
+       ============================================================ */
+
+    /* Core backgrounds - Soft luxury whites */
+    --background: 0 0% 99%;
+    --foreground: 0 0% 8%;
+
+    /* Card - Pure white for elevation against bg */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 8%;
+
+    /* Popover - Same as card */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+
+    /* Primary - Slightly deeper blue for light bg */
+    --primary: 224 90% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Light gray surface */
+    --secondary: 240 10% 96%;
+    --secondary-foreground: 240 10% 25%;
+
+    /* Muted - Very light gray */
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 5% 45%;
+
+    /* Accent - Muted cyan for light mode */
+    --accent: 189 80% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive - Slightly darker red for light bg */
+    --destructive: 0 80% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders - Subtle gray */
+    --border: 240 10% 90%;
+    --input: 240 10% 96%;
+    --ring: 224 90% 48%;
+
+    /* Trading colors - CONSISTENT across themes */
+    --profit: 160 84% 35%;
+    --profit-foreground: 0 0% 100%;
+    --loss: 0 84% 55%;
+    --warning: 38 92% 45%;
+    --info: 224 90% 48%;
+
+    /* Chart colors - Optimized for white bg */
+    --chart-1: 160 84% 35%;
+    --chart-2: 0 84% 55%;
+    --chart-3: 44 89% 50%;
+    --chart-4: 224 90% 48%;
+    --chart-5: 270 70% 55%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(224 90% 48%), hsl(189 80% 42%));
+    --gradient-profit: linear-gradient(135deg, hsl(160 84% 35% / 0.1), hsl(160 84% 35% / 0.05));
+    --gradient-loss: linear-gradient(135deg, hsl(0 84% 55% / 0.1), hsl(0 84% 55% / 0.05));
+
+    --radius: 0.5rem;
+
+    /* Paper Mode Colors - Light variant */
+    --paper-accent: #0891B2;
+    --paper-badge: #0891B2;
+    --paper-border: #0891B2;
+    --paper-background: #E0F7FA;
+    --paper-hover: #22D3EE;
+
+    /* Real Mode Colors - Light variant */
+    --real-warning: #DC2626;
+    --real-banner: #DC2626;
+    --real-border: #DC2626;
+    --real-background: #FEE2E2;
+    --real-hover: #EF4444;
+
+    /* Design System Extended Colors - Light */
+    --bg-primary: #FAFAFA;
+    --bg-secondary: #F5F5F7;
+    --bg-tertiary: #EEEEF0;
+    --bg-surface: #FFFFFF;
+
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B6B7A;
+    --text-muted: #9A9AAE;
+
+    --grid-color: #E8E8EC;
+    --border-color: rgba(0, 0, 0, 0.08);
+
+    /* Brand Colors - Adjusted for light */
+    --brand-blue: #1D4ED8;
+    --brand-cyan: #0891B2;
+    --brand-gold: #D97706;
+    --brand-purple: #7C3AED;
+
+    /* Sidebar - Light luxury */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 8%;
+    --sidebar-primary: 224 90% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 10% 96%;
+    --sidebar-accent-foreground: 240 10% 25%;
+    --sidebar-border: 240 10% 90%;
+    --sidebar-ring: 224 90% 48%;
+  }
+
+  .dark {
     /* ============================================================
        Dark OLED Luxury Theme - Premium Trading Dashboard
        Based on TradingView, Binance, Bybit design research
@@ -67,23 +176,21 @@
     --gradient-profit: linear-gradient(135deg, hsl(160 84% 39% / 0.1), hsl(160 84% 39% / 0.05));
     --gradient-loss: linear-gradient(135deg, hsl(0 84% 60% / 0.1), hsl(0 84% 60% / 0.05));
 
-    --radius: 0.5rem;
-
-    /* Paper Mode Colors - Cyan/Sky for simulated trading */
+    /* Paper Mode Colors - Dark variant (Cyan/Sky) */
     --paper-accent: #00D9FF;
     --paper-badge: #0891B2;
     --paper-border: #00D9FF;
     --paper-background: #0891B2;
     --paper-hover: #22D3EE;
 
-    /* Real Mode Colors - Warning red for live trading */
+    /* Real Mode Colors - Dark variant (Warning red) */
     --real-warning: #EF4444;
     --real-banner: #DC2626;
     --real-border: #EF4444;
     --real-background: #DC2626;
     --real-hover: #F87171;
 
-    /* Design System Extended Colors */
+    /* Design System Extended Colors - Dark */
     --bg-primary: #000000;
     --bg-secondary: #0F0F1E;
     --bg-tertiary: #1A1A2E;
@@ -96,7 +203,7 @@
     --grid-color: #1A1A2E;
     --border-color: rgba(176, 176, 192, 0.15);
 
-    /* Brand Colors */
+    /* Brand Colors - Dark mode */
     --brand-blue: #2962FF;
     --brand-cyan: #00D9FF;
     --brand-gold: #F3BA2F;
@@ -111,44 +218,6 @@
     --sidebar-accent-foreground: 240 11% 72%;
     --sidebar-border: 240 13% 20%;
     --sidebar-ring: 224 100% 58%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -167,6 +236,12 @@
 }
 
 @layer utilities {
+  /* Theme transition class - applied during toggle */
+  html.theme-transitioning,
+  html.theme-transitioning * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+  }
+
   /* Custom focus styles for accessibility */
   .focus-custom {
     @apply focus:outline-none focus:ring-2 focus:ring-profit focus:ring-offset-2 focus:ring-offset-background transition-shadow;
@@ -200,17 +275,30 @@
     @apply min-h-[48px] min-w-[48px];
   }
 
-  /* Glassmorphism utilities */
+  /* Glassmorphism utilities - Light mode */
   .glass {
-    @apply backdrop-blur-md bg-slate-900/70 border border-slate-700/50 rounded-xl shadow-xl;
+    @apply backdrop-blur-md bg-white/70 border border-gray-200/50 rounded-xl shadow-xl;
   }
 
   .glass-sm {
-    @apply backdrop-blur-sm bg-slate-900/60 border border-slate-700/40 rounded-lg shadow-lg;
+    @apply backdrop-blur-sm bg-white/60 border border-gray-200/40 rounded-lg shadow-lg;
   }
 
   .glass-lg {
-    @apply backdrop-blur-lg bg-slate-900/80 border border-slate-700/60 rounded-2xl shadow-2xl;
+    @apply backdrop-blur-lg bg-white/80 border border-gray-200/60 rounded-2xl shadow-2xl;
+  }
+
+  /* Glassmorphism utilities - Dark mode */
+  .dark .glass {
+    @apply bg-slate-900/70 border-slate-700/50;
+  }
+
+  .dark .glass-sm {
+    @apply bg-slate-900/60 border-slate-700/40;
+  }
+
+  .dark .glass-lg {
+    @apply bg-slate-900/80 border-slate-700/60;
   }
 
   /* Paper mode utilities */
@@ -240,6 +328,11 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+
+    html.theme-transitioning,
+    html.theme-transitioning * {
+      transition: none !important;
     }
   }
 }
@@ -281,27 +374,40 @@
   }
 }
 
-/* Custom Scrollbar Styles - Cyan theme for trading tables */
+/* Custom Scrollbar Styles - Light mode */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 217, 255, 0.3);
+  background: rgba(0, 120, 180, 0.25);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 120, 180, 0.4);
+}
+
+/* Custom Scrollbar - Dark mode */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 217, 255, 0.3);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 217, 255, 0.5);
 }
 
-/* Thin scrollbar for compact tables */
+/* Thin scrollbar - Light mode */
 .custom-scrollbar-thin::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -312,10 +418,19 @@
 }
 
 .custom-scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(0, 217, 255, 0.2);
+  background: rgba(0, 120, 180, 0.2);
   border-radius: 2px;
 }
 
 .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 120, 180, 0.35);
+}
+
+/* Thin scrollbar - Dark mode */
+.dark .custom-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 217, 255, 0.2);
+}
+
+.dark .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 217, 255, 0.4);
 }

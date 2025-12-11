@@ -1,0 +1,55 @@
+{
+  "generic": "Đã xảy ra lỗi. Vui lòng thử lại.",
+  "network": "Lỗi mạng. Kiểm tra kết nối của bạn.",
+  "unauthorized": "Phiên đã hết hạn. Vui lòng đăng nhập lại.",
+  "forbidden": "Bạn không có quyền thực hiện hành động này.",
+  "notFound": "Không tìm thấy trang.",
+  "serverError": "Lỗi máy chủ. Vui lòng thử lại sau.",
+  "timeout": "Yêu cầu hết thời gian. Vui lòng thử lại.",
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "email": "Địa chỉ email không hợp lệ",
+    "password": "Mật khẩu phải có ít nhất 8 ký tự",
+    "passwordMatch": "Mật khẩu không khớp",
+    "minLength": "Phải có ít nhất {{min}} ký tự",
+    "maxLength": "Không được quá {{max}} ký tự",
+    "invalidNumber": "Vui lòng nhập số hợp lệ",
+    "positiveNumber": "Phải là số dương"
+  },
+  "trading": {
+    "insufficientBalance": "Số dư không đủ",
+    "insufficientMargin": "Ký quỹ không đủ",
+    "orderFailed": "Đặt lệnh thất bại. Vui lòng thử lại.",
+    "connectionLost": "Mất kết nối giao dịch",
+    "marketClosed": "Thị trường hiện đang đóng cửa",
+    "invalidQuantity": "Số lượng lệnh không hợp lệ",
+    "invalidPrice": "Giá lệnh không hợp lệ",
+    "positionLimitReached": "Đã đạt giới hạn vị thế"
+  },
+  "auth": {
+    "invalidCredentials": "Email hoặc mật khẩu không đúng",
+    "accountLocked": "Tài khoản đã bị khóa. Liên hệ hỗ trợ.",
+    "emailNotVerified": "Vui lòng xác minh email trước",
+    "tokenExpired": "Phiên đã hết hạn. Vui lòng đăng nhập lại."
+  },
+  "notFoundPage": {
+    "title": "Không tìm thấy trang",
+    "description": "Trang bạn đang tìm kiếm không tồn tại hoặc đã được di chuyển. Hãy quay lại đúng hướng.",
+    "goBack": "Quay lại",
+    "goHome": "Về trang chủ",
+    "popularPages": "Trang phổ biến",
+    "pages": {
+      "dashboard": "Bảng điều khiển",
+      "portfolio": "Danh mục",
+      "strategies": "Chiến lược",
+      "settings": "Cài đặt"
+    }
+  },
+  "errorPage": {
+    "title": "Lỗi máy chủ",
+    "description": "Rất tiếc! Đã xảy ra lỗi từ phía chúng tôi. Chúng tôi đang khắc phục. Vui lòng làm mới trang hoặc quay lại sau.",
+    "refresh": "Làm mới trang",
+    "goHome": "Về trang chủ",
+    "contactSupport": "Nếu vấn đề vẫn tiếp tục, vui lòng liên hệ hỗ trợ"
+  }
+}

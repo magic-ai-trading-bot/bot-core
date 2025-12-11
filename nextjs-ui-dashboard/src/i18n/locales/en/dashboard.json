@@ -1,0 +1,387 @@
+{
+  "title": "Dashboard",
+  "welcomeBack": "Welcome back",
+  "welcome": "Welcome back, {{name}}",
+  "subtitle": "Here's your portfolio performance at a glance",
+  "overview": "Overview",
+  "performance": "Performance",
+  "recentTrades": "Recent Trades",
+  "marketSummary": "Market Summary",
+  "aiInsights": "AI Insights",
+  "quickActions": "Quick Actions",
+  "marketsOpen": "Markets Open",
+  "marketsClosed": "Markets Closed",
+  "hero": {
+    "totalBalance": "Total Balance",
+    "paperTrading": "Paper Trading",
+    "liveTrading": "Live Trading",
+    "paperMode": "Paper Mode",
+    "liveMode": "Live Mode",
+    "change24h": "24h Change"
+  },
+  "stats": {
+    "totalProfit": "Total Profit",
+    "winRate": "Win Rate",
+    "totalTrades": "Total Trades",
+    "activeTrades": "Active Trades",
+    "todayPnl": "Today's P&L",
+    "weeklyPnl": "Weekly P&L",
+    "monthlyPnl": "Monthly P&L",
+    "totalPnL": "Total P&L",
+    "avgProfit": "Avg Profit",
+    "avgLoss": "Avg Loss",
+    "riskScore": "Risk Score",
+    "riskLow": "Low",
+    "riskMedium": "Medium",
+    "riskHigh": "High",
+    "profitFactor": "Profit Factor",
+    "sharpeRatio": "Sharpe Ratio",
+    "bestTrade": "Best Trade",
+    "worstTrade": "Worst Trade",
+    "maxDrawdown": "Max Drawdown"
+  },
+  "ticker": {
+    "trendingMarkets": "Trending Markets"
+  },
+  "chart": {
+    "profit": "Profit",
+    "loss": "Loss",
+    "balance": "Balance History",
+    "trades": "Trade History",
+    "performance": "Performance Chart",
+    "portfolioPerformance": "Portfolio Performance",
+    "trackGains": "Track your gains over time",
+    "value": "Value"
+  },
+  "aiSignals": {
+    "title": "AI Signals",
+    "subtitle": "ML-powered predictions",
+    "live": "Live",
+    "noSignals": "No signals yet",
+    "noSignalsDesc": "AI analysis will appear here",
+    "justNow": "Just now",
+    "minutesAgo": "{{minutes}}m ago",
+    "hoursAgo": "{{hours}}h ago"
+  },
+  "trades": {
+    "title": "Recent Trades",
+    "subtitle": "Your trading history",
+    "viewAll": "View All",
+    "noTrades": "No trades yet",
+    "noTradesDesc": "Start trading to see your history here",
+    "open": "Open",
+    "closed": "Closed",
+    "daysAgo": "{{days}}d ago"
+  },
+  "table": {
+    "symbol": "Symbol",
+    "type": "Type",
+    "side": "Side",
+    "amount": "Amount",
+    "price": "Price",
+    "pnl": "P&L",
+    "time": "Time",
+    "status": "Status",
+    "entry": "Entry",
+    "exit": "Exit",
+    "date": "Date",
+    "action": "Action"
+  },
+  "notification": {
+    "newSignal": "New trading signal generated",
+    "tradeExecuted": "Trade executed successfully",
+    "stopLossHit": "Stop loss triggered",
+    "takeProfitHit": "Take profit reached"
+  },
+  "error": {
+    "apiConnection": "API Connection Error",
+    "retry": "Retry"
+  },
+  "portfolio": {
+    "title": "Paper Trading Portfolio",
+    "subtitle": "Real-time performance tracking",
+    "currentBalance": "Current Balance",
+    "totalBalance": "Total Balance",
+    "sections": {
+      "allocation": "Position Allocation",
+      "recentTrades": "Recent Trades",
+      "performance": "Performance History"
+    },
+    "stats": {
+      "winRate": "Win Rate",
+      "totalTrades": "Total Trades",
+      "profitFactor": "Profit Factor",
+      "totalPnl": "Total P&L",
+      "openPositions": "Open"
+    },
+    "cards": {
+      "bestTrade": "Best Trade",
+      "worstTrade": "Worst Trade",
+      "maxDrawdown": "Max Drawdown",
+      "sharpeRatio": "Sharpe Ratio",
+      "riskAdjusted": "Risk-adjusted return",
+      "noTradesYet": "No trades yet"
+    },
+    "status": {
+      "live": "Live",
+      "inactive": "Inactive",
+      "safe": "Safe",
+      "moderate": "Moderate",
+      "high": "High",
+      "excellent": "Excellent",
+      "good": "Good",
+      "low": "Low"
+    },
+    "table": {
+      "symbol": "Symbol",
+      "type": "Type",
+      "entryExit": "Entry / Exit",
+      "pnl": "P&L",
+      "date": "Date"
+    },
+    "empty": {
+      "noPositions": "No open positions",
+      "startTrading": "Start trading to see allocation",
+      "noClosedTrades": "No closed trades yet"
+    }
+  },
+  "profile": {
+    "title": "Trading Performance",
+    "subtitle": "Your real trading statistics from paper trading",
+    "advancedMetrics": "Advanced Metrics",
+    "memberSince": "Member since",
+    "authenticated": "Authenticated",
+    "errors": {
+      "emptyName": "Display name cannot be empty",
+      "updateFailed": "Failed to update profile. Please try again.",
+      "invalidImage": "Please select an image file",
+      "imageTooLarge": "Image must be less than 500KB",
+      "avatarUploadFailed": "Failed to upload avatar. Please try again.",
+      "readImageFailed": "Failed to read image file"
+    },
+    "success": {
+      "profileUpdated": "Profile updated successfully",
+      "avatarUpdated": "Avatar updated successfully"
+    },
+    "achievements": {
+      "title": "Achievements",
+      "subtitle": "Your trading milestones",
+      "firstTrade": "First Trade",
+      "firstTradeDesc": "Complete your first trade",
+      "tenTrades": "10 Trades",
+      "tenTradesDesc": "Execute 10 trades",
+      "inProfit": "In Profit",
+      "inProfitDesc": "Achieve positive total P&L",
+      "winningStreak": "Winning Streak",
+      "winningStreakDesc": "Win 5 trades in a row",
+      "notYet": "Not yet",
+      "achieved": "Achieved",
+      "active": "Active",
+      "inProgress": "In progress",
+      "current": "current"
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "subtitle": "Your latest trading actions",
+      "noActivity": "No recent activity",
+      "startTrading": "Start trading to see your activity here",
+      "long": "Long",
+      "short": "Short",
+      "closed": "Closed",
+      "unlocked": "Unlocked",
+      "milestone": "Milestone"
+    }
+  },
+  "aiSignalsPage": {
+    "title": "AI Trading Signals",
+    "subtitle": "Real-time machine learning predictions powered by advanced neural networks",
+    "refresh": "Refresh",
+    "lastUpdate": "Last Update",
+    "justNow": "Just now",
+    "engine": {
+      "status": "AI Engine Status",
+      "active": "Active",
+      "offline": "Offline",
+      "description": "Neural network analyzing market patterns in real-time"
+    },
+    "accuracy": {
+      "label": "Model Accuracy",
+      "value": "{{value}}%"
+    },
+    "signals": {
+      "live": "Live Signals",
+      "active": "Active",
+      "waiting": "Waiting for Signals",
+      "waitingDesc": "The AI engine is analyzing market conditions. New signals will appear here automatically."
+    },
+    "history": {
+      "title": "Signal History",
+      "all": "All",
+      "win": "Win",
+      "loss": "Loss",
+      "noHistory": "No signal history yet"
+    },
+    "stats": {
+      "wins": "Wins",
+      "losses": "Losses",
+      "winRate": "Win Rate",
+      "totalPnl": "Total P&L"
+    },
+    "card": {
+      "confidence": "Confidence",
+      "entry": "Entry",
+      "target": "Target",
+      "stopLoss": "Stop Loss"
+    },
+    "actions": {
+      "viewAnalysis": "View Analysis",
+      "aiReasoning": "AI Reasoning",
+      "strategyScores": "Strategy Scores"
+    }
+  },
+  "tradeAnalyses": {
+    "title": "GPT-4 Trade Analyses",
+    "subtitle": "AI-powered analysis of your trades to help you understand what went wrong and improve your strategy.",
+    "refresh": "Refresh",
+    "stats": {
+      "totalAnalyses": "Total Analyses",
+      "losingTrades": "Losing Trades",
+      "winningTrades": "Winning Trades",
+      "totalPnl": "Total P&L",
+      "avgPnl": "Avg P&L / Trade"
+    },
+    "tabs": {
+      "analyses": "Trade Analyses",
+      "suggestions": "Config Suggestions"
+    },
+    "filter": {
+      "losingOnly": "Showing: Losing Only",
+      "allTrades": "Showing: All Trades"
+    },
+    "empty": {
+      "noAnalyses": "No trade analyses yet",
+      "analysesDesc": "Complete some trades to see AI-powered analysis",
+      "noSuggestions": "No config suggestions yet",
+      "suggestionsDesc": "GPT-4 will suggest optimizations after analyzing your trades"
+    },
+    "suggestion": {
+      "latest": "Latest GPT-4 Config Suggestion",
+      "rootCause": "Root Cause",
+      "applied": "Auto-applied changes"
+    },
+    "analysis": {
+      "verdict": "Verdict",
+      "summary": "Summary",
+      "whatWentWrong": "What Went Wrong",
+      "keyFactors": "Key Factors",
+      "lessons": "Lessons Learned",
+      "recommendations": "Recommendations"
+    },
+    "details": {
+      "entry": "Entry",
+      "exit": "Exit",
+      "tradeId": "Trade ID",
+      "closeReason": "Close Reason"
+    },
+    "verdict": {
+      "win": "WIN",
+      "loss": "LOSS",
+      "breakeven": "BREAKEVEN"
+    }
+  },
+  "realTrading": {
+    "title": "Real Trading",
+    "subtitle": "Live trading with real funds on Binance",
+    "warning": {
+      "title": "Real Money Trading",
+      "message": "You are about to trade with real money. Make sure you understand the risks involved.",
+      "confirm": "I understand the risks"
+    },
+    "orderBook": {
+      "title": "Order Book",
+      "price": "Price",
+      "amount": "Amount",
+      "total": "Total"
+    },
+    "orderForm": {
+      "buy": "Buy",
+      "sell": "Sell",
+      "market": "Market",
+      "limit": "Limit",
+      "stopLimit": "Stop Limit",
+      "amount": "Amount",
+      "price": "Price",
+      "total": "Total",
+      "available": "Available",
+      "submit": "Place Order",
+      "stopPrice": "Stop Price"
+    },
+    "positions": {
+      "title": "Open Positions",
+      "symbol": "Symbol",
+      "side": "Side",
+      "size": "Size",
+      "entry": "Entry Price",
+      "mark": "Mark Price",
+      "pnl": "P&L",
+      "close": "Close",
+      "noPositions": "No open positions"
+    },
+    "orders": {
+      "title": "Open Orders",
+      "cancel": "Cancel",
+      "cancelAll": "Cancel All",
+      "noOrders": "No open orders"
+    },
+    "history": {
+      "title": "Trade History",
+      "time": "Time",
+      "type": "Type",
+      "filled": "Filled",
+      "status": "Status"
+    },
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting..."
+    },
+    "modeSwitch": {
+      "title": "Paper Trading Mode Active",
+      "description": "Switch to Real Trading mode to execute trades with real funds.",
+      "badge": "Paper Mode: Safe Practice",
+      "hint": "Use the mode toggle in the header to switch between Paper and Real trading modes."
+    },
+    "comingSoon": {
+      "title": "COMING SOON",
+      "subtitle": "Real Trading Module",
+      "description": "The real trading API is currently under development. This feature will allow you to execute trades with real funds on Binance exchange.",
+      "features": {
+        "spotApi": "Binance Spot Order API Integration",
+        "websocket": "Real-time Position Tracking via WebSocket",
+        "riskManagement": "Advanced Risk Management & Circuit Breaker",
+        "underDevelopment": "API Endpoints Under Development"
+      },
+      "tryPaperTrading": "Try Paper Trading Instead",
+      "hint": "Paper trading provides the same luxury UI with simulated funds - perfect for testing strategies!"
+    },
+    "confirm": {
+      "title": "Confirm Real Trade",
+      "step": "Step {{current}} of {{total}}",
+      "riskWarning": "Risk Warning",
+      "realMoney": "This trade uses REAL MONEY",
+      "leverageWarning": "Leveraged trading can exceed your deposit",
+      "orderValue": "Order Value",
+      "exposure": "Exposure ({{leverage}}x)",
+      "acceptRisk": "I understand the risks and accept full responsibility for this trade.",
+      "finalTitle": "Final Confirmation",
+      "executeQuestion": "Execute {{direction}} {{quantity}} {{symbol}} with ${{exposure}} exposure?",
+      "cannotUndo": "This action cannot be undone",
+      "cancel": "Cancel",
+      "continue": "Continue",
+      "executeTrade": "Execute Trade"
+    },
+    "riskWarning": {
+      "message": "All orders require 2-step confirmation. Set stop-loss on every trade. Never risk more than you can afford to lose."
+    }
+  }
+}

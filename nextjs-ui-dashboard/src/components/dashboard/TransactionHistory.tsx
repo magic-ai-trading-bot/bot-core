@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
 import { usePaperTradingContext } from "@/contexts/PaperTradingContext";
 import { useNavigate } from "react-router-dom";
-import { formatTimestamp, formatCurrency } from "@/utils/formatters";
+import { formatTimestamp } from "@/utils/formatters";
 import { memo, useMemo, useCallback } from "react";
 
 // Memoized trade row component to prevent unnecessary re-renders

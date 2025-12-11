@@ -9,14 +9,17 @@ import { useState } from 'react';
 import { Menu, User, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { ModeIndicatorBadge } from './ModeIndicatorBadge';
 import { Breadcrumbs } from './Breadcrumbs';
 import { NotificationDropdown } from './NotificationDropdown';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/hooks/useSidebar';
 import { useTradingMode } from '@/hooks/useTradingMode';
-import { luxuryColors } from '@/styles/luxury-design-system';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { duration, easing } from '@/styles/tokens/animations';
 
 interface HeaderProps {
@@ -25,9 +28,11 @@ interface HeaderProps {
 
 export function Header({ className }: HeaderProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
   const { user, logout } = useAuth();
   const { isMobile, openMobile } = useSidebar();
   const { mode: tradingMode, requestModeSwitch } = useTradingMode();
+  const colors = useThemeColors();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleLogout = () => {
@@ -49,8 +54,8 @@ export function Header({ className }: HeaderProps) {
         className
       )}
       style={{
-        backgroundColor: luxuryColors.bgPrimary,
-        borderBottom: `1px solid ${luxuryColors.borderSubtle}`,
+        backgroundColor: colors.bgPrimary,
+        borderBottom: `1px solid ${colors.borderSubtle}`,
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
       }}
     >
@@ -60,16 +65,16 @@ export function Header({ className }: HeaderProps) {
         {isMobile && (
           <motion.button
             onClick={openMobile}
-            whileHover={{ scale: 1.05, backgroundColor: luxuryColors.bgHover }}
+            whileHover={{ scale: 1.05, backgroundColor: colors.bgHover }}
             whileTap={{ scale: 0.95 }}
             className={cn(
               'flex h-10 w-10 items-center justify-center rounded-xl',
               'transition-all duration-200'
             )}
             style={{
-              backgroundColor: luxuryColors.bgSecondary,
-              color: luxuryColors.textMuted,
-              border: `1px solid ${luxuryColors.borderSubtle}`,
+              backgroundColor: colors.bgSecondary,
+              color: colors.textMuted,
+              border: `1px solid ${colors.borderSubtle}`,
             }}
             aria-label="Open menu"
           >
@@ -81,7 +86,7 @@ export function Header({ className }: HeaderProps) {
         <Breadcrumbs />
       </div>
 
-      {/* Right section - Mode indicator + Notifications + User menu */}
+      {/* Right section - Mode indicator + Theme + Language + Notifications + User menu */}
       <div className="flex items-center gap-3">
         {/* Mode indicator badge - clickable to switch modes */}
         <button
@@ -92,6 +97,12 @@ export function Header({ className }: HeaderProps) {
           <ModeIndicatorBadge mode={tradingMode} />
         </button>
 
+        {/* Theme toggle */}
+        <ThemeToggle />
+
+        {/* Language selector */}
+        <LanguageSelector />
+
         {/* Notification dropdown */}
         <NotificationDropdown />
 
@@ -99,16 +110,16 @@ export function Header({ className }: HeaderProps) {
         <div className="relative">
           <motion.button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            whileHover={{ scale: 1.05, backgroundColor: luxuryColors.bgHover }}
+            whileHover={{ scale: 1.05, backgroundColor: colors.bgHover }}
             whileTap={{ scale: 0.95 }}
             className={cn(
               'flex h-10 w-10 items-center justify-center rounded-xl',
               'transition-all duration-200'
             )}
             style={{
-              backgroundColor: luxuryColors.bgSecondary,
-              color: luxuryColors.textMuted,
-              border: `1px solid ${luxuryColors.borderSubtle}`,
+              backgroundColor: colors.bgSecondary,
+              color: colors.textMuted,
+              border: `1px solid ${colors.borderSubtle}`,
             }}
             aria-label="User menu"
             aria-expanded={showUserMenu}
@@ -137,20 +148,20 @@ export function Header({ className }: HeaderProps) {
                   }}
                   className="absolute right-0 top-12 z-50 w-56 rounded-xl overflow-hidden"
                   style={{
-                    backgroundColor: luxuryColors.bgPrimary,
-                    border: `1px solid ${luxuryColors.borderSubtle}`,
+                    backgroundColor: colors.bgPrimary,
+                    border: `1px solid ${colors.borderSubtle}`,
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
                   }}
                 >
                   {/* User info */}
                   <div
                     className="px-4 py-3"
-                    style={{ borderBottom: `1px solid ${luxuryColors.borderSubtle}` }}
+                    style={{ borderBottom: `1px solid ${colors.borderSubtle}` }}
                   >
-                    <p className="text-sm font-bold" style={{ color: luxuryColors.textPrimary }}>
+                    <p className="text-sm font-bold" style={{ color: colors.textPrimary }}>
                       {user?.email || 'User'}
                     </p>
-                    <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
+                    <p className="text-xs" style={{ color: colors.textMuted }}>
                       Free Plan
                     </p>
                   </div>
@@ -166,10 +177,10 @@ export function Header({ className }: HeaderProps) {
                         'flex w-full items-center gap-3 px-4 py-2.5 text-sm',
                         'hover:bg-white/5 transition-colors'
                       )}
-                      style={{ color: luxuryColors.textSecondary }}
+                      style={{ color: colors.textSecondary }}
                     >
                       <SettingsIcon className="h-4 w-4" />
-                      Settings
+                      {t('label.settings')}
                     </button>
 
                     <button
@@ -181,10 +192,10 @@ export function Header({ className }: HeaderProps) {
                         'flex w-full items-center gap-3 px-4 py-2.5 text-sm',
                         'hover:bg-white/5 transition-colors'
                       )}
-                      style={{ color: luxuryColors.loss }}
+                      style={{ color: colors.loss }}
                     >
                       <LogOut className="h-4 w-4" />
-                      Logout
+                      {t('label.logout')}
                     </button>
                   </div>
                 </motion.div>

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { chatbotService } from '../../services/chatbot'
-import type { ChatMessage, ChatResponse } from '../../services/chatbot'
+import type { ChatMessage } from '../../services/chatbot'
 
 // Mock fetch
 global.fetch = vi.fn()

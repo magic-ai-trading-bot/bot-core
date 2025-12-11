@@ -11,8 +11,6 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, Users, Target, Zap } from 'lucide-react';
 import { ShortAnimatedCounter } from './AnimatedCounter';
-import { stagger } from '@/styles/tokens/animations';
-import { colors } from '@/styles/tokens/colors';
 
 interface StatCardProps {
   icon: React.ReactNode;

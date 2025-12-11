@@ -1,0 +1,399 @@
+{
+  "common": {
+    "backToHome": "返回首页",
+    "getStarted": "开始使用",
+    "viewPricing": "查看定价",
+    "learnMore": "了解更多",
+    "contactUs": "联系我们",
+    "startFreeTrial": "开始免费试用"
+  },
+  "features": {
+    "badge": "平台功能",
+    "title": "强大功能",
+    "subtitle": "为现代交易者设计",
+    "description": "AI技术驱动，让您更智能、更快速、更高效地进行交易。",
+    "andMore": "更多功能...",
+    "readyTitle": "准备好开始交易了吗？",
+    "readyDescription": "加入成千上万使用Bot Core自动化交易策略的交易者。",
+    "getStartedFree": "免费开始",
+    "items": {
+      "aiAnalysis": {
+        "title": "AI驱动分析",
+        "description": "先进的机器学习模型实时分析市场模式、情绪和技术指标。",
+        "highlights": ["LSTM和Transformer模型", "GPT-4市场分析", "情绪检测"]
+      },
+      "tradingBot": {
+        "title": "自动交易机器人",
+        "description": "设置策略一次，让机器人24/7精准执行交易。",
+        "highlights": ["24/7交易", "多策略", "模拟和实盘交易"]
+      },
+      "riskManagement": {
+        "title": "高级风险管理",
+        "description": "智能止损、止盈和仓位调整算法保护您的资本。",
+        "highlights": ["动态止损", "仓位调整", "回撤保护"]
+      },
+      "analytics": {
+        "title": "实时分析",
+        "description": "全面的仪表板监控您的投资组合表现。",
+        "highlights": ["实时盈亏追踪", "性能指标", "交易历史"]
+      },
+      "execution": {
+        "title": "闪电般快速执行",
+        "description": "毫秒级执行交易，优化基础设施直连交易所。",
+        "highlights": ["<50ms延迟", "智能订单路由", "滑点保护"]
+      },
+      "strategies": {
+        "title": "多种策略",
+        "description": "选择经过验证的交易策略，包括RSI、MACD、布林带等。",
+        "highlights": ["RSI策略", "MACD交叉", "布林带"]
+      }
+    },
+    "additional": {
+      "backtesting": { "title": "回测引擎", "description": "在历史数据上测试策略" },
+      "security": { "title": "银行级安全", "description": "端到端加密和双因素认证" },
+      "multiExchange": { "title": "多交易所支持", "description": "在币安、Bybit等交易" },
+      "monitoring": { "title": "24/7监控", "description": "系统全天候监控" },
+      "alerts": { "title": "自定义提醒", "description": "Telegram、Discord和邮件提醒" },
+      "aiSignals": { "title": "AI信号", "description": "机器学习预测" }
+    }
+  },
+  "pricing": {
+    "badge": "简单定价",
+    "title": "选择您的",
+    "subtitle": "交易计划",
+    "description": "免费开始，按需扩展。无隐藏费用。",
+    "mostPopular": "最受欢迎",
+    "faq": "常见问题",
+    "plans": {
+      "starter": {
+        "name": "入门版",
+        "price": "免费",
+        "description": "适合学习和模拟交易",
+        "features": ["仅限模拟交易", "3个活跃策略", "基础AI信号", "社区支持", "1个交易所连接", "每日报告"],
+        "cta": "免费开始"
+      },
+      "pro": {
+        "name": "专业版",
+        "price": "$49",
+        "period": "/月",
+        "description": "为准备实盘交易的认真交易者",
+        "features": ["实盘交易", "无限策略", "高级AI分析", "优先支持", "3个交易所连接", "实时提醒", "高级风险管理", "策略构建器"],
+        "cta": "开始使用"
+      },
+      "enterprise": {
+        "name": "企业版",
+        "price": "定制",
+        "description": "为基金和专业交易者",
+        "features": ["包含Pro全部功能", "无限交易所", "专属客户经理", "自定义API集成", "白标选项", "SLA保证", "本地部署", "自定义AI模型训练"],
+        "cta": "联系销售"
+      }
+    },
+    "faqs": {
+      "switch": { "question": "我可以随时切换计划吗？", "answer": "是的，您可以随时升级或降级您的计划。" },
+      "trial": { "question": "Pro版有免费试用吗？", "answer": "有！您有14天免费试用。无需信用卡。" },
+      "payment": { "question": "你们接受什么支付方式？", "answer": "我们接受信用卡、PayPal和加密货币（BTC、ETH、USDT）。" },
+      "cancel": { "question": "我可以随时取消吗？", "answer": "当然可以。随时取消订阅，无取消费用。" }
+    }
+  },
+  "about": {
+    "badge": "关于我们",
+    "title": "构建",
+    "subtitle": "自动交易的未来",
+    "description": "我们相信每个人都应该获得机构级交易技术。我们的使命是通过AI普及算法交易。",
+    "stats": { "activeUsers": "活跃用户", "countries": "国家", "tradesExecuted": "执行交易", "totalVolume": "总交易量" },
+    "values": {
+      "title": "我们的价值观",
+      "missionDriven": { "title": "使命驱动", "description": "致力于为所有人普及算法交易。" },
+      "userFirst": { "title": "用户至上", "description": "每个功能都从理解用户需求开始。" },
+      "innovation": { "title": "创新", "description": "推动AI和交易可能性的边界。" },
+      "globalImpact": { "title": "全球影响", "description": "构建赋能全球交易者的工具。" }
+    },
+    "journey": { "title": "我们的历程" },
+    "team": { "title": "认识我们的团队" },
+    "cta": { "title": "加入我们的使命", "description": "我们正在寻找有才华的人。", "viewPositions": "查看职位", "getInTouch": "联系我们" }
+  },
+  "contact": {
+    "badge": "联系我们",
+    "title": "取得联系",
+    "description": "有问题？我们随时为您提供帮助。",
+    "info": {
+      "email": { "title": "邮箱", "value": "support@botcore.io", "description": "24小时内回复" },
+      "liveChat": { "title": "在线聊天", "value": "24/7可用", "description": "与我们的团队聊天" },
+      "phone": { "title": "电话", "value": "+1 (555) 123-4567", "description": "周一至周五 9am-6pm" },
+      "office": { "title": "办公室", "value": "旧金山", "description": "123 Market Street" }
+    },
+    "form": {
+      "title": "给我们留言",
+      "name": "您的姓名",
+      "email": "邮箱地址",
+      "category": "类别",
+      "subject": "主题",
+      "message": "消息",
+      "submit": "发送消息",
+      "success": "消息发送成功！"
+    },
+    "categories": {
+      "title": "我们能帮您什么？",
+      "general": { "title": "一般咨询", "description": "关于平台的问题" },
+      "technical": { "title": "技术支持", "description": "技术问题帮助" },
+      "enterprise": { "title": "企业销售", "description": "定制解决方案" },
+      "partnership": { "title": "合作伙伴", "description": "合作机会" }
+    },
+    "responseTime": {
+      "title": "响应时间",
+      "items": [
+        "邮箱：24小时内",
+        "在线聊天：5分钟内",
+        "电话：工作时间内立即响应",
+        "企业：专属支持"
+      ]
+    }
+  },
+  "blog": {
+    "badge": "博客",
+    "title": "最新见解",
+    "subtitle": "交易技巧",
+    "description": "获取最新的市场分析、交易策略和平台更新。",
+    "readMore": "阅读更多",
+    "viewAll": "查看所有文章",
+    "categories": { "all": "全部", "trading": "交易", "ai": "AI和机器学习", "market": "市场分析", "tutorials": "教程" }
+  },
+  "careers": {
+    "badge": "加入我们",
+    "title": "构建AI交易的",
+    "subtitle": "未来",
+    "description": "我们正在寻找有激情的人来革新算法交易。",
+    "whyJoin": { "title": "为什么加入Bot Core？" },
+    "openings": { "title": "开放职位", "apply": "立即申请" },
+    "noPosition": { "title": "没找到合适的职位？", "description": "给我们发送简历。", "button": "发送简历" }
+  },
+  "privacy": {
+    "badge": "隐私政策",
+    "title": "您的隐私",
+    "subtitle": "对我们很重要",
+    "lastUpdated": "最后更新：2024年1月",
+    "description": "我们致力于保护您的隐私。",
+    "contact": "隐私相关查询请联系 privacy@botcore.io"
+  },
+  "terms": {
+    "badge": "服务条款",
+    "title": "服务",
+    "subtitle": "条款",
+    "lastUpdated": "最后更新：2024年1月",
+    "description": "使用Bot Core前请仔细阅读这些条款。",
+    "contact": "条款相关问题请联系 legal@botcore.io"
+  },
+  "security": {
+    "badge": "安全",
+    "title": "您的安全",
+    "subtitle": "我们的首要任务",
+    "description": "我们实施行业领先的安全措施来保护您的资产。",
+    "features": {
+      "encryption": { "title": "端到端加密", "description": "所有数据使用AES-256加密。" },
+      "mfa": { "title": "多因素认证", "description": "使用2FA保护您的账户。" },
+      "keys": { "title": "安全API密钥存储", "description": "您的API密钥加密存储在安全保险库中。" },
+      "audit": { "title": "定期安全审计", "description": "每季度渗透测试。" },
+      "soc2": { "title": "SOC 2 Type II合规", "description": "严格遵守SOC 2安全标准。" },
+      "monitoring": { "title": "24/7监控", "description": "我们的安全团队全天候监控威胁。" }
+    },
+    "practices": { "title": "安全最佳实践" },
+    "report": { "title": "报告漏洞", "description": "发现安全问题？", "button": "报告问题" }
+  },
+  "compliance": {
+    "badge": "合规",
+    "title": "监管",
+    "subtitle": "合规",
+    "description": "Bot Core严格遵守金融法规和数据保护法。",
+    "certifications": { "title": "认证和标准" },
+    "policies": { "title": "合规政策" },
+    "updates": { "title": "合规更新", "description": "我们持续更新合规实践。" },
+    "contact": "合规查询请联系 compliance@botcore.io"
+  },
+  "api": {
+    "badge": "开发者API",
+    "title": "使用",
+    "subtitle": "Bot Core API构建",
+    "description": "强大的API将交易自动化集成到您的应用程序中。",
+    "features": {
+      "rest": { "title": "RESTful API", "description": "标准REST端点" },
+      "websocket": { "title": "WebSocket流", "description": "实时市场数据" },
+      "sdks": { "title": "官方SDK", "description": "Python、JavaScript等库" },
+      "docs": { "title": "完整文档", "description": "详细文档和示例" }
+    },
+    "quickStart": { "title": "快速开始", "description": "几分钟内开始使用我们的API" },
+    "viewDocs": "查看文档",
+    "getApiKey": "获取API密钥"
+  },
+  "docs": {
+    "badge": "文档",
+    "title": "学习如何",
+    "subtitle": "使用Bot Core",
+    "description": "全面的指南和教程帮助您入门。",
+    "sections": {
+      "gettingStarted": { "title": "入门", "description": "快速开始指南" },
+      "trading": { "title": "交易指南", "description": "了解交易功能" },
+      "api": { "title": "API参考", "description": "技术文档" },
+      "strategies": { "title": "交易策略", "description": "深入了解我们的交易算法" }
+    },
+    "viewAll": "查看所有文档"
+  },
+  "howItWorks": {
+    "badge": "AI驱动交易机器人",
+    "hero": {
+      "title": "智能交易，",
+      "titleHighlight": "零情绪",
+      "subtitle": "通过先进的AI分析、实时市场监控和智能风险管理实现自动化加密货币交易。"
+    },
+    "stats": {
+      "strategies": "交易策略",
+      "riskLayers": "风险层级",
+      "uptime": "运行时间",
+      "aiAccuracy": "AI精确度"
+    },
+    "process": {
+      "title": "Bot Core 工作原理",
+      "subtitle": "我们的AI驱动交易系统遵循复杂的4步流程来识别和执行盈利交易。"
+    },
+    "steps": {
+      "dataCollection": {
+        "number": "01",
+        "title": "数据收集",
+        "subtitle": "实时市场数据聚合",
+        "description": "我们的系统持续收集和处理来自多个来源的实时市场数据，以构建市场状况的全面图景。",
+        "details": [
+          "主要交易所的价格源",
+          "订单簿深度分析",
+          "成交量和流动性指标",
+          "社交情绪信号"
+        ]
+      },
+      "technicalAnalysis": {
+        "number": "02",
+        "title": "技术分析",
+        "subtitle": "多指标策略评估",
+        "description": "使用经过验证的指标进行高级技术分析，以识别高概率交易机会。",
+        "details": [
+          "RSI动量分析",
+          "MACD趋势检测",
+          "布林带突破",
+          "成交量确认信号"
+        ]
+      },
+      "signalGeneration": {
+        "number": "03",
+        "title": "信号生成",
+        "subtitle": "AI驱动的交易决策",
+        "description": "我们的机器学习模型分析模式并生成带有置信度评分的交易信号。",
+        "details": [
+          "LSTM神经网络预测",
+          "GPT-4市场分析",
+          "多模型集成投票",
+          "置信度加权信号"
+        ]
+      },
+      "riskManagement": {
+        "number": "04",
+        "title": "风险管理",
+        "subtitle": "智能仓位管理",
+        "description": "每笔交易都经过我们全面的风险管理系统以保护您的资本。",
+        "details": [
+          "动态仓位调整",
+          "自动止损设置",
+          "投资组合相关性分析",
+          "每日损失限制执行"
+        ]
+      }
+    },
+    "strategies": {
+      "title": "交易策略",
+      "subtitle": "从我们经过验证的交易策略套件中选择，每种策略都针对不同的市场条件进行了优化。",
+      "winRate": "胜率",
+      "buy": "买入",
+      "sell": "卖出",
+      "items": {
+        "rsi": {
+          "name": "RSI策略",
+          "description": "使用相对强弱指数的动量交易，识别超买和超卖条件。",
+          "winRate": "62%"
+        },
+        "macd": {
+          "name": "MACD策略",
+          "description": "使用移动平均收敛发散交叉的趋势跟踪策略。",
+          "winRate": "58%"
+        },
+        "bollinger": {
+          "name": "布林带",
+          "description": "在带边界交易价格反转的波动率策略。",
+          "winRate": "60%"
+        },
+        "volume": {
+          "name": "成交量策略",
+          "description": "成交量加权分析以确认价格走势和突破。",
+          "winRate": "52%"
+        },
+        "stochastic": {
+          "name": "随机指标",
+          "description": "比较收盘价与一段时间内价格范围的动量振荡器。",
+          "winRate": "64%"
+        }
+      },
+      "note": "胜率基于历史回测。过去的表现不保证未来的结果。",
+      "multiConfirmation": {
+        "title": "多重确认必需",
+        "description": "只有当5种策略中至少4种对信号方向达成一致时，才会执行交易，确保高质量的入场点。"
+      }
+    },
+    "risk": {
+      "title": "风险管理层级",
+      "subtitle": "多层保护以保护您的交易资本。",
+      "layers": {
+        "position": {
+          "title": "仓位风险",
+          "description": "每笔交易最多占投资组合的2%"
+        },
+        "stopLoss": {
+          "title": "止损",
+          "description": "每笔交易自动限制损失"
+        },
+        "portfolio": {
+          "title": "投资组合风险",
+          "description": "跨仓位分散敞口"
+        },
+        "daily": {
+          "title": "每日限制",
+          "description": "5%最大每日回撤保护"
+        },
+        "consecutiveLosses": {
+          "title": "连续亏损",
+          "description": "冷却期前"
+        },
+        "correlation": {
+          "title": "相关性",
+          "description": "70%最大方向敞口限制"
+        },
+        "cooldown": {
+          "title": "冷却期",
+          "description": "5次连续亏损后暂停60分钟"
+        }
+      }
+    },
+    "trailingStop": {
+      "title": "追踪止损保护",
+      "subtitle": "锁定利润同时让赢家继续运行",
+      "description": "我们的智能追踪止损系统会在价格向有利方向移动时自动调整止损，在最大化上涨潜力的同时保护利润。",
+      "result": "结果：即使价格从峰值下跌，也保护了+3.47%的利润（$1,560）",
+      "steps": {
+        "entry": "入场",
+        "profit": "+5%利润",
+        "trailing": "追踪激活",
+        "peak": "峰值价格",
+        "exit": "出场"
+      }
+    },
+    "cta": {
+      "title": "准备好更智能地交易了吗？",
+      "subtitle": "加入数千名使用Bot Core通过AI驱动精度自动化策略的交易者。",
+      "button": "免费开始模拟交易"
+    }
+  }
+}

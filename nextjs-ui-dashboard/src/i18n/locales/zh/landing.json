@@ -1,0 +1,177 @@
+{
+  "nav": {
+    "features": "功能",
+    "pricing": "定价",
+    "reviews": "评价",
+    "faq": "常见问题",
+    "signIn": "登录",
+    "startTrial": "免费试用"
+  },
+  "hero": {
+    "badge": "AI驱动的交易革命",
+    "title": "加密货币交易",
+    "subtitle": "AI重新定义",
+    "description": "利用人工智能的力量分析加密市场、预测趋势，并在币安期货上自动执行盈利交易。",
+    "startTrading": "开始交易",
+    "watchDemo": "观看演示"
+  },
+  "stats": {
+    "totalUsers": "总用户数",
+    "tradingVolume": "交易量",
+    "winRate": "胜率",
+    "responseTime": "平均响应时间",
+    "vsLastMonth": "相比上月",
+    "faster": "更快",
+    "activeTraders": "活跃交易者",
+    "uptime": "正常运行时间"
+  },
+  "features": {
+    "badge": "高级功能",
+    "title": "专为",
+    "subtitle": "专业交易者打造",
+    "description": "体验最先进的加密交易平台，由尖端AI技术驱动",
+    "aiAnalysis": {
+      "title": "AI驱动分析",
+      "description": "先进的机器学习模型分析市场趋势，预测价格走势，准确率超过70%。"
+    },
+    "riskManagement": {
+      "title": "风险管理",
+      "description": "自动止损、仓位管理和投资组合再平衡，保护您的资金。"
+    },
+    "realTimeExecution": {
+      "title": "实时执行",
+      "description": "闪电般快速的订单执行，延迟低于100毫秒，实现最佳入场和出场点。"
+    },
+    "advancedAnalytics": {
+      "title": "高级分析",
+      "description": "全面的图表、技术指标和自定义仪表板，助您做出数据驱动的决策。"
+    },
+    "backtesting": {
+      "title": "策略回测",
+      "description": "在投入真金白银之前，用历史数据测试您的策略。"
+    },
+    "liveData": {
+      "title": "实时市场数据",
+      "description": "通过WebSocket连接，从多个交易所获取实时市场数据。"
+    }
+  },
+  "pricing": {
+    "badge": "定价方案",
+    "title": "选择您的",
+    "subtitle": "交易优势",
+    "description": "灵活的定价方案，随您的交易目标而扩展",
+    "mostPopular": "最受欢迎",
+    "getStarted": "开始使用",
+    "month": "/月",
+    "plans": {
+      "starter": {
+        "name": "入门版",
+        "features": [
+          "基础AI交易信号",
+          "最多5个活跃仓位",
+          "标准支持",
+          "基础分析"
+        ]
+      },
+      "pro": {
+        "name": "专业版",
+        "features": [
+          "高级AI交易信号",
+          "无限活跃仓位",
+          "优先支持",
+          "高级分析和回测",
+          "自定义策略",
+          "API访问"
+        ]
+      },
+      "enterprise": {
+        "name": "企业版",
+        "features": [
+          "专业版所有功能",
+          "专属客户经理",
+          "自定义AI模型训练",
+          "白标解决方案",
+          "SLA保证"
+        ]
+      }
+    }
+  },
+  "testimonials": {
+    "badge": "用户评价",
+    "title": "深受全球",
+    "subtitle": "交易者喜爱",
+    "reviews": [
+      {
+        "name": "Sarah Chen",
+        "role": "日内交易者",
+        "text": "AI信号非常准确。仅用3个月就将胜率从45%提高到68%！"
+      },
+      {
+        "name": "Michael Rodriguez",
+        "role": "加密货币投资者",
+        "text": "我用过的最好的交易平台。风险管理功能多次帮我避免重大损失。"
+      },
+      {
+        "name": "Alex Thompson",
+        "role": "量化交易员",
+        "text": "API强大，回测功能一流。非常适合在实盘之前测试策略。"
+      }
+    ]
+  },
+  "faq": {
+    "badge": "常见问题",
+    "title": "常见",
+    "subtitle": "问题解答",
+    "items": [
+      {
+        "question": "AI交易信号的准确率如何？",
+        "answer": "我们的AI模型在多种时间框架和市场条件下实现70%以上的方向准确率。我们持续使用最新数据训练和改进模型。"
+      },
+      {
+        "question": "我的资金安全吗？",
+        "answer": "我们从不持有您的资金。您在交易所保持对资产的完全控制。我们仅通过具有读取和交易权限的安全API连接执行交易。"
+      },
+      {
+        "question": "我可以使用自己的策略吗？",
+        "answer": "当然可以！专业版和企业版包含自定义策略支持。您可以在我们的AI信号之外回测和部署自己的算法。"
+      },
+      {
+        "question": "支持哪些交易所？",
+        "answer": "我们目前支持币安、Coinbase Pro、Kraken和Bybit。根据用户需求，我们正在不断添加更多交易所。"
+      }
+    ]
+  },
+  "cta": {
+    "badge": "准备好了吗？",
+    "title": "开启您的",
+    "subtitle": "AI交易之旅",
+    "description": "加入数千名成功的交易者，他们信任我们的AI来增长他们的加密投资组合。从免费试用开始，亲身体验智能自动化带来的不同。",
+    "startTrial": "7天免费试用",
+    "scheduleDemo": "预约演示"
+  },
+  "footer": {
+    "description": "面向现代交易者的AI驱动交易平台。",
+    "product": "产品",
+    "company": "公司",
+    "legal": "法律",
+    "features": "功能",
+    "pricing": "定价",
+    "api": "API",
+    "documentation": "文档",
+    "about": "关于我们",
+    "blog": "博客",
+    "careers": "招聘",
+    "contact": "联系我们",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "security": "安全",
+    "compliance": "合规",
+    "copyright": "© 2025 Bot Core. 保留所有权利。"
+  },
+  "videoModal": {
+    "title": "Bot Core 演示",
+    "subtitle": "AI驱动的加密货币交易平台",
+    "cta": "了解Bot Core如何改变您的交易",
+    "getStarted": "免费开始"
+  }
+}

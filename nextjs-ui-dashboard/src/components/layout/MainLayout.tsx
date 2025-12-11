@@ -11,7 +11,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ModeSwitchDialog } from '@/components/trading/ModeSwitchDialog';
 import { useSidebar } from '@/hooks/useSidebar';
-import { colors } from '@/styles/tokens/colors';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { duration, easing } from '@/styles/tokens/animations';
 
 interface MainLayoutProps {
@@ -20,9 +20,10 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { isExpanded, isMobile } = useSidebar();
+  const colors = useThemeColors();
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: colors.bg.primary }}>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: colors.bgPrimary }}>
       {/* Sidebar */}
       <Sidebar />
 

@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Float, Text, Sphere, Box, Torus, Icosahedron, MeshDistortMaterial } from '@react-three/drei';
+import { OrbitControls, Float, Text, MeshDistortMaterial } from '@react-three/drei';
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';

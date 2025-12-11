@@ -10,8 +10,9 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SidebarNav } from './SidebarNav';
 import { duration, easing } from '@/styles/tokens/animations';
-import { luxuryColors } from '@/styles/luxury-design-system';
 import { useSidebar } from '@/hooks/useSidebar';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { BotCoreLogo, BotCoreIcon } from '@/components/BotCoreLogo';
 
 interface SidebarProps {
   className?: string;
@@ -25,6 +26,7 @@ export function Sidebar({ className }: SidebarProps) {
     toggle,
     closeMobile,
   } = useSidebar();
+  const colors = useThemeColors();
 
   // Desktop sidebar
   const sidebarContent = (
@@ -43,15 +45,15 @@ export function Sidebar({ className }: SidebarProps) {
         className
       )}
       style={{
-        backgroundColor: luxuryColors.bgPrimary,
-        borderRight: `1px solid ${luxuryColors.borderSubtle}`,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8)',
+        backgroundColor: colors.bgPrimary,
+        borderRight: `1px solid ${colors.borderSubtle}`,
+        boxShadow: colors.bgPrimary === '#000000' ? '0 8px 32px rgba(0, 0, 0, 0.8)' : '0 8px 32px rgba(0, 0, 0, 0.1)',
       }}
     >
       {/* Header with Logo and Toggle */}
       <div
         className="flex h-16 items-center justify-between px-4"
-        style={{ borderBottom: `1px solid ${luxuryColors.borderSubtle}` }}
+        style={{ borderBottom: `1px solid ${colors.borderSubtle}` }}
       >
         <motion.div
           initial={false}
@@ -63,39 +65,29 @@ export function Sidebar({ className }: SidebarProps) {
             duration: duration.fast,
             ease: easing.easeOut,
           }}
-          className="flex items-center gap-3 overflow-hidden whitespace-nowrap"
+          className="flex items-center overflow-hidden whitespace-nowrap"
         >
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-xl font-black text-sm text-white"
-            style={{
-              background: luxuryColors.gradientPremium,
-              boxShadow: luxuryColors.glowCyan,
-            }}
-          >
-            BT
-          </div>
-          <span
-            className="text-lg font-black tracking-tight"
-            style={{ color: luxuryColors.textPrimary }}
-          >
-            BotCore
-          </span>
+          {isExpanded ? (
+            <BotCoreLogo size="sm" />
+          ) : (
+            <BotCoreIcon size={36} />
+          )}
         </motion.div>
 
         {/* Toggle button - only show on desktop */}
         {!isMobile && (
           <motion.button
             onClick={toggle}
-            whileHover={{ scale: 1.1, backgroundColor: luxuryColors.bgHover }}
+            whileHover={{ scale: 1.1, backgroundColor: colors.bgHover }}
             whileTap={{ scale: 0.9 }}
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-lg',
               'transition-all duration-200'
             )}
             style={{
-              backgroundColor: luxuryColors.bgSecondary,
-              color: luxuryColors.textMuted,
-              border: `1px solid ${luxuryColors.borderSubtle}`,
+              backgroundColor: colors.bgSecondary,
+              color: colors.textMuted,
+              border: `1px solid ${colors.borderSubtle}`,
             }}
             aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
@@ -117,7 +109,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Footer - User info section (placeholder for now) */}
       <div
         className="p-4"
-        style={{ borderTop: `1px solid ${luxuryColors.borderSubtle}` }}
+        style={{ borderTop: `1px solid ${colors.borderSubtle}` }}
       >
         <motion.div
           initial={false}
@@ -129,7 +121,7 @@ export function Sidebar({ className }: SidebarProps) {
             ease: easing.easeOut,
           }}
           className="text-xs overflow-hidden whitespace-nowrap"
-          style={{ color: luxuryColors.textMuted }}
+          style={{ color: colors.textMuted }}
         >
           v1.0.0
         </motion.div>

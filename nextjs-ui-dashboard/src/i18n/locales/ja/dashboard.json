@@ -1,0 +1,365 @@
+{
+  "title": "ダッシュボード",
+  "welcomeBack": "おかえりなさい",
+  "welcome": "おかえりなさい、{{name}}さん",
+  "subtitle": "ポートフォリオのパフォーマンス概要",
+  "overview": "概要",
+  "performance": "パフォーマンス",
+  "recentTrades": "最近の取引",
+  "marketSummary": "市場サマリー",
+  "aiInsights": "AI分析",
+  "quickActions": "クイックアクション",
+  "marketsOpen": "市場開場中",
+  "marketsClosed": "市場閉場中",
+  "hero": {
+    "totalBalance": "総残高",
+    "paperTrading": "ペーパートレード",
+    "liveTrading": "リアルトレード",
+    "paperMode": "ペーパーモード",
+    "liveMode": "リアルモード",
+    "change24h": "24時間変動"
+  },
+  "stats": {
+    "totalProfit": "総利益",
+    "winRate": "勝率",
+    "totalTrades": "総取引数",
+    "activeTrades": "アクティブ取引",
+    "todayPnl": "本日の損益",
+    "weeklyPnl": "週間損益",
+    "monthlyPnl": "月間損益",
+    "avgProfit": "平均利益",
+    "riskScore": "リスクスコア",
+    "riskLow": "低",
+    "riskMedium": "中",
+    "riskHigh": "高"
+  },
+  "ticker": {
+    "trendingMarkets": "トレンド市場"
+  },
+  "chart": {
+    "profit": "利益",
+    "loss": "損失",
+    "balance": "残高履歴",
+    "trades": "取引履歴",
+    "performance": "パフォーマンスチャート",
+    "portfolioPerformance": "ポートフォリオパフォーマンス",
+    "trackGains": "収益を時系列で追跡",
+    "value": "価値"
+  },
+  "aiSignals": {
+    "title": "AIシグナル",
+    "subtitle": "ML予測",
+    "live": "ライブ",
+    "noSignals": "シグナルなし",
+    "noSignalsDesc": "AI分析がここに表示されます",
+    "justNow": "たった今",
+    "minutesAgo": "{{minutes}}分前",
+    "hoursAgo": "{{hours}}時間前"
+  },
+  "trades": {
+    "title": "最近の取引",
+    "subtitle": "取引履歴",
+    "viewAll": "すべて表示",
+    "noTrades": "取引なし",
+    "noTradesDesc": "取引を開始すると履歴がここに表示されます",
+    "open": "オープン",
+    "closed": "クローズ",
+    "daysAgo": "{{days}}日前"
+  },
+  "table": {
+    "symbol": "シンボル",
+    "type": "タイプ",
+    "side": "売買",
+    "amount": "数量",
+    "price": "価格",
+    "pnl": "損益",
+    "time": "時間",
+    "status": "ステータス"
+  },
+  "notification": {
+    "newSignal": "新しい取引シグナルが生成されました",
+    "tradeExecuted": "取引が正常に実行されました",
+    "stopLossHit": "ストップロスが発動しました",
+    "takeProfitHit": "利確が達成されました"
+  },
+  "error": {
+    "apiConnection": "API接続エラー",
+    "retry": "再試行"
+  },
+  "portfolio": {
+    "title": "ペーパートレーディングポートフォリオ",
+    "subtitle": "リアルタイムパフォーマンス追跡",
+    "currentBalance": "現在の残高",
+    "totalBalance": "総残高",
+    "sections": {
+      "allocation": "ポジション配分",
+      "recentTrades": "最近の取引",
+      "performance": "パフォーマンス履歴"
+    },
+    "stats": {
+      "winRate": "勝率",
+      "totalTrades": "総取引数",
+      "profitFactor": "プロフィットファクター",
+      "totalPnl": "総損益",
+      "openPositions": "オープンポジション"
+    },
+    "cards": {
+      "bestTrade": "最良の取引",
+      "worstTrade": "最悪の取引",
+      "maxDrawdown": "最大ドローダウン",
+      "sharpeRatio": "シャープレシオ",
+      "riskAdjusted": "リスク調整後リターン",
+      "noTradesYet": "まだ取引がありません"
+    },
+    "status": {
+      "live": "ライブ",
+      "inactive": "非アクティブ",
+      "safe": "安全",
+      "moderate": "中程度",
+      "high": "高い",
+      "excellent": "優秀",
+      "good": "良好",
+      "low": "低い"
+    },
+    "table": {
+      "symbol": "シンボル",
+      "type": "タイプ",
+      "entryExit": "エントリー / 決済",
+      "pnl": "損益",
+      "date": "日付"
+    },
+    "empty": {
+      "noPositions": "オープンポジションなし",
+      "startTrading": "取引を開始して配分を確認",
+      "noClosedTrades": "クローズした取引なし"
+    }
+  },
+  "profile": {
+    "title": "取引パフォーマンス",
+    "subtitle": "ペーパートレーディングからの実際の取引統計",
+    "advancedMetrics": "詳細指標",
+    "memberSince": "メンバー登録日",
+    "authenticated": "認証済み",
+    "errors": {
+      "emptyName": "表示名を空にすることはできません",
+      "updateFailed": "プロフィールを更新できませんでした。再試行してください。",
+      "invalidImage": "画像ファイルを選択してください",
+      "imageTooLarge": "画像は500KB未満である必要があります",
+      "avatarUploadFailed": "アバターをアップロードできませんでした。再試行してください。",
+      "readImageFailed": "画像ファイルを読み取れませんでした"
+    },
+    "success": {
+      "profileUpdated": "プロフィールが正常に更新されました",
+      "avatarUpdated": "アバターが正常に更新されました"
+    },
+    "achievements": {
+      "title": "実績",
+      "subtitle": "あなたの取引マイルストーン",
+      "firstTrade": "初めての取引",
+      "firstTradeDesc": "最初の取引を完了する",
+      "tenTrades": "10件の取引",
+      "tenTradesDesc": "10件の取引を完了する",
+      "inProfit": "利益中",
+      "inProfitDesc": "プラスの総損益を達成",
+      "winningStreak": "連勝",
+      "winningStreakDesc": "5件連続で勝利",
+      "notYet": "未達成",
+      "achieved": "達成済み",
+      "active": "アクティブ",
+      "inProgress": "進行中",
+      "current": "現在"
+    },
+    "activity": {
+      "title": "最近のアクティビティ",
+      "subtitle": "最新の取引アクション",
+      "noActivity": "アクティビティなし",
+      "startTrading": "取引を開始してアクティビティを確認",
+      "long": "ロング",
+      "short": "ショート",
+      "closed": "クローズ済み",
+      "unlocked": "アンロック済み",
+      "milestone": "マイルストーン"
+    }
+  },
+  "realTrading": {
+    "title": "リアルトレード",
+    "subtitle": "Binanceでの実際の資金によるライブトレード",
+    "warning": {
+      "title": "リアルマネー取引",
+      "message": "実際のお金で取引しようとしています。リスクを十分にご理解ください。",
+      "confirm": "リスクを理解しました"
+    },
+    "orderBook": {
+      "title": "オーダーブック",
+      "price": "価格",
+      "amount": "数量",
+      "total": "合計"
+    },
+    "orderForm": {
+      "buy": "買い",
+      "sell": "売り",
+      "market": "成行",
+      "limit": "指値",
+      "stopLimit": "ストップリミット",
+      "amount": "数量",
+      "price": "価格",
+      "total": "合計",
+      "available": "利用可能",
+      "submit": "注文する",
+      "stopPrice": "ストップ価格"
+    },
+    "positions": {
+      "title": "オープンポジション",
+      "symbol": "シンボル",
+      "side": "売買",
+      "size": "サイズ",
+      "entry": "エントリー価格",
+      "mark": "マーク価格",
+      "pnl": "損益",
+      "close": "決済",
+      "noPositions": "オープンポジションなし"
+    },
+    "orders": {
+      "title": "オープンオーダー",
+      "cancel": "キャンセル",
+      "cancelAll": "全てキャンセル",
+      "noOrders": "オープンオーダーなし"
+    },
+    "history": {
+      "title": "取引履歴",
+      "time": "時間",
+      "type": "タイプ",
+      "filled": "約定",
+      "status": "ステータス"
+    },
+    "status": {
+      "connected": "接続中",
+      "disconnected": "切断",
+      "connecting": "接続中..."
+    },
+    "modeSwitch": {
+      "title": "ペーパートレードモード有効",
+      "description": "実際の資金で取引するにはリアルトレードモードに切り替えてください。",
+      "badge": "ペーパーモード: 安全な練習",
+      "hint": "ヘッダーのモード切替ボタンでペーパーとリアルトレードモードを切り替えられます。"
+    },
+    "comingSoon": {
+      "title": "近日公開",
+      "subtitle": "リアルトレードモジュール",
+      "description": "リアルトレードAPIは現在開発中です。この機能により、Binanceで実際の資金で取引できるようになります。",
+      "features": {
+        "spotApi": "Binance スポット注文API連携",
+        "websocket": "WebSocketによるリアルタイムポジション追跡",
+        "riskManagement": "高度なリスク管理とサーキットブレーカー",
+        "underDevelopment": "APIエンドポイント開発中"
+      },
+      "tryPaperTrading": "ペーパートレードを試す",
+      "hint": "ペーパートレードは同じ高級UIで仮想資金を使用 - 戦略テストに最適！"
+    },
+    "confirm": {
+      "title": "リアルトレードの確認",
+      "step": "ステップ {{current}} / {{total}}",
+      "riskWarning": "リスク警告",
+      "realMoney": "この取引は実際のお金を使用します",
+      "leverageWarning": "レバレッジ取引は預金を超える損失が発生する可能性があります",
+      "orderValue": "注文額",
+      "exposure": "エクスポージャー ({{leverage}}x)",
+      "acceptRisk": "リスクを理解し、この取引の全責任を負います。",
+      "finalTitle": "最終確認",
+      "executeQuestion": "{{direction}} {{quantity}} {{symbol}} を ${{exposure}} のエクスポージャーで実行しますか？",
+      "cannotUndo": "この操作は取り消せません",
+      "cancel": "キャンセル",
+      "continue": "続行",
+      "executeTrade": "取引実行"
+    },
+    "riskWarning": {
+      "message": "全ての注文は2段階確認が必要です。全ての取引にストップロスを設定してください。失っても良い金額以上をリスクにさらさないでください。"
+    }
+  },
+  "aiSignalsPage": {
+    "title": "AI取引シグナル",
+    "subtitle": "高度なニューラルネットワークによるリアルタイム機械学習予測",
+    "refresh": "更新",
+    "lastUpdate": "最終更新",
+    "justNow": "たった今",
+    "engine": {
+      "status": "AIエンジン状態",
+      "active": "アクティブ",
+      "offline": "オフライン",
+      "description": "ニューラルネットワークがリアルタイムで市場パターンを分析中"
+    },
+    "accuracy": {
+      "label": "モデル精度",
+      "value": "{{value}}%"
+    },
+    "signals": {
+      "live": "ライブシグナル",
+      "active": "アクティブ",
+      "waiting": "シグナル待機中",
+      "waitingDesc": "AIエンジンが市場状況を分析中です。新しいシグナルは自動的に表示されます。"
+    },
+    "history": {
+      "title": "シグナル履歴",
+      "all": "全て",
+      "win": "勝ち",
+      "loss": "負け",
+      "noHistory": "シグナル履歴がまだありません"
+    },
+    "stats": {
+      "wins": "勝ち",
+      "losses": "負け",
+      "winRate": "勝率",
+      "totalPnl": "合計P&L"
+    }
+  },
+  "tradeAnalyses": {
+    "title": "GPT-4取引分析",
+    "subtitle": "AI分析で何が間違っていたかを理解し、戦略を改善",
+    "refresh": "更新",
+    "stats": {
+      "totalAnalyses": "総分析数",
+      "losingTrades": "損失取引",
+      "winningTrades": "勝利取引",
+      "totalPnl": "総損益",
+      "avgPnl": "平均損益/取引"
+    },
+    "tabs": {
+      "analyses": "取引分析",
+      "suggestions": "設定提案"
+    },
+    "filter": {
+      "losingOnly": "表示: 損失のみ",
+      "allTrades": "表示: すべて"
+    },
+    "empty": {
+      "noAnalyses": "分析がありません",
+      "analysesDesc": "AI分析を見るには取引を完了してください",
+      "noSuggestions": "設定提案がありません",
+      "suggestionsDesc": "GPT-4が取引を分析した後、最適化を提案します"
+    },
+    "suggestion": {
+      "latest": "最新のGPT-4提案",
+      "rootCause": "根本原因",
+      "applied": "適用された変更"
+    },
+    "analysis": {
+      "verdict": "判定",
+      "summary": "概要",
+      "whatWentWrong": "問題点",
+      "keyFactors": "主要因",
+      "lessons": "教訓",
+      "recommendations": "推奨事項"
+    },
+    "details": {
+      "entry": "エントリー",
+      "exit": "決済",
+      "tradeId": "取引ID",
+      "closeReason": "決済理由"
+    },
+    "verdict": {
+      "win": "勝利",
+      "loss": "損失",
+      "breakeven": "引分け"
+    }
+  }
+}

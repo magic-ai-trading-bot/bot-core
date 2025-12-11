@@ -1,0 +1,269 @@
+{
+  "page": {
+    "title": "设置",
+    "subtitle": "管理您的交易机器人配置"
+  },
+  "tabs": {
+    "bot": "机器人设置",
+    "perSymbol": "按交易对",
+    "strategy": "策略调整",
+    "health": "系统状态",
+    "api": "API与连接",
+    "notifications": "通知",
+    "security": "安全"
+  },
+  "bot": {
+    "title": "机器人设置",
+    "subtitle": "管理您的交易机器人配置和选项",
+    "status": "机器人状态",
+    "active": "运行中",
+    "inactive": "已停止",
+    "capitalAllocation": "资金分配",
+    "maxLeverage": "最大杠杆",
+    "riskThreshold": "风险阈值",
+    "conservativePercent": "保守 ({{value}}%)",
+    "aggressivePercent": "激进 ({{value}}%)",
+    "safeLeverage": "安全 ({{value}}x)",
+    "highRiskLeverage": "高风险 ({{value}}x)",
+    "amount": "金额: ${{value}}",
+    "maxLossPerTrade": "每笔交易最大亏损: ${{value}}",
+    "activeTradingPairs": "活跃交易对"
+  },
+  "perSymbol": {
+    "title": "按交易对设置",
+    "subtitle": "为每个交易对配置单独的设置",
+    "positionSize": "仓位大小",
+    "maxLeverage": "最大杠杆",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "noPairsTitle": "没有活跃的交易对",
+    "noPairsDesc": "在机器人设置选项卡中启用交易对。"
+  },
+  "strategy": {
+    "title": "策略调整",
+    "subtitle": "微调您的交易策略和参数",
+    "openSettings": "打开策略设置",
+    "modalTitle": "交易策略设置",
+    "advancedTitle": "高级策略配置",
+    "advancedDesc": "配置市场预设、策略参数、风险管理和引擎设置"
+  },
+  "health": {
+    "title": "系统状态",
+    "subtitle": "监控系统状态和性能指标",
+    "cpu": "CPU",
+    "memory": "内存",
+    "uptime": "运行时间",
+    "apiLatency": "API延迟",
+    "wsStatus": "WebSocket",
+    "dbStatus": "数据库",
+    "lastUpdate": "最后更新",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "refresh": "刷新",
+    "connectionStatus": "连接状态",
+    "apiServer": "API服务器"
+  },
+  "api": {
+    "title": "API与连接",
+    "subtitle": "管理您的交易所API密钥和连接状态",
+    "status": "连接状态",
+    "apiStatus": "API",
+    "wsStatus": "WebSocket",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "testing": "测试中...",
+    "apiKey": "API密钥",
+    "apiKeyPlaceholder": "输入您的Binance API密钥",
+    "secretKey": "密钥",
+    "secretKeyPlaceholder": "输入您的Binance密钥",
+    "testConnection": "测试连接",
+    "testingConnection": "正在测试连接...",
+    "saveKeys": "保存密钥",
+    "allSystemsOperational": "所有系统运行正常",
+    "testingConnectionStatus": "正在测试连接...",
+    "connectionIssues": "检测到连接问题",
+    "binanceApiConfig": "Binance API配置",
+    "testnet": "测试网",
+    "securityNote": "安全提示",
+    "securityNoteDesc": "API密钥已加密安全存储。只需授予机器人合约交易权限。",
+    "tradingPermissions": "交易权限",
+    "spotTrading": "现货交易",
+    "spotDesc": "基础现货交易",
+    "futuresTrading": "合约交易",
+    "futuresDesc": "带杠杆的合约交易",
+    "marginTrading": "杠杆交易",
+    "marginDesc": "杠杆交易",
+    "optionsTrading": "期权交易",
+    "optionsDesc": "期权交易"
+  },
+  "notifications": {
+    "title": "通知",
+    "subtitle": "配置您接收警报和更新的方式",
+    "channels": "通知渠道",
+    "email": {
+      "title": "邮件通知",
+      "description": "通过邮件接收通知"
+    },
+    "push": {
+      "title": "推送通知",
+      "description": "浏览器推送通知"
+    },
+    "telegram": {
+      "title": "Telegram机器人",
+      "description": "通过Telegram接收通知",
+      "tokenLabel": "Telegram机器人令牌",
+      "tokenPlaceholder": "输入来自@BotFather的令牌",
+      "chatIdLabel": "Telegram聊天ID",
+      "chatIdPlaceholder": "输入您的聊天ID（使用@userinfobot）"
+    },
+    "discord": {
+      "title": "Discord Webhook",
+      "description": "通过Discord接收通知",
+      "webhookLabel": "Discord Webhook URL",
+      "webhookPlaceholder": "https://discord.com/api/webhooks/...",
+      "webhookHint": "在Discord服务器设置 → 集成 → Webhooks中创建webhook",
+      "testSent": "测试已发送",
+      "testSentDesc": "Discord测试通知发送成功",
+      "testFailed": "测试失败",
+      "testFailedDesc": "Discord测试通知发送失败",
+      "testButton": "测试Discord"
+    },
+    "vapid": {
+      "publicKeyLabel": "VAPID公钥",
+      "publicKeyPlaceholder": "BLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "privateKeyLabel": "VAPID私钥（安全存储）",
+      "privateKeyPlaceholder": "输入私钥（请妥善保管）",
+      "keysSaved": "密钥已保存",
+      "keysSavedDesc": "VAPID密钥已保存。您现在可以启用推送通知。",
+      "saveKeys": "保存VAPID密钥"
+    },
+    "alerts": {
+      "title": "警报类型",
+      "price": {
+        "title": "价格警报",
+        "description": "价格大幅波动时收到通知"
+      },
+      "trade": {
+        "title": "交易警报",
+        "description": "交易执行时收到通知"
+      },
+      "system": {
+        "title": "系统警报",
+        "description": "重要的系统通知"
+      },
+      "threshold": "警报阈值",
+      "thresholdLabel": "价格警报阈值",
+      "thresholdDesc": "触发警报的最小价格变动"
+    },
+    "sound": {
+      "title": "声音通知",
+      "description": "收到通知时播放声音"
+    },
+    "save": "保存偏好设置"
+  },
+  "security": {
+    "title": "安全",
+    "subtitle": "管理您的账户安全设置",
+    "profile": {
+      "title": "交易者资料",
+      "displayName": "显示名称",
+      "email": "邮箱"
+    },
+    "password": {
+      "title": "更改密码",
+      "current": "当前密码",
+      "currentPlaceholder": "输入当前密码",
+      "new": "新密码",
+      "newPlaceholder": "输入新密码",
+      "confirm": "确认密码",
+      "confirmPlaceholder": "确认新密码",
+      "change": "更改密码",
+      "changing": "更改中...",
+      "update": "更新密码",
+      "updating": "更新中...",
+      "mismatch": "新密码不匹配",
+      "tooShort": "密码至少需要8个字符"
+    },
+    "twoFactor": {
+      "title": "双因素认证",
+      "description": "为您的账户添加额外的安全层",
+      "protected": "您的账户已受2FA保护",
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "enable": "启用2FA",
+      "disable": "禁用2FA",
+      "settingUp": "设置中...",
+      "setup": "设置2FA",
+      "setupTitle": "设置双因素认证",
+      "setupDescription": "使用身份验证器应用扫描此二维码，然后输入验证码。",
+      "manualEntryLabel": "手动输入码",
+      "manualEntryHint": "如果无法扫描二维码，请在身份验证器应用中手动输入此密钥。",
+      "verificationCodeLabel": "验证码",
+      "scanQr": "使用身份验证器应用扫描二维码",
+      "enterCode": "输入验证码",
+      "codePlaceholder": "输入6位数字码",
+      "verify": "验证",
+      "verifying": "验证中...",
+      "secretKey": "密钥",
+      "copied": "密钥已复制到剪贴板",
+      "invalidCode": "请输入6位数字码",
+      "disableTitle": "禁用双因素认证？",
+      "disableDescription": "这将降低您账户的安全性。请输入2FA码进行确认。",
+      "currentCodeLabel": "当前2FA码",
+      "disabling": "禁用中..."
+    },
+    "sessions": {
+      "title": "活动会话",
+      "current": "当前",
+      "activeNow": "当前活动",
+      "noSessions": "未找到活动会话",
+      "lastActive": "最后活动",
+      "revoke": "撤销",
+      "revokeAll": "撤销所有会话",
+      "signOutAll": "退出所有设备",
+      "signOutAllTitle": "退出所有会话？",
+      "signOutAllDesc": "这将使您从除此设备外的所有设备上退出。",
+      "signOutAllButton": "全部退出",
+      "revokeAllConfirm": "这将使您从所有其他设备上退出"
+    }
+  },
+  "toast": {
+    "settingsSaved": "设置保存成功！",
+    "settingsError": "保存设置失败",
+    "connectionSuccess": "连接成功",
+    "connectionError": "连接失败",
+    "copiedToClipboard": "已复制到剪贴板",
+    "botStarted": "机器人已启动",
+    "botStartedDesc": "交易机器人现在处于活动状态",
+    "botStopped": "机器人已停止",
+    "botStoppedDesc": "交易机器人现在处于非活动状态",
+    "botError": "错误",
+    "botErrorDesc": "更改机器人状态失败",
+    "connectionSuccessDesc": "API可以访问",
+    "connectionFailedDesc": "API没有响应",
+    "connectionErrorDesc": "无法连接到API",
+    "sectionSaved": "{{section}}设置更新成功",
+    "saveError": "无法保存设置",
+    "secretCopied": "密钥已复制到剪贴板",
+    "invalidCode": "请输入6位数字码"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minuteAgo": "{{count}}分钟前",
+    "minutesAgo": "{{count}}分钟前",
+    "hourAgo": "{{count}}小时前",
+    "hoursAgo": "{{count}}小时前",
+    "dayAgo": "{{count}}天前",
+    "daysAgo": "{{count}}天前"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "edit": "编辑",
+    "delete": "删除",
+    "enable": "启用",
+    "disable": "禁用",
+    "loading": "加载中...",
+    "saving": "保存中..."
+  }
+}

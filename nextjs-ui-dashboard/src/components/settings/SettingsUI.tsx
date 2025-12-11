@@ -105,7 +105,7 @@ export function SettingsUI() {
 
   // Load initial values from API or use defaults
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadSettings();
   }, [loadSettings]);
 
@@ -318,7 +318,7 @@ export function SettingsUI() {
           </div>
         );
 
-      case 'multiselect':
+      case 'multiselect': {
         // Use dynamic symbols from API for the symbols setting
         const options = setting.id === 'symbols' ? availableSymbols : (setting.options || []);
         const isLoadingOptions = setting.id === 'symbols' && isLoadingSymbols;
@@ -363,6 +363,7 @@ export function SettingsUI() {
             )}
           </div>
         );
+      }
 
       default:
         return null;

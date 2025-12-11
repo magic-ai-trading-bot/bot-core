@@ -67,7 +67,7 @@ export function useSecurity(): UseSecurity {
   // Load sessions on mount
   useEffect(() => {
     loadSessions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   const loadSessions = useCallback(async () => {

@@ -1,17 +1,15 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
-  Shield,
   Eye,
   Lock,
   Database,
   Users,
-  Globe,
   ArrowLeft,
   FileText,
 } from "lucide-react";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -19,66 +17,15 @@ import {
   GlowIcon,
   PageWrapper,
 } from "@/styles/luxury-design-system";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
-const sections = [
-  {
-    icon: Database,
-    title: "Information We Collect",
-    content: [
-      "Account information (email, name, password hash)",
-      "Trading preferences and strategy configurations",
-      "Usage data and analytics (anonymized)",
-      "Device information for security purposes",
-      "API keys (encrypted, never stored in plain text)",
-    ],
-  },
-  {
-    icon: Eye,
-    title: "How We Use Your Information",
-    content: [
-      "Provide and improve our trading services",
-      "Process transactions and execute trades",
-      "Send important notifications and alerts",
-      "Analyze usage patterns to enhance features",
-      "Comply with legal and regulatory requirements",
-    ],
-  },
-  {
-    icon: Lock,
-    title: "Data Security",
-    content: [
-      "End-to-end encryption for all sensitive data",
-      "AES-256 encryption for data at rest",
-      "TLS 1.3 for all data in transit",
-      "Regular security audits and penetration testing",
-      "SOC 2 Type II certified infrastructure",
-    ],
-  },
-  {
-    icon: Users,
-    title: "Data Sharing",
-    content: [
-      "We never sell your personal data to third parties",
-      "Data shared only with exchanges you connect",
-      "Service providers under strict confidentiality",
-      "Legal authorities when required by law",
-      "Aggregated, anonymized data for research",
-    ],
-  },
-  {
-    icon: Globe,
-    title: "Your Rights",
-    content: [
-      "Access and download your personal data",
-      "Request correction of inaccurate data",
-      "Delete your account and associated data",
-      "Opt-out of marketing communications",
-      "Data portability to other services",
-    ],
-  },
-];
+const sectionIcons = [Database, Eye, Lock, Users];
+const sectionKeys = ["collection", "usage", "protection", "rights"];
 
 const Privacy = () => {
+  const colors = useThemeColors();
+  const { t } = useTranslation('pages');
+
   return (
     <PageWrapper>
       {/* Back Button */}
@@ -90,7 +37,7 @@ const Privacy = () => {
         <Link to="/">
           <PremiumButton variant="secondary" size="sm">
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            {t('common.backToHome')}
           </PremiumButton>
         </Link>
       </motion.div>
@@ -102,115 +49,56 @@ const Privacy = () => {
         className="text-center mb-12"
       >
         <Badge variant="info" className="mb-4">
-          Legal
+          {t('privacy.badge')}
         </Badge>
         <h1 className="text-4xl md:text-5xl font-black mb-4">
-          <GradientText>Privacy Policy</GradientText>
+          <GradientText>{t('privacy.title')}</GradientText>
+          <br />
+          <span style={{ color: colors.textPrimary }}>{t('privacy.subtitle')}</span>
         </h1>
-        <p className="text-lg max-w-2xl mx-auto mb-4" style={{ color: luxuryColors.textMuted }}>
-          Your privacy is important to us. This policy explains how we collect, use, and protect your information.
+        <p className="text-lg max-w-2xl mx-auto mb-4" style={{ color: colors.textMuted }}>
+          {t('privacy.description')}
         </p>
-        <div className="flex items-center justify-center gap-2 text-sm" style={{ color: luxuryColors.textMuted }}>
+        <div className="flex items-center justify-center gap-2 text-sm" style={{ color: colors.textMuted }}>
           <FileText className="w-4 h-4" />
-          <span>Last updated: December 1, 2024</span>
+          <span>{t('privacy.lastUpdated')}</span>
         </div>
-      </motion.div>
-
-      {/* Quick Summary */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-12"
-      >
-        <GlassCard>
-          <div className="flex items-start gap-4">
-            <GlowIcon icon={Shield} size="lg" color={luxuryColors.profit} />
-            <div>
-              <h2 className="text-xl font-bold mb-2" style={{ color: luxuryColors.textPrimary }}>
-                Privacy at a Glance
-              </h2>
-              <ul className="space-y-2 text-sm" style={{ color: luxuryColors.textSecondary }}>
-                <li>• We collect only what's necessary to provide our services</li>
-                <li>• Your data is encrypted with industry-standard protocols</li>
-                <li>• We never sell your personal information to third parties</li>
-                <li>• You have full control over your data and can delete it anytime</li>
-                <li>• We comply with GDPR, CCPA, and other privacy regulations</li>
-              </ul>
-            </div>
-          </div>
-        </GlassCard>
       </motion.div>
 
       {/* Detailed Sections */}
       <div className="space-y-6 mb-12">
-        {sections.map((section, index) => (
-          <motion.div
-            key={section.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.1 }}
-          >
-            <GlassCard>
-              <div className="flex items-start gap-4">
-                <GlowIcon icon={section.icon} size="md" color={luxuryColors.cyan} />
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold mb-3" style={{ color: luxuryColors.textPrimary }}>
-                    {section.title}
-                  </h3>
-                  <ul className="space-y-2">
-                    {section.content.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm" style={{ color: luxuryColors.textSecondary }}>
-                        <span style={{ color: luxuryColors.cyan }}>•</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+        {sectionKeys.map((key, index) => {
+          const Icon = sectionIcons[index];
+          const items = t(`privacy.sections.${key}.items`, { returnObjects: true }) as string[];
+          return (
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + index * 0.1 }}
+            >
+              <GlassCard>
+                <div className="flex items-start gap-4">
+                  <GlowIcon icon={Icon} size="md" color={colors.cyan} />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold mb-3" style={{ color: colors.textPrimary }}>
+                      {t(`privacy.sections.${key}.title`)}
+                    </h3>
+                    <ul className="space-y-2">
+                      {items.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm" style={{ color: colors.textSecondary }}>
+                          <span style={{ color: colors.cyan }}>•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            </GlassCard>
-          </motion.div>
-        ))}
+              </GlassCard>
+            </motion.div>
+          );
+        })}
       </div>
-
-      {/* Cookies Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="mb-12"
-      >
-        <GlassCard>
-          <h3 className="text-lg font-bold mb-4" style={{ color: luxuryColors.textPrimary }}>
-            Cookies & Tracking
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { type: "Essential", description: "Required for basic functionality", required: true },
-              { type: "Analytics", description: "Help us improve our service", required: false },
-              { type: "Marketing", description: "Personalized content and ads", required: false },
-            ].map((cookie) => (
-              <div
-                key={cookie.type}
-                className="p-4 rounded-lg"
-                style={{ backgroundColor: luxuryColors.bgSecondary }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
-                    {cookie.type}
-                  </span>
-                  <Badge variant={cookie.required ? "success" : "default"} size="sm">
-                    {cookie.required ? "Required" : "Optional"}
-                  </Badge>
-                </div>
-                <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                  {cookie.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
-      </motion.div>
 
       {/* Contact Section */}
       <motion.div
@@ -219,23 +107,15 @@ const Privacy = () => {
         transition={{ delay: 0.8 }}
       >
         <GlassCard className="text-center">
-          <h2 className="text-xl font-bold mb-4" style={{ color: luxuryColors.textPrimary }}>
-            Questions About Privacy?
-          </h2>
-          <p className="mb-6" style={{ color: luxuryColors.textMuted }}>
-            If you have any questions about this Privacy Policy, please contact our Data Protection Officer.
+          <p className="mb-6" style={{ color: colors.textMuted }}>
+            {t('privacy.contact')}
           </p>
           <div className="flex justify-center gap-4">
             <Link to="/contact">
               <PremiumButton variant="primary">
-                Contact Us
+                {t('common.contactUs')}
               </PremiumButton>
             </Link>
-            <a href="mailto:privacy@botcore.io">
-              <PremiumButton variant="secondary">
-                privacy@botcore.io
-              </PremiumButton>
-            </a>
           </div>
         </GlassCard>
       </motion.div>

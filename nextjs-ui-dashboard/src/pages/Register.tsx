@@ -4,10 +4,10 @@ import logger from "@/utils/logger";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import ChatBot from "@/components/ChatBot";
 import { Logo } from "@/components/ui/Logo";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -15,17 +15,19 @@ import {
   containerVariants,
   itemVariants,
   GlowIcon,
-  Badge,
 } from '@/styles/luxury-design-system';
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { Sparkles, TrendingUp, BarChart3, Shield } from "lucide-react";
 
 const Register = () => {
+  const { t } = useTranslation('auth');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const navigate = useNavigate();
   const { register, isAuthenticated, loading, error } = useAuth();
+  const colors = useThemeColors();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -38,47 +40,47 @@ const Register = () => {
     e.preventDefault();
 
     if (!email || !password || !confirmPassword) {
-      toast.error("Registration Error", {
-        description: "Please fill in all required fields",
+      toast.error(t('register.error'), {
+        description: t('register.errorEmpty'),
       });
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Registration Error", {
-        description: "Passwords do not match",
+      toast.error(t('register.error'), {
+        description: t('register.errorPasswordMismatch'),
       });
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Registration Error", {
-        description: "Password must be at least 6 characters",
+      toast.error(t('register.error'), {
+        description: t('register.errorPasswordLength'),
       });
       return;
     }
 
     try {
-      toast.loading("Creating account...", { id: "register-loading" });
+      toast.loading(t('register.submitting'), { id: "register-loading" });
 
       const success = await register(email, password, fullName || undefined);
 
       if (success) {
-        toast.success("Registration Successful", {
-          description: "Welcome to Trading Bot Dashboard!",
+        toast.success(t('register.success'), {
+          description: t('register.successMessage'),
           id: "register-loading",
         });
         navigate("/dashboard", { replace: true });
       } else {
-        toast.error("Registration Error", {
-          description: error || "Could not create account. Please try again.",
+        toast.error(t('register.error'), {
+          description: error || t('register.errorGeneric'),
           id: "register-loading",
         });
       }
     } catch (err) {
       logger.error("Registration error:", err);
-      toast.error("Registration Error", {
-        description: "An error occurred during registration. Please try again.",
+      toast.error(t('register.error'), {
+        description: t('register.errorGeneric'),
         id: "register-loading",
       });
     }
@@ -87,7 +89,7 @@ const Register = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
     >
       {/* Premium Background Effects */}
       <div className="absolute inset-0">
@@ -95,13 +97,13 @@ const Register = () => {
         <div
           className="absolute top-1/4 -left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
           style={{
-            background: luxuryColors.gradientPremium,
+            background: colors.gradientPremium,
           }}
         />
         <div
           className="absolute bottom-1/4 -right-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
           style={{
-            background: luxuryColors.gradientProfit,
+            background: colors.gradientProfit,
           }}
         />
       </div>
@@ -123,14 +125,14 @@ const Register = () => {
             </motion.div>
           </div>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight">
-            <span style={{ color: luxuryColors.textPrimary }}>Bot</span>
+            <span style={{ color: colors.textPrimary }}>Bot</span>
             <GradientText className="ml-1">Core</GradientText>
           </h1>
           <p
             className="mt-2 text-sm md:text-base tracking-wide"
-            style={{ color: luxuryColors.textMuted }}
+            style={{ color: colors.textMuted }}
           >
-            Create an account to start trading
+            {t('register.subtitle')}
           </p>
         </motion.div>
 
@@ -140,47 +142,47 @@ const Register = () => {
             {/* Header */}
             <div className="text-center">
               <h2 className="text-2xl font-black tracking-tight">
-                <GradientText>Sign Up</GradientText>
+                <GradientText>{t('register.title')}</GradientText>
               </h2>
               <p
                 className="text-xs mt-1.5 tracking-wide"
-                style={{ color: luxuryColors.textMuted }}
+                style={{ color: colors.textMuted }}
               >
-                Join the next generation of traders
+                {t('register.tagline')}
               </p>
             </div>
 
             {/* Form */}
             <form onSubmit={handleRegister} className="space-y-4">
               <PremiumInput
-                label="Full Name (optional)"
+                label={t('register.nameLabel')}
                 value={fullName}
                 onChange={setFullName}
-                placeholder="John Doe"
+                placeholder={t('register.namePlaceholder')}
                 type="text"
               />
 
               <PremiumInput
-                label="Email"
+                label={t('register.emailLabel')}
                 value={email}
                 onChange={setEmail}
-                placeholder="your@email.com"
+                placeholder={t('register.emailPlaceholder')}
                 type="email"
               />
 
               <PremiumInput
-                label="Password"
+                label={t('register.passwordLabel')}
                 value={password}
                 onChange={setPassword}
-                placeholder="Enter your password"
+                placeholder={t('register.passwordPlaceholder')}
                 type="password"
               />
 
               <PremiumInput
-                label="Confirm Password"
+                label={t('register.confirmPasswordLabel')}
                 value={confirmPassword}
                 onChange={setConfirmPassword}
-                placeholder="Re-enter your password"
+                placeholder={t('register.confirmPasswordPlaceholder')}
                 type="password"
               />
 
@@ -192,24 +194,24 @@ const Register = () => {
                 disabled={loading}
                 loading={loading}
               >
-                {loading ? "Creating account..." : "Create Account"}
+                {loading ? t('register.submitting') : t('register.submitButton')}
               </PremiumButton>
             </form>
 
             {/* Login Link */}
             <motion.div
               className="text-center pt-4 border-t"
-              style={{ borderColor: luxuryColors.borderSubtle }}
+              style={{ borderColor: colors.borderSubtle }}
               variants={itemVariants}
             >
-              <p className="text-sm" style={{ color: luxuryColors.textSecondary }}>
-                Already have an account?{" "}
+              <p className="text-sm" style={{ color: colors.textSecondary }}>
+                {t('register.hasAccount')}{" "}
                 <Link
                   to="/login"
                   className="font-bold hover:underline transition-all"
-                  style={{ color: luxuryColors.cyan }}
+                  style={{ color: colors.cyan }}
                 >
-                  Sign in now
+                  {t('register.signInLink')}
                 </Link>
               </p>
             </motion.div>
@@ -217,25 +219,25 @@ const Register = () => {
             {/* Features Preview */}
             <motion.div
               className="pt-4 border-t space-y-3"
-              style={{ borderColor: luxuryColors.borderSubtle }}
+              style={{ borderColor: colors.borderSubtle }}
               variants={itemVariants}
             >
               <div className="flex items-center gap-3">
-                <GlowIcon icon={Sparkles} color={luxuryColors.emerald} size="sm" />
-                <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
-                  AI-Powered Trading Signals
+                <GlowIcon icon={Sparkles} color={colors.emerald} size="sm" />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>
+                  {t('features.aiSignals')}
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <GlowIcon icon={TrendingUp} color={luxuryColors.cyan} size="sm" />
-                <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
-                  Real-time Performance Analytics
+                <GlowIcon icon={TrendingUp} color={colors.cyan} size="sm" />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>
+                  {t('features.analytics')}
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <GlowIcon icon={BarChart3} color={luxuryColors.amber} size="sm" />
-                <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
-                  Advanced Risk Management
+                <GlowIcon icon={BarChart3} color={colors.amber} size="sm" />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>
+                  {t('features.riskManagement')}
                 </span>
               </div>
             </motion.div>
@@ -247,9 +249,9 @@ const Register = () => {
           className="text-center mt-6 flex items-center justify-center gap-2"
           variants={itemVariants}
         >
-          <GlowIcon icon={Shield} color={luxuryColors.emerald} size="sm" />
-          <p className="text-xs tracking-wide" style={{ color: luxuryColors.textMuted }}>
-            Secured with end-to-end encryption and 2FA
+          <GlowIcon icon={Shield} color={colors.emerald} size="sm" />
+          <p className="text-xs tracking-wide" style={{ color: colors.textMuted }}>
+            {t('login.securityBadge')}
           </p>
         </motion.div>
       </motion.div>

@@ -3,7 +3,6 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '../../../test/utils'
 import { DashboardHeader } from '../../../components/dashboard/DashboardHeader'
-import { useNavigate } from 'react-router-dom'
 
 // Mock react-router-dom
 const mockNavigate = vi.fn()

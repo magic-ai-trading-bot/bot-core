@@ -1,0 +1,75 @@
+{
+  "button": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "submit": "Gửi",
+    "loading": "Đang tải...",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "edit": "Chỉnh sửa",
+    "view": "Xem"
+  },
+  "label": {
+    "language": "Ngôn ngữ",
+    "theme": "Giao diện",
+    "settings": "Cài đặt",
+    "profile": "Hồ sơ",
+    "logout": "Đăng xuất",
+    "login": "Đăng nhập",
+    "register": "Đăng ký"
+  },
+  "theme": {
+    "light": "Sáng",
+    "dark": "Tối",
+    "system": "Hệ thống",
+    "toggle": "Chuyển đổi giao diện"
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "dashboard": "Bảng điều khiển",
+    "trading": "Giao dịch",
+    "paperTrading": "Giao dịch mô phỏng",
+    "realTrading": "Giao dịch thật",
+    "portfolio": "Danh mục",
+    "signals": "Tín hiệu AI",
+    "tradeAnalyses": "Phân tích giao dịch",
+    "howItWorks": "Cách hoạt động",
+    "settings": "Cài đặt",
+    "features": "Tính năng",
+    "pricing": "Bảng giá",
+    "reviews": "Đánh giá",
+    "faq": "Câu hỏi"
+  },
+  "status": {
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "pending": "Đang chờ",
+    "completed": "Hoàn thành",
+    "failed": "Thất bại",
+    "loading": "Đang tải",
+    "online": "Trực tuyến",
+    "offline": "Ngoại tuyến"
+  },
+  "time": {
+    "now": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước"
+  },
+  "mode": {
+    "paper": "Giao dịch mô phỏng",
+    "real": "GIAO DỊCH THẬT"
+  },
+  "notification": {
+    "title": "Thông báo",
+    "new": "{{count}} mới",
+    "empty": "Chưa có thông báo",
+    "emptyDesc": "Chúng tôi sẽ thông báo khi có gì mới",
+    "showing": "Hiển thị {{current}} trên {{total}} thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "clearAll": "Xóa tất cả"
+  }
+}

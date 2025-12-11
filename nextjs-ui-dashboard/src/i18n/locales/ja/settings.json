@@ -1,0 +1,269 @@
+{
+  "page": {
+    "title": "設定",
+    "subtitle": "取引ボットの設定を管理"
+  },
+  "tabs": {
+    "bot": "ボット設定",
+    "perSymbol": "シンボル別",
+    "strategy": "戦略調整",
+    "health": "システム状態",
+    "api": "API・接続",
+    "notifications": "通知",
+    "security": "セキュリティ"
+  },
+  "bot": {
+    "title": "ボット設定",
+    "subtitle": "取引ボットの設定とオプションを管理",
+    "status": "ボットステータス",
+    "active": "稼働中",
+    "inactive": "停止中",
+    "capitalAllocation": "資金配分",
+    "maxLeverage": "最大レバレッジ",
+    "riskThreshold": "リスク閾値",
+    "conservativePercent": "保守的 ({{value}}%)",
+    "aggressivePercent": "積極的 ({{value}}%)",
+    "safeLeverage": "安全 ({{value}}x)",
+    "highRiskLeverage": "高リスク ({{value}}x)",
+    "amount": "金額: ${{value}}",
+    "maxLossPerTrade": "取引ごとの最大損失: ${{value}}",
+    "activeTradingPairs": "アクティブな取引ペア"
+  },
+  "perSymbol": {
+    "title": "シンボル別設定",
+    "subtitle": "各取引ペアの個別設定を構成",
+    "positionSize": "ポジションサイズ",
+    "maxLeverage": "最大レバレッジ",
+    "enabled": "有効",
+    "disabled": "無効",
+    "noPairsTitle": "アクティブな取引ペアがありません",
+    "noPairsDesc": "ボット設定タブでペアを有効にしてください。"
+  },
+  "strategy": {
+    "title": "戦略調整",
+    "subtitle": "取引戦略とパラメータを微調整",
+    "openSettings": "戦略設定を開く",
+    "modalTitle": "取引戦略設定",
+    "advancedTitle": "高度な戦略設定",
+    "advancedDesc": "市場プリセット、戦略パラメータ、リスク管理、エンジン設定を構成"
+  },
+  "health": {
+    "title": "システム状態",
+    "subtitle": "システムの状態とパフォーマンスを監視",
+    "cpu": "CPU",
+    "memory": "メモリ",
+    "uptime": "稼働時間",
+    "apiLatency": "APIレイテンシ",
+    "wsStatus": "WebSocket",
+    "dbStatus": "データベース",
+    "lastUpdate": "最終更新",
+    "connected": "接続済み",
+    "disconnected": "切断",
+    "refresh": "更新",
+    "connectionStatus": "接続状態",
+    "apiServer": "APIサーバー"
+  },
+  "api": {
+    "title": "API・接続",
+    "subtitle": "取引所のAPIキーと接続状態を管理",
+    "status": "接続状態",
+    "apiStatus": "API",
+    "wsStatus": "WebSocket",
+    "connected": "接続済み",
+    "disconnected": "切断",
+    "testing": "テスト中...",
+    "apiKey": "APIキー",
+    "apiKeyPlaceholder": "Binance APIキーを入力",
+    "secretKey": "シークレットキー",
+    "secretKeyPlaceholder": "Binanceシークレットキーを入力",
+    "testConnection": "接続テスト",
+    "testingConnection": "接続テスト中...",
+    "saveKeys": "キーを保存",
+    "allSystemsOperational": "すべてのシステムが稼働中",
+    "testingConnectionStatus": "接続テスト中...",
+    "connectionIssues": "接続の問題が検出されました",
+    "binanceApiConfig": "Binance API設定",
+    "testnet": "テストネット",
+    "securityNote": "セキュリティに関する注意",
+    "securityNoteDesc": "APIキーは暗号化されて安全に保存されます。ボットには先物取引の権限のみを付与してください。",
+    "tradingPermissions": "取引権限",
+    "spotTrading": "スポット取引",
+    "spotDesc": "基本的なスポット取引",
+    "futuresTrading": "先物取引",
+    "futuresDesc": "レバレッジ付き先物取引",
+    "marginTrading": "マージン取引",
+    "marginDesc": "マージン取引",
+    "optionsTrading": "オプション取引",
+    "optionsDesc": "オプション取引"
+  },
+  "notifications": {
+    "title": "通知",
+    "subtitle": "アラートと更新の受信方法を設定",
+    "channels": "通知チャンネル",
+    "email": {
+      "title": "メール通知",
+      "description": "メールで通知を受信"
+    },
+    "push": {
+      "title": "プッシュ通知",
+      "description": "ブラウザのプッシュ通知"
+    },
+    "telegram": {
+      "title": "Telegramボット",
+      "description": "Telegramで通知を受信",
+      "tokenLabel": "Telegramボットトークン",
+      "tokenPlaceholder": "@BotFatherからのトークンを入力",
+      "chatIdLabel": "TelegramチャットID",
+      "chatIdPlaceholder": "チャットIDを入力（@userinfobotを使用）"
+    },
+    "discord": {
+      "title": "Discord Webhook",
+      "description": "Discordで通知を受信",
+      "webhookLabel": "Discord Webhook URL",
+      "webhookPlaceholder": "https://discord.com/api/webhooks/...",
+      "webhookHint": "Discordサーバー設定 → 連携サービス → Webhooksでwebhookを作成",
+      "testSent": "テスト送信完了",
+      "testSentDesc": "Discordテスト通知が正常に送信されました",
+      "testFailed": "テスト失敗",
+      "testFailedDesc": "Discordテスト通知の送信に失敗しました",
+      "testButton": "Discordをテスト"
+    },
+    "vapid": {
+      "publicKeyLabel": "VAPID公開鍵",
+      "publicKeyPlaceholder": "BLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "privateKeyLabel": "VAPID秘密鍵（安全に保管）",
+      "privateKeyPlaceholder": "秘密鍵を入力（安全に保管してください）",
+      "keysSaved": "キーを保存しました",
+      "keysSavedDesc": "VAPIDキーが保存されました。プッシュ通知を有効にできます。",
+      "saveKeys": "VAPIDキーを保存"
+    },
+    "alerts": {
+      "title": "アラートタイプ",
+      "price": {
+        "title": "価格アラート",
+        "description": "大きな価格変動時に通知"
+      },
+      "trade": {
+        "title": "取引アラート",
+        "description": "取引実行時に通知"
+      },
+      "system": {
+        "title": "システムアラート",
+        "description": "重要なシステム通知"
+      },
+      "threshold": "アラート閾値",
+      "thresholdLabel": "価格アラート閾値",
+      "thresholdDesc": "アラートをトリガーする最小価格変動"
+    },
+    "sound": {
+      "title": "サウンド通知",
+      "description": "通知時に音を再生"
+    },
+    "save": "設定を保存"
+  },
+  "security": {
+    "title": "セキュリティ",
+    "subtitle": "アカウントのセキュリティ設定を管理",
+    "profile": {
+      "title": "トレーダープロフィール",
+      "displayName": "表示名",
+      "email": "メール"
+    },
+    "password": {
+      "title": "パスワード変更",
+      "current": "現在のパスワード",
+      "currentPlaceholder": "現在のパスワードを入力",
+      "new": "新しいパスワード",
+      "newPlaceholder": "新しいパスワードを入力",
+      "confirm": "パスワード確認",
+      "confirmPlaceholder": "新しいパスワードを確認",
+      "change": "パスワードを変更",
+      "changing": "変更中...",
+      "update": "パスワードを更新",
+      "updating": "更新中...",
+      "mismatch": "新しいパスワードが一致しません",
+      "tooShort": "パスワードは8文字以上必要です"
+    },
+    "twoFactor": {
+      "title": "二要素認証",
+      "description": "アカウントにセキュリティ層を追加",
+      "protected": "アカウントは2FAで保護されています",
+      "enabled": "有効",
+      "disabled": "無効",
+      "enable": "2FAを有効化",
+      "disable": "2FAを無効化",
+      "settingUp": "設定中...",
+      "setup": "2FAを設定",
+      "setupTitle": "二要素認証の設定",
+      "setupDescription": "認証アプリでこのQRコードをスキャンし、確認コードを入力してください。",
+      "manualEntryLabel": "手動入力コード",
+      "manualEntryHint": "QRコードをスキャンできない場合は、このシークレットを認証アプリに手動で入力してください。",
+      "verificationCodeLabel": "確認コード",
+      "scanQr": "認証アプリでQRコードをスキャン",
+      "enterCode": "確認コードを入力",
+      "codePlaceholder": "6桁のコードを入力",
+      "verify": "確認",
+      "verifying": "確認中...",
+      "secretKey": "シークレットキー",
+      "copied": "シークレットをクリップボードにコピーしました",
+      "invalidCode": "6桁のコードを入力してください",
+      "disableTitle": "二要素認証を無効にしますか？",
+      "disableDescription": "これによりアカウントのセキュリティが低下します。確認のため2FAコードを入力してください。",
+      "currentCodeLabel": "現在の2FAコード",
+      "disabling": "無効化中..."
+    },
+    "sessions": {
+      "title": "アクティブセッション",
+      "current": "現在",
+      "activeNow": "現在アクティブ",
+      "noSessions": "アクティブなセッションが見つかりません",
+      "lastActive": "最終アクティブ",
+      "revoke": "取り消し",
+      "revokeAll": "全セッションを取り消し",
+      "signOutAll": "全デバイスからサインアウト",
+      "signOutAllTitle": "全セッションからサインアウトしますか？",
+      "signOutAllDesc": "このデバイス以外の全デバイスからサインアウトされます。",
+      "signOutAllButton": "すべてサインアウト",
+      "revokeAllConfirm": "他の全デバイスからログアウトされます"
+    }
+  },
+  "toast": {
+    "settingsSaved": "設定を保存しました！",
+    "settingsError": "設定の保存に失敗しました",
+    "connectionSuccess": "接続成功",
+    "connectionError": "接続失敗",
+    "copiedToClipboard": "クリップボードにコピーしました",
+    "botStarted": "ボット開始",
+    "botStartedDesc": "取引ボットが稼働中になりました",
+    "botStopped": "ボット停止",
+    "botStoppedDesc": "取引ボットが停止しました",
+    "botError": "エラー",
+    "botErrorDesc": "ボットのステータス変更に失敗しました",
+    "connectionSuccessDesc": "APIに接続できます",
+    "connectionFailedDesc": "APIが応答しません",
+    "connectionErrorDesc": "APIに接続できませんでした",
+    "sectionSaved": "{{section}}設定が正常に更新されました",
+    "saveError": "設定を保存できませんでした",
+    "secretCopied": "シークレットをクリップボードにコピーしました",
+    "invalidCode": "6桁のコードを入力してください"
+  },
+  "time": {
+    "justNow": "たった今",
+    "minuteAgo": "{{count}}分前",
+    "minutesAgo": "{{count}}分前",
+    "hourAgo": "{{count}}時間前",
+    "hoursAgo": "{{count}}時間前",
+    "dayAgo": "{{count}}日前",
+    "daysAgo": "{{count}}日前"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "edit": "編集",
+    "delete": "削除",
+    "enable": "有効化",
+    "disable": "無効化",
+    "loading": "読み込み中...",
+    "saving": "保存中..."
+  }
+}

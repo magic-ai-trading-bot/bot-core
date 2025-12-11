@@ -1,0 +1,177 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "reviews": "Reviews",
+    "faq": "FAQ",
+    "signIn": "Sign In",
+    "startTrial": "Start Free Trial"
+  },
+  "hero": {
+    "badge": "AI-Powered Trading Revolution",
+    "title": "Crypto Trading",
+    "subtitle": "Redefined by AI",
+    "description": "Harness the power of artificial intelligence to analyze crypto markets, predict trends, and execute profitable trades automatically on Binance Futures.",
+    "startTrading": "Start Trading Now",
+    "watchDemo": "Watch Demo"
+  },
+  "stats": {
+    "totalUsers": "Total Users",
+    "tradingVolume": "Trading Volume",
+    "winRate": "Win Rate",
+    "responseTime": "Avg Response Time",
+    "vsLastMonth": "vs last month",
+    "faster": "faster",
+    "activeTraders": "Active Traders",
+    "uptime": "Uptime"
+  },
+  "features": {
+    "badge": "Advanced Features",
+    "title": "Built for",
+    "subtitle": "Professional Traders",
+    "description": "Experience the most sophisticated crypto trading platform powered by cutting-edge AI technology",
+    "aiAnalysis": {
+      "title": "AI-Powered Analysis",
+      "description": "Advanced machine learning models analyze market trends and predict price movements with 70%+ accuracy."
+    },
+    "riskManagement": {
+      "title": "Risk Management",
+      "description": "Automated stop-loss, position sizing, and portfolio rebalancing to protect your capital."
+    },
+    "realTimeExecution": {
+      "title": "Real-Time Execution",
+      "description": "Lightning-fast order execution with <100ms latency for optimal entry and exit points."
+    },
+    "advancedAnalytics": {
+      "title": "Advanced Analytics",
+      "description": "Comprehensive charts, technical indicators, and custom dashboards for data-driven decisions."
+    },
+    "backtesting": {
+      "title": "Strategy Backtesting",
+      "description": "Test your strategies against historical data before risking real capital."
+    },
+    "liveData": {
+      "title": "Live Market Data",
+      "description": "Real-time market data feeds from multiple exchanges with WebSocket connectivity."
+    }
+  },
+  "pricing": {
+    "badge": "Pricing Plans",
+    "title": "Choose Your",
+    "subtitle": "Trading Edge",
+    "description": "Flexible pricing plans designed to scale with your trading ambitions",
+    "mostPopular": "Most Popular",
+    "getStarted": "Get Started",
+    "month": "/month",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "features": [
+          "Basic AI Trading Signals",
+          "Up to 5 Active Positions",
+          "Standard Support",
+          "Basic Analytics"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "features": [
+          "Advanced AI Trading Signals",
+          "Unlimited Active Positions",
+          "Priority Support",
+          "Advanced Analytics & Backtesting",
+          "Custom Strategies",
+          "API Access"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "features": [
+          "Everything in Pro",
+          "Dedicated Account Manager",
+          "Custom AI Model Training",
+          "White-Label Solution",
+          "SLA Guarantee"
+        ]
+      }
+    }
+  },
+  "testimonials": {
+    "badge": "Testimonials",
+    "title": "Loved by",
+    "subtitle": "Traders Worldwide",
+    "reviews": [
+      {
+        "name": "Sarah Chen",
+        "role": "Day Trader",
+        "text": "The AI signals are incredibly accurate. Increased my win rate from 45% to 68% in just 3 months!"
+      },
+      {
+        "name": "Michael Rodriguez",
+        "role": "Crypto Investor",
+        "text": "Best trading platform I have used. The risk management features saved me from major losses multiple times."
+      },
+      {
+        "name": "Alex Thompson",
+        "role": "Algorithmic Trader",
+        "text": "The API is robust and the backtesting features are top-notch. Perfect for testing strategies before going live."
+      }
+    ]
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Frequently Asked",
+    "subtitle": "Questions",
+    "items": [
+      {
+        "question": "How accurate are the AI trading signals?",
+        "answer": "Our AI models achieve 70%+ directional accuracy across multiple timeframes and market conditions. We continuously train and improve our models using the latest data."
+      },
+      {
+        "question": "Is my capital safe?",
+        "answer": "We never hold your funds. You maintain full custody of your assets on your exchange. We only execute trades through secure API connections with read and trade permissions."
+      },
+      {
+        "question": "Can I use my own strategies?",
+        "answer": "Absolutely! Pro and Enterprise plans include custom strategy support. You can backtest and deploy your own algorithms alongside our AI signals."
+      },
+      {
+        "question": "What exchanges do you support?",
+        "answer": "We currently support Binance, Coinbase Pro, Kraken, and Bybit. More exchanges are being added regularly based on user demand."
+      }
+    ]
+  },
+  "cta": {
+    "badge": "Ready to Start?",
+    "title": "Start Your",
+    "subtitle": "AI Trading Journey",
+    "description": "Join thousands of successful traders who trust our AI to grow their crypto portfolios. Start with a free trial and see the difference intelligent automation makes.",
+    "startTrial": "Start 7-Day Free Trial",
+    "scheduleDemo": "Schedule Demo Call"
+  },
+  "footer": {
+    "description": "AI-powered trading platform for the modern trader.",
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "features": "Features",
+    "pricing": "Pricing",
+    "api": "API",
+    "documentation": "Documentation",
+    "about": "About",
+    "blog": "Blog",
+    "careers": "Careers",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "security": "Security",
+    "compliance": "Compliance",
+    "copyright": "© 2025 Bot Core. All rights reserved."
+  },
+  "videoModal": {
+    "title": "Bot Core Demo",
+    "subtitle": "AI-Powered Crypto Trading Platform",
+    "cta": "See how Bot Core can transform your trading",
+    "getStarted": "Get Started Free"
+  }
+}

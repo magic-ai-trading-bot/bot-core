@@ -1,0 +1,55 @@
+{
+  "generic": "エラーが発生しました。もう一度お試しください。",
+  "network": "ネットワークエラー。接続を確認してください。",
+  "unauthorized": "セッションが期限切れです。再度ログインしてください。",
+  "forbidden": "この操作を実行する権限がありません。",
+  "notFound": "ページが見つかりません。",
+  "serverError": "サーバーエラー。後でもう一度お試しください。",
+  "timeout": "タイムアウト。もう一度お試しください。",
+  "validation": {
+    "required": "この項目は必須です",
+    "email": "メールアドレスが無効です",
+    "password": "パスワードは8文字以上必要です",
+    "passwordMatch": "パスワードが一致しません",
+    "minLength": "{{min}}文字以上必要です",
+    "maxLength": "{{max}}文字以下にしてください",
+    "invalidNumber": "有効な数値を入力してください",
+    "positiveNumber": "正の数を入力してください"
+  },
+  "trading": {
+    "insufficientBalance": "残高不足",
+    "insufficientMargin": "証拠金不足",
+    "orderFailed": "注文に失敗しました。もう一度お試しください。",
+    "connectionLost": "取引接続が切断されました",
+    "marketClosed": "市場は現在閉鎖中です",
+    "invalidQuantity": "注文数量が無効です",
+    "invalidPrice": "注文価格が無効です",
+    "positionLimitReached": "ポジション上限に達しました"
+  },
+  "auth": {
+    "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+    "accountLocked": "アカウントがロックされています。サポートにお問い合わせください。",
+    "emailNotVerified": "まずメールアドレスを確認してください",
+    "tokenExpired": "セッションが期限切れです。再度ログインしてください。"
+  },
+  "notFoundPage": {
+    "title": "ページが見つかりません",
+    "description": "お探しのページは存在しないか、移動されました。正しいページへご案内します。",
+    "goBack": "戻る",
+    "goHome": "ホームへ",
+    "popularPages": "人気のページ",
+    "pages": {
+      "dashboard": "ダッシュボード",
+      "portfolio": "ポートフォリオ",
+      "strategies": "戦略",
+      "settings": "設定"
+    }
+  },
+  "errorPage": {
+    "title": "サーバーエラー",
+    "description": "申し訳ございません。サーバー側で問題が発生しました。現在修正中です。ページを更新するか、後でお試しください。",
+    "refresh": "ページを更新",
+    "goHome": "ホームへ",
+    "contactSupport": "問題が解決しない場合は、サポートまでお問い合わせください"
+  }
+}

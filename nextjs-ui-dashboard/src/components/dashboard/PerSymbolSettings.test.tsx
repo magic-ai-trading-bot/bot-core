@@ -7,7 +7,6 @@
  */
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { PerSymbolSettings, SymbolConfig } from "./PerSymbolSettings";
 import { useToast } from "@/hooks/use-toast";
 

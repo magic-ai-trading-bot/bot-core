@@ -1,0 +1,55 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "network": "Network error. Check your connection.",
+  "unauthorized": "Session expired. Please log in again.",
+  "forbidden": "You don't have permission to perform this action.",
+  "notFound": "Page not found.",
+  "serverError": "Server error. Please try again later.",
+  "timeout": "Request timed out. Please try again.",
+  "validation": {
+    "required": "This field is required",
+    "email": "Invalid email address",
+    "password": "Password must be at least 8 characters",
+    "passwordMatch": "Passwords do not match",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be no more than {{max}} characters",
+    "invalidNumber": "Please enter a valid number",
+    "positiveNumber": "Must be a positive number"
+  },
+  "trading": {
+    "insufficientBalance": "Insufficient balance",
+    "insufficientMargin": "Insufficient margin",
+    "orderFailed": "Order failed. Please try again.",
+    "connectionLost": "Trading connection lost",
+    "marketClosed": "Market is currently closed",
+    "invalidQuantity": "Invalid order quantity",
+    "invalidPrice": "Invalid order price",
+    "positionLimitReached": "Position limit reached"
+  },
+  "auth": {
+    "invalidCredentials": "Invalid email or password",
+    "accountLocked": "Account is locked. Contact support.",
+    "emailNotVerified": "Please verify your email first",
+    "tokenExpired": "Session expired. Please log in again."
+  },
+  "notFoundPage": {
+    "title": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved. Let's get you back on track.",
+    "goBack": "Go Back",
+    "goHome": "Go Home",
+    "popularPages": "Popular Pages",
+    "pages": {
+      "dashboard": "Dashboard",
+      "portfolio": "Portfolio",
+      "strategies": "Strategies",
+      "settings": "Settings"
+    }
+  },
+  "errorPage": {
+    "title": "Server Error",
+    "description": "Oops! Something went wrong on our end. We're working to fix it. Please try refreshing the page or come back later.",
+    "refresh": "Refresh Page",
+    "goHome": "Go Home",
+    "contactSupport": "If the problem persists, please contact support"
+  }
+}

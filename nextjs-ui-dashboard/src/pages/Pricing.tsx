@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Check,
   Zap,
@@ -9,7 +10,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -17,88 +17,35 @@ import {
   GlowIcon,
   PageWrapper,
 } from "@/styles/luxury-design-system";
-
-const plans = [
-  {
-    name: "Starter",
-    icon: Zap,
-    price: "Free",
-    period: "",
-    description: "Perfect for learning and paper trading",
-    features: [
-      "Paper Trading Only",
-      "3 Active Strategies",
-      "Basic AI Signals",
-      "Community Support",
-      "1 Exchange Connection",
-      "Daily Performance Reports",
-    ],
-    cta: "Start Free",
-    variant: "secondary" as const,
-    popular: false,
-  },
-  {
-    name: "Pro",
-    icon: Crown,
-    price: "$49",
-    period: "/month",
-    description: "For serious traders ready to go live",
-    features: [
-      "Live Trading Enabled",
-      "Unlimited Strategies",
-      "Advanced AI Analysis",
-      "Priority Support",
-      "3 Exchange Connections",
-      "Real-time Alerts",
-      "Advanced Risk Management",
-      "Custom Strategy Builder",
-    ],
-    cta: "Get Started",
-    variant: "primary" as const,
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    icon: Building2,
-    price: "Custom",
-    period: "",
-    description: "For funds and professional traders",
-    features: [
-      "Everything in Pro",
-      "Unlimited Exchanges",
-      "Dedicated Account Manager",
-      "Custom API Integration",
-      "White-label Options",
-      "SLA Guarantee",
-      "On-premise Deployment",
-      "Custom AI Model Training",
-    ],
-    cta: "Contact Sales",
-    variant: "secondary" as const,
-    popular: false,
-  },
-];
-
-const faqs = [
-  {
-    question: "Can I switch plans anytime?",
-    answer: "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate your billing.",
-  },
-  {
-    question: "Is there a free trial for Pro?",
-    answer: "Yes! You get a 14-day free trial of Pro features. No credit card required.",
-  },
-  {
-    question: "What payment methods do you accept?",
-    answer: "We accept all major credit cards, PayPal, and cryptocurrency (BTC, ETH, USDT).",
-  },
-  {
-    question: "Can I cancel anytime?",
-    answer: "Absolutely. Cancel your subscription anytime with no cancellation fees.",
-  },
-];
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 const Pricing = () => {
+  const colors = useThemeColors();
+  const { t } = useTranslation('pages');
+
+  const plans = [
+    {
+      key: "starter",
+      icon: Zap,
+      variant: "secondary" as const,
+      popular: false,
+    },
+    {
+      key: "pro",
+      icon: Crown,
+      variant: "primary" as const,
+      popular: true,
+    },
+    {
+      key: "enterprise",
+      icon: Building2,
+      variant: "secondary" as const,
+      popular: false,
+    },
+  ];
+
+  const faqKeys = ["switch", "trial", "payment", "cancel"];
+
   return (
     <PageWrapper>
       {/* Back Button */}
@@ -110,7 +57,7 @@ const Pricing = () => {
         <Link to="/">
           <PremiumButton variant="secondary" size="sm">
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            {t('common.backToHome')}
           </PremiumButton>
         </Link>
       </motion.div>
@@ -122,15 +69,15 @@ const Pricing = () => {
         className="text-center mb-16"
       >
         <Badge variant="success" className="mb-4">
-          Simple Pricing
+          {t('pricing.badge')}
         </Badge>
         <h1 className="text-4xl md:text-5xl font-black mb-4">
-          <GradientText>Choose Your</GradientText>
+          <GradientText>{t('pricing.title')}</GradientText>
           <br />
-          <span style={{ color: luxuryColors.textPrimary }}>Trading Plan</span>
+          <span style={{ color: colors.textPrimary }}>{t('pricing.subtitle')}</span>
         </h1>
-        <p className="text-lg max-w-2xl mx-auto" style={{ color: luxuryColors.textMuted }}>
-          Start free and scale as you grow. No hidden fees, cancel anytime.
+        <p className="text-lg max-w-2xl mx-auto" style={{ color: colors.textMuted }}>
+          {t('pricing.description')}
         </p>
       </motion.div>
 
@@ -138,7 +85,7 @@ const Pricing = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 max-w-5xl mx-auto">
         {plans.map((plan, index) => (
           <motion.div
-            key={plan.name}
+            key={plan.key}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
@@ -146,7 +93,7 @@ const Pricing = () => {
           >
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                <Badge variant="warning" glow>Most Popular</Badge>
+                <Badge variant="warning" glow>{t('pricing.mostPopular')}</Badge>
               </div>
             )}
             <GlassCard
@@ -156,37 +103,41 @@ const Pricing = () => {
                 <GlowIcon
                   icon={plan.icon}
                   size="lg"
-                  color={plan.popular ? luxuryColors.cyan : luxuryColors.textMuted}
+                  color={plan.popular ? colors.cyan : colors.textMuted}
                   className="mx-auto mb-4"
                 />
-                <h3 className="text-xl font-bold mb-2" style={{ color: luxuryColors.textPrimary }}>
-                  {plan.name}
+                <h3 className="text-xl font-bold mb-2" style={{ color: colors.textPrimary }}>
+                  {t(`pricing.plans.${plan.key}.name`)}
                 </h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-black" style={{ color: luxuryColors.cyan }}>
-                    {plan.price}
+                  <span className="text-4xl font-black" style={{ color: colors.cyan }}>
+                    {t(`pricing.plans.${plan.key}.price`)}
                   </span>
-                  <span style={{ color: luxuryColors.textMuted }}>{plan.period}</span>
+                  {t(`pricing.plans.${plan.key}.period`, { defaultValue: '' }) && (
+                    <span style={{ color: colors.textMuted }}>
+                      {t(`pricing.plans.${plan.key}.period`)}
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                  {plan.description}
+                <p className="text-sm" style={{ color: colors.textMuted }}>
+                  {t(`pricing.plans.${plan.key}.description`)}
                 </p>
               </div>
 
               <ul className="space-y-3 mb-6">
-                {plan.features.map((feature) => (
+                {(t(`pricing.plans.${plan.key}.features`, { returnObjects: true }) as string[]).map((feature) => (
                   <li key={feature} className="flex items-center gap-2">
-                    <Check className="w-4 h-4" style={{ color: luxuryColors.profit }} />
-                    <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                    <Check className="w-4 h-4" style={{ color: colors.profit }} />
+                    <span className="text-sm" style={{ color: colors.textSecondary }}>
                       {feature}
                     </span>
                   </li>
                 ))}
               </ul>
 
-              <Link to={plan.name === "Enterprise" ? "/contact" : "/register"}>
+              <Link to={plan.key === "enterprise" ? "/contact" : "/register"}>
                 <PremiumButton variant={plan.variant} fullWidth>
-                  {plan.cta}
+                  {t(`pricing.plans.${plan.key}.cta`)}
                   <ChevronRight className="w-4 h-4" />
                 </PremiumButton>
               </Link>
@@ -202,17 +153,17 @@ const Pricing = () => {
         transition={{ delay: 0.4 }}
         className="max-w-3xl mx-auto"
       >
-        <h2 className="text-2xl font-bold text-center mb-8" style={{ color: luxuryColors.textPrimary }}>
-          Frequently Asked Questions
+        <h2 className="text-2xl font-bold text-center mb-8" style={{ color: colors.textPrimary }}>
+          {t('pricing.faq')}
         </h2>
         <div className="space-y-4">
-          {faqs.map((faq, index) => (
+          {faqKeys.map((faqKey, index) => (
             <GlassCard key={index} noPadding className="p-4">
-              <h4 className="font-semibold mb-2" style={{ color: luxuryColors.textPrimary }}>
-                {faq.question}
+              <h4 className="font-semibold mb-2" style={{ color: colors.textPrimary }}>
+                {t(`pricing.faqs.${faqKey}.question`)}
               </h4>
-              <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                {faq.answer}
+              <p className="text-sm" style={{ color: colors.textMuted }}>
+                {t(`pricing.faqs.${faqKey}.answer`)}
               </p>
             </GlassCard>
           ))}
