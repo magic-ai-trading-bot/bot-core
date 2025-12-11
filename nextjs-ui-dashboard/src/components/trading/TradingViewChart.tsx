@@ -11,6 +11,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchBinanceKlines, fetchBinance24hTicker, BinanceKline } from '@/utils/binancePrice';
 import logger from '@/utils/logger';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ChartDisplayData {
   time: string;
@@ -22,8 +23,8 @@ interface ChartDisplayData {
   volume: number;
 }
 
-// Binance-style colors
-const colors = {
+// Dark theme colors (Binance-style)
+const darkColors = {
   bg: {
     primary: '#0B0E11',
     secondary: '#1E2329',
@@ -52,6 +53,38 @@ const colors = {
   },
   grid: '#2B3139',
   crosshair: '#848E9C',
+};
+
+// Light theme colors
+const lightColors = {
+  bg: {
+    primary: '#FAFBFC',
+    secondary: '#F0F2F5',
+    tooltip: '#FFFFFF',
+  },
+  border: {
+    default: '#E0E3E8',
+  },
+  text: {
+    primary: '#1E2329',
+    secondary: '#474D57',
+    tertiary: '#707A8A',
+  },
+  candle: {
+    up: '#0ECB81',
+    down: '#F6465D',
+  },
+  ma: {
+    ma7: '#D4A017',   // Darker yellow for light bg
+    ma25: '#C44DA2',  // Darker pink for light bg
+    ma99: '#5B41DF',  // Darker purple for light bg
+  },
+  volume: {
+    up: 'rgba(14, 203, 129, 0.4)',
+    down: 'rgba(246, 70, 93, 0.4)',
+  },
+  grid: '#E0E3E8',
+  crosshair: '#707A8A',
 };
 
 interface TradingViewChartProps {
@@ -101,6 +134,10 @@ export function TradingViewChart({
   timeframe: propTimeframe = '15m',
   showControls = true,
 }: TradingViewChartProps) {
+  // Theme-aware colors
+  const { resolvedTheme } = useTheme();
+  const colors = resolvedTheme === 'light' ? lightColors : darkColors;
+
   const [symbol, setSymbol] = useState(propSymbol);
   const [timeRange, setTimeRange] = useState(propTimeframe);
 
@@ -310,7 +347,7 @@ export function TradingViewChart({
         wsRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [symbol, timeRange]);
 
   // Draw main chart with candles and MA lines
@@ -486,7 +523,7 @@ export function TradingViewChart({
         ctx.setLineDash([]);
       }
     }
-  }, [data, currentPrice, priceChange, mousePos, hoveredCandle]);
+  }, [data, currentPrice, priceChange, mousePos, hoveredCandle, colors]);
 
   // Draw volume chart
   useEffect(() => {
@@ -570,7 +607,7 @@ export function TradingViewChart({
     ctx.textAlign = 'left';
     const volLabel = maxVolume > 1000 ? `${(maxVolume / 1000).toFixed(0)}K` : maxVolume.toFixed(0);
     ctx.fillText(volLabel, width - padding.right + 5, 12);
-  }, [data]);
+  }, [data, colors]);
 
   // Handle mouse events for hover tooltip
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

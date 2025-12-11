@@ -1,18 +1,20 @@
 import { AlertTriangle, Home, RefreshCw, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
-  GlowIcon,
   PageWrapper,
   containerVariants,
   itemVariants,
 } from "@/styles/luxury-design-system";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 const Error = () => {
+  const { t } = useTranslation('errors');
+  const colors = useThemeColors();
   const navigate = useNavigate();
 
   const handleRefresh = () => {
@@ -28,7 +30,7 @@ const Error = () => {
       {/* Decorative Background Orbs */}
       <motion.div
         className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-3xl opacity-20"
-        style={{ background: luxuryColors.gradientLoss }}
+        style={{ background: colors.gradientLoss }}
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],
@@ -41,7 +43,7 @@ const Error = () => {
       />
       <motion.div
         className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full blur-3xl opacity-20"
-        style={{ background: luxuryColors.gradientPurple }}
+        style={{ background: colors.gradientPurple }}
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],
@@ -66,7 +68,7 @@ const Error = () => {
         >
           <motion.div
             className="absolute inset-0 rounded-full blur-2xl"
-            style={{ background: luxuryColors.gradientLoss, opacity: 0.3 }}
+            style={{ background: colors.gradientLoss, opacity: 0.3 }}
             animate={{
               scale: [1, 1.1, 1],
             }}
@@ -83,7 +85,7 @@ const Error = () => {
           >
             <AlertTriangle
               className="h-24 w-24"
-              style={{ color: luxuryColors.loss }}
+              style={{ color: colors.loss }}
             />
           </GlassCard>
         </motion.div>
@@ -95,7 +97,7 @@ const Error = () => {
             <div>
               <GradientText
                 className="text-6xl font-black tracking-tight"
-                gradient={luxuryColors.gradientLoss}
+                gradient={colors.gradientLoss}
               >
                 500
               </GradientText>
@@ -105,16 +107,15 @@ const Error = () => {
             <div>
               <h2
                 className="text-2xl font-bold mb-2"
-                style={{ color: luxuryColors.textPrimary }}
+                style={{ color: colors.textPrimary }}
               >
-                Server Error
+                {t('errorPage.title')}
               </h2>
               <p
                 className="text-sm leading-relaxed"
-                style={{ color: luxuryColors.textSecondary }}
+                style={{ color: colors.textSecondary }}
               >
-                Oops! Something went wrong on our end. We're working to fix it.
-                Please try refreshing the page or come back later.
+                {t('errorPage.description')}
               </p>
             </div>
 
@@ -127,7 +128,7 @@ const Error = () => {
                 className="flex-1"
               >
                 <RefreshCw className="w-4 h-4" />
-                Refresh Page
+                {t('errorPage.refresh')}
               </PremiumButton>
               <PremiumButton
                 onClick={handleGoHome}
@@ -136,7 +137,7 @@ const Error = () => {
                 className="flex-1"
               >
                 <Home className="w-4 h-4" />
-                Go Home
+                {t('errorPage.goHome')}
               </PremiumButton>
             </div>
           </motion.div>
@@ -146,13 +147,10 @@ const Error = () => {
         <motion.div
           variants={itemVariants}
           className="flex items-center gap-2 text-xs"
-          style={{ color: luxuryColors.textMuted }}
+          style={{ color: colors.textMuted }}
         >
-          <Zap className="w-3 h-3" style={{ color: luxuryColors.cyan }} />
-          <p>
-            If the problem persists, please contact{" "}
-            <span style={{ color: luxuryColors.cyan }}>support</span>
-          </p>
+          <Zap className="w-3 h-3" style={{ color: colors.cyan }} />
+          <p>{t('errorPage.contactSupport')}</p>
         </motion.div>
 
         {/* Decorative Pattern */}
@@ -160,7 +158,7 @@ const Error = () => {
           variants={itemVariants}
           className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-48 h-1 rounded-full"
           style={{
-            background: luxuryColors.gradientPremium,
+            background: colors.gradientPremium,
             opacity: 0.3,
           }}
         />

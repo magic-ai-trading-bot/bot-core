@@ -1,4 +1,5 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -6,9 +7,8 @@ import { useState, useEffect } from "react";
 import { usePaperTradingContext } from "@/contexts/PaperTradingContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSecurity } from "@/hooks/useSecurity";
-import { useNotificationPreferences, localToApiFormat, NotificationCredentials } from "@/hooks/useNotificationPreferences";
+import { useNotificationPreferences, localToApiFormat } from "@/hooks/useNotificationPreferences";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { toast } from "sonner";
 import ChatBot from "@/components/ChatBot";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -57,7 +57,6 @@ import {
   RefreshCw,
   Save,
   Activity,
-  BarChart3,
   Cpu,
   HardDrive,
   Clock,
@@ -65,9 +64,8 @@ import {
   Database,
   Coins,
 } from "lucide-react";
-import logger from "@/utils/logger";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -119,6 +117,8 @@ interface SystemHealth {
  * @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
  */
 const Settings = () => {
+  const { t } = useTranslation('settings');
+  const colors = useThemeColors();
   const { portfolio, settings, updateSettings, startBot, stopBot } = usePaperTradingContext();
   const { toast } = useToast();
 
@@ -325,14 +325,14 @@ const Settings = () => {
     try {
       if (checked) {
         await startBot();
-        toast({ title: "Bot Started", description: "Trading bot is now active" });
+        toast({ title: t('toast.botStarted'), description: t('toast.botStartedDesc') });
       } else {
         await stopBot();
-        toast({ title: "Bot Stopped", description: "Trading bot is now inactive" });
+        toast({ title: t('toast.botStopped'), description: t('toast.botStoppedDesc') });
       }
     } catch (error) {
       setBotActive(!checked);
-      toast({ title: "Error", description: "Failed to change bot status", variant: "destructive" });
+      toast({ title: t('toast.botError'), description: t('toast.botErrorDesc'), variant: "destructive" });
     }
   };
 
@@ -345,14 +345,14 @@ const Settings = () => {
       const response = await fetch(`${API_BASE}/api/health`);
       if (response.ok) {
         setConnectionStatus("connected");
-        toast({ title: "Connection Successful", description: "API is reachable" });
+        toast({ title: t('toast.connectionSuccess'), description: t('toast.connectionSuccessDesc') });
       } else {
         setConnectionStatus("disconnected");
-        toast({ title: "Connection Failed", description: "API is not responding", variant: "destructive" });
+        toast({ title: t('toast.connectionError'), description: t('toast.connectionFailedDesc'), variant: "destructive" });
       }
     } catch {
       setConnectionStatus("disconnected");
-      toast({ title: "Connection Failed", description: "Could not reach API", variant: "destructive" });
+      toast({ title: t('toast.connectionError'), description: t('toast.connectionErrorDesc'), variant: "destructive" });
     } finally {
       setIsTestingConnection(false);
     }
@@ -394,10 +394,10 @@ const Settings = () => {
         }
       }
       setSavedSection(section);
-      toast({ title: "Settings Saved", description: `${section.charAt(0).toUpperCase() + section.slice(1)} settings updated successfully` });
+      toast({ title: t('toast.settingsSaved'), description: t('toast.sectionSaved', { section: section.charAt(0).toUpperCase() + section.slice(1) }) });
       setTimeout(() => setSavedSection(null), 2000);
     } catch (error) {
-      toast({ title: "Save Failed", description: "Could not save settings", variant: "destructive" });
+      toast({ title: t('toast.settingsError'), description: t('toast.saveError'), variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -412,16 +412,16 @@ const Settings = () => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffMins < 1) return t('time.justNow');
+    if (diffMins < 60) return diffMins === 1 ? t('time.minuteAgo', { count: diffMins }) : t('time.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return diffHours === 1 ? t('time.hourAgo', { count: diffHours }) : t('time.hoursAgo', { count: diffHours });
+    return diffDays === 1 ? t('time.dayAgo', { count: diffDays }) : t('time.daysAgo', { count: diffDays });
   };
 
   // Handle 2FA verification
   const handleVerify2FA = async () => {
     if (verificationCode.length !== 6) {
-      toast.error('Please enter a 6-digit code');
+      toast.error(t('toast.invalidCode'));
       return;
     }
     const success = await verify2FA(verificationCode);
@@ -433,7 +433,7 @@ const Settings = () => {
   // Handle 2FA disable
   const handleDisable2FA = async () => {
     if (disableCode.length !== 6) {
-      toast.error('Please enter a 6-digit code');
+      toast.error(t('toast.invalidCode'));
       return;
     }
     const success = await disable2FA(disableCode);
@@ -447,19 +447,19 @@ const Settings = () => {
   const copySecretToClipboard = () => {
     if (setup2FAData?.secret) {
       navigator.clipboard.writeText(setup2FAData.secret);
-      toast.success('Secret copied to clipboard');
+      toast.success(t('toast.secretCopied'));
     }
   };
 
   // Section navigation items - matching old UI tabs
   const sectionNav = [
-    { id: "bot" as const, label: "Bot Settings", icon: Settings2, description: "Basic bot configuration" },
-    { id: "per-symbol" as const, label: "Per-Symbol", icon: Coins, description: "Symbol-specific settings" },
-    { id: "strategy" as const, label: "Strategy Tuning", icon: TrendingUp, description: "Advanced strategy config" },
-    { id: "health" as const, label: "System Health", icon: Activity, description: "System status monitoring" },
-    { id: "api" as const, label: "API Keys", icon: Key, description: "API configuration" },
-    { id: "notifications" as const, label: "Thông báo", icon: Bell, description: "Alert settings" },
-    { id: "security" as const, label: "Bảo mật", icon: Shield, description: "Account security" },
+    { id: "bot" as const, label: t('tabs.bot'), icon: Settings2, description: t('bot.subtitle') },
+    { id: "per-symbol" as const, label: t('tabs.perSymbol'), icon: Coins, description: t('perSymbol.subtitle') },
+    { id: "strategy" as const, label: t('tabs.strategy'), icon: TrendingUp, description: t('strategy.subtitle') },
+    { id: "health" as const, label: t('tabs.health'), icon: Activity, description: t('health.subtitle') },
+    { id: "api" as const, label: t('tabs.api'), icon: Key, description: t('api.subtitle') },
+    { id: "notifications" as const, label: t('tabs.notifications'), icon: Bell, description: t('notifications.subtitle') },
+    { id: "security" as const, label: t('tabs.security'), icon: Shield, description: t('security.subtitle') },
   ];
 
   // Current balance for calculations
@@ -475,13 +475,13 @@ const Settings = () => {
           className="mb-8"
         >
           <div className="flex items-center gap-3 mb-2">
-            <GlowIcon icon={Settings2} size="lg" color={luxuryColors.cyan} />
+            <GlowIcon icon={Settings2} size="lg" color={colors.cyan} />
             <div>
               <h1 className="text-2xl lg:text-3xl font-black">
-                <GradientText>Settings</GradientText>
+                <GradientText>{t('page.title')}</GradientText>
               </h1>
-              <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                Configure your trading bot and preferences
+              <p className="text-sm" style={{ color: colors.textMuted }}>
+                {t('page.subtitle')}
               </p>
             </div>
           </div>
@@ -511,26 +511,26 @@ const Settings = () => {
                     }`}
                     style={{
                       background: activeSection === section.id
-                        ? `linear-gradient(to right, ${luxuryColors.cyan}20, transparent)`
+                        ? `linear-gradient(to right, ${colors.cyan}20, transparent)`
                         : 'transparent',
-                      borderColor: activeSection === section.id ? luxuryColors.cyan : 'transparent',
+                      borderColor: activeSection === section.id ? colors.cyan : 'transparent',
                     }}
                   >
                     <GlowIcon
                       icon={section.icon as React.ElementType}
                       size="sm"
-                      color={activeSection === section.id ? luxuryColors.cyan : luxuryColors.textMuted}
+                      color={activeSection === section.id ? colors.cyan : colors.textMuted}
                     />
                     <div className="flex-1 text-left">
                       <div
                         className="font-medium"
                         style={{
-                          color: activeSection === section.id ? luxuryColors.textPrimary : luxuryColors.textMuted
+                          color: activeSection === section.id ? colors.textPrimary : colors.textMuted
                         }}
                       >
                         {section.label}
                       </div>
-                      <div className="text-xs" style={{ color: luxuryColors.textMuted }}>
+                      <div className="text-xs" style={{ color: colors.textMuted }}>
                         {section.description}
                       </div>
                     </div>
@@ -539,7 +539,7 @@ const Settings = () => {
                         activeSection === section.id ? "rotate-90" : ""
                       }`}
                       style={{
-                        color: activeSection === section.id ? luxuryColors.cyan : luxuryColors.textMuted
+                        color: activeSection === section.id ? colors.cyan : colors.textMuted
                       }}
                     />
                   </motion.button>
@@ -559,15 +559,15 @@ const Settings = () => {
               {activeSection === "bot" && (
                 <div className="space-y-6">
                   <SectionHeader
-                    title="Cài đặt Bot"
-                    subtitle="Quản lý cấu hình và tùy chọn cho trading bot của bạn"
+                    title={t('bot.title')}
+                    subtitle={t('bot.subtitle')}
                     icon={Settings2}
                   />
 
                   {/* Bot Configuration Card */}
                   <GlassCard>
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="font-semibold text-lg" style={{ color: luxuryColors.textPrimary }}>
+                      <h3 className="font-semibold text-lg" style={{ color: colors.textPrimary }}>
                         Bot Configuration
                       </h3>
                       <Badge variant={botActive ? "success" : "default"} glow={botActive}>
@@ -578,13 +578,13 @@ const Settings = () => {
                     {/* Bot Status */}
                     <div
                       className="flex items-center justify-between p-4 rounded-xl mb-6"
-                      style={{ backgroundColor: luxuryColors.bgSecondary }}
+                      style={{ backgroundColor: colors.bgSecondary }}
                     >
                       <div>
-                        <h4 className="font-medium" style={{ color: luxuryColors.textPrimary }}>
+                        <h4 className="font-medium" style={{ color: colors.textPrimary }}>
                           Bot Status
                         </h4>
-                        <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
+                        <p className="text-sm" style={{ color: colors.textMuted }}>
                           {botActive ? "Bot is actively trading" : "Bot is currently stopped"}
                         </p>
                       </div>
@@ -597,7 +597,7 @@ const Settings = () => {
                     {/* Capital Allocation */}
                     <div className="space-y-6">
                       <SliderSetting
-                        label="Capital Allocation"
+                        label={t('bot.capitalAllocation')}
                         value={capitalAllocation[0]}
                         unit="%"
                         min={1}
@@ -605,16 +605,16 @@ const Settings = () => {
                         step={1}
                         onChange={(v) => setCapitalAllocation([v])}
                         color="primary"
-                        description={`Amount: $${((currentBalance * capitalAllocation[0]) / 100).toFixed(2)}`}
+                        description={t('bot.amount', { value: ((currentBalance * capitalAllocation[0]) / 100).toFixed(2) })}
                       />
-                      <div className="flex justify-between text-xs" style={{ color: luxuryColors.textMuted }}>
-                        <span>Conservative (10%)</span>
-                        <span>Aggressive (100%)</span>
+                      <div className="flex justify-between text-xs" style={{ color: colors.textMuted }}>
+                        <span>{t('bot.conservativePercent', { value: 10 })}</span>
+                        <span>{t('bot.aggressivePercent', { value: 100 })}</span>
                       </div>
 
                       {/* Maximum Leverage */}
                       <SliderSetting
-                        label="Maximum Leverage"
+                        label={t('bot.maxLeverage')}
                         value={maxLeverage[0]}
                         unit="x"
                         min={1}
@@ -623,14 +623,14 @@ const Settings = () => {
                         onChange={(v) => setMaxLeverage([v])}
                         color="warning"
                       />
-                      <div className="flex justify-between text-xs" style={{ color: luxuryColors.textMuted }}>
-                        <span>Safe (1x)</span>
-                        <span>High Risk (20x)</span>
+                      <div className="flex justify-between text-xs" style={{ color: colors.textMuted }}>
+                        <span>{t('bot.safeLeverage', { value: 1 })}</span>
+                        <span>{t('bot.highRiskLeverage', { value: 20 })}</span>
                       </div>
 
                       {/* Risk Threshold */}
                       <SliderSetting
-                        label="Risk Threshold"
+                        label={t('bot.riskThreshold')}
                         value={riskThreshold[0]}
                         unit="%"
                         min={1}
@@ -638,28 +638,28 @@ const Settings = () => {
                         step={0.5}
                         onChange={(v) => setRiskThreshold([v])}
                         color="loss"
-                        description={`Max loss per trade: $${((currentBalance * riskThreshold[0]) / 100).toFixed(2)}`}
+                        description={t('bot.maxLossPerTrade', { value: ((currentBalance * riskThreshold[0]) / 100).toFixed(2) })}
                       />
-                      <div className="flex justify-between text-xs" style={{ color: luxuryColors.textMuted }}>
-                        <span>Conservative (1%)</span>
-                        <span>Aggressive (15%)</span>
+                      <div className="flex justify-between text-xs" style={{ color: colors.textMuted }}>
+                        <span>{t('bot.conservativePercent', { value: 1 })}</span>
+                        <span>{t('bot.aggressivePercent', { value: 15 })}</span>
                       </div>
                     </div>
                   </GlassCard>
 
                   {/* Active Trading Pairs */}
                   <GlassCard>
-                    <h3 className="font-semibold mb-4" style={{ color: luxuryColors.textPrimary }}>
-                      Active Trading Pairs
+                    <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>
+                      {t('bot.activeTradingPairs')}
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       {tradingPairs.map((pair) => (
                         <div
                           key={pair.symbol}
                           className="flex items-center justify-between p-3 rounded-xl"
-                          style={{ backgroundColor: luxuryColors.bgSecondary }}
+                          style={{ backgroundColor: colors.bgSecondary }}
                         >
-                          <span style={{ color: luxuryColors.textPrimary }}>{pair.symbol}</span>
+                          <span style={{ color: colors.textPrimary }}>{pair.symbol}</span>
                           <PremiumSwitch
                             checked={pair.enabled}
                             onCheckedChange={() => toggleTradingPair(pair.symbol)}
@@ -681,8 +681,8 @@ const Settings = () => {
               {activeSection === "per-symbol" && (
                 <div className="space-y-6">
                   <SectionHeader
-                    title="Per-Symbol Settings"
-                    subtitle="Configure individual settings for each trading pair"
+                    title={t('perSymbol.title')}
+                    subtitle={t('perSymbol.subtitle')}
                     icon={Coins}
                   />
 
@@ -690,16 +690,16 @@ const Settings = () => {
                     <GlassCard key={pair.symbol}>
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <GlowIcon icon={Coins} size="sm" color={luxuryColors.cyan} />
-                          <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                          <GlowIcon icon={Coins} size="sm" color={colors.cyan} />
+                          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
                             {pair.symbol}
                           </h3>
                         </div>
-                        <Badge variant="success" size="sm">Active</Badge>
+                        <Badge variant="success" size="sm">{t('bot.active')}</Badge>
                       </div>
                       <div className="space-y-4">
                         <SliderSetting
-                          label="Position Size"
+                          label={t('perSymbol.positionSize')}
                           value={pair.positionSize || 25}
                           unit="%"
                           min={5}
@@ -709,7 +709,7 @@ const Settings = () => {
                           color="primary"
                         />
                         <SliderSetting
-                          label="Max Leverage"
+                          label={t('perSymbol.maxLeverage')}
                           value={pair.leverage || 3}
                           unit="x"
                           min={1}
@@ -725,9 +725,9 @@ const Settings = () => {
                   {tradingPairs.filter(p => p.enabled).length === 0 && (
                     <GlassCard>
                       <div className="text-center py-8">
-                        <GlowIcon icon={AlertTriangle} size="lg" color={luxuryColors.warning} className="mx-auto mb-4" />
-                        <p style={{ color: luxuryColors.textMuted }}>
-                          No active trading pairs. Enable pairs in Bot Settings tab.
+                        <GlowIcon icon={AlertTriangle} size="lg" color={colors.warning} className="mx-auto mb-4" />
+                        <p style={{ color: colors.textMuted }}>
+                          {t('perSymbol.noPairsTitle')}. {t('perSymbol.noPairsDesc')}
                         </p>
                       </div>
                     </GlassCard>
@@ -745,19 +745,19 @@ const Settings = () => {
               {activeSection === "strategy" && (
                 <div className="space-y-6">
                   <SectionHeader
-                    title="Strategy Tuning"
-                    subtitle="Fine-tune your trading strategies and parameters"
+                    title={t('strategy.title')}
+                    subtitle={t('strategy.subtitle')}
                     icon={TrendingUp}
                   />
 
                   <GlassCard>
                     <div className="text-center py-8">
-                      <GlowIcon icon={Settings2} size="lg" color={luxuryColors.cyan} className="mx-auto mb-4" />
-                      <h3 className="font-semibold text-lg mb-2" style={{ color: luxuryColors.textPrimary }}>
-                        Advanced Strategy Configuration
+                      <GlowIcon icon={Settings2} size="lg" color={colors.cyan} className="mx-auto mb-4" />
+                      <h3 className="font-semibold text-lg mb-2" style={{ color: colors.textPrimary }}>
+                        {t('strategy.advancedTitle')}
                       </h3>
-                      <p className="text-sm mb-6" style={{ color: luxuryColors.textMuted }}>
-                        Configure market presets, strategy parameters, risk management & engine settings
+                      <p className="text-sm mb-6" style={{ color: colors.textMuted }}>
+                        {t('strategy.advancedDesc')}
                       </p>
                       <TradingSettings />
                     </div>
@@ -769,8 +769,8 @@ const Settings = () => {
               {activeSection === "health" && (
                 <div className="space-y-6">
                   <SectionHeader
-                    title="System Health"
-                    subtitle="Monitor system status and performance metrics"
+                    title={t('health.title')}
+                    subtitle={t('health.subtitle')}
                     icon={Activity}
                   />
 
@@ -778,37 +778,37 @@ const Settings = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <GlassCard noPadding className="p-4">
                       <div className="flex items-center gap-3">
-                        <GlowIcon icon={Cpu} size="sm" color={systemHealth.cpu < 70 ? luxuryColors.profit : luxuryColors.loss} />
+                        <GlowIcon icon={Cpu} size="sm" color={systemHealth.cpu < 70 ? colors.profit : colors.loss} />
                         <div>
-                          <p className="text-xs" style={{ color: luxuryColors.textMuted }}>CPU</p>
-                          <p className="font-bold" style={{ color: luxuryColors.textPrimary }}>{systemHealth.cpu}%</p>
+                          <p className="text-xs" style={{ color: colors.textMuted }}>{t('health.cpu')}</p>
+                          <p className="font-bold" style={{ color: colors.textPrimary }}>{systemHealth.cpu}%</p>
                         </div>
                       </div>
                     </GlassCard>
                     <GlassCard noPadding className="p-4">
                       <div className="flex items-center gap-3">
-                        <GlowIcon icon={HardDrive} size="sm" color={systemHealth.memory < 80 ? luxuryColors.profit : luxuryColors.loss} />
+                        <GlowIcon icon={HardDrive} size="sm" color={systemHealth.memory < 80 ? colors.profit : colors.loss} />
                         <div>
-                          <p className="text-xs" style={{ color: luxuryColors.textMuted }}>Memory</p>
-                          <p className="font-bold" style={{ color: luxuryColors.textPrimary }}>{systemHealth.memory}%</p>
+                          <p className="text-xs" style={{ color: colors.textMuted }}>{t('health.memory')}</p>
+                          <p className="font-bold" style={{ color: colors.textPrimary }}>{systemHealth.memory}%</p>
                         </div>
                       </div>
                     </GlassCard>
                     <GlassCard noPadding className="p-4">
                       <div className="flex items-center gap-3">
-                        <GlowIcon icon={Clock} size="sm" color={luxuryColors.cyan} />
+                        <GlowIcon icon={Clock} size="sm" color={colors.cyan} />
                         <div>
-                          <p className="text-xs" style={{ color: luxuryColors.textMuted }}>Uptime</p>
-                          <p className="font-bold" style={{ color: luxuryColors.textPrimary }}>{systemHealth.uptime}</p>
+                          <p className="text-xs" style={{ color: colors.textMuted }}>{t('health.uptime')}</p>
+                          <p className="font-bold" style={{ color: colors.textPrimary }}>{systemHealth.uptime}</p>
                         </div>
                       </div>
                     </GlassCard>
                     <GlassCard noPadding className="p-4">
                       <div className="flex items-center gap-3">
-                        <GlowIcon icon={Zap} size="sm" color={systemHealth.apiLatency < 100 ? luxuryColors.profit : luxuryColors.warning} />
+                        <GlowIcon icon={Zap} size="sm" color={systemHealth.apiLatency < 100 ? colors.profit : colors.warning} />
                         <div>
-                          <p className="text-xs" style={{ color: luxuryColors.textMuted }}>API Latency</p>
-                          <p className="font-bold" style={{ color: luxuryColors.textPrimary }}>{systemHealth.apiLatency}ms</p>
+                          <p className="text-xs" style={{ color: colors.textMuted }}>{t('health.apiLatency')}</p>
+                          <p className="font-bold" style={{ color: colors.textPrimary }}>{systemHealth.apiLatency}ms</p>
                         </div>
                       </div>
                     </GlassCard>
@@ -816,40 +816,40 @@ const Settings = () => {
 
                   {/* Connection Status */}
                   <GlassCard>
-                    <h3 className="font-semibold mb-4" style={{ color: luxuryColors.textPrimary }}>
-                      Connection Status
+                    <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>
+                      {t('health.connectionStatus')}
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: luxuryColors.bgSecondary }}>
+                      <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                         <div className="flex items-center gap-3">
-                          <GlowIcon icon={Server} size="sm" color={connectionStatus === "connected" ? luxuryColors.profit : luxuryColors.loss} />
-                          <span style={{ color: luxuryColors.textPrimary }}>API Server</span>
+                          <GlowIcon icon={Server} size="sm" color={connectionStatus === "connected" ? colors.profit : colors.loss} />
+                          <span style={{ color: colors.textPrimary }}>{t('health.apiServer')}</span>
                         </div>
                         <StatusIndicator label="" status={connectionStatus === "connected" ? "online" : "offline"} />
                       </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: luxuryColors.bgSecondary }}>
+                      <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                         <div className="flex items-center gap-3">
-                          <GlowIcon icon={Wifi} size="sm" color={systemHealth.wsConnected ? luxuryColors.profit : luxuryColors.loss} />
-                          <span style={{ color: luxuryColors.textPrimary }}>WebSocket</span>
+                          <GlowIcon icon={Wifi} size="sm" color={systemHealth.wsConnected ? colors.profit : colors.loss} />
+                          <span style={{ color: colors.textPrimary }}>{t('health.wsStatus')}</span>
                         </div>
                         <StatusIndicator label="" status={systemHealth.wsConnected ? "online" : "offline"} />
                       </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: luxuryColors.bgSecondary }}>
+                      <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                         <div className="flex items-center gap-3">
-                          <GlowIcon icon={Database} size="sm" color={systemHealth.dbConnected ? luxuryColors.profit : luxuryColors.loss} />
-                          <span style={{ color: luxuryColors.textPrimary }}>Database</span>
+                          <GlowIcon icon={Database} size="sm" color={systemHealth.dbConnected ? colors.profit : colors.loss} />
+                          <span style={{ color: colors.textPrimary }}>{t('health.dbStatus')}</span>
                         </div>
                         <StatusIndicator label="" status={systemHealth.dbConnected ? "online" : "offline"} />
                       </div>
                     </div>
-                    <p className="text-xs mt-4" style={{ color: luxuryColors.textMuted }}>
-                      Last updated: {systemHealth.lastUpdate}
+                    <p className="text-xs mt-4" style={{ color: colors.textMuted }}>
+                      {t('health.lastUpdate')}: {systemHealth.lastUpdate}
                     </p>
                   </GlassCard>
 
                   <PremiumButton variant="secondary" onClick={testConnection} disabled={isTestingConnection} loading={isTestingConnection} fullWidth>
                     <RefreshCw className="h-4 w-4" />
-                    Refresh Status
+                    {t('health.refresh')}
                   </PremiumButton>
                 </div>
               )}
@@ -858,8 +858,8 @@ const Settings = () => {
               {activeSection === "api" && (
                 <div className="space-y-6">
                   <SectionHeader
-                    title="API & Connections"
-                    subtitle="Manage your exchange API keys and connection status"
+                    title={t('api.title')}
+                    subtitle={t('api.subtitle')}
                     icon={Key}
                   />
 
@@ -871,17 +871,17 @@ const Settings = () => {
                             icon={connectionStatus === "connected" ? Wifi : connectionStatus === "testing" ? Loader2 : WifiOff}
                             size="lg"
                             color={
-                              connectionStatus === "connected" ? luxuryColors.profit :
-                              connectionStatus === "testing" ? luxuryColors.warning :
-                              luxuryColors.loss
+                              connectionStatus === "connected" ? colors.profit :
+                              connectionStatus === "testing" ? colors.warning :
+                              colors.loss
                             }
                             className={connectionStatus === "testing" ? "animate-spin" : ""}
                           />
                           <div>
-                            <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                            <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
                               Connection Status
                             </h3>
-                            <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
+                            <p className="text-sm" style={{ color: colors.textMuted }}>
                               {connectionStatus === "connected" ? "All systems operational" :
                                connectionStatus === "testing" ? "Testing connection..." : "Connection issues detected"}
                             </p>
@@ -922,8 +922,8 @@ const Settings = () => {
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <GlowIcon icon={Key} size="sm" color={luxuryColors.cyan} />
-                          <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                          <GlowIcon icon={Key} size="sm" color={colors.cyan} />
+                          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
                             Binance API Configuration
                           </h3>
                         </div>
@@ -935,14 +935,14 @@ const Settings = () => {
                       {/* API Key Input */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="api-key" className="text-xs uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>
+                          <Label htmlFor="api-key" className="text-xs uppercase tracking-wider" style={{ color: colors.textMuted }}>
                             API Key
                           </Label>
                           <button
                             type="button"
                             onClick={() => setShowApiKey(!showApiKey)}
                             className="transition-colors"
-                            style={{ color: luxuryColors.textMuted }}
+                            style={{ color: colors.textMuted }}
                           >
                             {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -958,14 +958,14 @@ const Settings = () => {
                       {/* Secret Key Input */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="secret-key" className="text-xs uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>
+                          <Label htmlFor="secret-key" className="text-xs uppercase tracking-wider" style={{ color: colors.textMuted }}>
                             Secret Key
                           </Label>
                           <button
                             type="button"
                             onClick={() => setShowSecretKey(!showSecretKey)}
                             className="transition-colors"
-                            style={{ color: luxuryColors.textMuted }}
+                            style={{ color: colors.textMuted }}
                           >
                             {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -986,12 +986,12 @@ const Settings = () => {
                           borderColor: 'rgba(0, 217, 255, 0.2)',
                         }}
                       >
-                        <Lock className="h-5 w-5 mt-0.5" style={{ color: luxuryColors.cyan }} />
+                        <Lock className="h-5 w-5 mt-0.5" style={{ color: colors.cyan }} />
                         <div>
-                          <p className="text-sm font-medium" style={{ color: luxuryColors.cyan }}>
+                          <p className="text-sm font-medium" style={{ color: colors.cyan }}>
                             Security Note
                           </p>
-                          <p className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
+                          <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
                             API keys are encrypted and stored securely. Only grant Futures Trading permission to the bot.
                           </p>
                         </div>
@@ -1001,7 +1001,7 @@ const Settings = () => {
 
                   {/* Trading Permissions */}
                   <GlassCard>
-                    <h3 className="font-semibold mb-4" style={{ color: luxuryColors.textPrimary }}>
+                    <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>
                       Trading Permissions
                     </h3>
                     <div className="space-y-3">
@@ -1015,15 +1015,15 @@ const Settings = () => {
                           key={permission.name}
                           className="flex items-center justify-between p-4 rounded-xl border transition-colors"
                           style={{
-                            backgroundColor: permission.enabled ? 'rgba(34, 197, 94, 0.1)' : luxuryColors.bgSecondary,
-                            borderColor: permission.enabled ? 'rgba(34, 197, 94, 0.2)' : luxuryColors.borderSubtle,
+                            backgroundColor: permission.enabled ? 'rgba(34, 197, 94, 0.1)' : colors.bgSecondary,
+                            borderColor: permission.enabled ? 'rgba(34, 197, 94, 0.2)' : colors.borderSubtle,
                           }}
                         >
                           <div>
-                            <div className="font-medium" style={{ color: luxuryColors.textPrimary }}>
+                            <div className="font-medium" style={{ color: colors.textPrimary }}>
                               {permission.name}
                             </div>
-                            <div className="text-sm" style={{ color: luxuryColors.textMuted }}>
+                            <div className="text-sm" style={{ color: colors.textMuted }}>
                               {permission.description}
                             </div>
                           </div>
@@ -1048,27 +1048,27 @@ const Settings = () => {
               {activeSection === "notifications" && (
                 <div className="space-y-6">
                   <SectionHeader
-                    title="Notifications"
-                    subtitle="Configure how you receive alerts and updates"
+                    title={t('notifications.title')}
+                    subtitle={t('notifications.subtitle')}
                     icon={Bell}
                   />
 
                   {/* Notification Channels */}
                   <GlassCard>
-                    <h3 className="font-semibold mb-6" style={{ color: luxuryColors.textPrimary }}>
-                      Notification Channels
+                    <h3 className="font-semibold mb-6" style={{ color: colors.textPrimary }}>
+                      {t('notifications.channels')}
                     </h3>
                       <div className="space-y-4">
                         <NotificationToggle
                           icon={<Mail className="h-5 w-5" />}
-                          title="Email Notifications"
-                          description="Receive notifications via email"
+                          title={t('notifications.email.title')}
+                          description={t('notifications.email.description')}
                           checked={notifications.email}
                           onChange={(checked) => setNotifications(prev => ({ ...prev, email: checked }))}
                         />
                         <NotificationToggle
                           icon={<Bell className="h-5 w-5" />}
-                          title="Push Notifications"
+                          title={t('notifications.push.title')}
                           description={
                             !isPushSupported
                               ? "Not supported in this browser"
@@ -1181,26 +1181,26 @@ const Settings = () => {
                         }}
                       >
                         <div className="flex items-center gap-2 mb-3">
-                          <Bell className="h-5 w-5" style={{ color: luxuryColors.cyan }} />
-                          <span className="font-medium" style={{ color: luxuryColors.textPrimary }}>
+                          <Bell className="h-5 w-5" style={{ color: colors.cyan }} />
+                          <span className="font-medium" style={{ color: colors.textPrimary }}>
                             Push Notification Keys (VAPID)
                           </span>
                         </div>
-                        <p className="text-xs mb-3" style={{ color: luxuryColors.textMuted }}>
+                        <p className="text-xs mb-3" style={{ color: colors.textMuted }}>
                           Generate VAPID keys using: <code className="px-1 py-0.5 rounded bg-black/30">npx web-push generate-vapid-keys</code>
                         </p>
                         <PremiumInput
-                          label="VAPID Public Key"
+                          label={t('notifications.vapid.publicKeyLabel')}
                           value={vapidPublicKey}
                           onChange={setVapidPublicKey}
-                          placeholder="BLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..."
+                          placeholder={t('notifications.vapid.publicKeyPlaceholder')}
                         />
                         <PremiumInput
-                          label="VAPID Private Key (stored securely)"
+                          label={t('notifications.vapid.privateKeyLabel')}
                           type="password"
                           value={vapidPrivateKey}
                           onChange={setVapidPrivateKey}
-                          placeholder="Enter private key (keep secure)"
+                          placeholder={t('notifications.vapid.privateKeyPlaceholder')}
                         />
                         <div className="flex justify-end">
                           <PremiumButton
@@ -1208,11 +1208,11 @@ const Settings = () => {
                             size="sm"
                             onClick={async () => {
                               await saveSettings("notifications");
-                              toast({ title: "Keys Saved", description: "VAPID keys saved. You can now enable Push Notifications." });
+                              toast({ title: t('notifications.vapid.keysSaved'), description: t('notifications.vapid.keysSavedDesc') });
                             }}
                             disabled={!vapidPublicKey}
                           >
-                            Save VAPID Keys
+                            {t('notifications.vapid.saveKeys')}
                           </PremiumButton>
                         </div>
                       </div>
@@ -1232,14 +1232,14 @@ const Settings = () => {
                           }}
                         >
                           <PremiumInput
-                            label="Discord Webhook URL"
+                            label={t('notifications.discord.webhookLabel')}
                             value={discordWebhookUrl}
                             onChange={setDiscordWebhookUrl}
-                            placeholder="https://discord.com/api/webhooks/..."
+                            placeholder={t('notifications.discord.webhookPlaceholder')}
                           />
                           <div className="flex items-center justify-between mt-3">
-                            <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                              Create a webhook in Discord Server Settings → Integrations → Webhooks
+                            <p className="text-xs" style={{ color: colors.textMuted }}>
+                              {t('notifications.discord.webhookHint')}
                             </p>
                             <PremiumButton
                               variant="secondary"
@@ -1249,14 +1249,14 @@ const Settings = () => {
                                 await saveSettings("notifications");
                                 const success = await testNotification("discord");
                                 if (success) {
-                                  toast({ title: "Test Sent", description: "Discord test notification sent successfully" });
+                                  toast({ title: t('notifications.discord.testSent'), description: t('notifications.discord.testSentDesc') });
                                 } else {
-                                  toast({ title: "Test Failed", description: "Failed to send Discord test notification", variant: "destructive" });
+                                  toast({ title: t('notifications.discord.testFailed'), description: t('notifications.discord.testFailedDesc'), variant: "destructive" });
                                 }
                               }}
                               disabled={!discordWebhookUrl}
                             >
-                              Test Discord
+                              {t('notifications.discord.testButton')}
                             </PremiumButton>
                           </div>
                         </motion.div>
@@ -1266,35 +1266,35 @@ const Settings = () => {
 
                   {/* Alert Types */}
                   <GlassCard>
-                    <h3 className="font-semibold mb-6" style={{ color: luxuryColors.textPrimary }}>
-                      Alert Types
+                    <h3 className="font-semibold mb-6" style={{ color: colors.textPrimary }}>
+                      {t('notifications.alerts.title')}
                     </h3>
                       <div className="space-y-4">
                         <NotificationToggle
                           icon={<TrendingUp className="h-5 w-5" />}
-                          title="Price Alerts"
-                          description="Get notified on significant price movements"
+                          title={t('notifications.alerts.price.title')}
+                          description={t('notifications.alerts.price.description')}
                           checked={notifications.priceAlerts}
                           onChange={(checked) => setNotifications(prev => ({ ...prev, priceAlerts: checked }))}
                         />
                         <NotificationToggle
                           icon={<Zap className="h-5 w-5" />}
-                          title="Trade Alerts"
-                          description="Get notified when trades are executed"
+                          title={t('notifications.alerts.trade.title')}
+                          description={t('notifications.alerts.trade.description')}
                           checked={notifications.tradeAlerts}
                           onChange={(checked) => setNotifications(prev => ({ ...prev, tradeAlerts: checked }))}
                         />
                         <NotificationToggle
                           icon={<AlertTriangle className="h-5 w-5" />}
-                          title="System Alerts"
-                          description="Important system notifications"
+                          title={t('notifications.alerts.system.title')}
+                          description={t('notifications.alerts.system.description')}
                           checked={notifications.systemAlerts}
                           onChange={(checked) => setNotifications(prev => ({ ...prev, systemAlerts: checked }))}
                         />
                         <NotificationToggle
                           icon={<Volume2 className="h-5 w-5" />}
-                          title="Sound Effects"
-                          description="Play sounds for important events"
+                          title={t('notifications.sound.title')}
+                          description={t('notifications.sound.description')}
                           checked={notifications.sound}
                           onChange={(checked) => setNotifications(prev => ({ ...prev, sound: checked }))}
                         />
@@ -1304,7 +1304,7 @@ const Settings = () => {
                   {/* Alert Threshold */}
                   <GlassCard>
                       <SliderSetting
-                        label="Price Alert Threshold"
+                        label={t('notifications.alerts.thresholdLabel')}
                         value={alertThreshold[0]}
                         unit="%"
                         min={1}
@@ -1312,7 +1312,7 @@ const Settings = () => {
                         step={1}
                         onChange={(v) => setAlertThreshold([v])}
                         color="warning"
-                        description="Minimum price change to trigger an alert"
+                        description={t('notifications.alerts.thresholdDesc')}
                       />
                   </GlassCard>
 
@@ -1328,20 +1328,20 @@ const Settings = () => {
               {activeSection === "security" && (
                 <div className="space-y-6">
                   <SectionHeader
-                    title="Account & Security"
-                    subtitle="Manage your profile and security settings"
+                    title={t('security.title')}
+                    subtitle={t('security.subtitle')}
                     icon={Shield}
                   />
 
                   {/* Profile Info */}
                   <GlassCard>
                     <div className="flex items-center gap-4 mb-6">
-                      <GlowIcon icon={User} size="lg" color={luxuryColors.cyan} />
+                      <GlowIcon icon={User} size="lg" color={colors.cyan} />
                       <div>
-                        <h3 className="font-semibold text-lg" style={{ color: luxuryColors.textPrimary }}>
-                          Trader Profile
+                        <h3 className="font-semibold text-lg" style={{ color: colors.textPrimary }}>
+                          {t('security.profile.title')}
                         </h3>
-                        <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
+                        <p className="text-sm" style={{ color: colors.textMuted }}>
                           trader@example.com
                         </p>
                       </div>
@@ -1349,12 +1349,12 @@ const Settings = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <PremiumInput
-                        label="Display Name"
+                        label={t('security.profile.displayName')}
                         value="Crypto Trader"
                         onChange={() => {}}
                       />
                       <PremiumInput
-                        label="Email"
+                        label={t('security.profile.email')}
                         value="trader@example.com"
                         onChange={() => {}}
                         disabled
@@ -1369,19 +1369,19 @@ const Settings = () => {
                         <GlowIcon
                           icon={Shield}
                           size="lg"
-                          color={twoFactorEnabled ? luxuryColors.profit : luxuryColors.textMuted}
+                          color={twoFactorEnabled ? colors.profit : colors.textMuted}
                         />
                         <div>
-                          <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
-                            Two-Factor Authentication
+                          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
+                            {t('security.twoFactor.title')}
                           </h3>
-                          <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                            {twoFactorEnabled ? "Your account is protected with 2FA" : "Add an extra layer of security"}
+                          <p className="text-sm" style={{ color: colors.textMuted }}>
+                            {twoFactorEnabled ? t('security.twoFactor.protected') : t('security.twoFactor.description')}
                           </p>
                         </div>
                       </div>
                       <Badge variant={twoFactorEnabled ? "success" : "warning"}>
-                        {twoFactorEnabled ? "Enabled" : "Disabled"}
+                        {twoFactorEnabled ? t('security.twoFactor.enabled') : t('security.twoFactor.disabled')}
                       </Badge>
                     </div>
 
@@ -1400,25 +1400,25 @@ const Settings = () => {
                       {isSettingUp2FA ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Setting up...
+                          {t('security.twoFactor.settingUp')}
                         </>
-                      ) : twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+                      ) : twoFactorEnabled ? t('security.twoFactor.disable') : t('security.twoFactor.enable')}
                     </PremiumButton>
                   </GlassCard>
 
                   {/* Change Password */}
                   <GlassCard>
-                    <h3 className="font-semibold mb-4" style={{ color: luxuryColors.textPrimary }}>
-                      Change Password
+                    <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>
+                      {t('security.password.title')}
                     </h3>
                     <form onSubmit={async (e) => {
                       e.preventDefault();
                       if (passwordData.new !== passwordData.confirm) {
-                        toast.error('New passwords do not match');
+                        toast.error(t('security.password.mismatch'));
                         return;
                       }
                       if (passwordData.new.length < 8) {
-                        toast.error('Password must be at least 8 characters');
+                        toast.error(t('security.password.tooShort'));
                         return;
                       }
                       const success = await changePassword(passwordData.current, passwordData.new);
@@ -1431,21 +1431,21 @@ const Settings = () => {
                           type="password"
                           value={passwordData.current}
                           onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
-                          placeholder="Current password"
+                          placeholder={t('security.password.currentPlaceholder')}
                           disabled={isChangingPassword}
                         />
                         <PremiumInput
                           type="password"
                           value={passwordData.new}
                           onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
-                          placeholder="New password"
+                          placeholder={t('security.password.newPlaceholder')}
                           disabled={isChangingPassword}
                         />
                         <PremiumInput
                           type="password"
                           value={passwordData.confirm}
                           onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
-                          placeholder="Confirm new password"
+                          placeholder={t('security.password.confirmPlaceholder')}
                           disabled={isChangingPassword}
                         />
                       </div>
@@ -1459,9 +1459,9 @@ const Settings = () => {
                           {isChangingPassword ? (
                             <>
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Updating...
+                              {t('security.password.updating')}
                             </>
-                          ) : 'Update Password'}
+                          ) : t('security.password.update')}
                         </PremiumButton>
                       </div>
                     </form>
@@ -1469,17 +1469,17 @@ const Settings = () => {
 
                   {/* Active Sessions */}
                   <GlassCard>
-                    <h3 className="font-semibold mb-4" style={{ color: luxuryColors.textPrimary }}>
-                      Active Sessions
+                    <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>
+                      {t('security.sessions.title')}
                     </h3>
                     <div className="space-y-3">
                       {isLoadingSessions ? (
                         <div className="flex justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin" style={{ color: luxuryColors.textMuted }} />
+                          <Loader2 className="w-6 h-6 animate-spin" style={{ color: colors.textMuted }} />
                         </div>
                       ) : sessions.length === 0 ? (
-                        <p className="text-center py-4" style={{ color: luxuryColors.textMuted }}>
-                          No active sessions found
+                        <p className="text-center py-4" style={{ color: colors.textMuted }}>
+                          {t('security.sessions.noSessions')}
                         </p>
                       ) : (
                         sessions.map((session) => (
@@ -1487,21 +1487,21 @@ const Settings = () => {
                             key={session.session_id}
                             className="flex items-center justify-between p-4 rounded-xl border"
                             style={{
-                              backgroundColor: luxuryColors.bgSecondary,
-                              borderColor: luxuryColors.borderSubtle,
+                              backgroundColor: colors.bgSecondary,
+                              borderColor: colors.borderSubtle,
                             }}
                           >
                             <div className="flex items-center gap-3">
                               <GlowIcon
                                 icon={Smartphone}
                                 size="sm"
-                                color={session.is_current ? luxuryColors.profit : luxuryColors.textMuted}
+                                color={session.is_current ? colors.profit : colors.textMuted}
                               />
                               <div>
-                                <div className="font-medium" style={{ color: luxuryColors.textPrimary }}>
+                                <div className="font-medium" style={{ color: colors.textPrimary }}>
                                   {session.browser} on {session.os}
                                 </div>
-                                <div className="text-xs" style={{ color: luxuryColors.textMuted }}>
+                                <div className="text-xs" style={{ color: colors.textMuted }}>
                                   {session.location}
                                 </div>
                               </div>
@@ -1510,18 +1510,18 @@ const Settings = () => {
                               <div
                                 className="text-sm"
                                 style={{
-                                  color: session.is_current ? luxuryColors.profit : luxuryColors.textMuted
+                                  color: session.is_current ? colors.profit : colors.textMuted
                                 }}
                               >
-                                {session.is_current ? 'Active now' : formatLastActive(session.last_active)}
+                                {session.is_current ? t('security.sessions.activeNow') : formatLastActive(session.last_active)}
                               </div>
                               {!session.is_current && (
                                 <button
                                   className="text-xs hover:underline"
-                                  style={{ color: luxuryColors.loss }}
+                                  style={{ color: colors.loss }}
                                   onClick={() => revokeSession(session.session_id)}
                                 >
-                                  Revoke
+                                  {t('security.sessions.revoke')}
                                 </button>
                               )}
                             </div>
@@ -1534,25 +1534,25 @@ const Settings = () => {
                         <AlertDialogTrigger asChild>
                           <PremiumButton variant="danger" fullWidth disabled={sessions.length <= 1}>
                             <LogOut className="h-4 w-4" />
-                            Sign Out All Devices
+                            {t('security.sessions.signOutAll')}
                           </PremiumButton>
                         </AlertDialogTrigger>
                         <AlertDialogContent className="bg-slate-900 border-slate-700">
                           <AlertDialogHeader>
                             <AlertDialogTitle className="text-gray-100">
-                              Sign Out All Sessions?
+                              {t('security.sessions.signOutAllTitle')}
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-gray-400">
-                              This will sign you out from all devices except this one.
+                              {t('security.sessions.signOutAllDesc')}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel className="border-slate-700">Cancel</AlertDialogCancel>
+                            <AlertDialogCancel className="border-slate-700">{t('common.cancel')}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={revokeAllSessions}
                               className="bg-red-600 hover:bg-red-700"
                             >
-                              Sign Out All
+                              {t('security.sessions.signOutAllButton')}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -1578,8 +1578,8 @@ const Settings = () => {
           <DialogContent
             className="max-w-md border-0 p-0 overflow-hidden"
             style={{
-              background: `linear-gradient(135deg, ${luxuryColors.cardBg} 0%, rgba(15, 23, 42, 0.98) 100%)`,
-              boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px ${luxuryColors.cyan}15`,
+              background: `linear-gradient(135deg, ${colors.cardBg} 0%, rgba(15, 23, 42, 0.98) 100%)`,
+              boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px ${colors.cyan}15`,
               backdropFilter: 'blur(20px)',
             }}
           >
@@ -1588,16 +1588,16 @@ const Settings = () => {
                 <div className="flex items-center gap-3 mb-2">
                   <div
                     className="p-2 rounded-lg"
-                    style={{ background: `${luxuryColors.cyan}20` }}
+                    style={{ background: `${colors.cyan}20` }}
                   >
-                    <Shield className="w-5 h-5" style={{ color: luxuryColors.cyan }} />
+                    <Shield className="w-5 h-5" style={{ color: colors.cyan }} />
                   </div>
-                  <DialogTitle style={{ color: luxuryColors.text }}>
-                    Set Up Two-Factor Authentication
+                  <DialogTitle style={{ color: colors.text }}>
+                    {t('security.twoFactor.setupTitle')}
                   </DialogTitle>
                 </div>
-                <DialogDescription style={{ color: luxuryColors.textMuted }}>
-                  Scan this QR code with your authenticator app, then enter the verification code.
+                <DialogDescription style={{ color: colors.textMuted }}>
+                  {t('security.twoFactor.setupDescription')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1609,7 +1609,7 @@ const Settings = () => {
                     style={{
                       background: 'white',
                       maxWidth: '220px',
-                      boxShadow: `0 4px 20px ${luxuryColors.cyan}30`
+                      boxShadow: `0 4px 20px ${colors.cyan}30`
                     }}
                   >
                     <img
@@ -1621,7 +1621,7 @@ const Settings = () => {
 
                   {/* Manual Entry Secret */}
                   <div className="space-y-2">
-                    <Label style={{ color: luxuryColors.textSecondary }}>Manual Entry Code</Label>
+                    <Label style={{ color: colors.textSecondary }}>{t('security.twoFactor.manualEntryLabel')}</Label>
                     <div className="flex gap-2">
                       <PremiumInput
                         readOnly
@@ -1637,15 +1637,15 @@ const Settings = () => {
                         <Copy className="w-4 h-4" />
                       </PremiumButton>
                     </div>
-                    <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
-                      If you can't scan the QR code, enter this secret manually in your authenticator app.
+                    <p className="text-xs" style={{ color: colors.textMuted }}>
+                      {t('security.twoFactor.manualEntryHint')}
                     </p>
                   </div>
 
                   {/* Verification Code Input */}
                   <div className="space-y-2">
-                    <Label htmlFor="verificationCode" style={{ color: luxuryColors.textSecondary }}>
-                      Verification Code
+                    <Label htmlFor="verificationCode" style={{ color: colors.textSecondary }}>
+                      {t('security.twoFactor.verificationCodeLabel')}
                     </Label>
                     <PremiumInput
                       id="verificationCode"
@@ -1664,7 +1664,7 @@ const Settings = () => {
 
               <DialogFooter className="mt-6 gap-3">
                 <PremiumButton variant="secondary" onClick={cancelSetup2FA}>
-                  Cancel
+                  {t('common.cancel')}
                 </PremiumButton>
                 <PremiumButton
                   variant="success"
@@ -1674,10 +1674,10 @@ const Settings = () => {
                   {isSecurityLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Verifying...
+                      {t('security.twoFactor.verifying')}
                     </>
                   ) : (
-                    'Enable 2FA'
+                    t('security.twoFactor.enable')
                   )}
                 </PremiumButton>
               </DialogFooter>
@@ -1690,8 +1690,8 @@ const Settings = () => {
           <DialogContent
             className="max-w-md border-0 p-0 overflow-hidden"
             style={{
-              background: `linear-gradient(135deg, ${luxuryColors.cardBg} 0%, rgba(15, 23, 42, 0.98) 100%)`,
-              boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px ${luxuryColors.red}15`,
+              background: `linear-gradient(135deg, ${colors.cardBg} 0%, rgba(15, 23, 42, 0.98) 100%)`,
+              boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px ${colors.red}15`,
               backdropFilter: 'blur(20px)',
             }}
           >
@@ -1700,22 +1700,22 @@ const Settings = () => {
                 <div className="flex items-center gap-3 mb-2">
                   <div
                     className="p-2 rounded-lg"
-                    style={{ background: `${luxuryColors.red}20` }}
+                    style={{ background: `${colors.red}20` }}
                   >
-                    <AlertTriangle className="w-5 h-5" style={{ color: luxuryColors.red }} />
+                    <AlertTriangle className="w-5 h-5" style={{ color: colors.red }} />
                   </div>
-                  <DialogTitle style={{ color: luxuryColors.text }}>
-                    Disable Two-Factor Authentication?
+                  <DialogTitle style={{ color: colors.text }}>
+                    {t('security.twoFactor.disableTitle')}
                   </DialogTitle>
                 </div>
-                <DialogDescription style={{ color: luxuryColors.textMuted }}>
-                  This will make your account less secure. Enter your 2FA code to confirm.
+                <DialogDescription style={{ color: colors.textMuted }}>
+                  {t('security.twoFactor.disableDescription')}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-2">
-                <Label htmlFor="disableCode" style={{ color: luxuryColors.textSecondary }}>
-                  Current 2FA Code
+                <Label htmlFor="disableCode" style={{ color: colors.textSecondary }}>
+                  {t('security.twoFactor.currentCodeLabel')}
                 </Label>
                 <PremiumInput
                   id="disableCode"
@@ -1738,7 +1738,7 @@ const Settings = () => {
                     setDisableCode('');
                   }}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </PremiumButton>
                 <PremiumButton
                   variant="danger"
@@ -1748,10 +1748,10 @@ const Settings = () => {
                   {isSecurityLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Disabling...
+                      {t('security.twoFactor.disabling')}
                     </>
                   ) : (
-                    'Disable 2FA'
+                    t('security.twoFactor.disable')
                   )}
                 </PremiumButton>
               </DialogFooter>
@@ -1875,39 +1875,42 @@ const NotificationToggle = ({
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
-}) => (
-  <div
-    className="flex items-center justify-between p-4 rounded-xl border transition-colors"
-    style={{
-      backgroundColor: checked ? 'rgba(0, 217, 255, 0.1)' : luxuryColors.bgSecondary,
-      borderColor: checked ? 'rgba(0, 217, 255, 0.2)' : luxuryColors.borderSubtle,
-    }}
-  >
-    <div className="flex items-center gap-3">
-      <div
-        className="p-2 rounded-lg"
-        style={{
-          backgroundColor: checked ? 'rgba(0, 217, 255, 0.2)' : luxuryColors.bgTertiary,
-          color: checked ? luxuryColors.cyan : luxuryColors.textMuted,
-        }}
-      >
-        {icon}
-      </div>
-      <div>
+}) => {
+  const colors = useThemeColors();
+  return (
+    <div
+      className="flex items-center justify-between p-4 rounded-xl border transition-colors"
+      style={{
+        backgroundColor: checked ? 'rgba(0, 217, 255, 0.1)' : colors.bgSecondary,
+        borderColor: checked ? 'rgba(0, 217, 255, 0.2)' : colors.borderSubtle,
+      }}
+    >
+      <div className="flex items-center gap-3">
         <div
-          className="font-medium"
-          style={{ color: checked ? luxuryColors.textPrimary : luxuryColors.textMuted }}
+          className="p-2 rounded-lg"
+          style={{
+            backgroundColor: checked ? 'rgba(0, 217, 255, 0.2)' : colors.bgTertiary,
+            color: checked ? colors.cyan : colors.textMuted,
+          }}
         >
-          {title}
+          {icon}
         </div>
-        <div className="text-xs" style={{ color: luxuryColors.textMuted }}>
-          {description}
+        <div>
+          <div
+            className="font-medium"
+            style={{ color: checked ? colors.textPrimary : colors.textMuted }}
+          >
+            {title}
+          </div>
+          <div className="text-xs" style={{ color: colors.textMuted }}>
+            {description}
+          </div>
         </div>
       </div>
+      <PremiumSwitch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
-    <PremiumSwitch checked={checked} onCheckedChange={onChange} disabled={disabled} />
-  </div>
-);
+  );
+};
 
 // Save Button Component with states
 const SaveButton = ({

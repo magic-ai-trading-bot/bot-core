@@ -1,0 +1,421 @@
+{
+  "common": {
+    "backToHome": "Retour à l'accueil",
+    "getStarted": "Commencer",
+    "viewPricing": "Voir les tarifs",
+    "learnMore": "En savoir plus",
+    "contactUs": "Contactez-nous",
+    "startFreeTrial": "Essai gratuit"
+  },
+  "features": {
+    "badge": "Fonctionnalités",
+    "title": "Fonctionnalités puissantes pour",
+    "subtitle": "les traders modernes",
+    "description": "Tout ce dont vous avez besoin pour trader plus intelligemment, plus rapidement et plus rentablement avec la technologie IA de pointe.",
+    "andMore": "Et bien plus...",
+    "readyTitle": "Prêt à commencer le trading?",
+    "readyDescription": "Rejoignez des milliers de traders utilisant Bot Core pour automatiser leurs stratégies de trading.",
+    "getStartedFree": "Commencer gratuitement",
+    "items": {
+      "aiAnalysis": {
+        "title": "Analyse alimentée par l'IA",
+        "description": "Des modèles d'apprentissage automatique avancés analysent les modèles de marché, le sentiment et les indicateurs techniques en temps réel.",
+        "highlights": ["Modèles LSTM & Transformer", "Analyse de marché GPT-4", "Détection de sentiment"]
+      },
+      "tradingBot": {
+        "title": "Bot de trading automatisé",
+        "description": "Définissez votre stratégie une fois et laissez notre bot exécuter des trades 24h/24 et 7j/7.",
+        "highlights": ["Trading 24/7", "Stratégies multiples", "Paper & Live Trading"]
+      },
+      "riskManagement": {
+        "title": "Gestion avancée des risques",
+        "description": "Protégez votre capital avec des algorithmes intelligents de stop-loss et de dimensionnement de position.",
+        "highlights": ["Stop Loss dynamique", "Dimensionnement de position", "Protection contre le drawdown"]
+      },
+      "analytics": {
+        "title": "Analytique en temps réel",
+        "description": "Surveillez la performance de votre portefeuille avec des tableaux de bord complets.",
+        "highlights": ["Suivi P&L en direct", "Métriques de performance", "Historique des trades"]
+      },
+      "execution": {
+        "title": "Exécution ultra-rapide",
+        "description": "Exécutez des trades en millisecondes avec notre infrastructure optimisée.",
+        "highlights": ["<50ms de latence", "Routage intelligent", "Protection contre le slippage"]
+      },
+      "strategies": {
+        "title": "Stratégies multiples",
+        "description": "Choisissez parmi des stratégies de trading éprouvées incluant RSI, MACD, Bollinger Bands.",
+        "highlights": ["Stratégie RSI", "Croisement MACD", "Bandes de Bollinger"]
+      }
+    },
+    "additional": {
+      "backtesting": { "title": "Moteur de backtesting", "description": "Testez vos stratégies sur des données historiques" },
+      "security": { "title": "Sécurité bancaire", "description": "Chiffrement de bout en bout & 2FA" },
+      "multiExchange": { "title": "Support multi-échanges", "description": "Tradez sur Binance, Bybit & plus" },
+      "monitoring": { "title": "Surveillance 24/7", "description": "Monitoring système permanent" },
+      "alerts": { "title": "Alertes personnalisées", "description": "Telegram, Discord & Email" },
+      "aiSignals": { "title": "Signaux IA", "description": "Prédictions par machine learning" }
+    }
+  },
+  "pricing": {
+    "badge": "Tarification simple",
+    "title": "Choisissez votre",
+    "subtitle": "plan de trading",
+    "description": "Commencez gratuitement et évoluez selon vos besoins. Pas de frais cachés.",
+    "mostPopular": "Le plus populaire",
+    "faq": "Questions fréquentes",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "Gratuit",
+        "description": "Parfait pour apprendre et le paper trading",
+        "features": ["Paper Trading uniquement", "3 stratégies actives", "Signaux IA basiques", "Support communauté", "1 connexion exchange", "Rapports quotidiens"],
+        "cta": "Commencer gratuitement"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "49€",
+        "period": "/mois",
+        "description": "Pour les traders sérieux prêts à passer en live",
+        "features": ["Trading live activé", "Stratégies illimitées", "Analyse IA avancée", "Support prioritaire", "3 connexions exchange", "Alertes temps réel", "Gestion des risques avancée", "Constructeur de stratégies"],
+        "cta": "Commencer"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Sur mesure",
+        "description": "Pour les fonds et traders professionnels",
+        "features": ["Tout dans Pro", "Exchanges illimités", "Account manager dédié", "Intégration API personnalisée", "Options marque blanche", "Garantie SLA", "Déploiement on-premise", "Entraînement modèle IA personnalisé"],
+        "cta": "Contacter les ventes"
+      }
+    },
+    "faqs": {
+      "switch": { "question": "Puis-je changer de plan à tout moment?", "answer": "Oui, vous pouvez upgrader ou downgrader votre plan à tout moment." },
+      "trial": { "question": "Y a-t-il un essai gratuit pour Pro?", "answer": "Oui! Vous avez 14 jours d'essai gratuit. Pas de carte bancaire requise." },
+      "payment": { "question": "Quels modes de paiement acceptez-vous?", "answer": "Nous acceptons les cartes bancaires, PayPal et crypto (BTC, ETH, USDT)." },
+      "cancel": { "question": "Puis-je annuler à tout moment?", "answer": "Absolument. Annulez votre abonnement à tout moment sans frais." }
+    }
+  },
+  "about": {
+    "badge": "À propos de nous",
+    "title": "Construire l'avenir du",
+    "subtitle": "trading automatisé",
+    "description": "Nous croyons que tout le monde mérite l'accès à une technologie de trading de niveau institutionnel.",
+    "stats": { "activeUsers": "Utilisateurs actifs", "countries": "Pays", "tradesExecuted": "Trades exécutés", "totalVolume": "Volume total" },
+    "values": {
+      "title": "Nos valeurs",
+      "missionDriven": { "title": "Mission", "description": "Démocratiser le trading algorithmique pour tous." },
+      "userFirst": { "title": "Utilisateur d'abord", "description": "Chaque fonctionnalité commence par comprendre les besoins de nos utilisateurs." },
+      "innovation": { "title": "Innovation", "description": "Nous repoussons les limites du possible avec l'IA et le trading." },
+      "globalImpact": { "title": "Impact global", "description": "Créer des outils qui responsabilisent les traders du monde entier." }
+    },
+    "journey": {
+      "title": "Notre parcours",
+      "milestones": [
+        { "year": "2021", "event": "Fondé à San Francisco" },
+        { "year": "2022", "event": "Lancement beta avec 1,000 utilisateurs" },
+        { "year": "2023", "event": "Financement Série A, 50,000+ utilisateurs" },
+        { "year": "2024", "event": "Moteur de trading IA v2.0 lancé" }
+      ]
+    },
+    "team": { "title": "Notre équipe" },
+    "cta": { "title": "Rejoignez notre mission", "description": "Nous recherchons des personnes talentueuses.", "viewPositions": "Voir les postes ouverts", "getInTouch": "Nous contacter" }
+  },
+  "contact": {
+    "badge": "Contactez-nous",
+    "title": "Prenez contact",
+    "description": "Des questions? Nous sommes là pour vous aider.",
+    "info": {
+      "email": { "title": "Email", "value": "support@botcore.io", "description": "Réponse sous 24h" },
+      "liveChat": { "title": "Chat en direct", "value": "Disponible 24/7", "description": "Discutez avec notre équipe" },
+      "phone": { "title": "Téléphone", "value": "+1 (555) 123-4567", "description": "Lun-Ven 9h-18h" },
+      "office": { "title": "Bureau", "value": "San Francisco, CA", "description": "123 Market Street" }
+    },
+    "form": {
+      "title": "Envoyez-nous un message",
+      "name": "Votre nom",
+      "namePlaceholder": "Jean Dupont",
+      "email": "Adresse email",
+      "emailPlaceholder": "jean@exemple.com",
+      "category": "Catégorie",
+      "subject": "Sujet",
+      "subjectPlaceholder": "Comment pouvons-nous vous aider?",
+      "message": "Message",
+      "messagePlaceholder": "Dites-nous en plus sur votre demande...",
+      "submit": "Envoyer le message",
+      "success": "Message envoyé avec succès!"
+    },
+    "categories": {
+      "title": "Comment pouvons-nous vous aider?",
+      "general": { "title": "Demande générale", "description": "Questions sur notre plateforme" },
+      "technical": { "title": "Support technique", "description": "Aide pour les problèmes techniques" },
+      "enterprise": { "title": "Ventes Enterprise", "description": "Solutions personnalisées" },
+      "partnership": { "title": "Partenariat", "description": "Opportunités de collaboration" }
+    },
+    "responseTime": {
+      "title": "Temps de réponse",
+      "items": [
+        "Email: Sous 24 heures",
+        "Chat en direct: Moins de 5 minutes",
+        "Téléphone: Immédiat pendant les heures de bureau",
+        "Enterprise: Support dédié"
+      ]
+    }
+  },
+  "blog": {
+    "badge": "Notre Blog",
+    "title": "Dernières actualités &",
+    "subtitle": "conseils de trading",
+    "description": "Restez informé des dernières analyses de marché et mises à jour de la plateforme.",
+    "readMore": "Lire plus",
+    "viewAll": "Voir tous les articles",
+    "categories": { "all": "Tous", "trading": "Trading", "ai": "IA & ML", "market": "Analyse de marché", "tutorials": "Tutoriels" }
+  },
+  "careers": {
+    "badge": "Rejoignez notre équipe",
+    "title": "Construisez l'avenir du",
+    "subtitle": "trading IA",
+    "description": "Nous recherchons des personnes passionnées pour révolutionner le trading algorithmique.",
+    "whyJoin": {
+      "title": "Pourquoi rejoindre Bot Core?",
+      "items": [
+        { "title": "Salaire compétitif", "description": "Rémunération top niveau avec options" },
+        { "title": "Remote-First", "description": "Travaillez de n'importe où" },
+        { "title": "Avantages santé", "description": "Couverture médicale complète" },
+        { "title": "Budget formation", "description": "2,000€ annuel développement pro" },
+        { "title": "Congés flexibles", "description": "Politique illimitée" },
+        { "title": "Événements équipe", "description": "Offsites trimestrielles" }
+      ]
+    },
+    "openings": { "title": "Postes ouverts", "apply": "Postuler" },
+    "noPosition": { "title": "Vous ne voyez pas votre rôle?", "description": "Envoyez-nous votre CV.", "button": "Envoyer CV" }
+  },
+  "privacy": {
+    "badge": "Politique de confidentialité",
+    "title": "Votre vie privée",
+    "subtitle": "nous importe",
+    "lastUpdated": "Dernière mise à jour: Janvier 2024",
+    "description": "Nous nous engageons à protéger votre vie privée.",
+    "contact": "Pour les demandes liées à la confidentialité, contactez privacy@botcore.io"
+  },
+  "terms": {
+    "badge": "Conditions d'utilisation",
+    "title": "Conditions",
+    "subtitle": "d'utilisation",
+    "lastUpdated": "Dernière mise à jour: Janvier 2024",
+    "description": "Veuillez lire attentivement ces conditions avant d'utiliser Bot Core.",
+    "contact": "Pour des questions sur ces conditions, contactez legal@botcore.io"
+  },
+  "security": {
+    "badge": "Sécurité",
+    "title": "Votre sécurité",
+    "subtitle": "notre priorité",
+    "description": "Nous mettons en œuvre des mesures de sécurité de pointe pour protéger vos actifs.",
+    "features": {
+      "encryption": { "title": "Chiffrement de bout en bout", "description": "Toutes les données sont chiffrées avec AES-256." },
+      "mfa": { "title": "Authentification multi-facteurs", "description": "Protégez votre compte avec 2FA." },
+      "keys": { "title": "Stockage sécurisé des clés API", "description": "Vos clés API sont chiffrées et stockées en coffre-fort." },
+      "audit": { "title": "Audits de sécurité réguliers", "description": "Tests de pénétration trimestriels." },
+      "soc2": { "title": "Conforme SOC 2 Type II", "description": "Conformité stricte aux normes SOC 2." },
+      "monitoring": { "title": "Surveillance 24/7", "description": "Notre équipe surveille les menaces en permanence." }
+    },
+    "practices": { "title": "Bonnes pratiques de sécurité" },
+    "report": { "title": "Signaler une vulnérabilité", "description": "Trouvé un problème de sécurité?", "button": "Signaler" }
+  },
+  "compliance": {
+    "badge": "Conformité",
+    "title": "Conformité",
+    "subtitle": "réglementaire",
+    "description": "Bot Core maintient une conformité stricte avec les réglementations financières.",
+    "certifications": { "title": "Certifications & Standards" },
+    "policies": { "title": "Politiques de conformité" },
+    "updates": { "title": "Mises à jour de conformité", "description": "Nous mettons continuellement à jour nos pratiques." },
+    "contact": "Pour les demandes de conformité, contactez compliance@botcore.io"
+  },
+  "api": {
+    "badge": "API Développeur",
+    "title": "Construisez avec",
+    "subtitle": "l'API Bot Core",
+    "description": "Des APIs puissantes pour intégrer l'automatisation du trading dans vos applications.",
+    "features": {
+      "rest": { "title": "API RESTful", "description": "Endpoints REST standard" },
+      "websocket": { "title": "Flux WebSocket", "description": "Données de marché en temps réel" },
+      "sdks": { "title": "SDKs officiels", "description": "Bibliothèques pour Python, JavaScript et plus" },
+      "docs": { "title": "Documentation complète", "description": "Documentation détaillée avec exemples" }
+    },
+    "quickStart": { "title": "Démarrage rapide", "description": "Commencez avec notre API en quelques minutes" },
+    "viewDocs": "Voir la documentation",
+    "getApiKey": "Obtenir une clé API"
+  },
+  "docs": {
+    "badge": "Documentation",
+    "title": "Apprenez à",
+    "subtitle": "utiliser Bot Core",
+    "description": "Guides et tutoriels complets pour vous aider à démarrer.",
+    "sections": {
+      "gettingStarted": { "title": "Démarrage", "description": "Guides de démarrage rapide" },
+      "trading": { "title": "Guides de trading", "description": "Apprenez les fonctionnalités de trading" },
+      "api": { "title": "Référence API", "description": "Documentation technique" },
+      "strategies": { "title": "Stratégies de trading", "description": "Nos algorithmes de trading" }
+    },
+    "viewAll": "Voir toute la documentation"
+  },
+  "howItWorks": {
+    "badge": "BOT DE TRADING IA",
+    "hero": {
+      "title": "Trading intelligent,",
+      "titleHighlight": "Sans émotion",
+      "subtitle": "Trading crypto automatisé avec analyse IA avancée, surveillance du marché en temps réel et gestion intelligente des risques."
+    },
+    "stats": {
+      "strategies": "Stratégies de trading",
+      "riskLayers": "Couches de risque",
+      "uptime": "Disponibilité",
+      "aiAccuracy": "Précision IA"
+    },
+    "process": {
+      "title": "Comment fonctionne Bot Core",
+      "subtitle": "Notre système de trading IA suit un processus en 4 étapes pour identifier et exécuter des trades rentables."
+    },
+    "steps": {
+      "dataCollection": {
+        "number": "01",
+        "title": "Collecte de données",
+        "subtitle": "Agrégation de données de marché en temps réel",
+        "description": "Notre système collecte et traite continuellement des données de marché en temps réel depuis plusieurs sources.",
+        "details": [
+          "Flux de prix des principales bourses",
+          "Analyse de la profondeur du carnet d'ordres",
+          "Métriques de volume et de liquidité",
+          "Signaux de sentiment social"
+        ]
+      },
+      "technicalAnalysis": {
+        "number": "02",
+        "title": "Analyse technique",
+        "subtitle": "Évaluation multi-indicateurs",
+        "description": "Analyse technique avancée utilisant des indicateurs éprouvés pour identifier des opportunités de trading.",
+        "details": [
+          "Analyse de momentum RSI",
+          "Détection de tendance MACD",
+          "Cassures Bollinger Band",
+          "Signaux de confirmation de volume"
+        ]
+      },
+      "signalGeneration": {
+        "number": "03",
+        "title": "Génération de signaux",
+        "subtitle": "Décisions de trading par IA",
+        "description": "Nos modèles ML analysent les patterns et génèrent des signaux de trading avec des scores de confiance.",
+        "details": [
+          "Prédictions réseau neural LSTM",
+          "Analyse de marché GPT-4",
+          "Vote ensemble multi-modèles",
+          "Signaux pondérés par confiance"
+        ]
+      },
+      "riskManagement": {
+        "number": "04",
+        "title": "Gestion des risques",
+        "subtitle": "Dimensionnement intelligent des positions",
+        "description": "Chaque trade passe par notre système de gestion des risques pour protéger votre capital.",
+        "details": [
+          "Dimensionnement dynamique des positions",
+          "Placement automatique de stop-loss",
+          "Analyse de corrélation du portefeuille",
+          "Application de la limite de perte quotidienne"
+        ]
+      }
+    },
+    "strategies": {
+      "title": "Stratégies de trading",
+      "subtitle": "Choisissez parmi nos stratégies éprouvées, chacune optimisée pour différentes conditions de marché.",
+      "winRate": "Taux de réussite",
+      "buy": "Achat",
+      "sell": "Vente",
+      "items": {
+        "rsi": {
+          "name": "Stratégie RSI",
+          "description": "Trading basé sur le momentum utilisant le RSI pour identifier les conditions de surachat et survente.",
+          "winRate": "62%"
+        },
+        "macd": {
+          "name": "Stratégie MACD",
+          "description": "Stratégie de suivi de tendance utilisant les croisements MACD.",
+          "winRate": "58%"
+        },
+        "bollinger": {
+          "name": "Bandes de Bollinger",
+          "description": "Stratégie basée sur la volatilité tradant les retournements aux limites des bandes.",
+          "winRate": "60%"
+        },
+        "volume": {
+          "name": "Stratégie Volume",
+          "description": "Analyse pondérée par le volume pour confirmer les mouvements de prix.",
+          "winRate": "52%"
+        },
+        "stochastic": {
+          "name": "Stochastique",
+          "description": "Oscillateur de momentum comparant le prix de clôture à la plage de prix.",
+          "winRate": "64%"
+        }
+      },
+      "note": "Taux de réussite basés sur le backtesting historique. Les performances passées ne garantissent pas les résultats futurs.",
+      "multiConfirmation": {
+        "title": "Confirmation multi-stratégies requise",
+        "description": "Les trades ne sont exécutés que lorsqu'au moins 4 stratégies sur 5 s'accordent sur la direction du signal."
+      }
+    },
+    "risk": {
+      "title": "Couches de gestion des risques",
+      "subtitle": "Plusieurs couches de protection pour sécuriser votre capital de trading.",
+      "layers": {
+        "position": {
+          "title": "Risque de position",
+          "description": "Maximum 2% du portefeuille par trade"
+        },
+        "stopLoss": {
+          "title": "Stop Loss",
+          "description": "Limitation automatique des pertes"
+        },
+        "portfolio": {
+          "title": "Risque portefeuille",
+          "description": "Exposition diversifiée entre les positions"
+        },
+        "daily": {
+          "title": "Limite quotidienne",
+          "description": "Protection drawdown max 5%/jour"
+        },
+        "consecutiveLosses": {
+          "title": "Pertes consécutives",
+          "description": "Avant le cool-down"
+        },
+        "correlation": {
+          "title": "Corrélation",
+          "description": "Limite d'exposition directionnelle 70%"
+        },
+        "cooldown": {
+          "title": "Cool-down",
+          "description": "Pause de 60 min après 5 pertes consécutives"
+        }
+      }
+    },
+    "trailingStop": {
+      "title": "Protection Trailing Stop",
+      "subtitle": "Verrouillez les profits tout en laissant courir les gagnants",
+      "description": "Notre système de trailing stop intelligent ajuste automatiquement votre stop-loss à mesure que le prix évolue en votre faveur.",
+      "result": "Résultat: +3.47% de profit ($1,560) protégé même quand le prix a chuté du sommet",
+      "steps": {
+        "entry": "Entrée",
+        "profit": "+5% Profit",
+        "trailing": "Trailing actif",
+        "peak": "Prix max",
+        "exit": "Sortie"
+      }
+    },
+    "cta": {
+      "title": "Prêt à trader plus intelligemment?",
+      "subtitle": "Rejoignez des milliers de traders utilisant Bot Core pour automatiser leurs stratégies avec précision IA.",
+      "button": "Commencer Paper Trading gratuitement"
+    }
+  }
+}

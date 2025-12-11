@@ -437,7 +437,7 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
                     {[
                       60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280,
                       300, 320, 340,
-                    ].map((x, i) => {
+                    ].map((x, _i) => {
                       const height = Math.sin(i * 0.5) * 15 + 10;
                       const isPositive = height > 5;
                       return (
@@ -547,7 +547,7 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
                     {[
                       60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225,
                       240, 255, 270, 285, 300, 315, 330, 345,
-                    ].map((x, i) => {
+                    ].map((x, _i) => {
                       const height = Math.random() * 40 + 10;
                       const isHighVolume = height > 30;
                       return (

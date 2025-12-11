@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useAIAnalysis } from '../../hooks/useAIAnalysis'
-import { BotCoreApiClient } from '@/services/api'
 
 // Mock the API client module - must be hoisted before imports
 vi.mock('@/services/api', () => {

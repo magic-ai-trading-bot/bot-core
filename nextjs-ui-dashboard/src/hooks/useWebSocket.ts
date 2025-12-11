@@ -4,7 +4,6 @@ import logger from "@/utils/logger";
 import {
   WS_PING_INTERVAL_MS,
   WS_PONG_TIMEOUT_MS,
-  GOOD_LATENCY_MS,
   WARNING_LATENCY_MS,
   ERROR_LATENCY_MS,
 } from "@/constants/trading";
@@ -482,7 +481,7 @@ export const useWebSocket = (): WebSocketHook => {
         error: "Failed to create WebSocket connection",
       }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Update ref whenever connectWebSocket changes (for handleClose to access latest version)
@@ -496,7 +495,7 @@ export const useWebSocket = (): WebSocketHook => {
     }));
 
     connectWebSocket();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const disconnect = useCallback(() => {
@@ -551,7 +550,7 @@ export const useWebSocket = (): WebSocketHook => {
     if (import.meta.env.VITE_ENABLE_REALTIME !== "false") {
       connect();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []); // Empty array: run only once on mount
 
   return {

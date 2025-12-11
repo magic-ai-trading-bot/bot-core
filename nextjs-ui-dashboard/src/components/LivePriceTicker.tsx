@@ -36,7 +36,7 @@ export function LivePriceTicker() {
         });
         setPrices(initialPrices);
       }
-    } catch (error) {
+    } catch (_error) {
       // Fallback to default symbols if API fails
       const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT'];
       setSymbols(defaultSymbols);
@@ -65,7 +65,7 @@ export function LivePriceTicker() {
         if (message.type === 'price_update' && message.data) {
           const priceUpdates: Record<string, number> = message.data;
 
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+           
           setPrices(prev => {
             const updated = { ...prev };
             Object.entries(priceUpdates).forEach(([symbol, price]) => {
@@ -85,8 +85,8 @@ export function LivePriceTicker() {
             return updated;
           });
         }
-      } catch (error) {
-        // eslint-disable-next-line no-console
+      } catch (_error) {
+         
         console.error('Error parsing price update:', error);
       }
     }

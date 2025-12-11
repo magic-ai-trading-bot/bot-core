@@ -9,7 +9,6 @@ import { GlassCardWithHeader } from '@/components/ui/GlassCard';
 import { useTradingModeContext } from '@/contexts/TradingModeContext';
 import { colors, getModeColor } from '@/styles';
 import { TrendingUp, TrendingDown, Minus, Brain } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { AISignal } from '@/services/api';
 
 interface AISignalsWidgetProps {

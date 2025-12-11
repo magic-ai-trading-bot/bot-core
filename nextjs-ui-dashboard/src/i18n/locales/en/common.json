@@ -1,0 +1,75 @@
+{
+  "button": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "close": "Close",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "back": "Back",
+    "next": "Next",
+    "edit": "Edit",
+    "view": "View"
+  },
+  "label": {
+    "language": "Language",
+    "theme": "Theme",
+    "settings": "Settings",
+    "profile": "Profile",
+    "logout": "Log Out",
+    "login": "Log In",
+    "register": "Register"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "toggle": "Toggle theme"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "trading": "Trading",
+    "paperTrading": "Paper Trading",
+    "realTrading": "Real Trading",
+    "portfolio": "Portfolio",
+    "signals": "AI Signals",
+    "tradeAnalyses": "Trade Analyses",
+    "howItWorks": "How It Works",
+    "settings": "Settings",
+    "features": "Features",
+    "pricing": "Pricing",
+    "reviews": "Reviews",
+    "faq": "FAQ"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "completed": "Completed",
+    "failed": "Failed",
+    "loading": "Loading",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "time": {
+    "now": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "mode": {
+    "paper": "Paper Trading",
+    "real": "REAL TRADING"
+  },
+  "notification": {
+    "title": "Notifications",
+    "new": "{{count}} new",
+    "empty": "No notifications yet",
+    "emptyDesc": "We'll notify you when something happens",
+    "showing": "Showing {{current}} of {{total}} notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all"
+  }
+}

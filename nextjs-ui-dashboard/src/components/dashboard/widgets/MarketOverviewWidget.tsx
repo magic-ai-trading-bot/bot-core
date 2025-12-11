@@ -9,7 +9,6 @@ import { GlassCardWithHeader } from '@/components/ui/GlassCard';
 import { useTradingModeContext } from '@/contexts/TradingModeContext';
 import { colors, getModeColor } from '@/styles';
 import { Activity, TrendingUp, Flame } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 type SentimentLevel = 'fear' | 'neutral' | 'greed';
 

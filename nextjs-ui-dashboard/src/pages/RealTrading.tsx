@@ -12,7 +12,8 @@
  * @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
  */
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRealTrading } from '@/hooks/useRealTrading';
 import { useTradingMode } from '@/hooks/useTradingMode';
@@ -22,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { fetchBinancePrice } from '@/utils/binancePrice';
 import logger from '@/utils/logger';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
   TrendingUp,
   TrendingDown,
@@ -30,57 +32,16 @@ import {
   BarChart3,
   Clock,
   Target,
-  Shield,
   Zap,
   X,
   RefreshCw,
   ChevronDown,
   AlertTriangle,
-  Percent,
-  DollarSign,
   LineChart,
   AlertOctagon,
   CheckCircle,
 } from 'lucide-react';
 import type { PaperTrade } from '@/hooks/usePaperTrading';
-
-// ============================================================================
-// DESIGN TOKENS - Premium Dark OLED Luxury (RED THEME for Real Trading)
-// ============================================================================
-
-const luxuryColors = {
-  // Backgrounds - Pure black for OLED
-  bgPrimary: '#000000',
-  bgSecondary: 'rgba(255, 255, 255, 0.03)',
-  bgTertiary: 'rgba(255, 255, 255, 0.05)',
-  bgHover: 'rgba(255, 255, 255, 0.08)',
-
-  // Accents - RED theme for real trading danger
-  primary: '#ef4444',
-  primaryLight: '#f87171',
-  emerald: '#22c55e',
-  cyan: '#00D9FF',
-  profit: '#22c55e',
-  loss: '#ef4444',
-  warning: '#f59e0b',
-
-  // Text
-  textPrimary: '#ffffff',
-  textSecondary: 'rgba(255, 255, 255, 0.7)',
-  textMuted: 'rgba(255, 255, 255, 0.4)',
-
-  // Borders
-  borderSubtle: 'rgba(255, 255, 255, 0.08)',
-  borderLight: 'rgba(255, 255, 255, 0.12)',
-  borderActive: '#ef4444',
-  borderDanger: 'rgba(239, 68, 68, 0.3)',
-
-  // Gradients
-  gradientProfit: 'linear-gradient(135deg, #22c55e, #00D9FF)',
-  gradientLoss: 'linear-gradient(135deg, #ef4444, #f97316)',
-  gradientPremium: 'linear-gradient(135deg, #ef4444, #f97316)',
-  gradientDanger: 'linear-gradient(135deg, #ef4444, #dc2626)',
-};
 
 // Animation variants for consistency
 const containerVariants = {
@@ -161,7 +122,8 @@ function PanelHeader({
   action?: React.ReactNode;
   danger?: boolean;
 }) {
-  const accentColor = danger ? luxuryColors.primary : luxuryColors.cyan;
+  const colors = useThemeColors();
+  const accentColor = danger ? colors.primary : colors.cyan;
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
       <div className="flex items-center gap-3">
@@ -193,13 +155,14 @@ function Badge({
   children: React.ReactNode;
   variant?: 'default' | 'buy' | 'sell' | 'info' | 'warning' | 'danger';
 }) {
+  const colors = useThemeColors();
   const variants = {
-    default: { bg: 'rgba(255, 255, 255, 0.1)', color: luxuryColors.textSecondary, border: 'rgba(255, 255, 255, 0.15)' },
-    buy: { bg: 'rgba(34, 197, 94, 0.15)', color: luxuryColors.profit, border: 'rgba(34, 197, 94, 0.3)' },
-    sell: { bg: 'rgba(239, 68, 68, 0.15)', color: luxuryColors.loss, border: 'rgba(239, 68, 68, 0.3)' },
-    info: { bg: 'rgba(0, 217, 255, 0.15)', color: luxuryColors.cyan, border: 'rgba(0, 217, 255, 0.3)' },
-    warning: { bg: 'rgba(245, 158, 11, 0.15)', color: luxuryColors.warning, border: 'rgba(245, 158, 11, 0.3)' },
-    danger: { bg: 'rgba(239, 68, 68, 0.15)', color: luxuryColors.loss, border: 'rgba(239, 68, 68, 0.3)' },
+    default: { bg: 'rgba(255, 255, 255, 0.1)', color: colors.textSecondary, border: 'rgba(255, 255, 255, 0.15)' },
+    buy: { bg: 'rgba(34, 197, 94, 0.15)', color: colors.profit, border: 'rgba(34, 197, 94, 0.3)' },
+    sell: { bg: 'rgba(239, 68, 68, 0.15)', color: colors.loss, border: 'rgba(239, 68, 68, 0.3)' },
+    info: { bg: 'rgba(0, 217, 255, 0.15)', color: colors.cyan, border: 'rgba(0, 217, 255, 0.3)' },
+    warning: { bg: 'rgba(245, 158, 11, 0.15)', color: colors.warning, border: 'rgba(245, 158, 11, 0.3)' },
+    danger: { bg: 'rgba(239, 68, 68, 0.15)', color: colors.loss, border: 'rgba(239, 68, 68, 0.3)' },
   };
 
   const style = variants[variant];
@@ -220,16 +183,17 @@ function Badge({
 function GradientText({
   children,
   className = '',
-  gradient = luxuryColors.gradientPremium,
+  gradient,
 }: {
   children: React.ReactNode;
   className?: string;
   gradient?: string;
 }) {
+  const colors = useThemeColors();
   return (
     <span
       className={`bg-clip-text text-transparent ${className}`}
-      style={{ backgroundImage: gradient }}
+      style={{ backgroundImage: gradient || colors.gradientPremium }}
     >
       {children}
     </span>
@@ -252,9 +216,10 @@ function MonoText({
   negative?: boolean;
   style?: React.CSSProperties;
 }) {
-  let color = luxuryColors.textPrimary;
-  if (positive) color = luxuryColors.profit;
-  if (negative) color = luxuryColors.loss;
+  const colors = useThemeColors();
+  let color = colors.textPrimary;
+  if (positive) color = colors.profit;
+  if (negative) color = colors.loss;
 
   return (
     <span className={`font-mono ${className}`} style={{ color, ...customStyle }}>
@@ -279,16 +244,17 @@ function InputField({
   placeholder: string;
   suffix?: string;
 }) {
+  const colors = useThemeColors();
   return (
     <div>
-      <label className="block text-[10px] uppercase tracking-wider mb-1.5" style={{ color: luxuryColors.textMuted }}>
+      <label className="block text-[10px] uppercase tracking-wider mb-1.5" style={{ color: colors.textMuted }}>
         {label}
       </label>
       <div
         className="relative flex items-center rounded-xl border transition-all duration-300 focus-within:border-red-500/50 focus-within:shadow-[0_0_20px_rgba(239,68,68,0.15)]"
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.03)',
-          borderColor: luxuryColors.borderSubtle,
+          borderColor: colors.borderSubtle,
         }}
       >
         <input
@@ -300,7 +266,7 @@ function InputField({
           className="w-full px-3 py-2.5 text-sm font-mono bg-transparent outline-none text-white placeholder:text-white/30"
         />
         {suffix && (
-          <span className="px-3 text-xs font-medium" style={{ color: luxuryColors.textMuted }}>
+          <span className="px-3 text-xs font-medium" style={{ color: colors.textMuted }}>
             {suffix}
           </span>
         )}
@@ -328,6 +294,8 @@ function PortfolioStatsBar({
   winRate: number;
   totalTrades: number;
 }) {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   const isProfitable = totalPnl >= 0;
 
   return (
@@ -335,7 +303,7 @@ function PortfolioStatsBar({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative overflow-hidden"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
     >
       {/* Background glow effect - RED for real trading */}
       <div
@@ -362,13 +330,13 @@ function PortfolioStatsBar({
         >
           <motion.div
             className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: luxuryColors.loss }}
+            style={{ backgroundColor: colors.loss }}
             animate={{ opacity: [1, 0.5, 1] }}
             transition={{ duration: 1, repeat: Infinity }}
           />
-          <AlertTriangle className="w-4 h-4" style={{ color: luxuryColors.loss }} />
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: luxuryColors.loss }}>
-            REAL MONEY
+          <AlertTriangle className="w-4 h-4" style={{ color: colors.loss }} />
+          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.loss }}>
+            {t('realTrading.warning.title')}
           </span>
         </motion.div>
 
@@ -383,11 +351,11 @@ function PortfolioStatsBar({
               border: '1px solid rgba(239, 68, 68, 0.2)',
             }}
           >
-            <Wallet className="w-5 h-5" style={{ color: luxuryColors.loss }} />
+            <Wallet className="w-5 h-5" style={{ color: colors.loss }} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Balance</p>
-            <GradientText className="text-xl font-black" gradient={luxuryColors.gradientDanger}>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('realTrading.orderBook.total')}</p>
+            <GradientText className="text-xl font-black" gradient={colors.gradientDanger}>
               ${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </GradientText>
           </div>
@@ -404,10 +372,10 @@ function PortfolioStatsBar({
               border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            <Activity className="w-4 h-4" style={{ color: luxuryColors.textSecondary }} />
+            <Activity className="w-4 h-4" style={{ color: colors.textSecondary }} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Equity</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('stats.totalProfit')}</p>
             <MonoText className="text-lg font-bold">${equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</MonoText>
           </div>
         </div>
@@ -430,12 +398,12 @@ function PortfolioStatsBar({
           transition={{ duration: 2, repeat: Infinity }}
         >
           {isProfitable ? (
-            <TrendingUp className="w-5 h-5" style={{ color: luxuryColors.profit }} />
+            <TrendingUp className="w-5 h-5" style={{ color: colors.profit }} />
           ) : (
-            <TrendingDown className="w-5 h-5" style={{ color: luxuryColors.loss }} />
+            <TrendingDown className="w-5 h-5" style={{ color: colors.loss }} />
           )}
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>P&L</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('table.pnl')}</p>
             <MonoText className="text-lg font-bold" positive={isProfitable} negative={!isProfitable}>
               {isProfitable ? '+' : ''}${Math.abs(totalPnl).toFixed(2)} ({isProfitable ? '+' : ''}{totalPnlPercent.toFixed(2)}%)
             </MonoText>
@@ -445,11 +413,11 @@ function PortfolioStatsBar({
         {/* Stats */}
         <div className="flex items-center gap-4 ml-auto">
           <div className="text-center px-3">
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Win Rate</p>
-            <MonoText className="text-base font-bold" style={{ color: luxuryColors.loss }}>{winRate.toFixed(1)}%</MonoText>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('stats.winRate')}</p>
+            <MonoText className="text-base font-bold" style={{ color: colors.loss }}>{winRate.toFixed(1)}%</MonoText>
           </div>
           <div className="text-center px-3">
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Trades</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('stats.totalTrades')}</p>
             <MonoText className="text-base font-bold">{totalTrades}</MonoText>
           </div>
         </div>
@@ -475,6 +443,8 @@ function OrderBook({
   symbol?: string;
   onPriceClick?: (price: number) => void;
 }) {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   const [asks, setAsks] = useState<OrderBookLevel[]>([]);
   const [bids, setBids] = useState<OrderBookLevel[]>([]);
   const [spread, setSpread] = useState(0);
@@ -552,7 +522,7 @@ function OrderBook({
   }) => {
     const isAsk = type === 'ask';
     const depthWidth = (level.total / maxTotal) * 100;
-    const priceColor = isAsk ? luxuryColors.loss : luxuryColors.profit;
+    const priceColor = isAsk ? colors.loss : colors.profit;
     const depthColor = isAsk ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)';
 
     return (
@@ -576,10 +546,10 @@ function OrderBook({
         <div className="relative z-10 font-mono font-semibold" style={{ color: priceColor }}>
           {level.price.toFixed(2)}
         </div>
-        <div className="relative z-10 text-right font-mono" style={{ color: luxuryColors.textPrimary }}>
+        <div className="relative z-10 text-right font-mono" style={{ color: colors.textPrimary }}>
           {level.quantity.toFixed(4)}
         </div>
-        <div className="relative z-10 text-right font-mono" style={{ color: luxuryColors.textSecondary }}>
+        <div className="relative z-10 text-right font-mono" style={{ color: colors.textSecondary }}>
           {level.total.toFixed(4)}
         </div>
       </motion.div>
@@ -588,15 +558,15 @@ function OrderBook({
 
   return (
     <GlassCard noPadding danger>
-      <PanelHeader title="Order Book" icon={BarChart3} danger />
+      <PanelHeader title={t('realTrading.orderBook.title')} icon={BarChart3} danger />
 
       <div
         className="grid grid-cols-3 gap-2 px-4 py-2 text-[10px] uppercase tracking-wider border-b border-white/[0.08]"
-        style={{ color: luxuryColors.textMuted }}
+        style={{ color: colors.textMuted }}
       >
-        <div>Price (USDT)</div>
-        <div className="text-right">Size</div>
-        <div className="text-right">Total</div>
+        <div>{t('realTrading.orderBook.price')} (USDT)</div>
+        <div className="text-right">{t('realTrading.orderBook.amount')}</div>
+        <div className="text-right">{t('realTrading.orderBook.total')}</div>
       </div>
 
       <div className="flex flex-col-reverse">
@@ -615,12 +585,12 @@ function OrderBook({
         }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        <GradientText className="text-lg font-black" gradient={luxuryColors.gradientDanger}>
+        <GradientText className="text-lg font-black" gradient={colors.gradientDanger}>
           {midPrice > 0 ? `$${midPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Loading...'}
         </GradientText>
-        <span className="text-[10px]" style={{ color: luxuryColors.textMuted }}>
-          Spread: <MonoText className="text-[10px]" style={{ color: luxuryColors.loss }}>{spread.toFixed(2)}</MonoText> (
-          <MonoText className="text-[10px]" style={{ color: luxuryColors.loss }}>{spreadPercent.toFixed(4)}%</MonoText>)
+        <span className="text-[10px]" style={{ color: colors.textMuted }}>
+          Spread: <MonoText className="text-[10px]" style={{ color: colors.loss }}>{spread.toFixed(2)}</MonoText> (
+          <MonoText className="text-[10px]" style={{ color: colors.loss }}>{spreadPercent.toFixed(4)}%</MonoText>)
         </span>
       </motion.div>
 
@@ -646,6 +616,8 @@ function OrderForm({
   onSubmit?: (order: OrderFormData) => void;
   selectedPrice?: number;
 }) {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   const { toast } = useToast();
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop-limit'>('market');
@@ -726,7 +698,7 @@ function OrderForm({
   return (
     <>
       <GlassCard noPadding danger>
-        <PanelHeader title="Place Order" icon={Target} danger />
+        <PanelHeader title={t('realTrading.orderForm.submit')} icon={Target} danger />
 
         {/* Buy/Sell Toggle */}
         <div className="p-4 border-b border-white/[0.08]">
@@ -734,7 +706,7 @@ function OrderForm({
             <motion.div
               className="absolute top-0 bottom-0 w-1/2 rounded-xl"
               style={{
-                background: isBuy ? luxuryColors.gradientProfit : luxuryColors.gradientLoss,
+                background: isBuy ? colors.gradientProfit : colors.gradientLoss,
                 boxShadow: isBuy
                   ? '0 4px 20px rgba(34, 197, 94, 0.4)'
                   : '0 4px 20px rgba(239, 68, 68, 0.4)',
@@ -746,19 +718,19 @@ function OrderForm({
               type="button"
               onClick={() => setSide('buy')}
               className="relative z-10 flex-1 py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2"
-              style={{ color: isBuy ? '#fff' : luxuryColors.textSecondary }}
+              style={{ color: isBuy ? '#fff' : colors.textSecondary }}
             >
               <TrendingUp className="w-4 h-4" />
-              Buy / Long
+              {t('realTrading.orderForm.buy')} / Long
             </button>
             <button
               type="button"
               onClick={() => setSide('sell')}
               className="relative z-10 flex-1 py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2"
-              style={{ color: !isBuy ? '#fff' : luxuryColors.textSecondary }}
+              style={{ color: !isBuy ? '#fff' : colors.textSecondary }}
             >
               <TrendingDown className="w-4 h-4" />
-              Sell / Short
+              {t('realTrading.orderForm.sell')} / Short
             </button>
           </div>
         </div>
@@ -777,10 +749,10 @@ function OrderForm({
                     ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2))'
                     : 'transparent',
                   border: orderType === type ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent',
-                  color: orderType === type ? luxuryColors.loss : luxuryColors.textMuted,
+                  color: orderType === type ? colors.loss : colors.textMuted,
                 }}
               >
-                {type}
+                {type === 'market' ? t('realTrading.orderForm.market') : type === 'limit' ? t('realTrading.orderForm.limit') : t('realTrading.orderForm.stopLimit')}
               </button>
             ))}
           </div>
@@ -788,7 +760,7 @@ function OrderForm({
           {/* Price Inputs */}
           {orderType !== 'market' && (
             <InputField
-              label="Price"
+              label={t('realTrading.orderForm.price')}
               value={price}
               onChange={setPrice}
               placeholder="0.00"
@@ -798,7 +770,7 @@ function OrderForm({
 
           {orderType === 'stop-limit' && (
             <InputField
-              label="Stop Price"
+              label={t('realTrading.orderForm.stopPrice')}
               value={stopPrice}
               onChange={setStopPrice}
               placeholder="0.00"
@@ -807,7 +779,7 @@ function OrderForm({
           )}
 
           <InputField
-            label="Quantity"
+            label={t('realTrading.orderForm.amount')}
             value={quantity}
             onChange={setQuantity}
             placeholder="0.0000"
@@ -816,8 +788,8 @@ function OrderForm({
 
           {/* Leverage */}
           <div>
-            <label className="block text-[10px] uppercase tracking-wider mb-2" style={{ color: luxuryColors.textMuted }}>
-              Leverage: <GradientText className="text-xs font-bold" gradient={luxuryColors.gradientDanger}>{leverage}x</GradientText>
+            <label className="block text-[10px] uppercase tracking-wider mb-2" style={{ color: colors.textMuted }}>
+              Leverage: <GradientText className="text-xs font-bold" gradient={colors.gradientDanger}>{leverage}x</GradientText>
             </label>
             <div className="flex flex-wrap gap-1.5">
               {[1, 2, 5, 10, 20, 50, 100].map((lev) => (
@@ -835,7 +807,7 @@ function OrderForm({
                     border: leverage === lev
                       ? '1px solid rgba(239, 68, 68, 0.3)'
                       : '1px solid rgba(255, 255, 255, 0.08)',
-                    color: leverage === lev ? luxuryColors.loss : luxuryColors.textMuted,
+                    color: leverage === lev ? colors.loss : colors.textMuted,
                   }}
                 >
                   {lev}x
@@ -853,12 +825,12 @@ function OrderForm({
             }}
           >
             <div className="flex justify-between items-center">
-              <span style={{ color: luxuryColors.textMuted }}>Order Value</span>
+              <span style={{ color: colors.textMuted }}>{t('realTrading.orderForm.total')}</span>
               <MonoText className="font-semibold">{orderValue > 0 ? `$${orderValue.toFixed(2)}` : '--'}</MonoText>
             </div>
             <div className="flex justify-between items-center">
-              <span style={{ color: luxuryColors.textMuted }}>With Leverage ({leverage}x)</span>
-              <GradientText className="font-bold" gradient={luxuryColors.gradientDanger}>
+              <span style={{ color: colors.textMuted }}>{t('realTrading.orderForm.available')} ({leverage}x)</span>
+              <GradientText className="font-bold" gradient={colors.gradientDanger}>
                 {orderValue > 0 ? `$${(orderValue * leverage).toFixed(2)}` : '--'}
               </GradientText>
             </div>
@@ -871,7 +843,7 @@ function OrderForm({
             whileTap={{ scale: 0.98 }}
             className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-300 flex items-center justify-center gap-2"
             style={{
-              background: isBuy ? luxuryColors.gradientProfit : luxuryColors.gradientLoss,
+              background: isBuy ? colors.gradientProfit : colors.gradientLoss,
               boxShadow: isBuy
                 ? '0 8px 32px rgba(34, 197, 94, 0.4)'
                 : '0 8px 32px rgba(239, 68, 68, 0.4)',
@@ -899,7 +871,7 @@ function OrderForm({
               exit={{ scale: 0.9, opacity: 0 }}
               className="w-full max-w-md mx-4 rounded-2xl overflow-hidden"
               style={{
-                backgroundColor: luxuryColors.bgPrimary,
+                backgroundColor: colors.bgPrimary,
                 border: '1px solid rgba(239, 68, 68, 0.3)',
                 boxShadow: '0 0 60px rgba(239, 68, 68, 0.2)',
               }}
@@ -909,7 +881,7 @@ function OrderForm({
               <div
                 className="px-6 py-4"
                 style={{
-                  background: luxuryColors.gradientDanger,
+                  background: colors.gradientDanger,
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -920,8 +892,8 @@ function OrderForm({
                     <AlertOctagon className="w-8 h-8 text-white" />
                   </motion.div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">Confirm Real Trade</h3>
-                    <p className="text-sm text-white/70">Step {confirmStep} of 2</p>
+                    <h3 className="text-lg font-bold text-white">{t('realTrading.confirm.title')}</h3>
+                    <p className="text-sm text-white/70">{t('realTrading.confirm.step', { current: confirmStep, total: 2 })}</p>
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
@@ -935,12 +907,12 @@ function OrderForm({
                 {confirmStep === 1 ? (
                   <>
                     <div className="p-4 rounded-xl" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                      <p className="text-sm font-semibold" style={{ color: luxuryColors.loss }}>Risk Warning</p>
-                      <ul className="mt-2 text-xs space-y-1" style={{ color: luxuryColors.textSecondary }}>
-                        <li>• This trade uses REAL MONEY</li>
-                        <li>• Leveraged trading can exceed your deposit</li>
-                        <li>• Order Value: <strong className="text-white">${orderValue.toFixed(2)}</strong></li>
-                        <li>• Exposure ({leverage}x): <strong style={{ color: luxuryColors.loss }}>${(orderValue * leverage).toFixed(2)}</strong></li>
+                      <p className="text-sm font-semibold" style={{ color: colors.loss }}>{t('realTrading.confirm.riskWarning')}</p>
+                      <ul className="mt-2 text-xs space-y-1" style={{ color: colors.textSecondary }}>
+                        <li>• {t('realTrading.confirm.realMoney')}</li>
+                        <li>• {t('realTrading.confirm.leverageWarning')}</li>
+                        <li>• {t('realTrading.confirm.orderValue')}: <strong className="text-white">${orderValue.toFixed(2)}</strong></li>
+                        <li>• {t('realTrading.confirm.exposure', { leverage })}: <strong style={{ color: colors.loss }}>${(orderValue * leverage).toFixed(2)}</strong></li>
                       </ul>
                     </div>
 
@@ -951,8 +923,8 @@ function OrderForm({
                         onChange={(e) => setRiskConfirmed(e.target.checked)}
                         className="mt-0.5 accent-red-500"
                       />
-                      <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
-                        I understand the <strong style={{ color: luxuryColors.loss }}>risks</strong> and accept full responsibility for this trade.
+                      <span className="text-sm" style={{ color: colors.textSecondary }}>
+                        {t('realTrading.confirm.acceptRisk')}
                       </span>
                     </label>
                   </>
@@ -964,15 +936,20 @@ function OrderForm({
                       className="mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center"
                       style={{ background: 'rgba(239, 68, 68, 0.2)' }}
                     >
-                      <AlertTriangle className="w-8 h-8" style={{ color: luxuryColors.loss }} />
+                      <AlertTriangle className="w-8 h-8" style={{ color: colors.loss }} />
                     </motion.div>
-                    <h4 className="text-xl font-bold text-white">Final Confirmation</h4>
-                    <p className="mt-2 text-sm" style={{ color: luxuryColors.textSecondary }}>
-                      Execute <strong style={{ color: isBuy ? luxuryColors.profit : luxuryColors.loss }}>{isBuy ? 'LONG' : 'SHORT'}</strong> {quantity} {symbol.replace('USDT', '')} with <strong style={{ color: luxuryColors.loss }}>${(orderValue * leverage).toFixed(2)}</strong> exposure?
+                    <h4 className="text-xl font-bold text-white">{t('realTrading.confirm.finalTitle')}</h4>
+                    <p className="mt-2 text-sm" style={{ color: colors.textSecondary }}>
+                      {t('realTrading.confirm.executeQuestion', {
+                        direction: isBuy ? 'LONG' : 'SHORT',
+                        quantity,
+                        symbol: symbol.replace('USDT', ''),
+                        exposure: (orderValue * leverage).toFixed(2)
+                      })}
                     </p>
-                    <p className="mt-4 text-xs px-4 py-2 rounded-full inline-flex items-center gap-2" style={{ background: 'rgba(239, 68, 68, 0.15)', color: luxuryColors.loss }}>
+                    <p className="mt-4 text-xs px-4 py-2 rounded-full inline-flex items-center gap-2" style={{ background: 'rgba(239, 68, 68, 0.15)', color: colors.loss }}>
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      This action cannot be undone
+                      {t('realTrading.confirm.cannotUndo')}
                     </p>
                   </div>
                 )}
@@ -983,9 +960,9 @@ function OrderForm({
                 <button
                   onClick={() => setShowConfirmation(false)}
                   className="flex-1 py-3 rounded-xl font-semibold text-sm"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: luxuryColors.textSecondary }}
+                  style={{ background: 'rgba(255,255,255,0.1)', color: colors.textSecondary }}
                 >
-                  Cancel
+                  {t('realTrading.confirm.cancel')}
                 </button>
                 <motion.button
                   onClick={handleConfirmOrder}
@@ -994,14 +971,14 @@ function OrderForm({
                   whileTap={{ scale: 0.98 }}
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{
-                    background: luxuryColors.gradientDanger,
+                    background: colors.gradientDanger,
                     boxShadow: '0 4px 20px rgba(239, 68, 68, 0.3)',
                   }}
                 >
-                  {confirmStep === 1 ? 'Continue' : (
+                  {confirmStep === 1 ? t('realTrading.confirm.continue') : (
                     <>
                       <CheckCircle className="w-4 h-4" />
-                      Execute Trade
+                      {t('realTrading.confirm.executeTrade')}
                     </>
                   )}
                 </motion.button>
@@ -1027,6 +1004,8 @@ function PositionsTable({
   isLoading: boolean;
   onCloseTrade?: (id: string) => void;
 }) {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -1034,7 +1013,7 @@ function PositionsTable({
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <RefreshCw className="w-6 h-6" style={{ color: luxuryColors.loss }} />
+          <RefreshCw className="w-6 h-6" style={{ color: colors.loss }} />
         </motion.div>
       </div>
     );
@@ -1042,7 +1021,7 @@ function PositionsTable({
 
   if (trades.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12" style={{ color: luxuryColors.textMuted }}>
+      <div className="flex flex-col items-center justify-center py-12" style={{ color: colors.textMuted }}>
         <div
           className="p-4 rounded-2xl mb-3"
           style={{
@@ -1052,9 +1031,9 @@ function PositionsTable({
         >
           <Activity className="w-8 h-8 opacity-50" />
         </div>
-        <p className="text-sm font-medium">No open positions</p>
-        <p className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-          Place an order to start trading
+        <p className="text-sm font-medium">{t('realTrading.positions.noPositions')}</p>
+        <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+          {t('realTrading.orderForm.submit')}
         </p>
       </div>
     );
@@ -1063,14 +1042,14 @@ function PositionsTable({
   return (
     <div className="overflow-x-auto overflow-y-auto custom-scrollbar h-full">
       <table className="w-full text-xs">
-        <thead className="sticky top-0 z-10" style={{ backgroundColor: luxuryColors.bgPrimary }}>
-          <tr style={{ color: luxuryColors.textMuted }}>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Symbol</th>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Side</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Entry</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Size</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">P&L</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Action</th>
+        <thead className="sticky top-0 z-10" style={{ backgroundColor: colors.bgPrimary }}>
+          <tr style={{ color: colors.textMuted }}>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.symbol')}</th>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.side')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.entry')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.size')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.pnl')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('table.action')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1088,7 +1067,7 @@ function PositionsTable({
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white">{trade.symbol.replace('USDT', '')}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(239, 68, 68, 0.1)', color: luxuryColors.loss }}>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(239, 68, 68, 0.1)', color: colors.loss }}>
                       {trade.leverage}x
                     </span>
                   </div>
@@ -1121,10 +1100,10 @@ function PositionsTable({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="px-3 py-1.5 text-[10px] font-bold rounded-lg flex items-center gap-1"
-                    style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: luxuryColors.loss }}
+                    style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: colors.loss }}
                   >
                     <X className="w-3 h-3" />
-                    Close
+                    {t('realTrading.positions.close')}
                   </motion.button>
                 </td>
               </motion.tr>
@@ -1141,11 +1120,13 @@ function PositionsTable({
 // ============================================================================
 
 function TradeHistoryTable({ trades, isLoading }: { trades: PaperTrade[]; isLoading: boolean }) {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-          <RefreshCw className="w-6 h-6" style={{ color: luxuryColors.loss }} />
+          <RefreshCw className="w-6 h-6" style={{ color: colors.loss }} />
         </motion.div>
       </div>
     );
@@ -1153,12 +1134,12 @@ function TradeHistoryTable({ trades, isLoading }: { trades: PaperTrade[]; isLoad
 
   if (trades.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12" style={{ color: luxuryColors.textMuted }}>
+      <div className="flex flex-col items-center justify-center py-12" style={{ color: colors.textMuted }}>
         <div className="p-4 rounded-2xl mb-3" style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
           <Clock className="w-8 h-8 opacity-50" />
         </div>
-        <p className="text-sm font-medium">No trade history</p>
-        <p className="text-xs mt-1">Closed trades will appear here</p>
+        <p className="text-sm font-medium">{t('realTrading.history.title')}</p>
+        <p className="text-xs mt-1">{t('realTrading.orders.noOrders')}</p>
       </div>
     );
   }
@@ -1166,14 +1147,14 @@ function TradeHistoryTable({ trades, isLoading }: { trades: PaperTrade[]; isLoad
   return (
     <div className="overflow-x-auto overflow-y-auto custom-scrollbar h-full">
       <table className="w-full text-xs">
-        <thead className="sticky top-0 z-10" style={{ backgroundColor: luxuryColors.bgPrimary }}>
-          <tr style={{ color: luxuryColors.textMuted }}>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Symbol</th>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Side</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Entry</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Exit</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">P&L</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Time</th>
+        <thead className="sticky top-0 z-10" style={{ backgroundColor: colors.bgPrimary }}>
+          <tr style={{ color: colors.textMuted }}>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.symbol')}</th>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.side')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.entry')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('table.exit')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.positions.pnl')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.history.time')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1211,9 +1192,9 @@ function TradeHistoryTable({ trades, isLoading }: { trades: PaperTrade[]; isLoad
                     </MonoText>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-right" style={{ color: luxuryColors.textSecondary }}>
+                <td className="py-3 px-4 text-right" style={{ color: colors.textSecondary }}>
                   <div className="flex items-center justify-end gap-1.5">
-                    <Clock className="w-3 h-3" style={{ color: luxuryColors.textMuted }} />
+                    <Clock className="w-3 h-3" style={{ color: colors.textMuted }} />
                     {formatDistanceToNow(closeTime, { addSuffix: true })}
                   </div>
                 </td>
@@ -1231,10 +1212,12 @@ function TradeHistoryTable({ trades, isLoading }: { trades: PaperTrade[]; isLoad
 // ============================================================================
 
 function ModeSwitchPrompt() {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   return (
     <motion.div
       className="h-full flex items-center justify-center p-8"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -1246,17 +1229,17 @@ function ModeSwitchPrompt() {
           className="mx-auto mb-6 w-20 h-20 rounded-full flex items-center justify-center"
           style={{ background: 'rgba(245, 158, 11, 0.2)' }}
         >
-          <AlertTriangle className="w-10 h-10" style={{ color: luxuryColors.warning }} />
+          <AlertTriangle className="w-10 h-10" style={{ color: colors.warning }} />
         </motion.div>
-        <h2 className="text-2xl font-bold text-white">Paper Trading Mode Active</h2>
-        <p className="mt-3 text-sm" style={{ color: luxuryColors.textMuted }}>
-          Switch to Real Trading mode to execute trades with real funds.
+        <h2 className="text-2xl font-bold text-black dark:text-white">{t('realTrading.modeSwitch.title')}</h2>
+        <p className="mt-3 text-sm" style={{ color: colors.textMuted }}>
+          {t('realTrading.modeSwitch.description')}
         </p>
         <div className="mt-6">
-          <Badge variant="info">Paper Mode: Safe Practice</Badge>
+          <Badge variant="info">{t('realTrading.modeSwitch.badge')}</Badge>
         </div>
-        <p className="mt-6 text-xs" style={{ color: luxuryColors.textMuted }}>
-          Use the mode toggle in the header to switch between Paper and Real trading modes.
+        <p className="mt-6 text-xs" style={{ color: colors.textMuted }}>
+          {t('realTrading.modeSwitch.hint')}
         </p>
       </GlassCard>
     </motion.div>
@@ -1268,12 +1251,14 @@ function ModeSwitchPrompt() {
 // ============================================================================
 
 function ComingSoonOverlay() {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   const { switchMode } = useTradingMode();
 
   return (
     <motion.div
       className="h-full flex items-center justify-center"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -1313,41 +1298,40 @@ function ComingSoonOverlay() {
           />
           {/* Inner icon */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <AlertOctagon className="w-16 h-16" style={{ color: luxuryColors.loss }} />
+            <AlertOctagon className="w-16 h-16" style={{ color: colors.loss }} />
           </div>
         </motion.div>
 
         {/* Title */}
         <GradientText className="text-3xl font-black tracking-tight mb-4">
-          COMING SOON
+          {t('realTrading.comingSoon.title')}
         </GradientText>
 
         {/* Subtitle */}
-        <h2 className="text-xl font-bold text-white mb-4">Real Trading Module</h2>
+        <h2 className="text-xl font-bold text-white mb-4">{t('realTrading.comingSoon.subtitle')}</h2>
 
         {/* Description */}
-        <p className="text-sm leading-relaxed mb-6" style={{ color: luxuryColors.textSecondary }}>
-          The real trading API is currently under development. This feature will allow you to execute trades
-          with real funds on Binance exchange.
+        <p className="text-sm leading-relaxed mb-6" style={{ color: colors.textSecondary }}>
+          {t('realTrading.comingSoon.description')}
         </p>
 
         {/* Features list */}
         <div className="text-left mb-8 space-y-3">
           <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
-            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: luxuryColors.emerald }} />
-            <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>Binance Spot Order API Integration</span>
+            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: colors.emerald }} />
+            <span className="text-sm" style={{ color: colors.textSecondary }}>{t('realTrading.comingSoon.features.spotApi')}</span>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
-            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: luxuryColors.emerald }} />
-            <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>Real-time Position Tracking via WebSocket</span>
+            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: colors.emerald }} />
+            <span className="text-sm" style={{ color: colors.textSecondary }}>{t('realTrading.comingSoon.features.websocket')}</span>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
-            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: luxuryColors.emerald }} />
-            <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>Advanced Risk Management & Circuit Breaker</span>
+            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: colors.emerald }} />
+            <span className="text-sm" style={{ color: colors.textSecondary }}>{t('realTrading.comingSoon.features.riskManagement')}</span>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
-            <Clock className="w-5 h-5 flex-shrink-0" style={{ color: luxuryColors.warning }} />
-            <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>API Endpoints Under Development</span>
+            <Clock className="w-5 h-5 flex-shrink-0" style={{ color: colors.warning }} />
+            <span className="text-sm" style={{ color: colors.textSecondary }}>{t('realTrading.comingSoon.features.underDevelopment')}</span>
           </div>
         </div>
 
@@ -1365,13 +1349,13 @@ function ComingSoonOverlay() {
           whileTap={{ scale: 0.98 }}
           onClick={() => switchMode('paper')}
         >
-          <Zap className="w-5 h-5" style={{ color: luxuryColors.emerald }} />
-          <span>Try Paper Trading Instead</span>
+          <Zap className="w-5 h-5" style={{ color: colors.emerald }} />
+          <span>{t('realTrading.comingSoon.tryPaperTrading')}</span>
         </motion.button>
 
         {/* Info text */}
-        <p className="mt-6 text-xs" style={{ color: luxuryColors.textMuted }}>
-          Paper trading provides the same luxury UI with simulated funds - perfect for testing strategies!
+        <p className="mt-6 text-xs" style={{ color: colors.textMuted }}>
+          {t('realTrading.comingSoon.hint')}
         </p>
       </GlassCard>
     </motion.div>
@@ -1383,9 +1367,11 @@ function ComingSoonOverlay() {
 // ============================================================================
 
 export default function RealTrading() {
+  const { t } = useTranslation('dashboard');
   const { toast } = useToast();
   const { mode } = useTradingMode();
   const realTrading = useRealTrading();
+  const colors = useThemeColors();
   const [selectedSymbol, setSelectedSymbol] = useState('BTCUSDT');
   const availableSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT'];
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
@@ -1436,12 +1422,12 @@ export default function RealTrading() {
   // Show loading while checking API
   if (apiAvailable === null) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ backgroundColor: luxuryColors.bgPrimary }}>
+      <div className="h-full flex items-center justify-center" style={{ backgroundColor: colors.bgPrimary }}>
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <RefreshCw className="w-8 h-8" style={{ color: luxuryColors.loss }} />
+          <RefreshCw className="w-8 h-8" style={{ color: colors.loss }} />
         </motion.div>
       </div>
     );
@@ -1464,7 +1450,7 @@ export default function RealTrading() {
   return (
     <motion.div
       className="h-full flex flex-col"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -1480,11 +1466,11 @@ export default function RealTrading() {
       />
 
       {/* Main Trading Grid */}
-      <div className="flex-1 grid grid-cols-12 gap-[1px] min-h-0 overflow-hidden" style={{ backgroundColor: luxuryColors.borderSubtle }}>
+      <div className="flex-1 grid grid-cols-12 gap-[1px] min-h-0 overflow-hidden" style={{ backgroundColor: colors.borderSubtle }}>
         {/* Left Column: Chart (60%) */}
         <div
           className="col-span-7 flex flex-col overflow-y-auto custom-scrollbar"
-          style={{ backgroundColor: luxuryColors.bgPrimary }}
+          style={{ backgroundColor: colors.bgPrimary }}
         >
           {/* Chart Header */}
           <motion.div
@@ -1502,7 +1488,7 @@ export default function RealTrading() {
                     border: '1px solid rgba(239, 68, 68, 0.2)',
                   }}
                 >
-                  <LineChart className="w-4 h-4" style={{ color: luxuryColors.loss }} />
+                  <LineChart className="w-4 h-4" style={{ color: colors.loss }} />
                 </div>
                 {/* Symbol Selector */}
                 <motion.button
@@ -1516,14 +1502,14 @@ export default function RealTrading() {
                   }}
                 >
                   <div className="flex items-center">
-                    <GradientText className="text-lg font-black" gradient={luxuryColors.gradientDanger}>
+                    <GradientText className="text-lg font-black" gradient={colors.gradientDanger}>
                       {selectedSymbol.replace('USDT', '')}
                     </GradientText>
-                    <span className="text-xs font-medium" style={{ color: luxuryColors.textMuted }}>/USDT</span>
+                    <span className="text-xs font-medium" style={{ color: colors.textMuted }}>/USDT</span>
                   </div>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-200 ${showSymbolDropdown ? 'rotate-180' : ''}`}
-                    style={{ color: luxuryColors.textMuted }}
+                    style={{ color: colors.textMuted }}
                   />
                 </motion.button>
 
@@ -1538,7 +1524,7 @@ export default function RealTrading() {
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         className="absolute top-full left-0 mt-2 z-50 min-w-[180px] rounded-xl overflow-hidden"
                         style={{
-                          backgroundColor: luxuryColors.bgPrimary,
+                          backgroundColor: colors.bgPrimary,
                           border: '1px solid rgba(239, 68, 68, 0.2)',
                           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
                         }}
@@ -1550,12 +1536,12 @@ export default function RealTrading() {
                             whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
                             className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium"
                             style={{
-                              color: selectedSymbol === symbol ? luxuryColors.loss : luxuryColors.textSecondary,
+                              color: selectedSymbol === symbol ? colors.loss : colors.textSecondary,
                               backgroundColor: selectedSymbol === symbol ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
                             }}
                           >
                             <span className="font-bold">{symbol.replace('USDT', '')}</span>
-                            <span className="text-xs" style={{ color: luxuryColors.textMuted }}>/USDT</span>
+                            <span className="text-xs" style={{ color: colors.textMuted }}>/USDT</span>
                           </motion.button>
                         ))}
                       </motion.div>
@@ -1580,7 +1566,7 @@ export default function RealTrading() {
                       ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2))'
                       : 'transparent',
                     border: selectedTimeframe === tf ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent',
-                    color: selectedTimeframe === tf ? luxuryColors.loss : luxuryColors.textMuted,
+                    color: selectedTimeframe === tf ? colors.loss : colors.textMuted,
                   }}
                 >
                   {tf}
@@ -1601,8 +1587,8 @@ export default function RealTrading() {
           >
             <div className="flex border-b border-white/[0.08]">
               {[
-                { id: 'positions', label: 'Positions', icon: Activity, count: realTrading.openTrades.length },
-                { id: 'history', label: 'Trade History', icon: Clock },
+                { id: 'positions', label: t('realTrading.positions.title'), icon: Activity, count: realTrading.openTrades.length },
+                { id: 'history', label: t('realTrading.history.title'), icon: Clock },
               ].map((tab) => (
                 <motion.button
                   key={tab.id}
@@ -1610,7 +1596,7 @@ export default function RealTrading() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="relative px-5 py-3 text-xs font-bold flex items-center gap-2"
-                  style={{ color: activeTab === tab.id ? luxuryColors.loss : luxuryColors.textMuted }}
+                  style={{ color: activeTab === tab.id ? colors.loss : colors.textMuted }}
                 >
                   <tab.icon className="w-4 h-4" />
                   {tab.label}
@@ -1619,7 +1605,7 @@ export default function RealTrading() {
                       className="px-2 py-0.5 text-[10px] rounded-full font-bold"
                       style={{
                         background: activeTab === tab.id ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                        color: activeTab === tab.id ? luxuryColors.loss : luxuryColors.textSecondary,
+                        color: activeTab === tab.id ? colors.loss : colors.textSecondary,
                       }}
                     >
                       {tab.count}
@@ -1629,7 +1615,7 @@ export default function RealTrading() {
                     <motion.div
                       layoutId="activeRealTabIndicator"
                       className="absolute bottom-0 left-0 right-0 h-[2px]"
-                      style={{ background: luxuryColors.gradientDanger, boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)' }}
+                      style={{ background: colors.gradientDanger, boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)' }}
                     />
                   )}
                 </motion.button>
@@ -1653,15 +1639,15 @@ export default function RealTrading() {
         </div>
 
         {/* Right Column: Order Book + Form (40%) */}
-        <div className="col-span-5 flex flex-col overflow-y-auto" style={{ backgroundColor: luxuryColors.bgPrimary }}>
-          <div className="grid grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: luxuryColors.borderSubtle }}>
+        <div className="col-span-5 flex flex-col overflow-y-auto" style={{ backgroundColor: colors.bgPrimary }}>
+          <div className="grid grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
-            <div style={{ backgroundColor: luxuryColors.bgPrimary }}>
+            <div style={{ backgroundColor: colors.bgPrimary }}>
               <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} />
             </div>
 
             {/* Order Form */}
-            <div style={{ backgroundColor: luxuryColors.bgPrimary }}>
+            <div style={{ backgroundColor: colors.bgPrimary }}>
               <OrderForm symbol={selectedSymbol} onSubmit={handleOrderSubmit} selectedPrice={selectedPrice} />
 
               {/* Risk Warning */}
@@ -1678,12 +1664,12 @@ export default function RealTrading() {
                 >
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg flex-shrink-0" style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                      <AlertOctagon className="w-4 h-4" style={{ color: luxuryColors.loss }} />
+                      <AlertOctagon className="w-4 h-4" style={{ color: colors.loss }} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold" style={{ color: luxuryColors.loss }}>Real Money Trading</p>
-                      <p className="text-[10px] mt-1.5 leading-relaxed" style={{ color: luxuryColors.textSecondary }}>
-                        All orders require 2-step confirmation. Set stop-loss on every trade. Never risk more than you can afford to lose.
+                      <p className="text-xs font-bold" style={{ color: colors.loss }}>{t('realTrading.warning.title')}</p>
+                      <p className="text-[10px] mt-1.5 leading-relaxed" style={{ color: colors.textSecondary }}>
+                        {t('realTrading.riskWarning.message')}
                       </p>
                     </div>
                   </div>

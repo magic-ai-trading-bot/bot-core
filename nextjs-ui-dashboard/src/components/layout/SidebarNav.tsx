@@ -5,6 +5,7 @@
  */
 
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   TestTube,
@@ -19,10 +20,10 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { duration, easing } from '@/styles/tokens/animations';
-import { luxuryColors } from '@/styles/luxury-design-system';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
   path: string;
 }
@@ -33,17 +34,20 @@ interface SidebarNavProps {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Paper Trading', icon: TestTube, path: '/trading/paper' },
-  { label: 'Real Trading', icon: CircleDollarSign, path: '/trading/real' },
-  { label: 'Portfolio', icon: PieChart, path: '/portfolio' },
-  { label: 'AI Signals', icon: Brain, path: '/signals' },
-  { label: 'Trade Analyses', icon: BarChart3, path: '/trade-analyses' },
-  { label: 'How It Works', icon: HelpCircle, path: '/how-it-works' },
-  { label: 'Settings', icon: Settings, path: '/settings' },
+  { labelKey: 'nav.dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { labelKey: 'nav.paperTrading', icon: TestTube, path: '/trading/paper' },
+  { labelKey: 'nav.realTrading', icon: CircleDollarSign, path: '/trading/real' },
+  { labelKey: 'nav.portfolio', icon: PieChart, path: '/portfolio' },
+  { labelKey: 'nav.signals', icon: Brain, path: '/signals' },
+  { labelKey: 'nav.tradeAnalyses', icon: BarChart3, path: '/trade-analyses' },
+  { labelKey: 'nav.howItWorks', icon: HelpCircle, path: '/how-it-works' },
+  { labelKey: 'nav.settings', icon: Settings, path: '/settings' },
 ];
 
 export function SidebarNav({ isExpanded, onNavigate }: SidebarNavProps) {
+  const { t } = useTranslation('common');
+  const colors = useThemeColors();
+
   return (
     <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Main navigation">
       {navItems.map((item) => (
@@ -58,9 +62,9 @@ export function SidebarNav({ isExpanded, onNavigate }: SidebarNavProps) {
             )
           }
           style={({ isActive }) => ({
-            backgroundColor: isActive ? luxuryColors.bgTertiary : 'transparent',
-            color: isActive ? luxuryColors.textPrimary : luxuryColors.textMuted,
-            border: isActive ? `1px solid ${luxuryColors.borderSubtle}` : '1px solid transparent',
+            backgroundColor: isActive ? colors.bgTertiary : 'transparent',
+            color: isActive ? colors.textPrimary : colors.textMuted,
+            border: isActive ? `1px solid ${colors.borderSubtle}` : '1px solid transparent',
           })}
         >
           {({ isActive }) => (
@@ -78,7 +82,7 @@ export function SidebarNav({ isExpanded, onNavigate }: SidebarNavProps) {
                 <item.icon
                   className="h-5 w-5 flex-shrink-0"
                   style={{
-                    color: isActive ? luxuryColors.cyan : luxuryColors.textMuted,
+                    color: isActive ? colors.cyan : colors.textMuted,
                   }}
                 />
               </motion.div>
@@ -96,7 +100,7 @@ export function SidebarNav({ isExpanded, onNavigate }: SidebarNavProps) {
                 }}
                 className="overflow-hidden whitespace-nowrap"
               >
-                {item.label}
+                {t(item.labelKey)}
               </motion.span>
 
               {/* Active indicator dot */}
@@ -105,8 +109,8 @@ export function SidebarNav({ isExpanded, onNavigate }: SidebarNavProps) {
                   layoutId="activeIndicator"
                   className="ml-auto h-2 w-2 rounded-full"
                   style={{
-                    backgroundColor: luxuryColors.cyan,
-                    boxShadow: luxuryColors.glowCyan,
+                    backgroundColor: colors.cyan,
+                    boxShadow: colors.glowCyan,
                   }}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}

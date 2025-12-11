@@ -1,0 +1,99 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-frontend:
+    name: Frontend ESLint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: nextjs-ui-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./nextjs-ui-dashboard
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./nextjs-ui-dashboard
+        run: npm run lint
+
+  lint-rust:
+    name: Rust Clippy & Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-lint-
+
+      - name: Check formatting
+        working-directory: ./rust-core-engine
+        run: cargo fmt -- --check
+
+      - name: Run Clippy
+        working-directory: ./rust-core-engine
+        run: cargo clippy -- -D warnings -A clippy::too_many_arguments
+
+  lint-python:
+    name: Python Flake8 & Black
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install linters
+        run: pip install flake8 black isort
+
+      - name: Check Black formatting
+        working-directory: ./python-ai-service
+        run: black --check .
+
+      - name: Check import sorting
+        working-directory: ./python-ai-service
+        run: isort --check-only .
+
+      - name: Run Flake8
+        working-directory: ./python-ai-service
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics

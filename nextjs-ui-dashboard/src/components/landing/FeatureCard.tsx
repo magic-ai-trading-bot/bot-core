@@ -12,7 +12,6 @@ import { motion } from 'framer-motion';
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hoverLift } from '@/styles/tokens/animations';
-import { colors } from '@/styles/tokens/colors';
 
 interface FeatureCardProps {
   icon: LucideIcon;

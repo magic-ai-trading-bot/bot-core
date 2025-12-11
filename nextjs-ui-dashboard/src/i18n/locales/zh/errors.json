@@ -1,0 +1,55 @@
+{
+  "generic": "发生错误，请重试。",
+  "network": "网络错误，请检查您的连接。",
+  "unauthorized": "会话已过期，请重新登录。",
+  "forbidden": "您没有执行此操作的权限。",
+  "notFound": "页面未找到。",
+  "serverError": "服务器错误，请稍后重试。",
+  "timeout": "请求超时，请重试。",
+  "validation": {
+    "required": "此字段为必填项",
+    "email": "邮箱地址无效",
+    "password": "密码至少需要8个字符",
+    "passwordMatch": "密码不匹配",
+    "minLength": "至少需要{{min}}个字符",
+    "maxLength": "不能超过{{max}}个字符",
+    "invalidNumber": "请输入有效数字",
+    "positiveNumber": "必须为正数"
+  },
+  "trading": {
+    "insufficientBalance": "余额不足",
+    "insufficientMargin": "保证金不足",
+    "orderFailed": "订单失败，请重试。",
+    "connectionLost": "交易连接已断开",
+    "marketClosed": "市场当前已关闭",
+    "invalidQuantity": "订单数量无效",
+    "invalidPrice": "订单价格无效",
+    "positionLimitReached": "已达到持仓限制"
+  },
+  "auth": {
+    "invalidCredentials": "邮箱或密码错误",
+    "accountLocked": "账户已锁定，请联系客服。",
+    "emailNotVerified": "请先验证您的邮箱",
+    "tokenExpired": "会话已过期，请重新登录。"
+  },
+  "notFoundPage": {
+    "title": "页面未找到",
+    "description": "您访问的页面不存在或已被移动。让我们帮您找到正确的页面。",
+    "goBack": "返回",
+    "goHome": "返回首页",
+    "popularPages": "热门页面",
+    "pages": {
+      "dashboard": "仪表板",
+      "portfolio": "投资组合",
+      "strategies": "策略",
+      "settings": "设置"
+    }
+  },
+  "errorPage": {
+    "title": "服务器错误",
+    "description": "抱歉！我们这边出了点问题。我们正在努力修复。请刷新页面或稍后再试。",
+    "refresh": "刷新页面",
+    "goHome": "返回首页",
+    "contactSupport": "如果问题持续存在，请联系客服"
+  }
+}

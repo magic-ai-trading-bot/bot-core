@@ -1,0 +1,269 @@
+{
+  "page": {
+    "title": "Settings",
+    "subtitle": "Manage your trading bot configuration"
+  },
+  "tabs": {
+    "bot": "Bot Settings",
+    "perSymbol": "Per-Symbol",
+    "strategy": "Strategy Tuning",
+    "health": "System Health",
+    "api": "API & Connections",
+    "notifications": "Notifications",
+    "security": "Security"
+  },
+  "bot": {
+    "title": "Bot Settings",
+    "subtitle": "Manage configuration and options for your trading bot",
+    "status": "Bot Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "capitalAllocation": "Capital Allocation",
+    "maxLeverage": "Maximum Leverage",
+    "riskThreshold": "Risk Threshold",
+    "conservativePercent": "Conservative ({{value}}%)",
+    "aggressivePercent": "Aggressive ({{value}}%)",
+    "safeLeverage": "Safe ({{value}}x)",
+    "highRiskLeverage": "High Risk ({{value}}x)",
+    "amount": "Amount: ${{value}}",
+    "maxLossPerTrade": "Max loss per trade: ${{value}}",
+    "activeTradingPairs": "Active Trading Pairs"
+  },
+  "perSymbol": {
+    "title": "Per-Symbol Settings",
+    "subtitle": "Configure individual settings for each trading pair",
+    "positionSize": "Position Size",
+    "maxLeverage": "Max Leverage",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "noPairsTitle": "No active trading pairs",
+    "noPairsDesc": "Enable pairs in Bot Settings tab."
+  },
+  "strategy": {
+    "title": "Strategy Tuning",
+    "subtitle": "Fine-tune your trading strategies and parameters",
+    "openSettings": "Open Strategy Settings",
+    "modalTitle": "Trading Strategy Settings",
+    "advancedTitle": "Advanced Strategy Configuration",
+    "advancedDesc": "Configure market presets, strategy parameters, risk management & engine settings"
+  },
+  "health": {
+    "title": "System Health",
+    "subtitle": "Monitor system status and performance metrics",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "uptime": "Uptime",
+    "apiLatency": "API Latency",
+    "wsStatus": "WebSocket",
+    "dbStatus": "Database",
+    "lastUpdate": "Last updated",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "refresh": "Refresh Status",
+    "connectionStatus": "Connection Status",
+    "apiServer": "API Server"
+  },
+  "api": {
+    "title": "API & Connections",
+    "subtitle": "Manage your exchange API keys and connection status",
+    "status": "Connection Status",
+    "apiStatus": "API",
+    "wsStatus": "WebSocket",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "testing": "Testing...",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your Binance API Key",
+    "secretKey": "Secret Key",
+    "secretKeyPlaceholder": "Enter your Binance Secret Key",
+    "testConnection": "Test Connection",
+    "testingConnection": "Testing Connection...",
+    "saveKeys": "Save Keys",
+    "allSystemsOperational": "All systems operational",
+    "testingConnectionStatus": "Testing connection...",
+    "connectionIssues": "Connection issues detected",
+    "binanceApiConfig": "Binance API Configuration",
+    "testnet": "Testnet",
+    "securityNote": "Security Note",
+    "securityNoteDesc": "API keys are encrypted and stored securely. Only grant Futures Trading permission to the bot.",
+    "tradingPermissions": "Trading Permissions",
+    "spotTrading": "Spot Trading",
+    "spotDesc": "Basic spot trading",
+    "futuresTrading": "Futures Trading",
+    "futuresDesc": "Futures trading with leverage",
+    "marginTrading": "Margin Trading",
+    "marginDesc": "Margin trading",
+    "optionsTrading": "Options Trading",
+    "optionsDesc": "Options trading"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Configure how you receive alerts and updates",
+    "channels": "Notification Channels",
+    "email": {
+      "title": "Email Notifications",
+      "description": "Receive notifications via email"
+    },
+    "push": {
+      "title": "Push Notifications",
+      "description": "Browser push notifications"
+    },
+    "telegram": {
+      "title": "Telegram Bot",
+      "description": "Receive notifications via Telegram",
+      "tokenLabel": "Telegram Bot Token",
+      "tokenPlaceholder": "Enter bot token from @BotFather",
+      "chatIdLabel": "Telegram Chat ID",
+      "chatIdPlaceholder": "Enter your chat ID (use @userinfobot)"
+    },
+    "discord": {
+      "title": "Discord Webhook",
+      "description": "Receive notifications via Discord",
+      "webhookLabel": "Discord Webhook URL",
+      "webhookPlaceholder": "https://discord.com/api/webhooks/...",
+      "webhookHint": "Create a webhook in Discord Server Settings → Integrations → Webhooks",
+      "testSent": "Test Sent",
+      "testSentDesc": "Discord test notification sent successfully",
+      "testFailed": "Test Failed",
+      "testFailedDesc": "Failed to send Discord test notification",
+      "testButton": "Test Discord"
+    },
+    "vapid": {
+      "publicKeyLabel": "VAPID Public Key",
+      "publicKeyPlaceholder": "BLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "privateKeyLabel": "VAPID Private Key (stored securely)",
+      "privateKeyPlaceholder": "Enter private key (keep secure)",
+      "keysSaved": "Keys Saved",
+      "keysSavedDesc": "VAPID keys saved. You can now enable Push Notifications.",
+      "saveKeys": "Save VAPID Keys"
+    },
+    "alerts": {
+      "title": "Alert Types",
+      "price": {
+        "title": "Price Alerts",
+        "description": "Get notified on significant price movements"
+      },
+      "trade": {
+        "title": "Trade Alerts",
+        "description": "Get notified when trades are executed"
+      },
+      "system": {
+        "title": "System Alerts",
+        "description": "Important system notifications"
+      },
+      "threshold": "Alert Threshold",
+      "thresholdLabel": "Price Alert Threshold",
+      "thresholdDesc": "Minimum price change to trigger an alert"
+    },
+    "sound": {
+      "title": "Sound Notifications",
+      "description": "Play sound for notifications"
+    },
+    "save": "Save Preferences"
+  },
+  "security": {
+    "title": "Security",
+    "subtitle": "Manage your account security settings",
+    "profile": {
+      "title": "Trader Profile",
+      "displayName": "Display Name",
+      "email": "Email"
+    },
+    "password": {
+      "title": "Change Password",
+      "current": "Current Password",
+      "currentPlaceholder": "Enter current password",
+      "new": "New Password",
+      "newPlaceholder": "Enter new password",
+      "confirm": "Confirm Password",
+      "confirmPlaceholder": "Confirm new password",
+      "change": "Change Password",
+      "changing": "Changing...",
+      "update": "Update Password",
+      "updating": "Updating...",
+      "mismatch": "New passwords do not match",
+      "tooShort": "Password must be at least 8 characters"
+    },
+    "twoFactor": {
+      "title": "Two-Factor Authentication",
+      "description": "Add an extra layer of security to your account",
+      "protected": "Your account is protected with 2FA",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enable": "Enable 2FA",
+      "disable": "Disable 2FA",
+      "settingUp": "Setting up...",
+      "setup": "Set Up 2FA",
+      "setupTitle": "Set Up Two-Factor Authentication",
+      "setupDescription": "Scan this QR code with your authenticator app, then enter the verification code.",
+      "manualEntryLabel": "Manual Entry Code",
+      "manualEntryHint": "If you can't scan the QR code, enter this secret manually in your authenticator app.",
+      "verificationCodeLabel": "Verification Code",
+      "scanQr": "Scan the QR code with your authenticator app",
+      "enterCode": "Enter verification code",
+      "codePlaceholder": "Enter 6-digit code",
+      "verify": "Verify",
+      "verifying": "Verifying...",
+      "secretKey": "Secret Key",
+      "copied": "Secret copied to clipboard",
+      "invalidCode": "Please enter a 6-digit code",
+      "disableTitle": "Disable Two-Factor Authentication?",
+      "disableDescription": "This will make your account less secure. Enter your 2FA code to confirm.",
+      "currentCodeLabel": "Current 2FA Code",
+      "disabling": "Disabling..."
+    },
+    "sessions": {
+      "title": "Active Sessions",
+      "current": "Current",
+      "activeNow": "Active now",
+      "noSessions": "No active sessions found",
+      "lastActive": "Last active",
+      "revoke": "Revoke",
+      "revokeAll": "Revoke All Sessions",
+      "signOutAll": "Sign Out All Devices",
+      "signOutAllTitle": "Sign Out All Sessions?",
+      "signOutAllDesc": "This will sign you out from all devices except this one.",
+      "signOutAllButton": "Sign Out All",
+      "revokeAllConfirm": "This will log you out of all other devices"
+    }
+  },
+  "toast": {
+    "settingsSaved": "Settings saved successfully!",
+    "settingsError": "Failed to save settings",
+    "connectionSuccess": "Connection successful",
+    "connectionError": "Connection failed",
+    "copiedToClipboard": "Copied to clipboard",
+    "botStarted": "Bot Started",
+    "botStartedDesc": "Trading bot is now active",
+    "botStopped": "Bot Stopped",
+    "botStoppedDesc": "Trading bot is now inactive",
+    "botError": "Error",
+    "botErrorDesc": "Failed to change bot status",
+    "connectionSuccessDesc": "API is reachable",
+    "connectionFailedDesc": "API is not responding",
+    "connectionErrorDesc": "Could not reach API",
+    "sectionSaved": "{{section}} settings updated successfully",
+    "saveError": "Could not save settings",
+    "secretCopied": "Secret copied to clipboard",
+    "invalidCode": "Please enter a 6-digit code"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minuteAgo": "{{count}} minute ago",
+    "minutesAgo": "{{count}} minutes ago",
+    "hourAgo": "{{count}} hour ago",
+    "hoursAgo": "{{count}} hours ago",
+    "dayAgo": "{{count}} day ago",
+    "daysAgo": "{{count}} days ago"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "enable": "Enable",
+    "disable": "Disable",
+    "loading": "Loading...",
+    "saving": "Saving..."
+  }
+}

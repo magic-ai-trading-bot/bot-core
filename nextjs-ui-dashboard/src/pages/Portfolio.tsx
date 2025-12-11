@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   PieChart,
   Pie,
@@ -11,15 +12,11 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  BarChart,
-  Bar,
 } from "recharts";
 import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
   ChevronUp,
   ChevronDown,
   Sparkles,
@@ -35,7 +32,6 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   Badge,
@@ -44,7 +40,8 @@ import {
   containerVariants,
   itemVariants,
 } from "@/styles/luxury-design-system";
-import { usePaperTrading, PaperTrade } from "@/hooks/usePaperTrading";
+import { usePaperTrading } from "@/hooks/usePaperTrading";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 // ============================================================================
 // INTERFACES
@@ -102,7 +99,7 @@ const AnimatedCounter = ({
 
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [value, duration]);
 
   const formatNumber = (num: number) => {
@@ -142,20 +139,20 @@ const PerformanceTooltip = ({ active, payload, label }: ChartTooltipProps) => {
       className="backdrop-blur-xl rounded-xl p-4 shadow-2xl"
       style={{
         backgroundColor: 'rgba(0, 0, 0, 0.95)',
-        border: `1px solid ${luxuryColors.borderSubtle}`,
+        border: `1px solid ${themeColors.borderSubtle}`,
       }}
     >
-      <p className="text-sm mb-2" style={{ color: luxuryColors.textMuted }}>
+      <p className="text-sm mb-2" style={{ color: themeColors.textMuted }}>
         {new Date(label || "").toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
           year: "numeric",
         })}
       </p>
-      <p className="font-semibold text-lg" style={{ color: luxuryColors.textPrimary }}>
+      <p className="font-semibold text-lg" style={{ color: themeColors.textPrimary }}>
         ${data.value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
       </p>
-      <p className="text-sm mt-1" style={{ color: isPositive ? luxuryColors.profit : luxuryColors.loss }}>
+      <p className="text-sm mt-1" style={{ color: isPositive ? themeColors.profit : themeColors.loss }}>
         {isPositive ? "+" : ""}${data.pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
       </p>
     </div>
@@ -178,12 +175,12 @@ interface SortIconProps {
 
 const SortIcon = ({ columnKey, sortKey, sortDirection }: SortIconProps) => {
   if (sortKey !== columnKey) {
-    return <ChevronUp className="w-4 h-4 ml-1" style={{ color: luxuryColors.textMuted }} />;
+    return <ChevronUp className="w-4 h-4 ml-1" style={{ color: themeColors.textMuted }} />;
   }
   return sortDirection === "asc" ? (
-    <ChevronUp className="w-4 h-4 ml-1" style={{ color: luxuryColors.cyan }} />
+    <ChevronUp className="w-4 h-4 ml-1" style={{ color: themeColors.cyan }} />
   ) : (
-    <ChevronDown className="w-4 h-4 ml-1" style={{ color: luxuryColors.cyan }} />
+    <ChevronDown className="w-4 h-4 ml-1" style={{ color: themeColors.cyan }} />
   );
 };
 
@@ -192,10 +189,12 @@ const SortIcon = ({ columnKey, sortKey, sortDirection }: SortIconProps) => {
 // ============================================================================
 
 const Portfolio = () => {
+  const { t } = useTranslation('dashboard');
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("30D");
   const [isLoaded, setIsLoaded] = useState(false);
+  const themeColors = useThemeColors();
 
   // Get real data from paper trading hook
   const {
@@ -380,13 +379,13 @@ const Portfolio = () => {
         <div
           className="absolute top-0 left-1/4 w-[600px] h-[600px] blur-[120px] animate-pulse-slow"
           style={{
-            background: `radial-gradient(circle, ${luxuryColors.cyan}15 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${themeColors.cyan}15 0%, transparent 70%)`,
           }}
         />
         <div
           className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] blur-[100px] animate-pulse-slow"
           style={{
-            background: `radial-gradient(circle, ${luxuryColors.purple}15 0%, ${luxuryColors.emerald}08 50%, transparent 70%)`,
+            background: `radial-gradient(circle, ${themeColors.purple}15 0%, ${themeColors.emerald}08 50%, transparent 70%)`,
             animationDelay: "1.5s",
           }}
         />
@@ -402,7 +401,7 @@ const Portfolio = () => {
             <div
               className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] blur-[60px]"
               style={{
-                background: `linear-gradient(to bottom, ${luxuryColors.cyan}30, transparent)`,
+                background: `linear-gradient(to bottom, ${themeColors.cyan}30, transparent)`,
               }}
             />
 
@@ -410,13 +409,13 @@ const Portfolio = () => {
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <GlowIcon icon={Wallet} color={luxuryColors.cyan} size="lg" />
+                  <GlowIcon icon={Wallet} color={themeColors.cyan} size="lg" />
                   <div>
-                    <h1 className="text-2xl font-bold" style={{ color: luxuryColors.textPrimary }}>
-                      Paper Trading Portfolio
+                    <h1 className="text-2xl font-bold" style={{ color: themeColors.textPrimary }}>
+                      {t('portfolio.title')}
                     </h1>
-                    <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                      Real-time performance tracking
+                    <p className="text-sm" style={{ color: themeColors.textMuted }}>
+                      {t('portfolio.subtitle')}
                     </p>
                   </div>
                 </div>
@@ -424,14 +423,14 @@ const Portfolio = () => {
                   <button
                     onClick={refreshAll}
                     className="p-2 rounded-lg transition-colors"
-                    style={{ backgroundColor: luxuryColors.bgTertiary }}
+                    style={{ backgroundColor: themeColors.bgTertiary }}
                     disabled={isLoading}
                   >
-                    <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} style={{ color: luxuryColors.textMuted }} />
+                    <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} style={{ color: themeColors.textMuted }} />
                   </button>
                   <Badge variant={isActive ? "success" : "warning"} glow>
                     <Sparkles className="w-3 h-3 mr-1" />
-                    {isActive ? "Live" : "Inactive"}
+                    {isActive ? t('portfolio.status.live') : t('portfolio.status.inactive')}
                   </Badge>
                 </div>
               </div>
@@ -441,9 +440,9 @@ const Portfolio = () => {
                 <div className="inline-block">
                   <p
                     className="text-sm mb-2 uppercase tracking-wider"
-                    style={{ color: luxuryColors.textMuted }}
+                    style={{ color: themeColors.textMuted }}
                   >
-                    Current Balance
+                    {t('portfolio.currentBalance')}
                   </p>
                   <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold">
                     <GradientText>
@@ -459,17 +458,17 @@ const Portfolio = () => {
                 <div
                   className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[140px]"
                   style={{
-                    backgroundColor: luxuryColors.bgTertiary,
-                    border: `1px solid ${luxuryColors.borderSubtle}`,
+                    backgroundColor: themeColors.bgTertiary,
+                    border: `1px solid ${themeColors.borderSubtle}`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Win Rate
+                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                    {t('portfolio.stats.winRate')}
                   </span>
                   <div
                     className="flex items-center gap-1 text-lg font-semibold"
                     style={{
-                      color: portfolioMetrics.winRate >= 50 ? luxuryColors.profit : luxuryColors.loss,
+                      color: portfolioMetrics.winRate >= 50 ? themeColors.profit : themeColors.loss,
                     }}
                   >
                     <Target className="w-5 h-5" />
@@ -481,14 +480,14 @@ const Portfolio = () => {
                 <div
                   className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[140px]"
                   style={{
-                    backgroundColor: luxuryColors.bgTertiary,
-                    border: `1px solid ${luxuryColors.borderSubtle}`,
+                    backgroundColor: themeColors.bgTertiary,
+                    border: `1px solid ${themeColors.borderSubtle}`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Total Trades
+                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                    {t('portfolio.stats.totalTrades')}
                   </span>
-                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
                     <Activity className="w-5 h-5" />
                     {portfolioMetrics.totalTrades}
                   </div>
@@ -498,14 +497,14 @@ const Portfolio = () => {
                 <div
                   className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[140px]"
                   style={{
-                    backgroundColor: luxuryColors.bgTertiary,
-                    border: `1px solid ${luxuryColors.borderSubtle}`,
+                    backgroundColor: themeColors.bgTertiary,
+                    border: `1px solid ${themeColors.borderSubtle}`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Profit Factor
+                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                    {t('portfolio.stats.profitFactor')}
                   </span>
-                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: portfolioMetrics.profitFactor >= 1 ? luxuryColors.profit : luxuryColors.loss }}>
+                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: portfolioMetrics.profitFactor >= 1 ? themeColors.profit : themeColors.loss }}>
                     <BarChart3 className="w-5 h-5" />
                     {portfolioMetrics.profitFactor.toFixed(2)}
                   </div>
@@ -515,14 +514,14 @@ const Portfolio = () => {
                 <div
                   className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[160px]"
                   style={{
-                    background: `linear-gradient(135deg, ${portfolioMetrics.totalPnL >= 0 ? luxuryColors.profit : luxuryColors.loss}15, transparent)`,
-                    border: `1px solid ${portfolioMetrics.totalPnL >= 0 ? luxuryColors.profit : luxuryColors.loss}30`,
+                    background: `linear-gradient(135deg, ${portfolioMetrics.totalPnL >= 0 ? themeColors.profit : themeColors.loss}15, transparent)`,
+                    border: `1px solid ${portfolioMetrics.totalPnL >= 0 ? themeColors.profit : themeColors.loss}30`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Total P&L
+                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                    {t('portfolio.stats.totalPnl')}
                   </span>
-                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: portfolioMetrics.totalPnL >= 0 ? luxuryColors.profit : luxuryColors.loss }}>
+                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: portfolioMetrics.totalPnL >= 0 ? themeColors.profit : themeColors.loss }}>
                     {portfolioMetrics.totalPnL >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
                     {portfolioMetrics.totalPnL >= 0 ? "+" : ""}$<AnimatedCounter value={portfolioMetrics.totalPnL} decimals={2} duration={2000} />
                   </div>
@@ -541,9 +540,9 @@ const Portfolio = () => {
             <GlassCard noPadding>
               <div className="p-6 pb-2">
                 <div className="flex items-center gap-2 mb-4">
-                  <GlowIcon icon={Layers} color={luxuryColors.cyan} size="md" />
-                  <h3 className="text-lg font-semibold" style={{ color: luxuryColors.textPrimary }}>
-                    Position Allocation
+                  <GlowIcon icon={Layers} color={themeColors.cyan} size="md" />
+                  <h3 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
+                    {t('portfolio.sections.allocation')}
                   </h3>
                 </div>
               </div>
@@ -580,10 +579,10 @@ const Portfolio = () => {
 
                       {/* Center text */}
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                        <p className="text-xs uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>
-                          Open
+                        <p className="text-xs uppercase tracking-wider" style={{ color: themeColors.textMuted }}>
+                          {t('portfolio.stats.openPositions')}
                         </p>
-                        <p className="text-2xl font-bold" style={{ color: luxuryColors.textPrimary }}>
+                        <p className="text-2xl font-bold" style={{ color: themeColors.textPrimary }}>
                           {openTrades.length}
                         </p>
                       </div>
@@ -601,10 +600,10 @@ const Portfolio = () => {
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: asset.color }}
                           />
-                          <span className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+                          <span className="text-sm" style={{ color: themeColors.textSecondary }}>
                             {asset.symbol}
                           </span>
-                          <span className="text-sm font-medium ml-auto" style={{ color: luxuryColors.textPrimary }}>
+                          <span className="text-sm font-medium ml-auto" style={{ color: themeColors.textPrimary }}>
                             {asset.percentage.toFixed(1)}%
                           </span>
                         </div>
@@ -614,9 +613,9 @@ const Portfolio = () => {
                 ) : (
                   <div className="h-[280px] flex items-center justify-center">
                     <div className="text-center">
-                      <Layers className="w-12 h-12 mx-auto mb-3" style={{ color: luxuryColors.textMuted }} />
-                      <p style={{ color: luxuryColors.textMuted }}>No open positions</p>
-                      <p className="text-sm" style={{ color: luxuryColors.textMuted }}>Start trading to see allocation</p>
+                      <Layers className="w-12 h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
+                      <p style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noPositions')}</p>
+                      <p className="text-sm" style={{ color: themeColors.textMuted }}>{t('portfolio.empty.startTrading')}</p>
                     </div>
                   </div>
                 )}
@@ -629,9 +628,9 @@ const Portfolio = () => {
             <GlassCard noPadding>
               <div className="p-6 pb-2">
                 <div className="flex items-center gap-2">
-                  <GlowIcon icon={BarChart3} color={luxuryColors.cyan} size="md" />
-                  <h3 className="text-lg font-semibold" style={{ color: luxuryColors.textPrimary }}>
-                    Recent Trades ({closedTrades.length})
+                  <GlowIcon icon={BarChart3} color={themeColors.cyan} size="md" />
+                  <h3 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
+                    {t('portfolio.sections.recentTrades')} ({closedTrades.length})
                   </h3>
                 </div>
               </div>
@@ -639,41 +638,41 @@ const Portfolio = () => {
                 {closedTrades.length > 0 ? (
                   <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                     <table className="w-full">
-                      <thead className="sticky top-0" style={{ backgroundColor: luxuryColors.bgSecondary }}>
-                        <tr style={{ borderBottom: `1px solid ${luxuryColors.borderSubtle}` }}>
+                      <thead className="sticky top-0" style={{ backgroundColor: themeColors.bgSecondary }}>
+                        <tr style={{ borderBottom: `1px solid ${themeColors.borderSubtle}` }}>
                           <th
                             className="text-left py-3 px-2 text-sm font-medium cursor-pointer"
-                            style={{ color: luxuryColors.textMuted }}
+                            style={{ color: themeColors.textMuted }}
                             onClick={() => handleSort("symbol")}
                           >
                             <div className="flex items-center">
-                              Symbol
+                              {t('portfolio.table.symbol')}
                               <SortIcon columnKey="symbol" sortKey={sortKey} sortDirection={sortDirection} />
                             </div>
                           </th>
-                          <th className="text-right py-3 px-2 text-sm font-medium" style={{ color: luxuryColors.textMuted }}>
-                            Type
+                          <th className="text-right py-3 px-2 text-sm font-medium" style={{ color: themeColors.textMuted }}>
+                            {t('portfolio.table.type')}
                           </th>
-                          <th className="text-right py-3 px-2 text-sm font-medium" style={{ color: luxuryColors.textMuted }}>
-                            Entry / Exit
+                          <th className="text-right py-3 px-2 text-sm font-medium" style={{ color: themeColors.textMuted }}>
+                            {t('portfolio.table.entryExit')}
                           </th>
                           <th
                             className="text-right py-3 px-2 text-sm font-medium cursor-pointer"
-                            style={{ color: luxuryColors.textMuted }}
+                            style={{ color: themeColors.textMuted }}
                             onClick={() => handleSort("pnl")}
                           >
                             <div className="flex items-center justify-end">
-                              P&L
+                              {t('portfolio.table.pnl')}
                               <SortIcon columnKey="pnl" sortKey={sortKey} sortDirection={sortDirection} />
                             </div>
                           </th>
                           <th
                             className="text-right py-3 px-2 text-sm font-medium cursor-pointer"
-                            style={{ color: luxuryColors.textMuted }}
+                            style={{ color: themeColors.textMuted }}
                             onClick={() => handleSort("date")}
                           >
                             <div className="flex items-center justify-end">
-                              Date
+                              {t('portfolio.table.date')}
                               <SortIcon columnKey="date" sortKey={sortKey} sortDirection={sortDirection} />
                             </div>
                           </th>
@@ -688,17 +687,17 @@ const Portfolio = () => {
                             <tr
                               key={trade.id}
                               className="transition-colors"
-                              style={{ borderBottom: `1px solid ${luxuryColors.borderSubtle}` }}
+                              style={{ borderBottom: `1px solid ${themeColors.borderSubtle}` }}
                             >
                               <td className="py-3 px-2">
                                 <div className="flex items-center gap-2">
                                   <div
                                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                                    style={{ backgroundColor: trade.trade_type === "Long" ? `${luxuryColors.profit}20` : `${luxuryColors.loss}20` }}
+                                    style={{ backgroundColor: trade.trade_type === "Long" ? `${themeColors.profit}20` : `${themeColors.loss}20` }}
                                   >
                                     {trade.symbol.slice(0, 3)}
                                   </div>
-                                  <span className="font-medium" style={{ color: luxuryColors.textPrimary }}>
+                                  <span className="font-medium" style={{ color: themeColors.textPrimary }}>
                                     {trade.symbol}
                                   </span>
                                 </div>
@@ -709,20 +708,20 @@ const Portfolio = () => {
                                 </Badge>
                               </td>
                               <td className="py-3 px-2 text-right">
-                                <p style={{ color: luxuryColors.textPrimary }}>${trade.entry_price.toFixed(2)}</p>
-                                <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
+                                <p style={{ color: themeColors.textPrimary }}>${trade.entry_price.toFixed(2)}</p>
+                                <p className="text-sm" style={{ color: themeColors.textMuted }}>
                                   ${trade.exit_price?.toFixed(2) || "-"}
                                 </p>
                               </td>
                               <td className="py-3 px-2 text-right">
-                                <p className="font-medium" style={{ color: isProfit ? luxuryColors.profit : luxuryColors.loss }}>
+                                <p className="font-medium" style={{ color: isProfit ? themeColors.profit : themeColors.loss }}>
                                   {isProfit ? "+" : ""}${pnl.toFixed(2)}
                                 </p>
-                                <p className="text-sm" style={{ color: isProfit ? `${luxuryColors.profit}80` : `${luxuryColors.loss}80` }}>
+                                <p className="text-sm" style={{ color: isProfit ? `${themeColors.profit}80` : `${themeColors.loss}80` }}>
                                   {trade.pnl_percentage >= 0 ? "+" : ""}{trade.pnl_percentage.toFixed(2)}%
                                 </p>
                               </td>
-                              <td className="py-3 px-2 text-right text-sm" style={{ color: luxuryColors.textMuted }}>
+                              <td className="py-3 px-2 text-right text-sm" style={{ color: themeColors.textMuted }}>
                                 {new Date(trade.close_time || trade.open_time).toLocaleDateString()}
                               </td>
                             </tr>
@@ -734,8 +733,8 @@ const Portfolio = () => {
                 ) : (
                   <div className="h-[200px] flex items-center justify-center">
                     <div className="text-center">
-                      <BarChart3 className="w-12 h-12 mx-auto mb-3" style={{ color: luxuryColors.textMuted }} />
-                      <p style={{ color: luxuryColors.textMuted }}>No closed trades yet</p>
+                      <BarChart3 className="w-12 h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
+                      <p style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noClosedTrades')}</p>
                     </div>
                   </div>
                 )}
@@ -752,16 +751,16 @@ const Portfolio = () => {
             <div className="p-6 pb-2">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <GlowIcon icon={Clock} color={luxuryColors.cyan} size="md" />
-                  <h3 className="text-lg font-semibold" style={{ color: luxuryColors.textPrimary }}>
-                    Performance History
+                  <GlowIcon icon={Clock} color={themeColors.cyan} size="md" />
+                  <h3 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
+                    {t('portfolio.sections.performance')}
                   </h3>
                 </div>
                 <Tabs value={timePeriod} onValueChange={(v) => setTimePeriod(v as TimePeriod)}>
                   <TabsList
                     style={{
-                      backgroundColor: luxuryColors.bgTertiary,
-                      border: `1px solid ${luxuryColors.borderSubtle}`,
+                      backgroundColor: themeColors.bgTertiary,
+                      border: `1px solid ${themeColors.borderSubtle}`,
                     }}
                   >
                     {["24H", "7D", "30D", "ALL"].map((period) => (
@@ -769,7 +768,7 @@ const Portfolio = () => {
                         key={period}
                         value={period}
                         style={{
-                          color: timePeriod === period ? luxuryColors.textPrimary : luxuryColors.textMuted,
+                          color: timePeriod === period ? themeColors.textPrimary : themeColors.textMuted,
                         }}
                       >
                         {period}
@@ -788,26 +787,26 @@ const Portfolio = () => {
                   >
                     <defs>
                       <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={luxuryColors.cyan} stopOpacity={0.4} />
-                        <stop offset="50%" stopColor={luxuryColors.purple} stopOpacity={0.2} />
-                        <stop offset="100%" stopColor={luxuryColors.purple} stopOpacity={0} />
+                        <stop offset="0%" stopColor={themeColors.cyan} stopOpacity={0.4} />
+                        <stop offset="50%" stopColor={themeColors.purple} stopOpacity={0.2} />
+                        <stop offset="100%" stopColor={themeColors.purple} stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor={luxuryColors.purple} />
-                        <stop offset="50%" stopColor={luxuryColors.cyan} />
-                        <stop offset="100%" stopColor={luxuryColors.emerald} />
+                        <stop offset="0%" stopColor={themeColors.purple} />
+                        <stop offset="50%" stopColor={themeColors.cyan} />
+                        <stop offset="100%" stopColor={themeColors.emerald} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke={luxuryColors.borderSubtle}
+                      stroke={themeColors.borderSubtle}
                       vertical={false}
                     />
                     <XAxis
                       dataKey="date"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: luxuryColors.textMuted, fontSize: 12 }}
+                      tick={{ fill: themeColors.textMuted, fontSize: 12 }}
                       tickFormatter={(value) =>
                         new Date(value).toLocaleDateString("en-US", {
                           month: "short",
@@ -819,7 +818,7 @@ const Portfolio = () => {
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: luxuryColors.textMuted, fontSize: 12 }}
+                      tick={{ fill: themeColors.textMuted, fontSize: 12 }}
                       tickFormatter={(value) =>
                         `$${(value / 1000).toFixed(0)}k`
                       }
@@ -835,8 +834,8 @@ const Portfolio = () => {
                       dot={false}
                       activeDot={{
                         r: 6,
-                        fill: luxuryColors.cyan,
-                        stroke: luxuryColors.bgPrimary,
+                        fill: themeColors.cyan,
+                        stroke: themeColors.bgPrimary,
                         strokeWidth: 3,
                       }}
                     />
@@ -858,30 +857,30 @@ const Portfolio = () => {
                 <div
                   className="absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
-                    background: `linear-gradient(to bottom left, ${luxuryColors.profit}30, transparent)`,
+                    background: `linear-gradient(to bottom left, ${themeColors.profit}30, transparent)`,
                   }}
                 />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-3">
-                    <GlowIcon icon={Trophy} color={luxuryColors.profit} size="md" />
+                    <GlowIcon icon={Trophy} color={themeColors.profit} size="md" />
                     {bestTrade && (
                       <Badge variant="success">
                         +{bestTrade.pnl_percentage.toFixed(2)}%
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm mb-1" style={{ color: luxuryColors.textMuted }}>Best Trade</p>
+                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.bestTrade')}</p>
                   {bestTrade ? (
                     <div>
-                      <p className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                      <p className="font-semibold" style={{ color: themeColors.textPrimary }}>
                         {bestTrade.symbol}
                       </p>
-                      <p className="text-sm font-medium" style={{ color: luxuryColors.profit }}>
+                      <p className="text-sm font-medium" style={{ color: themeColors.profit }}>
                         +${(bestTrade.pnl || 0).toFixed(2)}
                       </p>
                     </div>
                   ) : (
-                    <p style={{ color: luxuryColors.textMuted }}>No trades yet</p>
+                    <p style={{ color: themeColors.textMuted }}>{t('portfolio.cards.noTradesYet')}</p>
                   )}
                 </div>
               </div>
@@ -895,30 +894,30 @@ const Portfolio = () => {
                 <div
                   className="absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
-                    background: `linear-gradient(to bottom left, ${luxuryColors.loss}30, transparent)`,
+                    background: `linear-gradient(to bottom left, ${themeColors.loss}30, transparent)`,
                   }}
                 />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-3">
-                    <GlowIcon icon={AlertTriangle} color={luxuryColors.loss} size="md" />
+                    <GlowIcon icon={AlertTriangle} color={themeColors.loss} size="md" />
                     {worstTrade && (
                       <Badge variant="error">
                         {worstTrade.pnl_percentage.toFixed(2)}%
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm mb-1" style={{ color: luxuryColors.textMuted }}>Worst Trade</p>
+                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.worstTrade')}</p>
                   {worstTrade ? (
                     <div>
-                      <p className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                      <p className="font-semibold" style={{ color: themeColors.textPrimary }}>
                         {worstTrade.symbol}
                       </p>
-                      <p className="text-sm font-medium" style={{ color: luxuryColors.loss }}>
+                      <p className="text-sm font-medium" style={{ color: themeColors.loss }}>
                         ${(worstTrade.pnl || 0).toFixed(2)}
                       </p>
                     </div>
                   ) : (
-                    <p style={{ color: luxuryColors.textMuted }}>No trades yet</p>
+                    <p style={{ color: themeColors.textMuted }}>{t('portfolio.cards.noTradesYet')}</p>
                   )}
                 </div>
               </div>
@@ -932,21 +931,21 @@ const Portfolio = () => {
                 <div
                   className="absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
-                    background: `linear-gradient(to bottom left, ${luxuryColors.cyan}30, transparent)`,
+                    background: `linear-gradient(to bottom left, ${themeColors.cyan}30, transparent)`,
                   }}
                 />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-3">
-                    <GlowIcon icon={Shield} color={luxuryColors.cyan} size="md" />
+                    <GlowIcon icon={Shield} color={themeColors.cyan} size="md" />
                     <Badge variant={portfolioMetrics.maxDrawdownPct < 10 ? "success" : portfolioMetrics.maxDrawdownPct < 20 ? "warning" : "error"}>
-                      {portfolioMetrics.maxDrawdownPct < 10 ? "Safe" : portfolioMetrics.maxDrawdownPct < 20 ? "Moderate" : "High"}
+                      {portfolioMetrics.maxDrawdownPct < 10 ? t('portfolio.status.safe') : portfolioMetrics.maxDrawdownPct < 20 ? t('portfolio.status.moderate') : t('portfolio.status.high')}
                     </Badge>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: luxuryColors.textMuted }}>Max Drawdown</p>
-                  <p className="text-2xl font-bold" style={{ color: luxuryColors.loss }}>
+                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.maxDrawdown')}</p>
+                  <p className="text-2xl font-bold" style={{ color: themeColors.loss }}>
                     -{portfolioMetrics.maxDrawdownPct.toFixed(2)}%
                   </p>
-                  <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
+                  <p className="text-sm" style={{ color: themeColors.textMuted }}>
                     ${portfolioMetrics.maxDrawdown.toFixed(2)}
                   </p>
                 </div>
@@ -961,22 +960,22 @@ const Portfolio = () => {
                 <div
                   className="absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
-                    background: `linear-gradient(to bottom left, ${luxuryColors.purple}30, transparent)`,
+                    background: `linear-gradient(to bottom left, ${themeColors.purple}30, transparent)`,
                   }}
                 />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-3">
-                    <GlowIcon icon={TrendingUp} color={luxuryColors.purple} size="md" />
+                    <GlowIcon icon={TrendingUp} color={themeColors.purple} size="md" />
                     <Badge variant={portfolioMetrics.sharpeRatio >= 1.5 ? "success" : portfolioMetrics.sharpeRatio >= 1 ? "warning" : "error"}>
-                      {portfolioMetrics.sharpeRatio >= 1.5 ? "Excellent" : portfolioMetrics.sharpeRatio >= 1 ? "Good" : "Low"}
+                      {portfolioMetrics.sharpeRatio >= 1.5 ? t('portfolio.status.excellent') : portfolioMetrics.sharpeRatio >= 1 ? t('portfolio.status.good') : t('portfolio.status.low')}
                     </Badge>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: luxuryColors.textMuted }}>Sharpe Ratio</p>
-                  <p className="text-2xl font-bold" style={{ color: luxuryColors.textPrimary }}>
+                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.sharpeRatio')}</p>
+                  <p className="text-2xl font-bold" style={{ color: themeColors.textPrimary }}>
                     {portfolioMetrics.sharpeRatio.toFixed(2)}
                   </p>
-                  <p className="text-sm" style={{ color: luxuryColors.textMuted }}>
-                    Risk-adjusted return
+                  <p className="text-sm" style={{ color: themeColors.textMuted }}>
+                    {t('portfolio.cards.riskAdjusted')}
                   </p>
                 </div>
               </div>

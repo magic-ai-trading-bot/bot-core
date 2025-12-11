@@ -1,0 +1,75 @@
+{
+  "button": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "confirm": "確認",
+    "close": "閉じる",
+    "submit": "送信",
+    "loading": "読み込み中...",
+    "back": "戻る",
+    "next": "次へ",
+    "edit": "編集",
+    "view": "表示"
+  },
+  "label": {
+    "language": "言語",
+    "theme": "テーマ",
+    "settings": "設定",
+    "profile": "プロフィール",
+    "logout": "ログアウト",
+    "login": "ログイン",
+    "register": "新規登録"
+  },
+  "theme": {
+    "light": "ライト",
+    "dark": "ダーク",
+    "system": "システム",
+    "toggle": "テーマを切り替え"
+  },
+  "nav": {
+    "home": "ホーム",
+    "dashboard": "ダッシュボード",
+    "trading": "取引",
+    "paperTrading": "デモ取引",
+    "realTrading": "本番取引",
+    "portfolio": "ポートフォリオ",
+    "signals": "AIシグナル",
+    "tradeAnalyses": "取引分析",
+    "howItWorks": "使い方",
+    "settings": "設定",
+    "features": "機能",
+    "pricing": "料金",
+    "reviews": "レビュー",
+    "faq": "よくある質問"
+  },
+  "status": {
+    "active": "アクティブ",
+    "inactive": "非アクティブ",
+    "pending": "保留中",
+    "completed": "完了",
+    "failed": "失敗",
+    "loading": "読み込み中",
+    "online": "オンライン",
+    "offline": "オフライン"
+  },
+  "time": {
+    "now": "たった今",
+    "minutesAgo": "{{count}}分前",
+    "hoursAgo": "{{count}}時間前",
+    "daysAgo": "{{count}}日前"
+  },
+  "mode": {
+    "paper": "デモ取引",
+    "real": "本番取引"
+  },
+  "notification": {
+    "title": "通知",
+    "new": "{{count}}件の新着",
+    "empty": "通知はありません",
+    "emptyDesc": "何かあればお知らせします",
+    "showing": "{{total}}件中{{current}}件を表示",
+    "markAllRead": "すべて既読にする",
+    "clearAll": "すべて削除"
+  }
+}

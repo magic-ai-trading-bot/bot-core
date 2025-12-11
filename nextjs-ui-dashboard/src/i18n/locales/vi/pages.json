@@ -1,0 +1,659 @@
+{
+  "common": {
+    "backToHome": "Quay lại Trang chủ",
+    "getStarted": "Bắt đầu ngay",
+    "viewPricing": "Xem bảng giá",
+    "learnMore": "Tìm hiểu thêm",
+    "contactUs": "Liên hệ",
+    "startFreeTrial": "Dùng thử miễn phí"
+  },
+  "features": {
+    "badge": "Tính năng nền tảng",
+    "title": "Tính năng mạnh mẽ cho",
+    "subtitle": "Nhà giao dịch hiện đại",
+    "description": "Mọi thứ bạn cần để giao dịch thông minh hơn, nhanh hơn và có lợi nhuận cao hơn với công nghệ AI tiên tiến.",
+    "andMore": "Và còn nhiều hơn nữa...",
+    "readyTitle": "Sẵn sàng bắt đầu giao dịch?",
+    "readyDescription": "Tham gia cùng hàng nghìn nhà giao dịch sử dụng Bot Core để tự động hóa chiến lược giao dịch.",
+    "getStartedFree": "Bắt đầu miễn phí",
+    "items": {
+      "aiAnalysis": {
+        "title": "Phân tích AI",
+        "description": "Các mô hình học máy tiên tiến phân tích xu hướng thị trường, tâm lý và chỉ báo kỹ thuật theo thời gian thực để xác định cơ hội giao dịch sinh lời.",
+        "highlights": ["Mô hình LSTM & Transformer", "Phân tích GPT-4", "Phát hiện tâm lý"]
+      },
+      "tradingBot": {
+        "title": "Bot giao dịch tự động",
+        "description": "Thiết lập chiến lược một lần và để bot thực hiện giao dịch 24/7 với độ chính xác cao và quyết định không cảm xúc.",
+        "highlights": ["Giao dịch 24/7", "Nhiều chiến lược", "Paper & Live Trading"]
+      },
+      "riskManagement": {
+        "title": "Quản lý rủi ro nâng cao",
+        "description": "Bảo vệ vốn với stop-loss thông minh, take-profit và thuật toán định cỡ vị thế thích ứng với điều kiện thị trường.",
+        "highlights": ["Stop Loss động", "Định cỡ vị thế", "Bảo vệ thua lỗ"]
+      },
+      "analytics": {
+        "title": "Phân tích thời gian thực",
+        "description": "Theo dõi hiệu suất danh mục với bảng điều khiển toàn diện, biểu đồ thời gian thực và phân tích giao dịch chi tiết.",
+        "highlights": ["Theo dõi P&L", "Chỉ số hiệu suất", "Lịch sử giao dịch"]
+      },
+      "execution": {
+        "title": "Thực thi siêu nhanh",
+        "description": "Thực hiện giao dịch trong mili giây với cơ sở hạ tầng tối ưu kết nối trực tiếp với các sàn giao dịch lớn.",
+        "highlights": ["Độ trễ <50ms", "Định tuyến lệnh thông minh", "Bảo vệ trượt giá"]
+      },
+      "strategies": {
+        "title": "Nhiều chiến lược",
+        "description": "Chọn từ các chiến lược giao dịch đã được chứng minh bao gồm RSI, MACD, Bollinger Bands và Volume.",
+        "highlights": ["Chiến lược RSI", "MACD Crossover", "Bollinger Bands"]
+      }
+    },
+    "additional": {
+      "backtesting": { "title": "Backtest", "description": "Kiểm tra chiến lược trên dữ liệu lịch sử" },
+      "security": { "title": "Bảo mật ngân hàng", "description": "Mã hóa đầu cuối & 2FA" },
+      "multiExchange": { "title": "Đa sàn giao dịch", "description": "Giao dịch trên Binance, Bybit & nhiều hơn" },
+      "monitoring": { "title": "Giám sát 24/7", "description": "Hệ thống giám sát luôn bật" },
+      "alerts": { "title": "Cảnh báo tùy chỉnh", "description": "Telegram, Discord & Email" },
+      "aiSignals": { "title": "Tín hiệu AI", "description": "Dự đoán bằng machine learning" }
+    }
+  },
+  "pricing": {
+    "badge": "Bảng giá đơn giản",
+    "title": "Chọn gói",
+    "subtitle": "Giao dịch của bạn",
+    "description": "Bắt đầu miễn phí và mở rộng khi phát triển. Không phí ẩn, hủy bất cứ lúc nào.",
+    "mostPopular": "Phổ biến nhất",
+    "faq": "Câu hỏi thường gặp",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "Miễn phí",
+        "description": "Hoàn hảo để học và giao dịch thử",
+        "features": [
+          "Chỉ Paper Trading",
+          "3 chiến lược hoạt động",
+          "Tín hiệu AI cơ bản",
+          "Hỗ trợ cộng đồng",
+          "1 kết nối sàn",
+          "Báo cáo hiệu suất hàng ngày"
+        ],
+        "cta": "Bắt đầu miễn phí"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$49",
+        "period": "/tháng",
+        "description": "Cho nhà giao dịch sẵn sàng giao dịch thật",
+        "features": [
+          "Giao dịch thật",
+          "Không giới hạn chiến lược",
+          "Phân tích AI nâng cao",
+          "Hỗ trợ ưu tiên",
+          "3 kết nối sàn",
+          "Cảnh báo thời gian thực",
+          "Quản lý rủi ro nâng cao",
+          "Xây dựng chiến lược tùy chỉnh"
+        ],
+        "cta": "Bắt đầu ngay"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Tùy chỉnh",
+        "description": "Cho quỹ và nhà giao dịch chuyên nghiệp",
+        "features": [
+          "Tất cả trong gói Pro",
+          "Không giới hạn sàn",
+          "Quản lý tài khoản riêng",
+          "Tích hợp API tùy chỉnh",
+          "White-label",
+          "Cam kết SLA",
+          "Triển khai on-premise",
+          "Huấn luyện mô hình AI tùy chỉnh"
+        ],
+        "cta": "Liên hệ kinh doanh"
+      }
+    },
+    "faqs": {
+      "switch": {
+        "question": "Tôi có thể đổi gói bất cứ lúc nào không?",
+        "answer": "Có, bạn có thể nâng cấp hoặc hạ cấp gói bất cứ lúc nào. Thay đổi có hiệu lực ngay và chúng tôi sẽ tính phí theo tỷ lệ."
+      },
+      "trial": {
+        "question": "Có dùng thử miễn phí cho gói Pro không?",
+        "answer": "Có! Bạn được dùng thử 14 ngày miễn phí các tính năng Pro. Không cần thẻ tín dụng."
+      },
+      "payment": {
+        "question": "Bạn chấp nhận phương thức thanh toán nào?",
+        "answer": "Chúng tôi chấp nhận tất cả thẻ tín dụng chính, PayPal và tiền điện tử (BTC, ETH, USDT)."
+      },
+      "cancel": {
+        "question": "Tôi có thể hủy bất cứ lúc nào không?",
+        "answer": "Hoàn toàn. Hủy đăng ký bất cứ lúc nào mà không có phí hủy."
+      }
+    }
+  },
+  "about": {
+    "badge": "Về chúng tôi",
+    "title": "Xây dựng tương lai của",
+    "subtitle": "Giao dịch tự động",
+    "description": "Chúng tôi tin rằng mọi người đều xứng đáng được tiếp cận công nghệ giao dịch cấp tổ chức. Sứ mệnh của chúng tôi là dân chủ hóa giao dịch thuật toán thông qua AI.",
+    "stats": {
+      "activeUsers": "Người dùng hoạt động",
+      "countries": "Quốc gia",
+      "tradesExecuted": "Giao dịch đã thực hiện",
+      "totalVolume": "Tổng khối lượng"
+    },
+    "values": {
+      "title": "Giá trị của chúng tôi",
+      "missionDriven": {
+        "title": "Định hướng sứ mệnh",
+        "description": "Chúng tôi cam kết dân chủ hóa giao dịch thuật toán cho mọi người."
+      },
+      "userFirst": {
+        "title": "Người dùng là trên hết",
+        "description": "Mỗi tính năng chúng tôi xây dựng bắt đầu từ việc hiểu nhu cầu người dùng."
+      },
+      "innovation": {
+        "title": "Đổi mới",
+        "description": "Chúng tôi mở rộng giới hạn của những gì có thể với AI và giao dịch."
+      },
+      "globalImpact": {
+        "title": "Tác động toàn cầu",
+        "description": "Xây dựng công cụ trao quyền cho nhà giao dịch trên toàn thế giới."
+      }
+    },
+    "journey": {
+      "title": "Hành trình của chúng tôi",
+      "milestones": [
+        { "year": "2021", "event": "Thành lập tại San Francisco" },
+        { "year": "2022", "event": "Ra mắt beta với 1,000 người dùng" },
+        { "year": "2023", "event": "Vòng gọi vốn Series A, 50,000+ người dùng" },
+        { "year": "2024", "event": "Ra mắt engine giao dịch AI v2.0" }
+      ]
+    },
+    "team": {
+      "title": "Gặp gỡ đội ngũ",
+      "members": [
+        { "name": "Alex Chen", "role": "CEO & Đồng sáng lập", "bio": "Cựu trader định lượng tại Goldman Sachs với hơn 10 năm trong giao dịch thuật toán." },
+        { "name": "Sarah Kim", "role": "CTO & Đồng sáng lập", "bio": "Cựu kỹ sư Google chuyên về machine learning và hệ thống phân tán." },
+        { "name": "Michael Rodriguez", "role": "Trưởng bộ phận AI", "bio": "Tiến sĩ Machine Learning từ MIT, tiên phong trong chiến lược giao dịch neural network." },
+        { "name": "Emily Zhang", "role": "Trưởng bộ phận Sản phẩm", "bio": "Cựu product lead tại Coinbase, đam mê thiết kế lấy người dùng làm trung tâm." }
+      ]
+    },
+    "cta": {
+      "title": "Tham gia sứ mệnh",
+      "description": "Chúng tôi luôn tìm kiếm những người tài năng chia sẻ niềm đam mê đổi mới.",
+      "viewPositions": "Xem vị trí tuyển dụng",
+      "getInTouch": "Liên hệ"
+    }
+  },
+  "contact": {
+    "badge": "Liên hệ",
+    "title": "Liên hệ với chúng tôi",
+    "description": "Có câu hỏi? Chúng tôi ở đây để giúp đỡ. Liên hệ với đội ngũ của chúng tôi và chúng tôi sẽ phản hồi sớm nhất có thể.",
+    "info": {
+      "email": { "title": "Email", "value": "support@botcore.io", "description": "Chúng tôi sẽ phản hồi trong 24 giờ" },
+      "liveChat": { "title": "Chat trực tiếp", "value": "Có sẵn 24/7", "description": "Chat với đội hỗ trợ" },
+      "phone": { "title": "Điện thoại", "value": "+1 (555) 123-4567", "description": "T2-T6 9am-6pm PST" },
+      "office": { "title": "Văn phòng", "value": "San Francisco, CA", "description": "123 Market Street, Suite 456" }
+    },
+    "form": {
+      "title": "Gửi tin nhắn cho chúng tôi",
+      "name": "Họ tên",
+      "namePlaceholder": "Nguyễn Văn A",
+      "email": "Địa chỉ Email",
+      "emailPlaceholder": "email@example.com",
+      "category": "Danh mục",
+      "subject": "Chủ đề",
+      "subjectPlaceholder": "Chúng tôi có thể giúp gì?",
+      "message": "Tin nhắn",
+      "messagePlaceholder": "Cho chúng tôi biết thêm về yêu cầu của bạn...",
+      "submit": "Gửi tin nhắn",
+      "success": "Gửi tin nhắn thành công! Chúng tôi sẽ phản hồi sớm."
+    },
+    "categories": {
+      "title": "Chúng tôi có thể giúp gì?",
+      "general": { "title": "Câu hỏi chung", "description": "Câu hỏi về nền tảng" },
+      "technical": { "title": "Hỗ trợ kỹ thuật", "description": "Trợ giúp với vấn đề kỹ thuật" },
+      "enterprise": { "title": "Kinh doanh doanh nghiệp", "description": "Giải pháp tùy chỉnh cho doanh nghiệp" },
+      "partnership": { "title": "Đối tác", "description": "Cơ hội hợp tác" }
+    },
+    "responseTime": {
+      "title": "Thời gian phản hồi",
+      "items": [
+        "Email: Trong 24 giờ",
+        "Chat trực tiếp: Dưới 5 phút",
+        "Điện thoại: Ngay lập tức trong giờ làm việc",
+        "Enterprise: Hỗ trợ chuyên dụng"
+      ]
+    }
+  },
+  "blog": {
+    "badge": "Blog",
+    "title": "Tin tức mới nhất &",
+    "subtitle": "Mẹo giao dịch",
+    "description": "Cập nhật với phân tích thị trường mới nhất, chiến lược giao dịch và cập nhật nền tảng.",
+    "readMore": "Đọc thêm",
+    "viewAll": "Xem tất cả bài viết",
+    "categories": {
+      "all": "Tất cả",
+      "trading": "Giao dịch",
+      "ai": "AI & ML",
+      "market": "Phân tích thị trường",
+      "tutorials": "Hướng dẫn"
+    },
+    "posts": [
+      { "title": "AI đang cách mạng hóa giao dịch Crypto như thế nào", "excerpt": "Khám phá cách thuật toán machine learning đang thay đổi cuộc chơi cho nhà giao dịch crypto.", "category": "AI & ML", "readTime": "5 phút đọc" },
+      { "title": "Top 5 chiến lược quản lý rủi ro 2024", "excerpt": "Học các kỹ thuật quản lý rủi ro thiết yếu để bảo vệ vốn giao dịch.", "category": "Giao dịch", "readTime": "8 phút đọc" },
+      { "title": "Phân tích thị trường Bitcoin: Triển vọng Q4", "excerpt": "AI của chúng tôi phân tích các chỉ báo thị trường chính cho hiệu suất Bitcoin Q4.", "category": "Phân tích thị trường", "readTime": "6 phút đọc" },
+      { "title": "Bắt đầu với Paper Trading", "excerpt": "Hướng dẫn cho người mới bắt đầu để thực hành giao dịch mà không rủi ro tiền thật.", "category": "Hướng dẫn", "readTime": "4 phút đọc" },
+      { "title": "Hiểu chiến lược RSI trong Bot Core", "excerpt": "Đi sâu vào cách chiến lược giao dịch dựa trên RSI hoạt động.", "category": "Giao dịch", "readTime": "7 phút đọc" },
+      { "title": "Tính năng mới: Phân tích danh mục nâng cao", "excerpt": "Giới thiệu công cụ mới để theo dõi và phân tích hiệu suất giao dịch.", "category": "Hướng dẫn", "readTime": "3 phút đọc" }
+    ]
+  },
+  "careers": {
+    "badge": "Tuyển dụng",
+    "title": "Xây dựng tương lai của",
+    "subtitle": "Giao dịch AI",
+    "description": "Chúng tôi đang tìm kiếm những cá nhân đam mê để giúp cách mạng hóa giao dịch thuật toán. Tham gia đội ngũ và tạo tác động.",
+    "whyJoin": {
+      "title": "Tại sao gia nhập Bot Core?",
+      "items": [
+        { "title": "Lương cạnh tranh", "description": "Mức lương hàng đầu với quyền chọn cổ phiếu" },
+        { "title": "Làm việc từ xa", "description": "Làm việc từ bất cứ đâu trên thế giới" },
+        { "title": "Phúc lợi sức khỏe", "description": "Bảo hiểm y tế, nha khoa & mắt toàn diện" },
+        { "title": "Ngân sách học tập", "description": "$2,000/năm cho phát triển chuyên môn" },
+        { "title": "PTO linh hoạt", "description": "Chính sách nghỉ phép không giới hạn" },
+        { "title": "Sự kiện đội", "description": "Team building và du lịch hàng quý" }
+      ]
+    },
+    "openings": {
+      "title": "Vị trí đang tuyển",
+      "apply": "Ứng tuyển ngay",
+      "positions": [
+        { "title": "Senior Backend Engineer", "location": "Remote", "type": "Toàn thời gian", "department": "Engineering" },
+        { "title": "ML Engineer - Trading Systems", "location": "Remote", "type": "Toàn thời gian", "department": "AI/ML" },
+        { "title": "Product Designer", "location": "San Francisco", "type": "Toàn thời gian", "department": "Design" },
+        { "title": "DevOps Engineer", "location": "Remote", "type": "Toàn thời gian", "department": "Engineering" }
+      ]
+    },
+    "noPosition": {
+      "title": "Không thấy vị trí phù hợp?",
+      "description": "Chúng tôi luôn tìm kiếm người tài. Gửi CV và cho chúng tôi biết bạn có thể đóng góp như thế nào.",
+      "button": "Gửi CV"
+    }
+  },
+  "privacy": {
+    "badge": "Chính sách bảo mật",
+    "title": "Quyền riêng tư của bạn",
+    "subtitle": "Là ưu tiên của chúng tôi",
+    "lastUpdated": "Cập nhật lần cuối: Tháng 1, 2024",
+    "description": "Chúng tôi cam kết bảo vệ quyền riêng tư của bạn. Chính sách này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ thông tin của bạn.",
+    "sections": {
+      "collection": {
+        "title": "Thông tin chúng tôi thu thập",
+        "items": [
+          "Thông tin tài khoản (tên, email, mật khẩu)",
+          "Tùy chọn và cài đặt giao dịch",
+          "Dữ liệu sử dụng nền tảng và phân tích",
+          "API keys (được mã hóa và bảo mật)",
+          "Thông tin thanh toán (xử lý an toàn)"
+        ]
+      },
+      "usage": {
+        "title": "Cách chúng tôi sử dụng thông tin",
+        "items": [
+          "Cung cấp và cải thiện dịch vụ giao dịch",
+          "Xử lý giao dịch của bạn một cách an toàn",
+          "Gửi cập nhật nền tảng quan trọng",
+          "Phân tích và cải thiện hiệu suất nền tảng",
+          "Tuân thủ yêu cầu pháp lý"
+        ]
+      },
+      "protection": {
+        "title": "Cách chúng tôi bảo vệ dữ liệu",
+        "items": [
+          "Mã hóa đầu cuối cho tất cả dữ liệu",
+          "Kiểm tra bảo mật và penetration testing thường xuyên",
+          "Tuân thủ SOC 2 Type II",
+          "Xác thực đa yếu tố",
+          "Trung tâm dữ liệu an toàn với giám sát 24/7"
+        ]
+      },
+      "rights": {
+        "title": "Quyền của bạn",
+        "items": [
+          "Truy cập dữ liệu cá nhân của bạn",
+          "Yêu cầu sửa hoặc xóa dữ liệu",
+          "Từ chối nhận thông tin marketing",
+          "Xuất dữ liệu của bạn ở định dạng portable",
+          "Rút lại sự đồng ý bất cứ lúc nào"
+        ]
+      }
+    },
+    "contact": "Đối với các yêu cầu liên quan đến quyền riêng tư, liên hệ privacy@botcore.io"
+  },
+  "terms": {
+    "badge": "Điều khoản dịch vụ",
+    "title": "Điều khoản",
+    "subtitle": "Dịch vụ",
+    "lastUpdated": "Cập nhật lần cuối: Tháng 1, 2024",
+    "description": "Vui lòng đọc kỹ các điều khoản này trước khi sử dụng nền tảng Bot Core. Bằng việc sử dụng dịch vụ, bạn đồng ý với các điều khoản này.",
+    "sections": {
+      "acceptance": {
+        "title": "Chấp nhận điều khoản",
+        "content": "Bằng việc truy cập hoặc sử dụng Bot Core, bạn đồng ý bị ràng buộc bởi các Điều khoản Dịch vụ này và tất cả các luật và quy định hiện hành."
+      },
+      "services": {
+        "title": "Mô tả dịch vụ",
+        "content": "Bot Core cung cấp công cụ giao dịch tiền điện tử được hỗ trợ bởi AI, bao gồm bot giao dịch tự động, phân tích thị trường và tính năng quản lý danh mục."
+      },
+      "account": {
+        "title": "Trách nhiệm tài khoản",
+        "items": [
+          "Cung cấp thông tin tài khoản chính xác",
+          "Duy trì bảo mật thông tin đăng nhập của bạn",
+          "Thông báo cho chúng tôi ngay khi có truy cập trái phép",
+          "Sử dụng nền tảng tuân thủ luật pháp hiện hành"
+        ]
+      },
+      "trading": {
+        "title": "Rủi ro giao dịch",
+        "content": "Giao dịch tiền điện tử liên quan đến rủi ro đáng kể. Hiệu suất quá khứ không đảm bảo kết quả tương lai. Bạn thừa nhận rằng bạn có thể mất một phần hoặc toàn bộ khoản đầu tư."
+      },
+      "prohibited": {
+        "title": "Hoạt động bị cấm",
+        "items": [
+          "Thao túng thị trường hoặc giao dịch gian lận",
+          "Truy cập trái phép vào tài khoản khác",
+          "Vi phạm điều khoản dịch vụ của sàn giao dịch",
+          "Phân phối malware hoặc mã độc hại"
+        ]
+      },
+      "termination": {
+        "title": "Chấm dứt",
+        "content": "Chúng tôi có quyền đình chỉ hoặc chấm dứt tài khoản của bạn do vi phạm các điều khoản này hoặc hoạt động đáng ngờ."
+      }
+    },
+    "contact": "Đối với câu hỏi về các điều khoản này, liên hệ legal@botcore.io"
+  },
+  "security": {
+    "badge": "Bảo mật",
+    "title": "Bảo mật của bạn",
+    "subtitle": "Là ưu tiên của chúng tôi",
+    "description": "Chúng tôi triển khai các biện pháp bảo mật hàng đầu ngành để bảo vệ tài sản và dữ liệu của bạn.",
+    "features": {
+      "encryption": {
+        "title": "Mã hóa đầu cuối",
+        "description": "Tất cả dữ liệu được mã hóa bằng AES-256 trong quá trình truyền và lưu trữ."
+      },
+      "mfa": {
+        "title": "Xác thực đa yếu tố",
+        "description": "Bảo vệ tài khoản với 2FA qua ứng dụng xác thực hoặc khóa phần cứng."
+      },
+      "keys": {
+        "title": "Lưu trữ API Key an toàn",
+        "description": "API keys sàn giao dịch của bạn được mã hóa và lưu trữ trong kho an toàn."
+      },
+      "audit": {
+        "title": "Kiểm tra bảo mật thường xuyên",
+        "description": "Các công ty bảo mật bên thứ ba tiến hành penetration testing hàng quý."
+      },
+      "soc2": {
+        "title": "Tuân thủ SOC 2 Type II",
+        "description": "Chúng tôi duy trì tuân thủ nghiêm ngặt với tiêu chuẩn bảo mật SOC 2."
+      },
+      "monitoring": {
+        "title": "Giám sát 24/7",
+        "description": "Đội bảo mật của chúng tôi giám sát các mối đe dọa suốt ngày đêm."
+      }
+    },
+    "practices": {
+      "title": "Thực hành bảo mật tốt nhất",
+      "items": [
+        "Sử dụng mật khẩu mạnh, duy nhất",
+        "Bật xác thực hai yếu tố",
+        "Sử dụng API keys với chức năng rút tiền bị vô hiệu hóa",
+        "Theo dõi hoạt động tài khoản thường xuyên",
+        "Cập nhật phần mềm của bạn",
+        "Cẩn thận với các nỗ lực lừa đảo"
+      ]
+    },
+    "report": {
+      "title": "Báo cáo lỗ hổng",
+      "description": "Phát hiện vấn đề bảo mật? Chúng tôi đánh giá cao việc tiết lộ có trách nhiệm.",
+      "button": "Báo cáo vấn đề"
+    }
+  },
+  "compliance": {
+    "badge": "Tuân thủ",
+    "title": "Tuân thủ",
+    "subtitle": "Quy định",
+    "description": "Bot Core duy trì tuân thủ nghiêm ngặt với các quy định tài chính và luật bảo vệ dữ liệu.",
+    "certifications": {
+      "title": "Chứng nhận & Tiêu chuẩn",
+      "items": [
+        { "name": "SOC 2 Type II", "description": "Kiểm soát bảo mật, tính khả dụng và bảo mật" },
+        { "name": "Tuân thủ GDPR", "description": "Quy định bảo vệ dữ liệu châu Âu" },
+        { "name": "Tuân thủ CCPA", "description": "Đạo luật quyền riêng tư người tiêu dùng California" },
+        { "name": "ISO 27001", "description": "Quản lý bảo mật thông tin" }
+      ]
+    },
+    "policies": {
+      "title": "Chính sách tuân thủ",
+      "items": [
+        { "title": "Chống rửa tiền (AML)", "description": "Chúng tôi triển khai quy trình AML toàn diện để ngăn chặn tội phạm tài chính." },
+        { "title": "Xác minh khách hàng (KYC)", "description": "Xác minh danh tính để tăng cường bảo mật tài khoản." },
+        { "title": "Bảo vệ dữ liệu", "description": "Chính sách nghiêm ngặt để xử lý và bảo vệ dữ liệu người dùng." },
+        { "title": "Quản lý rủi ro", "description": "Quy trình đánh giá và giảm thiểu rủi ro mạnh mẽ." }
+      ]
+    },
+    "updates": {
+      "title": "Cập nhật tuân thủ",
+      "description": "Chúng tôi liên tục cập nhật các thực hành tuân thủ để đáp ứng các quy định đang phát triển. Kiểm tra trang này thường xuyên để cập nhật."
+    },
+    "contact": "Đối với các yêu cầu tuân thủ, liên hệ compliance@botcore.io"
+  },
+  "api": {
+    "badge": "API cho nhà phát triển",
+    "title": "Xây dựng với",
+    "subtitle": "Bot Core API",
+    "description": "API mạnh mẽ để tích hợp tự động hóa giao dịch vào ứng dụng của bạn.",
+    "features": {
+      "rest": {
+        "title": "RESTful API",
+        "description": "Endpoint REST tiêu chuẩn cho tất cả hoạt động giao dịch"
+      },
+      "websocket": {
+        "title": "WebSocket Streams",
+        "description": "Dữ liệu thị trường và cập nhật giao dịch thời gian thực"
+      },
+      "sdks": {
+        "title": "SDK chính thức",
+        "description": "Thư viện cho Python, JavaScript và nhiều hơn nữa"
+      },
+      "docs": {
+        "title": "Tài liệu toàn diện",
+        "description": "Tài liệu chi tiết với ví dụ"
+      }
+    },
+    "quickStart": {
+      "title": "Bắt đầu nhanh",
+      "description": "Bắt đầu với API của chúng tôi trong vài phút"
+    },
+    "viewDocs": "Xem tài liệu",
+    "getApiKey": "Lấy API Key"
+  },
+  "docs": {
+    "badge": "Tài liệu",
+    "title": "Tìm hiểu cách",
+    "subtitle": "Sử dụng Bot Core",
+    "description": "Hướng dẫn và tutorial toàn diện để giúp bạn bắt đầu và tận dụng tối đa nền tảng.",
+    "sections": {
+      "gettingStarted": { "title": "Bắt đầu", "description": "Hướng dẫn bắt đầu nhanh và thiết lập ban đầu" },
+      "trading": { "title": "Hướng dẫn giao dịch", "description": "Tìm hiểu về các tính năng giao dịch" },
+      "api": { "title": "Tham khảo API", "description": "Tài liệu kỹ thuật cho nhà phát triển" },
+      "strategies": { "title": "Chiến lược giao dịch", "description": "Đi sâu vào thuật toán giao dịch" }
+    },
+    "viewAll": "Xem tất cả tài liệu"
+  },
+  "howItWorks": {
+    "badge": "BOT GIAO DỊCH AI",
+    "hero": {
+      "title": "Giao dịch thông minh,",
+      "titleHighlight": "Không cảm xúc",
+      "subtitle": "Giao dịch tiền điện tử tự động với phân tích AI tiên tiến, giám sát thị trường thời gian thực và quản lý rủi ro thông minh."
+    },
+    "stats": {
+      "strategies": "Chiến lược giao dịch",
+      "riskLayers": "Lớp rủi ro",
+      "uptime": "Thời gian hoạt động",
+      "aiAccuracy": "Độ chính xác AI"
+    },
+    "process": {
+      "title": "Cách Bot Core hoạt động",
+      "subtitle": "Hệ thống giao dịch AI của chúng tôi tuân theo quy trình 4 bước tinh vi để xác định và thực hiện giao dịch sinh lời."
+    },
+    "steps": {
+      "dataCollection": {
+        "number": "01",
+        "title": "Thu thập dữ liệu",
+        "subtitle": "Tổng hợp dữ liệu thị trường thời gian thực",
+        "description": "Hệ thống liên tục thu thập và xử lý dữ liệu thị trường thời gian thực từ nhiều nguồn để xây dựng bức tranh toàn diện về điều kiện thị trường.",
+        "details": [
+          "Nguồn giá từ các sàn lớn",
+          "Phân tích độ sâu sổ lệnh",
+          "Chỉ số khối lượng và thanh khoản",
+          "Tín hiệu tâm lý xã hội"
+        ]
+      },
+      "technicalAnalysis": {
+        "number": "02",
+        "title": "Phân tích kỹ thuật",
+        "subtitle": "Đánh giá chiến lược đa chỉ báo",
+        "description": "Phân tích kỹ thuật nâng cao sử dụng các chỉ báo đã được chứng minh để xác định cơ hội giao dịch có xác suất cao.",
+        "details": [
+          "Phân tích động lượng RSI",
+          "Phát hiện xu hướng MACD",
+          "Breakout Bollinger Band",
+          "Tín hiệu xác nhận khối lượng"
+        ]
+      },
+      "signalGeneration": {
+        "number": "03",
+        "title": "Tạo tín hiệu",
+        "subtitle": "Quyết định giao dịch bằng AI",
+        "description": "Các mô hình học máy phân tích mẫu hình và tạo tín hiệu giao dịch với điểm độ tin cậy.",
+        "details": [
+          "Dự đoán mạng neural LSTM",
+          "Phân tích thị trường GPT-4",
+          "Biểu quyết ensemble đa mô hình",
+          "Tín hiệu có trọng số độ tin cậy"
+        ]
+      },
+      "riskManagement": {
+        "number": "04",
+        "title": "Quản lý rủi ro",
+        "subtitle": "Định cỡ vị thế thông minh",
+        "description": "Mọi giao dịch đều đi qua hệ thống quản lý rủi ro toàn diện của chúng tôi để bảo vệ vốn của bạn.",
+        "details": [
+          "Định cỡ vị thế động",
+          "Đặt stop-loss tự động",
+          "Phân tích tương quan danh mục",
+          "Thực thi giới hạn lỗ hàng ngày"
+        ]
+      }
+    },
+    "strategies": {
+      "title": "Chiến lược giao dịch",
+      "subtitle": "Chọn từ bộ chiến lược giao dịch đã được chứng minh, mỗi chiến lược được tối ưu hóa cho các điều kiện thị trường khác nhau.",
+      "winRate": "Tỷ lệ thắng",
+      "buy": "Mua",
+      "sell": "Bán",
+      "items": {
+        "rsi": {
+          "name": "Chiến lược RSI",
+          "description": "Giao dịch dựa trên động lượng sử dụng RSI để xác định điều kiện quá mua và quá bán.",
+          "winRate": "62%"
+        },
+        "macd": {
+          "name": "Chiến lược MACD",
+          "description": "Chiến lược theo xu hướng sử dụng giao cắt MACD.",
+          "winRate": "58%"
+        },
+        "bollinger": {
+          "name": "Bollinger Bands",
+          "description": "Chiến lược dựa trên biến động giao dịch đảo chiều giá tại ranh giới band.",
+          "winRate": "60%"
+        },
+        "volume": {
+          "name": "Chiến lược Volume",
+          "description": "Phân tích có trọng số khối lượng để xác nhận biến động giá và breakout.",
+          "winRate": "52%"
+        },
+        "stochastic": {
+          "name": "Stochastic",
+          "description": "Bộ dao động động lượng so sánh giá đóng cửa với phạm vi giá theo thời gian.",
+          "winRate": "64%"
+        }
+      },
+      "note": "Tỷ lệ thắng dựa trên backtest lịch sử. Hiệu suất quá khứ không đảm bảo kết quả tương lai.",
+      "multiConfirmation": {
+        "title": "Yêu cầu xác nhận đa chiều",
+        "description": "Giao dịch chỉ được thực hiện khi ít nhất 4 trong 5 chiến lược đồng ý về hướng tín hiệu, đảm bảo các điểm vào lệnh chất lượng cao."
+      }
+    },
+    "risk": {
+      "title": "Các lớp quản lý rủi ro",
+      "subtitle": "Nhiều lớp bảo vệ để bảo vệ vốn giao dịch của bạn.",
+      "layers": {
+        "position": {
+          "title": "Rủi ro vị thế",
+          "description": "Tối đa 2% danh mục mỗi giao dịch"
+        },
+        "stopLoss": {
+          "title": "Stop Loss",
+          "description": "Giới hạn lỗ tự động trên mọi giao dịch"
+        },
+        "portfolio": {
+          "title": "Rủi ro danh mục",
+          "description": "Phân bổ đa dạng giữa các vị thế"
+        },
+        "daily": {
+          "title": "Giới hạn hàng ngày",
+          "description": "Bảo vệ sụt giảm tối đa 5% mỗi ngày"
+        },
+        "consecutiveLosses": {
+          "title": "Lỗ liên tiếp",
+          "description": "Trước khi tạm dừng"
+        },
+        "correlation": {
+          "title": "Tương quan",
+          "description": "Giới hạn exposure theo hướng tối đa 70%"
+        },
+        "cooldown": {
+          "title": "Cool-down",
+          "description": "Tạm dừng 60 phút sau 5 lỗ liên tiếp"
+        }
+      }
+    },
+    "trailingStop": {
+      "title": "Bảo vệ Trailing Stop",
+      "subtitle": "Khóa lợi nhuận trong khi để lệnh thắng chạy tiếp",
+      "description": "Hệ thống trailing stop thông minh tự động điều chỉnh stop-loss khi giá di chuyển có lợi, bảo vệ lợi nhuận trong khi tối đa hóa tiềm năng tăng.",
+      "result": "Kết quả: +3.47% lợi nhuận ($1,560) được bảo vệ ngay cả khi giá giảm từ đỉnh",
+      "steps": {
+        "entry": "Vào lệnh",
+        "profit": "+5% Lợi nhuận",
+        "trailing": "Trailing Kích hoạt",
+        "peak": "Giá đỉnh",
+        "exit": "Thoát lệnh"
+      }
+    },
+    "cta": {
+      "title": "Sẵn sàng giao dịch thông minh hơn?",
+      "subtitle": "Tham gia cùng hàng nghìn nhà giao dịch sử dụng Bot Core để tự động hóa chiến lược với độ chính xác AI.",
+      "button": "Bắt đầu Paper Trading miễn phí"
+    }
+  }
+}

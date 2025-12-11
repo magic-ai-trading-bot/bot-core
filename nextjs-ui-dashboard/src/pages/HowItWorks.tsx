@@ -6,9 +6,9 @@
  */
 
 import { useState, Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   Badge,
@@ -18,6 +18,7 @@ import {
   itemVariants,
   Divider,
 } from '@/styles/luxury-design-system';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
   Database,
   TrendingUp,
@@ -42,132 +43,126 @@ import {
 } from 'lucide-react';
 
 const HowItWorks = () => {
+  const { t } = useTranslation('pages');
+  const colors = useThemeColors();
   const [activeStep, setActiveStep] = useState(0);
 
   // Verified against rust-core-engine settings
   const stats = [
-    { value: '5', label: 'Strategies', icon: BarChart3, color: luxuryColors.cyan },
-    { value: '7', label: 'Risk Layers', icon: Shield, color: luxuryColors.emerald },
-    { value: '24/7', label: 'Uptime', icon: Clock, color: luxuryColors.amber },
-    { value: '72%', label: 'AI Accuracy', icon: Brain, color: luxuryColors.purple },
+    { value: '5', label: t('howItWorks.stats.strategies'), icon: BarChart3, color: colors.cyan },
+    { value: '7', label: t('howItWorks.stats.riskLayers'), icon: Shield, color: colors.emerald },
+    { value: '24/7', label: t('howItWorks.stats.uptime'), icon: Clock, color: colors.amber },
+    { value: '72%', label: t('howItWorks.stats.aiAccuracy'), icon: Brain, color: colors.purple },
   ];
 
   const steps = [
     {
       number: 1,
-      title: 'Data Collection',
-      subtitle: 'Real-time Market Data',
+      title: t('howItWorks.steps.dataCollection.title'),
+      subtitle: t('howItWorks.steps.dataCollection.subtitle'),
       icon: Database,
-      color: luxuryColors.cyan,
-      description: 'Continuous streaming from Binance exchange',
-      details: [
-        { icon: Activity, text: 'OHLC price data every second' },
-        { icon: BarChart3, text: 'Volume & market depth analysis' },
-        { icon: Clock, text: '1h & 4h timeframe monitoring' },
-        { icon: Zap, text: 'WebSocket real-time updates' },
-      ]
+      color: colors.cyan,
+      description: t('howItWorks.steps.dataCollection.description'),
+      details: (t('howItWorks.steps.dataCollection.details', { returnObjects: true }) as string[]).map((text, idx) => ({
+        icon: [Activity, BarChart3, Clock, Zap][idx],
+        text
+      }))
     },
     {
       number: 2,
-      title: 'Technical Analysis',
-      subtitle: '5 Optimized Strategies',
+      title: t('howItWorks.steps.technicalAnalysis.title'),
+      subtitle: t('howItWorks.steps.technicalAnalysis.subtitle'),
       icon: LineChart,
-      color: luxuryColors.emerald,
-      description: 'Multi-strategy analysis with AI enhancement',
-      details: [
-        { icon: TrendingUp, text: 'RSI: Overbought/Oversold (65%)' },
-        { icon: BarChart3, text: 'MACD: Trend & Momentum (61%)' },
-        { icon: Activity, text: 'Bollinger: Volatility (63%)' },
-        { icon: Layers, text: 'Volume & Stochastic (58-64%)' },
-      ]
+      color: colors.emerald,
+      description: t('howItWorks.steps.technicalAnalysis.description'),
+      details: (t('howItWorks.steps.technicalAnalysis.details', { returnObjects: true }) as string[]).map((text, idx) => ({
+        icon: [TrendingUp, BarChart3, Activity, Layers][idx],
+        text
+      }))
     },
     {
       number: 3,
-      title: 'Signal Generation',
-      subtitle: 'AI-Powered Decisions',
+      title: t('howItWorks.steps.signalGeneration.title'),
+      subtitle: t('howItWorks.steps.signalGeneration.subtitle'),
       icon: Brain,
-      color: luxuryColors.purple,
-      description: 'Smart signal generation with multi-confirmation',
-      details: [
-        { icon: Target, text: 'Requires 4/5 strategy agreement' },
-        { icon: Percent, text: '65-100% confidence threshold' },
-        { icon: Clock, text: '60-minute signal interval' },
-        { icon: Sparkles, text: 'Multi-timeframe validation' },
-      ]
+      color: colors.purple,
+      description: t('howItWorks.steps.signalGeneration.description'),
+      details: (t('howItWorks.steps.signalGeneration.details', { returnObjects: true }) as string[]).map((text, idx) => ({
+        icon: [Target, Percent, Clock, Sparkles][idx],
+        text
+      }))
     },
     {
       number: 4,
-      title: 'Risk Management',
-      subtitle: '7 Protection Layers',
+      title: t('howItWorks.steps.riskManagement.title'),
+      subtitle: t('howItWorks.steps.riskManagement.subtitle'),
       icon: Shield,
-      color: luxuryColors.rose,
-      description: 'Comprehensive risk control before execution',
-      details: [
-        { icon: Lock, text: 'Max 1% risk per trade' },
-        { icon: AlertTriangle, text: '5% stop loss mandatory' },
-        { icon: Timer, text: '60min cool-down after losses' },
-        { icon: TrendingDown, text: '3% daily loss limit' },
-      ]
+      color: colors.rose,
+      description: t('howItWorks.steps.riskManagement.description'),
+      details: (t('howItWorks.steps.riskManagement.details', { returnObjects: true }) as string[]).map((text, idx) => ({
+        icon: [Lock, AlertTriangle, Timer, TrendingDown][idx],
+        text
+      }))
     },
   ];
 
   // Verified against settings.rs
   const strategies = [
     {
-      name: 'RSI Strategy',
+      name: t('howItWorks.strategies.items.rsi.name'),
       winRate: 65,
-      description: 'Relative Strength Index',
+      description: t('howItWorks.strategies.items.rsi.description'),
       icon: TrendingUp,
-      color: luxuryColors.cyan,
+      color: colors.cyan,
       signals: { buy: 'RSI < 25', sell: 'RSI > 75' }
     },
     {
-      name: 'MACD Strategy',
+      name: t('howItWorks.strategies.items.macd.name'),
       winRate: 61,
-      description: 'Moving Average Convergence',
+      description: t('howItWorks.strategies.items.macd.description'),
       icon: BarChart3,
-      color: luxuryColors.emerald,
+      color: colors.emerald,
       signals: { buy: 'MACD crosses up', sell: 'MACD crosses down' }
     },
     {
-      name: 'Bollinger Bands',
+      name: t('howItWorks.strategies.items.bollinger.name'),
       winRate: 63,
-      description: 'Volatility & Breakouts',
+      description: t('howItWorks.strategies.items.bollinger.description'),
       icon: Activity,
-      color: luxuryColors.amber,
+      color: colors.amber,
       signals: { buy: 'Touch lower band', sell: 'Touch upper band' }
     },
     {
-      name: 'Volume Strategy',
+      name: t('howItWorks.strategies.items.volume.name'),
       winRate: 58,
-      description: 'Trend Strength Confirmation',
+      description: t('howItWorks.strategies.items.volume.description'),
       icon: Layers,
-      color: luxuryColors.purple,
+      color: colors.purple,
       signals: { buy: 'Volume spike + up', sell: 'Volume spike + down' }
     },
     {
-      name: 'Stochastic',
+      name: t('howItWorks.strategies.items.stochastic.name'),
       winRate: 64,
-      description: 'Momentum Oscillator',
+      description: t('howItWorks.strategies.items.stochastic.description'),
       icon: Target,
-      color: luxuryColors.rose,
+      color: colors.rose,
       signals: { buy: '%K crosses %D < 15', sell: '%K crosses %D > 85' }
     },
   ];
 
   // Verified against settings.rs defaults
   const riskLayers = [
-    { layer: 1, name: 'Position Risk', value: '≤1%', desc: 'Max risk per trade', icon: Percent },
-    { layer: 2, name: 'Stop Loss', value: '5%', desc: 'Mandatory stop loss', icon: AlertTriangle },
-    { layer: 3, name: 'Portfolio Risk', value: '≤10%', desc: 'Total exposure limit', icon: Layers },
-    { layer: 4, name: 'Daily Loss', value: '3%', desc: 'Daily loss limit', icon: TrendingDown },
-    { layer: 5, name: 'Consecutive Losses', value: '3 max', desc: 'Before cool-down', icon: Timer },
-    { layer: 6, name: 'Cool-Down', value: '60 min', desc: 'Rest period', icon: Clock },
-    { layer: 7, name: 'Correlation', value: '70%', desc: 'Position diversity', icon: Activity },
+    { layer: 1, name: t('howItWorks.risk.layers.position.title'), value: '≤1%', desc: t('howItWorks.risk.layers.position.description'), icon: Percent },
+    { layer: 2, name: t('howItWorks.risk.layers.stopLoss.title'), value: '5%', desc: t('howItWorks.risk.layers.stopLoss.description'), icon: AlertTriangle },
+    { layer: 3, name: t('howItWorks.risk.layers.portfolio.title'), value: '≤10%', desc: t('howItWorks.risk.layers.portfolio.description'), icon: Layers },
+    { layer: 4, name: t('howItWorks.risk.layers.daily.title'), value: '3%', desc: t('howItWorks.risk.layers.daily.description'), icon: TrendingDown },
+    { layer: 5, name: t('howItWorks.risk.layers.consecutiveLosses.title'), value: '3 max', desc: t('howItWorks.risk.layers.consecutiveLosses.description'), icon: Timer },
+    { layer: 6, name: t('howItWorks.risk.layers.cooldown.title'), value: '60 min', desc: t('howItWorks.risk.layers.cooldown.description'), icon: Clock },
+    { layer: 7, name: t('howItWorks.risk.layers.correlation.title'), value: '70%', desc: t('howItWorks.risk.layers.correlation.description'), icon: Activity },
   ];
 
   return (
-      <div className="min-h-screen" style={{ backgroundColor: luxuryColors.bgPrimary }}>
+      <div className="min-h-screen" style={{ backgroundColor: colors.bgPrimary }}>
         {/* Hero Section */}
         <section className="relative overflow-hidden">
           <div
@@ -193,28 +188,27 @@ const HowItWorks = () => {
               <motion.div variants={itemVariants} className="flex justify-center">
                 <Badge variant="info" glow>
                   <Sparkles className="h-3 w-3 mr-1.5" />
-                  AI-POWERED TRADING BOT
+                  {t('howItWorks.badge')}
                 </Badge>
               </motion.div>
 
               <motion.h1
                 variants={itemVariants}
                 className="text-4xl lg:text-6xl font-black tracking-tight"
-                style={{ color: luxuryColors.textPrimary }}
+                style={{ color: colors.textPrimary }}
               >
-                Smart Trading,{' '}
+                {t('howItWorks.hero.title')}{' '}
                 <GradientText className="text-4xl lg:text-6xl font-black">
-                  Zero Emotion
+                  {t('howItWorks.hero.titleHighlight')}
                 </GradientText>
               </motion.h1>
 
               <motion.p
                 variants={itemVariants}
                 className="text-lg lg:text-xl max-w-2xl mx-auto"
-                style={{ color: luxuryColors.textSecondary }}
+                style={{ color: colors.textSecondary }}
               >
-                Automated cryptocurrency trading with advanced AI analysis,
-                multi-strategy confirmation, and comprehensive risk management.
+                {t('howItWorks.hero.subtitle')}
               </motion.p>
 
               {/* Stats */}
@@ -236,7 +230,7 @@ const HowItWorks = () => {
                       </div>
                       <div
                         className="text-[10px] uppercase tracking-wider"
-                        style={{ color: luxuryColors.textMuted }}
+                        style={{ color: colors.textMuted }}
                       >
                         {stat.label}
                       </div>
@@ -250,7 +244,7 @@ const HowItWorks = () => {
         </section>
 
         <motion.div
-          className="max-w-7xl mx-auto px-4 pb-16 space-y-16"
+          className="max-w-7xl mx-auto px-4 pt-20 pb-16 space-y-16"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -260,8 +254,8 @@ const HowItWorks = () => {
           <section>
             <motion.div variants={itemVariants}>
               <SectionHeader
-                title="How It Works"
-                subtitle="Four-step automated trading process"
+                title={t('howItWorks.process.title')}
+                subtitle={t('howItWorks.process.subtitle')}
                 icon={Zap}
                 gradient
               />
@@ -297,7 +291,7 @@ const HowItWorks = () => {
                       <Badge size="sm">STEP {step.number}</Badge>
                       <h3
                         className="text-sm font-bold mt-1"
-                        style={{ color: luxuryColors.textPrimary }}
+                        style={{ color: colors.textPrimary }}
                       >
                         {step.title}
                       </h3>
@@ -305,7 +299,7 @@ const HowItWorks = () => {
                   </div>
                   <p
                     className="text-xs"
-                    style={{ color: luxuryColors.textSecondary }}
+                    style={{ color: colors.textSecondary }}
                   >
                     {step.subtitle}
                   </p>
@@ -337,7 +331,7 @@ const HowItWorks = () => {
                     </h3>
                     <p
                       className="text-sm mt-1"
-                      style={{ color: luxuryColors.textSecondary }}
+                      style={{ color: colors.textSecondary }}
                     >
                       {steps[activeStep].description}
                     </p>
@@ -349,8 +343,8 @@ const HowItWorks = () => {
                       key={idx}
                       className="flex items-center gap-3 p-3 rounded-xl"
                       style={{
-                        backgroundColor: luxuryColors.bgSecondary,
-                        border: `1px solid ${luxuryColors.borderSubtle}`,
+                        backgroundColor: colors.bgSecondary,
+                        border: `1px solid ${colors.borderSubtle}`,
                       }}
                     >
                       <GlowIcon
@@ -360,7 +354,7 @@ const HowItWorks = () => {
                       />
                       <span
                         className="text-sm"
-                        style={{ color: luxuryColors.textPrimary }}
+                        style={{ color: colors.textPrimary }}
                       >
                         {detail.text}
                       </span>
@@ -375,8 +369,8 @@ const HowItWorks = () => {
           <section>
             <motion.div variants={itemVariants}>
               <SectionHeader
-                title="Trading Strategies"
-                subtitle="Five optimized strategies working in harmony"
+                title={t('howItWorks.strategies.title')}
+                subtitle={t('howItWorks.strategies.subtitle')}
                 icon={LineChart}
                 gradient
               />
@@ -398,13 +392,13 @@ const HowItWorks = () => {
                   </div>
                   <h3
                     className="text-sm font-black mb-1"
-                    style={{ color: luxuryColors.textPrimary }}
+                    style={{ color: colors.textPrimary }}
                   >
                     {strategy.name}
                   </h3>
                   <p
                     className="text-[10px] mb-4"
-                    style={{ color: luxuryColors.textMuted }}
+                    style={{ color: colors.textMuted }}
                   >
                     {strategy.description}
                   </p>
@@ -412,9 +406,9 @@ const HowItWorks = () => {
                   <div className="flex items-center justify-between mb-3">
                     <span
                       className="text-[10px] uppercase tracking-wider"
-                      style={{ color: luxuryColors.textMuted }}
+                      style={{ color: colors.textMuted }}
                     >
-                      Win Rate
+                      {t('howItWorks.strategies.winRate')}
                     </span>
                     <Badge variant="success" size="sm">
                       {strategy.winRate}%
@@ -427,20 +421,20 @@ const HowItWorks = () => {
                     <div className="flex items-center gap-2">
                       <div
                         className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: luxuryColors.emerald }}
+                        style={{ backgroundColor: colors.emerald }}
                       />
-                      <span style={{ color: luxuryColors.textMuted }}>Buy:</span>
-                      <span style={{ color: luxuryColors.textSecondary }}>
+                      <span style={{ color: colors.textMuted }}>{t('howItWorks.strategies.buy')}:</span>
+                      <span style={{ color: colors.textSecondary }}>
                         {strategy.signals.buy}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div
                         className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: luxuryColors.rose }}
+                        style={{ backgroundColor: colors.rose }}
                       />
-                      <span style={{ color: luxuryColors.textMuted }}>Sell:</span>
-                      <span style={{ color: luxuryColors.textSecondary }}>
+                      <span style={{ color: colors.textMuted }}>{t('howItWorks.strategies.sell')}:</span>
+                      <span style={{ color: colors.textSecondary }}>
                         {strategy.signals.sell}
                       </span>
                     </div>
@@ -454,19 +448,18 @@ const HowItWorks = () => {
               <GlassCard
                 className="border"
                 style={{
-                  borderColor: `${luxuryColors.cyan}40`,
-                  backgroundColor: `${luxuryColors.cyan}08`,
+                  borderColor: `${colors.cyan}40`,
+                  backgroundColor: `${colors.cyan}08`,
                 }}
               >
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 mt-0.5" style={{ color: luxuryColors.cyan }} />
+                  <CheckCircle className="h-5 w-5 mt-0.5" style={{ color: colors.cyan }} />
                   <div>
-                    <p className="font-bold text-sm" style={{ color: luxuryColors.textPrimary }}>
-                      Multi-Confirmation Required
+                    <p className="font-bold text-sm" style={{ color: colors.textPrimary }}>
+                      {t('howItWorks.strategies.multiConfirmation.title')}
                     </p>
-                    <p className="text-xs mt-1" style={{ color: luxuryColors.textSecondary }}>
-                      Trades are only executed when at least 4 out of 5 strategies agree on the signal direction,
-                      ensuring high-quality trade entries.
+                    <p className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                      {t('howItWorks.strategies.multiConfirmation.description')}
                     </p>
                   </div>
                 </div>
@@ -478,8 +471,8 @@ const HowItWorks = () => {
           <section>
             <motion.div variants={itemVariants}>
               <SectionHeader
-                title="Risk Management"
-                subtitle="Seven layers of protection for your capital"
+                title={t('howItWorks.risk.title')}
+                subtitle={t('howItWorks.risk.subtitle')}
                 icon={Shield}
                 gradient
               />
@@ -494,29 +487,29 @@ const HowItWorks = () => {
                   <div
                     className="absolute top-0 left-0 w-1 h-full"
                     style={{
-                      background: luxuryColors.gradientPremium,
+                      background: colors.gradientPremium,
                     }}
                   />
                   <div className="pl-3">
                     <div className="flex items-center justify-between mb-3">
                       <Badge size="sm">LAYER {layer.layer}</Badge>
-                      <GlowIcon icon={layer.icon} color={luxuryColors.emerald} size="sm" />
+                      <GlowIcon icon={layer.icon} color={colors.emerald} size="sm" />
                     </div>
                     <h3
                       className="text-sm font-bold mb-2"
-                      style={{ color: luxuryColors.textPrimary }}
+                      style={{ color: colors.textPrimary }}
                     >
                       {layer.name}
                     </h3>
                     <div
                       className="text-2xl font-black mb-1"
-                      style={{ color: luxuryColors.emerald }}
+                      style={{ color: colors.emerald }}
                     >
                       {layer.value}
                     </div>
                     <p
                       className="text-[10px]"
-                      style={{ color: luxuryColors.textMuted }}
+                      style={{ color: colors.textMuted }}
                     >
                       {layer.desc}
                     </p>
@@ -534,16 +527,16 @@ const HowItWorks = () => {
                   <div
                     className="absolute top-0 left-0 w-1 h-full"
                     style={{
-                      background: luxuryColors.gradientPremium,
+                      background: colors.gradientPremium,
                     }}
                   />
                   <div className="pl-3 flex items-center gap-4">
-                    <GlowIcon icon={layer.icon} color={luxuryColors.emerald} size="md" />
+                    <GlowIcon icon={layer.icon} color={colors.emerald} size="md" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <span
                           className="text-sm font-bold"
-                          style={{ color: luxuryColors.textPrimary }}
+                          style={{ color: colors.textPrimary }}
                         >
                           {layer.name}
                         </span>
@@ -553,7 +546,7 @@ const HowItWorks = () => {
                       </div>
                       <p
                         className="text-[10px]"
-                        style={{ color: luxuryColors.textMuted }}
+                        style={{ color: colors.textMuted }}
                       >
                         {layer.desc}
                       </p>
@@ -571,28 +564,28 @@ const HowItWorks = () => {
                 <div
                   className="p-4 rounded-t-2xl"
                   style={{
-                    background: `linear-gradient(135deg, ${luxuryColors.emerald}15, ${luxuryColors.cyan}10)`,
+                    background: `linear-gradient(135deg, ${colors.emerald}15, ${colors.cyan}10)`,
                   }}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <GlowIcon icon={TrendingUp} color={luxuryColors.emerald} size="md" />
-                    <h3 className="text-lg font-black" style={{ color: luxuryColors.textPrimary }}>
-                      Trailing Stop Protection
+                    <GlowIcon icon={TrendingUp} color={colors.emerald} size="md" />
+                    <h3 className="text-lg font-black" style={{ color: colors.textPrimary }}>
+                      {t('howItWorks.trailingStop.title')}
                     </h3>
                   </div>
-                  <p className="text-xs" style={{ color: luxuryColors.textSecondary }}>
-                    Automatically locks in profits as price moves in your favor
+                  <p className="text-xs" style={{ color: colors.textSecondary }}>
+                    {t('howItWorks.trailingStop.subtitle')}
                   </p>
                 </div>
 
                 <div className="p-6">
                   <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
                     {[
-                      { label: 'Entry', value: '$45,000', color: luxuryColors.textMuted, icon: Play },
-                      { label: '+5% Profit', value: '$47,250', color: luxuryColors.emerald, icon: TrendingUp },
-                      { label: 'Trailing Active', value: '$45,832', color: luxuryColors.amber, icon: Zap },
-                      { label: 'Peak Price', value: '$48,000', color: luxuryColors.emerald, icon: TrendingUp },
-                      { label: 'Exit', value: '$46,560', color: luxuryColors.emerald, icon: CheckCircle, highlight: true },
+                      { label: t('howItWorks.trailingStop.steps.entry'), value: '$45,000', color: colors.textMuted, icon: Play },
+                      { label: t('howItWorks.trailingStop.steps.profit'), value: '$47,250', color: colors.emerald, icon: TrendingUp },
+                      { label: t('howItWorks.trailingStop.steps.trailing'), value: '$45,832', color: colors.amber, icon: Zap },
+                      { label: t('howItWorks.trailingStop.steps.peak'), value: '$48,000', color: colors.emerald, icon: TrendingUp },
+                      { label: t('howItWorks.trailingStop.steps.exit'), value: '$46,560', color: colors.emerald, icon: CheckCircle, highlight: true },
                     ].map((step, idx) => (
                       <Fragment key={idx}>
                         <motion.div
@@ -610,14 +603,14 @@ const HowItWorks = () => {
                           <div className="text-lg font-black" style={{ color: step.color }}>
                             {step.value}
                           </div>
-                          <div className="text-[10px]" style={{ color: luxuryColors.textMuted }}>
+                          <div className="text-[10px]" style={{ color: colors.textMuted }}>
                             {step.label}
                           </div>
                         </motion.div>
                         {idx < 4 && (
                           <ChevronRight
                             className="h-5 w-5 hidden md:block"
-                            style={{ color: luxuryColors.textMuted }}
+                            style={{ color: colors.textMuted }}
                           />
                         )}
                       </Fragment>
@@ -627,17 +620,17 @@ const HowItWorks = () => {
                   <div
                     className="mt-6 p-4 rounded-xl"
                     style={{
-                      backgroundColor: `${luxuryColors.emerald}15`,
-                      border: `1px solid ${luxuryColors.emerald}30`,
+                      backgroundColor: `${colors.emerald}15`,
+                      border: `1px solid ${colors.emerald}30`,
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" style={{ color: luxuryColors.emerald }} />
+                      <CheckCircle className="h-5 w-5" style={{ color: colors.emerald }} />
                       <span
                         className="font-bold text-sm"
-                        style={{ color: luxuryColors.emerald }}
+                        style={{ color: colors.emerald }}
                       >
-                        Result: +3.47% profit ($1,560) protected even when price dropped from peak
+                        {t('howItWorks.trailingStop.result')}
                       </span>
                     </div>
                   </div>

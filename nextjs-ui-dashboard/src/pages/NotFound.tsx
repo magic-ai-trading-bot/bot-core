@@ -1,21 +1,23 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import logger from "@/utils/logger";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Home, ArrowLeft, MapPin } from "lucide-react";
 import ChatBot from "@/components/ChatBot";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
-  GlowIcon,
   PageWrapper,
   containerVariants,
   itemVariants,
 } from "@/styles/luxury-design-system";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 const NotFound = () => {
+  const { t } = useTranslation('errors');
+  const colors = useThemeColors();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -39,7 +41,7 @@ const NotFound = () => {
       {/* Decorative Background Orbs */}
       <motion.div
         className="absolute top-1/3 left-1/3 w-72 h-72 rounded-full blur-3xl opacity-20"
-        style={{ background: luxuryColors.gradientCyan }}
+        style={{ background: colors.gradientCyan }}
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],
@@ -52,7 +54,7 @@ const NotFound = () => {
       />
       <motion.div
         className="absolute bottom-1/3 right-1/3 w-72 h-72 rounded-full blur-3xl opacity-20"
-        style={{ background: luxuryColors.gradientPurple }}
+        style={{ background: colors.gradientPurple }}
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],
@@ -77,7 +79,7 @@ const NotFound = () => {
         >
           <motion.div
             className="absolute inset-0 rounded-full blur-2xl"
-            style={{ background: luxuryColors.gradientPremium, opacity: 0.3 }}
+            style={{ background: colors.gradientPremium, opacity: 0.3 }}
             animate={{
               scale: [1, 1.1, 1],
             }}
@@ -94,7 +96,7 @@ const NotFound = () => {
           >
             <Search
               className="h-24 w-24"
-              style={{ color: luxuryColors.cyan }}
+              style={{ color: colors.cyan }}
             />
           </GlassCard>
         </motion.div>
@@ -106,7 +108,7 @@ const NotFound = () => {
             <div>
               <GradientText
                 className="text-7xl font-black tracking-tight"
-                gradient={luxuryColors.gradientPremium}
+                gradient={colors.gradientPremium}
               >
                 404
               </GradientText>
@@ -114,33 +116,17 @@ const NotFound = () => {
 
             {/* Error Title */}
             <div>
-              <h2
-                className="text-2xl font-bold mb-2"
-                style={{ color: luxuryColors.textPrimary }}
-              >
-                Page Not Found
+              <h2 className="text-2xl font-bold mb-2 text-black dark:text-white">
+                {t('notFoundPage.title')}
               </h2>
-              <p
-                className="text-sm leading-relaxed mb-3"
-                style={{ color: luxuryColors.textSecondary }}
-              >
-                The page you're looking for doesn't exist or has been moved.
-                Let's get you back on track.
+              <p className="text-sm leading-relaxed mb-3 text-black/65 dark:text-white/65">
+                {t('notFoundPage.description')}
               </p>
 
               {/* Current Path Display */}
               <div className="flex items-center justify-center gap-2 text-xs">
-                <MapPin
-                  className="w-3 h-3"
-                  style={{ color: luxuryColors.textMuted }}
-                />
-                <code
-                  className="px-2 py-1 rounded font-mono"
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    color: luxuryColors.textMuted,
-                  }}
-                >
+                <MapPin className="w-3 h-3 text-black/40 dark:text-white/40" />
+                <code className="px-2 py-1 rounded font-mono bg-black/5 dark:bg-white/5 text-black/50 dark:text-white/50">
                   {location.pathname}
                 </code>
               </div>
@@ -155,7 +141,7 @@ const NotFound = () => {
                 className="flex-1"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Go Back
+                {t('notFoundPage.goBack')}
               </PremiumButton>
               <PremiumButton
                 onClick={handleGoHome}
@@ -164,7 +150,7 @@ const NotFound = () => {
                 className="flex-1"
               >
                 <Home className="w-4 h-4" />
-                Go Home
+                {t('notFoundPage.goHome')}
               </PremiumButton>
             </div>
           </motion.div>
@@ -177,33 +163,21 @@ const NotFound = () => {
         >
           <GlassCard noPadding>
             <div className="p-4">
-              <p
-                className="text-xs uppercase tracking-wider mb-3 font-bold"
-                style={{ color: luxuryColors.textMuted }}
-              >
-                Popular Pages
+              <p className="text-xs uppercase tracking-wider mb-3 font-bold text-black/40 dark:text-white/40">
+                {t('notFoundPage.popularPages')}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { label: "Dashboard", path: "/" },
-                  { label: "Portfolio", path: "/portfolio" },
-                  { label: "Strategies", path: "/strategies" },
-                  { label: "Settings", path: "/settings" },
+                  { label: t('notFoundPage.pages.dashboard'), path: "/" },
+                  { label: t('notFoundPage.pages.portfolio'), path: "/portfolio" },
+                  { label: t('notFoundPage.pages.strategies'), path: "/strategies" },
+                  { label: t('notFoundPage.pages.settings'), path: "/settings" },
                 ].map((link, index) => (
                   <motion.button
                     key={link.path}
                     onClick={() => navigate(link.path)}
-                    className="px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300"
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                      border: `1px solid ${luxuryColors.borderSubtle}`,
-                      color: luxuryColors.textSecondary,
-                    }}
-                    whileHover={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      borderColor: luxuryColors.borderLight,
-                      scale: 1.02,
-                    }}
+                    className="px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.08] dark:border-white/[0.08] text-black/65 dark:text-white/65 hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:border-black/[0.15] dark:hover:border-white/[0.15]"
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -222,7 +196,7 @@ const NotFound = () => {
           variants={itemVariants}
           className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-48 h-1 rounded-full"
           style={{
-            background: luxuryColors.gradientPremium,
+            background: colors.gradientPremium,
             opacity: 0.3,
           }}
         />

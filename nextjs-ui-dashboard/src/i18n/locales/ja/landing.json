@@ -1,0 +1,177 @@
+{
+  "nav": {
+    "features": "機能",
+    "pricing": "料金",
+    "reviews": "レビュー",
+    "faq": "よくある質問",
+    "signIn": "ログイン",
+    "startTrial": "無料トライアル"
+  },
+  "hero": {
+    "badge": "AI駆動の取引革命",
+    "title": "仮想通貨取引",
+    "subtitle": "AIで再定義",
+    "description": "人工知能の力を活用して、暗号市場を分析し、トレンドを予測し、Binance先物で収益性の高い取引を自動実行します。",
+    "startTrading": "取引を開始",
+    "watchDemo": "デモを見る"
+  },
+  "stats": {
+    "totalUsers": "総ユーザー数",
+    "tradingVolume": "取引量",
+    "winRate": "勝率",
+    "responseTime": "平均応答時間",
+    "vsLastMonth": "前月比",
+    "faster": "より速く",
+    "activeTraders": "アクティブトレーダー",
+    "uptime": "稼働時間"
+  },
+  "features": {
+    "badge": "高度な機能",
+    "title": "プロトレーダー",
+    "subtitle": "のために設計",
+    "description": "最先端のAI技術を搭載した、最も洗練された仮想通貨取引プラットフォームを体験してください",
+    "aiAnalysis": {
+      "title": "AI駆動分析",
+      "description": "高度な機械学習モデルが市場トレンドを分析し、70%以上の精度で価格変動を予測します。"
+    },
+    "riskManagement": {
+      "title": "リスク管理",
+      "description": "自動ストップロス、ポジションサイジング、ポートフォリオリバランスで資金を保護します。"
+    },
+    "realTimeExecution": {
+      "title": "リアルタイム実行",
+      "description": "100ミリ秒未満のレイテンシーで超高速注文実行、最適なエントリー・エグジットポイントを実現。"
+    },
+    "advancedAnalytics": {
+      "title": "高度な分析",
+      "description": "包括的なチャート、テクニカル指標、カスタムダッシュボードでデータ駆動の意思決定をサポート。"
+    },
+    "backtesting": {
+      "title": "戦略バックテスト",
+      "description": "実資金をリスクにさらす前に、過去のデータで戦略をテストできます。"
+    },
+    "liveData": {
+      "title": "リアルタイム市場データ",
+      "description": "WebSocket接続により、複数の取引所からリアルタイムの市場データを取得。"
+    }
+  },
+  "pricing": {
+    "badge": "料金プラン",
+    "title": "あなたの",
+    "subtitle": "取引アドバンテージを選択",
+    "description": "取引目標に合わせてスケールする柔軟な料金プラン",
+    "mostPopular": "人気No.1",
+    "getStarted": "始める",
+    "month": "/月",
+    "plans": {
+      "starter": {
+        "name": "スターター",
+        "features": [
+          "基本的なAI取引シグナル",
+          "最大5つのアクティブポジション",
+          "スタンダードサポート",
+          "基本的な分析"
+        ]
+      },
+      "pro": {
+        "name": "プロ",
+        "features": [
+          "高度なAI取引シグナル",
+          "無制限のアクティブポジション",
+          "優先サポート",
+          "高度な分析とバックテスト",
+          "カスタム戦略",
+          "APIアクセス"
+        ]
+      },
+      "enterprise": {
+        "name": "エンタープライズ",
+        "features": [
+          "プロの全機能",
+          "専任アカウントマネージャー",
+          "カスタムAIモデルトレーニング",
+          "ホワイトラベルソリューション",
+          "SLA保証"
+        ]
+      }
+    }
+  },
+  "testimonials": {
+    "badge": "お客様の声",
+    "title": "世界中の",
+    "subtitle": "トレーダーに愛されています",
+    "reviews": [
+      {
+        "name": "Sarah Chen",
+        "role": "デイトレーダー",
+        "text": "AIシグナルは驚くほど正確です。わずか3ヶ月で勝率を45%から68%に上げました！"
+      },
+      {
+        "name": "Michael Rodriguez",
+        "role": "暗号通貨投資家",
+        "text": "使った中で最高の取引プラットフォームです。リスク管理機能のおかげで何度も大損を避けられました。"
+      },
+      {
+        "name": "Alex Thompson",
+        "role": "アルゴリズムトレーダー",
+        "text": "APIは堅牢で、バックテスト機能は一流です。本番前に戦略をテストするのに最適です。"
+      }
+    ]
+  },
+  "faq": {
+    "badge": "よくある質問",
+    "title": "よくある",
+    "subtitle": "質問",
+    "items": [
+      {
+        "question": "AI取引シグナルの精度はどのくらいですか？",
+        "answer": "当社のAIモデルは、複数の時間枠と市場状況で70%以上の方向精度を達成しています。最新のデータを使用して継続的にモデルをトレーニングし、改善しています。"
+      },
+      {
+        "question": "私の資金は安全ですか？",
+        "answer": "お客様の資金は一切お預かりしません。取引所でのアセットの完全な管理権はお客様が維持します。読み取りと取引の権限を持つ安全なAPI接続を通じてのみ取引を実行します。"
+      },
+      {
+        "question": "独自の戦略を使用できますか？",
+        "answer": "もちろんです！プロとエンタープライズプランにはカスタム戦略サポートが含まれています。AIシグナルと並行して独自のアルゴリズムをバックテストしてデプロイできます。"
+      },
+      {
+        "question": "どの取引所がサポートされていますか？",
+        "answer": "現在、Binance、Coinbase Pro、Kraken、Bybitをサポートしています。ユーザーの需要に基づいて、定期的に取引所を追加しています。"
+      }
+    ]
+  },
+  "cta": {
+    "badge": "準備はできましたか？",
+    "title": "あなたの",
+    "subtitle": "AI取引の旅を始めよう",
+    "description": "私たちのAIを信頼して暗号ポートフォリオを成長させている何千人もの成功したトレーダーに参加しましょう。無料トライアルから始めて、スマートな自動化がもたらす違いを実感してください。",
+    "startTrial": "7日間無料トライアル",
+    "scheduleDemo": "デモを予約"
+  },
+  "footer": {
+    "description": "現代のトレーダーのためのAI駆動取引プラットフォーム。",
+    "product": "製品",
+    "company": "会社",
+    "legal": "法的情報",
+    "features": "機能",
+    "pricing": "料金",
+    "api": "API",
+    "documentation": "ドキュメント",
+    "about": "会社概要",
+    "blog": "ブログ",
+    "careers": "採用情報",
+    "contact": "お問い合わせ",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "security": "セキュリティ",
+    "compliance": "コンプライアンス",
+    "copyright": "© 2025 Bot Core. All rights reserved."
+  },
+  "videoModal": {
+    "title": "Bot Core デモ",
+    "subtitle": "AI駆動の仮想通貨取引プラットフォーム",
+    "cta": "Bot Coreがあなたの取引をどう変えるかご覧ください",
+    "getStarted": "無料で始める"
+  }
+}

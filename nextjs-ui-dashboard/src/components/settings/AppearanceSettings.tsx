@@ -8,9 +8,8 @@
 import { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { colors } from '@/styles/tokens/colors';
-import { Sun, Moon, Monitor, Palette } from 'lucide-react';
+import { Sun, Moon, Monitor } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AppearanceSettingsData {

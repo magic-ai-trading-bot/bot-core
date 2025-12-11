@@ -52,9 +52,9 @@ if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localSto
 
   // Also set on global for Node.js compatibility
   if (typeof global !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (global as any).localStorage = localStorageInstance;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (global as any).sessionStorage = sessionStorageInstance
   }
 }
@@ -86,7 +86,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Mock window.location
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 delete (window as any).location
 window.location = {
   href: 'http://localhost:3000',
@@ -102,7 +102,7 @@ window.location = {
   reload: vi.fn(),
   replace: vi.fn(),
   toString: () => 'http://localhost:3000',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
 } as any
 
 // Mock console methods to reduce noise in tests

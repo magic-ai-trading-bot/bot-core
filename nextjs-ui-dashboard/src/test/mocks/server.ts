@@ -250,7 +250,7 @@ export const getServer = () => {
 // For backward compatibility
 export const server = new Proxy({} as ReturnType<typeof setupServer>, {
   get(target, prop) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     return (getServer() as any)[prop]
   }
 })

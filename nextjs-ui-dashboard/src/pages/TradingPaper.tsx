@@ -1,5 +1,6 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { useTranslation } from "react-i18next";
 import logger from "@/utils/logger";
 import { TradingSettings } from "@/components/dashboard/TradingSettings";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
@@ -30,7 +31,6 @@ import { useState, useEffect, memo, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import {
   TrendingUp,
-  TrendingDown,
   Activity,
   DollarSign,
   Target,
@@ -298,6 +298,8 @@ const TradingPaper = () => {
     refreshAISignals,
     refreshSettings,
   } = usePaperTradingContext();
+
+  const { t } = useTranslation('trading');
 
   // WebSocket status - simulated based on last update time
   const [wsConnected, setWsConnected] = useState(true);
@@ -795,16 +797,16 @@ const TradingPaper = () => {
         >
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
             <TabsTrigger value="overview" className="text-xs lg:text-sm">
-              Tổng quan
+              {t('tabs.overview')}
             </TabsTrigger>
             <TabsTrigger value="signals" className="text-xs lg:text-sm">
-              Tín hiệu AI
+              {t('tabs.signals')}
             </TabsTrigger>
             <TabsTrigger value="trades" className="text-xs lg:text-sm">
-              Lịch sử giao dịch
+              {t('tabs.trades')}
             </TabsTrigger>
             <TabsTrigger value="settings" className="text-xs lg:text-sm">
-              Cài đặt
+              {t('tabs.settings')}
             </TabsTrigger>
           </TabsList>
 
@@ -815,7 +817,7 @@ const TradingPaper = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Số dư hiện tại
+                    {t('overview.currentBalance')}
                   </CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -824,7 +826,7 @@ const TradingPaper = () => {
                     {formatCurrency(portfolio.free_margin)}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Equity: {formatCurrency(portfolio.equity)}
+                    {t('portfolio.equity')}: {formatCurrency(portfolio.equity)}
                   </p>
                 </CardContent>
               </Card>
@@ -838,7 +840,7 @@ const TradingPaper = () => {
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-1">
-                    Tổng P&L
+                    {t('overview.totalPnl')}
                     {wsConnected && (
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     )}
@@ -860,7 +862,7 @@ const TradingPaper = () => {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {formatPercentage(portfolio.total_pnl_percentage)}
-                    {wsConnected && " • Live"}
+                    {wsConnected && ` • ${t('overview.live')}`}
                   </p>
                 </CardContent>
               </Card>
@@ -872,7 +874,7 @@ const TradingPaper = () => {
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-1">
-                    Tổng số lệnh
+                    {t('overview.totalOrders')}
                     {wsConnected && openTrades.length > 0 && (
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                     )}
@@ -891,13 +893,13 @@ const TradingPaper = () => {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">
-                      Đang mở: {openTrades.length} • Đã đóng:{" "}
+                      {t('overview.open')}: {openTrades.length} • {t('overview.closed')}:{" "}
                       {closedTrades.length}
                     </p>
                     <div className="text-xs space-y-1">
                       <div>
                         <span className="text-muted-foreground">
-                          Position Size:{" "}
+                          {t('overview.positionSize')}:{" "}
                         </span>
                         <span className="font-medium text-primary">
                           {formatCurrency(totalPositionSize)}
@@ -905,7 +907,7 @@ const TradingPaper = () => {
                       </div>
                       <div>
                         <span className="text-muted-foreground">
-                          Margin Used:{" "}
+                          {t('overview.marginUsed')}:{" "}
                         </span>
                         <span className="font-medium text-warning">
                           {formatCurrency(totalMarginRequired)}
@@ -919,7 +921,7 @@ const TradingPaper = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    {closedTrades.length > 0 ? "Tỷ lệ thắng" : "Margin Usage"}
+                    {closedTrades.length > 0 ? t('overview.winRate') : t('overview.marginUsage')}
                   </CardTitle>
                   <Target className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -960,7 +962,7 @@ const TradingPaper = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Margin sử dụng
+                    {t('overview.marginUsage')}
                   </CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -969,9 +971,9 @@ const TradingPaper = () => {
                     {formatCurrency(portfolio.margin_used)}
                   </div>
                   <div className="text-xs text-muted-foreground space-y-1">
-                    <div>Free: {formatCurrency(portfolio.free_margin)}</div>
+                    <div>{t('portfolio.free')}: {formatCurrency(portfolio.free_margin)}</div>
                     <div>
-                      Usage:{" "}
+                      {t('portfolio.usage')}:{" "}
                       {(
                         (portfolio.margin_used / portfolio.equity) *
                         100
@@ -985,7 +987,7 @@ const TradingPaper = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    {closedTrades.length > 0 ? "Lợi nhuận TB" : "Avg Margin"}
+                    {closedTrades.length > 0 ? t('metrics.avgProfit') : t('metrics.avgMargin')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1008,8 +1010,8 @@ const TradingPaper = () => {
                   )}
                   <p className="text-xs text-muted-foreground">
                     {closedTrades.length > 0
-                      ? "Trung bình thắng"
-                      : "Margin trung bình"}
+                      ? t('metrics.avgWin')
+                      : t('metrics.avgMarginDesc')}
                   </p>
                 </CardContent>
               </Card>
@@ -1017,7 +1019,7 @@ const TradingPaper = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    {closedTrades.length > 0 ? "Profit Factor" : "Daily P&L"}
+                    {closedTrades.length > 0 ? t('metrics.profitFactor') : t('metrics.dailyPnl')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1037,8 +1039,8 @@ const TradingPaper = () => {
                   )}
                   <p className="text-xs text-muted-foreground">
                     {closedTrades.length > 0
-                      ? "Tỷ lệ lời/lỗ"
-                      : "Unrealized P&L"}
+                      ? t('metrics.profitLossRatio')
+                      : t('metrics.unrealizedPnl')}
                   </p>
                 </CardContent>
               </Card>
@@ -1047,8 +1049,8 @@ const TradingPaper = () => {
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
                     {closedTrades.length > 0
-                      ? "Max Drawdown"
-                      : "Trading Status"}
+                      ? t('metrics.maxDrawdown')
+                      : t('metrics.tradingStatus')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1059,16 +1061,16 @@ const TradingPaper = () => {
                   ) : (
                     <div className="text-lg font-bold text-info">
                       {openTrades.length > 0
-                        ? `${openTrades.length} Active`
-                        : "No Trades"}
+                        ? `${openTrades.length} ${t('metrics.active')}`
+                        : t('metrics.noTrades')}
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground">
                     {closedTrades.length > 0
                       ? formatPercentage(portfolio.max_drawdown_percentage)
                       : openTrades.length > 0
-                      ? "Positions running"
-                      : "Waiting for signals"}
+                      ? t('metrics.positionsRunning')
+                      : t('metrics.waitingForSignals')}
                   </p>
                 </CardContent>
               </Card>
@@ -1085,28 +1087,28 @@ const TradingPaper = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-info" />
-                    Tín hiệu AI
+                    {t('signal.title')}
                     <Badge
                       variant="outline"
                       className="bg-info/10 text-info border-info/20"
                     >
                       <div className="w-2 h-2 bg-info rounded-full mr-2 animate-pulse"></div>
-                      Live
+                      {t('status.live')}
                     </Badge>
                   </CardTitle>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <ArrowUpRight className="h-3 w-3 text-profit" />
-                        <span>Long</span>
+                        <span>{t('position.long')}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <ArrowDownRight className="h-3 w-3 text-loss" />
-                        <span>Short</span>
+                        <span>{t('position.short')}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Minus className="h-3 w-3 text-warning" />
-                        <span>Neutral</span>
+                        <span>{t('metrics.neutral')}</span>
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">
@@ -1119,7 +1121,7 @@ const TradingPaper = () => {
                 {isLoading && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    <span>Đang phân tích tín hiệu...</span>
+                    <span>{t('signal.processing')}</span>
                   </div>
                 )}
 
@@ -1283,18 +1285,18 @@ const TradingPaper = () => {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      Lệnh đang mở ({openTrades.length})
+                      {t('openTrades.title')} ({openTrades.length})
                       {wsConnected && (
                         <div className="flex items-center gap-1">
                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-xs text-green-600">Live</span>
+                          <span className="text-xs text-green-600">{t('status.live')}</span>
                         </div>
                       )}
                     </CardTitle>
                     <div className="text-right space-y-1">
                       <div>
                         <div className="text-sm text-muted-foreground">
-                          Tổng Position Size
+                          {t('openTrades.totalPositionSize')}
                         </div>
                         <div className="font-bold text-primary">
                           {formatCurrency(totalPositionSize)}
@@ -1302,7 +1304,7 @@ const TradingPaper = () => {
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">
-                          Tổng Margin Required
+                          {t('openTrades.totalMarginRequired')}
                         </div>
                         <div className="font-bold text-warning">
                           {formatCurrency(totalMarginRequired)}
@@ -1315,18 +1317,18 @@ const TradingPaper = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Symbol</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Entry Price</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Position Size</TableHead>
-                        <TableHead>Margin Required</TableHead>
-                        <TableHead>Leverage</TableHead>
-                        <TableHead>Unrealized P&L</TableHead>
-                        <TableHead>Stop Loss</TableHead>
-                        <TableHead>Take Profit</TableHead>
-                        <TableHead>Open Time</TableHead>
-                        <TableHead>Action</TableHead>
+                        <TableHead>{t('table.symbol')}</TableHead>
+                        <TableHead>{t('table.type')}</TableHead>
+                        <TableHead>{t('position.entryPrice')}</TableHead>
+                        <TableHead>{t('table.quantity')}</TableHead>
+                        <TableHead>{t('table.positionSize')}</TableHead>
+                        <TableHead>{t('table.marginRequired')}</TableHead>
+                        <TableHead>{t('table.leverage')}</TableHead>
+                        <TableHead>{t('position.unrealizedPnl')}</TableHead>
+                        <TableHead>{t('order.stopLoss')}</TableHead>
+                        <TableHead>{t('order.takeProfit')}</TableHead>
+                        <TableHead>{t('table.openTime')}</TableHead>
+                        <TableHead>{t('table.action')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1352,11 +1354,11 @@ const TradingPaper = () => {
             <Card className={wsConnected ? "ring-1 ring-green-500/20" : ""}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Lịch sử giao dịch ({closedTrades.length})
+                  {t('history.title')} ({closedTrades.length})
                   {wsConnected && (
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-600">Live</span>
+                      <span className="text-xs text-green-600">{t('status.live')}</span>
                     </div>
                   )}
                 </CardTitle>
@@ -1366,15 +1368,15 @@ const TradingPaper = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Symbol</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Entry</TableHead>
-                        <TableHead>Exit</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>P&L</TableHead>
-                        <TableHead>P&L %</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead>Reason</TableHead>
+                        <TableHead>{t('table.symbol')}</TableHead>
+                        <TableHead>{t('table.type')}</TableHead>
+                        <TableHead>{t('table.entry')}</TableHead>
+                        <TableHead>{t('table.exit')}</TableHead>
+                        <TableHead>{t('table.quantity')}</TableHead>
+                        <TableHead>{t('table.pnl')}</TableHead>
+                        <TableHead>{t('table.pnlPercent')}</TableHead>
+                        <TableHead>{t('table.duration')}</TableHead>
+                        <TableHead>{t('table.reason')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1393,9 +1395,9 @@ const TradingPaper = () => {
                   <div className="flex items-center justify-center h-32 text-muted-foreground">
                     <div className="text-center">
                       <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Chưa có giao dịch nào</p>
+                      <p>{t('history.noClosed')}</p>
                       <p className="text-sm">
-                        Giao dịch sẽ hiển thị tại đây khi bot hoạt động
+                        {t('history.noClosedBot')}
                       </p>
                     </div>
                   </div>
@@ -1411,13 +1413,13 @@ const TradingPaper = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" />
-                  Cài đặt Paper Trading
+                  {t('settings.paperTradingTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="initial-balance">Vốn ban đầu (USDT)</Label>
+                    <Label htmlFor="initial-balance">{t('settings.initialCapital')}</Label>
                     <PremiumInput
                       id="initial-balance"
                       type="number"
@@ -1434,7 +1436,7 @@ const TradingPaper = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="max-leverage">Đòn bẩy tối đa</Label>
+                    <Label htmlFor="max-leverage">{t('settings.maxLeverage')}</Label>
                     <PremiumInput
                       id="max-leverage"
                       type="number"
@@ -1451,7 +1453,7 @@ const TradingPaper = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="position-size">Kích thước vị thế (%)</Label>
+                    <Label htmlFor="position-size">{t('settings.positionSizePercent')}</Label>
                     <PremiumInput
                       id="position-size"
                       type="number"
@@ -1469,7 +1471,7 @@ const TradingPaper = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="stop-loss">Stop Loss mặc định (%)</Label>
+                    <Label htmlFor="stop-loss">{t('settings.defaultStopLoss')}</Label>
                     <PremiumInput
                       id="stop-loss"
                       type="number"
@@ -1488,7 +1490,7 @@ const TradingPaper = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="take-profit">
-                      Take Profit mặc định (%)
+                      {t('settings.defaultTakeProfit')}
                     </Label>
                     <PremiumInput
                       id="take-profit"
@@ -1507,7 +1509,7 @@ const TradingPaper = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="trading-fee">Phí giao dịch (%)</Label>
+                    <Label htmlFor="trading-fee">{t('settings.tradingFee')}</Label>
                     <PremiumInput
                       id="trading-fee"
                       type="number"
@@ -1530,7 +1532,7 @@ const TradingPaper = () => {
                     className="flex-1"
                     disabled={isLoading}
                   >
-                    {isLoading ? "Đang lưu..." : "Lưu cài đặt"}
+                    {isLoading ? t('settings.saving') : t('settings.saveSettings')}
                   </PremiumButton>
                   <PremiumButton
                     variant="secondary"
@@ -1538,7 +1540,7 @@ const TradingPaper = () => {
                     className="flex-1"
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset dữ liệu
+                    {t('settings.resetData')}
                   </PremiumButton>
                 </div>
                 {showReset && (
@@ -1547,7 +1549,7 @@ const TradingPaper = () => {
                     <AlertDescription>
                       <div className="flex items-center justify-between">
                         <span>
-                          Xác nhận reset toàn bộ dữ liệu paper trading?
+                          {t('settings.confirmReset')}
                         </span>
                         <div className="flex gap-2">
                           <PremiumButton
@@ -1555,14 +1557,14 @@ const TradingPaper = () => {
                             size="sm"
                             onClick={handleReset}
                           >
-                            Xác nhận
+                            {t('settings.confirm')}
                           </PremiumButton>
                           <PremiumButton
                             variant="secondary"
                             size="sm"
                             onClick={() => setShowReset(false)}
                           >
-                            Hủy
+                            {t('settings.cancel')}
                           </PremiumButton>
                         </div>
                       </div>
@@ -1577,7 +1579,7 @@ const TradingPaper = () => {
               <Separator className="flex-1" />
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Settings className="h-4 w-4" />
-                Cài đặt nâng cao
+                {t('settings.advancedSettings')}
               </div>
               <Separator className="flex-1" />
             </div>
@@ -1587,14 +1589,13 @@ const TradingPaper = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
-                  Cài đặt Symbols
+                  {t('symbolConfig.title')}
                   <Badge variant="secondary" className="text-xs">
                     {Object.keys(symbolSettings).length} symbols
                   </Badge>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Cấu hình riêng cho từng symbol: leverage, kích thước vị thế,
-                  stop loss/take profit.
+                  {t('symbolConfig.description')}
                 </p>
               </CardHeader>
               <CardContent>
@@ -1604,7 +1605,7 @@ const TradingPaper = () => {
                   className="w-full"
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  Mở cài đặt Symbols
+                  {t('symbolConfig.openSettings')}
                 </PremiumButton>
               </CardContent>
             </Card>
@@ -1614,15 +1615,13 @@ const TradingPaper = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  Cài đặt Chiến lược Trading
+                  {t('strategy.title')}
                   <Badge variant="secondary" className="text-xs">
-                    Thích hợp cho thị trường ít biến động
+                    {t('strategy.lowVolatilityBadge')}
                   </Badge>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Điều chỉnh các tham số chiến lược để tối ưu cho điều kiện thị
-                  trường hiện tại. Sử dụng preset "Low Volatility" cho thị
-                  trường ít biến động.
+                  {t('strategy.description')}
                 </p>
               </CardHeader>
               <CardContent>
@@ -1642,19 +1641,19 @@ const TradingPaper = () => {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-green-700 dark:text-green-400 font-medium">
-                  WebSocket Active
+                  {t('websocket.active')}
                 </span>
               </div>
               <div className="text-green-600 dark:text-green-500">
-                Real-time updates: {lastUpdateCount}
+                {t('websocket.realTimeUpdates')}: {lastUpdateCount}
               </div>
               <div className="text-green-600 dark:text-green-500 hidden sm:block">
-                Last sync:{" "}
-                {lastUpdated?.toLocaleTimeString("vi-VN") || "Never"}
+                {t('websocket.lastSync')}:{" "}
+                {lastUpdated?.toLocaleTimeString() || t('websocket.never')}
               </div>
             </div>
             <div className="text-green-600 dark:text-green-500 hidden md:block">
-              Data refreshes automatically every second 🚀
+              {t('websocket.autoRefresh')} 🚀
             </div>
           </div>
         </div>
@@ -1684,17 +1683,17 @@ const TradingPaper = () => {
               </Badge>
               {selectedTrade?.symbol}
               <span className="text-sm font-normal text-muted-foreground">
-                Chi tiết giao dịch
+                {t('tradeDetail.title')}
               </span>
               {wsConnected && selectedTrade?.status === "Open" && (
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-600">Live</span>
+                  <span className="text-xs text-green-600">{t('status.live')}</span>
                 </div>
               )}
             </DialogTitle>
             <DialogDescription>
-              Thông tin chi tiết về vị thế đang mở
+              {t('tradeDetail.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -1704,7 +1703,7 @@ const TradingPaper = () => {
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                 <div className="text-center">
                   <div className="text-sm text-muted-foreground">
-                    Unrealized P&L
+                    {t('metrics.unrealizedPnl')}
                   </div>
                   <div
                     className={`text-2xl font-bold ${
@@ -1728,13 +1727,13 @@ const TradingPaper = () => {
                 </div>
                 <div className="text-center">
                   <div className="text-sm text-muted-foreground">
-                    Position Size
+                    {t('tradeDetail.positionSize')}
                   </div>
                   <div className="text-2xl font-bold text-primary">
                     {formatCurrency(calculatePositionSize(selectedTrade))}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    với {selectedTrade.leverage}x leverage
+                    {t('tradeDetail.withLeverage', { leverage: selectedTrade.leverage })}
                   </div>
                 </div>
               </div>
@@ -1742,18 +1741,18 @@ const TradingPaper = () => {
               {/* Trade Details */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Thông tin giao dịch</h3>
+                  <h3 className="font-semibold text-lg">{t('tradeDetail.tradeInfo')}</h3>
 
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Symbol:</span>
+                      <span className="text-muted-foreground">{t('tradeDetail.symbol')}:</span>
                       <span className="font-medium">
                         {selectedTrade.symbol}
                       </span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Type:</span>
+                      <span className="text-muted-foreground">{t('tradeDetail.type')}:</span>
                       <Badge
                         variant={
                           selectedTrade.trade_type === "Long"
@@ -1772,7 +1771,7 @@ const TradingPaper = () => {
 
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Entry Price:
+                        {t('tradeDetail.entryPrice')}:
                       </span>
                       <span className="font-medium">
                         {formatCurrency(selectedTrade.entry_price)}
@@ -1780,7 +1779,7 @@ const TradingPaper = () => {
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Quantity:</span>
+                      <span className="text-muted-foreground">{t('tradeDetail.quantity')}:</span>
                       <span className="font-medium">
                         {selectedTrade.quantity.toFixed(6)}{" "}
                         {selectedTrade.symbol.replace("USDT", "")}
@@ -1788,7 +1787,7 @@ const TradingPaper = () => {
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Leverage:</span>
+                      <span className="text-muted-foreground">{t('tradeDetail.leverage')}:</span>
                       <Badge variant="outline" className="font-mono">
                         {selectedTrade.leverage}x
                       </Badge>
@@ -1796,7 +1795,7 @@ const TradingPaper = () => {
 
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Position Value:
+                        {t('tradeDetail.positionValue')}:
                       </span>
                       <span className="font-medium">
                         {formatCurrency(calculatePositionValue(selectedTrade))}
@@ -1806,11 +1805,11 @@ const TradingPaper = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Risk Management</h3>
+                  <h3 className="font-semibold text-lg">{t('tradeDetail.riskManagement')}</h3>
 
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Stop Loss:</span>
+                      <span className="text-muted-foreground">{t('tradeDetail.stopLoss')}:</span>
                       {selectedTrade.stop_loss ? (
                         <div className="text-right">
                           <div className="text-loss font-medium">
@@ -1828,14 +1827,14 @@ const TradingPaper = () => {
                         </div>
                       ) : (
                         <Badge variant="secondary" className="text-xs">
-                          Chưa đặt
+                          {t('tradeDetail.notSet')}
                         </Badge>
                       )}
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">
-                        Take Profit:
+                        {t('tradeDetail.takeProfit')}:
                       </span>
                       {selectedTrade.take_profit ? (
                         <div className="text-right">
@@ -1855,13 +1854,13 @@ const TradingPaper = () => {
                         </div>
                       ) : (
                         <Badge variant="secondary" className="text-xs">
-                          Chưa đặt
+                          {t('tradeDetail.notSet')}
                         </Badge>
                       )}
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Open Time:</span>
+                      <span className="text-muted-foreground">{t('tradeDetail.openTime')}:</span>
                       <div className="text-right">
                         <div className="font-medium">
                           {formatDate(new Date(selectedTrade.open_time))}
@@ -1875,14 +1874,14 @@ const TradingPaper = () => {
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Duration:</span>
+                      <span className="text-muted-foreground">{t('tradeDetail.duration')}:</span>
                       <span className="font-medium">
                         {Math.floor(
                           (Date.now() -
                             new Date(selectedTrade.open_time).getTime()) /
                             (1000 * 60)
                         )}{" "}
-                        phút
+                        {t('tradeDetail.minutes')}
                       </span>
                     </div>
                   </div>
@@ -1897,18 +1896,18 @@ const TradingPaper = () => {
                   onClick={() => {
                     closeTrade(selectedTrade.id);
                     setIsTradeDetailOpen(false);
-                    toast.success(`Đã đóng vị thế ${selectedTrade.symbol}`);
+                    toast.success(t('tradeDetail.positionClosedSuccess', { symbol: selectedTrade.symbol }));
                   }}
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Đóng vị thế
+                  {t('tradeDetail.closePosition')}
                 </PremiumButton>
                 <PremiumButton
                   variant="secondary"
                   className="flex-1"
                   onClick={() => setIsTradeDetailOpen(false)}
                 >
-                  Đóng popup
+                  {t('tradeDetail.closePopup')}
                 </PremiumButton>
               </div>
             </div>
@@ -1922,7 +1921,7 @@ const TradingPaper = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Cài đặt Symbols
+              {t('symbolConfig.title')}
               <Badge variant="secondary" className="text-xs">
                 {Object.keys(symbolSettings).length} symbols
               </Badge>
@@ -1933,7 +1932,7 @@ const TradingPaper = () => {
             {isLoadingSymbols ? (
               <div className="flex items-center justify-center p-8">
                 <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-                <span>Đang tải cài đặt symbols...</span>
+                <span>{t('symbolConfig.loading')}</span>
               </div>
             ) : Object.keys(symbolSettings).length > 0 ? (
               <>
@@ -1948,13 +1947,13 @@ const TradingPaper = () => {
                           <Badge
                             variant={config.enabled ? "default" : "secondary"}
                           >
-                            {config.enabled ? "Bật" : "Tắt"}
+                            {config.enabled ? t('symbolConfig.enabledBadge') : t('symbolConfig.disabledBadge')}
                           </Badge>
                           <Label
                             htmlFor={`enabled-${symbol}`}
                             className="text-sm"
                           >
-                            Kích hoạt
+                            {t('symbolConfig.activate')}
                           </Label>
                           <input
                             type="checkbox"
@@ -1977,7 +1976,7 @@ const TradingPaper = () => {
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor={`leverage-${symbol}`}>Đòn bẩy</Label>
+                          <Label htmlFor={`leverage-${symbol}`}>{t('symbolConfig.leverage')}</Label>
                           <PremiumInput
                             id={`leverage-${symbol}`}
                             type="number"
@@ -1997,7 +1996,7 @@ const TradingPaper = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor={`position-size-${symbol}`}>
-                            Kích thước vị thế (%)
+                            {t('symbolConfig.positionSize')}
                           </Label>
                           <PremiumInput
                             id={`position-size-${symbol}`}
@@ -2020,7 +2019,7 @@ const TradingPaper = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor={`max-positions-${symbol}`}>
-                            Số vị thế tối đa
+                            {t('symbolConfig.maxPositions')}
                           </Label>
                           <PremiumInput
                             id={`max-positions-${symbol}`}
@@ -2043,7 +2042,7 @@ const TradingPaper = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor={`stop-loss-${symbol}`}>
-                            Stop Loss (%)
+                            {t('symbolConfig.stopLoss')}
                           </Label>
                           <PremiumInput
                             id={`stop-loss-${symbol}`}
@@ -2066,7 +2065,7 @@ const TradingPaper = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor={`take-profit-${symbol}`}>
-                            Take Profit (%)
+                            {t('symbolConfig.takeProfit')}
                           </Label>
                           <PremiumInput
                             id={`take-profit-${symbol}`}
@@ -2100,10 +2099,10 @@ const TradingPaper = () => {
                     {isLoadingSymbols ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Đang lưu...
+                        {t('symbolConfig.saving')}
                       </>
                     ) : (
-                      "Lưu cài đặt Symbols"
+                      t('symbolConfig.saveSettings')
                     )}
                   </PremiumButton>
                   <PremiumButton
@@ -2112,7 +2111,7 @@ const TradingPaper = () => {
                     disabled={isLoadingSymbols}
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Tải lại
+                    {t('symbolConfig.reload')}
                   </PremiumButton>
                 </div>
               </>
@@ -2121,14 +2120,14 @@ const TradingPaper = () => {
                 <div className="text-center">
                   <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-muted-foreground">
-                    Chưa có cài đặt symbols
+                    {t('symbolConfig.noSettings')}
                   </p>
                   <PremiumButton
                     variant="secondary"
                     onClick={loadSymbolSettings}
                     className="mt-2"
                   >
-                    Tải cài đặt
+                    {t('symbolConfig.loadSettings')}
                   </PremiumButton>
                 </div>
               </div>

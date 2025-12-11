@@ -1,0 +1,387 @@
+{
+  "title": "Bảng điều khiển",
+  "welcomeBack": "Chào mừng trở lại",
+  "welcome": "Chào mừng trở lại, {{name}}",
+  "subtitle": "Tổng quan hiệu suất danh mục của bạn",
+  "overview": "Tổng quan",
+  "performance": "Hiệu suất",
+  "recentTrades": "Giao dịch gần đây",
+  "marketSummary": "Tóm tắt thị trường",
+  "aiInsights": "Phân tích AI",
+  "quickActions": "Thao tác nhanh",
+  "marketsOpen": "Thị trường mở cửa",
+  "marketsClosed": "Thị trường đóng cửa",
+  "hero": {
+    "totalBalance": "Tổng số dư",
+    "paperTrading": "Giao dịch mô phỏng",
+    "liveTrading": "Giao dịch thật",
+    "paperMode": "Chế độ mô phỏng",
+    "liveMode": "Chế độ thật",
+    "change24h": "Thay đổi 24h"
+  },
+  "stats": {
+    "totalProfit": "Tổng lợi nhuận",
+    "winRate": "Tỷ lệ thắng",
+    "totalTrades": "Tổng giao dịch",
+    "activeTrades": "Giao dịch đang mở",
+    "todayPnl": "Lãi/Lỗ hôm nay",
+    "weeklyPnl": "Lãi/Lỗ tuần",
+    "monthlyPnl": "Lãi/Lỗ tháng",
+    "totalPnL": "Tổng Lãi/Lỗ",
+    "avgProfit": "Lợi nhuận TB",
+    "avgLoss": "Lỗ TB",
+    "riskScore": "Điểm rủi ro",
+    "riskLow": "Thấp",
+    "riskMedium": "Trung bình",
+    "riskHigh": "Cao",
+    "profitFactor": "Hệ số lợi nhuận",
+    "sharpeRatio": "Tỷ lệ Sharpe",
+    "bestTrade": "Lệnh tốt nhất",
+    "worstTrade": "Lệnh tệ nhất",
+    "maxDrawdown": "Sụt giảm tối đa"
+  },
+  "ticker": {
+    "trendingMarkets": "Thị trường nổi bật"
+  },
+  "chart": {
+    "profit": "Lãi",
+    "loss": "Lỗ",
+    "balance": "Lịch sử số dư",
+    "trades": "Lịch sử giao dịch",
+    "performance": "Biểu đồ hiệu suất",
+    "portfolioPerformance": "Hiệu suất danh mục",
+    "trackGains": "Theo dõi lợi nhuận theo thời gian",
+    "value": "Giá trị"
+  },
+  "aiSignals": {
+    "title": "Tín hiệu AI",
+    "subtitle": "Dự đoán từ Machine Learning",
+    "live": "Trực tiếp",
+    "noSignals": "Chưa có tín hiệu",
+    "noSignalsDesc": "Phân tích AI sẽ hiển thị tại đây",
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{minutes}} phút trước",
+    "hoursAgo": "{{hours}} giờ trước"
+  },
+  "trades": {
+    "title": "Giao dịch gần đây",
+    "subtitle": "Lịch sử giao dịch của bạn",
+    "viewAll": "Xem tất cả",
+    "noTrades": "Chưa có giao dịch",
+    "noTradesDesc": "Bắt đầu giao dịch để xem lịch sử tại đây",
+    "open": "Đang mở",
+    "closed": "Đã đóng",
+    "daysAgo": "{{days}} ngày trước"
+  },
+  "table": {
+    "symbol": "Mã",
+    "type": "Loại",
+    "side": "Hướng",
+    "amount": "Số lượng",
+    "price": "Giá",
+    "pnl": "Lãi/Lỗ",
+    "time": "Thời gian",
+    "status": "Trạng thái",
+    "entry": "Vào lệnh",
+    "exit": "Đóng lệnh",
+    "date": "Ngày",
+    "action": "Thao tác"
+  },
+  "notification": {
+    "newSignal": "Tín hiệu giao dịch mới được tạo",
+    "tradeExecuted": "Giao dịch thực hiện thành công",
+    "stopLossHit": "Đã kích hoạt cắt lỗ",
+    "takeProfitHit": "Đã đạt mức chốt lời"
+  },
+  "error": {
+    "apiConnection": "Lỗi kết nối API",
+    "retry": "Thử lại"
+  },
+  "portfolio": {
+    "title": "Danh mục Paper Trading",
+    "subtitle": "Theo dõi hiệu suất thời gian thực",
+    "currentBalance": "Số dư hiện tại",
+    "totalBalance": "Tổng số dư",
+    "sections": {
+      "allocation": "Phân bổ vị thế",
+      "recentTrades": "Giao dịch gần đây",
+      "performance": "Lịch sử hiệu suất"
+    },
+    "stats": {
+      "winRate": "Tỷ lệ thắng",
+      "totalTrades": "Tổng giao dịch",
+      "profitFactor": "Hệ số lợi nhuận",
+      "totalPnl": "Tổng Lãi/Lỗ",
+      "openPositions": "Đang mở"
+    },
+    "cards": {
+      "bestTrade": "Lệnh tốt nhất",
+      "worstTrade": "Lệnh tệ nhất",
+      "maxDrawdown": "Sụt giảm tối đa",
+      "sharpeRatio": "Tỷ lệ Sharpe",
+      "riskAdjusted": "Lợi nhuận điều chỉnh rủi ro",
+      "noTradesYet": "Chưa có giao dịch"
+    },
+    "status": {
+      "live": "Trực tiếp",
+      "inactive": "Không hoạt động",
+      "safe": "An toàn",
+      "moderate": "Trung bình",
+      "high": "Cao",
+      "excellent": "Xuất sắc",
+      "good": "Tốt",
+      "low": "Thấp"
+    },
+    "table": {
+      "symbol": "Mã",
+      "type": "Loại",
+      "entryExit": "Vào / Ra",
+      "pnl": "Lãi/Lỗ",
+      "date": "Ngày"
+    },
+    "empty": {
+      "noPositions": "Chưa có vị thế nào",
+      "startTrading": "Bắt đầu giao dịch để xem phân bổ",
+      "noClosedTrades": "Chưa có giao dịch đã đóng"
+    }
+  },
+  "profile": {
+    "title": "Hiệu suất giao dịch",
+    "subtitle": "Thống kê giao dịch thực từ paper trading",
+    "advancedMetrics": "Chỉ số nâng cao",
+    "memberSince": "Thành viên từ",
+    "authenticated": "Đã xác thực",
+    "errors": {
+      "emptyName": "Tên hiển thị không được để trống",
+      "updateFailed": "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
+      "invalidImage": "Vui lòng chọn file ảnh",
+      "imageTooLarge": "Ảnh phải nhỏ hơn 500KB",
+      "avatarUploadFailed": "Không thể tải lên avatar. Vui lòng thử lại.",
+      "readImageFailed": "Không thể đọc file ảnh"
+    },
+    "success": {
+      "profileUpdated": "Cập nhật hồ sơ thành công",
+      "avatarUpdated": "Cập nhật avatar thành công"
+    },
+    "achievements": {
+      "title": "Thành tựu",
+      "subtitle": "Các cột mốc giao dịch của bạn",
+      "firstTrade": "Giao dịch đầu tiên",
+      "firstTradeDesc": "Hoàn thành giao dịch đầu tiên",
+      "tenTrades": "10 giao dịch",
+      "tenTradesDesc": "Thực hiện 10 giao dịch",
+      "inProfit": "Có lợi nhuận",
+      "inProfitDesc": "Đạt tổng P&L dương",
+      "winningStreak": "Chuỗi thắng",
+      "winningStreakDesc": "Thắng 5 lệnh liên tiếp",
+      "notYet": "Chưa đạt",
+      "achieved": "Đã đạt",
+      "active": "Đang có",
+      "inProgress": "Đang thực hiện",
+      "current": "hiện tại"
+    },
+    "activity": {
+      "title": "Hoạt động gần đây",
+      "subtitle": "Các thao tác giao dịch mới nhất",
+      "noActivity": "Chưa có hoạt động",
+      "startTrading": "Bắt đầu giao dịch để xem hoạt động tại đây",
+      "long": "Long",
+      "short": "Short",
+      "closed": "Đã đóng",
+      "unlocked": "Đã mở khóa",
+      "milestone": "Cột mốc"
+    }
+  },
+  "aiSignalsPage": {
+    "title": "Tín hiệu AI giao dịch",
+    "subtitle": "Dự đoán machine learning thời gian thực từ mạng neural tiên tiến",
+    "refresh": "Làm mới",
+    "lastUpdate": "Cập nhật",
+    "justNow": "Vừa xong",
+    "engine": {
+      "status": "Trạng thái AI Engine",
+      "active": "Hoạt động",
+      "offline": "Offline",
+      "description": "Mạng neural phân tích mô hình thị trường theo thời gian thực"
+    },
+    "accuracy": {
+      "label": "Độ chính xác mô hình",
+      "value": "{{value}}%"
+    },
+    "signals": {
+      "live": "Tín hiệu trực tiếp",
+      "active": "Đang hoạt động",
+      "waiting": "Đang chờ tín hiệu",
+      "waitingDesc": "AI engine đang phân tích điều kiện thị trường. Tín hiệu mới sẽ xuất hiện tự động."
+    },
+    "history": {
+      "title": "Lịch sử tín hiệu",
+      "all": "Tất cả",
+      "win": "Thắng",
+      "loss": "Thua",
+      "noHistory": "Chưa có lịch sử tín hiệu"
+    },
+    "stats": {
+      "wins": "Thắng",
+      "losses": "Thua",
+      "winRate": "Tỷ lệ thắng",
+      "totalPnl": "Tổng P&L (USDT)"
+    },
+    "card": {
+      "confidence": "Độ tin cậy",
+      "entry": "Giá vào",
+      "target": "Mục tiêu",
+      "stopLoss": "Cắt lỗ"
+    },
+    "actions": {
+      "viewAnalysis": "Xem phân tích",
+      "aiReasoning": "Lý do AI",
+      "strategyScores": "Điểm chiến lược"
+    }
+  },
+  "tradeAnalyses": {
+    "title": "Phân tích giao dịch GPT-4",
+    "subtitle": "Phân tích AI giúp bạn hiểu những gì đã sai và cải thiện chiến lược.",
+    "refresh": "Làm mới",
+    "stats": {
+      "totalAnalyses": "Tổng phân tích",
+      "losingTrades": "Lệnh thua",
+      "winningTrades": "Lệnh thắng",
+      "totalPnl": "Tổng P&L",
+      "avgPnl": "P&L TB / Lệnh"
+    },
+    "tabs": {
+      "analyses": "Phân tích giao dịch",
+      "suggestions": "Đề xuất cấu hình"
+    },
+    "filter": {
+      "losingOnly": "Hiển thị: Chỉ lệnh thua",
+      "allTrades": "Hiển thị: Tất cả"
+    },
+    "empty": {
+      "noAnalyses": "Chưa có phân tích",
+      "analysesDesc": "Hoàn thành một số giao dịch để xem phân tích AI",
+      "noSuggestions": "Chưa có đề xuất cấu hình",
+      "suggestionsDesc": "GPT-4 sẽ đề xuất tối ưu sau khi phân tích giao dịch của bạn"
+    },
+    "suggestion": {
+      "latest": "Đề xuất GPT-4 mới nhất",
+      "rootCause": "Nguyên nhân gốc",
+      "applied": "Thay đổi đã áp dụng"
+    },
+    "analysis": {
+      "verdict": "Kết luận",
+      "summary": "Tóm tắt",
+      "whatWentWrong": "Điều gì đã sai",
+      "keyFactors": "Yếu tố chính",
+      "lessons": "Bài học rút ra",
+      "recommendations": "Khuyến nghị"
+    },
+    "details": {
+      "entry": "Vào lệnh",
+      "exit": "Đóng lệnh",
+      "tradeId": "ID giao dịch",
+      "closeReason": "Lý do đóng"
+    },
+    "verdict": {
+      "win": "THẮNG",
+      "loss": "THUA",
+      "breakeven": "HÒA VỐN"
+    }
+  },
+  "realTrading": {
+    "title": "Giao dịch thật",
+    "subtitle": "Giao dịch trực tiếp với tiền thật trên Binance",
+    "warning": {
+      "title": "Giao dịch tiền thật",
+      "message": "Bạn sắp giao dịch với tiền thật. Hãy chắc chắn bạn hiểu rủi ro liên quan.",
+      "confirm": "Tôi hiểu rủi ro"
+    },
+    "orderBook": {
+      "title": "Sổ lệnh",
+      "price": "Giá",
+      "amount": "Số lượng",
+      "total": "Tổng"
+    },
+    "orderForm": {
+      "buy": "Mua",
+      "sell": "Bán",
+      "market": "Thị trường",
+      "limit": "Giới hạn",
+      "stopLimit": "Stop Limit",
+      "amount": "Số lượng",
+      "price": "Giá",
+      "total": "Tổng",
+      "available": "Khả dụng",
+      "submit": "Đặt lệnh",
+      "stopPrice": "Giá dừng"
+    },
+    "positions": {
+      "title": "Vị thế đang mở",
+      "symbol": "Mã",
+      "side": "Hướng",
+      "size": "Khối lượng",
+      "entry": "Giá vào",
+      "mark": "Giá mark",
+      "pnl": "Lãi/Lỗ",
+      "close": "Đóng",
+      "noPositions": "Chưa có vị thế"
+    },
+    "orders": {
+      "title": "Lệnh đang chờ",
+      "cancel": "Hủy",
+      "cancelAll": "Hủy tất cả",
+      "noOrders": "Chưa có lệnh chờ"
+    },
+    "history": {
+      "title": "Lịch sử giao dịch",
+      "time": "Thời gian",
+      "type": "Loại",
+      "filled": "Đã khớp",
+      "status": "Trạng thái"
+    },
+    "status": {
+      "connected": "Đã kết nối",
+      "disconnected": "Mất kết nối",
+      "connecting": "Đang kết nối..."
+    },
+    "modeSwitch": {
+      "title": "Chế độ Paper Trading đang hoạt động",
+      "description": "Chuyển sang chế độ Giao dịch thật để thực hiện lệnh với tiền thật.",
+      "badge": "Paper Mode: Luyện tập an toàn",
+      "hint": "Sử dụng nút chuyển chế độ ở header để chuyển đổi giữa Paper và Real trading."
+    },
+    "comingSoon": {
+      "title": "SẮP RA MẮT",
+      "subtitle": "Module Giao dịch thật",
+      "description": "API giao dịch thật đang được phát triển. Tính năng này sẽ cho phép bạn thực hiện giao dịch với tiền thật trên sàn Binance.",
+      "features": {
+        "spotApi": "Tích hợp Binance Spot Order API",
+        "websocket": "Theo dõi vị thế thời gian thực qua WebSocket",
+        "riskManagement": "Quản lý rủi ro nâng cao & Circuit Breaker",
+        "underDevelopment": "API Endpoints đang phát triển"
+      },
+      "tryPaperTrading": "Thử Paper Trading",
+      "hint": "Paper trading cung cấp giao diện sang trọng tương tự với tiền mô phỏng - hoàn hảo để test chiến lược!"
+    },
+    "confirm": {
+      "title": "Xác nhận giao dịch thật",
+      "step": "Bước {{current}} / {{total}}",
+      "riskWarning": "Cảnh báo rủi ro",
+      "realMoney": "Giao dịch này sử dụng TIỀN THẬT",
+      "leverageWarning": "Giao dịch đòn bẩy có thể vượt quá tiền ký quỹ",
+      "orderValue": "Giá trị lệnh",
+      "exposure": "Rủi ro ({{leverage}}x)",
+      "acceptRisk": "Tôi hiểu rủi ro và chịu hoàn toàn trách nhiệm cho giao dịch này.",
+      "finalTitle": "Xác nhận cuối cùng",
+      "executeQuestion": "Thực hiện {{direction}} {{quantity}} {{symbol}} với rủi ro ${{exposure}}?",
+      "cannotUndo": "Thao tác này không thể hoàn tác",
+      "cancel": "Hủy",
+      "continue": "Tiếp tục",
+      "executeTrade": "Thực hiện lệnh"
+    },
+    "riskWarning": {
+      "message": "Tất cả lệnh yêu cầu xác nhận 2 bước. Đặt cắt lỗ cho mọi lệnh. Không bao giờ mạo hiểm nhiều hơn bạn có thể chấp nhận mất."
+    }
+  }
+}

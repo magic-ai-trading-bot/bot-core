@@ -31,7 +31,7 @@ vi.mock('@/services/api', () => {
 // Import other dependencies AFTER the mock
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { render, mockPosition, mockTrade, mockUser } from '../../test/utils'
+import { render, mockPosition, mockTrade } from '../../test/utils'
 import Dashboard from '../../pages/Dashboard'
 
 // Mock the hooks

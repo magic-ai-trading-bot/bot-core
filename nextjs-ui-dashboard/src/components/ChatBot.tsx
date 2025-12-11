@@ -3,7 +3,6 @@ import logger from "@/utils/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PremiumButton, PremiumInput } from "@/styles/luxury-design-system";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   MessageCircle,
@@ -98,7 +97,7 @@ Hãy hỏi tôi bất cứ điều gì nhé! 🤖`,
       };
       setMessages([welcomeMessage]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen]); // Only trigger on open, not on messages.length change
 
   // Handle toggle

@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AIAnalysisProvider } from "@/contexts/AIAnalysisContext";
 import { PaperTradingProvider } from "@/contexts/PaperTradingContext";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
@@ -13,6 +15,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 // Lazy load all pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -58,6 +61,8 @@ const LoadingFallback = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ErrorBoundary>
+      <ThemeProvider>
+      <LanguageProvider>
       <AuthProvider>
         <WebSocketProvider>
           <AIAnalysisProvider>
@@ -68,6 +73,7 @@ const App = () => (
                   <Toaster />
                   <Sonner />
                   <BrowserRouter>
+                    <ScrollToTop />
                     <Suspense fallback={<LoadingFallback />}>
                       <Routes>
                 {/* Public routes - no layout */}
@@ -208,6 +214,8 @@ const App = () => (
           </AIAnalysisProvider>
         </WebSocketProvider>
       </AuthProvider>
+      </LanguageProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </QueryClientProvider>
 );

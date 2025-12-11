@@ -1,5 +1,5 @@
 // API Client for Bot Core Services Integration
-import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import axios, { AxiosInstance } from "axios";
 import logger from "@/utils/logger";
 
 // Environment variables

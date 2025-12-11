@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import {
   Bell,
   Check,
@@ -15,7 +16,6 @@ import {
   Trash2,
   X,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Zap,
   Info,
@@ -27,11 +27,13 @@ import {
 import { cn } from '@/lib/utils';
 import { useNotification } from '@/hooks/useNotification';
 import { AppNotification, NotificationType, getNotificationColor } from '@/types/notification';
-import { luxuryColors } from '@/styles/luxury-design-system';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { duration, easing } from '@/styles/tokens/animations';
 
 export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useTranslation('common');
+  const colors = useThemeColors();
   const {
     notifications,
     unreadCount,
@@ -60,10 +62,10 @@ export function NotificationDropdown() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('time.now');
+    if (diffMins < 60) return t('time.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('time.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('time.daysAgo', { count: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -104,16 +106,16 @@ export function NotificationDropdown() {
       {/* Bell button */}
       <motion.button
         onClick={handleToggle}
-        whileHover={{ scale: 1.05, backgroundColor: luxuryColors.bgHover }}
+        whileHover={{ scale: 1.05, backgroundColor: colors.bgHover }}
         whileTap={{ scale: 0.95 }}
         className={cn(
           'relative flex h-10 w-10 items-center justify-center rounded-xl',
           'transition-all duration-200'
         )}
         style={{
-          backgroundColor: isOpen ? luxuryColors.bgHover : luxuryColors.bgSecondary,
-          color: luxuryColors.textMuted,
-          border: `1px solid ${luxuryColors.borderSubtle}`,
+          backgroundColor: isOpen ? colors.bgHover : colors.bgSecondary,
+          color: colors.textMuted,
+          border: `1px solid ${colors.borderSubtle}`,
         }}
         aria-label="Notifications"
         aria-expanded={isOpen}
@@ -127,7 +129,7 @@ export function NotificationDropdown() {
             animate={{ scale: 1 }}
             className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-bold text-white"
             style={{
-              backgroundColor: luxuryColors.amber,
+              backgroundColor: colors.amber,
               boxShadow: '0 0 8px rgba(245, 158, 11, 0.5)',
             }}
           >
@@ -157,32 +159,32 @@ export function NotificationDropdown() {
               }}
               className="absolute right-0 top-12 z-50 w-80 md:w-96 rounded-xl overflow-hidden"
               style={{
-                backgroundColor: luxuryColors.bgPrimary,
-                border: `1px solid ${luxuryColors.borderSubtle}`,
+                backgroundColor: colors.bgPrimary,
+                border: `1px solid ${colors.borderSubtle}`,
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
               }}
             >
               {/* Header */}
               <div
                 className="flex items-center justify-between px-4 py-3"
-                style={{ borderBottom: `1px solid ${luxuryColors.borderSubtle}` }}
+                style={{ borderBottom: `1px solid ${colors.borderSubtle}` }}
               >
                 <div className="flex items-center gap-2">
                   <h3
                     className="text-sm font-bold"
-                    style={{ color: luxuryColors.textPrimary }}
+                    style={{ color: colors.textPrimary }}
                   >
-                    Notifications
+                    {t('notification.title')}
                   </h3>
                   {unreadCount > 0 && (
                     <span
                       className="rounded-full px-2 py-0.5 text-xs font-medium"
                       style={{
-                        backgroundColor: `${luxuryColors.amber}20`,
-                        color: luxuryColors.amber,
+                        backgroundColor: `${colors.amber}20`,
+                        color: colors.amber,
                       }}
                     >
-                      {unreadCount} new
+                      {t('notification.new', { count: unreadCount })}
                     </span>
                   )}
                 </div>
@@ -192,7 +194,7 @@ export function NotificationDropdown() {
                     <button
                       onClick={markAllAsRead}
                       className="flex items-center gap-1 text-xs transition-colors hover:text-white"
-                      style={{ color: luxuryColors.textMuted }}
+                      style={{ color: colors.textMuted }}
                       title="Mark all as read"
                     >
                       <CheckCheck className="h-4 w-4" />
@@ -202,7 +204,7 @@ export function NotificationDropdown() {
                     <button
                       onClick={clearAllNotifications}
                       className="flex items-center gap-1 text-xs transition-colors hover:text-red-400"
-                      style={{ color: luxuryColors.textMuted }}
+                      style={{ color: colors.textMuted }}
                       title="Clear all"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -217,19 +219,19 @@ export function NotificationDropdown() {
                   <div className="flex flex-col items-center justify-center py-12">
                     <Bell
                       className="h-12 w-12 mb-3"
-                      style={{ color: luxuryColors.textMuted }}
+                      style={{ color: colors.textMuted }}
                     />
                     <p
                       className="text-sm"
-                      style={{ color: luxuryColors.textMuted }}
+                      style={{ color: colors.textMuted }}
                     >
-                      No notifications yet
+                      {t('notification.empty')}
                     </p>
                     <p
                       className="text-xs mt-1"
-                      style={{ color: luxuryColors.textMuted }}
+                      style={{ color: colors.textMuted }}
                     >
-                      We'll notify you when something happens
+                      {t('notification.emptyDesc')}
                     </p>
                   </div>
                 ) : (
@@ -244,10 +246,10 @@ export function NotificationDropdown() {
                         'hover:bg-white/5'
                       )}
                       style={{
-                        borderBottom: `1px solid ${luxuryColors.borderSubtle}`,
+                        borderBottom: `1px solid ${colors.borderSubtle}`,
                         backgroundColor: notification.read
                           ? 'transparent'
-                          : `${luxuryColors.amber}05`,
+                          : `${colors.amber}05`,
                       }}
                       onClick={() => handleNotificationClick(notification)}
                     >
@@ -269,26 +271,26 @@ export function NotificationDropdown() {
                               'text-sm truncate',
                               notification.read ? 'font-normal' : 'font-semibold'
                             )}
-                            style={{ color: luxuryColors.textPrimary }}
+                            style={{ color: colors.textPrimary }}
                           >
                             {notification.title}
                           </p>
                           {!notification.read && (
                             <span
                               className="flex-shrink-0 h-2 w-2 rounded-full mt-1"
-                              style={{ backgroundColor: luxuryColors.amber }}
+                              style={{ backgroundColor: colors.amber }}
                             />
                           )}
                         </div>
                         <p
                           className="text-xs mt-0.5 line-clamp-2"
-                          style={{ color: luxuryColors.textSecondary }}
+                          style={{ color: colors.textSecondary }}
                         >
                           {notification.message}
                         </p>
                         <p
                           className="text-xs mt-1"
-                          style={{ color: luxuryColors.textMuted }}
+                          style={{ color: colors.textMuted }}
                         >
                           {formatTime(notification.createdAt)}
                         </p>
@@ -301,7 +303,7 @@ export function NotificationDropdown() {
                           deleteNotification(notification.id);
                         }}
                         className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ color: luxuryColors.textMuted }}
+                        style={{ color: colors.textMuted }}
                         title="Delete"
                       >
                         <X className="h-4 w-4 hover:text-red-400" />
@@ -315,13 +317,13 @@ export function NotificationDropdown() {
               {notifications.length > 0 && (
                 <div
                   className="px-4 py-2"
-                  style={{ borderTop: `1px solid ${luxuryColors.borderSubtle}` }}
+                  style={{ borderTop: `1px solid ${colors.borderSubtle}` }}
                 >
                   <p
                     className="text-xs text-center"
-                    style={{ color: luxuryColors.textMuted }}
+                    style={{ color: colors.textMuted }}
                   >
-                    Showing {Math.min(notifications.length, 50)} of {notifications.length} notifications
+                    {t('notification.showing', { current: Math.min(notifications.length, 50), total: notifications.length })}
                   </p>
                 </div>
               )}

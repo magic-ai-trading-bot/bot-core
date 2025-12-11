@@ -12,8 +12,9 @@
  * @ref:specs/02-design/2.5-components/COMP-FRONTEND-DASHBOARD.md
  */
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { usePaperTrading } from '@/hooks/usePaperTrading';
 import { TradingViewChart } from '@/components/trading/TradingViewChart';
 import { type OrderFormData } from '@/components/trading/OrderForm';
@@ -21,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { fetchBinancePrice } from '@/utils/binancePrice';
 import logger from '@/utils/logger';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
   TrendingUp,
   TrendingDown,
@@ -30,50 +32,12 @@ import {
   Clock,
   Target,
   Shield,
-  Zap,
   X,
   RefreshCw,
   ChevronDown,
-  AlertTriangle,
-  Percent,
-  DollarSign,
   LineChart,
 } from 'lucide-react';
 import type { PaperTrade } from '@/hooks/usePaperTrading';
-
-// ============================================================================
-// DESIGN TOKENS - Premium Dark OLED Luxury (Matching Dashboard)
-// ============================================================================
-
-const luxuryColors = {
-  // Backgrounds - Pure black for OLED
-  bgPrimary: '#000000',
-  bgSecondary: 'rgba(255, 255, 255, 0.03)',
-  bgTertiary: 'rgba(255, 255, 255, 0.05)',
-  bgHover: 'rgba(255, 255, 255, 0.08)',
-
-  // Accents
-  emerald: '#22c55e',
-  cyan: '#00D9FF',
-  profit: '#22c55e',
-  loss: '#ef4444',
-  warning: '#f59e0b',
-
-  // Text
-  textPrimary: '#ffffff',
-  textSecondary: 'rgba(255, 255, 255, 0.7)',
-  textMuted: 'rgba(255, 255, 255, 0.4)',
-
-  // Borders
-  borderSubtle: 'rgba(255, 255, 255, 0.08)',
-  borderLight: 'rgba(255, 255, 255, 0.12)',
-  borderActive: '#00D9FF',
-
-  // Gradients
-  gradientProfit: 'linear-gradient(135deg, #22c55e, #00D9FF)',
-  gradientLoss: 'linear-gradient(135deg, #ef4444, #f97316)',
-  gradientPremium: 'linear-gradient(135deg, #00D9FF, #22c55e)',
-};
 
 // Animation variants for consistency
 const containerVariants = {
@@ -145,6 +109,7 @@ function PanelHeader({
   icon?: React.ElementType;
   action?: React.ReactNode;
 }) {
+  const colors = useThemeColors();
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
       <div className="flex items-center gap-3">
@@ -156,10 +121,10 @@ function PanelHeader({
               border: '1px solid rgba(0, 217, 255, 0.2)',
             }}
           >
-            <Icon className="w-4 h-4" style={{ color: luxuryColors.cyan }} />
+            <Icon className="w-4 h-4" style={{ color: colors.cyan }} />
           </div>
         )}
-        <h3 className="text-sm font-bold text-white">{title}</h3>
+        <h3 className="text-sm font-bold" style={{ color: colors.textPrimary }}>{title}</h3>
       </div>
       {action}
     </div>
@@ -176,12 +141,13 @@ function Badge({
   children: React.ReactNode;
   variant?: 'default' | 'buy' | 'sell' | 'info' | 'warning';
 }) {
+  const colors = useThemeColors();
   const variants = {
-    default: { bg: 'rgba(255, 255, 255, 0.1)', color: luxuryColors.textSecondary, border: 'rgba(255, 255, 255, 0.15)' },
-    buy: { bg: 'rgba(34, 197, 94, 0.15)', color: luxuryColors.profit, border: 'rgba(34, 197, 94, 0.3)' },
-    sell: { bg: 'rgba(239, 68, 68, 0.15)', color: luxuryColors.loss, border: 'rgba(239, 68, 68, 0.3)' },
-    info: { bg: 'rgba(0, 217, 255, 0.15)', color: luxuryColors.cyan, border: 'rgba(0, 217, 255, 0.3)' },
-    warning: { bg: 'rgba(245, 158, 11, 0.15)', color: luxuryColors.warning, border: 'rgba(245, 158, 11, 0.3)' },
+    default: { bg: 'rgba(255, 255, 255, 0.1)', color: colors.textSecondary, border: 'rgba(255, 255, 255, 0.15)' },
+    buy: { bg: 'rgba(34, 197, 94, 0.15)', color: colors.profit, border: 'rgba(34, 197, 94, 0.3)' },
+    sell: { bg: 'rgba(239, 68, 68, 0.15)', color: colors.loss, border: 'rgba(239, 68, 68, 0.3)' },
+    info: { bg: 'rgba(0, 217, 255, 0.15)', color: colors.cyan, border: 'rgba(0, 217, 255, 0.3)' },
+    warning: { bg: 'rgba(245, 158, 11, 0.15)', color: colors.warning, border: 'rgba(245, 158, 11, 0.3)' },
   };
 
   const style = variants[variant];
@@ -202,16 +168,17 @@ function Badge({
 function GradientText({
   children,
   className = '',
-  gradient = luxuryColors.gradientPremium,
+  gradient,
 }: {
   children: React.ReactNode;
   className?: string;
   gradient?: string;
 }) {
+  const colors = useThemeColors();
   return (
     <span
       className={`bg-clip-text text-transparent ${className}`}
-      style={{ backgroundImage: gradient }}
+      style={{ backgroundImage: gradient || colors.gradientPremium }}
     >
       {children}
     </span>
@@ -226,18 +193,21 @@ function MonoText({
   className = '',
   positive,
   negative,
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
   positive?: boolean;
   negative?: boolean;
+  style?: React.CSSProperties;
 }) {
-  let color = luxuryColors.textPrimary;
-  if (positive) color = luxuryColors.profit;
-  if (negative) color = luxuryColors.loss;
+  const colors = useThemeColors();
+  let color = colors.textPrimary;
+  if (positive) color = colors.profit;
+  if (negative) color = colors.loss;
 
   return (
-    <span className={`font-mono ${className}`} style={{ color }}>
+    <span className={`font-mono ${className}`} style={{ color, ...style }}>
       {children}
     </span>
   );
@@ -259,16 +229,17 @@ function InputField({
   placeholder: string;
   suffix?: string;
 }) {
+  const colors = useThemeColors();
   return (
     <div>
-      <label className="block text-[10px] uppercase tracking-wider mb-1.5" style={{ color: luxuryColors.textMuted }}>
+      <label className="block text-[10px] uppercase tracking-wider mb-1.5" style={{ color: colors.textMuted }}>
         {label}
       </label>
       <div
         className="relative flex items-center rounded-xl border transition-all duration-300 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(0,217,255,0.15)]"
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.03)',
-          borderColor: luxuryColors.borderSubtle,
+          borderColor: colors.borderSubtle,
         }}
       >
         <input
@@ -277,10 +248,11 @@ function InputField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2.5 text-sm font-mono bg-transparent outline-none text-white placeholder:text-white/30"
+          className="w-full px-3 py-2.5 text-sm font-mono bg-transparent outline-none placeholder:text-white/30"
+          style={{ color: colors.textPrimary }}
         />
         {suffix && (
-          <span className="px-3 text-xs font-medium" style={{ color: luxuryColors.textMuted }}>
+          <span className="px-3 text-xs font-medium" style={{ color: colors.textMuted }}>
             {suffix}
           </span>
         )}
@@ -300,6 +272,7 @@ function PortfolioStatsBar({
   totalPnlPercent,
   winRate,
   totalTrades,
+  t,
 }: {
   balance: number;
   equity: number;
@@ -307,7 +280,9 @@ function PortfolioStatsBar({
   totalPnlPercent: number;
   winRate: number;
   totalTrades: number;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
+  const colors = useThemeColors();
   const isProfitable = totalPnl >= 0;
 
   return (
@@ -315,7 +290,7 @@ function PortfolioStatsBar({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       className="relative overflow-hidden"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
     >
       {/* Background glow effect */}
       <div
@@ -337,10 +312,10 @@ function PortfolioStatsBar({
               border: '1px solid rgba(0, 217, 255, 0.2)',
             }}
           >
-            <Wallet className="w-5 h-5" style={{ color: luxuryColors.cyan }} />
+            <Wallet className="w-5 h-5" style={{ color: colors.cyan }} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Balance</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('paperTradingPage.stats.balance')}</p>
             <GradientText className="text-xl font-black">
               ${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </GradientText>
@@ -358,10 +333,10 @@ function PortfolioStatsBar({
               border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            <Activity className="w-4 h-4" style={{ color: luxuryColors.textSecondary }} />
+            <Activity className="w-4 h-4" style={{ color: colors.textSecondary }} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Equity</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('paperTradingPage.stats.equity')}</p>
             <MonoText className="text-lg font-bold">${equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</MonoText>
           </div>
         </div>
@@ -384,12 +359,12 @@ function PortfolioStatsBar({
           transition={{ duration: 2, repeat: Infinity }}
         >
           {isProfitable ? (
-            <TrendingUp className="w-5 h-5" style={{ color: luxuryColors.profit }} />
+            <TrendingUp className="w-5 h-5" style={{ color: colors.profit }} />
           ) : (
-            <TrendingDown className="w-5 h-5" style={{ color: luxuryColors.loss }} />
+            <TrendingDown className="w-5 h-5" style={{ color: colors.loss }} />
           )}
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>P&L</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('paperTradingPage.stats.pnl')}</p>
             <MonoText className="text-lg font-bold" positive={isProfitable} negative={!isProfitable}>
               {isProfitable ? '+' : ''}${Math.abs(totalPnl).toFixed(2)} ({isProfitable ? '+' : ''}{totalPnlPercent.toFixed(2)}%)
             </MonoText>
@@ -399,11 +374,11 @@ function PortfolioStatsBar({
         {/* Stats */}
         <div className="flex items-center gap-4 ml-auto">
           <div className="text-center px-3">
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Win Rate</p>
-            <MonoText className="text-base font-bold" style={{ color: luxuryColors.cyan }}>{winRate.toFixed(1)}%</MonoText>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('paperTradingPage.stats.winRate')}</p>
+            <MonoText className="text-base font-bold" style={{ color: colors.cyan }}>{winRate.toFixed(1)}%</MonoText>
           </div>
           <div className="text-center px-3">
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: luxuryColors.textMuted }}>Trades</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.textMuted }}>{t('paperTradingPage.stats.trades')}</p>
             <MonoText className="text-base font-bold">{totalTrades}</MonoText>
           </div>
 
@@ -419,12 +394,12 @@ function PortfolioStatsBar({
           >
             <motion.div
               className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: luxuryColors.cyan }}
+              style={{ backgroundColor: colors.cyan }}
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: luxuryColors.cyan }}>
-              Paper Mode
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.cyan }}>
+              {t('paperTradingPage.stats.paperMode')}
             </span>
           </motion.div>
         </div>
@@ -446,10 +421,13 @@ interface OrderBookLevel {
 function OrderBook({
   symbol = 'BTCUSDT',
   onPriceClick,
+  t,
 }: {
   symbol?: string;
   onPriceClick?: (price: number) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
+  const colors = useThemeColors();
   const [asks, setAsks] = useState<OrderBookLevel[]>([]);
   const [bids, setBids] = useState<OrderBookLevel[]>([]);
   const [spread, setSpread] = useState(0);
@@ -543,7 +521,7 @@ function OrderBook({
   }) => {
     const isAsk = type === 'ask';
     const depthWidth = (level.total / maxTotal) * 100;
-    const priceColor = isAsk ? luxuryColors.loss : luxuryColors.profit;
+    const priceColor = isAsk ? colors.loss : colors.profit;
     const depthColor = isAsk ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)';
 
     return (
@@ -567,10 +545,10 @@ function OrderBook({
         <div className="relative z-10 font-mono font-semibold" style={{ color: priceColor }}>
           {level.price.toFixed(2)}
         </div>
-        <div className="relative z-10 text-right font-mono" style={{ color: luxuryColors.textPrimary }}>
+        <div className="relative z-10 text-right font-mono" style={{ color: colors.textPrimary }}>
           {level.quantity.toFixed(4)}
         </div>
-        <div className="relative z-10 text-right font-mono" style={{ color: luxuryColors.textSecondary }}>
+        <div className="relative z-10 text-right font-mono" style={{ color: colors.textSecondary }}>
           {level.total.toFixed(4)}
         </div>
       </motion.div>
@@ -579,16 +557,16 @@ function OrderBook({
 
   return (
     <GlassCard noPadding>
-      <PanelHeader title="Order Book" icon={BarChart3} />
+      <PanelHeader title={t('paperTradingPage.orderBook.title')} icon={BarChart3} />
 
       {/* Column Headers */}
       <div
         className="grid grid-cols-3 gap-2 px-4 py-2 text-[10px] uppercase tracking-wider border-b border-white/[0.08]"
-        style={{ color: luxuryColors.textMuted }}
+        style={{ color: colors.textMuted }}
       >
-        <div>Price (USDT)</div>
-        <div className="text-right">Size</div>
-        <div className="text-right">Total</div>
+        <div>{t('paperTradingPage.orderBook.price')}</div>
+        <div className="text-right">{t('paperTradingPage.orderBook.size')}</div>
+        <div className="text-right">{t('paperTradingPage.orderBook.total')}</div>
       </div>
 
       {/* Asks (reversed) */}
@@ -610,11 +588,11 @@ function OrderBook({
         transition={{ duration: 2, repeat: Infinity }}
       >
         <GradientText className="text-lg font-black">
-          {midPrice > 0 ? `$${midPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Loading...'}
+          {midPrice > 0 ? `$${midPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : t('paperTradingPage.orderBook.loading')}
         </GradientText>
-        <span className="text-[10px]" style={{ color: luxuryColors.textMuted }}>
-          Spread: <MonoText className="text-[10px]" style={{ color: luxuryColors.cyan }}>{spread.toFixed(2)}</MonoText> (
-          <MonoText className="text-[10px]" style={{ color: luxuryColors.cyan }}>{spreadPercent.toFixed(4)}%</MonoText>)
+        <span className="text-[10px]" style={{ color: colors.textMuted }}>
+          {t('paperTradingPage.orderBook.spread')} <MonoText className="text-[10px]" style={{ color: colors.cyan }}>{spread.toFixed(2)}</MonoText> (
+          <MonoText className="text-[10px]" style={{ color: colors.cyan }}>{spreadPercent.toFixed(4)}%</MonoText>)
         </span>
       </motion.div>
 
@@ -636,11 +614,14 @@ function OrderForm({
   symbol = 'BTCUSDT',
   onSubmit,
   selectedPrice,
+  t,
 }: {
   symbol?: string;
   onSubmit?: (order: OrderFormData) => void;
   selectedPrice?: number;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
+  const colors = useThemeColors();
   const { toast } = useToast();
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop-limit'>('market');
@@ -654,7 +635,7 @@ function OrderForm({
   // Update price when selectedPrice changes from order book click (valid props-to-state sync)
   useEffect(() => {
     if (selectedPrice && orderType !== 'market') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Valid sync pattern for controlled input
+       
       setPrice(selectedPrice.toFixed(2));
     }
   }, [selectedPrice, orderType]);
@@ -664,8 +645,8 @@ function OrderForm({
 
     if (!quantity || parseFloat(quantity) <= 0) {
       toast({
-        title: 'Invalid Quantity',
-        description: 'Please enter a valid quantity',
+        title: t('paperTradingPage.orderForm.invalidQuantity'),
+        description: t('paperTradingPage.orderForm.enterValidQuantity'),
         variant: 'destructive',
       });
       return;
@@ -673,8 +654,8 @@ function OrderForm({
 
     if (orderType !== 'market' && (!price || parseFloat(price) <= 0)) {
       toast({
-        title: 'Invalid Price',
-        description: 'Please enter a valid limit price',
+        title: t('paperTradingPage.orderForm.invalidPrice'),
+        description: t('paperTradingPage.orderForm.enterValidPrice'),
         variant: 'destructive',
       });
       return;
@@ -699,7 +680,7 @@ function OrderForm({
 
   return (
     <GlassCard noPadding>
-      <PanelHeader title="Place Order" icon={Target} />
+      <PanelHeader title={t('paperTradingPage.orderForm.title')} icon={Target} />
 
       {/* Buy/Sell Toggle - Premium styling */}
       <div className="p-4 border-b border-white/[0.08]">
@@ -707,7 +688,7 @@ function OrderForm({
           <motion.div
             className="absolute top-0 bottom-0 w-1/2 rounded-xl"
             style={{
-              background: isBuy ? luxuryColors.gradientProfit : luxuryColors.gradientLoss,
+              background: isBuy ? colors.gradientProfit : colors.gradientLoss,
               boxShadow: isBuy
                 ? '0 4px 20px rgba(34, 197, 94, 0.4)'
                 : '0 4px 20px rgba(239, 68, 68, 0.4)',
@@ -719,19 +700,19 @@ function OrderForm({
             type="button"
             onClick={() => setSide('buy')}
             className="relative z-10 flex-1 py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2"
-            style={{ color: isBuy ? '#fff' : luxuryColors.textSecondary }}
+            style={{ color: isBuy ? '#fff' : colors.textSecondary }}
           >
             <TrendingUp className="w-4 h-4" />
-            Buy / Long
+            {t('paperTradingPage.orderForm.buyLong')}
           </button>
           <button
             type="button"
             onClick={() => setSide('sell')}
             className="relative z-10 flex-1 py-3 text-xs font-bold transition-colors flex items-center justify-center gap-2"
-            style={{ color: !isBuy ? '#fff' : luxuryColors.textSecondary }}
+            style={{ color: !isBuy ? '#fff' : colors.textSecondary }}
           >
             <TrendingDown className="w-4 h-4" />
-            Sell / Short
+            {t('paperTradingPage.orderForm.sellShort')}
           </button>
         </div>
       </div>
@@ -739,29 +720,32 @@ function OrderForm({
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         {/* Order Type Tabs */}
         <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.08]">
-          {(['market', 'limit', 'stop-limit'] as const).map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setOrderType(type)}
-              className="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-300"
-              style={{
-                background: orderType === type
-                  ? 'linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(34, 197, 94, 0.2))'
-                  : 'transparent',
-                border: orderType === type ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent',
-                color: orderType === type ? luxuryColors.cyan : luxuryColors.textMuted,
-              }}
-            >
-              {type}
-            </button>
-          ))}
+          {(['market', 'limit', 'stop-limit'] as const).map((type) => {
+            const labelKey = type === 'stop-limit' ? 'stopLimit' : type;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setOrderType(type)}
+                className="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-300"
+                style={{
+                  background: orderType === type
+                    ? 'linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(34, 197, 94, 0.2))'
+                    : 'transparent',
+                  border: orderType === type ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent',
+                  color: orderType === type ? colors.cyan : colors.textMuted,
+                }}
+              >
+                {t(`paperTradingPage.orderForm.${labelKey}`)}
+              </button>
+            );
+          })}
         </div>
 
         {/* Price Inputs */}
         {orderType !== 'market' && (
           <InputField
-            label="Price"
+            label={t('paperTradingPage.orderForm.price')}
             value={price}
             onChange={setPrice}
             placeholder="0.00"
@@ -771,7 +755,7 @@ function OrderForm({
 
         {orderType === 'stop-limit' && (
           <InputField
-            label="Stop Price"
+            label={t('paperTradingPage.orderForm.stopPrice')}
             value={stopPrice}
             onChange={setStopPrice}
             placeholder="0.00"
@@ -781,7 +765,7 @@ function OrderForm({
 
         {/* Quantity */}
         <InputField
-          label="Quantity"
+          label={t('paperTradingPage.orderForm.quantity')}
           value={quantity}
           onChange={setQuantity}
           placeholder="0.0000"
@@ -790,8 +774,8 @@ function OrderForm({
 
         {/* Leverage - Premium styling */}
         <div>
-          <label className="block text-[10px] uppercase tracking-wider mb-2" style={{ color: luxuryColors.textMuted }}>
-            Leverage: <GradientText className="text-xs font-bold">{leverage}x</GradientText>
+          <label className="block text-[10px] uppercase tracking-wider mb-2" style={{ color: colors.textMuted }}>
+            {t('paperTradingPage.orderForm.leverage')} <GradientText className="text-xs font-bold">{leverage}x</GradientText>
           </label>
           <div className="flex flex-wrap gap-1.5">
             {[1, 2, 5, 10, 20, 50, 100].map((lev) => (
@@ -809,7 +793,7 @@ function OrderForm({
                   border: leverage === lev
                     ? '1px solid rgba(0, 217, 255, 0.3)'
                     : '1px solid rgba(255, 255, 255, 0.08)',
-                  color: leverage === lev ? luxuryColors.cyan : luxuryColors.textMuted,
+                  color: leverage === lev ? colors.cyan : colors.textMuted,
                 }}
               >
                 {lev}x
@@ -827,11 +811,11 @@ function OrderForm({
           }}
         >
           <div className="flex justify-between items-center">
-            <span style={{ color: luxuryColors.textMuted }}>Order Value</span>
+            <span style={{ color: colors.textMuted }}>{t('paperTradingPage.orderForm.orderValue')}</span>
             <MonoText className="font-semibold">{orderValue > 0 ? `$${orderValue.toFixed(2)}` : '--'}</MonoText>
           </div>
           <div className="flex justify-between items-center">
-            <span style={{ color: luxuryColors.textMuted }}>With Leverage ({leverage}x)</span>
+            <span style={{ color: colors.textMuted }}>{t('paperTradingPage.orderForm.withLeverage', { leverage })}</span>
             <GradientText className="font-bold">
               {orderValue > 0 ? `$${(orderValue * leverage).toFixed(2)}` : '--'}
             </GradientText>
@@ -845,7 +829,7 @@ function OrderForm({
           whileTap={{ scale: 0.98 }}
           className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-300 flex items-center justify-center gap-2"
           style={{
-            background: isBuy ? luxuryColors.gradientProfit : luxuryColors.gradientLoss,
+            background: isBuy ? colors.gradientProfit : colors.gradientLoss,
             boxShadow: isBuy
               ? '0 8px 32px rgba(34, 197, 94, 0.4)'
               : '0 8px 32px rgba(239, 68, 68, 0.4)',
@@ -854,12 +838,12 @@ function OrderForm({
           {isBuy ? (
             <>
               <TrendingUp className="w-5 h-5" />
-              Buy / Long {symbol.replace('USDT', '')}
+              {t('paperTradingPage.orderForm.buyLongSymbol', { symbol: symbol.replace('USDT', '') })}
             </>
           ) : (
             <>
               <TrendingDown className="w-5 h-5" />
-              Sell / Short {symbol.replace('USDT', '')}
+              {t('paperTradingPage.orderForm.sellShortSymbol', { symbol: symbol.replace('USDT', '') })}
             </>
           )}
         </motion.button>
@@ -876,11 +860,15 @@ function PositionsTable({
   trades,
   isLoading,
   onCloseTrade,
+  t,
 }: {
   trades: PaperTrade[];
   isLoading: boolean;
   onCloseTrade?: (id: string) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
+  const colors = useThemeColors();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -888,7 +876,7 @@ function PositionsTable({
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <RefreshCw className="w-6 h-6" style={{ color: luxuryColors.cyan }} />
+          <RefreshCw className="w-6 h-6" style={{ color: colors.cyan }} />
         </motion.div>
       </div>
     );
@@ -896,7 +884,7 @@ function PositionsTable({
 
   if (trades.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12" style={{ color: luxuryColors.textMuted }}>
+      <div className="flex flex-col items-center justify-center py-12" style={{ color: colors.textMuted }}>
         <div
           className="p-4 rounded-2xl mb-3"
           style={{
@@ -906,9 +894,9 @@ function PositionsTable({
         >
           <Activity className="w-8 h-8 opacity-50" />
         </div>
-        <p className="text-sm font-medium">No open positions</p>
-        <p className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-          Place an order to start trading
+        <p className="text-sm font-medium">{t('paperTradingPage.positions.noOpenPositions')}</p>
+        <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+          {t('paperTradingPage.positions.placeOrderToStart')}
         </p>
       </div>
     );
@@ -923,14 +911,14 @@ function PositionsTable({
       }}
     >
       <table className="w-full text-xs">
-        <thead className="sticky top-0 z-10" style={{ backgroundColor: luxuryColors.bgPrimary }}>
-          <tr style={{ color: luxuryColors.textMuted }}>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Symbol</th>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Side</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Entry</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Size</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">P&L</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Action</th>
+        <thead className="sticky top-0 z-10" style={{ backgroundColor: colors.bgPrimary }}>
+          <tr style={{ color: colors.textMuted }}>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.symbol')}</th>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.side')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.entry')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.size')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.pnl')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.action')}</th>
           </tr>
         </thead>
         <tbody>
@@ -948,7 +936,7 @@ function PositionsTable({
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white">{trade.symbol.replace('USDT', '')}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(0, 217, 255, 0.1)', color: luxuryColors.cyan }}>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(0, 217, 255, 0.1)', color: colors.cyan }}>
                       {trade.leverage}x
                     </span>
                   </div>
@@ -993,11 +981,11 @@ function PositionsTable({
                     style={{
                       background: 'rgba(239, 68, 68, 0.15)',
                       border: '1px solid rgba(239, 68, 68, 0.3)',
-                      color: luxuryColors.loss,
+                      color: colors.loss,
                     }}
                   >
                     <X className="w-3 h-3" />
-                    Close
+                    {t('paperTradingPage.positions.close')}
                   </motion.button>
                 </td>
               </motion.tr>
@@ -1016,10 +1004,14 @@ function PositionsTable({
 function TradeHistoryTable({
   trades,
   isLoading,
+  t,
 }: {
   trades: PaperTrade[];
   isLoading: boolean;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
+  const colors = useThemeColors();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -1027,7 +1019,7 @@ function TradeHistoryTable({
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <RefreshCw className="w-6 h-6" style={{ color: luxuryColors.cyan }} />
+          <RefreshCw className="w-6 h-6" style={{ color: colors.cyan }} />
         </motion.div>
       </div>
     );
@@ -1035,7 +1027,7 @@ function TradeHistoryTable({
 
   if (trades.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12" style={{ color: luxuryColors.textMuted }}>
+      <div className="flex flex-col items-center justify-center py-12" style={{ color: colors.textMuted }}>
         <div
           className="p-4 rounded-2xl mb-3"
           style={{
@@ -1045,9 +1037,9 @@ function TradeHistoryTable({
         >
           <Clock className="w-8 h-8 opacity-50" />
         </div>
-        <p className="text-sm font-medium">No trade history</p>
-        <p className="text-xs mt-1" style={{ color: luxuryColors.textMuted }}>
-          Closed trades will appear here
+        <p className="text-sm font-medium">{t('paperTradingPage.history.noTradeHistory')}</p>
+        <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+          {t('paperTradingPage.history.closedTradesAppear')}
         </p>
       </div>
     );
@@ -1062,14 +1054,14 @@ function TradeHistoryTable({
       }}
     >
       <table className="w-full text-xs">
-        <thead className="sticky top-0 z-10" style={{ backgroundColor: luxuryColors.bgPrimary }}>
-          <tr style={{ color: luxuryColors.textMuted }}>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Symbol</th>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">Side</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Entry</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Exit</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">P&L</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">Time</th>
+        <thead className="sticky top-0 z-10" style={{ backgroundColor: colors.bgPrimary }}>
+          <tr style={{ color: colors.textMuted }}>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.symbol')}</th>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.side')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.entry')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.exit')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.pnl')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.time')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1116,9 +1108,9 @@ function TradeHistoryTable({
                     </MonoText>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-right" style={{ color: luxuryColors.textSecondary }}>
+                <td className="py-3 px-4 text-right" style={{ color: colors.textSecondary }}>
                   <div className="flex items-center justify-end gap-1.5">
-                    <Clock className="w-3 h-3" style={{ color: luxuryColors.textMuted }} />
+                    <Clock className="w-3 h-3" style={{ color: colors.textMuted }} />
                     {formatDistanceToNow(closeTime, { addSuffix: true })}
                   </div>
                 </td>
@@ -1136,8 +1128,10 @@ function TradeHistoryTable({
 // ============================================================================
 
 export default function PaperTrading() {
+  const { t } = useTranslation('trading');
   const { toast } = useToast();
   const paperTrading = usePaperTrading();
+  const colors = useThemeColors();
   const [selectedSymbol, setSelectedSymbol] = useState('BTCUSDT');
   const availableSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT'];
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
@@ -1164,13 +1158,13 @@ export default function PaperTrading() {
 
     if (result) {
       toast({
-        title: 'Order Executed',
+        title: t('paperTradingPage.orderForm.orderExecuted'),
         description: `${order.side.toUpperCase()} ${order.quantity} ${order.symbol} @ $${result.entry_price.toFixed(2)}`,
       });
     } else {
       toast({
-        title: 'Order Failed',
-        description: paperTrading.error || 'Failed to place order. Please try again.',
+        title: t('paperTradingPage.orderForm.orderFailed'),
+        description: paperTrading.error || t('paperTradingPage.orderForm.failedToPlaceOrder'),
         variant: 'destructive',
       });
     }
@@ -1183,7 +1177,7 @@ export default function PaperTrading() {
   return (
     <motion.div
       className="h-full flex flex-col"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -1196,14 +1190,15 @@ export default function PaperTrading() {
         totalPnlPercent={paperTrading.portfolio.total_pnl_percentage}
         winRate={paperTrading.portfolio.win_rate}
         totalTrades={paperTrading.portfolio.total_trades}
+        t={t}
       />
 
       {/* Main Trading Grid */}
-      <div className="flex-1 grid grid-cols-12 gap-[1px] min-h-0 overflow-hidden" style={{ backgroundColor: luxuryColors.borderSubtle }}>
+      <div className="flex-1 grid grid-cols-12 gap-[1px] min-h-0 overflow-hidden" style={{ backgroundColor: colors.borderSubtle }}>
         {/* Left Column: Chart (60%) */}
         <div
           className="col-span-7 flex flex-col overflow-y-auto custom-scrollbar"
-          style={{ backgroundColor: luxuryColors.bgPrimary }}
+          style={{ backgroundColor: colors.bgPrimary }}
         >
           {/* Chart Header - Premium styling */}
           <motion.div
@@ -1221,7 +1216,7 @@ export default function PaperTrading() {
                     border: '1px solid rgba(0, 217, 255, 0.2)',
                   }}
                 >
-                  <LineChart className="w-4 h-4" style={{ color: luxuryColors.cyan }} />
+                  <LineChart className="w-4 h-4" style={{ color: colors.cyan }} />
                 </div>
                 {/* Symbol Selector Dropdown */}
                 <motion.button
@@ -1238,11 +1233,11 @@ export default function PaperTrading() {
                     <GradientText className="text-lg font-black">
                       {selectedSymbol.replace('USDT', '')}
                     </GradientText>
-                    <span className="text-xs font-medium" style={{ color: luxuryColors.textMuted }}>/USDT</span>
+                    <span className="text-xs font-medium" style={{ color: colors.textMuted }}>/USDT</span>
                   </div>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-200 ${showSymbolDropdown ? 'rotate-180' : ''}`}
-                    style={{ color: luxuryColors.textMuted }}
+                    style={{ color: colors.textMuted }}
                   />
                 </motion.button>
 
@@ -1263,7 +1258,7 @@ export default function PaperTrading() {
                         transition={{ duration: 0.15 }}
                         className="absolute top-full left-0 mt-2 z-50 min-w-[180px] rounded-xl overflow-hidden"
                         style={{
-                          backgroundColor: luxuryColors.bgPrimary,
+                          backgroundColor: colors.bgPrimary,
                           border: `1px solid rgba(255, 255, 255, 0.1)`,
                           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
                         }}
@@ -1278,12 +1273,12 @@ export default function PaperTrading() {
                             whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
                             className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors"
                             style={{
-                              color: selectedSymbol === symbol ? luxuryColors.cyan : luxuryColors.textSecondary,
+                              color: selectedSymbol === symbol ? colors.cyan : colors.textSecondary,
                               backgroundColor: selectedSymbol === symbol ? 'rgba(0, 217, 255, 0.1)' : 'transparent',
                             }}
                           >
                             <span className="font-bold">{symbol.replace('USDT', '')}</span>
-                            <span className="text-xs" style={{ color: luxuryColors.textMuted }}>/USDT</span>
+                            <span className="text-xs" style={{ color: colors.textMuted }}>/USDT</span>
                           </motion.button>
                         ))}
                       </motion.div>
@@ -1291,7 +1286,7 @@ export default function PaperTrading() {
                   )}
                 </AnimatePresence>
               </div>
-              <Badge variant="info">Perpetual</Badge>
+              <Badge variant="info">{t('paperTradingPage.chart.perpetual')}</Badge>
             </div>
 
             {/* Timeframe buttons - Premium styling */}
@@ -1308,7 +1303,7 @@ export default function PaperTrading() {
                       ? 'linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(34, 197, 94, 0.2))'
                       : 'transparent',
                     border: selectedTimeframe === tf ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent',
-                    color: selectedTimeframe === tf ? luxuryColors.cyan : luxuryColors.textMuted,
+                    color: selectedTimeframe === tf ? colors.cyan : colors.textMuted,
                   }}
                 >
                   {tf}
@@ -1338,8 +1333,8 @@ export default function PaperTrading() {
           >
             <div className="flex border-b border-white/[0.08]">
               {[
-                { id: 'positions', label: 'Positions', icon: Activity, count: paperTrading.openTrades.length },
-                { id: 'history', label: 'Trade History', icon: Clock },
+                { id: 'positions', label: t('paperTradingPage.tabs.positions'), icon: Activity, count: paperTrading.openTrades.length },
+                { id: 'history', label: t('paperTradingPage.tabs.tradeHistory'), icon: Clock },
               ].map((tab) => (
                 <motion.button
                   key={tab.id}
@@ -1348,7 +1343,7 @@ export default function PaperTrading() {
                   whileTap={{ scale: 0.98 }}
                   className="relative px-5 py-3 text-xs font-bold transition-all duration-300 flex items-center gap-2"
                   style={{
-                    color: activeTab === tab.id ? luxuryColors.cyan : luxuryColors.textMuted,
+                    color: activeTab === tab.id ? colors.cyan : colors.textMuted,
                   }}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -1358,7 +1353,7 @@ export default function PaperTrading() {
                       className="px-2 py-0.5 text-[10px] rounded-full font-bold"
                       style={{
                         background: activeTab === tab.id ? 'rgba(0, 217, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                        color: activeTab === tab.id ? luxuryColors.cyan : luxuryColors.textSecondary,
+                        color: activeTab === tab.id ? colors.cyan : colors.textSecondary,
                       }}
                     >
                       {tab.count}
@@ -1371,7 +1366,7 @@ export default function PaperTrading() {
                       layoutId="activeTabIndicator"
                       className="absolute bottom-0 left-0 right-0 h-[2px]"
                       style={{
-                        background: luxuryColors.gradientPremium,
+                        background: colors.gradientPremium,
                         boxShadow: '0 0 10px rgba(0, 217, 255, 0.5)',
                       }}
                     />
@@ -1399,6 +1394,7 @@ export default function PaperTrading() {
                       trades={paperTrading.openTrades}
                       isLoading={paperTrading.isLoading}
                       onCloseTrade={paperTrading.closeTrade}
+                      t={t}
                     />
                   </motion.div>
                 ) : (
@@ -1417,6 +1413,7 @@ export default function PaperTrading() {
                     <TradeHistoryTable
                       trades={paperTrading.closedTrades}
                       isLoading={paperTrading.isLoading}
+                      t={t}
                     />
                   </motion.div>
                 )}
@@ -1428,20 +1425,21 @@ export default function PaperTrading() {
         {/* Right Column: Order Book + Form (40%) */}
         <div
           className="col-span-5 flex flex-col overflow-y-auto"
-          style={{ backgroundColor: luxuryColors.bgPrimary }}
+          style={{ backgroundColor: colors.bgPrimary }}
         >
-          <div className="grid grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: luxuryColors.borderSubtle }}>
+          <div className="grid grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
-            <div style={{ backgroundColor: luxuryColors.bgPrimary }}>
-              <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} />
+            <div style={{ backgroundColor: colors.bgPrimary }}>
+              <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} t={t} />
             </div>
 
             {/* Order Form */}
-            <div style={{ backgroundColor: luxuryColors.bgPrimary }}>
+            <div style={{ backgroundColor: colors.bgPrimary }}>
               <OrderForm
                 symbol={selectedSymbol}
                 onSubmit={handleOrderSubmit}
                 selectedPrice={selectedPrice}
+                t={t}
               />
 
               {/* Risk Warning - Premium styling */}
@@ -1464,14 +1462,14 @@ export default function PaperTrading() {
                         border: '1px solid rgba(245, 158, 11, 0.3)',
                       }}
                     >
-                      <Shield className="w-4 h-4" style={{ color: luxuryColors.warning }} />
+                      <Shield className="w-4 h-4" style={{ color: colors.warning }} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold" style={{ color: luxuryColors.warning }}>
-                        Paper Trading Mode
+                      <p className="text-xs font-bold" style={{ color: colors.warning }}>
+                        {t('paperTradingPage.warning.title')}
                       </p>
-                      <p className="text-[10px] mt-1.5 leading-relaxed" style={{ color: luxuryColors.textSecondary }}>
-                        This is a simulation environment. No real funds are at risk. Use this mode to practice strategies and test your skills.
+                      <p className="text-[10px] mt-1.5 leading-relaxed" style={{ color: colors.textSecondary }}>
+                        {t('paperTradingPage.warning.description')}
                       </p>
                     </div>
                   </div>

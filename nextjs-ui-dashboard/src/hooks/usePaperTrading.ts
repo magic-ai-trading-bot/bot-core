@@ -351,7 +351,7 @@ export const usePaperTrading = () => {
         variant: "destructive",
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [API_BASE, fetchWithRetry]); // toast is stable, don't include in deps
 
   // @spec:FR-PAPER-003 - Fetch Pending Stop-Limit Orders
@@ -853,7 +853,7 @@ export const usePaperTrading = () => {
 
     // Note: AI signals are now handled via WebSocket in real-time
     // Manual refresh available via fetchAISignals function
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Set up WebSocket connection for real-time updates

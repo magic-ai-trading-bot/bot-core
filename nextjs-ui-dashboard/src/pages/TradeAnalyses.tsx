@@ -14,6 +14,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { useThemeColors, type ThemeColors } from "@/hooks/useThemeColors";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -35,7 +37,6 @@ import {
 
 // Luxury OLED Design System
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -187,12 +188,12 @@ const formatDate = (dateValue: string | BsonDate): string => {
 };
 
 // Helper to render analysis detail (handles both string and object format)
-const renderAnalysisDetail = (detail: string | AnalysisDetail | undefined): React.ReactNode => {
+const renderAnalysisDetail = (detail: string | AnalysisDetail | undefined, colors: ThemeColors): React.ReactNode => {
   if (!detail) return null;
 
   // If it's a string, render directly
   if (typeof detail === 'string') {
-    return <p style={{ color: luxuryColors.text.secondary }} className="text-sm">{detail}</p>;
+    return <p style={{ color: colors.textSecondary }} className="text-sm">{detail}</p>;
   }
 
   // If it's an object, render structured content
@@ -204,17 +205,17 @@ const renderAnalysisDetail = (detail: string | AnalysisDetail | undefined): Reac
             {detail.quality}
           </Badge>
           {detail.signals_valid !== undefined && (
-            <span className="text-xs" style={{ color: luxuryColors.text.muted }}>
+            <span className="text-xs" style={{ color: colors.textMuted }}>
               Signals: {detail.signals_valid ? '✓ Valid' : '✗ Invalid'}
             </span>
           )}
         </div>
       )}
       {detail.reasoning && (
-        <p style={{ color: luxuryColors.text.secondary }} className="text-sm">{detail.reasoning}</p>
+        <p style={{ color: colors.textSecondary }} className="text-sm">{detail.reasoning}</p>
       )}
       {detail.better_exit_point && (
-        <p className="text-sm mt-1" style={{ color: luxuryColors.status.warning }}>
+        <p className="text-sm mt-1" style={{ color: colors.amber }}>
           <strong>Better exit:</strong> {detail.better_exit_point}
         </p>
       )}
@@ -223,6 +224,8 @@ const renderAnalysisDetail = (detail: string | AnalysisDetail | undefined): Reac
 };
 
 export default function TradeAnalyses() {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   // State
   const [tradeAnalyses, setTradeAnalyses] = useState<TradeAnalysis[]>([]);
   const [configSuggestions, setConfigSuggestions] = useState<ConfigSuggestion[]>([]);
@@ -235,19 +238,15 @@ export default function TradeAnalyses() {
 
   // Fetch trade analyses
   const fetchTradeAnalyses = useCallback(async (onlyLosing: boolean = true) => {
-    try {
-      const response = await fetch(
-        `${API_BASE}/api/paper-trading/trade-analyses?only_losing=${onlyLosing}&limit=50`
-      );
-      const result: ApiResponse<TradeAnalysis[]> = await response.json();
+    const response = await fetch(
+      `${API_BASE}/api/paper-trading/trade-analyses?only_losing=${onlyLosing}&limit=50`
+    );
+    const result: ApiResponse<TradeAnalysis[]> = await response.json();
 
-      if (result.success && result.data) {
-        setTradeAnalyses(result.data);
-      } else {
-        throw new Error(result.error || "Failed to fetch trade analyses");
-      }
-    } catch (err) {
-      throw err;
+    if (result.success && result.data) {
+      setTradeAnalyses(result.data);
+    } else {
+      throw new Error(result.error || "Failed to fetch trade analyses");
     }
   }, []);
 
@@ -362,8 +361,8 @@ export default function TradeAnalyses() {
           <div>
             <SectionHeader
               icon={Brain}
-              title="GPT-4 Trade Analyses"
-              subtitle="AI-powered analysis of your trades to help you understand what went wrong and improve your strategy."
+              title={t('tradeAnalyses.title')}
+              subtitle={t('tradeAnalyses.subtitle')}
             />
           </div>
           <PremiumButton
@@ -373,7 +372,7 @@ export default function TradeAnalyses() {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            Refresh
+            {t('tradeAnalyses.refresh')}
           </PremiumButton>
         </motion.div>
 
@@ -381,13 +380,13 @@ export default function TradeAnalyses() {
         {error && (
           <motion.div variants={itemVariants}>
             <GlassCard className="mb-6 p-4 flex items-start gap-3" style={{
-              backgroundColor: `${luxuryColors.status.error}15`,
-              borderColor: luxuryColors.status.error
+              backgroundColor: `${colors.loss}15`,
+              borderColor: colors.loss
             }}>
-              <AlertCircle className="h-5 w-5 flex-shrink-0" style={{ color: luxuryColors.status.error }} />
+              <AlertCircle className="h-5 w-5 flex-shrink-0" style={{ color: colors.loss }} />
               <div>
-                <h4 className="font-medium" style={{ color: luxuryColors.status.error }}>Error</h4>
-                <p className="text-sm mt-1" style={{ color: luxuryColors.text.primary }}>{error}</p>
+                <h4 className="font-medium" style={{ color: colors.loss }}>Error</h4>
+                <p className="text-sm mt-1" style={{ color: colors.textPrimary }}>{error}</p>
               </div>
             </GlassCard>
           </motion.div>
@@ -400,41 +399,41 @@ export default function TradeAnalyses() {
         >
           <StatCard
             icon={BarChart2}
-            iconColor={luxuryColors.accent.cyan}
-            label="Total Analyses"
+            iconColor={colors.cyan}
+            label={t('tradeAnalyses.stats.totalAnalyses')}
             value={stats.totalAnalyses.toString()}
           />
 
           <StatCard
             icon={XCircle}
-            iconColor={luxuryColors.status.error}
-            label="Losing Trades"
+            iconColor={colors.loss}
+            label={t('tradeAnalyses.stats.losingTrades')}
             value={stats.losingTrades.toString()}
-            valueColor={luxuryColors.status.error}
+            valueColor={colors.loss}
           />
 
           <StatCard
             icon={CheckCircle}
-            iconColor={luxuryColors.status.success}
-            label="Winning Trades"
+            iconColor={colors.emerald}
+            label={t('tradeAnalyses.stats.winningTrades')}
             value={stats.winningTrades.toString()}
-            valueColor={luxuryColors.status.success}
+            valueColor={colors.emerald}
           />
 
           <StatCard
             icon={DollarSign}
-            iconColor={stats.totalPnL >= 0 ? luxuryColors.status.success : luxuryColors.status.error}
-            label="Total P&L"
+            iconColor={stats.totalPnL >= 0 ? colors.emerald : colors.loss}
+            label={t('tradeAnalyses.stats.totalPnl')}
             value={formatCurrency(stats.totalPnL)}
-            valueColor={stats.totalPnL >= 0 ? luxuryColors.status.success : luxuryColors.status.error}
+            valueColor={stats.totalPnL >= 0 ? colors.emerald : colors.loss}
           />
 
           <StatCard
             icon={DollarSign}
-            iconColor={luxuryColors.accent.gold}
-            label="Avg P&L / Trade"
+            iconColor={colors.gold}
+            label={t('tradeAnalyses.stats.avgPnl')}
             value={formatCurrency(stats.averagePnL)}
-            valueColor={stats.averagePnL >= 0 ? luxuryColors.status.success : luxuryColors.status.error}
+            valueColor={stats.averagePnL >= 0 ? colors.emerald : colors.loss}
           />
         </motion.div>
 
@@ -442,25 +441,25 @@ export default function TradeAnalyses() {
         {latestSuggestion && latestSuggestion.suggestions?.analysis && (
           <motion.div variants={itemVariants}>
             <GlassCard className="mb-6 p-4" style={{
-              borderColor: luxuryColors.accent.purple,
-              background: `linear-gradient(135deg, ${luxuryColors.accent.purple}10 0%, transparent 100%)`
+              borderColor: colors.purple,
+              background: `linear-gradient(135deg, ${colors.purple}10 0%, transparent 100%)`
             }}>
               <div className="flex items-start gap-3">
-                <GlowIcon icon={Lightbulb} color={luxuryColors.accent.purple} size="sm" />
+                <GlowIcon icon={Lightbulb} color={colors.purple} size="sm" />
                 <div>
-                  <h4 className="font-medium mb-2" style={{ color: luxuryColors.accent.purple }}>
-                    Latest GPT-4 Config Suggestion
+                  <h4 className="font-medium mb-2" style={{ color: colors.purple }}>
+                    {t('tradeAnalyses.suggestion.latest')}
                   </h4>
-                  <div style={{ color: luxuryColors.text.primary }}>
+                  <div style={{ color: colors.textPrimary }}>
                     <p className="mb-2">
-                      <strong>Root Cause:</strong> {latestSuggestion.suggestions.analysis.root_cause}
+                      <strong>{t('tradeAnalyses.suggestion.rootCause')}:</strong> {latestSuggestion.suggestions.analysis.root_cause}
                     </p>
                     {latestSuggestion.suggestions.summary && (
                       <p>{latestSuggestion.suggestions.summary}</p>
                     )}
                     {latestSuggestion.applied_changes && latestSuggestion.applied_changes.length > 0 && (
                       <div className="mt-2">
-                        <strong>Auto-applied changes:</strong>
+                        <strong>{t('tradeAnalyses.suggestion.applied')}:</strong>
                         <ul className="list-disc ml-5 mt-1">
                           {latestSuggestion.applied_changes.map((change, idx) => (
                             <li key={idx}>{change}</li>
@@ -479,17 +478,17 @@ export default function TradeAnalyses() {
         <motion.div variants={itemVariants}>
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
             <TabsList style={{
-              backgroundColor: luxuryColors.glass.background,
-              backdropFilter: luxuryColors.glass.blur,
-              border: `1px solid ${luxuryColors.glass.border}`
+              backgroundColor: colors.glassBackground,
+              backdropFilter: colors.glassBlur,
+              border: `1px solid ${colors.glassBorder}`
             }}>
               <TabsTrigger value="analyses" className="flex items-center gap-2">
                 <Brain className="h-4 w-4" />
-                Trade Analyses
+                {t('tradeAnalyses.tabs.analyses')}
               </TabsTrigger>
               <TabsTrigger value="suggestions" className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" />
-                Config Suggestions
+                {t('tradeAnalyses.tabs.suggestions')}
               </TabsTrigger>
             </TabsList>
 
@@ -498,8 +497,8 @@ export default function TradeAnalyses() {
               <GlassCard>
                 <div className="p-6 pb-2">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: luxuryColors.text.primary }}>
-                      <GlowIcon icon={History} color={luxuryColors.accent.cyan} />
+                    <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.textPrimary }}>
+                      <GlowIcon icon={History} color={colors.cyan} />
                       GPT-4 Trade Analyses
                     </h3>
                     <PremiumButton
@@ -507,7 +506,7 @@ export default function TradeAnalyses() {
                       size="sm"
                       onClick={handleToggleFilter}
                     >
-                      {showOnlyLosing ? "Showing: Losing Only" : "Showing: All Trades"}
+                      {showOnlyLosing ? t('tradeAnalyses.filter.losingOnly') : t('tradeAnalyses.filter.allTrades')}
                     </PremiumButton>
                   </div>
                 </div>
@@ -517,8 +516,8 @@ export default function TradeAnalyses() {
                   ) : tradeAnalyses.length === 0 ? (
                     <EmptyState
                       icon={Brain}
-                      title="No trade analyses yet"
-                      description="Analyses are generated automatically for closed trades by the Python AI service."
+                      title={t('tradeAnalyses.empty.noAnalyses')}
+                      description={t('tradeAnalyses.empty.analysesDesc')}
                     />
                   ) : (
                   <Accordion type="single" collapsible className="space-y-2">
@@ -527,9 +526,9 @@ export default function TradeAnalyses() {
                         key={analysis.trade_id || index}
                         value={analysis.trade_id || String(index)}
                         style={{
-                          backgroundColor: luxuryColors.glass.background,
-                          backdropFilter: luxuryColors.glass.blur,
-                          border: `1px solid ${luxuryColors.glass.border}`,
+                          backgroundColor: colors.glassBackground,
+                          backdropFilter: colors.glassBlur,
+                          border: `1px solid ${colors.glassBorder}`,
                           borderRadius: '12px',
                         }}
                         className="px-4"
@@ -538,12 +537,12 @@ export default function TradeAnalyses() {
                           <div className="flex items-center justify-between w-full pr-4">
                             <div className="flex items-center gap-4">
                               {analysis.is_winning ? (
-                                <GlowIcon icon={TrendingUp} color={luxuryColors.status.success} />
+                                <GlowIcon icon={TrendingUp} color={colors.emerald} />
                               ) : (
-                                <GlowIcon icon={TrendingDown} color={luxuryColors.status.error} />
+                                <GlowIcon icon={TrendingDown} color={colors.loss} />
                               )}
                               <div className="text-left">
-                                <div className="font-medium" style={{ color: luxuryColors.text.primary }}>
+                                <div className="font-medium" style={{ color: colors.textPrimary }}>
                                   {analysis.symbol || "Unknown"}{" "}
                                   <Badge
                                     variant={analysis.side === "Long" ? "success" : "error"}
@@ -552,14 +551,14 @@ export default function TradeAnalyses() {
                                     {analysis.side || "N/A"}
                                   </Badge>
                                 </div>
-                                <div className="text-sm" style={{ color: luxuryColors.text.secondary }}>
+                                <div className="text-sm" style={{ color: colors.textSecondary }}>
                                   {analysis.close_reason || "Closed"} • {formatDate(analysis.created_at)}
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
                               <div className="text-right" style={{
-                                color: analysis.pnl_usdt >= 0 ? luxuryColors.status.success : luxuryColors.status.error
+                                color: analysis.pnl_usdt >= 0 ? colors.emerald : colors.loss
                               }}>
                                 <GradientText className="font-bold text-xl">
                                   {formatCurrency(analysis.pnl_usdt)}
@@ -574,26 +573,26 @@ export default function TradeAnalyses() {
                             {/* Trade Details */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                               <div>
-                                <span style={{ color: luxuryColors.text.secondary }}>Entry Price:</span>
-                                <span className="ml-2" style={{ color: luxuryColors.text.primary }}>
+                                <span style={{ color: colors.textSecondary }}>{t('tradeAnalyses.details.entry')}:</span>
+                                <span className="ml-2" style={{ color: colors.textPrimary }}>
                                   ${analysis.entry_price?.toFixed(2) || "N/A"}
                                 </span>
                               </div>
                               <div>
-                                <span style={{ color: luxuryColors.text.secondary }}>Exit Price:</span>
-                                <span className="ml-2" style={{ color: luxuryColors.text.primary }}>
+                                <span style={{ color: colors.textSecondary }}>{t('tradeAnalyses.details.exit')}:</span>
+                                <span className="ml-2" style={{ color: colors.textPrimary }}>
                                   ${analysis.exit_price?.toFixed(2) || "N/A"}
                                 </span>
                               </div>
                               <div>
-                                <span style={{ color: luxuryColors.text.secondary }}>Trade ID:</span>
-                                <span className="ml-2 font-mono text-xs" style={{ color: luxuryColors.text.muted }}>
+                                <span style={{ color: colors.textSecondary }}>{t('tradeAnalyses.details.tradeId')}:</span>
+                                <span className="ml-2 font-mono text-xs" style={{ color: colors.textMuted }}>
                                   {analysis.trade_id}
                                 </span>
                               </div>
                               <div>
-                                <span style={{ color: luxuryColors.text.secondary }}>Close Reason:</span>
-                                <span className="ml-2" style={{ color: luxuryColors.text.primary }}>
+                                <span style={{ color: colors.textSecondary }}>{t('tradeAnalyses.details.closeReason')}:</span>
+                                <span className="ml-2" style={{ color: colors.textPrimary }}>
                                   {analysis.close_reason || "Manual"}
                                 </span>
                               </div>
@@ -606,14 +605,14 @@ export default function TradeAnalyses() {
                               {/* New format: trade_verdict + summary OR old format: overall_assessment */}
                               {(analysis.analysis?.trade_verdict || analysis.analysis?.summary || analysis.analysis?.overall_assessment) && (
                                 <GlassCard className="p-4" style={{
-                                  borderColor: luxuryColors.accent.purple,
-                                  background: `linear-gradient(135deg, ${luxuryColors.accent.purple}10 0%, transparent 100%)`
+                                  borderColor: colors.purple,
+                                  background: `linear-gradient(135deg, ${colors.purple}10 0%, transparent 100%)`
                                 }}>
-                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: luxuryColors.accent.purple }}>
-                                    <GlowIcon icon={Brain} color={luxuryColors.accent.purple} size="sm" />
+                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: colors.purple }}>
+                                    <GlowIcon icon={Brain} color={colors.purple} size="sm" />
                                     {analysis.analysis?.trade_verdict || 'Overall Assessment'}
                                   </h4>
-                                  <p style={{ color: luxuryColors.text.primary }}>
+                                  <p style={{ color: colors.textPrimary }}>
                                     {analysis.analysis?.summary || analysis.analysis?.overall_assessment}
                                   </p>
                                 </GlassCard>
@@ -621,14 +620,14 @@ export default function TradeAnalyses() {
 
                               {analysis.analysis?.what_went_wrong && (
                                 <GlassCard className="p-4" style={{
-                                  borderColor: luxuryColors.status.error,
-                                  background: `linear-gradient(135deg, ${luxuryColors.status.error}15 0%, transparent 100%)`
+                                  borderColor: colors.loss,
+                                  background: `linear-gradient(135deg, ${colors.loss}15 0%, transparent 100%)`
                                 }}>
-                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: luxuryColors.status.error }}>
-                                    <GlowIcon icon={AlertCircle} color={luxuryColors.status.error} size="sm" />
-                                    What Went Wrong
+                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: colors.loss }}>
+                                    <GlowIcon icon={AlertCircle} color={colors.loss} size="sm" />
+                                    {t('tradeAnalyses.analysis.whatWentWrong')}
                                   </h4>
-                                  <p style={{ color: luxuryColors.text.primary }}>{analysis.analysis.what_went_wrong}</p>
+                                  <p style={{ color: colors.textPrimary }}>{analysis.analysis.what_went_wrong}</p>
                                 </GlassCard>
                               )}
 
@@ -636,14 +635,14 @@ export default function TradeAnalyses() {
                               {((analysis.analysis?.key_factors && analysis.analysis.key_factors.length > 0) ||
                                 (analysis.analysis?.key_mistakes && analysis.analysis.key_mistakes.length > 0)) && (
                                 <GlassCard className="p-4" style={{
-                                  borderColor: luxuryColors.status.warning,
-                                  background: `linear-gradient(135deg, ${luxuryColors.status.warning}15 0%, transparent 100%)`
+                                  borderColor: colors.amber,
+                                  background: `linear-gradient(135deg, ${colors.amber}15 0%, transparent 100%)`
                                 }}>
-                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: luxuryColors.status.warning }}>
-                                    <GlowIcon icon={Target} color={luxuryColors.status.warning} size="sm" />
-                                    {analysis.analysis?.key_factors ? 'Key Factors' : 'Key Mistakes'}
+                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: colors.amber }}>
+                                    <GlowIcon icon={Target} color={colors.amber} size="sm" />
+                                    {analysis.analysis?.key_factors ? t('tradeAnalyses.analysis.keyFactors') : t('tradeAnalyses.analysis.keyFactors')}
                                   </h4>
-                                  <ul className="list-disc ml-5 space-y-1" style={{ color: luxuryColors.text.primary }}>
+                                  <ul className="list-disc ml-5 space-y-1" style={{ color: colors.textPrimary }}>
                                     {(analysis.analysis?.key_factors || analysis.analysis?.key_mistakes || []).map((item, i) => (
                                       <li key={i}>{item}</li>
                                     ))}
@@ -653,14 +652,14 @@ export default function TradeAnalyses() {
 
                               {analysis.analysis?.lessons_learned && analysis.analysis.lessons_learned.length > 0 && (
                                 <GlassCard className="p-4" style={{
-                                  borderColor: luxuryColors.status.success,
-                                  background: `linear-gradient(135deg, ${luxuryColors.status.success}15 0%, transparent 100%)`
+                                  borderColor: colors.emerald,
+                                  background: `linear-gradient(135deg, ${colors.emerald}15 0%, transparent 100%)`
                                 }}>
-                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: luxuryColors.status.success }}>
-                                    <GlowIcon icon={Lightbulb} color={luxuryColors.status.success} size="sm" />
-                                    Lessons Learned
+                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: colors.emerald }}>
+                                    <GlowIcon icon={Lightbulb} color={colors.emerald} size="sm" />
+                                    {t('tradeAnalyses.analysis.lessons')}
                                   </h4>
-                                  <ul className="list-disc ml-5 space-y-1" style={{ color: luxuryColors.text.primary }}>
+                                  <ul className="list-disc ml-5 space-y-1" style={{ color: colors.textPrimary }}>
                                     {analysis.analysis.lessons_learned.map((lesson, i) => (
                                       <li key={i}>{lesson}</li>
                                     ))}
@@ -672,16 +671,16 @@ export default function TradeAnalyses() {
                               {(analysis.analysis?.recommendations ||
                                 (analysis.analysis?.suggested_improvements && analysis.analysis.suggested_improvements.length > 0)) && (
                                 <GlassCard className="p-4" style={{
-                                  borderColor: luxuryColors.accent.cyan,
-                                  background: `linear-gradient(135deg, ${luxuryColors.accent.cyan}15 0%, transparent 100%)`
+                                  borderColor: colors.cyan,
+                                  background: `linear-gradient(135deg, ${colors.cyan}15 0%, transparent 100%)`
                                 }}>
-                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: luxuryColors.accent.cyan }}>
-                                    <GlowIcon icon={TrendingUp} color={luxuryColors.accent.cyan} size="sm" />
-                                    Recommendations
+                                  <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: colors.cyan }}>
+                                    <GlowIcon icon={TrendingUp} color={colors.cyan} size="sm" />
+                                    {t('tradeAnalyses.analysis.recommendations')}
                                   </h4>
                                   {/* Old format */}
                                   {analysis.analysis?.suggested_improvements && (
-                                    <ul className="list-disc ml-5 space-y-1" style={{ color: luxuryColors.text.primary }}>
+                                    <ul className="list-disc ml-5 space-y-1" style={{ color: colors.textPrimary }}>
                                       {analysis.analysis.suggested_improvements.map((improvement, i) => (
                                         <li key={i}>{improvement}</li>
                                       ))}
@@ -692,10 +691,10 @@ export default function TradeAnalyses() {
                                     <div className="space-y-3">
                                       {analysis.analysis.recommendations.strategy_improvements && (
                                         <div>
-                                          <h5 className="text-sm font-medium" style={{ color: luxuryColors.text.secondary }}>
+                                          <h5 className="text-sm font-medium" style={{ color: colors.textSecondary }}>
                                             Strategy Improvements:
                                           </h5>
-                                          <ul className="list-disc ml-5 space-y-1 text-sm" style={{ color: luxuryColors.text.primary }}>
+                                          <ul className="list-disc ml-5 space-y-1 text-sm" style={{ color: colors.textPrimary }}>
                                             {analysis.analysis.recommendations.strategy_improvements.map((item, i) => (
                                               <li key={i}>{item}</li>
                                             ))}
@@ -704,20 +703,20 @@ export default function TradeAnalyses() {
                                       )}
                                       {analysis.analysis.recommendations.risk_management && (
                                         <div>
-                                          <h5 className="text-sm font-medium" style={{ color: luxuryColors.text.secondary }}>
+                                          <h5 className="text-sm font-medium" style={{ color: colors.textSecondary }}>
                                             Risk Management:
                                           </h5>
-                                          <p className="text-sm ml-2" style={{ color: luxuryColors.text.primary }}>
+                                          <p className="text-sm ml-2" style={{ color: colors.textPrimary }}>
                                             {analysis.analysis.recommendations.risk_management}
                                           </p>
                                         </div>
                                       )}
                                       {analysis.analysis.recommendations.config_changes && (
                                         <div>
-                                          <h5 className="text-sm font-medium" style={{ color: luxuryColors.text.secondary }}>
+                                          <h5 className="text-sm font-medium" style={{ color: colors.textSecondary }}>
                                             Config Changes:
                                           </h5>
-                                          <ul className="list-disc ml-5 space-y-1 text-sm" style={{ color: luxuryColors.text.primary }}>
+                                          <ul className="list-disc ml-5 space-y-1 text-sm" style={{ color: colors.textPrimary }}>
                                             {Object.entries(analysis.analysis.recommendations.config_changes).map(([key, value], i) => (
                                               <li key={i}><strong>{key}:</strong> {value}</li>
                                             ))}
@@ -733,28 +732,28 @@ export default function TradeAnalyses() {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {analysis.analysis?.entry_analysis && (
                                   <GlassCard className="p-4">
-                                    <h4 className="font-medium mb-2" style={{ color: luxuryColors.text.primary }}>
+                                    <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>
                                       Entry Analysis
                                     </h4>
-                                    {renderAnalysisDetail(analysis.analysis.entry_analysis)}
+                                    {renderAnalysisDetail(analysis.analysis.entry_analysis, colors)}
                                   </GlassCard>
                                 )}
                                 {analysis.analysis?.exit_analysis && (
                                   <GlassCard className="p-4">
-                                    <h4 className="font-medium mb-2" style={{ color: luxuryColors.text.primary }}>
+                                    <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>
                                       Exit Analysis
                                     </h4>
-                                    {renderAnalysisDetail(analysis.analysis.exit_analysis)}
+                                    {renderAnalysisDetail(analysis.analysis.exit_analysis, colors)}
                                   </GlassCard>
                                 )}
                               </div>
 
                               {analysis.analysis?.risk_management_review && (
                                 <GlassCard className="p-4">
-                                  <h4 className="font-medium mb-2" style={{ color: luxuryColors.text.primary }}>
+                                  <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>
                                     Risk Management Review
                                   </h4>
-                                  <p className="text-sm" style={{ color: luxuryColors.text.secondary }}>
+                                  <p className="text-sm" style={{ color: colors.textSecondary }}>
                                     {analysis.analysis.risk_management_review}
                                   </p>
                                 </GlassCard>
@@ -762,10 +761,10 @@ export default function TradeAnalyses() {
 
                               {analysis.analysis?.market_context && (
                                 <GlassCard className="p-4">
-                                  <h4 className="font-medium mb-2" style={{ color: luxuryColors.text.primary }}>
+                                  <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>
                                     Market Context
                                   </h4>
-                                  <p className="text-sm" style={{ color: luxuryColors.text.secondary }}>
+                                  <p className="text-sm" style={{ color: colors.textSecondary }}>
                                     {analysis.analysis.market_context}
                                   </p>
                                 </GlassCard>
@@ -785,8 +784,8 @@ export default function TradeAnalyses() {
           <TabsContent value="suggestions">
             <GlassCard>
               <div className="p-6 pb-2">
-                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: luxuryColors.text.primary }}>
-                  <GlowIcon icon={Settings2} color={luxuryColors.accent.purple} />
+                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.textPrimary }}>
+                  <GlowIcon icon={Settings2} color={colors.purple} />
                   GPT-4 Config Improvement Suggestions
                 </h3>
               </div>
@@ -796,8 +795,8 @@ export default function TradeAnalyses() {
                 ) : configSuggestions.length === 0 ? (
                   <EmptyState
                     icon={Settings2}
-                    title="No config suggestions yet"
-                    description="GPT-4 analyzes your trading performance and suggests config improvements periodically."
+                    title={t('tradeAnalyses.empty.noSuggestions')}
+                    description={t('tradeAnalyses.empty.suggestionsDesc')}
                   />
                 ) : (
                   <div className="space-y-4">
@@ -806,8 +805,8 @@ export default function TradeAnalyses() {
                         <div className="p-4 pb-2">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="text-lg font-semibold flex items-center gap-2" style={{ color: luxuryColors.text.primary }}>
-                                <GlowIcon icon={Clock} color={luxuryColors.text.secondary} size="sm" />
+                              <h4 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.textPrimary }}>
+                                <GlowIcon icon={Clock} color={colors.textSecondary} size="sm" />
                                 {formatDate(suggestion.created_at)}
                               </h4>
                               <Badge
@@ -819,8 +818,8 @@ export default function TradeAnalyses() {
                             </div>
                             {suggestion.suggestions?.confidence && (
                               <Badge variant="info" style={{
-                                borderColor: luxuryColors.accent.purple,
-                                color: luxuryColors.accent.purple
+                                borderColor: colors.purple,
+                                color: colors.purple
                               }}>
                                 Confidence: {(suggestion.suggestions.confidence * 100).toFixed(0)}%
                               </Badge>
@@ -833,38 +832,38 @@ export default function TradeAnalyses() {
                             <GlassCard className="p-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
-                                  <span style={{ color: luxuryColors.text.secondary }}>Total Trades:</span>
-                                  <span className="ml-2" style={{ color: luxuryColors.text.primary }}>
+                                  <span style={{ color: colors.textSecondary }}>Total Trades:</span>
+                                  <span className="ml-2" style={{ color: colors.textPrimary }}>
                                     {suggestion.trade_stats.total_trades}
                                   </span>
                                 </div>
                                 <div>
-                                  <span style={{ color: luxuryColors.text.secondary }}>Win Rate:</span>
+                                  <span style={{ color: colors.textSecondary }}>Win Rate:</span>
                                   <span className="ml-2" style={{
                                     color: suggestion.trade_stats.win_rate >= 50
-                                      ? luxuryColors.status.success
-                                      : luxuryColors.status.error
+                                      ? colors.emerald
+                                      : colors.loss
                                   }}>
                                     {suggestion.trade_stats.win_rate.toFixed(1)}%
                                   </span>
                                 </div>
                                 <div>
-                                  <span style={{ color: luxuryColors.text.secondary }}>Total P&L:</span>
+                                  <span style={{ color: colors.textSecondary }}>Total P&L:</span>
                                   <span className="ml-2" style={{
                                     color: suggestion.trade_stats.total_pnl >= 0
-                                      ? luxuryColors.status.success
-                                      : luxuryColors.status.error
+                                      ? colors.emerald
+                                      : colors.loss
                                   }}>
                                     {formatCurrency(suggestion.trade_stats.total_pnl)}
                                   </span>
                                 </div>
                                 {suggestion.trade_stats.average_pnl !== undefined && (
                                   <div>
-                                    <span style={{ color: luxuryColors.text.secondary }}>Avg P&L:</span>
+                                    <span style={{ color: colors.textSecondary }}>Avg P&L:</span>
                                     <span className="ml-2" style={{
                                       color: suggestion.trade_stats.average_pnl >= 0
-                                        ? luxuryColors.status.success
-                                        : luxuryColors.status.error
+                                        ? colors.emerald
+                                        : colors.loss
                                     }}>
                                       {formatCurrency(suggestion.trade_stats.average_pnl)}
                                     </span>
@@ -877,22 +876,22 @@ export default function TradeAnalyses() {
                           {/* Analysis */}
                           {suggestion.suggestions?.analysis && (
                             <GlassCard className="p-4" style={{
-                              borderColor: luxuryColors.accent.purple,
-                              background: `linear-gradient(135deg, ${luxuryColors.accent.purple}10 0%, transparent 100%)`
+                              borderColor: colors.purple,
+                              background: `linear-gradient(135deg, ${colors.purple}10 0%, transparent 100%)`
                             }}>
-                              <h4 className="font-medium mb-2" style={{ color: luxuryColors.accent.purple }}>
+                              <h4 className="font-medium mb-2" style={{ color: colors.purple }}>
                                 Root Cause Analysis
                               </h4>
-                              <p style={{ color: luxuryColors.text.primary }}>
+                              <p style={{ color: colors.textPrimary }}>
                                 {suggestion.suggestions.analysis.root_cause}
                               </p>
                               {suggestion.suggestions.analysis.market_condition && (
-                                <p className="text-sm mt-2" style={{ color: luxuryColors.text.secondary }}>
+                                <p className="text-sm mt-2" style={{ color: colors.textSecondary }}>
                                   Market Condition: {suggestion.suggestions.analysis.market_condition}
                                 </p>
                               )}
                               {suggestion.suggestions.analysis.data_quality && (
-                                <p className="text-sm mt-2" style={{ color: luxuryColors.text.secondary }}>
+                                <p className="text-sm mt-2" style={{ color: colors.textSecondary }}>
                                   <Badge
                                     variant={
                                       suggestion.suggestions.analysis.data_quality === "good" ? "success" :
@@ -907,10 +906,10 @@ export default function TradeAnalyses() {
                               )}
                               {suggestion.suggestions.analysis.key_issues && suggestion.suggestions.analysis.key_issues.length > 0 && (
                                 <div className="mt-3">
-                                  <p className="text-sm font-medium mb-1" style={{ color: luxuryColors.text.secondary }}>
+                                  <p className="text-sm font-medium mb-1" style={{ color: colors.textSecondary }}>
                                     Key Issues:
                                   </p>
-                                  <ul className="list-disc ml-5 space-y-1 text-sm" style={{ color: luxuryColors.text.primary }}>
+                                  <ul className="list-disc ml-5 space-y-1 text-sm" style={{ color: colors.textPrimary }}>
                                     {suggestion.suggestions.analysis.key_issues.map((issue, i) => (
                                       <li key={i}>{issue}</li>
                                     ))}
@@ -923,24 +922,24 @@ export default function TradeAnalyses() {
                           {/* Summary */}
                           {suggestion.suggestions?.summary && (
                             <GlassCard className="p-4">
-                              <h4 className="font-medium mb-2" style={{ color: luxuryColors.text.primary }}>
+                              <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>
                                 Summary
                               </h4>
-                              <p style={{ color: luxuryColors.text.secondary }}>{suggestion.suggestions.summary}</p>
+                              <p style={{ color: colors.textSecondary }}>{suggestion.suggestions.summary}</p>
                             </GlassCard>
                           )}
 
                           {/* Applied Changes */}
                           {suggestion.applied_changes && suggestion.applied_changes.length > 0 && (
                             <GlassCard className="p-4" style={{
-                              borderColor: luxuryColors.status.success,
-                              background: `linear-gradient(135deg, ${luxuryColors.status.success}15 0%, transparent 100%)`
+                              borderColor: colors.emerald,
+                              background: `linear-gradient(135deg, ${colors.emerald}15 0%, transparent 100%)`
                             }}>
-                              <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: luxuryColors.status.success }}>
-                                <GlowIcon icon={CheckCircle} color={luxuryColors.status.success} size="sm" />
+                              <h4 className="font-medium flex items-center gap-2 mb-2" style={{ color: colors.emerald }}>
+                                <GlowIcon icon={CheckCircle} color={colors.emerald} size="sm" />
                                 Auto-Applied Changes
                               </h4>
-                              <ul className="list-disc ml-5 space-y-1" style={{ color: luxuryColors.text.primary }}>
+                              <ul className="list-disc ml-5 space-y-1" style={{ color: colors.textPrimary }}>
                                 {suggestion.applied_changes.map((change, i) => (
                                   <li key={i}>{change}</li>
                                 ))}
@@ -951,15 +950,15 @@ export default function TradeAnalyses() {
                           {/* Indicator Suggestions */}
                           {suggestion.suggestions?.indicator_suggestions && Object.keys(suggestion.suggestions.indicator_suggestions).length > 0 && (
                             <GlassCard className="p-4" style={{
-                              borderColor: luxuryColors.accent.cyan,
-                              background: `linear-gradient(135deg, ${luxuryColors.accent.cyan}10 0%, transparent 100%)`
+                              borderColor: colors.cyan,
+                              background: `linear-gradient(135deg, ${colors.cyan}10 0%, transparent 100%)`
                             }}>
-                              <h4 className="font-medium mb-2" style={{ color: luxuryColors.accent.cyan }}>
+                              <h4 className="font-medium mb-2" style={{ color: colors.cyan }}>
                                 Indicator Suggestions
                               </h4>
                               <pre className="text-xs overflow-auto" style={{
-                                color: luxuryColors.text.secondary,
-                                backgroundColor: `${luxuryColors.glass.background}80`,
+                                color: colors.textSecondary,
+                                backgroundColor: `${colors.glassBackground}80`,
                                 padding: '12px',
                                 borderRadius: '8px'
                               }}>
@@ -971,15 +970,15 @@ export default function TradeAnalyses() {
                           {/* Signal Suggestions */}
                           {suggestion.suggestions?.signal_suggestions && Object.keys(suggestion.suggestions.signal_suggestions).length > 0 && (
                             <GlassCard className="p-4" style={{
-                              borderColor: luxuryColors.status.warning,
-                              background: `linear-gradient(135deg, ${luxuryColors.status.warning}10 0%, transparent 100%)`
+                              borderColor: colors.amber,
+                              background: `linear-gradient(135deg, ${colors.amber}10 0%, transparent 100%)`
                             }}>
-                              <h4 className="font-medium mb-2" style={{ color: luxuryColors.status.warning }}>
+                              <h4 className="font-medium mb-2" style={{ color: colors.amber }}>
                                 Signal Suggestions
                               </h4>
                               <pre className="text-xs overflow-auto" style={{
-                                color: luxuryColors.text.secondary,
-                                backgroundColor: `${luxuryColors.glass.background}80`,
+                                color: colors.textSecondary,
+                                backgroundColor: `${colors.glassBackground}80`,
                                 padding: '12px',
                                 borderRadius: '8px'
                               }}>

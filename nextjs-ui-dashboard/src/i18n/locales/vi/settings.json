@@ -1,0 +1,269 @@
+{
+  "page": {
+    "title": "Cài đặt",
+    "subtitle": "Quản lý cấu hình bot giao dịch của bạn"
+  },
+  "tabs": {
+    "bot": "Cài đặt Bot",
+    "perSymbol": "Theo Symbol",
+    "strategy": "Tùy chỉnh Chiến lược",
+    "health": "Tình trạng Hệ thống",
+    "api": "API & Kết nối",
+    "notifications": "Thông báo",
+    "security": "Bảo mật"
+  },
+  "bot": {
+    "title": "Cài đặt Bot",
+    "subtitle": "Quản lý cấu hình và tùy chọn cho trading bot của bạn",
+    "status": "Trạng thái Bot",
+    "active": "Đang hoạt động",
+    "inactive": "Không hoạt động",
+    "capitalAllocation": "Phân bổ Vốn",
+    "maxLeverage": "Đòn bẩy Tối đa",
+    "riskThreshold": "Ngưỡng Rủi ro",
+    "conservativePercent": "Bảo thủ ({{value}}%)",
+    "aggressivePercent": "Mạo hiểm ({{value}}%)",
+    "safeLeverage": "An toàn ({{value}}x)",
+    "highRiskLeverage": "Rủi ro cao ({{value}}x)",
+    "amount": "Số tiền: ${{value}}",
+    "maxLossPerTrade": "Lỗ tối đa mỗi lệnh: ${{value}}",
+    "activeTradingPairs": "Cặp Giao dịch Hoạt động"
+  },
+  "perSymbol": {
+    "title": "Cài đặt theo Symbol",
+    "subtitle": "Cấu hình riêng cho từng cặp giao dịch",
+    "positionSize": "Kích thước Vị thế",
+    "maxLeverage": "Đòn bẩy Tối đa",
+    "enabled": "Bật",
+    "disabled": "Tắt",
+    "noPairsTitle": "Không có cặp giao dịch hoạt động",
+    "noPairsDesc": "Bật cặp giao dịch trong tab Cài đặt Bot."
+  },
+  "strategy": {
+    "title": "Tùy chỉnh Chiến lược",
+    "subtitle": "Tinh chỉnh chiến lược và tham số giao dịch",
+    "openSettings": "Mở Cài đặt Chiến lược",
+    "modalTitle": "Cài đặt Chiến lược Giao dịch",
+    "advancedTitle": "Cấu hình Chiến lược Nâng cao",
+    "advancedDesc": "Cấu hình preset thị trường, tham số chiến lược, quản lý rủi ro & cài đặt engine"
+  },
+  "health": {
+    "title": "Tình trạng Hệ thống",
+    "subtitle": "Theo dõi trạng thái và hiệu suất hệ thống",
+    "cpu": "CPU",
+    "memory": "Bộ nhớ",
+    "uptime": "Uptime",
+    "apiLatency": "Độ trễ API",
+    "wsStatus": "WebSocket",
+    "dbStatus": "Cơ sở dữ liệu",
+    "lastUpdate": "Cập nhật lần cuối",
+    "connected": "Đã kết nối",
+    "disconnected": "Mất kết nối",
+    "refresh": "Làm mới Trạng thái",
+    "connectionStatus": "Trạng thái Kết nối",
+    "apiServer": "Máy chủ API"
+  },
+  "api": {
+    "title": "API & Kết nối",
+    "subtitle": "Quản lý API key và trạng thái kết nối",
+    "status": "Trạng thái Kết nối",
+    "apiStatus": "API",
+    "wsStatus": "WebSocket",
+    "connected": "Đã kết nối",
+    "disconnected": "Mất kết nối",
+    "testing": "Đang kiểm tra...",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Nhập Binance API Key của bạn",
+    "secretKey": "Secret Key",
+    "secretKeyPlaceholder": "Nhập Binance Secret Key của bạn",
+    "testConnection": "Kiểm tra Kết nối",
+    "testingConnection": "Đang kiểm tra kết nối...",
+    "saveKeys": "Lưu Keys",
+    "allSystemsOperational": "Tất cả hệ thống hoạt động bình thường",
+    "testingConnectionStatus": "Đang kiểm tra kết nối...",
+    "connectionIssues": "Phát hiện sự cố kết nối",
+    "binanceApiConfig": "Cấu hình API Binance",
+    "testnet": "Testnet",
+    "securityNote": "Lưu ý Bảo mật",
+    "securityNoteDesc": "API keys được mã hóa và lưu trữ an toàn. Chỉ cấp quyền Giao dịch Futures cho bot.",
+    "tradingPermissions": "Quyền Giao dịch",
+    "spotTrading": "Giao dịch Spot",
+    "spotDesc": "Giao dịch spot cơ bản",
+    "futuresTrading": "Giao dịch Futures",
+    "futuresDesc": "Giao dịch futures với đòn bẩy",
+    "marginTrading": "Giao dịch Margin",
+    "marginDesc": "Giao dịch margin",
+    "optionsTrading": "Giao dịch Options",
+    "optionsDesc": "Giao dịch options"
+  },
+  "notifications": {
+    "title": "Thông báo",
+    "subtitle": "Cấu hình cách nhận cảnh báo và cập nhật",
+    "channels": "Kênh Thông báo",
+    "email": {
+      "title": "Thông báo Email",
+      "description": "Nhận thông báo qua email"
+    },
+    "push": {
+      "title": "Push Notifications",
+      "description": "Thông báo trình duyệt"
+    },
+    "telegram": {
+      "title": "Telegram Bot",
+      "description": "Nhận thông báo qua Telegram",
+      "tokenLabel": "Telegram Bot Token",
+      "tokenPlaceholder": "Nhập token từ @BotFather",
+      "chatIdLabel": "Telegram Chat ID",
+      "chatIdPlaceholder": "Nhập chat ID (dùng @userinfobot)"
+    },
+    "discord": {
+      "title": "Discord Webhook",
+      "description": "Nhận thông báo qua Discord",
+      "webhookLabel": "Discord Webhook URL",
+      "webhookPlaceholder": "https://discord.com/api/webhooks/...",
+      "webhookHint": "Tạo webhook trong Cài đặt Server Discord → Tích hợp → Webhooks",
+      "testSent": "Đã gửi thử",
+      "testSentDesc": "Thông báo Discord test đã gửi thành công",
+      "testFailed": "Gửi thất bại",
+      "testFailedDesc": "Không thể gửi thông báo Discord test",
+      "testButton": "Thử Discord"
+    },
+    "vapid": {
+      "publicKeyLabel": "VAPID Public Key",
+      "publicKeyPlaceholder": "BLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "privateKeyLabel": "VAPID Private Key (bảo mật)",
+      "privateKeyPlaceholder": "Nhập private key (giữ bảo mật)",
+      "keysSaved": "Đã lưu Keys",
+      "keysSavedDesc": "Đã lưu VAPID keys. Bạn có thể bật Push Notifications.",
+      "saveKeys": "Lưu VAPID Keys"
+    },
+    "alerts": {
+      "title": "Loại Cảnh báo",
+      "price": {
+        "title": "Cảnh báo Giá",
+        "description": "Nhận thông báo khi giá biến động mạnh"
+      },
+      "trade": {
+        "title": "Cảnh báo Giao dịch",
+        "description": "Nhận thông báo khi lệnh được thực thi"
+      },
+      "system": {
+        "title": "Cảnh báo Hệ thống",
+        "description": "Thông báo quan trọng của hệ thống"
+      },
+      "threshold": "Ngưỡng Cảnh báo",
+      "thresholdLabel": "Ngưỡng Cảnh báo Giá",
+      "thresholdDesc": "Biến động giá tối thiểu để kích hoạt cảnh báo"
+    },
+    "sound": {
+      "title": "Âm thanh Thông báo",
+      "description": "Phát âm thanh khi có thông báo"
+    },
+    "save": "Lưu Tùy chọn"
+  },
+  "security": {
+    "title": "Bảo mật",
+    "subtitle": "Quản lý cài đặt bảo mật tài khoản",
+    "profile": {
+      "title": "Hồ sơ Trader",
+      "displayName": "Tên hiển thị",
+      "email": "Email"
+    },
+    "password": {
+      "title": "Đổi Mật khẩu",
+      "current": "Mật khẩu Hiện tại",
+      "currentPlaceholder": "Nhập mật khẩu hiện tại",
+      "new": "Mật khẩu Mới",
+      "newPlaceholder": "Nhập mật khẩu mới",
+      "confirm": "Xác nhận Mật khẩu",
+      "confirmPlaceholder": "Nhập lại mật khẩu mới",
+      "change": "Đổi Mật khẩu",
+      "changing": "Đang đổi...",
+      "update": "Cập nhật Mật khẩu",
+      "updating": "Đang cập nhật...",
+      "mismatch": "Mật khẩu mới không khớp",
+      "tooShort": "Mật khẩu phải có ít nhất 8 ký tự"
+    },
+    "twoFactor": {
+      "title": "Xác thực Hai yếu tố",
+      "description": "Thêm lớp bảo mật cho tài khoản",
+      "protected": "Tài khoản được bảo vệ bởi 2FA",
+      "enabled": "Đã bật",
+      "disabled": "Đã tắt",
+      "enable": "Bật 2FA",
+      "disable": "Tắt 2FA",
+      "settingUp": "Đang thiết lập...",
+      "setup": "Thiết lập 2FA",
+      "setupTitle": "Thiết lập Xác thực Hai yếu tố",
+      "setupDescription": "Quét mã QR bằng ứng dụng authenticator, sau đó nhập mã xác thực.",
+      "manualEntryLabel": "Mã nhập thủ công",
+      "manualEntryHint": "Nếu không thể quét mã QR, hãy nhập secret này thủ công vào ứng dụng authenticator.",
+      "verificationCodeLabel": "Mã xác thực",
+      "scanQr": "Quét mã QR bằng ứng dụng authenticator",
+      "enterCode": "Nhập mã xác thực",
+      "codePlaceholder": "Nhập mã 6 chữ số",
+      "verify": "Xác nhận",
+      "verifying": "Đang xác nhận...",
+      "secretKey": "Secret Key",
+      "copied": "Đã sao chép secret",
+      "invalidCode": "Vui lòng nhập mã 6 chữ số",
+      "disableTitle": "Tắt Xác thực Hai yếu tố?",
+      "disableDescription": "Điều này sẽ làm tài khoản kém an toàn hơn. Nhập mã 2FA để xác nhận.",
+      "currentCodeLabel": "Mã 2FA hiện tại",
+      "disabling": "Đang tắt..."
+    },
+    "sessions": {
+      "title": "Phiên Đăng nhập",
+      "current": "Hiện tại",
+      "activeNow": "Đang hoạt động",
+      "noSessions": "Không có phiên đăng nhập nào",
+      "lastActive": "Hoạt động lần cuối",
+      "revoke": "Thu hồi",
+      "revokeAll": "Thu hồi Tất cả",
+      "signOutAll": "Đăng xuất Tất cả Thiết bị",
+      "signOutAllTitle": "Đăng xuất Tất cả Phiên?",
+      "signOutAllDesc": "Bạn sẽ bị đăng xuất khỏi tất cả thiết bị trừ thiết bị này.",
+      "signOutAllButton": "Đăng xuất Tất cả",
+      "revokeAllConfirm": "Bạn sẽ bị đăng xuất khỏi tất cả thiết bị khác"
+    }
+  },
+  "toast": {
+    "settingsSaved": "Đã lưu cài đặt thành công!",
+    "settingsError": "Lỗi khi lưu cài đặt",
+    "connectionSuccess": "Kết nối thành công",
+    "connectionError": "Kết nối thất bại",
+    "copiedToClipboard": "Đã sao chép",
+    "botStarted": "Bot Đã Bật",
+    "botStartedDesc": "Trading bot đang hoạt động",
+    "botStopped": "Bot Đã Tắt",
+    "botStoppedDesc": "Trading bot đã dừng",
+    "botError": "Lỗi",
+    "botErrorDesc": "Không thể thay đổi trạng thái bot",
+    "connectionSuccessDesc": "API có thể kết nối",
+    "connectionFailedDesc": "API không phản hồi",
+    "connectionErrorDesc": "Không thể kết nối API",
+    "sectionSaved": "Đã cập nhật cài đặt {{section}}",
+    "saveError": "Không thể lưu cài đặt",
+    "secretCopied": "Đã sao chép secret",
+    "invalidCode": "Vui lòng nhập mã 6 chữ số"
+  },
+  "time": {
+    "justNow": "Vừa xong",
+    "minuteAgo": "{{count}} phút trước",
+    "minutesAgo": "{{count}} phút trước",
+    "hourAgo": "{{count}} giờ trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "dayAgo": "{{count}} ngày trước",
+    "daysAgo": "{{count}} ngày trước"
+  },
+  "common": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "enable": "Bật",
+    "disable": "Tắt",
+    "loading": "Đang tải...",
+    "saving": "Đang lưu..."
+  }
+}

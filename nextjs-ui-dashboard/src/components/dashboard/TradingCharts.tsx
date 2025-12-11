@@ -25,20 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, TrendingUp, TrendingDown, Activity, X } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-  ComposedChart,
-  Bar,
-  Cell,
-} from "recharts";
+
+
 import { apiClient } from "@/services/api";
 import type { ChartData, AddSymbolRequest } from "@/services/api";
 import { toast } from "sonner";
@@ -770,7 +758,7 @@ export const TradingCharts: React.FC<TradingChartsProps> = React.memo(
         // Don't abort during initial Strict Mode cleanup - only on real unmount
         // The ref pattern ensures initial load completes
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     }, [selectedTimeframe]); // Only depend on selectedTimeframe to avoid infinite loops
 
     // Fallback price polling - only when WebSocket disconnected

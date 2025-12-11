@@ -240,7 +240,7 @@ export const useRealTrading = () => {
         variant: "destructive",
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [API_BASE, fetchWithRetry, isRealMode]);
 
   // Fetch current settings
@@ -635,7 +635,7 @@ export const useRealTrading = () => {
       aiSignalsFetchedRef.current = true;
       fetchAISignals();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isRealMode]);
 
   // WebSocket connection (same as paper trading but with real endpoints)

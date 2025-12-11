@@ -1,0 +1,365 @@
+{
+  "title": "Tableau de bord",
+  "welcomeBack": "Bienvenue",
+  "welcome": "Bienvenue, {{name}}",
+  "subtitle": "Voici un aperçu de la performance de votre portefeuille",
+  "overview": "Vue d'ensemble",
+  "performance": "Performance",
+  "recentTrades": "Transactions récentes",
+  "marketSummary": "Résumé du marché",
+  "aiInsights": "Analyses IA",
+  "quickActions": "Actions rapides",
+  "marketsOpen": "Marchés ouverts",
+  "marketsClosed": "Marchés fermés",
+  "hero": {
+    "totalBalance": "Solde total",
+    "paperTrading": "Trading simulé",
+    "liveTrading": "Trading réel",
+    "paperMode": "Mode simulé",
+    "liveMode": "Mode réel",
+    "change24h": "Variation 24h"
+  },
+  "stats": {
+    "totalProfit": "Profit total",
+    "winRate": "Taux de réussite",
+    "totalTrades": "Total des transactions",
+    "activeTrades": "Transactions actives",
+    "todayPnl": "P&L du jour",
+    "weeklyPnl": "P&L hebdomadaire",
+    "monthlyPnl": "P&L mensuel",
+    "avgProfit": "Profit moyen",
+    "riskScore": "Score de risque",
+    "riskLow": "Faible",
+    "riskMedium": "Moyen",
+    "riskHigh": "Élevé"
+  },
+  "ticker": {
+    "trendingMarkets": "Marchés tendance"
+  },
+  "chart": {
+    "profit": "Profit",
+    "loss": "Perte",
+    "balance": "Historique du solde",
+    "trades": "Historique des transactions",
+    "performance": "Graphique de performance",
+    "portfolioPerformance": "Performance du portefeuille",
+    "trackGains": "Suivez vos gains au fil du temps",
+    "value": "Valeur"
+  },
+  "aiSignals": {
+    "title": "Signaux IA",
+    "subtitle": "Prédictions par ML",
+    "live": "En direct",
+    "noSignals": "Aucun signal",
+    "noSignalsDesc": "L'analyse IA apparaîtra ici",
+    "justNow": "À l'instant",
+    "minutesAgo": "Il y a {{minutes}}m",
+    "hoursAgo": "Il y a {{hours}}h"
+  },
+  "trades": {
+    "title": "Transactions récentes",
+    "subtitle": "Votre historique de trading",
+    "viewAll": "Voir tout",
+    "noTrades": "Aucune transaction",
+    "noTradesDesc": "Commencez à trader pour voir votre historique ici",
+    "open": "Ouvert",
+    "closed": "Fermé",
+    "daysAgo": "Il y a {{days}}j"
+  },
+  "table": {
+    "symbol": "Symbole",
+    "type": "Type",
+    "side": "Côté",
+    "amount": "Montant",
+    "price": "Prix",
+    "pnl": "P&L",
+    "time": "Heure",
+    "status": "Statut"
+  },
+  "notification": {
+    "newSignal": "Nouveau signal de trading généré",
+    "tradeExecuted": "Transaction exécutée avec succès",
+    "stopLossHit": "Stop loss déclenché",
+    "takeProfitHit": "Take profit atteint"
+  },
+  "error": {
+    "apiConnection": "Erreur de connexion API",
+    "retry": "Réessayer"
+  },
+  "portfolio": {
+    "title": "Portefeuille de Trading Simulé",
+    "subtitle": "Suivi des performances en temps réel",
+    "currentBalance": "Solde actuel",
+    "totalBalance": "Solde total",
+    "sections": {
+      "allocation": "Allocation des positions",
+      "recentTrades": "Transactions récentes",
+      "performance": "Historique de performance"
+    },
+    "stats": {
+      "winRate": "Taux de réussite",
+      "totalTrades": "Total des transactions",
+      "profitFactor": "Facteur de profit",
+      "totalPnl": "P&L total",
+      "openPositions": "Positions ouvertes"
+    },
+    "cards": {
+      "bestTrade": "Meilleure transaction",
+      "worstTrade": "Pire transaction",
+      "maxDrawdown": "Drawdown maximum",
+      "sharpeRatio": "Ratio de Sharpe",
+      "riskAdjusted": "Rendement ajusté au risque",
+      "noTradesYet": "Pas encore de transactions"
+    },
+    "status": {
+      "live": "En direct",
+      "inactive": "Inactif",
+      "safe": "Sûr",
+      "moderate": "Modéré",
+      "high": "Élevé",
+      "excellent": "Excellent",
+      "good": "Bon",
+      "low": "Faible"
+    },
+    "table": {
+      "symbol": "Symbole",
+      "type": "Type",
+      "entryExit": "Entrée / Sortie",
+      "pnl": "P&L",
+      "date": "Date"
+    },
+    "empty": {
+      "noPositions": "Aucune position ouverte",
+      "startTrading": "Commencez à trader pour voir l'allocation",
+      "noClosedTrades": "Pas encore de transactions clôturées"
+    }
+  },
+  "profile": {
+    "title": "Performance de Trading",
+    "subtitle": "Statistiques réelles du paper trading",
+    "advancedMetrics": "Métriques avancées",
+    "memberSince": "Membre depuis",
+    "authenticated": "Authentifié",
+    "errors": {
+      "emptyName": "Le nom d'affichage ne peut pas être vide",
+      "updateFailed": "Impossible de mettre à jour le profil. Veuillez réessayer.",
+      "invalidImage": "Veuillez sélectionner un fichier image",
+      "imageTooLarge": "L'image doit être inférieure à 500KB",
+      "avatarUploadFailed": "Impossible de télécharger l'avatar. Veuillez réessayer.",
+      "readImageFailed": "Impossible de lire le fichier image"
+    },
+    "success": {
+      "profileUpdated": "Profil mis à jour avec succès",
+      "avatarUpdated": "Avatar mis à jour avec succès"
+    },
+    "achievements": {
+      "title": "Réalisations",
+      "subtitle": "Vos jalons de trading",
+      "firstTrade": "Première transaction",
+      "firstTradeDesc": "Complétez votre première transaction",
+      "tenTrades": "10 transactions",
+      "tenTradesDesc": "Effectuez 10 transactions",
+      "inProfit": "En profit",
+      "inProfitDesc": "Atteignez un P&L total positif",
+      "winningStreak": "Série gagnante",
+      "winningStreakDesc": "Gagnez 5 transactions consécutives",
+      "notYet": "Pas encore",
+      "achieved": "Obtenu",
+      "active": "Actif",
+      "inProgress": "En cours",
+      "current": "actuel"
+    },
+    "activity": {
+      "title": "Activité récente",
+      "subtitle": "Vos dernières actions de trading",
+      "noActivity": "Aucune activité",
+      "startTrading": "Commencez à trader pour voir l'activité",
+      "long": "Long",
+      "short": "Short",
+      "closed": "Fermé",
+      "unlocked": "Débloqué",
+      "milestone": "Jalon"
+    }
+  },
+  "realTrading": {
+    "title": "Trading Réel",
+    "subtitle": "Trading en direct avec de vrais fonds sur Binance",
+    "warning": {
+      "title": "Trading Réel",
+      "message": "Vous êtes sur le point de trader avec de l'argent réel. Assurez-vous de comprendre les risques.",
+      "confirm": "Je comprends les risques"
+    },
+    "orderBook": {
+      "title": "Carnet d'ordres",
+      "price": "Prix",
+      "amount": "Quantité",
+      "total": "Total"
+    },
+    "orderForm": {
+      "buy": "Acheter",
+      "sell": "Vendre",
+      "market": "Marché",
+      "limit": "Limite",
+      "stopLimit": "Stop Limit",
+      "amount": "Quantité",
+      "price": "Prix",
+      "total": "Total",
+      "available": "Disponible",
+      "submit": "Passer l'ordre",
+      "stopPrice": "Prix Stop"
+    },
+    "positions": {
+      "title": "Positions Ouvertes",
+      "symbol": "Symbole",
+      "side": "Côté",
+      "size": "Taille",
+      "entry": "Prix d'entrée",
+      "mark": "Prix Mark",
+      "pnl": "P&L",
+      "close": "Fermer",
+      "noPositions": "Aucune position ouverte"
+    },
+    "orders": {
+      "title": "Ordres Ouverts",
+      "cancel": "Annuler",
+      "cancelAll": "Tout annuler",
+      "noOrders": "Aucun ordre ouvert"
+    },
+    "history": {
+      "title": "Historique des Transactions",
+      "time": "Heure",
+      "type": "Type",
+      "filled": "Rempli",
+      "status": "Statut"
+    },
+    "status": {
+      "connected": "Connecté",
+      "disconnected": "Déconnecté",
+      "connecting": "Connexion..."
+    },
+    "modeSwitch": {
+      "title": "Mode Trading Simulé Actif",
+      "description": "Passez en mode Trading Réel pour exécuter des transactions avec de vrais fonds.",
+      "badge": "Mode Simulé: Pratique Sécurisée",
+      "hint": "Utilisez le bouton de mode dans l'en-tête pour basculer entre les modes Simulé et Réel."
+    },
+    "comingSoon": {
+      "title": "BIENTÔT DISPONIBLE",
+      "subtitle": "Module Trading Réel",
+      "description": "L'API de trading réel est en cours de développement. Cette fonctionnalité vous permettra d'exécuter des transactions avec de vrais fonds sur Binance.",
+      "features": {
+        "spotApi": "Intégration API Binance Spot",
+        "websocket": "Suivi des positions en temps réel via WebSocket",
+        "riskManagement": "Gestion des risques avancée & Disjoncteur",
+        "underDevelopment": "Endpoints API en développement"
+      },
+      "tryPaperTrading": "Essayer le Trading Simulé",
+      "hint": "Le trading simulé offre la même interface luxueuse avec des fonds simulés - parfait pour tester vos stratégies!"
+    },
+    "confirm": {
+      "title": "Confirmer la Transaction Réelle",
+      "step": "Étape {{current}} sur {{total}}",
+      "riskWarning": "Avertissement de Risque",
+      "realMoney": "Cette transaction utilise de l'ARGENT RÉEL",
+      "leverageWarning": "Le trading à effet de levier peut dépasser votre dépôt",
+      "orderValue": "Valeur de l'ordre",
+      "exposure": "Exposition ({{leverage}}x)",
+      "acceptRisk": "Je comprends les risques et j'accepte l'entière responsabilité de cette transaction.",
+      "finalTitle": "Confirmation Finale",
+      "executeQuestion": "Exécuter {{direction}} {{quantity}} {{symbol}} avec ${{exposure}} d'exposition?",
+      "cannotUndo": "Cette action ne peut pas être annulée",
+      "cancel": "Annuler",
+      "continue": "Continuer",
+      "executeTrade": "Exécuter la Transaction"
+    },
+    "riskWarning": {
+      "message": "Tous les ordres nécessitent une confirmation en 2 étapes. Définissez un stop-loss sur chaque transaction. Ne risquez jamais plus que ce que vous pouvez vous permettre de perdre."
+    }
+  },
+  "aiSignalsPage": {
+    "title": "Signaux de Trading IA",
+    "subtitle": "Prédictions en temps réel par apprentissage automatique",
+    "refresh": "Actualiser",
+    "lastUpdate": "Dernière mise à jour",
+    "justNow": "À l'instant",
+    "engine": {
+      "status": "Statut du Moteur IA",
+      "active": "Actif",
+      "offline": "Hors ligne",
+      "description": "Réseau neuronal analysant les modèles de marché en temps réel"
+    },
+    "accuracy": {
+      "label": "Précision du modèle",
+      "value": "{{value}}%"
+    },
+    "signals": {
+      "live": "Signaux en direct",
+      "active": "Actif",
+      "waiting": "En attente de signaux",
+      "waitingDesc": "Le moteur IA analyse les conditions du marché. Les nouveaux signaux apparaîtront automatiquement."
+    },
+    "history": {
+      "title": "Historique des signaux",
+      "all": "Tous",
+      "win": "Gagné",
+      "loss": "Perdu",
+      "noHistory": "Pas encore d'historique de signaux"
+    },
+    "stats": {
+      "wins": "Gagnés",
+      "losses": "Perdus",
+      "winRate": "Taux de réussite",
+      "totalPnl": "P&L Total"
+    }
+  },
+  "tradeAnalyses": {
+    "title": "Analyses de Trading GPT-4",
+    "subtitle": "L'analyse IA vous aide à comprendre ce qui s'est mal passé et à améliorer votre stratégie",
+    "refresh": "Actualiser",
+    "stats": {
+      "totalAnalyses": "Total des analyses",
+      "losingTrades": "Transactions perdantes",
+      "winningTrades": "Transactions gagnantes",
+      "totalPnl": "P&L total",
+      "avgPnl": "P&L moy. / Transaction"
+    },
+    "tabs": {
+      "analyses": "Analyses de trading",
+      "suggestions": "Suggestions de config"
+    },
+    "filter": {
+      "losingOnly": "Afficher: Perdants uniquement",
+      "allTrades": "Afficher: Tous"
+    },
+    "empty": {
+      "noAnalyses": "Pas encore d'analyses",
+      "analysesDesc": "Complétez quelques transactions pour voir l'analyse IA",
+      "noSuggestions": "Pas encore de suggestions de config",
+      "suggestionsDesc": "GPT-4 suggérera des optimisations après avoir analysé vos transactions"
+    },
+    "suggestion": {
+      "latest": "Dernière suggestion GPT-4",
+      "rootCause": "Cause racine",
+      "applied": "Modifications appliquées"
+    },
+    "analysis": {
+      "verdict": "Verdict",
+      "summary": "Résumé",
+      "whatWentWrong": "Ce qui a mal tourné",
+      "keyFactors": "Facteurs clés",
+      "lessons": "Leçons apprises",
+      "recommendations": "Recommandations"
+    },
+    "details": {
+      "entry": "Entrée",
+      "exit": "Sortie",
+      "tradeId": "ID de transaction",
+      "closeReason": "Raison de fermeture"
+    },
+    "verdict": {
+      "win": "GAGNÉ",
+      "loss": "PERDU",
+      "breakeven": "NEUTRE"
+    }
+  }
+}

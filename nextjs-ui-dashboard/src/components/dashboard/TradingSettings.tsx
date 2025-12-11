@@ -40,13 +40,13 @@ import {
   Activity,
 } from "lucide-react";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
   Badge,
   GlowIcon,
 } from "@/styles/luxury-design-system";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 // API Base URL - using environment variable with fallback
 const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
@@ -355,12 +355,12 @@ const PremiumSlider = ({
 }) => (
   <div className="space-y-3">
     <div className="flex justify-between items-center">
-      <Label className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+      <Label className="text-sm" style={{ color: colors.textSecondary }}>
         {label}
       </Label>
       <span
         className="text-sm font-bold font-mono"
-        style={{ color: luxuryColors.cyan }}
+        style={{ color: colors.cyan }}
       >
         {value}
         {unit}
@@ -375,7 +375,7 @@ const PremiumSlider = ({
       className="w-full"
     />
     {description && (
-      <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
+      <p className="text-xs" style={{ color: colors.textMuted }}>
         {description}
       </p>
     )}
@@ -418,10 +418,10 @@ const StrategyCard = ({
     style={{
       backgroundColor: enabled
         ? "rgba(0, 217, 255, 0.05)"
-        : luxuryColors.bgSecondary,
+        : colors.bgSecondary,
       borderColor: enabled
         ? "rgba(0, 217, 255, 0.2)"
-        : luxuryColors.borderSubtle,
+        : colors.borderSubtle,
     }}
   >
     <div className="flex items-center justify-between mb-4">
@@ -429,12 +429,12 @@ const StrategyCard = ({
         <GlowIcon
           icon={Icon}
           size="sm"
-          color={enabled ? luxuryColors.cyan : luxuryColors.textMuted}
+          color={enabled ? colors.cyan : colors.textMuted}
         />
         <span
           className="font-semibold"
           style={{
-            color: enabled ? luxuryColors.textPrimary : luxuryColors.textMuted,
+            color: enabled ? colors.textPrimary : colors.textMuted,
           }}
         >
           {title}
@@ -466,49 +466,49 @@ const PresetCard = ({
     style={{
       backgroundColor: isSelected
         ? "rgba(0, 217, 255, 0.1)"
-        : luxuryColors.bgSecondary,
-      borderColor: isSelected ? luxuryColors.cyan : luxuryColors.borderSubtle,
-      boxShadow: isSelected ? `0 0 20px ${luxuryColors.cyan}30` : "none",
+        : colors.bgSecondary,
+      borderColor: isSelected ? colors.cyan : colors.borderSubtle,
+      boxShadow: isSelected ? `0 0 20px ${colors.cyan}30` : "none",
     }}
   >
     <div className="flex items-center gap-2 mb-2">
       <span className="text-2xl">{preset.icon}</span>
       <h3
         className="font-semibold"
-        style={{ color: luxuryColors.textPrimary }}
+        style={{ color: colors.textPrimary }}
       >
         {preset.name}
       </h3>
       {isSelected && (
         <div
           className="ml-auto w-5 h-5 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: luxuryColors.cyan }}
+          style={{ backgroundColor: colors.cyan }}
         >
           <Check className="h-3 w-3 text-black" />
         </div>
       )}
     </div>
-    <p className="text-sm mb-4" style={{ color: luxuryColors.textMuted }}>
+    <p className="text-sm mb-4" style={{ color: colors.textMuted }}>
       {preset.description}
     </p>
     <div className="space-y-2">
       <div className="flex justify-between text-sm">
-        <span style={{ color: luxuryColors.textMuted }}>
+        <span style={{ color: colors.textMuted }}>
           Confidence Threshold:
         </span>
-        <span className="font-mono" style={{ color: luxuryColors.cyan }}>
+        <span className="font-mono" style={{ color: colors.cyan }}>
           {(preset.settings.engine.min_confidence_threshold * 100).toFixed(0)}%
         </span>
       </div>
       <div className="flex justify-between text-sm">
-        <span style={{ color: luxuryColors.textMuted }}>Max Risk per Trade:</span>
-        <span className="font-mono" style={{ color: luxuryColors.cyan }}>
+        <span style={{ color: colors.textMuted }}>Max Risk per Trade:</span>
+        <span className="font-mono" style={{ color: colors.cyan }}>
           {preset.settings.risk.max_risk_per_trade}%
         </span>
       </div>
       <div className="flex justify-between text-sm">
-        <span style={{ color: luxuryColors.textMuted }}>Stop Loss:</span>
-        <span className="font-mono" style={{ color: luxuryColors.cyan }}>
+        <span style={{ color: colors.textMuted }}>Stop Loss:</span>
+        <span className="font-mono" style={{ color: colors.cyan }}>
           {preset.settings.risk.stop_loss_percent}%
         </span>
       </div>
@@ -531,31 +531,31 @@ const PremiumSelect = ({
   description?: string;
 }) => (
   <div className="space-y-2">
-    <Label className="text-sm" style={{ color: luxuryColors.textSecondary }}>
+    <Label className="text-sm" style={{ color: colors.textSecondary }}>
       {label}
     </Label>
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
         className="border"
         style={{
-          backgroundColor: luxuryColors.bgTertiary,
-          borderColor: luxuryColors.borderSubtle,
-          color: luxuryColors.textPrimary,
+          backgroundColor: colors.bgTertiary,
+          borderColor: colors.borderSubtle,
+          color: colors.textPrimary,
         }}
       >
         <SelectValue />
       </SelectTrigger>
       <SelectContent
         style={{
-          backgroundColor: luxuryColors.bgSecondary,
-          borderColor: luxuryColors.borderSubtle,
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.borderSubtle,
         }}
       >
         {options.map((opt) => (
           <SelectItem
             key={opt.value}
             value={opt.value}
-            style={{ color: luxuryColors.textPrimary }}
+            style={{ color: colors.textPrimary }}
           >
             {opt.label}
           </SelectItem>
@@ -563,7 +563,7 @@ const PremiumSelect = ({
       </SelectContent>
     </Select>
     {description && (
-      <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
+      <p className="text-xs" style={{ color: colors.textMuted }}>
         {description}
       </p>
     )}
@@ -571,6 +571,7 @@ const PremiumSelect = ({
 );
 
 export function TradingSettings() {
+  const colors = useThemeColors();
   const [isOpen, setIsOpen] = useState(false);
   const [settings, setSettings] = useState<TradingSettingsData>(
     () => MARKET_PRESETS.normal_volatility.settings
@@ -664,22 +665,22 @@ export function TradingSettings() {
       <DialogContent
         className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 border"
         style={{
-          backgroundColor: luxuryColors.bgPrimary,
-          borderColor: luxuryColors.borderSubtle,
+          backgroundColor: colors.bgPrimary,
+          borderColor: colors.borderSubtle,
         }}
       >
         {/* Header */}
         <DialogHeader
           className="px-6 py-4 border-b"
-          style={{ borderColor: luxuryColors.borderSubtle }}
+          style={{ borderColor: colors.borderSubtle }}
         >
           <DialogTitle className="flex items-center gap-3">
-            <GlowIcon icon={Settings} size="md" color={luxuryColors.cyan} />
+            <GlowIcon icon={Settings} size="md" color={colors.cyan} />
             <div>
               <GradientText className="text-xl font-bold">
                 Trading Bot Settings
               </GradientText>
-              <DialogDescription className="text-xs font-normal" style={{ color: luxuryColors.textMuted }}>
+              <DialogDescription className="text-xs font-normal" style={{ color: colors.textMuted }}>
                 Advanced Configuration
               </DialogDescription>
             </div>
@@ -694,7 +695,7 @@ export function TradingSettings() {
           <Tabs defaultValue="presets" className="w-full">
             <TabsList
               className="grid w-full grid-cols-4 mb-6 p-1 rounded-xl"
-              style={{ backgroundColor: luxuryColors.bgSecondary }}
+              style={{ backgroundColor: colors.bgSecondary }}
             >
               {[
                 { value: "presets", label: "Market Presets" },
@@ -706,7 +707,7 @@ export function TradingSettings() {
                   key={tab.value}
                   value={tab.value}
                   className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:text-white transition-all"
-                  style={{ color: luxuryColors.textMuted }}
+                  style={{ color: colors.textMuted }}
                 >
                   {tab.label}
                 </TabsTrigger>
@@ -735,17 +736,17 @@ export function TradingSettings() {
                   borderColor: "rgba(0, 217, 255, 0.2)",
                 }}
               >
-                <Info className="h-5 w-5 mt-0.5" style={{ color: luxuryColors.cyan }} />
+                <Info className="h-5 w-5 mt-0.5" style={{ color: colors.cyan }} />
                 <div>
                   <h4
                     className="font-semibold text-sm"
-                    style={{ color: luxuryColors.cyan }}
+                    style={{ color: colors.cyan }}
                   >
                     {MARKET_PRESETS[selectedPreset as keyof typeof MARKET_PRESETS]?.name} Recommendations
                   </h4>
                   <p
                     className="text-sm mt-1"
-                    style={{ color: luxuryColors.textSecondary }}
+                    style={{ color: colors.textSecondary }}
                   >
                     {selectedPreset === "low_volatility" &&
                       "In low volatility markets, the bot uses more sensitive parameters to catch smaller price movements. This includes lower RSI thresholds, faster MACD periods, and reduced confidence requirements."}
@@ -1096,8 +1097,8 @@ export function TradingSettings() {
                 {/* Position Risk */}
                 <GlassCard>
                   <div className="flex items-center gap-2 mb-4">
-                    <GlowIcon icon={Shield} size="sm" color={luxuryColors.cyan} />
-                    <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                    <GlowIcon icon={Shield} size="sm" color={colors.cyan} />
+                    <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
                       Position Risk
                     </h3>
                   </div>
@@ -1150,8 +1151,8 @@ export function TradingSettings() {
                 {/* Portfolio Risk */}
                 <GlassCard>
                   <div className="flex items-center gap-2 mb-4">
-                    <GlowIcon icon={AlertTriangle} size="sm" color={luxuryColors.warning} />
-                    <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                    <GlowIcon icon={AlertTriangle} size="sm" color={colors.warning} />
+                    <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
                       Portfolio Risk
                     </h3>
                   </div>
@@ -1224,8 +1225,8 @@ export function TradingSettings() {
                 {/* Signal Processing */}
                 <GlassCard>
                   <div className="flex items-center gap-2 mb-4">
-                    <GlowIcon icon={Zap} size="sm" color={luxuryColors.cyan} />
-                    <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                    <GlowIcon icon={Zap} size="sm" color={colors.cyan} />
+                    <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
                       Signal Processing
                     </h3>
                   </div>
@@ -1270,8 +1271,8 @@ export function TradingSettings() {
                 {/* Market Conditions */}
                 <GlassCard>
                   <div className="flex items-center gap-2 mb-4">
-                    <GlowIcon icon={Settings} size="sm" color={luxuryColors.cyan} />
-                    <h3 className="font-semibold" style={{ color: luxuryColors.textPrimary }}>
+                    <GlowIcon icon={Settings} size="sm" color={colors.cyan} />
+                    <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
                       Market Conditions
                     </h3>
                   </div>
@@ -1338,7 +1339,7 @@ export function TradingSettings() {
         {/* Footer */}
         <div
           className="flex justify-between items-center px-6 py-4 border-t"
-          style={{ borderColor: luxuryColors.borderSubtle }}
+          style={{ borderColor: colors.borderSubtle }}
         >
           <PremiumButton
             variant="secondary"

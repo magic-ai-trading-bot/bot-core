@@ -1,0 +1,659 @@
+{
+  "common": {
+    "backToHome": "Back to Home",
+    "getStarted": "Get Started",
+    "viewPricing": "View Pricing",
+    "learnMore": "Learn More",
+    "contactUs": "Contact Us",
+    "startFreeTrial": "Start Free Trial"
+  },
+  "features": {
+    "badge": "Platform Features",
+    "title": "Powerful Features for",
+    "subtitle": "Modern Traders",
+    "description": "Everything you need to trade smarter, faster, and more profitably with cutting-edge AI technology.",
+    "andMore": "And Much More...",
+    "readyTitle": "Ready to Start Trading?",
+    "readyDescription": "Join thousands of traders using Bot Core to automate their trading strategies.",
+    "getStartedFree": "Get Started Free",
+    "items": {
+      "aiAnalysis": {
+        "title": "AI-Powered Analysis",
+        "description": "Advanced machine learning models analyze market patterns, sentiment, and technical indicators in real-time to identify profitable trading opportunities.",
+        "highlights": ["LSTM & Transformer Models", "GPT-4 Market Analysis", "Sentiment Detection"]
+      },
+      "tradingBot": {
+        "title": "Automated Trading Bot",
+        "description": "Set your strategy once and let our bot execute trades 24/7 with precision timing and emotion-free decision making.",
+        "highlights": ["24/7 Trading", "Multiple Strategies", "Paper & Live Trading"]
+      },
+      "riskManagement": {
+        "title": "Advanced Risk Management",
+        "description": "Protect your capital with intelligent stop-loss, take-profit, and position sizing algorithms that adapt to market conditions.",
+        "highlights": ["Dynamic Stop Loss", "Position Sizing", "Drawdown Protection"]
+      },
+      "analytics": {
+        "title": "Real-Time Analytics",
+        "description": "Monitor your portfolio performance with comprehensive dashboards, real-time charts, and detailed trade analytics.",
+        "highlights": ["Live P&L Tracking", "Performance Metrics", "Trade History"]
+      },
+      "execution": {
+        "title": "Lightning Fast Execution",
+        "description": "Execute trades in milliseconds with our optimized infrastructure directly connected to major exchanges.",
+        "highlights": ["<50ms Latency", "Smart Order Routing", "Slippage Protection"]
+      },
+      "strategies": {
+        "title": "Multiple Strategies",
+        "description": "Choose from proven trading strategies including RSI, MACD, Bollinger Bands, and Volume-based approaches.",
+        "highlights": ["RSI Strategy", "MACD Crossover", "Bollinger Bands"]
+      }
+    },
+    "additional": {
+      "backtesting": { "title": "Backtesting Engine", "description": "Test strategies on historical data" },
+      "security": { "title": "Bank-Grade Security", "description": "End-to-end encryption & 2FA" },
+      "multiExchange": { "title": "Multi-Exchange Support", "description": "Trade on Binance, Bybit & more" },
+      "monitoring": { "title": "24/7 Monitoring", "description": "Always-on system monitoring" },
+      "alerts": { "title": "Custom Alerts", "description": "Telegram, Discord & Email alerts" },
+      "aiSignals": { "title": "AI Signals", "description": "Machine learning predictions" }
+    }
+  },
+  "pricing": {
+    "badge": "Simple Pricing",
+    "title": "Choose Your",
+    "subtitle": "Trading Plan",
+    "description": "Start free and scale as you grow. No hidden fees, cancel anytime.",
+    "mostPopular": "Most Popular",
+    "faq": "Frequently Asked Questions",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "Free",
+        "description": "Perfect for learning and paper trading",
+        "features": [
+          "Paper Trading Only",
+          "3 Active Strategies",
+          "Basic AI Signals",
+          "Community Support",
+          "1 Exchange Connection",
+          "Daily Performance Reports"
+        ],
+        "cta": "Start Free"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$49",
+        "period": "/month",
+        "description": "For serious traders ready to go live",
+        "features": [
+          "Live Trading Enabled",
+          "Unlimited Strategies",
+          "Advanced AI Analysis",
+          "Priority Support",
+          "3 Exchange Connections",
+          "Real-time Alerts",
+          "Advanced Risk Management",
+          "Custom Strategy Builder"
+        ],
+        "cta": "Get Started"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "For funds and professional traders",
+        "features": [
+          "Everything in Pro",
+          "Unlimited Exchanges",
+          "Dedicated Account Manager",
+          "Custom API Integration",
+          "White-label Options",
+          "SLA Guarantee",
+          "On-premise Deployment",
+          "Custom AI Model Training"
+        ],
+        "cta": "Contact Sales"
+      }
+    },
+    "faqs": {
+      "switch": {
+        "question": "Can I switch plans anytime?",
+        "answer": "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate your billing."
+      },
+      "trial": {
+        "question": "Is there a free trial for Pro?",
+        "answer": "Yes! You get a 14-day free trial of Pro features. No credit card required."
+      },
+      "payment": {
+        "question": "What payment methods do you accept?",
+        "answer": "We accept all major credit cards, PayPal, and cryptocurrency (BTC, ETH, USDT)."
+      },
+      "cancel": {
+        "question": "Can I cancel anytime?",
+        "answer": "Absolutely. Cancel your subscription anytime with no cancellation fees."
+      }
+    }
+  },
+  "about": {
+    "badge": "About Us",
+    "title": "Building the Future of",
+    "subtitle": "Automated Trading",
+    "description": "We believe everyone deserves access to institutional-grade trading technology. Our mission is to democratize algorithmic trading through AI.",
+    "stats": {
+      "activeUsers": "Active Users",
+      "countries": "Countries",
+      "tradesExecuted": "Trades Executed",
+      "totalVolume": "Total Volume"
+    },
+    "values": {
+      "title": "Our Values",
+      "missionDriven": {
+        "title": "Mission-Driven",
+        "description": "We're committed to democratizing algorithmic trading for everyone."
+      },
+      "userFirst": {
+        "title": "User-First",
+        "description": "Every feature we build starts with understanding our users' needs."
+      },
+      "innovation": {
+        "title": "Innovation",
+        "description": "We push the boundaries of what's possible with AI and trading."
+      },
+      "globalImpact": {
+        "title": "Global Impact",
+        "description": "Building tools that empower traders worldwide, regardless of background."
+      }
+    },
+    "journey": {
+      "title": "Our Journey",
+      "milestones": [
+        { "year": "2021", "event": "Founded in San Francisco" },
+        { "year": "2022", "event": "Launched beta with 1,000 users" },
+        { "year": "2023", "event": "Series A funding, 50,000+ users" },
+        { "year": "2024", "event": "AI trading engine v2.0 released" }
+      ]
+    },
+    "team": {
+      "title": "Meet Our Team",
+      "members": [
+        { "name": "Alex Chen", "role": "CEO & Co-Founder", "bio": "Former quantitative trader at Goldman Sachs with 10+ years in algorithmic trading." },
+        { "name": "Sarah Kim", "role": "CTO & Co-Founder", "bio": "Ex-Google engineer specializing in machine learning and distributed systems." },
+        { "name": "Michael Rodriguez", "role": "Head of AI", "bio": "PhD in Machine Learning from MIT, pioneered neural network trading strategies." },
+        { "name": "Emily Zhang", "role": "Head of Product", "bio": "Former product lead at Coinbase, passionate about user-centric design." }
+      ]
+    },
+    "cta": {
+      "title": "Join Our Mission",
+      "description": "We're always looking for talented individuals who share our passion for innovation.",
+      "viewPositions": "View Open Positions",
+      "getInTouch": "Get in Touch"
+    }
+  },
+  "contact": {
+    "badge": "Contact Us",
+    "title": "Get in Touch",
+    "description": "Have questions? We're here to help. Reach out to our team and we'll get back to you as soon as possible.",
+    "info": {
+      "email": { "title": "Email", "value": "support@botcore.io", "description": "We'll respond within 24 hours" },
+      "liveChat": { "title": "Live Chat", "value": "Available 24/7", "description": "Chat with our support team" },
+      "phone": { "title": "Phone", "value": "+1 (555) 123-4567", "description": "Mon-Fri 9am-6pm PST" },
+      "office": { "title": "Office", "value": "San Francisco, CA", "description": "123 Market Street, Suite 456" }
+    },
+    "form": {
+      "title": "Send Us a Message",
+      "name": "Your Name",
+      "namePlaceholder": "John Doe",
+      "email": "Email Address",
+      "emailPlaceholder": "john@example.com",
+      "category": "Category",
+      "subject": "Subject",
+      "subjectPlaceholder": "How can we help?",
+      "message": "Message",
+      "messagePlaceholder": "Tell us more about your inquiry...",
+      "submit": "Send Message",
+      "success": "Message sent successfully! We'll get back to you soon."
+    },
+    "categories": {
+      "title": "How Can We Help?",
+      "general": { "title": "General Inquiry", "description": "Questions about our platform" },
+      "technical": { "title": "Technical Support", "description": "Help with technical issues" },
+      "enterprise": { "title": "Enterprise Sales", "description": "Custom solutions for businesses" },
+      "partnership": { "title": "Partnership", "description": "Collaboration opportunities" }
+    },
+    "responseTime": {
+      "title": "Response Time",
+      "items": [
+        "Email: Within 24 hours",
+        "Live Chat: Under 5 minutes",
+        "Phone: Immediate during business hours",
+        "Enterprise: Dedicated support"
+      ]
+    }
+  },
+  "blog": {
+    "badge": "Our Blog",
+    "title": "Latest Insights &",
+    "subtitle": "Trading Tips",
+    "description": "Stay updated with the latest market analysis, trading strategies, and platform updates.",
+    "readMore": "Read More",
+    "viewAll": "View All Posts",
+    "categories": {
+      "all": "All",
+      "trading": "Trading",
+      "ai": "AI & ML",
+      "market": "Market Analysis",
+      "tutorials": "Tutorials"
+    },
+    "posts": [
+      { "title": "How AI is Revolutionizing Crypto Trading", "excerpt": "Discover how machine learning algorithms are changing the game for crypto traders.", "category": "AI & ML", "readTime": "5 min read" },
+      { "title": "Top 5 Risk Management Strategies for 2024", "excerpt": "Learn essential risk management techniques to protect your trading capital.", "category": "Trading", "readTime": "8 min read" },
+      { "title": "Bitcoin Market Analysis: Q4 Outlook", "excerpt": "Our AI analyzes key market indicators for Bitcoin's Q4 performance.", "category": "Market Analysis", "readTime": "6 min read" },
+      { "title": "Getting Started with Paper Trading", "excerpt": "A beginner's guide to practicing trading without risking real money.", "category": "Tutorials", "readTime": "4 min read" },
+      { "title": "Understanding RSI Strategy in Bot Core", "excerpt": "Deep dive into how our RSI-based trading strategy works.", "category": "Trading", "readTime": "7 min read" },
+      { "title": "New Features: Advanced Portfolio Analytics", "excerpt": "Introducing new tools for tracking and analyzing your trading performance.", "category": "Tutorials", "readTime": "3 min read" }
+    ]
+  },
+  "careers": {
+    "badge": "Join Our Team",
+    "title": "Build the Future of",
+    "subtitle": "AI Trading",
+    "description": "We're looking for passionate individuals to help us revolutionize algorithmic trading. Join our team and make an impact.",
+    "whyJoin": {
+      "title": "Why Join Bot Core?",
+      "items": [
+        { "title": "Competitive Salary", "description": "Top-tier compensation with equity options" },
+        { "title": "Remote-First", "description": "Work from anywhere in the world" },
+        { "title": "Health Benefits", "description": "Comprehensive medical, dental & vision" },
+        { "title": "Learning Budget", "description": "$2,000 annual professional development" },
+        { "title": "Flexible PTO", "description": "Unlimited paid time off policy" },
+        { "title": "Team Events", "description": "Quarterly offsites and team building" }
+      ]
+    },
+    "openings": {
+      "title": "Open Positions",
+      "apply": "Apply Now",
+      "positions": [
+        { "title": "Senior Backend Engineer", "location": "Remote", "type": "Full-time", "department": "Engineering" },
+        { "title": "ML Engineer - Trading Systems", "location": "Remote", "type": "Full-time", "department": "AI/ML" },
+        { "title": "Product Designer", "location": "San Francisco", "type": "Full-time", "department": "Design" },
+        { "title": "DevOps Engineer", "location": "Remote", "type": "Full-time", "department": "Engineering" }
+      ]
+    },
+    "noPosition": {
+      "title": "Don't See Your Role?",
+      "description": "We're always looking for talented people. Send us your resume and tell us how you can contribute.",
+      "button": "Send Resume"
+    }
+  },
+  "privacy": {
+    "badge": "Privacy Policy",
+    "title": "Your Privacy",
+    "subtitle": "Matters to Us",
+    "lastUpdated": "Last updated: January 2024",
+    "description": "We are committed to protecting your privacy. This policy explains how we collect, use, and safeguard your information.",
+    "sections": {
+      "collection": {
+        "title": "Information We Collect",
+        "items": [
+          "Account information (name, email, password)",
+          "Trading preferences and settings",
+          "Platform usage and analytics data",
+          "API keys (encrypted and secured)",
+          "Payment information (processed securely)"
+        ]
+      },
+      "usage": {
+        "title": "How We Use Your Information",
+        "items": [
+          "Provide and improve our trading services",
+          "Process your transactions securely",
+          "Send important platform updates",
+          "Analyze and improve platform performance",
+          "Comply with legal requirements"
+        ]
+      },
+      "protection": {
+        "title": "How We Protect Your Data",
+        "items": [
+          "End-to-end encryption for all data",
+          "Regular security audits and penetration testing",
+          "SOC 2 Type II compliance",
+          "Multi-factor authentication",
+          "Secure data centers with 24/7 monitoring"
+        ]
+      },
+      "rights": {
+        "title": "Your Rights",
+        "items": [
+          "Access your personal data",
+          "Request data correction or deletion",
+          "Opt out of marketing communications",
+          "Export your data in portable format",
+          "Withdraw consent at any time"
+        ]
+      }
+    },
+    "contact": "For privacy-related inquiries, contact us at privacy@botcore.io"
+  },
+  "terms": {
+    "badge": "Terms of Service",
+    "title": "Terms of",
+    "subtitle": "Service",
+    "lastUpdated": "Last updated: January 2024",
+    "description": "Please read these terms carefully before using Bot Core platform. By using our services, you agree to these terms.",
+    "sections": {
+      "acceptance": {
+        "title": "Acceptance of Terms",
+        "content": "By accessing or using Bot Core, you agree to be bound by these Terms of Service and all applicable laws and regulations."
+      },
+      "services": {
+        "title": "Description of Services",
+        "content": "Bot Core provides AI-powered cryptocurrency trading tools, including automated trading bots, market analysis, and portfolio management features."
+      },
+      "account": {
+        "title": "Account Responsibilities",
+        "items": [
+          "Provide accurate account information",
+          "Maintain confidentiality of your credentials",
+          "Notify us of unauthorized access immediately",
+          "Use the platform in compliance with applicable laws"
+        ]
+      },
+      "trading": {
+        "title": "Trading Risks",
+        "content": "Cryptocurrency trading involves substantial risk. Past performance does not guarantee future results. You acknowledge that you may lose some or all of your investment."
+      },
+      "prohibited": {
+        "title": "Prohibited Activities",
+        "items": [
+          "Market manipulation or fraudulent trading",
+          "Unauthorized access to other accounts",
+          "Violation of exchange terms of service",
+          "Distribution of malware or harmful code"
+        ]
+      },
+      "termination": {
+        "title": "Termination",
+        "content": "We reserve the right to suspend or terminate your account for violation of these terms or suspicious activity."
+      }
+    },
+    "contact": "For questions about these terms, contact us at legal@botcore.io"
+  },
+  "security": {
+    "badge": "Security",
+    "title": "Your Security",
+    "subtitle": "Our Priority",
+    "description": "We implement industry-leading security measures to protect your assets and data.",
+    "features": {
+      "encryption": {
+        "title": "End-to-End Encryption",
+        "description": "All data is encrypted using AES-256 encryption in transit and at rest."
+      },
+      "mfa": {
+        "title": "Multi-Factor Authentication",
+        "description": "Protect your account with 2FA via authenticator app or hardware key."
+      },
+      "keys": {
+        "title": "Secure API Key Storage",
+        "description": "Your exchange API keys are encrypted and stored in secure vaults."
+      },
+      "audit": {
+        "title": "Regular Security Audits",
+        "description": "Third-party security firms conduct quarterly penetration testing."
+      },
+      "soc2": {
+        "title": "SOC 2 Type II Compliant",
+        "description": "We maintain strict compliance with SOC 2 security standards."
+      },
+      "monitoring": {
+        "title": "24/7 Monitoring",
+        "description": "Our security team monitors for threats around the clock."
+      }
+    },
+    "practices": {
+      "title": "Security Best Practices",
+      "items": [
+        "Use a strong, unique password",
+        "Enable two-factor authentication",
+        "Use API keys with withdrawal disabled",
+        "Monitor your account activity regularly",
+        "Keep your software up to date",
+        "Be cautious of phishing attempts"
+      ]
+    },
+    "report": {
+      "title": "Report a Vulnerability",
+      "description": "Found a security issue? We appreciate responsible disclosure.",
+      "button": "Report Issue"
+    }
+  },
+  "compliance": {
+    "badge": "Compliance",
+    "title": "Regulatory",
+    "subtitle": "Compliance",
+    "description": "Bot Core maintains strict compliance with financial regulations and data protection laws.",
+    "certifications": {
+      "title": "Certifications & Standards",
+      "items": [
+        { "name": "SOC 2 Type II", "description": "Security, availability, and confidentiality controls" },
+        { "name": "GDPR Compliant", "description": "European data protection regulation" },
+        { "name": "CCPA Compliant", "description": "California consumer privacy act" },
+        { "name": "ISO 27001", "description": "Information security management" }
+      ]
+    },
+    "policies": {
+      "title": "Compliance Policies",
+      "items": [
+        { "title": "Anti-Money Laundering (AML)", "description": "We implement comprehensive AML procedures to prevent financial crimes." },
+        { "title": "Know Your Customer (KYC)", "description": "Identity verification for enhanced account security." },
+        { "title": "Data Protection", "description": "Strict policies for handling and protecting user data." },
+        { "title": "Risk Management", "description": "Robust risk assessment and mitigation procedures." }
+      ]
+    },
+    "updates": {
+      "title": "Compliance Updates",
+      "description": "We continuously update our compliance practices to meet evolving regulations. Check this page regularly for updates."
+    },
+    "contact": "For compliance inquiries, contact compliance@botcore.io"
+  },
+  "api": {
+    "badge": "Developer API",
+    "title": "Build with",
+    "subtitle": "Bot Core API",
+    "description": "Powerful APIs to integrate trading automation into your applications.",
+    "features": {
+      "rest": {
+        "title": "RESTful API",
+        "description": "Standard REST endpoints for all trading operations"
+      },
+      "websocket": {
+        "title": "WebSocket Streams",
+        "description": "Real-time market data and trade updates"
+      },
+      "sdks": {
+        "title": "Official SDKs",
+        "description": "Libraries for Python, JavaScript, and more"
+      },
+      "docs": {
+        "title": "Comprehensive Docs",
+        "description": "Detailed documentation with examples"
+      }
+    },
+    "quickStart": {
+      "title": "Quick Start",
+      "description": "Get started with our API in minutes"
+    },
+    "viewDocs": "View Documentation",
+    "getApiKey": "Get API Key"
+  },
+  "docs": {
+    "badge": "Documentation",
+    "title": "Learn How to",
+    "subtitle": "Use Bot Core",
+    "description": "Comprehensive guides and tutorials to help you get started and make the most of our platform.",
+    "sections": {
+      "gettingStarted": { "title": "Getting Started", "description": "Quick start guides and initial setup" },
+      "trading": { "title": "Trading Guides", "description": "Learn about trading features" },
+      "api": { "title": "API Reference", "description": "Technical documentation for developers" },
+      "strategies": { "title": "Trading Strategies", "description": "Deep dive into our trading algorithms" }
+    },
+    "viewAll": "View All Documentation"
+  },
+  "howItWorks": {
+    "badge": "AI-POWERED TRADING BOT",
+    "hero": {
+      "title": "Smart Trading,",
+      "titleHighlight": "Zero Emotion",
+      "subtitle": "Automated cryptocurrency trading with advanced AI analysis, real-time market monitoring, and intelligent risk management."
+    },
+    "stats": {
+      "strategies": "Trading Strategies",
+      "riskLayers": "Risk Layers",
+      "uptime": "Uptime",
+      "aiAccuracy": "AI Accuracy"
+    },
+    "process": {
+      "title": "How Bot Core Works",
+      "subtitle": "Our AI-powered trading system follows a sophisticated 4-step process to identify and execute profitable trades."
+    },
+    "steps": {
+      "dataCollection": {
+        "number": "01",
+        "title": "Data Collection",
+        "subtitle": "Real-time market data aggregation",
+        "description": "Our system continuously collects and processes real-time market data from multiple sources to build a comprehensive picture of market conditions.",
+        "details": [
+          "Price feeds from major exchanges",
+          "Order book depth analysis",
+          "Volume and liquidity metrics",
+          "Social sentiment signals"
+        ]
+      },
+      "technicalAnalysis": {
+        "number": "02",
+        "title": "Technical Analysis",
+        "subtitle": "Multi-indicator strategy evaluation",
+        "description": "Advanced technical analysis using proven indicators to identify high-probability trading opportunities.",
+        "details": [
+          "RSI momentum analysis",
+          "MACD trend detection",
+          "Bollinger Band breakouts",
+          "Volume confirmation signals"
+        ]
+      },
+      "signalGeneration": {
+        "number": "03",
+        "title": "Signal Generation",
+        "subtitle": "AI-powered trade decisions",
+        "description": "Our machine learning models analyze patterns and generate trading signals with confidence scores.",
+        "details": [
+          "LSTM neural network predictions",
+          "GPT-4 market analysis",
+          "Multi-model ensemble voting",
+          "Confidence-weighted signals"
+        ]
+      },
+      "riskManagement": {
+        "number": "04",
+        "title": "Risk Management",
+        "subtitle": "Intelligent position sizing",
+        "description": "Every trade goes through our comprehensive risk management system to protect your capital.",
+        "details": [
+          "Dynamic position sizing",
+          "Automatic stop-loss placement",
+          "Portfolio correlation analysis",
+          "Daily loss limit enforcement"
+        ]
+      }
+    },
+    "strategies": {
+      "title": "Trading Strategies",
+      "subtitle": "Choose from our suite of proven trading strategies, each optimized for different market conditions.",
+      "winRate": "Win Rate",
+      "buy": "Buy",
+      "sell": "Sell",
+      "items": {
+        "rsi": {
+          "name": "RSI Strategy",
+          "description": "Momentum-based trading using Relative Strength Index to identify overbought and oversold conditions.",
+          "winRate": "62%"
+        },
+        "macd": {
+          "name": "MACD Strategy",
+          "description": "Trend-following strategy using Moving Average Convergence Divergence crossovers.",
+          "winRate": "58%"
+        },
+        "bollinger": {
+          "name": "Bollinger Bands",
+          "description": "Volatility-based strategy trading price reversals at band boundaries.",
+          "winRate": "60%"
+        },
+        "volume": {
+          "name": "Volume Strategy",
+          "description": "Volume-weighted analysis to confirm price movements and breakouts.",
+          "winRate": "52%"
+        },
+        "stochastic": {
+          "name": "Stochastic",
+          "description": "Momentum oscillator comparing closing price to price range over time.",
+          "winRate": "64%"
+        }
+      },
+      "note": "Win rates based on historical backtesting. Past performance does not guarantee future results.",
+      "multiConfirmation": {
+        "title": "Multi-Confirmation Required",
+        "description": "Trades are only executed when at least 4 out of 5 strategies agree on the signal direction, ensuring high-quality trade entries."
+      }
+    },
+    "risk": {
+      "title": "Risk Management Layers",
+      "subtitle": "Multiple layers of protection to safeguard your trading capital.",
+      "layers": {
+        "position": {
+          "title": "Position Risk",
+          "description": "Maximum 2% of portfolio per trade"
+        },
+        "stopLoss": {
+          "title": "Stop Loss",
+          "description": "Automatic loss limiting on every trade"
+        },
+        "portfolio": {
+          "title": "Portfolio Risk",
+          "description": "Diversified exposure across positions"
+        },
+        "daily": {
+          "title": "Daily Limit",
+          "description": "5% maximum daily drawdown protection"
+        },
+        "consecutiveLosses": {
+          "title": "Consecutive Losses",
+          "description": "Before cool-down"
+        },
+        "correlation": {
+          "title": "Correlation",
+          "description": "70% max directional exposure limit"
+        },
+        "cooldown": {
+          "title": "Cool-down",
+          "description": "60-minute pause after 5 consecutive losses"
+        }
+      }
+    },
+    "trailingStop": {
+      "title": "Trailing Stop Protection",
+      "subtitle": "Lock in profits while letting winners run",
+      "description": "Our intelligent trailing stop system automatically adjusts your stop-loss as the price moves in your favor, protecting profits while maximizing upside potential.",
+      "result": "Result: +3.47% profit ($1,560) protected even when price dropped from peak",
+      "steps": {
+        "entry": "Entry",
+        "profit": "+5% Profit",
+        "trailing": "Trailing Active",
+        "peak": "Peak Price",
+        "exit": "Exit"
+      }
+    },
+    "cta": {
+      "title": "Ready to Start Trading Smarter?",
+      "subtitle": "Join thousands of traders using Bot Core to automate their strategies with AI-powered precision.",
+      "button": "Start Paper Trading Free"
+    }
+  }
+}

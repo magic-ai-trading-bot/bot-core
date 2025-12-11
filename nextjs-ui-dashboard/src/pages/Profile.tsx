@@ -5,8 +5,9 @@
  * Uses usePaperTrading() hook for real portfolio metrics and useAuth() for user data.
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePaperTrading } from '@/hooks/usePaperTrading';
 import { toast } from 'sonner';
@@ -14,7 +15,6 @@ import { toast } from 'sonner';
 // API Base URL
 const API_BASE = import.meta.env.VITE_RUST_API_URL || 'http://localhost:8080';
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -28,8 +28,8 @@ import {
   itemVariants,
   Divider,
 } from '@/styles/luxury-design-system';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
-  User,
   Mail,
   Calendar,
   Camera,
@@ -50,6 +50,8 @@ import {
 } from 'lucide-react';
 
 export function Profile() {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
   // Get real user data from auth context
   const { user: authUser, isAuthenticated } = useAuth();
 
@@ -104,7 +106,7 @@ export function Profile() {
 
   const handleSave = async () => {
     if (!tempName.trim()) {
-      toast.error('Display name cannot be empty');
+      toast.error(t('profile.errors.emptyName'));
       return;
     }
 
@@ -123,14 +125,14 @@ export function Profile() {
       if (response.ok) {
         setDisplayName(tempName.trim());
         setIsEditing(false);
-        toast.success('Profile updated successfully');
+        toast.success(t('profile.success.profileUpdated'));
       } else {
         const data = await response.json().catch(() => ({}));
-        toast.error(data.message || 'Failed to update profile');
+        toast.error(data.message || t('profile.errors.updateFailed'));
       }
     } catch (error) {
       console.error('Profile update error:', error);
-      toast.error('Failed to update profile. Please try again.');
+      toast.error(t('profile.errors.updateFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -147,13 +149,13 @@ export function Profile() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      toast.error(t('profile.errors.invalidImage'));
       return;
     }
 
     // Validate file size (max 500KB)
     if (file.size > 500 * 1024) {
-      toast.error('Image must be less than 500KB');
+      toast.error(t('profile.errors.imageTooLarge'));
       return;
     }
 
@@ -183,21 +185,21 @@ export function Profile() {
             // Fallback: use the base64 directly
             setAvatarUrl(base64);
           }
-          toast.success('Avatar updated successfully');
+          toast.success(t('profile.success.avatarUpdated'));
         } else {
           const data = await response.json().catch(() => ({}));
-          toast.error(data.error || 'Failed to upload avatar');
+          toast.error(data.error || t('profile.errors.avatarUploadFailed'));
         }
         setIsUploadingAvatar(false);
       };
       reader.onerror = () => {
-        toast.error('Failed to read image file');
+        toast.error(t('profile.errors.readImageFailed'));
         setIsUploadingAvatar(false);
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Avatar upload error:', error);
-      toast.error('Failed to upload avatar. Please try again.');
+      toast.error(t('profile.errors.avatarUploadFailed'));
       setIsUploadingAvatar(false);
     }
   };
@@ -233,17 +235,17 @@ export function Profile() {
       const firstTrade = closedTrades[closedTrades.length - 1]; // Oldest trade
       earned.push({
         icon: Trophy,
-        label: 'First Trade',
+        label: t('profile.achievements.firstTrade'),
         date: firstTrade.exit_time || firstTrade.entry_time,
-        color: luxuryColors.amber,
+        color: colors.amber,
         unlocked: true,
       });
     } else {
       earned.push({
         icon: Trophy,
-        label: 'First Trade',
-        date: 'Not yet',
-        color: luxuryColors.textMuted,
+        label: t('profile.achievements.firstTrade'),
+        date: t('profile.achievements.notYet'),
+        color: colors.textMuted,
         unlocked: false,
       });
     }
@@ -252,17 +254,17 @@ export function Profile() {
     if (stats.totalTrades >= 10) {
       earned.push({
         icon: Target,
-        label: '10 Trades',
-        date: 'Achieved',
-        color: luxuryColors.cyan,
+        label: t('profile.achievements.tenTrades'),
+        date: t('profile.achievements.achieved'),
+        color: colors.cyan,
         unlocked: true,
       });
     } else {
       earned.push({
         icon: Target,
-        label: `10 Trades (${stats.totalTrades}/10)`,
-        date: 'In progress',
-        color: luxuryColors.textMuted,
+        label: `${t('profile.achievements.tenTrades')} (${stats.totalTrades}/10)`,
+        date: t('profile.achievements.inProgress'),
+        color: colors.textMuted,
         unlocked: false,
       });
     }
@@ -271,17 +273,17 @@ export function Profile() {
     if (stats.totalPnL > 0) {
       earned.push({
         icon: TrendingUp,
-        label: 'In Profit',
-        date: 'Active',
-        color: luxuryColors.emerald,
+        label: t('profile.achievements.inProfit'),
+        date: t('profile.achievements.active'),
+        color: colors.emerald,
         unlocked: true,
       });
     } else {
       earned.push({
         icon: TrendingUp,
-        label: 'In Profit',
-        date: 'Not yet',
-        color: luxuryColors.textMuted,
+        label: t('profile.achievements.inProfit'),
+        date: t('profile.achievements.notYet'),
+        color: colors.textMuted,
         unlocked: false,
       });
     }
@@ -290,23 +292,23 @@ export function Profile() {
     if (stats.winRate > 50) {
       earned.push({
         icon: Award,
-        label: 'Winning Streak',
-        date: `${stats.winRate.toFixed(1)}% win rate`,
-        color: luxuryColors.purple,
+        label: t('profile.achievements.winningStreak'),
+        date: `${stats.winRate.toFixed(1)}% ${t('stats.winRate').toLowerCase()}`,
+        color: colors.purple,
         unlocked: true,
       });
     } else {
       earned.push({
         icon: Award,
-        label: 'Winning Streak (>50%)',
-        date: `${stats.winRate.toFixed(1)}% current`,
-        color: luxuryColors.textMuted,
+        label: `${t('profile.achievements.winningStreak')} (>50%)`,
+        date: `${stats.winRate.toFixed(1)}% ${t('profile.achievements.current')}`,
+        color: colors.textMuted,
         unlocked: false,
       });
     }
 
     return earned;
-  }, [closedTrades, stats]);
+  }, [closedTrades, stats, t, colors]);
 
   // Recent activity from closed trades
   const activities = useMemo(() => {
@@ -314,10 +316,11 @@ export function Profile() {
       const pnl = trade.pnl || 0;
       const isProfitable = pnl >= 0;
       const timeAgo = getTimeAgo(trade.exit_time || trade.entry_time);
+      const sideLabel = trade.side === 'BUY' ? t('profile.activity.long') : t('profile.activity.short');
 
       return {
         type: 'trade' as const,
-        action: `Closed ${trade.symbol} ${trade.side === 'BUY' ? 'Long' : 'Short'}`,
+        action: `${t('profile.activity.closed')} ${trade.symbol} ${sideLabel}`,
         result: `${isProfitable ? '+' : ''}$${pnl.toFixed(2)}`,
         time: timeAgo,
         profit: isProfitable,
@@ -328,15 +331,15 @@ export function Profile() {
     if (stats.totalTrades === 10) {
       recentTrades.push({
         type: 'achievement' as const,
-        action: 'Unlocked: 10 Trades',
+        action: `${t('profile.activity.unlocked')}: ${t('profile.achievements.tenTrades')}`,
         result: null as unknown as string,
-        time: 'Milestone',
+        time: t('profile.activity.milestone'),
         profit: null as unknown as boolean,
       });
     }
 
     return recentTrades.slice(0, 5);
-  }, [closedTrades, stats.totalTrades]);
+  }, [closedTrades, stats.totalTrades, t]);
 
   // Helper function for time ago
   function getTimeAgo(timestamp: string): string {
@@ -368,8 +371,8 @@ export function Profile() {
             }}
           >
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5" style={{ color: luxuryColors.loss }} />
-              <p className="text-sm" style={{ color: luxuryColors.loss }}>
+              <AlertCircle className="w-5 h-5" style={{ color: colors.loss }} />
+              <p className="text-sm" style={{ color: colors.loss }}>
                 {error}
               </p>
               <button
@@ -377,7 +380,7 @@ export function Profile() {
                 className="ml-auto p-2 rounded-lg transition-colors"
                 style={{ background: 'rgba(239, 68, 68, 0.2)' }}
               >
-                <RefreshCw className="w-4 h-4" style={{ color: luxuryColors.loss }} />
+                <RefreshCw className="w-4 h-4" style={{ color: colors.loss }} />
               </button>
             </div>
           </motion.div>
@@ -390,7 +393,7 @@ export function Profile() {
             <div
               className="absolute inset-0 h-32 opacity-30"
               style={{
-                background: luxuryColors.gradientPremium,
+                background: colors.gradientPremium,
                 filter: 'blur(60px)',
               }}
             />
@@ -407,16 +410,16 @@ export function Profile() {
                     <div
                       className="w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center overflow-hidden"
                       style={{
-                        background: luxuryColors.gradientPremium,
+                        background: colors.gradientPremium,
                         padding: '3px',
-                        boxShadow: luxuryColors.glowCyan,
+                        boxShadow: colors.glowCyan,
                       }}
                     >
                       <div
                         className="w-full h-full rounded-full flex items-center justify-center font-black text-3xl"
                         style={{
-                          backgroundColor: luxuryColors.bgPrimary,
-                          color: luxuryColors.textPrimary,
+                          backgroundColor: colors.bgPrimary,
+                          color: colors.textPrimary,
                         }}
                       >
                         {user.avatarUrl ? (
@@ -435,9 +438,9 @@ export function Profile() {
                       }`}
                     >
                       {isUploadingAvatar ? (
-                        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: luxuryColors.cyan }} />
+                        <RefreshCw className="w-8 h-8 animate-spin" style={{ color: colors.cyan }} />
                       ) : (
-                        <Camera className="w-8 h-8" style={{ color: luxuryColors.cyan }} />
+                        <Camera className="w-8 h-8" style={{ color: colors.cyan }} />
                       )}
                       <input
                         id="avatar-upload"
@@ -484,7 +487,7 @@ export function Profile() {
                         {user.verified && (
                           <BadgeCheck
                             className="w-6 h-6"
-                            style={{ color: luxuryColors.cyan }}
+                            style={{ color: colors.cyan }}
                           />
                         )}
                         <motion.button
@@ -493,8 +496,8 @@ export function Profile() {
                           onClick={() => setIsEditing(true)}
                           className="p-1.5 rounded-lg transition-colors"
                           style={{
-                            color: luxuryColors.textMuted,
-                            backgroundColor: luxuryColors.bgSecondary,
+                            color: colors.textMuted,
+                            backgroundColor: colors.bgSecondary,
                           }}
                         >
                           <Edit2 className="w-4 h-4" />
@@ -504,14 +507,14 @@ export function Profile() {
                   </div>
 
                   <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-                    <Mail className="w-4 h-4" style={{ color: luxuryColors.textMuted }} />
-                    <span style={{ color: luxuryColors.textSecondary }}>{user.email}</span>
+                    <Mail className="w-4 h-4" style={{ color: colors.textMuted }} />
+                    <span style={{ color: colors.textSecondary }}>{user.email}</span>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                     <Badge variant="info" glow>
                       <Calendar className="w-3 h-3 inline mr-1" />
-                      Member since {user.memberSince.toLocaleDateString('en-US', {
+                      {t('profile.memberSince')} {user.memberSince.toLocaleDateString('en-US', {
                         month: 'short',
                         year: 'numeric',
                       })}
@@ -519,7 +522,7 @@ export function Profile() {
                     {isAuthenticated && (
                       <Badge variant="success" glow>
                         <BadgeCheck className="w-3 h-3 inline mr-1" />
-                        Authenticated
+                        {t('profile.authenticated')}
                       </Badge>
                     )}
                   </div>
@@ -532,8 +535,8 @@ export function Profile() {
         {/* Trading Stats Section */}
         <motion.div variants={itemVariants}>
           <SectionHeader
-            title="Trading Performance"
-            subtitle="Your real trading statistics from paper trading"
+            title={t('profile.title')}
+            subtitle={t('profile.subtitle')}
             icon={Activity}
           />
         </motion.div>
@@ -545,7 +548,7 @@ export function Profile() {
               <div
                 key={i}
                 className="h-28 rounded-xl animate-pulse"
-                style={{ background: luxuryColors.bgSecondary }}
+                style={{ background: colors.bgSecondary }}
               />
             ))}
           </div>
@@ -557,70 +560,70 @@ export function Profile() {
               variants={containerVariants}
             >
               <StatCard
-                label="Total Trades"
+                label={t('stats.totalTrades')}
                 value={stats.totalTrades}
                 icon={Activity}
-                iconColor={luxuryColors.cyan}
+                iconColor={colors.cyan}
                 gradient
               />
               <StatCard
-                label="Win Rate"
+                label={t('stats.winRate')}
                 value={`${stats.winRate.toFixed(1)}%`}
                 icon={Target}
-                iconColor={luxuryColors.emerald}
-                valueColor={stats.winRate >= 50 ? luxuryColors.profit : luxuryColors.loss}
+                iconColor={colors.emerald}
+                valueColor={stats.winRate >= 50 ? colors.profit : colors.loss}
               />
               <StatCard
-                label="Total P&L"
+                label={t('stats.totalPnL')}
                 value={`${stats.totalPnL >= 0 ? '+' : ''}$${stats.totalPnL.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                 icon={stats.totalPnL >= 0 ? TrendingUp : TrendingDown}
-                iconColor={stats.totalPnL >= 0 ? luxuryColors.emerald : luxuryColors.rose}
-                valueColor={stats.totalPnL >= 0 ? luxuryColors.profit : luxuryColors.loss}
+                iconColor={stats.totalPnL >= 0 ? colors.emerald : colors.rose}
+                valueColor={stats.totalPnL >= 0 ? colors.profit : colors.loss}
               />
               <StatCard
-                label="Best Trade"
+                label={t('stats.bestTrade')}
                 value={`+$${stats.bestTrade.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                 icon={TrendingUp}
-                iconColor={luxuryColors.emerald}
-                valueColor={luxuryColors.profit}
+                iconColor={colors.emerald}
+                valueColor={colors.profit}
               />
             </motion.div>
 
             {/* Advanced Metrics */}
             <GlassCard>
-              <h4 className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: luxuryColors.textMuted }}>
-                Advanced Metrics
+              <h4 className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: colors.textMuted }}>
+                {t('profile.advancedMetrics')}
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Avg Profit
+                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: colors.textMuted }}>
+                    {t('stats.avgProfit')}
                   </p>
-                  <p className="text-2xl font-black" style={{ color: luxuryColors.profit }}>
+                  <p className="text-2xl font-black" style={{ color: colors.profit }}>
                     +${stats.avgProfit.toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Avg Loss
+                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: colors.textMuted }}>
+                    {t('stats.avgLoss')}
                   </p>
-                  <p className="text-2xl font-black" style={{ color: luxuryColors.loss }}>
+                  <p className="text-2xl font-black" style={{ color: colors.loss }}>
                     -${Math.abs(stats.avgLoss).toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Profit Factor
+                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: colors.textMuted }}>
+                    {t('stats.profitFactor')}
                   </p>
-                  <p className="text-2xl font-black" style={{ color: stats.profitFactor >= 1 ? luxuryColors.profit : luxuryColors.loss }}>
+                  <p className="text-2xl font-black" style={{ color: stats.profitFactor >= 1 ? colors.profit : colors.loss }}>
                     {stats.profitFactor.toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: luxuryColors.textMuted }}>
-                    Sharpe Ratio
+                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: colors.textMuted }}>
+                    {t('stats.sharpeRatio')}
                   </p>
-                  <p className="text-2xl font-black" style={{ color: stats.sharpeRatio >= 1 ? luxuryColors.profit : luxuryColors.textSecondary }}>
+                  <p className="text-2xl font-black" style={{ color: stats.sharpeRatio >= 1 ? colors.profit : colors.textSecondary }}>
                     {stats.sharpeRatio.toFixed(2)}
                   </p>
                 </div>
@@ -632,8 +635,8 @@ export function Profile() {
         {/* Achievements Section */}
         <motion.div variants={itemVariants}>
           <SectionHeader
-            title="Achievements"
-            subtitle="Your trading milestones"
+            title={t('profile.achievements.title')}
+            subtitle={t('profile.achievements.subtitle')}
             icon={Trophy}
           />
         </motion.div>
@@ -654,11 +657,11 @@ export function Profile() {
                 <div>
                   <p
                     className="font-bold text-sm"
-                    style={{ color: achievement.unlocked ? luxuryColors.textPrimary : luxuryColors.textMuted }}
+                    style={{ color: achievement.unlocked ? colors.textPrimary : colors.textMuted }}
                   >
                     {achievement.label}
                   </p>
-                  <p className="text-[10px]" style={{ color: luxuryColors.textMuted }}>
+                  <p className="text-[10px]" style={{ color: colors.textMuted }}>
                     {achievement.unlocked && achievement.date !== 'Achieved' && achievement.date !== 'Active'
                       ? new Date(achievement.date).toLocaleDateString('en-US', {
                           month: 'short',
@@ -676,8 +679,8 @@ export function Profile() {
         {/* Activity Timeline Section */}
         <motion.div variants={itemVariants}>
           <SectionHeader
-            title="Recent Activity"
-            subtitle="Your latest trading actions"
+            title={t('profile.activity.title')}
+            subtitle={t('profile.activity.subtitle')}
             icon={Clock}
           />
         </motion.div>
@@ -685,10 +688,10 @@ export function Profile() {
         <GlassCard>
           {activities.length === 0 ? (
             <div className="text-center py-8">
-              <Activity className="w-12 h-12 mx-auto mb-3" style={{ color: luxuryColors.textMuted }} />
-              <p style={{ color: luxuryColors.textMuted }}>No recent activity</p>
-              <p className="text-sm mt-1" style={{ color: luxuryColors.textMuted }}>
-                Start trading to see your activity here
+              <Activity className="w-12 h-12 mx-auto mb-3" style={{ color: colors.textMuted }} />
+              <p style={{ color: colors.textMuted }}>{t('profile.activity.noActivity')}</p>
+              <p className="text-sm mt-1" style={{ color: colors.textMuted }}>
+                {t('profile.activity.startTrading')}
               </p>
             </div>
           ) : (
@@ -701,18 +704,18 @@ export function Profile() {
                         icon={activity.type === 'achievement' ? Star : Activity}
                         color={
                           activity.type === 'achievement'
-                            ? luxuryColors.amber
+                            ? colors.amber
                             : activity.profit
-                              ? luxuryColors.emerald
-                              : luxuryColors.rose
+                              ? colors.emerald
+                              : colors.rose
                         }
                         size="sm"
                       />
                       <div>
-                        <p className="text-sm font-medium" style={{ color: luxuryColors.textPrimary }}>
+                        <p className="text-sm font-medium" style={{ color: colors.textPrimary }}>
                           {activity.action}
                         </p>
-                        <p className="text-[10px]" style={{ color: luxuryColors.textMuted }}>
+                        <p className="text-[10px]" style={{ color: colors.textMuted }}>
                           {activity.time}
                         </p>
                       </div>
@@ -721,7 +724,7 @@ export function Profile() {
                       <span
                         className="text-sm font-bold"
                         style={{
-                          color: activity.profit ? luxuryColors.profit : luxuryColors.loss,
+                          color: activity.profit ? colors.profit : colors.loss,
                         }}
                       >
                         {activity.result}

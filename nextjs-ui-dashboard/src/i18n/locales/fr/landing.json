@@ -1,0 +1,177 @@
+{
+  "nav": {
+    "features": "Fonctionnalités",
+    "pricing": "Tarification",
+    "reviews": "Avis",
+    "faq": "FAQ",
+    "signIn": "Se connecter",
+    "startTrial": "Essai gratuit"
+  },
+  "hero": {
+    "badge": "Révolution du trading alimentée par l'IA",
+    "title": "Trading Crypto",
+    "subtitle": "Redéfini par l'IA",
+    "description": "Exploitez la puissance de l'intelligence artificielle pour analyser les marchés crypto, prédire les tendances et exécuter automatiquement des trades rentables sur Binance Futures.",
+    "startTrading": "Commencer à trader",
+    "watchDemo": "Voir la démo"
+  },
+  "stats": {
+    "totalUsers": "Utilisateurs totaux",
+    "tradingVolume": "Volume de trading",
+    "winRate": "Taux de réussite",
+    "responseTime": "Temps de réponse moyen",
+    "vsLastMonth": "vs mois dernier",
+    "faster": "plus rapide",
+    "activeTraders": "Traders actifs",
+    "uptime": "Disponibilité"
+  },
+  "features": {
+    "badge": "Fonctionnalités avancées",
+    "title": "Conçu pour les",
+    "subtitle": "Traders professionnels",
+    "description": "Découvrez la plateforme de trading crypto la plus sophistiquée alimentée par une technologie IA de pointe",
+    "aiAnalysis": {
+      "title": "Analyse IA",
+      "description": "Des modèles d'apprentissage automatique avancés analysent les tendances du marché et prédisent les mouvements de prix avec une précision de plus de 70%."
+    },
+    "riskManagement": {
+      "title": "Gestion des risques",
+      "description": "Stop-loss automatique, dimensionnement des positions et rééquilibrage de portefeuille pour protéger votre capital."
+    },
+    "realTimeExecution": {
+      "title": "Exécution en temps réel",
+      "description": "Exécution ultra-rapide des ordres avec une latence <100ms pour des points d'entrée et de sortie optimaux."
+    },
+    "advancedAnalytics": {
+      "title": "Analyses avancées",
+      "description": "Graphiques complets, indicateurs techniques et tableaux de bord personnalisés pour des décisions basées sur les données."
+    },
+    "backtesting": {
+      "title": "Backtesting de stratégie",
+      "description": "Testez vos stratégies sur des données historiques avant de risquer du capital réel."
+    },
+    "liveData": {
+      "title": "Données de marché en direct",
+      "description": "Flux de données de marché en temps réel de plusieurs exchanges avec connectivité WebSocket."
+    }
+  },
+  "pricing": {
+    "badge": "Plans tarifaires",
+    "title": "Choisissez votre",
+    "subtitle": "Avantage trading",
+    "description": "Plans tarifaires flexibles conçus pour évoluer avec vos ambitions de trading",
+    "mostPopular": "Le plus populaire",
+    "getStarted": "Commencer",
+    "month": "/mois",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "features": [
+          "Signaux de trading IA de base",
+          "Jusqu'à 5 positions actives",
+          "Support standard",
+          "Analyses de base"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "features": [
+          "Signaux de trading IA avancés",
+          "Positions actives illimitées",
+          "Support prioritaire",
+          "Analyses avancées et backtesting",
+          "Stratégies personnalisées",
+          "Accès API"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "features": [
+          "Tout dans Pro",
+          "Gestionnaire de compte dédié",
+          "Formation de modèle IA personnalisé",
+          "Solution en marque blanche",
+          "Garantie SLA"
+        ]
+      }
+    }
+  },
+  "testimonials": {
+    "badge": "Témoignages",
+    "title": "Adoré par les",
+    "subtitle": "Traders du monde entier",
+    "reviews": [
+      {
+        "name": "Sarah Chen",
+        "role": "Day Trader",
+        "text": "Les signaux IA sont incroyablement précis. J'ai augmenté mon taux de réussite de 45% à 68% en seulement 3 mois!"
+      },
+      {
+        "name": "Michael Rodriguez",
+        "role": "Investisseur Crypto",
+        "text": "La meilleure plateforme de trading que j'ai utilisée. Les fonctionnalités de gestion des risques m'ont sauvé de pertes majeures à plusieurs reprises."
+      },
+      {
+        "name": "Alex Thompson",
+        "role": "Trader Algorithmique",
+        "text": "L'API est robuste et les fonctionnalités de backtesting sont de premier ordre. Parfait pour tester les stratégies avant de passer en production."
+      }
+    ]
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Questions",
+    "subtitle": "fréquemment posées",
+    "items": [
+      {
+        "question": "Quelle est la précision des signaux de trading IA?",
+        "answer": "Nos modèles IA atteignent une précision directionnelle de plus de 70% sur plusieurs horizons temporels et conditions de marché. Nous entraînons et améliorons continuellement nos modèles avec les dernières données."
+      },
+      {
+        "question": "Mon capital est-il en sécurité?",
+        "answer": "Nous ne détenons jamais vos fonds. Vous gardez le contrôle total de vos actifs sur votre exchange. Nous exécutons uniquement des trades via des connexions API sécurisées avec des permissions de lecture et de trading."
+      },
+      {
+        "question": "Puis-je utiliser mes propres stratégies?",
+        "answer": "Absolument! Les plans Pro et Enterprise incluent le support des stratégies personnalisées. Vous pouvez backtester et déployer vos propres algorithmes aux côtés de nos signaux IA."
+      },
+      {
+        "question": "Quels exchanges sont supportés?",
+        "answer": "Nous supportons actuellement Binance, Coinbase Pro, Kraken et Bybit. D'autres exchanges sont ajoutés régulièrement selon la demande des utilisateurs."
+      }
+    ]
+  },
+  "cta": {
+    "badge": "Prêt à commencer?",
+    "title": "Commencez votre",
+    "subtitle": "Voyage de trading IA",
+    "description": "Rejoignez des milliers de traders prospères qui font confiance à notre IA pour développer leurs portefeuilles crypto. Commencez avec un essai gratuit et voyez la différence que fait l'automatisation intelligente.",
+    "startTrial": "Essai gratuit de 7 jours",
+    "scheduleDemo": "Planifier une démo"
+  },
+  "footer": {
+    "description": "Plateforme de trading IA pour le trader moderne.",
+    "product": "Produit",
+    "company": "Entreprise",
+    "legal": "Légal",
+    "features": "Fonctionnalités",
+    "pricing": "Tarification",
+    "api": "API",
+    "documentation": "Documentation",
+    "about": "À propos",
+    "blog": "Blog",
+    "careers": "Carrières",
+    "contact": "Contact",
+    "privacy": "Confidentialité",
+    "terms": "Conditions",
+    "security": "Sécurité",
+    "compliance": "Conformité",
+    "copyright": "© 2025 Bot Core. Tous droits réservés."
+  },
+  "videoModal": {
+    "title": "Démo Bot Core",
+    "subtitle": "Plateforme de trading crypto alimentée par l'IA",
+    "cta": "Découvrez comment Bot Core peut transformer votre trading",
+    "getStarted": "Commencer gratuitement"
+  }
+}

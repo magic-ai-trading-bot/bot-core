@@ -1,0 +1,269 @@
+{
+  "page": {
+    "title": "Paramètres",
+    "subtitle": "Gérez la configuration de votre bot de trading"
+  },
+  "tabs": {
+    "bot": "Paramètres Bot",
+    "perSymbol": "Par Symbole",
+    "strategy": "Stratégie",
+    "health": "État Système",
+    "api": "API & Connexions",
+    "notifications": "Notifications",
+    "security": "Sécurité"
+  },
+  "bot": {
+    "title": "Paramètres Bot",
+    "subtitle": "Gérez la configuration et les options de votre bot de trading",
+    "status": "Statut du Bot",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "capitalAllocation": "Allocation du Capital",
+    "maxLeverage": "Effet de Levier Maximum",
+    "riskThreshold": "Seuil de Risque",
+    "conservativePercent": "Conservateur ({{value}}%)",
+    "aggressivePercent": "Agressif ({{value}}%)",
+    "safeLeverage": "Sûr ({{value}}x)",
+    "highRiskLeverage": "Risque élevé ({{value}}x)",
+    "amount": "Montant: ${{value}}",
+    "maxLossPerTrade": "Perte max par transaction: ${{value}}",
+    "activeTradingPairs": "Paires de Trading Actives"
+  },
+  "perSymbol": {
+    "title": "Paramètres par Symbole",
+    "subtitle": "Configurez les paramètres individuels pour chaque paire de trading",
+    "positionSize": "Taille de Position",
+    "maxLeverage": "Levier Maximum",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "noPairsTitle": "Aucune paire de trading active",
+    "noPairsDesc": "Activez des paires dans l'onglet Paramètres Bot."
+  },
+  "strategy": {
+    "title": "Réglage de Stratégie",
+    "subtitle": "Affinez vos stratégies et paramètres de trading",
+    "openSettings": "Ouvrir les Paramètres de Stratégie",
+    "modalTitle": "Paramètres de Stratégie de Trading",
+    "advancedTitle": "Configuration Avancée de Stratégie",
+    "advancedDesc": "Configurez les préréglages de marché, les paramètres de stratégie, la gestion des risques et les paramètres du moteur"
+  },
+  "health": {
+    "title": "État du Système",
+    "subtitle": "Surveillez l'état et les performances du système",
+    "cpu": "CPU",
+    "memory": "Mémoire",
+    "uptime": "Temps de Fonctionnement",
+    "apiLatency": "Latence API",
+    "wsStatus": "WebSocket",
+    "dbStatus": "Base de Données",
+    "lastUpdate": "Dernière mise à jour",
+    "connected": "Connecté",
+    "disconnected": "Déconnecté",
+    "refresh": "Actualiser",
+    "connectionStatus": "État de Connexion",
+    "apiServer": "Serveur API"
+  },
+  "api": {
+    "title": "API & Connexions",
+    "subtitle": "Gérez vos clés API et l'état des connexions",
+    "status": "État de Connexion",
+    "apiStatus": "API",
+    "wsStatus": "WebSocket",
+    "connected": "Connecté",
+    "disconnected": "Déconnecté",
+    "testing": "Test en cours...",
+    "apiKey": "Clé API",
+    "apiKeyPlaceholder": "Entrez votre clé API Binance",
+    "secretKey": "Clé Secrète",
+    "secretKeyPlaceholder": "Entrez votre clé secrète Binance",
+    "testConnection": "Tester la Connexion",
+    "testingConnection": "Test de Connexion...",
+    "saveKeys": "Enregistrer les Clés",
+    "allSystemsOperational": "Tous les systèmes opérationnels",
+    "testingConnectionStatus": "Test de connexion...",
+    "connectionIssues": "Problèmes de connexion détectés",
+    "binanceApiConfig": "Configuration API Binance",
+    "testnet": "Testnet",
+    "securityNote": "Note de Sécurité",
+    "securityNoteDesc": "Les clés API sont chiffrées et stockées en toute sécurité. N'accordez que la permission de trading Futures au bot.",
+    "tradingPermissions": "Permissions de Trading",
+    "spotTrading": "Trading Spot",
+    "spotDesc": "Trading spot basique",
+    "futuresTrading": "Trading Futures",
+    "futuresDesc": "Trading futures avec effet de levier",
+    "marginTrading": "Trading sur Marge",
+    "marginDesc": "Trading sur marge",
+    "optionsTrading": "Trading d'Options",
+    "optionsDesc": "Trading d'options"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Configurez comment vous recevez les alertes",
+    "channels": "Canaux de Notification",
+    "email": {
+      "title": "Notifications Email",
+      "description": "Recevoir des notifications par email"
+    },
+    "push": {
+      "title": "Push Notifications",
+      "description": "Notifications du navigateur"
+    },
+    "telegram": {
+      "title": "Bot Telegram",
+      "description": "Recevoir des notifications via Telegram",
+      "tokenLabel": "Token Bot Telegram",
+      "tokenPlaceholder": "Entrez le token de @BotFather",
+      "chatIdLabel": "ID Chat Telegram",
+      "chatIdPlaceholder": "Entrez votre ID chat (utilisez @userinfobot)"
+    },
+    "discord": {
+      "title": "Webhook Discord",
+      "description": "Recevoir des notifications via Discord",
+      "webhookLabel": "URL Webhook Discord",
+      "webhookPlaceholder": "https://discord.com/api/webhooks/...",
+      "webhookHint": "Créez un webhook dans Paramètres du Serveur Discord → Intégrations → Webhooks",
+      "testSent": "Test Envoyé",
+      "testSentDesc": "Notification de test Discord envoyée avec succès",
+      "testFailed": "Échec du Test",
+      "testFailedDesc": "Échec de l'envoi de la notification de test Discord",
+      "testButton": "Tester Discord"
+    },
+    "vapid": {
+      "publicKeyLabel": "Clé Publique VAPID",
+      "publicKeyPlaceholder": "BLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "privateKeyLabel": "Clé Privée VAPID (sécurisée)",
+      "privateKeyPlaceholder": "Entrez la clé privée (gardez-la sécurisée)",
+      "keysSaved": "Clés Enregistrées",
+      "keysSavedDesc": "Clés VAPID enregistrées. Vous pouvez maintenant activer les notifications push.",
+      "saveKeys": "Enregistrer les Clés VAPID"
+    },
+    "alerts": {
+      "title": "Types d'Alertes",
+      "price": {
+        "title": "Alertes de Prix",
+        "description": "Soyez notifié des mouvements de prix significatifs"
+      },
+      "trade": {
+        "title": "Alertes de Trading",
+        "description": "Soyez notifié des exécutions de transactions"
+      },
+      "system": {
+        "title": "Alertes Système",
+        "description": "Notifications système importantes"
+      },
+      "threshold": "Seuil d'Alerte",
+      "thresholdLabel": "Seuil d'Alerte de Prix",
+      "thresholdDesc": "Changement de prix minimum pour déclencher une alerte"
+    },
+    "sound": {
+      "title": "Notifications Sonores",
+      "description": "Jouer un son pour les notifications"
+    },
+    "save": "Enregistrer les Préférences"
+  },
+  "security": {
+    "title": "Sécurité",
+    "subtitle": "Gérez les paramètres de sécurité de votre compte",
+    "profile": {
+      "title": "Profil Trader",
+      "displayName": "Nom d'Affichage",
+      "email": "Email"
+    },
+    "password": {
+      "title": "Changer le Mot de Passe",
+      "current": "Mot de Passe Actuel",
+      "currentPlaceholder": "Entrez le mot de passe actuel",
+      "new": "Nouveau Mot de Passe",
+      "newPlaceholder": "Entrez le nouveau mot de passe",
+      "confirm": "Confirmer le Mot de Passe",
+      "confirmPlaceholder": "Confirmez le nouveau mot de passe",
+      "change": "Changer le Mot de Passe",
+      "changing": "Changement en cours...",
+      "update": "Mettre à Jour le Mot de Passe",
+      "updating": "Mise à jour...",
+      "mismatch": "Les nouveaux mots de passe ne correspondent pas",
+      "tooShort": "Le mot de passe doit contenir au moins 8 caractères"
+    },
+    "twoFactor": {
+      "title": "Authentification à Deux Facteurs",
+      "description": "Ajoutez une couche de sécurité supplémentaire à votre compte",
+      "protected": "Votre compte est protégé par 2FA",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "enable": "Activer 2FA",
+      "disable": "Désactiver 2FA",
+      "settingUp": "Configuration...",
+      "setup": "Configurer 2FA",
+      "setupTitle": "Configurer l'Authentification à Deux Facteurs",
+      "setupDescription": "Scannez ce code QR avec votre application d'authentification, puis entrez le code de vérification.",
+      "manualEntryLabel": "Code d'Entrée Manuelle",
+      "manualEntryHint": "Si vous ne pouvez pas scanner le code QR, entrez ce secret manuellement dans votre application d'authentification.",
+      "verificationCodeLabel": "Code de Vérification",
+      "scanQr": "Scannez le code QR avec votre application d'authentification",
+      "enterCode": "Entrez le code de vérification",
+      "codePlaceholder": "Entrez le code à 6 chiffres",
+      "verify": "Vérifier",
+      "verifying": "Vérification...",
+      "secretKey": "Clé Secrète",
+      "copied": "Secret copié dans le presse-papiers",
+      "invalidCode": "Veuillez entrer un code à 6 chiffres",
+      "disableTitle": "Désactiver l'Authentification à Deux Facteurs?",
+      "disableDescription": "Cela rendra votre compte moins sécurisé. Entrez votre code 2FA pour confirmer.",
+      "currentCodeLabel": "Code 2FA Actuel",
+      "disabling": "Désactivation..."
+    },
+    "sessions": {
+      "title": "Sessions Actives",
+      "current": "Actuelle",
+      "activeNow": "Actif maintenant",
+      "noSessions": "Aucune session active trouvée",
+      "lastActive": "Dernière activité",
+      "revoke": "Révoquer",
+      "revokeAll": "Révoquer Toutes les Sessions",
+      "signOutAll": "Déconnecter Tous les Appareils",
+      "signOutAllTitle": "Déconnecter Toutes les Sessions?",
+      "signOutAllDesc": "Cela vous déconnectera de tous les appareils sauf celui-ci.",
+      "signOutAllButton": "Tout Déconnecter",
+      "revokeAllConfirm": "Vous serez déconnecté de tous les autres appareils"
+    }
+  },
+  "toast": {
+    "settingsSaved": "Paramètres enregistrés avec succès!",
+    "settingsError": "Échec de l'enregistrement des paramètres",
+    "connectionSuccess": "Connexion réussie",
+    "connectionError": "Échec de la connexion",
+    "copiedToClipboard": "Copié dans le presse-papiers",
+    "botStarted": "Bot Démarré",
+    "botStartedDesc": "Le bot de trading est maintenant actif",
+    "botStopped": "Bot Arrêté",
+    "botStoppedDesc": "Le bot de trading est maintenant inactif",
+    "botError": "Erreur",
+    "botErrorDesc": "Échec du changement de statut du bot",
+    "connectionSuccessDesc": "L'API est accessible",
+    "connectionFailedDesc": "L'API ne répond pas",
+    "connectionErrorDesc": "Impossible de joindre l'API",
+    "sectionSaved": "Paramètres {{section}} mis à jour avec succès",
+    "saveError": "Impossible d'enregistrer les paramètres",
+    "secretCopied": "Secret copié dans le presse-papiers",
+    "invalidCode": "Veuillez entrer un code à 6 chiffres"
+  },
+  "time": {
+    "justNow": "À l'instant",
+    "minuteAgo": "Il y a {{count}} minute",
+    "minutesAgo": "Il y a {{count}} minutes",
+    "hourAgo": "Il y a {{count}} heure",
+    "hoursAgo": "Il y a {{count}} heures",
+    "dayAgo": "Il y a {{count}} jour",
+    "daysAgo": "Il y a {{count}} jours"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "loading": "Chargement...",
+    "saving": "Enregistrement..."
+  }
+}

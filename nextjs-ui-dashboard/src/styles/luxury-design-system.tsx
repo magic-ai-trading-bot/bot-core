@@ -198,10 +198,11 @@ export function GlassCard({
       onClick={onClick}
       className={`
         relative overflow-hidden rounded-2xl
-        bg-white/[0.03] backdrop-blur-xl
-        border border-white/[0.08]
+        bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl
+        border border-black/[0.08] dark:border-white/[0.08]
+        shadow-sm dark:shadow-none
         transition-all duration-300
-        ${hoverable ? 'cursor-pointer hover:border-white/[0.15]' : ''}
+        ${hoverable ? 'cursor-pointer hover:border-black/[0.15] dark:hover:border-white/[0.15]' : ''}
         ${className}
       `}
     >
@@ -286,6 +287,7 @@ interface BadgeProps {
   variant?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'purple';
   size?: 'sm' | 'md';
   glow?: boolean;
+  className?: string;
 }
 
 export function Badge({
@@ -293,6 +295,7 @@ export function Badge({
   variant = 'default',
   size = 'md',
   glow = false,
+  className = '',
 }: BadgeProps) {
   const variants = {
     default: {
@@ -336,7 +339,7 @@ export function Badge({
 
   return (
     <span
-      className={`inline-flex items-center rounded-lg font-bold uppercase tracking-wider ${sizes[size]}`}
+      className={`inline-flex items-center rounded-lg font-bold uppercase tracking-wider ${sizes[size]} ${className}`}
       style={{
         backgroundColor: style.bg,
         color: style.color,
@@ -383,10 +386,11 @@ export function PremiumButton({
       hoverShadow: '0 12px 40px rgba(0, 217, 255, 0.4)',
     },
     secondary: {
-      bg: 'rgba(255, 255, 255, 0.05)',
+      bg: 'transparent',
       shadow: 'none',
-      hoverShadow: '0 4px 20px rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      hoverShadow: 'none',
+      border: 'none',
+      textClass: 'text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white border border-black/20 dark:border-white/20 hover:border-black/40 dark:hover:border-white/40',
     },
     success: {
       bg: luxuryColors.gradientProfit,
@@ -402,6 +406,7 @@ export function PremiumButton({
       bg: 'transparent',
       shadow: 'none',
       hoverShadow: 'none',
+      textClass: 'text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white',
     },
   };
 
@@ -421,10 +426,11 @@ export function PremiumButton({
       whileHover={!disabled ? { scale: 1.02, y: -2 } : undefined}
       whileTap={!disabled ? { scale: 0.98 } : undefined}
       className={`
-        rounded-xl font-bold text-white
+        rounded-xl font-bold
         transition-all duration-300
         flex items-center justify-center gap-2
         disabled:opacity-50 disabled:cursor-not-allowed
+        ${(style as { textClass?: string }).textClass || 'text-white'}
         ${sizes[size]}
         ${fullWidth ? 'w-full' : ''}
         ${className}
@@ -483,8 +489,7 @@ export function PremiumInput({
     <div className={className}>
       {label && (
         <label
-          className="block text-[10px] uppercase tracking-wider mb-1.5 font-medium"
-          style={{ color: luxuryColors.textMuted }}
+          className="block text-[10px] uppercase tracking-wider mb-1.5 font-medium text-black/40 dark:text-white/40"
         >
           {label}
         </label>
@@ -492,17 +497,15 @@ export function PremiumInput({
       <div
         className={`
           relative flex items-center rounded-xl border transition-all duration-300
+          bg-black/[0.03] dark:bg-white/[0.03]
+          border-black/[0.08] dark:border-white/[0.08]
           focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(0,217,255,0.15)]
           ${error ? 'border-red-500/50' : ''}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
-        style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.03)',
-          borderColor: error ? 'rgba(239, 68, 68, 0.5)' : luxuryColors.borderSubtle,
-        }}
       >
         {prefix && (
-          <span className="pl-3" style={{ color: luxuryColors.textMuted }}>
+          <span className="pl-3 text-black/40 dark:text-white/40">
             {prefix}
           </span>
         )}
@@ -513,19 +516,10 @@ export function PremiumInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full px-3 py-2.5 text-sm font-mono bg-transparent outline-none text-white placeholder:text-white/30 disabled:cursor-not-allowed"
-          style={{
-            // Force dark background on autofill
-            WebkitTextFillColor: '#ffffff',
-            WebkitBoxShadow: '0 0 0px 1000px rgba(0, 0, 0, 0.9) inset',
-            transition: 'background-color 5000s ease-in-out 0s',
-          }}
+          className="w-full px-3 py-2.5 text-sm font-mono bg-transparent outline-none text-black dark:text-white placeholder:text-black/30 dark:placeholder:text-white/30 disabled:cursor-not-allowed"
         />
         {suffix && (
-          <span
-            className="px-3 text-xs font-medium"
-            style={{ color: luxuryColors.textMuted }}
-          >
+          <span className="px-3 text-xs font-medium text-black/40 dark:text-white/40">
             {suffix}
           </span>
         )}
@@ -571,10 +565,7 @@ export function StatCard({
     <GlassCard hoverable glowColor={`0 8px 32px ${iconColor}30`}>
       <div className="flex items-start justify-between">
         <div>
-          <p
-            className="text-[10px] uppercase tracking-wider mb-1"
-            style={{ color: luxuryColors.textMuted }}
-          >
+          <p className="text-[10px] uppercase tracking-wider mb-1 text-black/50 dark:text-white/50">
             {label}
           </p>
           {gradient ? (
@@ -603,10 +594,7 @@ export function StatCard({
                 {trend}%
               </span>
               {trendLabel && (
-                <span
-                  className="text-[10px]"
-                  style={{ color: luxuryColors.textMuted }}
-                >
+                <span className="text-[10px] text-black/40 dark:text-white/40">
                   {trendLabel}
                 </span>
               )}
@@ -681,7 +669,7 @@ export function PageWrapper({
   return (
     <motion.div
       className={`min-h-full ${withPadding ? 'p-4 md:p-6 lg:p-8' : ''} ${className}`}
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      // Removed hardcoded background - parent container handles theme-aware bg
       initial="hidden"
       animate="visible"
       variants={containerVariants}

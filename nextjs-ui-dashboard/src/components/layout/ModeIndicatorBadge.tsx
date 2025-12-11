@@ -8,6 +8,7 @@
 
 import { motion } from 'framer-motion';
 import { TestTube, CircleDollarSign } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { colors } from '@/styles/tokens/colors';
 import { duration } from '@/styles/tokens/animations';
@@ -18,6 +19,7 @@ interface ModeIndicatorBadgeProps {
 }
 
 export function ModeIndicatorBadge({ mode, className }: ModeIndicatorBadgeProps) {
+  const { t } = useTranslation('common');
   const isPaper = mode === 'paper';
 
   return (
@@ -69,7 +71,7 @@ export function ModeIndicatorBadge({ mode, className }: ModeIndicatorBadgeProps)
 
       {/* Label */}
       <span className="font-semibold">
-        {isPaper ? 'Paper Trading' : 'REAL TRADING'}
+        {isPaper ? t('mode.paper') : t('mode.real')}
       </span>
 
       {/* Pulse dot for real mode */}

@@ -3,12 +3,12 @@ import logger from "@/utils/logger";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import ChatBot from "@/components/ChatBot";
 import { Logo } from "@/components/ui/Logo";
 import { motion } from "framer-motion";
-import { Mail, Lock, Sparkles, Shield, TrendingUp, Brain, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, Sparkles, Shield, CheckCircle2 } from "lucide-react";
 import {
-  luxuryColors,
   GlassCard,
   GradientText,
   PremiumButton,
@@ -17,12 +17,15 @@ import {
   itemVariants,
   GlowIcon,
 } from "@/styles/luxury-design-system";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 const Login = () => {
+  const { t } = useTranslation('auth');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const { login, isAuthenticated, loading, error } = useAuth();
+  const colors = useThemeColors();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -35,33 +38,33 @@ const Login = () => {
     e.preventDefault();
 
     if (!email || !password) {
-      toast.error("Login Error", {
-        description: "Please enter your email and password",
+      toast.error(t('login.error'), {
+        description: t('login.errorEmpty'),
       });
       return;
     }
 
     try {
-      toast.loading("Signing in...", { id: "login-loading" });
+      toast.loading(t('login.submitting'), { id: "login-loading" });
 
       const success = await login(email, password);
 
       if (success) {
-        toast.success("Login Successful", {
-          description: "Welcome back to Trading Bot Dashboard!",
+        toast.success(t('login.success'), {
+          description: t('login.successMessage'),
           id: "login-loading",
         });
         navigate("/dashboard", { replace: true });
       } else {
-        toast.error("Login Error", {
-          description: error || "Invalid credentials",
+        toast.error(t('login.error'), {
+          description: error || t('login.errorInvalid'),
           id: "login-loading",
         });
       }
     } catch (err) {
       logger.error("Login error:", err);
-      toast.error("Login Error", {
-        description: "An error occurred while signing in. Please try again.",
+      toast.error(t('login.error'), {
+        description: t('login.errorGeneric'),
         id: "login-loading",
       });
     }
@@ -70,7 +73,7 @@ const Login = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ backgroundColor: luxuryColors.bgPrimary }}
+      style={{ backgroundColor: colors.bgPrimary }}
     >
       {/* Premium Background Effects */}
       <div className="absolute inset-0">
@@ -78,14 +81,14 @@ const Login = () => {
         <div
           className="absolute inset-0"
           style={{
-            background: `radial-gradient(ellipse at center top, ${luxuryColors.cyan}15 0%, transparent 50%)`,
+            background: `radial-gradient(ellipse at center top, ${colors.cyan}15 0%, transparent 50%)`,
           }}
         />
         {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
-            backgroundImage: `linear-gradient(${luxuryColors.borderSubtle} 1px, transparent 1px), linear-gradient(90deg, ${luxuryColors.borderSubtle} 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(${colors.borderSubtle} 1px, transparent 1px), linear-gradient(90deg, ${colors.borderSubtle} 1px, transparent 1px)`,
             backgroundSize: '50px 50px',
           }}
         />
@@ -108,14 +111,14 @@ const Login = () => {
             </motion.div>
           </div>
           <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">
-            <span style={{ color: luxuryColors.textPrimary }}>Bot</span>
+            <span style={{ color: colors.textPrimary }}>Bot</span>
             <GradientText className="ml-1">Core</GradientText>
           </h1>
           <p
             className="text-sm tracking-wide"
-            style={{ color: luxuryColors.textMuted }}
+            style={{ color: colors.textMuted }}
           >
-            AI-Powered Trading Intelligence Platform
+            {t('login.tagline')}
           </p>
         </motion.div>
 
@@ -124,34 +127,34 @@ const Login = () => {
           <div className="mb-6">
             <div className="flex items-center justify-center gap-2 mb-2">
               <GlowIcon icon={Sparkles} size="sm" />
-              <h2 className="text-xl font-black" style={{ color: luxuryColors.textPrimary }}>
-                Sign In
+              <h2 className="text-xl font-black" style={{ color: colors.textPrimary }}>
+                {t('login.title')}
               </h2>
             </div>
             <p
               className="text-xs text-center tracking-wide"
-              style={{ color: luxuryColors.textMuted }}
+              style={{ color: colors.textMuted }}
             >
-              Access your premium trading dashboard
+              {t('login.subtitle')}
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <PremiumInput
-              label="Email Address"
+              label={t('login.emailLabel')}
               type="email"
               value={email}
               onChange={setEmail}
-              placeholder="trader@botcore.com"
+              placeholder={t('login.emailPlaceholder')}
               prefix={<Mail className="w-4 h-4" />}
             />
 
             <PremiumInput
-              label="Password"
+              label={t('login.passwordLabel')}
               type="password"
               value={password}
               onChange={setPassword}
-              placeholder="Enter your password"
+              placeholder={t('login.passwordPlaceholder')}
               prefix={<Lock className="w-4 h-4" />}
             />
 
@@ -163,20 +166,20 @@ const Login = () => {
               disabled={loading}
               loading={loading}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? t('login.submitting') : t('login.submitButton')}
             </PremiumButton>
           </form>
 
           {/* Register Link */}
           <motion.div variants={itemVariants} className="mt-6 text-center">
-            <p className="text-xs" style={{ color: luxuryColors.textMuted }}>
-              Don't have an account?{" "}
+            <p className="text-xs" style={{ color: colors.textMuted }}>
+              {t('login.noAccount')}{" "}
               <Link
                 to="/register"
                 className="font-bold hover:underline transition-colors"
-                style={{ color: luxuryColors.cyan }}
+                style={{ color: colors.cyan }}
               >
-                Sign up now
+                {t('login.signUpLink')}
               </Link>
             </p>
           </motion.div>
@@ -187,25 +190,25 @@ const Login = () => {
             className="mt-6 p-4 rounded-xl"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.02)',
-              border: `1px solid ${luxuryColors.borderSubtle}`,
+              border: `1px solid ${colors.borderSubtle}`,
             }}
           >
             <p
               className="text-[10px] uppercase tracking-wider mb-3 font-bold"
-              style={{ color: luxuryColors.textMuted }}
+              style={{ color: colors.textMuted }}
             >
-              Demo Credentials
+              {t('login.demoCredentials')}
             </p>
             <div className="space-y-2 text-xs mb-3">
               <div className="flex justify-between items-center">
-                <span style={{ color: luxuryColors.textMuted }}>Email:</span>
-                <span className="font-mono" style={{ color: luxuryColors.textSecondary }}>
+                <span style={{ color: colors.textMuted }}>Email:</span>
+                <span className="font-mono" style={{ color: colors.textSecondary }}>
                   trader@botcore.com
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span style={{ color: luxuryColors.textMuted }}>Password:</span>
-                <span className="font-mono" style={{ color: luxuryColors.textSecondary }}>
+                <span style={{ color: colors.textMuted }}>Password:</span>
+                <span className="font-mono" style={{ color: colors.textSecondary }}>
                   password123
                 </span>
               </div>
@@ -223,10 +226,10 @@ const Login = () => {
                 style={{
                   background: `rgba(${34}, ${197}, ${94}, 0.1)`,
                   border: `1px solid rgba(${34}, ${197}, ${94}, 0.3)`,
-                  color: luxuryColors.profit,
+                  color: colors.profit,
                 }}
               >
-                Use Trader
+                {t('login.useTrader')}
               </motion.button>
               <motion.button
                 type="button"
@@ -240,10 +243,10 @@ const Login = () => {
                 style={{
                   background: `rgba(${139}, ${92}, ${246}, 0.1)`,
                   border: `1px solid rgba(${139}, ${92}, ${246}, 0.3)`,
-                  color: luxuryColors.purple,
+                  color: colors.purple,
                 }}
               >
-                Use Admin
+                {t('login.useAdmin')}
               </motion.button>
             </div>
           </motion.div>
@@ -252,26 +255,26 @@ const Login = () => {
           <motion.div variants={itemVariants} className="mt-6 space-y-3">
             <div className="flex items-center gap-3 text-xs">
               <div className="flex-shrink-0">
-                <CheckCircle2 className="w-4 h-4" style={{ color: luxuryColors.profit }} />
+                <CheckCircle2 className="w-4 h-4" style={{ color: colors.profit }} />
               </div>
-              <span style={{ color: luxuryColors.textSecondary }}>
-                AI-Powered Trading Signals
+              <span style={{ color: colors.textSecondary }}>
+                {t('features.aiSignals')}
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs">
               <div className="flex-shrink-0">
-                <CheckCircle2 className="w-4 h-4" style={{ color: luxuryColors.cyan }} />
+                <CheckCircle2 className="w-4 h-4" style={{ color: colors.cyan }} />
               </div>
-              <span style={{ color: luxuryColors.textSecondary }}>
-                Real-time Performance Analytics
+              <span style={{ color: colors.textSecondary }}>
+                {t('features.analytics')}
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs">
               <div className="flex-shrink-0">
-                <CheckCircle2 className="w-4 h-4" style={{ color: luxuryColors.purple }} />
+                <CheckCircle2 className="w-4 h-4" style={{ color: colors.purple }} />
               </div>
-              <span style={{ color: luxuryColors.textSecondary }}>
-                Advanced Risk Management
+              <span style={{ color: colors.textSecondary }}>
+                {t('features.riskManagement')}
               </span>
             </div>
           </motion.div>
@@ -285,15 +288,15 @@ const Login = () => {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.02)',
-              border: `1px solid ${luxuryColors.borderSubtle}`,
+              border: `1px solid ${colors.borderSubtle}`,
             }}
           >
-            <Shield className="w-3 h-3" style={{ color: luxuryColors.cyan }} />
+            <Shield className="w-3 h-3" style={{ color: colors.cyan }} />
             <span
               className="text-[10px] uppercase tracking-wider font-bold"
-              style={{ color: luxuryColors.textMuted }}
+              style={{ color: colors.textMuted }}
             >
-              Secured with E2E Encryption & 2FA
+              {t('login.securityBadge')}
             </span>
           </div>
         </motion.div>
