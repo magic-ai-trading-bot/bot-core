@@ -82,6 +82,8 @@ services:
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-}
       - BINANCE_TESTNET=false
       - TRADING_ENABLED=false
+      # JWT_SECRET must be consistent across deploys to preserve user sessions
+      - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_change_in_production}
     volumes:
       - ./rust-core-engine/data:/app/data
       - ./rust-core-engine/logs:/app/logs
