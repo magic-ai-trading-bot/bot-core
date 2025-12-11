@@ -3,8 +3,9 @@ WebSocket connection manager for real-time AI signal broadcasting.
 """
 
 import logging
-from typing import Set, Dict, Any
 from datetime import datetime, timezone
+from typing import Any, Dict, Set
+
 from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)

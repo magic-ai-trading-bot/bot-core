@@ -3,9 +3,10 @@ Simple tests to boost overall coverage to 95%.
 Focus on easy wins from uncovered code paths.
 """
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+
 from features.feature_engineering import FeatureEngineer
 from features.technical_indicators import TechnicalIndicators
 

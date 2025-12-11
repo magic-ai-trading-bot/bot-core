@@ -12,11 +12,12 @@ Usage:
     python example_client.py
 """
 
-import requests
-import time
 import random
+import time
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+import requests
 
 # Configuration
 API_BASE_URL = "http://localhost:8000"

@@ -4,9 +4,10 @@ Unit Tests for Monitoring Tasks
 Tests all monitoring jobs: health check, portfolio report, cost report, performance analysis
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, Mock
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 import requests
 
 # Skip all tests if celery is not installed
@@ -50,8 +51,9 @@ class TestSystemHealthCheck:
     @patch("tasks.monitoring.requests.get")
     def test_health_check_service_down(self, mock_get, mock_subprocess):
         """Test health check when services are down"""
-        from tasks.monitoring import system_health_check
         import subprocess
+
+        from tasks.monitoring import system_health_check
 
         # Mock service connection refused
         mock_get.side_effect = requests.exceptions.ConnectionError("Connection refused")

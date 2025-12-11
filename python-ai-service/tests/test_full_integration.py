@@ -3,14 +3,15 @@ Comprehensive integration tests for Python AI Service
 Tests full service integration, ML models, and cross-service communication
 """
 
-import pytest
 import asyncio
-from httpx import AsyncClient
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timezone
-import numpy as np
-import sys
 import os
+import sys
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import numpy as np
+import pytest
+from httpx import AsyncClient
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -183,7 +184,7 @@ class TestDatabaseIntegration:
     async def test_store_and_retrieve_analysis(self, mock_mongodb):
         """Test storing and retrieving analysis results"""
 
-        from main import store_analysis_result, get_latest_analysis
+        from main import get_latest_analysis, store_analysis_result
 
         symbol = "BTCUSDT"
         analysis = {

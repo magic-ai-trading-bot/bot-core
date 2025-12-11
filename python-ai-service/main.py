@@ -7,52 +7,45 @@ Compatible with Rust AI client endpoints with WebSocket broadcasting.
 
 import asyncio
 import json
-import os
 import logging
+import os
 import sys
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List, Optional, Set
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Set
 
-# Load configuration
-from config_loader import (
-    AI_CACHE_DURATION_MINUTES,
-    AI_CACHE_ENABLED,
-    # These are now fetched from Rust API via settings_manager (fallback to config.yaml)
-    SIGNAL_TREND_THRESHOLD as CONFIG_SIGNAL_TREND_THRESHOLD,
-    SIGNAL_MIN_TIMEFRAMES as CONFIG_SIGNAL_MIN_TIMEFRAMES,
-    SIGNAL_MIN_INDICATORS as CONFIG_SIGNAL_MIN_INDICATORS,
-    SIGNAL_CONFIDENCE_BASE as CONFIG_SIGNAL_CONFIDENCE_BASE,
-    SIGNAL_CONFIDENCE_PER_TF as CONFIG_SIGNAL_CONFIDENCE_PER_TF,
-)
+import fastapi
+import numpy as np
+import pandas as pd
+import ta
+from fastapi import (FastAPI, HTTPException, Request, WebSocket,
+                     WebSocketDisconnect)
+from fastapi.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, Field
+from pymongo import ASCENDING
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
 from app.core.config import OPENAI_REQUEST_DELAY
-
+# Load configuration
+from config_loader import AI_CACHE_DURATION_MINUTES, AI_CACHE_ENABLED
+from config_loader import \
+    SIGNAL_CONFIDENCE_BASE as CONFIG_SIGNAL_CONFIDENCE_BASE
+from config_loader import \
+    SIGNAL_CONFIDENCE_PER_TF as CONFIG_SIGNAL_CONFIDENCE_PER_TF
+from config_loader import SIGNAL_MIN_INDICATORS as CONFIG_SIGNAL_MIN_INDICATORS
+from config_loader import SIGNAL_MIN_TIMEFRAMES as CONFIG_SIGNAL_MIN_TIMEFRAMES
+from config_loader import \
+    SIGNAL_TREND_THRESHOLD as \
+    CONFIG_SIGNAL_TREND_THRESHOLD  # These are now fetched from Rust API via settings_manager (fallback to config.yaml)
+# Project chatbot service (RAG)
+from services.project_chatbot import ProjectChatbot, get_chatbot
 # @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified settings from Rust API
 # Settings manager fetches indicator/signal settings from Rust API with caching
 # Falls back to config.yaml values if Rust API is unavailable
-from settings_manager import settings_manager, refresh_settings_periodically
-
-import pandas as pd
-import numpy as np
-import fastapi
-from fastapi import (
-    FastAPI,
-    HTTPException,
-    WebSocket,
-    WebSocketDisconnect,
-    Request,
-)
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-import ta
-from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo import ASCENDING
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
-# Project chatbot service (RAG)
-from services.project_chatbot import get_chatbot, ProjectChatbot
+from settings_manager import refresh_settings_periodically, settings_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

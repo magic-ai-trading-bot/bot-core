@@ -2,15 +2,15 @@
 Integration tests for Python AI Service.
 """
 
-import pytest
 import asyncio
-from unittest.mock import patch, AsyncMock, MagicMock
-from datetime import datetime, timezone, timedelta
 import json
-
+import os
 # Import after adding to path in conftest
 import sys
-import os
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -57,7 +57,7 @@ class TestFullAnalysisFlow:
     @pytest.mark.skip(reason="fetch_binance_candles function not implemented")
     async def test_periodic_analysis_task(self, mock_openai_client, mock_mongodb):
         """Test periodic analysis task execution."""
-        from main import periodic_analysis_runner, ANALYSIS_SYMBOLS
+        from main import ANALYSIS_SYMBOLS, periodic_analysis_runner
 
         # Mock successful analyses
         mock_openai_client.chat.completions.create.return_value = MagicMock(
@@ -116,6 +116,7 @@ class TestAPIKeyRotation:
     ):
         """Test API key rotation when rate limited."""
         import httpx
+
         from main import call_openai_with_fallback
 
         # Mock multiple API keys
@@ -178,7 +179,7 @@ class TestMongoDBIntegration:
     @pytest.mark.asyncio
     async def test_mongodb_storage_and_retrieval(self, mock_mongodb):
         """Test storing and retrieving analysis from MongoDB."""
-        from main import store_analysis_result, get_latest_analysis
+        from main import get_latest_analysis, store_analysis_result
 
         # Test data
         symbol = "BTCUSDT"

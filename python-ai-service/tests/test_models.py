@@ -1,13 +1,14 @@
 """Comprehensive tests for all model files to achieve >90% coverage"""
 
-import pytest
+import io
+import os
+import sys
+import tempfile
+from unittest.mock import MagicMock, Mock, call, mock_open, patch
+
 import numpy as np
 import pandas as pd
-from unittest.mock import Mock, MagicMock, patch, mock_open, call
-import tempfile
-import os
-import io
-import sys
+import pytest
 
 # Mock TensorFlow before importing models
 tf_mock = MagicMock()
@@ -23,10 +24,10 @@ sys.modules["tensorflow.keras.layers"] = tf_mock.keras.layers
 sys.modules["tensorflow.keras.optimizers"] = tf_mock.keras.optimizers
 sys.modules["tensorflow.keras.callbacks"] = tf_mock.keras.callbacks
 
-from models.lstm_model import LSTMModel
 from models.gru_model import GRUModel
-from models.transformer_model import TransformerModel
+from models.lstm_model import LSTMModel
 from models.model_manager import ModelManager
+from models.transformer_model import TransformerModel
 
 
 class TestLSTMModel:

@@ -3,13 +3,13 @@ Project Chatbot Service with RAG (Retrieval Augmented Generation)
 Answers questions about the BotCore trading project using project documentation.
 """
 
+import asyncio
+import logging
 import os
 import re
-import logging
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timezone
-import asyncio
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

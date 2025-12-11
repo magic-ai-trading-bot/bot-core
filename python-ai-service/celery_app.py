@@ -5,6 +5,7 @@ Handles async tasks: ML training, backtesting, bulk analysis, scheduled jobs
 """
 
 import os
+
 from celery import Celery
 from celery.schedules import crontab
 from kombu import Exchange, Queue

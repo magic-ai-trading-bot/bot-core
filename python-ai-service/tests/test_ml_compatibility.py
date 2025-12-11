@@ -13,11 +13,12 @@ global state pollution between TensorFlow and PyTorch. Run with:
 Regular pytest runs will skip these tests to avoid failures.
 """
 
-import pytest
-import numpy as np
 import os
-import tempfile
 import sys
+import tempfile
+
+import numpy as np
+import pytest
 
 # Skip these tests in regular pytest runs (without ML_TESTS environment variable)
 # They must be run separately with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py
@@ -220,8 +221,8 @@ class TestTensorFlowCompatibility:
 
     def test_keras_training(self):
         """Test Keras model training"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         # Simple model
         model = keras.Sequential(
@@ -245,8 +246,8 @@ class TestTensorFlowCompatibility:
 
     def test_keras_prediction(self):
         """Test Keras model prediction"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         model = keras.Sequential(
             [
@@ -266,8 +267,8 @@ class TestTensorFlowCompatibility:
 
     def test_keras_save_load_native_format(self):
         """Test Keras model save/load with .keras format"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         model = keras.Sequential(
             [
@@ -298,8 +299,8 @@ class TestTensorFlowCompatibility:
 
     def test_keras_save_load_h5_format(self):
         """Test Keras model save/load with legacy .h5 format"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         model = keras.Sequential(
             [
@@ -336,8 +337,8 @@ class TestTensorFlowCompatibility:
 
     def test_keras_callbacks(self):
         """Test Keras callbacks work correctly"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         model = keras.Sequential(
             [
@@ -413,8 +414,8 @@ class TestMLLibraryInteroperability:
 
     def test_both_libraries_import(self):
         """Test both libraries can be imported together"""
-        import torch
         import tensorflow as tf
+        import torch
 
         # Verify libraries can be imported (version checks may vary in local environments)
         assert torch.__version__ is not None
@@ -422,9 +423,9 @@ class TestMLLibraryInteroperability:
 
     def test_numpy_interoperability(self):
         """Test NumPy arrays work with both libraries"""
-        import torch
-        import tensorflow as tf
         import numpy as np
+        import tensorflow as tf
+        import torch
 
         # Create NumPy array
         np_array = np.random.rand(5, 3).astype(np.float32)

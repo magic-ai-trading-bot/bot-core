@@ -2,14 +2,14 @@
 Test WebSocket functionality.
 """
 
-import pytest
 import asyncio
-from unittest.mock import patch, AsyncMock, MagicMock
-from fastapi.testclient import TestClient
-
+import os
 # Import after adding to path in conftest
 import sys
-import os
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

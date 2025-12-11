@@ -3,10 +3,11 @@ Tests for security and critical fixes in Python AI Service
 Tests all critical security fixes and improvements
 """
 
-import pytest
 import os
 import re
 from pathlib import Path
+
+import pytest
 
 
 class TestAPIKeySecurity:

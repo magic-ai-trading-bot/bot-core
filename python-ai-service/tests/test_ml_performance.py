@@ -9,11 +9,12 @@ global state pollution between TensorFlow and PyTorch. Run with:
 Regular pytest runs will skip these tests to avoid failures.
 """
 
-import pytest
-import time
-import numpy as np
 import os
 import sys
+import time
+
+import numpy as np
+import pytest
 
 # Skip these tests in regular pytest runs (without ML_TESTS environment variable)
 # They must be run separately with: ML_TESTS=1 pytest -c pytest_ml.ini tests/test_ml*.py
@@ -100,8 +101,8 @@ class TestTensorFlowPerformance:
 
     def test_tensorflow_inference_speed(self):
         """Verify TensorFlow inference is fast enough"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         # Create model
         model = keras.Sequential(
@@ -131,8 +132,8 @@ class TestTensorFlowPerformance:
 
     def test_tensorflow_training_speed(self):
         """Verify TensorFlow training is acceptable"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         # Create model
         model = keras.Sequential(
@@ -194,8 +195,8 @@ class TestMemoryUsage:
 
     def test_tensorflow_memory(self):
         """Test TensorFlow doesn't use excessive memory"""
-        from tensorflow import keras
         import numpy as np
+        from tensorflow import keras
 
         # Create large model
         model = keras.Sequential(

@@ -1,11 +1,13 @@
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Dict, Optional, Tuple, List
 from sklearn.preprocessing import StandardScaler
+
 from config.config import config
 from utils.logger import get_logger
-from .technical_indicators import TechnicalIndicators
 
+from .technical_indicators import TechnicalIndicators
 
 # @spec:FR-AI-006 - Feature Engineering
 # @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md

@@ -5,10 +5,12 @@ Handles storing analysis results, metrics, and audit trails in MongoDB
 """
 
 import os
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo import MongoClient, DESCENDING
+from pymongo import DESCENDING, MongoClient
+
 from utils.logger import get_logger
 
 logger = get_logger("DataStorage")

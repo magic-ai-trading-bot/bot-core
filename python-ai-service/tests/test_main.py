@@ -2,26 +2,20 @@
 Test main FastAPI application and endpoints.
 """
 
-import os
-import pytest
 import asyncio
-from unittest.mock import patch, AsyncMock, MagicMock, Mock
-from datetime import datetime, timezone, timedelta
 import json
-import pandas as pd
+import os
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
 import numpy as np
-from main import (
-    TechnicalAnalyzer,
-    GPTTradingAnalyzer,
-    DirectOpenAIClient,
-    WebSocketManager,
-    CandleData,
-    AIAnalysisRequest,
-    AIStrategyContext,
-    store_analysis_result,
-    get_latest_analysis,
-    fetch_real_market_data,
-)
+import pandas as pd
+import pytest
+
+from main import (AIAnalysisRequest, AIStrategyContext, CandleData,
+                  DirectOpenAIClient, GPTTradingAnalyzer, TechnicalAnalyzer,
+                  WebSocketManager, fetch_real_market_data,
+                  get_latest_analysis, store_analysis_result)
 
 
 @pytest.mark.unit
@@ -1549,8 +1543,9 @@ class TestDirectOpenAIClientAdvanced:
     @pytest.mark.asyncio
     async def test_chat_completions_with_rate_limiting_delay(self):
         """Test rate limiting delay between requests."""
-        import httpx
         from datetime import datetime
+
+        import httpx
 
         client = DirectOpenAIClient(["test-key"])
 
@@ -1759,8 +1754,9 @@ class TestDirectOpenAIClientErrorPaths:
     @pytest.mark.asyncio
     async def test_chat_completions_with_expired_rate_limit(self):
         """Test when rate limit period has expired."""
-        import httpx
         from datetime import datetime, timedelta
+
+        import httpx
 
         client = DirectOpenAIClient(["test-key"])
 
@@ -2666,7 +2662,7 @@ class TestPeriodicAnalysisRunner:
     @pytest.mark.asyncio
     async def test_periodic_analysis_runner_one_cycle(self):
         """Test one cycle of periodic analysis."""
-        from main import periodic_analysis_runner, fetch_real_market_data
+        from main import fetch_real_market_data, periodic_analysis_runner
 
         # Mock the global openai_client and mongodb_db
         mock_gpt_client = AsyncMock()
@@ -2780,8 +2776,8 @@ class TestAnalysisStorageErrorHandling:
     @pytest.mark.asyncio
     async def test_store_analysis_result_exception(self):
         """Test store_analysis_result handles exceptions gracefully."""
-        from main import store_analysis_result
         import main
+        from main import store_analysis_result
 
         # Mock MongoDB to raise exception
         mock_db = AsyncMock()
@@ -2797,8 +2793,8 @@ class TestAnalysisStorageErrorHandling:
     @pytest.mark.asyncio
     async def test_get_latest_analysis_exception(self):
         """Test get_latest_analysis handles exceptions gracefully."""
-        from main import get_latest_analysis
         import main
+        from main import get_latest_analysis
 
         # Mock MongoDB to raise exception
         mock_db = AsyncMock()
@@ -2814,8 +2810,8 @@ class TestAnalysisStorageErrorHandling:
     @pytest.mark.asyncio
     async def test_periodic_analysis_symbol_level_exception(self):
         """Test periodic analysis handles symbol-level exceptions."""
-        from main import periodic_analysis_runner
         import main
+        from main import periodic_analysis_runner
 
         # Mock GPT client that raises exception for specific symbol
         mock_gpt_client = AsyncMock()
@@ -2897,7 +2893,7 @@ class TestFetchAnalysisSymbols:
     @pytest.mark.asyncio
     async def test_fetch_analysis_symbols_no_symbols(self):
         """Test fetch when API returns no symbols."""
-        from main import fetch_analysis_symbols, FALLBACK_ANALYSIS_SYMBOLS
+        from main import FALLBACK_ANALYSIS_SYMBOLS, fetch_analysis_symbols
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -2914,7 +2910,7 @@ class TestFetchAnalysisSymbols:
     @pytest.mark.asyncio
     async def test_fetch_analysis_symbols_api_error(self):
         """Test fetch when API returns error status."""
-        from main import fetch_analysis_symbols, FALLBACK_ANALYSIS_SYMBOLS
+        from main import FALLBACK_ANALYSIS_SYMBOLS, fetch_analysis_symbols
 
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -2930,7 +2926,7 @@ class TestFetchAnalysisSymbols:
     @pytest.mark.asyncio
     async def test_fetch_analysis_symbols_exception(self):
         """Test fetch handles exceptions gracefully."""
-        from main import fetch_analysis_symbols, FALLBACK_ANALYSIS_SYMBOLS
+        from main import FALLBACK_ANALYSIS_SYMBOLS, fetch_analysis_symbols
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -2948,8 +2944,9 @@ class TestTrendPrediction:
     @pytest.mark.asyncio
     async def test_predict_trend_technical_fallback(self):
         """Test _predict_trend_technical function."""
-        from main import _predict_trend_technical
         import pandas as pd
+
+        from main import _predict_trend_technical
 
         # Create sample candles data
         candles = []
@@ -3019,8 +3016,9 @@ class TestConfigLoaderEdgeCases:
 
     def test_config_loader_empty_file(self):
         """Test config loader with empty file."""
-        from config_loader import load_config
         import yaml
+
+        from config_loader import load_config
 
         mock_file = MagicMock()
         mock_file.__enter__ = MagicMock(
@@ -3042,17 +3040,11 @@ class TestHelperFunctions:
 
     def test_get_helper_functions_with_settings_manager(self):
         """Test helper functions use settings_manager correctly."""
-        from main import (
-            get_signal_trend_threshold,
-            get_signal_min_timeframes,
-            get_signal_min_indicators,
-            get_signal_confidence_base,
-            get_signal_confidence_per_tf,
-            get_rsi_period,
-            get_macd_periods,
-            get_bollinger_settings,
-            get_stochastic_periods,
-        )
+        from main import (get_bollinger_settings, get_macd_periods,
+                          get_rsi_period, get_signal_confidence_base,
+                          get_signal_confidence_per_tf,
+                          get_signal_min_indicators, get_signal_min_timeframes,
+                          get_signal_trend_threshold, get_stochastic_periods)
 
         # These should return default values when settings_manager has no cache
         assert isinstance(get_signal_trend_threshold(), float)
@@ -3120,8 +3112,9 @@ class TestDirectOpenAIClientErrorHandling:
     @pytest.mark.asyncio
     async def test_direct_openai_client_timeout(self):
         """Test DirectOpenAIClient handles timeout."""
-        from main import DirectOpenAIClient
         import httpx
+
+        from main import DirectOpenAIClient
 
         client = DirectOpenAIClient(["test-key"])
 

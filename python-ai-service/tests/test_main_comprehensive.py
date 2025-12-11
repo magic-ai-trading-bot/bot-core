@@ -11,9 +11,10 @@ This test file covers all uncovered endpoints and functions in main.py:
 - Performance feedback endpoints
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 @pytest.mark.asyncio
@@ -46,8 +47,9 @@ class TestLifecycleHandlers:
 
     async def test_periodic_analysis_runner_cancellation(self, client):
         """Test periodic analysis runner can be cancelled."""
-        from main import periodic_analysis_runner
         import asyncio
+
+        from main import periodic_analysis_runner
 
         # Run for a short time then cancel
         task = asyncio.create_task(periodic_analysis_runner())
@@ -64,8 +66,9 @@ class TestLifecycleHandlers:
     )
     async def test_periodic_analysis_runner_with_error(self, client):
         """Test periodic analysis runner handles errors."""
-        from main import periodic_analysis_runner
         import asyncio
+
+        from main import periodic_analysis_runner
 
         with patch(
             "main.generate_dummy_market_data", side_effect=Exception("Test error")
@@ -448,8 +451,9 @@ class TestLifespanContextManager:
 
     async def test_lifespan_with_mongodb_failure(self, client):
         """Test lifespan when MongoDB connection fails."""
-        from main import lifespan
         from fastapi import FastAPI
+
+        from main import lifespan
 
         test_app = FastAPI()
 
@@ -500,8 +504,9 @@ class TestPeriodicAnalysisErrorBranches:
 
     async def test_periodic_analysis_symbol_error(self, client):
         """Test periodic analysis handles symbol-specific errors."""
-        from main import periodic_analysis_runner
         import asyncio
+
+        from main import periodic_analysis_runner
 
         with patch("main.GPTTradingAnalyzer") as mock_analyzer:
             mock_analyzer.return_value.analyze_trading_signals.side_effect = Exception(
@@ -522,8 +527,9 @@ class TestPeriodicAnalysisErrorBranches:
     )
     async def test_periodic_analysis_outer_exception(self, client):
         """Test periodic analysis handles outer loop exceptions."""
-        from main import periodic_analysis_runner
         import asyncio
+
+        from main import periodic_analysis_runner
 
         with patch(
             "main.FALLBACK_ANALYSIS_SYMBOLS", side_effect=Exception("Outer error")

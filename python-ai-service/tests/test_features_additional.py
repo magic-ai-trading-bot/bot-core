@@ -3,10 +3,12 @@ Additional tests for features modules to reach 95% coverage.
 Focuses on error handling and edge cases.
 """
 
-import pytest
-import pandas as pd
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pandas as pd
+import pytest
+
 from features.feature_engineering import FeatureEngineer
 from features.technical_indicators import TechnicalIndicators
 

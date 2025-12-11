@@ -3,17 +3,17 @@ Pytest configuration and fixtures for Python AI Service tests.
 """
 
 import asyncio
-import pytest
-import pytest_asyncio
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, patch
-from httpx import AsyncClient, ASGITransport
-from fastapi.testclient import TestClient
-from datetime import datetime, timezone
-
+import os
 # Import the FastAPI app
 import sys
-import os
+from datetime import datetime, timezone
+from typing import AsyncGenerator, Generator
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+import pytest_asyncio
+from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 # Set TESTING environment variable BEFORE importing main
 os.environ["TESTING"] = "true"

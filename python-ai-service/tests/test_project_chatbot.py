@@ -4,9 +4,10 @@ Tests for project_chatbot.py
 @spec:FR-CHATBOT-001 - Project documentation RAG chatbot
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 @pytest.mark.unit
@@ -575,6 +576,7 @@ class TestFindProjectRoot:
     def test_find_project_root_with_env_var(self):
         """Test _find_project_root uses PROJECT_ROOT env var."""
         import tempfile
+
         from services.project_chatbot import _find_project_root
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -684,8 +686,9 @@ class TestProjectChatbotIndexing:
     @pytest.mark.asyncio
     async def test_index_documents_with_readme_files(self):
         """Test _index_documents indexes README files."""
-        from services.project_chatbot import ProjectChatbot
         import tempfile
+
+        from services.project_chatbot import ProjectChatbot
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
@@ -709,8 +712,9 @@ class TestProjectChatbotIndexing:
     @pytest.mark.asyncio
     async def test_index_documents_handles_read_error(self):
         """Test _index_documents handles file read errors gracefully."""
-        from services.project_chatbot import ProjectChatbot
         import tempfile
+
+        from services.project_chatbot import ProjectChatbot
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)

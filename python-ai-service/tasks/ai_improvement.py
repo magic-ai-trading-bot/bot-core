@@ -4,17 +4,19 @@ AI Self-Improvement & Adaptive Retraining Tasks
 GPT-4-powered intelligent decision making for model retraining
 """
 
-from typing import Dict, Any, List, Optional
+import json
+import os
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import requests
 from celery import Task
+from openai import OpenAI
+
 from celery_app import app
-from utils.logger import get_logger
 from utils import notifications
 from utils.data_storage import storage
-from datetime import datetime, timedelta
-import requests
-import os
-import json
-from openai import OpenAI
+from utils.logger import get_logger
 
 logger = get_logger("AIImprovementTasks")
 
@@ -272,7 +274,8 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
                         f"⚠️ Celery queue failed ({celery_error}), running config analysis directly..."
                     )
                     try:
-                        from tasks.ai_improvement import _run_config_analysis_direct
+                        from tasks.ai_improvement import \
+                            _run_config_analysis_direct
 
                         direct_result = _run_config_analysis_direct(analysis_result)
                         if direct_result.get("status") == "success":

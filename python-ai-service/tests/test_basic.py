@@ -3,10 +3,10 @@
 
 def test_imports():
     """Test that main modules can be imported"""
-    import main
     import config
-    import models
     import features
+    import main
+    import models
     import utils
 
     assert True

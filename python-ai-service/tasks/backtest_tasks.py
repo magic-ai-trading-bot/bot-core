@@ -4,12 +4,14 @@ Backtesting & Strategy Optimization Tasks
 Long-running strategy testing and parameter optimization
 """
 
-from typing import Dict, Any, List
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
+import numpy as np
 from celery import Task
+
 from celery_app import app
 from utils.logger import get_logger
-import numpy as np
-from datetime import datetime, timedelta
 
 logger = get_logger("BacktestTasks")
 

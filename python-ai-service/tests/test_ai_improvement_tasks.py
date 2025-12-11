@@ -4,10 +4,11 @@ Unit Tests for AI Improvement Tasks
 Tests GPT-4 self-analysis, adaptive retraining, and emergency strategy disable
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, Mock
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Skip all tests if celery is not installed
 try:
@@ -205,8 +206,9 @@ class TestGPT4SelfAnalysis:
 
     def test_gpt4_analysis_no_api_key(self):
         """Test GPT-4 analysis skips when API key is missing"""
-        from tasks.ai_improvement import gpt4_self_analysis
         import os
+
+        from tasks.ai_improvement import gpt4_self_analysis
 
         # Temporarily remove API key
         old_key = os.environ.get("OPENAI_API_KEY")
@@ -553,7 +555,7 @@ class TestAIImprovementTasksIntegration:
 
     def test_gpt4_triggers_adaptive_retrain(self):
         """Test that GPT-4 analysis can trigger adaptive retraining"""
-        from tasks.ai_improvement import gpt4_self_analysis, adaptive_retrain
+        from tasks.ai_improvement import adaptive_retrain, gpt4_self_analysis
 
         # This is more of a workflow test
         # GPT-4 returns recommendation -> adaptive_retrain is called
