@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
     "build:dev": "vite build --mode development",
     "build:analyze": "vite build --config vite.config.analyze.ts",
     "lint": "eslint .",
