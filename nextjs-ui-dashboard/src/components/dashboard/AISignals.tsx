@@ -414,7 +414,7 @@ function StrategyExplanationDialog({ strategyName }: { strategyName: string }) {
                     {[
                       60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280,
                       300, 320, 340,
-                    ].map((x, _i) => {
+                    ].map((x, i) => {
                       const height = Math.sin(i * 0.5) * 15 + 10;
                       const isPositive = height > 5;
                       return (
