@@ -3489,8 +3489,6 @@ async def get_chat_suggestions():
 @app.post("/api/chat/project/clear")
 async def clear_chat_history():
     """Clear conversation history for the project chatbot."""
-    global _project_chatbot
-
     if _project_chatbot is not None:
         _project_chatbot.clear_history()
 
