@@ -66,8 +66,32 @@ jobs:
 
           echo "📦 Pulling latest code..."
           cd /root/bot-core
+
+          # Backup .env file before git reset (preserves secrets like JWT_SECRET)
+          echo "🔐 Backing up secrets..."
+          if [ -f .env ]; then
+            cp .env /tmp/.env.backup
+            echo "  ✓ .env backed up"
+          fi
+
           git fetch origin main
           git reset --hard origin/main
+
+          # Restore .env file after git reset (preserves JWT_SECRET for user sessions)
+          echo "🔐 Restoring secrets..."
+          if [ -f /tmp/.env.backup ]; then
+            cp /tmp/.env.backup .env
+            echo "  ✓ .env restored from backup"
+          elif [ -f /root/bot-secrets.txt ]; then
+            # Fallback: source from bot-secrets.txt created during initial setup
+            cp .env.example .env
+            source /root/bot-secrets.txt
+            sed -i "s|MONGO_ROOT_PASSWORD=.*|MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD|g" .env
+            sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|g" .env
+            echo "  ✓ .env created from bot-secrets.txt"
+          else
+            echo "  ⚠️ Warning: No .env backup found, using defaults"
+          fi
 
           echo "🧹 Docker cleanup (preserving data volumes)..."
           # Stop containers gracefully (without removing volumes)
