@@ -5,6 +5,7 @@ Integration tests for Python AI Service.
 import asyncio
 import json
 import os
+
 # Import after adding to path in conftest
 import sys
 from datetime import datetime, timedelta, timezone
@@ -37,9 +38,11 @@ class TestFullAnalysisFlow:
             }
         )
 
-        with patch("main.openai_client", mock_openai_client), patch(
-            "main.mongodb_db", mock_mongodb[1]
-        ), patch("main.store_analysis_result", AsyncMock()) as mock_store:
+        with (
+            patch("main.openai_client", mock_openai_client),
+            patch("main.mongodb_db", mock_mongodb[1]),
+            patch("main.store_analysis_result", AsyncMock()) as mock_store,
+        ):
             # Make request
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
 
@@ -88,15 +91,13 @@ class TestFullAnalysisFlow:
             ]
         ]
 
-        with patch("main.openai_client", mock_openai_client), patch(
-            "main.mongodb_db", mock_mongodb[1]
-        ), patch(
-            "main.fetch_binance_candles", AsyncMock(return_value=mock_candles)
-        ), patch(
-            "main.store_analysis_result", AsyncMock()
-        ) as mock_store, patch(
-            "main.ws_manager.broadcast_signal", AsyncMock()
-        ) as mock_broadcast:
+        with (
+            patch("main.openai_client", mock_openai_client),
+            patch("main.mongodb_db", mock_mongodb[1]),
+            patch("main.fetch_binance_candles", AsyncMock(return_value=mock_candles)),
+            patch("main.store_analysis_result", AsyncMock()) as mock_store,
+            patch("main.ws_manager.broadcast_signal", AsyncMock()) as mock_broadcast,
+        ):
             # Run one iteration
             await periodic_analysis_runner()
 
@@ -305,9 +306,12 @@ class TestErrorHandlingAndRecovery:
     async def test_service_degradation(self, client, sample_ai_analysis_request):
         """Test service degradation when dependencies fail."""
         # Simulate various failures
-        with patch("main.mongodb_db", None), patch(
-            "main.ws_manager.broadcast_signal",
-            AsyncMock(side_effect=Exception("WebSocket error")),
+        with (
+            patch("main.mongodb_db", None),
+            patch(
+                "main.ws_manager.broadcast_signal",
+                AsyncMock(side_effect=Exception("WebSocket error")),
+            ),
         ):
             # Service should still respond
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)

@@ -2,11 +2,17 @@ from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
-                                        ReduceLROnPlateau)
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.layers import (  # @spec:FR-AI-003 - Transformer Model; @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md; @test:TC-AI-006, TC-AI-007
-    Add, BatchNormalization, Dense, Dropout, GlobalAveragePooling1D, Input,
-    LayerNormalization, MultiHeadAttention)
+    Add,
+    BatchNormalization,
+    Dense,
+    Dropout,
+    GlobalAveragePooling1D,
+    Input,
+    LayerNormalization,
+    MultiHeadAttention,
+)
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 

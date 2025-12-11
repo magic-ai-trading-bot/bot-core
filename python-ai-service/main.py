@@ -18,8 +18,7 @@ import fastapi
 import numpy as np
 import pandas as pd
 import ta
-from fastapi import (FastAPI, HTTPException, Request, WebSocket,
-                     WebSocketDisconnect)
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
@@ -29,23 +28,26 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.core.config import OPENAI_REQUEST_DELAY
+
 # Load configuration
 from config_loader import AI_CACHE_DURATION_MINUTES, AI_CACHE_ENABLED
-from config_loader import \
-    SIGNAL_CONFIDENCE_BASE as CONFIG_SIGNAL_CONFIDENCE_BASE
-from config_loader import \
-    SIGNAL_CONFIDENCE_PER_TF as CONFIG_SIGNAL_CONFIDENCE_PER_TF
+from config_loader import SIGNAL_CONFIDENCE_BASE as CONFIG_SIGNAL_CONFIDENCE_BASE
+from config_loader import SIGNAL_CONFIDENCE_PER_TF as CONFIG_SIGNAL_CONFIDENCE_PER_TF
 from config_loader import SIGNAL_MIN_INDICATORS as CONFIG_SIGNAL_MIN_INDICATORS
 from config_loader import SIGNAL_MIN_TIMEFRAMES as CONFIG_SIGNAL_MIN_TIMEFRAMES
-from config_loader import \
-    SIGNAL_TREND_THRESHOLD as \
-    CONFIG_SIGNAL_TREND_THRESHOLD  # These are now fetched from Rust API via settings_manager (fallback to config.yaml)
+from config_loader import SIGNAL_TREND_THRESHOLD as CONFIG_SIGNAL_TREND_THRESHOLD
+
 # Project chatbot service (RAG)
 from services.project_chatbot import ProjectChatbot, get_chatbot
+
 # @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified settings from Rust API
 # Settings manager fetches indicator/signal settings from Rust API with caching
 # Falls back to config.yaml values if Rust API is unavailable
 from settings_manager import refresh_settings_periodically, settings_manager
+
+# Note: These config values are now fetched from Rust API via settings_manager
+# Falls back to config.yaml values if Rust API is unavailable
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

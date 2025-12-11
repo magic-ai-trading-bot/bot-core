@@ -6,11 +6,15 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from utils.data_storage import (COLLECTION_API_COSTS, COLLECTION_GPT4_ANALYSIS,
-                                COLLECTION_MODEL_ACCURACY,
-                                COLLECTION_PERFORMANCE_METRICS,
-                                COLLECTION_RETRAIN_HISTORY, DataStorage,
-                                _extract_db_name)
+from utils.data_storage import (
+    COLLECTION_API_COSTS,
+    COLLECTION_GPT4_ANALYSIS,
+    COLLECTION_MODEL_ACCURACY,
+    COLLECTION_PERFORMANCE_METRICS,
+    COLLECTION_RETRAIN_HISTORY,
+    DataStorage,
+    _extract_db_name,
+)
 
 
 @pytest.mark.unit
