@@ -129,16 +129,16 @@ function formatPrice(price: number, symbol: string): string {
 const NeuralNetworkBg = () => {
   const themeColors = useThemeColors();
   return (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {/* Gradient orbs */}
+  <div className="hidden md:block absolute inset-0 overflow-hidden pointer-events-none">
+    {/* Gradient orbs - Hidden on mobile for performance */}
     <div
-      className="absolute top-0 left-1/4 w-[600px] h-[600px] blur-[120px] animate-pulse-slow"
+      className="absolute top-0 left-1/4 w-[300px] lg:w-[600px] h-[300px] lg:h-[600px] blur-[60px] lg:blur-[120px] animate-pulse-slow"
       style={{
         background: `radial-gradient(circle, ${themeColors.purple}20, ${themeColors.cyan}10, transparent)`,
       }}
     />
     <div
-      className="absolute bottom-0 right-1/4 w-[400px] h-[400px] blur-[100px] animate-pulse-slow"
+      className="absolute bottom-0 right-1/4 w-[200px] lg:w-[400px] h-[200px] lg:h-[400px] blur-[50px] lg:blur-[100px] animate-pulse-slow"
       style={{
         background: `radial-gradient(circle, ${themeColors.cyan}15, ${themeColors.purple}10, transparent)`,
         animationDelay: "1s",
@@ -290,26 +290,26 @@ const AIStatusHero = ({ isActive, accuracy, lastUpdate }: { isActive: boolean; a
 
   return (
     <GlassCard hoverable glowColor={`0 8px 32px ${themeColors.purple}40`}>
-      {/* Background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Background effects - Hidden on mobile */}
+      <div className="hidden sm:block absolute inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute top-0 right-0 w-[300px] h-[300px] blur-[80px]"
+          className="absolute top-0 right-0 w-[150px] sm:w-[200px] lg:w-[300px] h-[150px] sm:h-[200px] lg:h-[300px] blur-[40px] sm:blur-[60px] lg:blur-[80px]"
           style={{
             background: `radial-gradient(circle, ${themeColors.purple}20, ${themeColors.cyan}10, transparent)`,
           }}
         />
         <div
-          className="absolute bottom-0 left-0 w-[200px] h-[200px] blur-[60px]"
+          className="absolute bottom-0 left-0 w-[100px] sm:w-[150px] lg:w-[200px] h-[100px] sm:h-[150px] lg:h-[200px] blur-[30px] sm:blur-[45px] lg:blur-[60px]"
           style={{
             background: `radial-gradient(circle, ${themeColors.cyan}15, transparent)`,
           }}
         />
       </div>
 
-      <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
         {/* Left: Status indicator */}
-        <div className="flex items-center gap-6">
-          <div className="relative">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="relative hidden sm:block">
             <PulseRing color={statusColor} size={80} />
             <div
               className="absolute inset-0 flex items-center justify-center rounded-full"
@@ -322,38 +322,38 @@ const AIStatusHero = ({ isActive, accuracy, lastUpdate }: { isActive: boolean; a
             </div>
           </div>
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <GradientText className="text-2xl md:text-3xl font-bold">{t('trading:aiEngine.title')}</GradientText>
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <GradientText className="text-xl sm:text-2xl md:text-3xl font-bold">{t('trading:aiEngine.title')}</GradientText>
               <Badge variant={isActive ? "success" : "error"} glow>
                 {isActive ? t('aiSignalsPage.engine.active') : t('aiSignalsPage.engine.offline')}
               </Badge>
             </div>
-            <p className="text-sm md:text-base" style={{ color: themeColors.textMuted }}>
+            <p className="text-xs sm:text-sm md:text-base" style={{ color: themeColors.textMuted }}>
               {t('aiSignalsPage.engine.description')}
             </p>
           </div>
         </div>
 
         {/* Right: Stats */}
-        <div className="flex items-center gap-6 md:gap-8">
+        <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
           <div className="text-center">
-            <GradientText className="text-3xl md:text-4xl font-bold">{accuracy}%</GradientText>
-            <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
+            <GradientText className="text-2xl sm:text-3xl md:text-4xl font-bold">{accuracy}%</GradientText>
+            <div className="text-[10px] sm:text-xs mt-1" style={{ color: themeColors.textMuted }}>
               {t('aiSignalsPage.accuracy.label')}
             </div>
           </div>
           <div
-            className="w-px h-12"
+            className="w-px h-10 sm:h-12"
             style={{
               background: `linear-gradient(to bottom, transparent, ${themeColors.purple}30, transparent)`,
             }}
           />
           <div className="text-center">
             <div className="flex items-center gap-1" style={{ color: themeColors.cyan }}>
-              <Clock className="w-4 h-4" />
-              <span className="text-lg font-semibold">{lastUpdate}</span>
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-base sm:text-lg font-semibold">{lastUpdate}</span>
             </div>
-            <div className="text-xs mt-1" style={{ color: themeColors.textMuted }}>
+            <div className="text-[10px] sm:text-xs mt-1" style={{ color: themeColors.textMuted }}>
               {t('aiSignalsPage.lastUpdate')}
             </div>
           </div>
@@ -879,12 +879,12 @@ const AISignals = () => {
       {/* Background */}
       <NeuralNetworkBg />
 
-      <div className="relative space-y-6">
+      <div className="relative space-y-4 sm:space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <GradientText className="text-3xl font-bold tracking-tight">{t('aiSignalsPage.title')}</GradientText>
-            <p className="mt-1" style={{ color: themeColors.textMuted }}>
+            <GradientText className="text-2xl sm:text-3xl font-bold tracking-tight">{t('aiSignalsPage.title')}</GradientText>
+            <p className="text-xs sm:text-sm mt-1" style={{ color: themeColors.textMuted }}>
               {t('aiSignalsPage.subtitle')}
             </p>
           </div>
@@ -895,7 +895,7 @@ const AISignals = () => {
             loading={isRefreshing}
           >
             <RefreshCw className="w-4 h-4" />
-            {t('tradeAnalyses.refresh')}
+            <span className="hidden sm:inline">{t('tradeAnalyses.refresh')}</span>
           </PremiumButton>
         </div>
 
@@ -907,9 +907,9 @@ const AISignals = () => {
         />
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Live Signals - 2 columns */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
             <SectionHeader
               title={t('aiSignalsPage.signals.live')}
               icon={Zap}
@@ -921,7 +921,7 @@ const AISignals = () => {
             />
 
             {liveSignals.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {liveSignals.map((signal, index) => (
                   <SignalCard
                     key={signal.id}
@@ -945,8 +945,8 @@ const AISignals = () => {
           </div>
 
           {/* Signal History - 1 column */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <SectionHeader title={t('aiSignalsPage.history.title')} icon={BarChart3} />
               <div
                 className="flex items-center gap-1 p-1 rounded-lg"
@@ -956,7 +956,7 @@ const AISignals = () => {
                   <button
                     key={filter}
                     onClick={() => setSelectedFilter(filter)}
-                    className="px-3 py-1 text-xs rounded-md transition-colors"
+                    className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs rounded-md transition-colors"
                     style={{
                       backgroundColor:
                         selectedFilter === filter ? themeColors.purple : "transparent",
@@ -974,33 +974,33 @@ const AISignals = () => {
 
             {/* Stats Summary */}
             <div className="grid grid-cols-2 gap-2">
-              <GlassCard noPadding className="text-center p-3">
-                <div className="text-lg font-bold" style={{ color: themeColors.emerald }}>
+              <GlassCard noPadding className="text-center p-2 sm:p-3">
+                <div className="text-base sm:text-lg font-bold" style={{ color: themeColors.emerald }}>
                   {isLoadingHistory ? "-" : stats.wins}
                 </div>
-                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                <div className="text-[10px] sm:text-xs" style={{ color: themeColors.textMuted }}>
                   {t('aiSignalsPage.stats.wins')}
                 </div>
               </GlassCard>
-              <GlassCard noPadding className="text-center p-3">
-                <div className="text-lg font-bold" style={{ color: themeColors.loss }}>
+              <GlassCard noPadding className="text-center p-2 sm:p-3">
+                <div className="text-base sm:text-lg font-bold" style={{ color: themeColors.loss }}>
                   {isLoadingHistory ? "-" : stats.losses}
                 </div>
-                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                <div className="text-[10px] sm:text-xs" style={{ color: themeColors.textMuted }}>
                   {t('aiSignalsPage.stats.losses')}
                 </div>
               </GlassCard>
-              <GlassCard noPadding className="text-center p-3">
-                <GradientText className="text-lg font-bold">
+              <GlassCard noPadding className="text-center p-2 sm:p-3">
+                <GradientText className="text-base sm:text-lg font-bold">
                   {isLoadingHistory ? "-" : `${stats.winRate}%`}
                 </GradientText>
-                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                <div className="text-[10px] sm:text-xs" style={{ color: themeColors.textMuted }}>
                   {t('aiSignalsPage.stats.winRate')}
                 </div>
               </GlassCard>
-              <GlassCard noPadding className="text-center p-3">
+              <GlassCard noPadding className="text-center p-2 sm:p-3">
                 <div
-                  className="text-lg font-bold font-mono"
+                  className="text-base sm:text-lg font-bold font-mono"
                   style={{
                     color: isLoadingHistory
                       ? themeColors.textMuted
@@ -1013,14 +1013,14 @@ const AISignals = () => {
                     ? "-"
                     : `${stats.totalPnl >= 0 ? "+" : ""}${stats.totalPnl.toFixed(2)}`}
                 </div>
-                <div className="text-xs" style={{ color: themeColors.textMuted }}>
+                <div className="text-[10px] sm:text-xs" style={{ color: themeColors.textMuted }}>
                   {t('aiSignalsPage.stats.totalPnl')} (USDT)
                 </div>
               </GlassCard>
             </div>
 
             {/* History List */}
-            <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-2 max-h-[350px] sm:max-h-[400px] md:max-h-[500px] overflow-y-auto custom-scrollbar">
               {filteredHistory.length > 0 ? (
                 filteredHistory.map((signal, index) => (
                   <HistoryRow key={signal.id} signal={signal} index={index} />

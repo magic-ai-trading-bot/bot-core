@@ -378,16 +378,16 @@ const Portfolio = () => {
 
   return (
     <PageWrapper>
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Animated Background - Hidden on mobile for performance */}
+      <div className="hidden md:block fixed inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute top-0 left-1/4 w-[600px] h-[600px] blur-[120px] animate-pulse-slow"
+          className="absolute top-0 left-1/4 w-[300px] lg:w-[600px] h-[300px] lg:h-[600px] blur-[80px] lg:blur-[120px] animate-pulse-slow"
           style={{
             background: `radial-gradient(circle, ${themeColors.cyan}15 0%, transparent 70%)`,
           }}
         />
         <div
-          className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] blur-[100px] animate-pulse-slow"
+          className="absolute bottom-1/4 right-1/4 w-[250px] lg:w-[500px] h-[250px] lg:h-[500px] blur-[60px] lg:blur-[100px] animate-pulse-slow"
           style={{
             background: `radial-gradient(circle, ${themeColors.purple}15 0%, ${themeColors.emerald}08 50%, transparent 70%)`,
             animationDelay: "1.5s",
@@ -401,29 +401,29 @@ const Portfolio = () => {
             ================================================================ */}
         <motion.div variants={itemVariants}>
           <GlassCard className="overflow-hidden">
-            {/* Decorative glow */}
+            {/* Decorative glow - Hidden on mobile */}
             <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] blur-[60px]"
+              className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-[200px] sm:w-[300px] md:w-[400px] h-[100px] sm:h-[150px] md:h-[200px] blur-[40px] sm:blur-[50px] md:blur-[60px]"
               style={{
                 background: `linear-gradient(to bottom, ${themeColors.cyan}30, transparent)`,
               }}
             />
 
-            <div className="relative p-8">
+            <div className="relative p-4 sm:p-6 md:p-8">
               {/* Header */}
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3">
                   <GlowIcon icon={Wallet} color={themeColors.cyan} size="lg" />
                   <div>
-                    <h1 className="text-2xl font-bold" style={{ color: themeColors.textPrimary }}>
+                    <h1 className="text-xl sm:text-2xl font-bold" style={{ color: themeColors.textPrimary }}>
                       {t('portfolio.title')}
                     </h1>
-                    <p className="text-sm" style={{ color: themeColors.textMuted }}>
+                    <p className="text-xs sm:text-sm" style={{ color: themeColors.textMuted }}>
                       {t('portfolio.subtitle')}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <button
                     onClick={refreshAll}
                     className="p-2 rounded-lg transition-colors"
@@ -440,15 +440,15 @@ const Portfolio = () => {
               </div>
 
               {/* Main Value Display */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-6 sm:mb-8">
                 <div className="inline-block">
                   <p
-                    className="text-sm mb-2 uppercase tracking-wider"
+                    className="text-xs sm:text-sm mb-2 uppercase tracking-wider"
                     style={{ color: themeColors.textMuted }}
                   >
                     {t('portfolio.currentBalance')}
                   </p>
-                  <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold">
+                  <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold">
                     <GradientText>
                       $<AnimatedCounter value={portfolioMetrics.currentBalance} decimals={2} duration={2500} />
                     </GradientText>
@@ -456,77 +456,77 @@ const Portfolio = () => {
                 </div>
               </div>
 
-              {/* Change Indicators */}
-              <div className="flex flex-wrap justify-center gap-4 md:gap-8">
+              {/* Change Indicators - Responsive grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
                 {/* Win Rate */}
                 <div
-                  className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[140px]"
+                  className="flex flex-col items-center p-3 sm:p-4 rounded-xl backdrop-blur-sm"
                   style={{
                     backgroundColor: themeColors.bgTertiary,
                     border: `1px solid ${themeColors.borderSubtle}`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
                     {t('portfolio.stats.winRate')}
                   </span>
                   <div
-                    className="flex items-center gap-1 text-lg font-semibold"
+                    className="flex items-center gap-1 text-base sm:text-lg font-semibold"
                     style={{
                       color: portfolioMetrics.winRate >= 50 ? themeColors.profit : themeColors.loss,
                     }}
                   >
-                    <Target className="w-5 h-5" />
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5" />
                     {portfolioMetrics.winRate.toFixed(1)}%
                   </div>
                 </div>
 
                 {/* Total Trades */}
                 <div
-                  className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[140px]"
+                  className="flex flex-col items-center p-3 sm:p-4 rounded-xl backdrop-blur-sm"
                   style={{
                     backgroundColor: themeColors.bgTertiary,
                     border: `1px solid ${themeColors.borderSubtle}`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
                     {t('portfolio.stats.totalTrades')}
                   </span>
-                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
-                    <Activity className="w-5 h-5" />
+                  <div className="flex items-center gap-1 text-base sm:text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
+                    <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
                     {portfolioMetrics.totalTrades}
                   </div>
                 </div>
 
                 {/* Profit Factor */}
                 <div
-                  className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[140px]"
+                  className="flex flex-col items-center p-3 sm:p-4 rounded-xl backdrop-blur-sm"
                   style={{
                     backgroundColor: themeColors.bgTertiary,
                     border: `1px solid ${themeColors.borderSubtle}`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
                     {t('portfolio.stats.profitFactor')}
                   </span>
-                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: portfolioMetrics.profitFactor >= 1 ? themeColors.profit : themeColors.loss }}>
-                    <BarChart3 className="w-5 h-5" />
+                  <div className="flex items-center gap-1 text-base sm:text-lg font-semibold" style={{ color: portfolioMetrics.profitFactor >= 1 ? themeColors.profit : themeColors.loss }}>
+                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
                     {portfolioMetrics.profitFactor.toFixed(2)}
                   </div>
                 </div>
 
                 {/* Total P&L */}
                 <div
-                  className="flex flex-col items-center p-4 rounded-xl backdrop-blur-sm min-w-[160px]"
+                  className="flex flex-col items-center p-3 sm:p-4 rounded-xl backdrop-blur-sm"
                   style={{
                     background: `linear-gradient(135deg, ${portfolioMetrics.totalPnL >= 0 ? themeColors.profit : themeColors.loss}15, transparent)`,
                     border: `1px solid ${portfolioMetrics.totalPnL >= 0 ? themeColors.profit : themeColors.loss}30`,
                   }}
                 >
-                  <span className="text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: themeColors.textMuted }}>
                     {t('portfolio.stats.totalPnl')}
                   </span>
-                  <div className="flex items-center gap-1 text-lg font-semibold" style={{ color: portfolioMetrics.totalPnL >= 0 ? themeColors.profit : themeColors.loss }}>
-                    {portfolioMetrics.totalPnL >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+                  <div className="flex items-center gap-1 text-base sm:text-lg font-semibold" style={{ color: portfolioMetrics.totalPnL >= 0 ? themeColors.profit : themeColors.loss }}>
+                    {portfolioMetrics.totalPnL >= 0 ? <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" /> : <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5" />}
                     {portfolioMetrics.totalPnL >= 0 ? "+" : ""}$<AnimatedCounter value={portfolioMetrics.totalPnL} decimals={2} duration={2000} />
                   </div>
                 </div>
@@ -538,22 +538,22 @@ const Portfolio = () => {
         {/* ================================================================
             SECTION 2 & 3: POSITION ALLOCATION + OPEN TRADES
             ================================================================ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Position Allocation Donut Chart */}
           <motion.div className="lg:col-span-1" variants={itemVariants}>
             <GlassCard noPadding>
-              <div className="p-6 pb-2">
+              <div className="p-4 sm:p-6 pb-2">
                 <div className="flex items-center gap-2 mb-4">
                   <GlowIcon icon={Layers} color={themeColors.cyan} size="md" />
-                  <h3 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
+                  <h3 className="text-base sm:text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
                     {t('portfolio.sections.allocation')}
                   </h3>
                 </div>
               </div>
-              <div className="px-6 pb-6">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 {openTrades.length > 0 ? (
                   <>
-                    <div className="h-[280px] relative">
+                    <div className="h-[220px] sm:h-[260px] md:h-[280px] relative">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -615,11 +615,11 @@ const Portfolio = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="h-[280px] flex items-center justify-center">
+                  <div className="h-[220px] sm:h-[260px] md:h-[280px] flex items-center justify-center">
                     <div className="text-center">
-                      <Layers className="w-12 h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
-                      <p style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noPositions')}</p>
-                      <p className="text-sm" style={{ color: themeColors.textMuted }}>{t('portfolio.empty.startTrading')}</p>
+                      <Layers className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
+                      <p className="text-sm sm:text-base" style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noPositions')}</p>
+                      <p className="text-xs sm:text-sm" style={{ color: themeColors.textMuted }}>{t('portfolio.empty.startTrading')}</p>
                     </div>
                   </div>
                 )}
@@ -630,17 +630,17 @@ const Portfolio = () => {
           {/* Recent Closed Trades Table */}
           <motion.div className="lg:col-span-2" variants={itemVariants}>
             <GlassCard noPadding>
-              <div className="p-6 pb-2">
+              <div className="p-4 sm:p-6 pb-2">
                 <div className="flex items-center gap-2">
                   <GlowIcon icon={BarChart3} color={themeColors.cyan} size="md" />
-                  <h3 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
+                  <h3 className="text-base sm:text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
                     {t('portfolio.sections.recentTrades')} ({closedTrades.length})
                   </h3>
                 </div>
               </div>
-              <div className="px-6 pb-6">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 {closedTrades.length > 0 ? (
-                  <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                  <div className="overflow-x-auto max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto">
                     <table className="w-full">
                       <thead className="sticky top-0" style={{ backgroundColor: themeColors.bgSecondary }}>
                         <tr style={{ borderBottom: `1px solid ${themeColors.borderSubtle}` }}>
@@ -735,10 +735,10 @@ const Portfolio = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="h-[200px] flex items-center justify-center">
+                  <div className="h-[150px] sm:h-[180px] md:h-[200px] flex items-center justify-center">
                     <div className="text-center">
-                      <BarChart3 className="w-12 h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
-                      <p style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noClosedTrades')}</p>
+                      <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
+                      <p className="text-sm sm:text-base" style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noClosedTrades')}</p>
                     </div>
                   </div>
                 )}
@@ -752,11 +752,11 @@ const Portfolio = () => {
             ================================================================ */}
         <motion.div variants={itemVariants}>
           <GlassCard noPadding>
-            <div className="p-6 pb-2">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="p-4 sm:p-6 pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <GlowIcon icon={Clock} color={themeColors.cyan} size="md" />
-                  <h3 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
+                  <h3 className="text-base sm:text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
                     {t('portfolio.sections.performance')}
                   </h3>
                 </div>
@@ -782,8 +782,8 @@ const Portfolio = () => {
                 </Tabs>
               </div>
             </div>
-            <div className="px-6 pb-6">
-              <div className="h-[350px]">
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+              <div className="h-[250px] sm:h-[300px] md:h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={performanceData}
@@ -853,11 +853,11 @@ const Portfolio = () => {
         {/* ================================================================
             SECTION 5: QUICK STATS CARDS
             ================================================================ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {/* Best Trade */}
           <motion.div variants={itemVariants}>
             <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-5 relative">
+              <div className="p-3 sm:p-4 md:p-5 relative">
                 <div
                   className="absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
@@ -865,26 +865,26 @@ const Portfolio = () => {
                   }}
                 />
                 <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <GlowIcon icon={Trophy} color={themeColors.profit} size="md" />
                     {bestTrade && (
-                      <Badge variant="success">
+                      <Badge variant="success" className="text-[10px] sm:text-xs">
                         +{bestTrade.pnl_percentage.toFixed(2)}%
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.bestTrade')}</p>
+                  <p className="text-xs sm:text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.bestTrade')}</p>
                   {bestTrade ? (
                     <div>
-                      <p className="font-semibold" style={{ color: themeColors.textPrimary }}>
+                      <p className="text-sm sm:text-base font-semibold" style={{ color: themeColors.textPrimary }}>
                         {bestTrade.symbol}
                       </p>
-                      <p className="text-sm font-medium" style={{ color: themeColors.profit }}>
+                      <p className="text-xs sm:text-sm font-medium" style={{ color: themeColors.profit }}>
                         +${(bestTrade.pnl || 0).toFixed(2)}
                       </p>
                     </div>
                   ) : (
-                    <p style={{ color: themeColors.textMuted }}>{t('portfolio.cards.noTradesYet')}</p>
+                    <p className="text-xs sm:text-sm" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.noTradesYet')}</p>
                   )}
                 </div>
               </div>
@@ -894,34 +894,34 @@ const Portfolio = () => {
           {/* Worst Trade */}
           <motion.div variants={itemVariants}>
             <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-5 relative">
+              <div className="p-3 sm:p-4 md:p-5 relative">
                 <div
-                  className="absolute top-0 right-0 w-24 h-24 blur-2xl"
+                  className="hidden sm:block absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
                     background: `linear-gradient(to bottom left, ${themeColors.loss}30, transparent)`,
                   }}
                 />
                 <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <GlowIcon icon={AlertTriangle} color={themeColors.loss} size="md" />
                     {worstTrade && (
-                      <Badge variant="error">
+                      <Badge variant="error" className="text-[10px] sm:text-xs">
                         {worstTrade.pnl_percentage.toFixed(2)}%
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.worstTrade')}</p>
+                  <p className="text-xs sm:text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.worstTrade')}</p>
                   {worstTrade ? (
                     <div>
-                      <p className="font-semibold" style={{ color: themeColors.textPrimary }}>
+                      <p className="text-sm sm:text-base font-semibold" style={{ color: themeColors.textPrimary }}>
                         {worstTrade.symbol}
                       </p>
-                      <p className="text-sm font-medium" style={{ color: themeColors.loss }}>
+                      <p className="text-xs sm:text-sm font-medium" style={{ color: themeColors.loss }}>
                         ${(worstTrade.pnl || 0).toFixed(2)}
                       </p>
                     </div>
                   ) : (
-                    <p style={{ color: themeColors.textMuted }}>{t('portfolio.cards.noTradesYet')}</p>
+                    <p className="text-xs sm:text-sm" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.noTradesYet')}</p>
                   )}
                 </div>
               </div>
@@ -931,25 +931,25 @@ const Portfolio = () => {
           {/* Max Drawdown */}
           <motion.div variants={itemVariants}>
             <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-5 relative">
+              <div className="p-3 sm:p-4 md:p-5 relative">
                 <div
-                  className="absolute top-0 right-0 w-24 h-24 blur-2xl"
+                  className="hidden sm:block absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
                     background: `linear-gradient(to bottom left, ${themeColors.cyan}30, transparent)`,
                   }}
                 />
                 <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <GlowIcon icon={Shield} color={themeColors.cyan} size="md" />
-                    <Badge variant={portfolioMetrics.maxDrawdownPct < 10 ? "success" : portfolioMetrics.maxDrawdownPct < 20 ? "warning" : "error"}>
+                    <Badge variant={portfolioMetrics.maxDrawdownPct < 10 ? "success" : portfolioMetrics.maxDrawdownPct < 20 ? "warning" : "error"} className="text-[10px] sm:text-xs">
                       {portfolioMetrics.maxDrawdownPct < 10 ? t('portfolio.status.safe') : portfolioMetrics.maxDrawdownPct < 20 ? t('portfolio.status.moderate') : t('portfolio.status.high')}
                     </Badge>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.maxDrawdown')}</p>
-                  <p className="text-2xl font-bold" style={{ color: themeColors.loss }}>
+                  <p className="text-xs sm:text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.maxDrawdown')}</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: themeColors.loss }}>
                     -{portfolioMetrics.maxDrawdownPct.toFixed(2)}%
                   </p>
-                  <p className="text-sm" style={{ color: themeColors.textMuted }}>
+                  <p className="text-xs sm:text-sm" style={{ color: themeColors.textMuted }}>
                     ${portfolioMetrics.maxDrawdown.toFixed(2)}
                   </p>
                 </div>
@@ -960,25 +960,25 @@ const Portfolio = () => {
           {/* Sharpe Ratio */}
           <motion.div variants={itemVariants}>
             <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-5 relative">
+              <div className="p-3 sm:p-4 md:p-5 relative">
                 <div
-                  className="absolute top-0 right-0 w-24 h-24 blur-2xl"
+                  className="hidden sm:block absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
                     background: `linear-gradient(to bottom left, ${themeColors.purple}30, transparent)`,
                   }}
                 />
                 <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <GlowIcon icon={TrendingUp} color={themeColors.purple} size="md" />
-                    <Badge variant={portfolioMetrics.sharpeRatio >= 1.5 ? "success" : portfolioMetrics.sharpeRatio >= 1 ? "warning" : "error"}>
+                    <Badge variant={portfolioMetrics.sharpeRatio >= 1.5 ? "success" : portfolioMetrics.sharpeRatio >= 1 ? "warning" : "error"} className="text-[10px] sm:text-xs">
                       {portfolioMetrics.sharpeRatio >= 1.5 ? t('portfolio.status.excellent') : portfolioMetrics.sharpeRatio >= 1 ? t('portfolio.status.good') : t('portfolio.status.low')}
                     </Badge>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.sharpeRatio')}</p>
-                  <p className="text-2xl font-bold" style={{ color: themeColors.textPrimary }}>
+                  <p className="text-xs sm:text-sm mb-1" style={{ color: themeColors.textMuted }}>{t('portfolio.cards.sharpeRatio')}</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: themeColors.textPrimary }}>
                     {portfolioMetrics.sharpeRatio.toFixed(2)}
                   </p>
-                  <p className="text-sm" style={{ color: themeColors.textMuted }}>
+                  <p className="text-xs sm:text-sm" style={{ color: themeColors.textMuted }}>
                     {t('portfolio.cards.riskAdjusted')}
                   </p>
                 </div>

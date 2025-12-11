@@ -35,10 +35,10 @@ export function LanguageSelector() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Trigger Button */}
+      {/* Trigger Button - 44px touch target (WCAG 2.5.5) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-200"
+        className="flex items-center gap-2 px-3 h-11 min-w-[44px] rounded-xl transition-all duration-200"
         style={{
           backgroundColor: isOpen ? colors.bgSecondary : 'transparent',
           color: colors.textSecondary,

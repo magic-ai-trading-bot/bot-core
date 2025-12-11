@@ -1449,7 +1449,7 @@ export default function RealTrading() {
 
   return (
     <motion.div
-      className="h-full flex flex-col"
+      className="min-h-full lg:h-full flex flex-col overflow-x-hidden overflow-y-auto lg:overflow-y-hidden w-full max-w-full"
       style={{ backgroundColor: colors.bgPrimary }}
       initial="hidden"
       animate="visible"
@@ -1465,30 +1465,32 @@ export default function RealTrading() {
         totalTrades={realTrading.portfolio.total_trades}
       />
 
-      {/* Main Trading Grid */}
-      <div className="flex-1 grid grid-cols-12 gap-[1px] min-h-0 overflow-hidden" style={{ backgroundColor: colors.borderSubtle }}>
-        {/* Left Column: Chart (60%) */}
+      {/* Main Trading Grid - Responsive: stacked on mobile, side-by-side on lg+ */}
+      {/* Mobile: overflow-visible for natural page scroll, Desktop: contained layout */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-[1px] min-h-0 lg:overflow-hidden" style={{ backgroundColor: colors.borderSubtle }}>
+        {/* Left Column: Chart (full width on mobile, 60% on desktop) */}
+        {/* Mobile: no scroll constraints, Desktop: scrollable column */}
         <div
-          className="col-span-7 flex flex-col overflow-y-auto custom-scrollbar"
+          className="col-span-1 lg:col-span-7 flex flex-col lg:overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[400px] lg:min-h-0 w-full max-w-full"
           style={{ backgroundColor: colors.bgPrimary }}
         >
-          {/* Chart Header */}
+          {/* Chart Header - Responsive */}
           <motion.div
-            className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]"
+            className="flex flex-wrap items-center justify-between gap-2 px-2 md:px-4 py-2 md:py-3 border-b border-white/[0.08]"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div className="flex items-center gap-4">
-              <div className="relative flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="relative flex items-center gap-2 md:gap-3">
                 <div
-                  className="p-2 rounded-xl"
+                  className="p-1.5 md:p-2 rounded-xl"
                   style={{
                     background: 'rgba(239, 68, 68, 0.1)',
                     border: '1px solid rgba(239, 68, 68, 0.2)',
                   }}
                 >
-                  <LineChart className="w-4 h-4" style={{ color: colors.loss }} />
+                  <LineChart className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: colors.loss }} />
                 </div>
                 {/* Symbol Selector */}
                 <motion.button
@@ -1553,14 +1555,14 @@ export default function RealTrading() {
             </div>
 
             {/* Timeframe buttons */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+            <div className="flex items-center gap-0.5 md:gap-1 p-0.5 md:p-1 rounded-xl bg-white/[0.03] border border-white/[0.08]">
               {timeframes.map((tf) => (
                 <motion.button
                   key={tf}
                   onClick={() => setSelectedTimeframe(tf)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg"
+                  className="px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-300"
                   style={{
                     background: selectedTimeframe === tf
                       ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2))'
@@ -1581,9 +1583,10 @@ export default function RealTrading() {
           </div>
 
           {/* Positions/History Tabs */}
+          {/* Mobile: no max-height for natural flow, Desktop: capped height */}
           <div
-            className="rounded-t-2xl flex flex-col"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', minHeight: '250px', maxHeight: '40vh' }}
+            className="rounded-t-2xl flex flex-col min-h-[200px] lg:min-h-[250px] lg:max-h-[40vh]"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}
           >
             <div className="flex border-b border-white/[0.08]">
               {[
@@ -1595,10 +1598,10 @@ export default function RealTrading() {
                   onClick={() => setActiveTab(tab.id as 'positions' | 'history')}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="relative px-5 py-3 text-xs font-bold flex items-center gap-2"
+                  className="relative px-3 md:px-5 py-2 md:py-3 text-[10px] md:text-xs font-bold flex items-center gap-1.5 md:gap-2"
                   style={{ color: activeTab === tab.id ? colors.loss : colors.textMuted }}
                 >
-                  <tab.icon className="w-4 h-4" />
+                  <tab.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   {tab.label}
                   {tab.count !== undefined && (
                     <span
@@ -1638,9 +1641,10 @@ export default function RealTrading() {
           </div>
         </div>
 
-        {/* Right Column: Order Book + Form (40%) */}
-        <div className="col-span-5 flex flex-col overflow-y-auto" style={{ backgroundColor: colors.bgPrimary }}>
-          <div className="grid grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
+        {/* Right Column: Order Book + Form (full width on mobile, 40% on desktop) */}
+        {/* Mobile: no overflow for natural page scroll, Desktop: scrollable */}
+        <div className="col-span-1 lg:col-span-5 flex flex-col lg:overflow-y-auto overflow-x-hidden w-full max-w-full" style={{ backgroundColor: colors.bgPrimary }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
             <div style={{ backgroundColor: colors.bgPrimary }}>
               <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} />

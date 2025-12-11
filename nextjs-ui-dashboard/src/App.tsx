@@ -12,6 +12,7 @@ import { PaperTradingProvider } from "@/contexts/PaperTradingContext";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { TradingModeProvider } from "@/contexts/TradingModeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
@@ -69,6 +70,7 @@ const App = () => (
             <PaperTradingProvider>
               <TradingModeProvider>
                 <NotificationProvider>
+                <SidebarProvider>
                 <TooltipProvider>
                   <Toaster />
                   <Sonner />
@@ -208,6 +210,7 @@ const App = () => (
                     </Suspense>
                   </BrowserRouter>
                 </TooltipProvider>
+                </SidebarProvider>
                 </NotificationProvider>
               </TradingModeProvider>
             </PaperTradingProvider>

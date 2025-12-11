@@ -103,13 +103,13 @@ export function NotificationDropdown() {
 
   return (
     <div className="relative">
-      {/* Bell button */}
+      {/* Bell button - 44px touch target (WCAG 2.5.5) */}
       <motion.button
         onClick={handleToggle}
         whileHover={{ scale: 1.05, backgroundColor: colors.bgHover }}
         whileTap={{ scale: 0.95 }}
         className={cn(
-          'relative flex h-10 w-10 items-center justify-center rounded-xl',
+          'relative flex h-11 w-11 items-center justify-center rounded-xl',
           'transition-all duration-200'
         )}
         style={{
