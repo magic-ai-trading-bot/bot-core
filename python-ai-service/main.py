@@ -2481,19 +2481,32 @@ gpt_analyzer = None
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """Health check endpoint.
 
-    # Check MongoDB connection
+    NOTE: This endpoint should be fast and NOT call external APIs (like Rust API)
+    because during Docker startup, other services may not be ready yet.
+    Calling external APIs here can cause circular dependency issues and
+    health check timeouts.
+    """
+
+    # Check MongoDB connection with short timeout
     mongodb_status = False
     try:
         if mongodb_client:
-            await mongodb_client.admin.command("ping")
+            # Use a short timeout to avoid blocking health check
+            await asyncio.wait_for(
+                mongodb_client.admin.command("ping"),
+                timeout=3.0  # 3 second timeout for MongoDB ping
+            )
             mongodb_status = True
-    except Exception:
+    except (Exception, asyncio.TimeoutError):
         pass
 
-    # Fetch dynamic symbols from Rust API
-    current_symbols = await fetch_analysis_symbols()
+    # Use fallback symbols instead of calling Rust API
+    # This avoids circular dependency during startup:
+    # python-ai-service health check -> calls rust-core-engine
+    # but rust-core-engine depends on python-ai-service being healthy first
+    current_symbols = FALLBACK_ANALYSIS_SYMBOLS
 
     return {
         "status": "healthy",
