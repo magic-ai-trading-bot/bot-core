@@ -30,10 +30,16 @@ function getSystemTheme(): ResolvedTheme {
 }
 
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'system';
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === 'light' || stored === 'dark' || stored === 'system') {
-    return stored;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined' || !localStorage?.getItem) {
+    return 'system';
+  }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      return stored;
+    }
+  } catch {
+    // localStorage might throw in some environments
   }
   return 'system';
 }
@@ -87,7 +93,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [resolvedTheme]);
 
   const setTheme = useCallback((newTheme: Theme) => {
-    localStorage.setItem(STORAGE_KEY, newTheme);
+    if (typeof localStorage !== 'undefined' && localStorage?.setItem) {
+      try {
+        localStorage.setItem(STORAGE_KEY, newTheme);
+      } catch {
+        // localStorage might throw in some environments
+      }
+    }
     setThemeState(newTheme);
   }, []);
 

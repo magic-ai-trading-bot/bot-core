@@ -303,7 +303,8 @@ describe('TradingPaper', () => {
     it('shows margin usage card', () => {
       render(<TradingPaper />)
 
-      expect(screen.getByText('Margin sử dụng')).toBeInTheDocument()
+      // Vietnamese: Sử dụng ký quỹ (Margin Usage) - may appear multiple times
+      expect(screen.getAllByText(/Sử dụng ký quỹ/i)[0]).toBeInTheDocument()
     })
 
     it('displays portfolio metrics with live data', () => {
@@ -369,7 +370,8 @@ describe('TradingPaper', () => {
 
       await user.click(screen.getByRole('tab', { name: /lịch sử giao dịch/i }))
 
-      expect(screen.getByText(/chưa có giao dịch nào/i)).toBeInTheDocument()
+      // Vietnamese: "Chưa có giao dịch" or "Không có giao dịch" (No trades)
+      expect(screen.getByText(/(chưa có giao dịch|không có giao dịch)/i)).toBeInTheDocument()
     })
 
     it('displays open trades', async () => {

@@ -124,15 +124,21 @@ const resources = {
 
 // Get initial language from localStorage or browser
 const getInitialLanguage = (): SupportedLanguage => {
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('language');
-    if (stored && stored in SUPPORTED_LANGUAGES) {
-      return stored as SupportedLanguage;
-    }
-    // Try browser language
-    const browserLang = navigator.language.split('-')[0];
-    if (browserLang in SUPPORTED_LANGUAGES) {
-      return browserLang as SupportedLanguage;
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage?.getItem) {
+    try {
+      const stored = localStorage.getItem('language');
+      if (stored && stored in SUPPORTED_LANGUAGES) {
+        return stored as SupportedLanguage;
+      }
+      // Try browser language
+      if (navigator?.language) {
+        const browserLang = navigator.language.split('-')[0];
+        if (browserLang in SUPPORTED_LANGUAGES) {
+          return browserLang as SupportedLanguage;
+        }
+      }
+    } catch {
+      // localStorage might throw in some environments (e.g., incognito mode)
     }
   }
   return DEFAULT_LANGUAGE;
@@ -163,8 +169,12 @@ i18n
 // Helper to change language and persist
 export const changeLanguage = async (lang: SupportedLanguage): Promise<void> => {
   await i18n.changeLanguage(lang);
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('language', lang);
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage?.setItem) {
+    try {
+      localStorage.setItem('language', lang);
+    } catch {
+      // localStorage might throw in some environments
+    }
   }
 };
 
