@@ -655,6 +655,10 @@ const AISignals = () => {
   const [historySignals, setHistorySignals] = useState<SignalWithMeta[]>([]);
   const [apiStats, setApiStats] = useState<SignalHistoryStats | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  // Cached signals from backend - shown immediately on page load
+  // @spec:FR-AI-013 - Cached Signal Display
+  const [cachedSignals, setCachedSignals] = useState<SignalWithMeta[]>([]);
+  const [isLoadingCached, setIsLoadingCached] = useState(true);
 
   // Track previous signals to detect changes and move old ones to history
   const prevSignalsRef = useRef<Map<string, SignalWithMeta>>(new Map());
@@ -729,8 +733,61 @@ const AISignals = () => {
     }
   };
 
-  // Fetch signals history on mount
+  // Fetch latest cached signals (one per symbol) for immediate display
+  // @spec:FR-AI-013 - Cached Signal Display
+  const fetchCachedSignals = async () => {
+    try {
+      const response = await fetch(`${RUST_API_URL}/api/paper-trading/latest-signals`);
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      const responseData = await response.json();
+      const data = responseData.data || responseData;
+
+      // Transform API signals to SignalWithMeta format
+      const transformedSignals: SignalWithMeta[] = (data.signals || []).map((s: {
+        signal_id?: string;
+        signal_type?: string;
+        symbol: string;
+        confidence: number;
+        reasoning?: string;
+        entry_price?: number;
+        timestamp?: string;
+        created_at?: string;
+        outcome?: string;
+        trend_direction?: string;
+        trend_strength?: number;
+      }) => {
+        const signalType = (s.signal_type || "neutral").toLowerCase() as "long" | "short" | "neutral";
+        return {
+          id: s.signal_id || `cached-${s.symbol}-${s.timestamp || s.created_at}`,
+          symbol: s.symbol,
+          signal: signalType,
+          confidence: s.confidence,
+          probability: s.confidence,
+          reasoning: s.reasoning,
+          entry_price: s.entry_price,
+          timestamp: s.timestamp || s.created_at || new Date().toISOString(),
+          model_type: "gpt-4" as const,
+          timeframe: "1H",
+          outcome: (s.outcome as "win" | "loss" | "pending") || "pending",
+          strategy_scores: s.trend_direction ? {
+            trend: s.trend_strength || 0.5,
+          } : undefined,
+        };
+      });
+
+      setCachedSignals(transformedSignals);
+    } catch (error) {
+      console.error("Failed to fetch cached signals:", error);
+    } finally {
+      setIsLoadingCached(false);
+    }
+  };
+
+  // Fetch cached signals and history on mount
   useEffect(() => {
+    fetchCachedSignals(); // Load cached signals first for immediate display
     fetchSignalsHistory();
   }, []);
 
@@ -783,12 +840,18 @@ const AISignals = () => {
     }
   }, [wsState.lastMessage]);
 
-  // Process WebSocket signals: dedupe by symbol (keep latest) and move old to history
+  // Process WebSocket signals + cached signals: dedupe by symbol (keep latest)
+  // @spec:FR-AI-013 - Cached Signal Display
   const liveSignals = useMemo(() => {
     const signalMap = new Map<string, SignalWithMeta>();
 
-    // Process signals - keep only the latest for each symbol
-    wsState.aiSignals.forEach((s, _i) => {
+    // First, add cached signals as base (shown immediately on page load)
+    cachedSignals.forEach((s) => {
+      signalMap.set(s.symbol, s);
+    });
+
+    // Then, overlay WebSocket signals (newer signals replace cached ones)
+    wsState.aiSignals.forEach((s) => {
       const signal: SignalWithMeta = {
         ...s,
         id: `ws-${s.symbol}-${s.timestamp}`,
@@ -798,7 +861,7 @@ const AISignals = () => {
         outcome: "pending" as const,
       };
 
-      // If we already have a signal for this symbol, check which is newer
+      // WebSocket signals are always newer, replace cached
       const existing = signalMap.get(s.symbol);
       if (!existing || new Date(s.timestamp) > new Date(existing.timestamp)) {
         signalMap.set(s.symbol, signal);
@@ -806,7 +869,7 @@ const AISignals = () => {
     });
 
     return Array.from(signalMap.values());
-  }, [wsState.aiSignals]);
+  }, [wsState.aiSignals, cachedSignals]);
 
   // Move old signals to history when new ones arrive for the same symbol
   useEffect(() => {

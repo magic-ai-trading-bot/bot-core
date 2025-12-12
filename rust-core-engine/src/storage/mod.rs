@@ -723,6 +723,44 @@ impl Storage {
         Ok(signals)
     }
 
+    /// Get latest AI signal for each unique symbol (for quick page load)
+    /// @spec:FR-AI-013 - Cached Signal Display
+    pub async fn get_latest_signals_per_symbol(&self) -> Result<Vec<AISignalRecord>> {
+        use mongodb::bson::Document;
+
+        // Use aggregation to get the most recent signal for each symbol
+        let pipeline = vec![
+            // Sort by timestamp descending first
+            doc! { "$sort": { "timestamp": -1 } },
+            // Group by symbol, taking the first (most recent) document
+            doc! {
+                "$group": {
+                    "_id": "$symbol",
+                    "doc": { "$first": "$$ROOT" }
+                }
+            },
+            // Replace root with the original document
+            doc! { "$replaceRoot": { "newRoot": "$doc" } },
+            // Sort results by symbol for consistent ordering
+            doc! { "$sort": { "symbol": 1 } },
+        ];
+
+        let cursor = self.ai_signals()?.aggregate(pipeline).await?;
+        let docs: Vec<Document> = cursor.try_collect().await?;
+
+        // Convert documents to AISignalRecord
+        let signals: Vec<AISignalRecord> = docs
+            .into_iter()
+            .filter_map(|doc| mongodb::bson::from_document(doc).ok())
+            .collect();
+
+        log::info!(
+            "📡 Retrieved {} latest signals (one per symbol)",
+            signals.len()
+        );
+        Ok(signals)
+    }
+
     /// Save paper trading settings to database
     pub async fn save_paper_trading_settings(
         &self,
