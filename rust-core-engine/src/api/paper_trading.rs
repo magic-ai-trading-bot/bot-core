@@ -1713,7 +1713,10 @@ async fn get_latest_signals(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
                 "cached": true,
             });
 
-            log::info!("📡 Returned {} cached signals (latest per symbol)", signals.len());
+            log::info!(
+                "📡 Returned {} cached signals (latest per symbol)",
+                signals.len()
+            );
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::success(response)),
                 StatusCode::OK,
