@@ -566,6 +566,16 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(get_signals_history);
 
+        // GET /api/paper-trading/latest-signals
+        // @spec:FR-AI-013 - Cached Signal Display
+        // Returns the most recent signal for each symbol (for quick page load)
+        let get_latest_signals_route = base_path
+            .and(warp::path("latest-signals"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_latest_signals);
+
         status_route
             .or(portfolio_route)
             .or(open_trades_route)
@@ -598,6 +608,8 @@ impl PaperTradingApi {
             .or(get_latest_config_suggestion_route)
             // @spec:FR-AI-012 - Signal Outcome Tracking
             .or(get_signals_history_route)
+            // @spec:FR-AI-013 - Cached Signal Display
+            .or(get_latest_signals_route)
             .with(cors)
     }
 }
@@ -1682,6 +1694,33 @@ async fn get_signals_history(
         },
         Err(e) => {
             log::error!("❌ Failed to get AI signals history: {}", e);
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        },
+    }
+}
+
+/// Get latest AI signal for each symbol (for quick page load)
+/// @spec:FR-AI-013 - Cached Signal Display
+async fn get_latest_signals(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
+    match api.engine.storage().get_latest_signals_per_symbol().await {
+        Ok(signals) => {
+            let response = serde_json::json!({
+                "signals": signals,
+                "count": signals.len(),
+                "cached": true,
+            });
+
+            log::info!("📡 Returned {} cached signals (latest per symbol)", signals.len());
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => {
+            log::error!("❌ Failed to get latest signals: {}", e);
             Ok(warp::reply::with_status(
                 warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
                 StatusCode::INTERNAL_SERVER_ERROR,
