@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Copy } from "lucide-react";
 import { TradingSettings } from "@/components/dashboard/TradingSettings";
+import { PerSymbolSettings } from "@/components/dashboard/PerSymbolSettings";
 import {
   Settings2,
   TrendingUp,
@@ -139,15 +140,9 @@ const Settings = () => {
   const [maxLeverage, setMaxLeverage] = useState([settings?.basic?.default_leverage || 3]);
   const [riskThreshold, setRiskThreshold] = useState([settings?.risk?.max_risk_per_trade_pct || 2]);
 
-  // Trading Pairs state
-  const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([
-    { symbol: "BTC/USDT", enabled: true, leverage: 3, positionSize: 30 },
-    { symbol: "ETH/USDT", enabled: true, leverage: 3, positionSize: 25 },
-    { symbol: "BNB/USDT", enabled: false, leverage: 2, positionSize: 15 },
-    { symbol: "SOL/USDT", enabled: false, leverage: 2, positionSize: 15 },
-    { symbol: "XRP/USDT", enabled: false, leverage: 2, positionSize: 10 },
-    { symbol: "ADA/USDT", enabled: false, leverage: 2, positionSize: 5 },
-  ]);
+  // Trading Pairs state - fetched from API
+  const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([]);
+  const [isLoadingPairs, setIsLoadingPairs] = useState(true);
 
   // System Health state - values updated from real API health checks
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
@@ -243,6 +238,54 @@ const Settings = () => {
       setRiskThreshold([settings.risk.max_risk_per_trade_pct]);
     }
   }, [settings]);
+
+  // Fetch trading pairs from API (real data, not mock)
+  useEffect(() => {
+    const fetchTradingPairs = async () => {
+      setIsLoadingPairs(true);
+      try {
+        // First fetch available symbols
+        const symbolsResponse = await fetch(`${API_BASE}/api/market/symbols`);
+        const symbolsData = await symbolsResponse.json();
+
+        if (symbolsData.success && symbolsData.data?.symbols) {
+          const symbols: string[] = symbolsData.data.symbols;
+
+          // Then fetch symbol settings to get enabled status
+          const settingsResponse = await fetch(`${API_BASE}/api/paper-trading/symbol-settings`);
+          const settingsData = await settingsResponse.json();
+
+          // Map symbols to trading pairs with settings
+          const pairs: TradingPair[] = symbols.map(symbol => {
+            // Format symbol for display (BTCUSDT -> BTC/USDT)
+            const displaySymbol = symbol.replace(/USDT$/, '/USDT');
+
+            // Find settings for this symbol
+            const symbolSettings = settingsData.success && settingsData.data
+              ? settingsData.data.find((s: { symbol: string }) => s.symbol === symbol)
+              : null;
+
+            return {
+              symbol: displaySymbol,
+              enabled: symbolSettings?.enabled ?? true, // Default enabled
+              leverage: symbolSettings?.leverage ?? 3,
+              positionSize: symbolSettings?.position_size_pct ?? 25,
+            };
+          });
+
+          setTradingPairs(pairs);
+        }
+      } catch (error) {
+        console.error('Failed to fetch trading pairs:', error);
+        // Fallback to empty array - no mock data
+        setTradingPairs([]);
+      } finally {
+        setIsLoadingPairs(false);
+      }
+    };
+
+    fetchTradingPairs();
+  }, []);
 
   // Refresh system health periodically with real health check
   useEffect(() => {
@@ -647,26 +690,42 @@ const Settings = () => {
                     </div>
                   </GlassCard>
 
-                  {/* Active Trading Pairs */}
+                  {/* Active Trading Pairs - fetched from API */}
                   <GlassCard>
                     <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>
                       {t('bot.activeTradingPairs')}
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {tradingPairs.map((pair) => (
-                        <div
-                          key={pair.symbol}
-                          className="flex items-center justify-between p-3 rounded-xl"
-                          style={{ backgroundColor: colors.bgSecondary }}
-                        >
-                          <span style={{ color: colors.textPrimary }}>{pair.symbol}</span>
-                          <PremiumSwitch
-                            checked={pair.enabled}
-                            onCheckedChange={() => toggleTradingPair(pair.symbol)}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                    {isLoadingPairs ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin" style={{ color: colors.cyan }} />
+                        <span className="ml-2 text-sm" style={{ color: colors.textMuted }}>
+                          {t('common.loading') || 'Loading...'}
+                        </span>
+                      </div>
+                    ) : tradingPairs.length === 0 ? (
+                      <div className="text-center py-8">
+                        <GlowIcon icon={AlertTriangle} size="lg" color={colors.warning} className="mx-auto mb-4" />
+                        <p style={{ color: colors.textMuted }}>
+                          {t('bot.noPairsAvailable') || 'No trading pairs available from API'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        {tradingPairs.map((pair) => (
+                          <div
+                            key={pair.symbol}
+                            className="flex items-center justify-between p-3 rounded-xl"
+                            style={{ backgroundColor: colors.bgSecondary }}
+                          >
+                            <span style={{ color: colors.textPrimary }}>{pair.symbol}</span>
+                            <PremiumSwitch
+                              checked={pair.enabled}
+                              onCheckedChange={() => toggleTradingPair(pair.symbol)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </GlassCard>
 
                   <SaveButton
@@ -677,7 +736,7 @@ const Settings = () => {
                 </div>
               )}
 
-              {/* Per-Symbol Settings Section */}
+              {/* Per-Symbol Settings Section - Using PerSymbolSettings component with real API */}
               {activeSection === "per-symbol" && (
                 <div className="space-y-6">
                   <SectionHeader
@@ -686,57 +745,20 @@ const Settings = () => {
                     icon={Coins}
                   />
 
-                  {tradingPairs.filter(p => p.enabled).map((pair) => (
-                    <GlassCard key={pair.symbol}>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <GlowIcon icon={Coins} size="sm" color={colors.cyan} />
-                          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
-                            {pair.symbol}
-                          </h3>
-                        </div>
-                        <Badge variant="success" size="sm">{t('bot.active')}</Badge>
-                      </div>
-                      <div className="space-y-4">
-                        <SliderSetting
-                          label={t('perSymbol.positionSize')}
-                          value={pair.positionSize || 25}
-                          unit="%"
-                          min={5}
-                          max={50}
-                          step={5}
-                          onChange={(v) => updateTradingPairSetting(pair.symbol, "positionSize", v)}
-                          color="primary"
-                        />
-                        <SliderSetting
-                          label={t('perSymbol.maxLeverage')}
-                          value={pair.leverage || 3}
-                          unit="x"
-                          min={1}
-                          max={10}
-                          step={1}
-                          onChange={(v) => updateTradingPairSetting(pair.symbol, "leverage", v)}
-                          color="warning"
-                        />
-                      </div>
-                    </GlassCard>
-                  ))}
-
-                  {tradingPairs.filter(p => p.enabled).length === 0 && (
-                    <GlassCard>
-                      <div className="text-center py-8">
-                        <GlowIcon icon={AlertTriangle} size="lg" color={colors.warning} className="mx-auto mb-4" />
-                        <p style={{ color: colors.textMuted }}>
-                          {t('perSymbol.noPairsTitle')}. {t('perSymbol.noPairsDesc')}
-                        </p>
-                      </div>
-                    </GlassCard>
-                  )}
-
-                  <SaveButton
-                    onClick={() => saveSettings("per-symbol")}
-                    isLoading={isSaving}
-                    isSaved={savedSection === "per-symbol"}
+                  {/* PerSymbolSettings component fetches symbols from API and saves to backend */}
+                  <PerSymbolSettings
+                    currentBalance={currentBalance}
+                    onSettingsUpdate={(configs) => {
+                      // Sync with local tradingPairs state for Bot Settings section
+                      const updatedPairs = configs.map(config => ({
+                        symbol: config.symbol.replace(/USDT$/, '/USDT'),
+                        enabled: config.enabled,
+                        leverage: config.leverage,
+                        positionSize: config.position_size_pct,
+                      }));
+                      setTradingPairs(updatedPairs);
+                      toast({ title: t('toast.settingsSaved'), description: t('toast.symbolSettingsSynced') });
+                    }}
                   />
                 </div>
               )}
