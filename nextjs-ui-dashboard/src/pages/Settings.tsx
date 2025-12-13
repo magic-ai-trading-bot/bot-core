@@ -31,7 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Copy } from "lucide-react";
-import { TradingSettings } from "@/components/dashboard/TradingSettings";
+import { InlineTradingSettings } from "@/components/dashboard/TradingSettings";
 import { PerSymbolSettings } from "@/components/dashboard/PerSymbolSettings";
 import {
   Settings2,
@@ -772,18 +772,8 @@ const Settings = () => {
                     icon={TrendingUp}
                   />
 
-                  <GlassCard>
-                    <div className="text-center py-8">
-                      <GlowIcon icon={Settings2} size="lg" color={colors.cyan} className="mx-auto mb-4" />
-                      <h3 className="font-semibold text-lg mb-2" style={{ color: colors.textPrimary }}>
-                        {t('strategy.advancedTitle')}
-                      </h3>
-                      <p className="text-sm mb-6" style={{ color: colors.textMuted }}>
-                        {t('strategy.advancedDesc')}
-                      </p>
-                      <TradingSettings />
-                    </div>
-                  </GlassCard>
+                  {/* Inline Trading Settings - all settings displayed directly on page */}
+                  <InlineTradingSettings />
                 </div>
               )}
 
@@ -1786,6 +1776,7 @@ const Settings = () => {
 };
 
 // Premium Switch Component with smooth animation
+// Uses base Switch component which already has the correct cyan-emerald gradient
 const PremiumSwitch = ({
   checked,
   onCheckedChange,
@@ -1799,12 +1790,6 @@ const PremiumSwitch = ({
     checked={checked}
     onCheckedChange={onCheckedChange}
     disabled={disabled}
-    className={`
-      data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-profit data-[state=checked]:to-emerald-400
-      data-[state=unchecked]:bg-muted
-      transition-all duration-300
-      ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-    `}
   />
 );
 
