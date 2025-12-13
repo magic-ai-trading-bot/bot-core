@@ -386,22 +386,19 @@ const PremiumSlider = ({
 };
 
 // Premium Switch Component
+// Uses base Switch component which already has the correct cyan-emerald gradient
 const PremiumSwitch = ({
   checked,
   onCheckedChange,
 }: {
   checked: boolean;
   onCheckedChange?: (checked: boolean) => void;
-}) => {
-  const colors = useThemeColors();
-  return (
+}) => (
   <Switch
     checked={checked}
     onCheckedChange={onCheckedChange}
-    className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-profit data-[state=checked]:to-emerald-400 data-[state=unchecked]:bg-muted"
   />
-  );
-};
+);
 
 // Strategy Card Component
 const StrategyCard = ({
@@ -585,9 +582,8 @@ const PremiumSelect = ({
   );
 };
 
-export function TradingSettings() {
-  const colors = useThemeColors();
-  const [isOpen, setIsOpen] = useState(false);
+// Custom hook for trading settings state management
+function useTradingSettings() {
   const [settings, setSettings] = useState<TradingSettingsData>(
     () => MARKET_PRESETS.normal_volatility.settings
   );
@@ -662,7 +658,441 @@ export function TradingSettings() {
     }
   };
 
+  return {
+    settings,
+    setSettings,
+    selectedPreset,
+    setSelectedPreset,
+    isLoading,
+    isSaving,
+    loadSettings,
+    saveSettings,
+    applyPreset,
+  };
+}
+
+/**
+ * Inline Trading Settings - displays settings directly on the page
+ * Used in Strategy section of Settings page
+ */
+export function InlineTradingSettings() {
+  const colors = useThemeColors();
+  const {
+    settings,
+    setSettings,
+    selectedPreset,
+    isLoading,
+    isSaving,
+    loadSettings,
+    saveSettings,
+    applyPreset,
+  } = useTradingSettings();
+
   // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="h-6 w-6 animate-spin" style={{ color: colors.cyan }} />
+        <span className="ml-2" style={{ color: colors.textMuted }}>Loading settings...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Market Presets */}
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <GlowIcon icon={Zap} size="sm" color={colors.cyan} />
+          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
+            Market Presets
+          </h3>
+          <Badge variant="info" size="sm" className="ml-auto">
+            Quick Setup
+          </Badge>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Object.entries(MARKET_PRESETS).map(([key, preset]) => (
+            <PresetCard
+              key={key}
+              presetKey={key}
+              preset={preset}
+              isSelected={selectedPreset === key}
+              onClick={() => applyPreset(key)}
+            />
+          ))}
+        </div>
+      </GlassCard>
+
+      {/* Active Strategies */}
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <GlowIcon icon={TrendingUp} size="sm" color={colors.cyan} />
+          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
+            Active Strategies
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* RSI */}
+          <StrategyCard
+            icon={TrendingUp}
+            title="RSI Strategy"
+            enabled={settings.strategies.rsi.enabled}
+            onToggle={(checked) =>
+              setSettings((prev) => ({
+                ...prev,
+                strategies: {
+                  ...prev.strategies,
+                  rsi: { ...prev.strategies.rsi, enabled: checked },
+                },
+              }))
+            }
+          >
+            <PremiumSlider
+              label="RSI Period"
+              value={settings.strategies.rsi.period}
+              unit=""
+              min={5}
+              max={30}
+              step={1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  strategies: {
+                    ...prev.strategies,
+                    rsi: { ...prev.strategies.rsi, period: value },
+                  },
+                }))
+              }
+            />
+          </StrategyCard>
+
+          {/* MACD */}
+          <StrategyCard
+            icon={BarChart3}
+            title="MACD Strategy"
+            enabled={settings.strategies.macd.enabled}
+            onToggle={(checked) =>
+              setSettings((prev) => ({
+                ...prev,
+                strategies: {
+                  ...prev.strategies,
+                  macd: { ...prev.strategies.macd, enabled: checked },
+                },
+              }))
+            }
+          >
+            <PremiumSlider
+              label="Fast Period"
+              value={settings.strategies.macd.fast_period}
+              unit=""
+              min={5}
+              max={20}
+              step={1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  strategies: {
+                    ...prev.strategies,
+                    macd: { ...prev.strategies.macd, fast_period: value },
+                  },
+                }))
+              }
+            />
+          </StrategyCard>
+
+          {/* Volume */}
+          <StrategyCard
+            icon={Gauge}
+            title="Volume Strategy"
+            enabled={settings.strategies.volume.enabled}
+            onToggle={(checked) =>
+              setSettings((prev) => ({
+                ...prev,
+                strategies: {
+                  ...prev.strategies,
+                  volume: { ...prev.strategies.volume, enabled: checked },
+                },
+              }))
+            }
+          >
+            <PremiumSlider
+              label="Spike Threshold"
+              value={settings.strategies.volume.spike_threshold}
+              unit="x"
+              min={1.0}
+              max={5.0}
+              step={0.1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  strategies: {
+                    ...prev.strategies,
+                    volume: { ...prev.strategies.volume, spike_threshold: value },
+                  },
+                }))
+              }
+            />
+          </StrategyCard>
+
+          {/* Bollinger */}
+          <StrategyCard
+            icon={Target}
+            title="Bollinger Bands"
+            enabled={settings.strategies.bollinger.enabled}
+            onToggle={(checked) =>
+              setSettings((prev) => ({
+                ...prev,
+                strategies: {
+                  ...prev.strategies,
+                  bollinger: { ...prev.strategies.bollinger, enabled: checked },
+                },
+              }))
+            }
+          >
+            <PremiumSlider
+              label="Multiplier"
+              value={settings.strategies.bollinger.multiplier}
+              unit=""
+              min={1.0}
+              max={3.0}
+              step={0.1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  strategies: {
+                    ...prev.strategies,
+                    bollinger: { ...prev.strategies.bollinger, multiplier: value },
+                  },
+                }))
+              }
+            />
+          </StrategyCard>
+
+          {/* Stochastic */}
+          <StrategyCard
+            icon={Activity}
+            title="Stochastic"
+            enabled={settings.strategies.stochastic?.enabled ?? false}
+            onToggle={(checked) =>
+              setSettings((prev) => ({
+                ...prev,
+                strategies: {
+                  ...prev.strategies,
+                  stochastic: {
+                    ...(prev.strategies.stochastic ?? {
+                      k_period: 14,
+                      d_period: 3,
+                      oversold_threshold: 20.0,
+                      overbought_threshold: 80.0,
+                      extreme_oversold: 10.0,
+                      extreme_overbought: 90.0,
+                    }),
+                    enabled: checked,
+                  },
+                },
+              }))
+            }
+          >
+            <PremiumSlider
+              label="K Period"
+              value={settings.strategies.stochastic?.k_period ?? 14}
+              unit=""
+              min={5}
+              max={30}
+              step={1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  strategies: {
+                    ...prev.strategies,
+                    stochastic: {
+                      ...(prev.strategies.stochastic ?? {
+                        enabled: true,
+                        k_period: 14,
+                        d_period: 3,
+                        oversold_threshold: 20.0,
+                        overbought_threshold: 80.0,
+                        extreme_oversold: 10.0,
+                        extreme_overbought: 90.0,
+                      }),
+                      k_period: value,
+                    },
+                  },
+                }))
+              }
+            />
+          </StrategyCard>
+        </div>
+      </GlassCard>
+
+      {/* Risk Management Summary */}
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <GlowIcon icon={Shield} size="sm" color={colors.warning} />
+          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
+            Risk Management
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <PremiumSlider
+              label="Max Risk per Trade"
+              value={settings.risk.max_risk_per_trade}
+              unit="%"
+              min={0.5}
+              max={5.0}
+              step={0.1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  risk: { ...prev.risk, max_risk_per_trade: value },
+                }))
+              }
+            />
+            <PremiumSlider
+              label="Stop Loss"
+              value={settings.risk.stop_loss_percent}
+              unit="%"
+              min={0.5}
+              max={5.0}
+              step={0.1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  risk: { ...prev.risk, stop_loss_percent: value },
+                }))
+              }
+            />
+          </div>
+          <div className="space-y-4">
+            <PremiumSlider
+              label="Take Profit"
+              value={settings.risk.take_profit_percent}
+              unit="%"
+              min={1.0}
+              max={10.0}
+              step={0.1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  risk: { ...prev.risk, take_profit_percent: value },
+                }))
+              }
+            />
+            <PremiumSlider
+              label="Max Drawdown"
+              value={settings.risk.max_drawdown}
+              unit="%"
+              min={5}
+              max={25}
+              step={1}
+              onChange={(value) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  risk: { ...prev.risk, max_drawdown: value },
+                }))
+              }
+            />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Engine Settings */}
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <GlowIcon icon={Settings} size="sm" color={colors.cyan} />
+          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
+            Engine Settings
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <PremiumSlider
+            label="Min Confidence Threshold"
+            value={settings.engine.min_confidence_threshold * 100}
+            unit="%"
+            min={30}
+            max={90}
+            step={5}
+            onChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                engine: {
+                  ...prev.engine,
+                  min_confidence_threshold: value / 100,
+                },
+              }))
+            }
+            description="Lower values = more signals"
+          />
+          <PremiumSelect
+            label="Signal Combination Mode"
+            value={settings.engine.signal_combination_mode}
+            onChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                engine: { ...prev.engine, signal_combination_mode: value },
+              }))
+            }
+            options={[
+              { value: "WeightedAverage", label: "Weighted Average" },
+              { value: "Consensus", label: "Consensus" },
+              { value: "BestConfidence", label: "Best Confidence" },
+              { value: "Conservative", label: "Conservative" },
+            ]}
+          />
+        </div>
+      </GlassCard>
+
+      {/* Save Button */}
+      <div className="flex justify-between items-center">
+        <PremiumButton
+          variant="secondary"
+          size="sm"
+          onClick={() => loadSettings()}
+          disabled={isLoading}
+          loading={isLoading}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Reload
+        </PremiumButton>
+        <PremiumButton
+          variant="primary"
+          size="md"
+          onClick={saveSettings}
+          disabled={isSaving}
+          loading={isSaving}
+        >
+          <Save className="h-4 w-4" />
+          Save Strategy Settings
+        </PremiumButton>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Trading Settings Dialog - popup version for advanced configuration
+ */
+export function TradingSettings() {
+  const colors = useThemeColors();
+  const [isOpen, setIsOpen] = useState(false);
+  const {
+    settings,
+    setSettings,
+    selectedPreset,
+    isLoading,
+    isSaving,
+    loadSettings,
+    saveSettings,
+    applyPreset,
+  } = useTradingSettings();
+
+  // Load settings on dialog open
   useEffect(() => {
     if (isOpen) {
       loadSettings();
