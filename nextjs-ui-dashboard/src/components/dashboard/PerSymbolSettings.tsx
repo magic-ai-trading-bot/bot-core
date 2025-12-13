@@ -1,17 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import logger from "@/utils/logger";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import {
   TrendingUp,
   AlertTriangle,
@@ -19,8 +12,16 @@ import {
   RotateCcw,
   Save,
   Loader2,
+  ChevronDown,
+  Coins,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  GlassCard,
+  PremiumButton,
+  Badge,
+  GlowIcon,
+  luxuryColors,
+} from "@/styles/luxury-design-system";
 
 // @spec:FR-TRADING-015 - Per-Symbol Configuration
 // @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md#symbol-settings
@@ -122,9 +123,11 @@ export function PerSymbolSettings({
   onSettingsUpdate,
 }: PerSymbolSettingsProps) {
   const { toast } = useToast();
+  const colors = useThemeColors();
   const [configs, setConfigs] = useState<SymbolConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   // Dynamic symbols from API (includes user-added symbols from database)
   const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
   const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
@@ -197,7 +200,7 @@ export function PerSymbolSettings({
           // Initialize with presets on error
           initializePresetsWithSymbols(symbols);
         }
-      } catch (error) {
+      } catch {
         // Initialize with presets on error using available symbols
         initializePresetsWithSymbols(availableSymbols.length > 0 ? availableSymbols : FALLBACK_SYMBOLS);
       } finally {
@@ -231,16 +234,30 @@ export function PerSymbolSettings({
   };
 
   /**
-   * Get risk color classes
+   * Get risk color
    */
   const getRiskColor = (level: RiskLevel) => {
     switch (level) {
       case "low":
-        return "text-green-600 dark:text-green-400";
+        return colors.profit;
       case "moderate":
-        return "text-yellow-600 dark:text-yellow-400";
+        return colors.warning;
       case "high":
-        return "text-red-600 dark:text-red-400";
+        return colors.loss;
+    }
+  };
+
+  /**
+   * Get risk badge variant
+   */
+  const getRiskBadgeVariant = (level: RiskLevel): "success" | "warning" | "error" => {
+    switch (level) {
+      case "low":
+        return "success";
+      case "moderate":
+        return "warning";
+      case "high":
+        return "error";
     }
   };
 
@@ -250,11 +267,11 @@ export function PerSymbolSettings({
   const getRiskIcon = (level: RiskLevel) => {
     switch (level) {
       case "low":
-        return <Shield className="h-4 w-4" />;
+        return Shield;
       case "moderate":
-        return <AlertTriangle className="h-4 w-4" />;
+        return AlertTriangle;
       case "high":
-        return <TrendingUp className="h-4 w-4" />;
+        return TrendingUp;
     }
   };
 
@@ -324,45 +341,6 @@ export function PerSymbolSettings({
   };
 
   /**
-   * Save individual symbol config
-   */
-  const saveSymbolConfig = async (symbol: string) => {
-    const config = configs.find((c) => c.symbol === symbol);
-    if (!config) return;
-
-    try {
-      const response = await fetch(
-        `${API_BASE}/api/paper-trading/symbol-settings/${symbol}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(config),
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast({
-          title: "Settings Saved",
-          description: `${symbol} settings have been saved.`,
-        });
-      } else {
-        throw new Error(data.error || "Failed to save settings");
-      }
-    } catch (error) {
-      toast({
-        title: "Save Failed",
-        description:
-          error instanceof Error ? error.message : "Failed to save settings",
-        variant: "destructive",
-      });
-    }
-  };
-
-  /**
    * Calculate position size in dollars
    */
   const calculatePositionSize = (positionSizePct: number, leverage: number) => {
@@ -372,78 +350,84 @@ export function PerSymbolSettings({
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Per-Symbol Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <GlassCard>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" style={{ color: colors.cyan }} />
+          <span className="ml-3" style={{ color: colors.textMuted }}>
+            Loading symbol settings...
+          </span>
+        </div>
+      </GlassCard>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <div className="space-y-4">
+      {/* Header with Actions */}
+      <GlassCard>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Per-Symbol Settings</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Configure trading parameters for each symbol individually
-            </p>
+          <div className="flex items-center gap-3">
+            <GlowIcon icon={Coins} size="md" color={colors.cyan} />
+            <div>
+              <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
+                Per-Symbol Settings
+              </h3>
+              <p className="text-xs" style={{ color: colors.textMuted }}>
+                Configure trading parameters for each symbol individually
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
+            <PremiumButton
+              variant="secondary"
               size="sm"
               onClick={resetToDefaults}
               disabled={isSaving}
             >
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCcw className="h-4 w-4" />
               Reset
-            </Button>
-            <Button
+            </PremiumButton>
+            <PremiumButton
+              variant="primary"
               size="sm"
               onClick={saveAllConfigs}
               disabled={isSaving}
+              loading={isSaving}
             >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save All
-                </>
-              )}
-            </Button>
+              <Save className="h-4 w-4" />
+              Save All
+            </PremiumButton>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {configs.map((config) => {
-            const riskLevel = calculateRiskLevel(
-              config.leverage,
-              config.position_size_pct
-            );
-            const positionSize = calculatePositionSize(
-              config.position_size_pct,
-              config.leverage
-            );
+      </GlassCard>
 
-            return (
-              <AccordionItem key={config.symbol} value={config.symbol}>
-                <div className="flex items-center gap-0">
-                  <div
-                    className="px-4 py-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+      {/* Symbol Cards */}
+      <div className="space-y-3">
+        {configs.map((config) => {
+          const riskLevel = calculateRiskLevel(
+            config.leverage,
+            config.position_size_pct
+          );
+          const positionSize = calculatePositionSize(
+            config.position_size_pct,
+            config.leverage
+          );
+          const isExpanded = expandedSymbol === config.symbol;
+          const RiskIcon = getRiskIcon(riskLevel);
+
+          return (
+            <GlassCard key={config.symbol} noPadding>
+              {/* Symbol Header - Always Visible */}
+              <div
+                className="p-4 cursor-pointer transition-all duration-200"
+                onClick={() => setExpandedSymbol(isExpanded ? null : config.symbol)}
+                style={{
+                  borderBottom: isExpanded ? `1px solid ${colors.borderSubtle}` : 'none',
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Enable/Disable Switch */}
+                  <div onClick={(e) => e.stopPropagation()}>
                     <Switch
                       checked={config.enabled}
                       onCheckedChange={(checked) =>
@@ -451,296 +435,278 @@ export function PerSymbolSettings({
                       }
                     />
                   </div>
-                  <AccordionTrigger className="hover:no-underline flex-1 py-4 pl-0 pr-4">
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">{config.symbol}</span>
-                        <Badge
-                          variant={config.enabled ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {config.enabled ? "Active" : "Disabled"}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span>{config.leverage}x Leverage</span>
-                        <span>•</span>
-                        <span>{config.position_size_pct}% Position</span>
-                        <span>•</span>
-                        <div
-                          className={cn(
-                            "flex items-center gap-1",
-                            getRiskColor(riskLevel)
-                          )}
-                        >
-                          {getRiskIcon(riskLevel)}
-                          <span className="capitalize">{riskLevel} Risk</span>
-                        </div>
+
+                  {/* Symbol Info */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-lg" style={{ color: colors.textPrimary }}>
+                        {config.symbol}
+                      </span>
+                      <Badge variant={config.enabled ? "success" : "default"} glow={config.enabled}>
+                        {config.enabled ? "Active" : "Disabled"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-xs" style={{ color: colors.textMuted }}>
+                      <span>{config.leverage}x Leverage</span>
+                      <span>•</span>
+                      <span>{config.position_size_pct}% Position</span>
+                      <span>•</span>
+                      <div className="flex items-center gap-1" style={{ color: getRiskColor(riskLevel) }}>
+                        <RiskIcon className="h-3 w-3" />
+                        <span className="capitalize">{riskLevel} Risk</span>
                       </div>
                     </div>
-                  </AccordionTrigger>
+                  </div>
+
+                  {/* Expand Arrow */}
+                  <motion.div
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="h-5 w-5" style={{ color: colors.textMuted }} />
+                  </motion.div>
                 </div>
-                <AccordionContent>
-                  <div className="space-y-6 pt-4">
-                    {/* Leverage */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Leverage</label>
-                        <span className="text-sm text-muted-foreground">
-                          {config.leverage}x
-                        </span>
-                      </div>
-                      <Slider
-                        value={[config.leverage]}
-                        onValueChange={([value]) =>
-                          updateSymbolConfig(config.symbol, { leverage: value })
-                        }
+              </div>
+
+              {/* Expanded Settings */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 space-y-6">
+                      {/* Leverage */}
+                      <SliderSetting
+                        label="Leverage"
+                        value={config.leverage}
+                        unit="x"
                         min={1}
                         max={20}
                         step={1}
-                        className="w-full"
+                        onChange={(v) => updateSymbolConfig(config.symbol, { leverage: v })}
+                        color="warning"
+                        description="Higher leverage increases both potential profit and risk"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Higher leverage increases both potential profit and risk
-                      </p>
-                    </div>
 
-                    {/* Position Size */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">
-                          Position Size
-                        </label>
-                        <div className="text-sm text-muted-foreground">
-                          {config.position_size_pct}% ($
-                          {positionSize.toFixed(2)})
-                        </div>
-                      </div>
-                      <Slider
-                        value={[config.position_size_pct]}
-                        onValueChange={([value]) =>
-                          updateSymbolConfig(config.symbol, {
-                            position_size_pct: value,
-                          })
-                        }
+                      {/* Position Size */}
+                      <SliderSetting
+                        label="Position Size"
+                        value={config.position_size_pct}
+                        unit="%"
                         min={1}
                         max={10}
                         step={0.5}
-                        className="w-full"
+                        onChange={(v) => updateSymbolConfig(config.symbol, { position_size_pct: v })}
+                        color="primary"
+                        description={`$${positionSize.toFixed(2)} with leverage`}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Percentage of portfolio to allocate per trade (with
-                        leverage)
-                      </p>
-                    </div>
 
-                    {/* Stop Loss */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Stop Loss</label>
-                        <span className="text-sm text-muted-foreground">
-                          {config.stop_loss_pct}%
-                        </span>
-                      </div>
-                      <Slider
-                        value={[config.stop_loss_pct]}
-                        onValueChange={([value]) =>
-                          updateSymbolConfig(config.symbol, {
-                            stop_loss_pct: value,
-                          })
-                        }
+                      {/* Stop Loss */}
+                      <SliderSetting
+                        label="Stop Loss"
+                        value={config.stop_loss_pct}
+                        unit="%"
                         min={0.5}
                         max={5}
                         step={0.1}
-                        className="w-full"
+                        onChange={(v) => updateSymbolConfig(config.symbol, { stop_loss_pct: v })}
+                        color="loss"
+                        description="Maximum loss before automatically closing position"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Maximum loss before automatically closing position
-                      </p>
-                    </div>
 
-                    {/* Take Profit */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">
-                          Take Profit
-                        </label>
-                        <span className="text-sm text-muted-foreground">
-                          {config.take_profit_pct}%
-                        </span>
-                      </div>
-                      <Slider
-                        value={[config.take_profit_pct]}
-                        onValueChange={([value]) =>
-                          updateSymbolConfig(config.symbol, {
-                            take_profit_pct: value,
-                          })
-                        }
+                      {/* Take Profit */}
+                      <SliderSetting
+                        label="Take Profit"
+                        value={config.take_profit_pct}
+                        unit="%"
                         min={1}
                         max={10}
                         step={0.5}
-                        className="w-full"
+                        onChange={(v) => updateSymbolConfig(config.symbol, { take_profit_pct: v })}
+                        color="profit"
+                        description="Target profit before automatically closing position"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Target profit before automatically closing position
-                      </p>
-                    </div>
 
-                    {/* Max Positions */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">
-                          Max Concurrent Positions
-                        </label>
-                        <span className="text-sm text-muted-foreground">
-                          {config.max_positions}
-                        </span>
-                      </div>
-                      <Slider
-                        value={[config.max_positions]}
-                        onValueChange={([value]) =>
-                          updateSymbolConfig(config.symbol, {
-                            max_positions: value,
-                          })
-                        }
+                      {/* Max Positions */}
+                      <SliderSetting
+                        label="Max Concurrent Positions"
+                        value={config.max_positions}
+                        unit=""
                         min={1}
                         max={5}
                         step={1}
-                        className="w-full"
+                        onChange={(v) => updateSymbolConfig(config.symbol, { max_positions: v })}
+                        color="info"
+                        description="Maximum simultaneous positions for this symbol"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Maximum number of simultaneous positions for this symbol
-                      </p>
-                    </div>
 
-                    {/* Risk Summary */}
-                    <div className="p-4 rounded-lg bg-secondary/50 border">
-                      <div className="flex items-start gap-2">
-                        <div className={cn("mt-0.5", getRiskColor(riskLevel))}>
-                          {getRiskIcon(riskLevel)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-medium text-sm">
-                              Risk Assessment
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs",
-                                getRiskColor(riskLevel)
-                              )}
-                            >
-                              {riskLevel.toUpperCase()}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-muted-foreground">
-                                Position Value:
+                      {/* Risk Summary */}
+                      <div
+                        className="p-4 rounded-xl border"
+                        style={{
+                          backgroundColor: `${getRiskColor(riskLevel)}10`,
+                          borderColor: `${getRiskColor(riskLevel)}30`,
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <GlowIcon icon={RiskIcon} size="sm" color={getRiskColor(riskLevel)} />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-medium text-sm" style={{ color: colors.textPrimary }}>
+                                Risk Assessment
                               </span>
-                              <span className="ml-2 font-medium">
-                                ${positionSize.toFixed(2)}
-                              </span>
+                              <Badge variant={getRiskBadgeVariant(riskLevel)} size="sm">
+                                {riskLevel.toUpperCase()}
+                              </Badge>
                             </div>
-                            <div>
-                              <span className="text-muted-foreground">
-                                Max Loss:
-                              </span>
-                              <span className="ml-2 font-medium text-red-600 dark:text-red-400">
-                                -$
-                                {(
-                                  (positionSize * config.stop_loss_pct) /
-                                  100
-                                ).toFixed(2)}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">
-                                Target Profit:
-                              </span>
-                              <span className="ml-2 font-medium text-green-600 dark:text-green-400">
-                                +$
-                                {(
-                                  (positionSize * config.take_profit_pct) /
-                                  100
-                                ).toFixed(2)}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">
-                                Risk/Reward:
-                              </span>
-                              <span className="ml-2 font-medium">
-                                1:
-                                {(
-                                  config.take_profit_pct / config.stop_loss_pct
-                                ).toFixed(2)}
-                              </span>
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              <div>
+                                <span style={{ color: colors.textMuted }}>Position Value:</span>
+                                <span className="ml-2 font-medium" style={{ color: colors.textPrimary }}>
+                                  ${positionSize.toFixed(2)}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ color: colors.textMuted }}>Max Loss:</span>
+                                <span className="ml-2 font-medium" style={{ color: colors.loss }}>
+                                  -${((positionSize * config.stop_loss_pct) / 100).toFixed(2)}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ color: colors.textMuted }}>Target Profit:</span>
+                                <span className="ml-2 font-medium" style={{ color: colors.profit }}>
+                                  +${((positionSize * config.take_profit_pct) / 100).toFixed(2)}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ color: colors.textMuted }}>Risk/Reward:</span>
+                                <span className="ml-2 font-medium" style={{ color: colors.textPrimary }}>
+                                  1:{(config.take_profit_pct / config.stop_loss_pct).toFixed(2)}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </GlassCard>
+          );
+        })}
+      </div>
 
-                    {/* Individual Save Button */}
-                    <div className="flex justify-end">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => saveSymbolConfig(config.symbol)}
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Save {config.symbol} Settings
-                      </Button>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+      {/* Quick Presets */}
+      <GlassCard>
+        <h4 className="text-sm font-medium mb-4" style={{ color: colors.textPrimary }}>
+          Quick Presets
+        </h4>
+        {isLoadingSymbols ? (
+          <div className="flex items-center justify-center p-4">
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: colors.cyan }} />
+            <span className="ml-2 text-sm" style={{ color: colors.textMuted }}>
+              Loading presets...
+            </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {(availableSymbols.length > 0 ? availableSymbols : FALLBACK_SYMBOLS).map((symbol) => (
+              <PremiumButton
+                key={symbol}
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const preset = PRESETS[symbol];
+                  if (preset) {
+                    updateSymbolConfig(symbol, preset.config);
+                    toast({
+                      title: "Preset Applied",
+                      description: `${preset.name} settings applied to ${symbol}`,
+                    });
+                  } else {
+                    updateSymbolConfig(symbol, DEFAULT_CONFIG);
+                    toast({
+                      title: "Default Applied",
+                      description: `Default settings applied to ${symbol}`,
+                    });
+                  }
+                }}
+              >
+                {PRESETS[symbol]?.name || symbol}
+              </PremiumButton>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+    </div>
+  );
+}
 
-        {/* Quick Preset Actions */}
-        <div className="mt-6 p-4 rounded-lg bg-muted/50 border">
-          <h4 className="text-sm font-medium mb-3">Quick Presets</h4>
-          {isLoadingSymbols ? (
-            <div className="flex items-center justify-center p-2">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">Loading presets...</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              {(availableSymbols.length > 0 ? availableSymbols : FALLBACK_SYMBOLS).map((symbol) => (
-                <Button
-                  key={symbol}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const preset = PRESETS[symbol];
-                    if (preset) {
-                      updateSymbolConfig(symbol, preset.config);
-                      toast({
-                        title: "Preset Applied",
-                        description: `${preset.name} settings applied to ${symbol}`,
-                      });
-                    } else {
-                      // Apply default config for symbols without preset
-                      updateSymbolConfig(symbol, DEFAULT_CONFIG);
-                      toast({
-                        title: "Default Applied",
-                        description: `Default settings applied to ${symbol}`,
-                      });
-                    }
-                  }}
-                >
-                  {PRESETS[symbol]?.name || symbol}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+// ============================================================================
+// SLIDER SETTING COMPONENT (Luxury Style)
+// ============================================================================
+
+interface SliderSettingProps {
+  label: string;
+  value: number;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  color: "profit" | "loss" | "primary" | "warning" | "info";
+  description?: string;
+}
+
+function SliderSetting({
+  label,
+  value,
+  unit,
+  min,
+  max,
+  step,
+  onChange,
+  color,
+  description,
+}: SliderSettingProps) {
+  const colors = useThemeColors();
+
+  const colorMap = {
+    profit: luxuryColors.profit,
+    loss: luxuryColors.loss,
+    primary: luxuryColors.cyan,
+    warning: luxuryColors.warning,
+    info: luxuryColors.cyan,
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <label className="text-sm" style={{ color: colors.textMuted }}>
+          {label}
+        </label>
+        <span className="text-sm font-bold" style={{ color: colorMap[color] }}>
+          {value}{unit}
+        </span>
+      </div>
+      <Slider
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+        min={min}
+        max={max}
+        step={step}
+        className="w-full"
+      />
+      {description && (
+        <p className="text-xs" style={{ color: colors.textMuted }}>
+          {description}
+        </p>
+      )}
+    </div>
   );
 }
