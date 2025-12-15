@@ -156,7 +156,7 @@ jobs:
         fetch-depth: 0
 
     - name: Run TruffleHog Secret Scan
-      uses: trufflesecurity/trufflehog@v3.88.26
+      uses: trufflesecurity/trufflehog@v3.92.3
       continue-on-error: true
       with:
         path: ./
