@@ -77,7 +77,7 @@ jobs:
           cargo llvm-cov --lib --cobertura --output-path coverage/cobertura.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./rust-core-engine/coverage/cobertura.xml
           flags: rust
@@ -205,7 +205,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./python-ai-service/coverage.xml
           flags: python
@@ -268,7 +268,7 @@ jobs:
           CI: true
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./nextjs-ui-dashboard/coverage/coverage-final.json
           flags: frontend
