@@ -248,21 +248,31 @@ const Settings = () => {
         const symbolsResponse = await fetch(`${API_BASE}/api/market/symbols`);
         const symbolsData = await symbolsResponse.json();
 
-        if (symbolsData.success && symbolsData.data?.symbols) {
-          const symbols: string[] = symbolsData.data.symbols;
+        // Handle multiple API response formats:
+        // 1. { success: true, data: { symbols: [...] } }
+        // 2. { data: { symbols: [...] } }
+        // 3. { symbols: [...] }
+        const symbols: string[] = symbolsData.data?.symbols
+          || symbolsData.symbols
+          || (Array.isArray(symbolsData.data) ? symbolsData.data : []);
+
+        if (symbols.length > 0) {
 
           // Then fetch symbol settings to get enabled status
           const settingsResponse = await fetch(`${API_BASE}/api/paper-trading/symbol-settings`);
           const settingsData = await settingsResponse.json();
 
           // Map symbols to trading pairs with settings
+          // Handle multiple settingsData formats
+          const settingsList = settingsData.data || settingsData.settings || (Array.isArray(settingsData) ? settingsData : []);
+
           const pairs: TradingPair[] = symbols.map(symbol => {
             // Format symbol for display (BTCUSDT -> BTC/USDT)
             const displaySymbol = symbol.replace(/USDT$/, '/USDT');
 
             // Find settings for this symbol
-            const symbolSettings = settingsData.success && settingsData.data
-              ? settingsData.data.find((s: { symbol: string }) => s.symbol === symbol)
+            const symbolSettings = Array.isArray(settingsList)
+              ? settingsList.find((s: { symbol: string }) => s.symbol === symbol)
               : null;
 
             return {
@@ -611,10 +621,10 @@ const Settings = () => {
                   <GlassCard>
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="font-semibold text-lg" style={{ color: colors.textPrimary }}>
-                        Bot Configuration
+                        {t('bot.configuration')}
                       </h3>
                       <Badge variant={botActive ? "success" : "default"} glow={botActive}>
-                        {botActive ? "ACTIVE" : "INACTIVE"}
+                        {botActive ? t('bot.active') : t('bot.inactive')}
                       </Badge>
                     </div>
 
@@ -625,10 +635,10 @@ const Settings = () => {
                     >
                       <div>
                         <h4 className="font-medium" style={{ color: colors.textPrimary }}>
-                          Bot Status
+                          {t('bot.status')}
                         </h4>
                         <p className="text-sm" style={{ color: colors.textMuted }}>
-                          {botActive ? "Bot is actively trading" : "Bot is currently stopped"}
+                          {botActive ? t('bot.statusActive') : t('bot.statusInactive')}
                         </p>
                       </div>
                       <PremiumSwitch
