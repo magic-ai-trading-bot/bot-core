@@ -1622,28 +1622,30 @@ export default function PaperTrading() {
         </div>
 
         {/* Right Column: Order Book + Form (full width on mobile, 40% on desktop) */}
-        {/* Mobile: no overflow for natural page scroll, Desktop: scrollable */}
+        {/* Desktop: no scroll - content should fit naturally */}
         <div
-          className="col-span-1 lg:col-span-5 flex flex-col lg:overflow-y-auto overflow-x-hidden w-full max-w-full"
+          className="col-span-1 lg:col-span-5 flex flex-col overflow-hidden w-full max-w-full"
           style={{ backgroundColor: colors.bgPrimary }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
-            <div className="h-full flex flex-col" style={{ backgroundColor: colors.bgPrimary }}>
+            <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: colors.bgPrimary }}>
               <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} t={t} />
             </div>
 
             {/* Order Form */}
-            <div className="h-full flex flex-col" style={{ backgroundColor: colors.bgPrimary }}>
-              <OrderForm
-                symbol={selectedSymbol}
-                onSubmit={handleOrderSubmit}
-                selectedPrice={selectedPrice}
-                t={t}
-              />
+            <div className="h-full flex flex-col min-h-0 overflow-hidden" style={{ backgroundColor: colors.bgPrimary }}>
+              <div className="flex-1 min-h-0">
+                <OrderForm
+                  symbol={selectedSymbol}
+                  onSubmit={handleOrderSubmit}
+                  selectedPrice={selectedPrice}
+                  t={t}
+                />
+              </div>
 
               {/* Risk Warning - Premium styling */}
-              <div className="p-4">
+              <div className="p-4 flex-shrink-0">
                 <motion.div
                   className="p-4 rounded-xl"
                   style={{
