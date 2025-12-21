@@ -2812,17 +2812,29 @@ impl PaperTradingEngine {
     }
 
     /// Update settings
-    pub async fn update_settings(&self, new_settings: PaperTradingSettings) -> Result<()> {
+    /// Result of settings update operation
+    /// Returns (success, database_saved, warning_message)
+    pub async fn update_settings(
+        &self,
+        new_settings: PaperTradingSettings,
+    ) -> Result<(bool, Option<String>)> {
         new_settings.validate()?;
 
         let mut settings = self.settings.write().await;
         *settings = new_settings;
 
         // Save updated settings to database
-        if let Err(e) = self.storage.save_paper_trading_settings(&settings).await {
-            error!("❌ Failed to save settings to database: {}", e);
-            // Continue anyway - settings are still updated in memory
-        }
+        let db_warning = match self.storage.save_paper_trading_settings(&settings).await {
+            Ok(_) => {
+                info!("✅ Settings updated and saved to database");
+                None
+            },
+            Err(e) => {
+                let warning = format!("Settings saved to memory only. Database save failed: {}", e);
+                warn!("⚠️ {}", warning);
+                Some(warning)
+            },
+        };
 
         // Broadcast settings update
         let _ = self.event_broadcaster.send(PaperTradingEvent {
@@ -2831,8 +2843,8 @@ impl PaperTradingEngine {
             timestamp: Utc::now(),
         });
 
-        info!("✅ Settings updated and saved to database");
-        Ok(())
+        // Return success with optional warning about database
+        Ok((true, db_warning))
     }
 
     /// Get current settings
