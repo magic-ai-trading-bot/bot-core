@@ -1206,7 +1206,7 @@ async fn update_basic_settings(
 
     // Update the engine settings
     match api.engine.update_settings(new_settings).await {
-        Ok(_) => {
+        Ok((success, db_warning)) => {
             // If initial balance changed, reset portfolio
             if request.initial_balance.is_some() {
                 if let Err(e) = api.engine.reset_portfolio().await {
@@ -1214,9 +1214,18 @@ async fn update_basic_settings(
                 }
             }
 
+            let message = if db_warning.is_some() {
+                "Settings updated in memory. Warning: Database save failed - settings will be lost on restart."
+            } else {
+                "Settings updated and saved to database successfully."
+            };
+
             let response = serde_json::json!({
-                "message": "Basic settings updated successfully and portfolio reset",
+                "message": message,
                 "updated_fields": request,
+                "database_saved": db_warning.is_none(),
+                "warning": db_warning,
+                "success": success,
             });
 
             Ok(warp::reply::with_status(

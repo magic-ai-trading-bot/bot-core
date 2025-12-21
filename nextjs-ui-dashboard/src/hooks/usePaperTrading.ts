@@ -697,9 +697,17 @@ export const usePaperTrading = () => {
     [API_BASE, fetchOpenTrades, fetchClosedTrades, fetchPortfolioStatus]
   );
 
+  // Update settings result type
+  interface UpdateSettingsResult {
+    success: boolean;
+    databaseSaved: boolean;
+    warning?: string;
+    message: string;
+  }
+
   // Update settings (simplified - only basic settings)
   const updateSettings = useCallback(
-    async (newSettings: PaperTradingSettings) => {
+    async (newSettings: PaperTradingSettings): Promise<UpdateSettingsResult> => {
       try {
         setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
@@ -732,10 +740,9 @@ export const usePaperTrading = () => {
           }
         );
 
-        const data: RustPaperTradingResponse<SimpleApiResponse> =
-          await response.json();
+        const data = await response.json();
 
-        if (data.success) {
+        if (data.success && data.data) {
           setState((prev) => ({
             ...prev,
             settings: newSettings,
@@ -744,18 +751,47 @@ export const usePaperTrading = () => {
 
           // Refresh portfolio data after settings update
           await fetchPortfolioStatus();
+
+          // Return result with database save status
+          const responseData = data.data as {
+            message: string;
+            database_saved: boolean;
+            warning?: string;
+          };
+
+          // Show warning toast if database save failed
+          if (!responseData.database_saved && responseData.warning) {
+            toast({
+              title: "⚠️ Warning",
+              description: responseData.warning,
+              variant: "destructive",
+            });
+          }
+
+          return {
+            success: true,
+            databaseSaved: responseData.database_saved ?? true,
+            warning: responseData.warning,
+            message: responseData.message || "Settings updated",
+          };
         } else {
           throw new Error(data.error || "Failed to update settings");
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: errorMessage,
         }));
+        return {
+          success: false,
+          databaseSaved: false,
+          message: errorMessage,
+        };
       }
     },
-    [API_BASE, fetchPortfolioStatus]
+    [API_BASE, fetchPortfolioStatus, toast]
   );
 
   // Reset portfolio

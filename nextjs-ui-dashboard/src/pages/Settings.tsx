@@ -447,7 +447,7 @@ const Settings = () => {
     setIsSaving(true);
     try {
       if (section === "bot") {
-        await updateSettings({
+        const result = await updateSettings({
           basic: {
             ...settings.basic,
             enabled: botActive,
@@ -461,6 +461,25 @@ const Settings = () => {
           strategy: settings.strategy,
           exit_strategy: settings.exit_strategy,
         });
+
+        if (!result.success) {
+          throw new Error(result.message);
+        }
+
+        // Show appropriate toast based on database save status
+        if (result.databaseSaved) {
+          toast({
+            title: t('toast.settingsSaved'),
+            description: t('toast.sectionSaved', { section: section.charAt(0).toUpperCase() + section.slice(1) }),
+          });
+        } else {
+          // Warning already shown by updateSettings hook, but also update UI
+          toast({
+            title: "⚠️ Settings Applied (Temporary)",
+            description: "Settings are active but NOT saved to database. They will be lost on server restart. Please ensure MongoDB is running.",
+            variant: "destructive",
+          });
+        }
       } else if (section === "notifications") {
         // Save notification preferences to backend API
         const success = await saveNotificationPreferences(
@@ -476,9 +495,9 @@ const Settings = () => {
         if (!success) {
           throw new Error("Failed to save notification preferences");
         }
+        toast({ title: t('toast.settingsSaved'), description: t('toast.sectionSaved', { section: section.charAt(0).toUpperCase() + section.slice(1) }) });
       }
       setSavedSection(section);
-      toast({ title: t('toast.settingsSaved'), description: t('toast.sectionSaved', { section: section.charAt(0).toUpperCase() + section.slice(1) }) });
       setTimeout(() => setSavedSection(null), 2000);
     } catch (error) {
       toast({ title: t('toast.settingsError'), description: t('toast.saveError'), variant: "destructive" });
