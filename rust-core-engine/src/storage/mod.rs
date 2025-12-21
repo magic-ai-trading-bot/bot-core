@@ -73,8 +73,8 @@ impl Storage {
     /// @spec:FR-PERF-001 - Database Index Optimization
     #[cfg(feature = "database")]
     async fn ensure_indexes(&self) -> Result<()> {
-        use mongodb::IndexModel;
         use mongodb::options::IndexOptions;
+        use mongodb::IndexModel;
 
         if let Some(db) = &self.db {
             // Index for ai_signals collection (used by get_latest_signals_per_symbol)
