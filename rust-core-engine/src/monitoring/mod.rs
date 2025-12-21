@@ -89,7 +89,12 @@ impl MonitoringService {
         self.system.refresh_memory();
 
         // CPU usage: average across all cores
-        let cpu_usage = self.system.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>()
+        let cpu_usage = self
+            .system
+            .cpus()
+            .iter()
+            .map(|cpu| cpu.cpu_usage())
+            .sum::<f32>()
             / self.system.cpus().len().max(1) as f32;
         self.metrics.cpu_usage_percent = cpu_usage as f64;
 
@@ -401,8 +406,11 @@ mod tests {
         assert_eq!(service.metrics.active_positions, 3);
         assert_eq!(service.metrics.cache_size, 512);
         assert!(service.metrics.last_update >= initial_timestamp);
-        assert_eq!(service.metrics.memory_usage_mb, 50.0); // Placeholder value
-        assert_eq!(service.metrics.cpu_usage_percent, 10.0); // Placeholder value
+        // Real system metrics - validate they're in reasonable range (0-100%)
+        assert!(service.metrics.memory_usage_mb >= 0.0 && service.metrics.memory_usage_mb <= 100.0);
+        assert!(
+            service.metrics.cpu_usage_percent >= 0.0 && service.metrics.cpu_usage_percent <= 100.0
+        );
     }
 
     #[test]
@@ -990,8 +998,11 @@ mod tests {
 
         assert_eq!(service.metrics.active_positions, 0);
         assert_eq!(service.metrics.cache_size, 0);
-        assert_eq!(service.metrics.memory_usage_mb, 50.0); // Placeholder
-        assert_eq!(service.metrics.cpu_usage_percent, 10.0); // Placeholder
+        // Real system metrics - validate they're in reasonable range (0-100%)
+        assert!(service.metrics.memory_usage_mb >= 0.0 && service.metrics.memory_usage_mb <= 100.0);
+        assert!(
+            service.metrics.cpu_usage_percent >= 0.0 && service.metrics.cpu_usage_percent <= 100.0
+        );
     }
 
     #[test]
