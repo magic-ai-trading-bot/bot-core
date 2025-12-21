@@ -94,15 +94,18 @@ jobs:
           fi
 
           echo "🧹 Docker cleanup (preserving data volumes)..."
-          # Stop containers gracefully (without removing volumes)
-          docker compose down --remove-orphans || true
+          # IMPORTANT: Only stop app containers, keep infrastructure (mongodb, redis) running
+          # This prevents data loss from volume deletion
+          docker compose stop rust-core-engine python-ai-service nextjs-ui-dashboard || true
+          docker compose rm -f rust-core-engine python-ai-service nextjs-ui-dashboard || true
 
           # Remove stopped containers and dangling images only
           docker container prune -f || true
           docker image prune -f || true
 
-          # Remove dangling volumes only (keeps named volumes like mongodb_data)
-          docker volume ls -qf dangling=true | xargs -r docker volume rm || true
+          # DO NOT remove dangling volumes - this was deleting mongodb_data!
+          # Named volumes should persist across deployments
+          # docker volume ls -qf dangling=true | xargs -r docker volume rm || true
 
           # Remove build cache
           docker builder prune -f || true
@@ -117,13 +120,18 @@ jobs:
 
           echo "🔄 Starting services in correct order..."
 
-          # Step 1: Start infrastructure services (mongodb, redis)
-          echo "📦 Step 1: Starting infrastructure services..."
+          # Step 1: Ensure infrastructure services are running (mongodb, redis)
+          # These should already be running (we didn't stop them to preserve data)
+          echo "📦 Step 1: Ensuring infrastructure services are running..."
           docker compose up -d mongodb
-          docker compose --profile redis up -d redis
-          sleep 15
+          docker compose --profile redis up -d redis-cache
+          sleep 10
 
-          # Step 2: Start core application services
+          # Verify MongoDB has data
+          echo "🔍 Checking MongoDB data..."
+          docker exec mongodb mongosh --eval "db.adminCommand('listDatabases')" || true
+
+          # Step 2: Start core application services (rebuilt with new code)
           echo "🚀 Step 2: Starting core services..."
           docker compose --profile prod up -d rust-core-engine python-ai-service nextjs-ui-dashboard
           sleep 30
