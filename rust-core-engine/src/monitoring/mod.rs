@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
+use sysinfo::System;
 use tracing::{info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +38,7 @@ pub struct MonitoringService {
     metrics: SystemMetrics,
     trading_metrics: TradingMetrics,
     connection_status: ConnectionStatus,
+    system: System,
 }
 
 impl Default for MonitoringService {
@@ -72,6 +74,7 @@ impl MonitoringService {
                 last_data_update: 0,
                 reconnect_count: 0,
             },
+            system: System::new_all(),
         }
     }
 
@@ -81,9 +84,24 @@ impl MonitoringService {
         self.metrics.cache_size = cache_size;
         self.metrics.last_update = chrono::Utc::now().timestamp();
 
-        // In a real implementation, you would get actual memory and CPU usage
-        self.metrics.memory_usage_mb = 50.0; // Placeholder
-        self.metrics.cpu_usage_percent = 10.0; // Placeholder
+        // Get real CPU and memory usage from system
+        self.system.refresh_cpu_all();
+        self.system.refresh_memory();
+
+        // CPU usage: average across all cores
+        let cpu_usage = self.system.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>()
+            / self.system.cpus().len().max(1) as f32;
+        self.metrics.cpu_usage_percent = cpu_usage as f64;
+
+        // Memory usage in MB (used memory)
+        let used_memory_mb = self.system.used_memory() as f64 / 1024.0 / 1024.0;
+        let total_memory_mb = self.system.total_memory() as f64 / 1024.0 / 1024.0;
+        // Store as percentage for consistency
+        self.metrics.memory_usage_mb = if total_memory_mb > 0.0 {
+            (used_memory_mb / total_memory_mb * 100.0).round()
+        } else {
+            0.0
+        };
     }
 
     pub fn update_trading_metrics(&mut self, stats: &crate::storage::PerformanceStats) {
