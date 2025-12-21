@@ -1051,15 +1051,15 @@ function PositionsTable({
         scrollbarColor: 'rgba(0, 217, 255, 0.3) rgba(255, 255, 255, 0.05)',
       }}
     >
-      <table className="w-full text-xs">
+      <table className="w-full text-xs table-fixed">
         <thead className="sticky top-0 z-10" style={{ backgroundColor: colors.bgPrimary }}>
           <tr style={{ color: colors.textMuted }}>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.symbol')}</th>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.side')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.entry')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.size')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.pnl')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.action')}</th>
+            <th className="w-[15%] text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.symbol')}</th>
+            <th className="w-[15%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.side')}</th>
+            <th className="w-[18%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.entry')}</th>
+            <th className="w-[18%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.size')}</th>
+            <th className="w-[18%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.pnl')}</th>
+            <th className="w-[16%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.positions.action')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1082,7 +1082,7 @@ function PositionsTable({
                     </span>
                   </div>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 text-center">
                   <Badge variant={trade.trade_type === 'Long' ? 'buy' : 'sell'}>
                     {trade.trade_type === 'Long' ? (
                       <TrendingUp className="w-3 h-3 mr-1" />
@@ -1092,15 +1092,15 @@ function PositionsTable({
                     {trade.trade_type}
                   </Badge>
                 </td>
-                <td className="py-3 px-4 text-right">
+                <td className="py-3 px-4 text-center">
                   <MonoText className="font-semibold">${trade.entry_price.toFixed(2)}</MonoText>
                 </td>
-                <td className="py-3 px-4 text-right">
+                <td className="py-3 px-4 text-center">
                   <MonoText>{trade.quantity.toFixed(4)}</MonoText>
                 </td>
-                <td className="py-3 px-4 text-right">
+                <td className="py-3 px-4 text-center">
                   <div
-                    className="inline-flex flex-col items-end px-2 py-1 rounded-lg"
+                    className="inline-flex flex-col items-center px-2 py-1 rounded-lg"
                     style={{
                       background: isProfitable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                     }}
@@ -1113,12 +1113,12 @@ function PositionsTable({
                     </MonoText>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-right">
+                <td className="py-3 px-4 text-center">
                   <motion.button
                     onClick={() => onCloseTrade?.(trade.id)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-300 flex items-center gap-1"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-300"
                     style={{
                       background: 'rgba(239, 68, 68, 0.15)',
                       border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -1194,15 +1194,15 @@ function TradeHistoryTable({
         scrollbarColor: 'rgba(0, 217, 255, 0.3) rgba(255, 255, 255, 0.05)',
       }}
     >
-      <table className="w-full text-xs">
+      <table className="w-full text-xs table-fixed">
         <thead className="sticky top-0 z-10" style={{ backgroundColor: colors.bgPrimary }}>
           <tr style={{ color: colors.textMuted }}>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.symbol')}</th>
-            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.side')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.entry')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.exit')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.pnl')}</th>
-            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.time')}</th>
+            <th className="w-[14%] text-left py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.symbol')}</th>
+            <th className="w-[14%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.side')}</th>
+            <th className="w-[18%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.entry')}</th>
+            <th className="w-[18%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.exit')}</th>
+            <th className="w-[16%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.pnl')}</th>
+            <th className="w-[20%] text-center py-3 px-4 font-bold uppercase tracking-wider">{t('paperTradingPage.history.time')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1221,7 +1221,7 @@ function TradeHistoryTable({
                 <td className="py-3 px-4">
                   <span className="font-bold text-white">{trade.symbol.replace('USDT', '')}</span>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 text-center">
                   <Badge variant={trade.trade_type === 'Long' ? 'buy' : 'sell'}>
                     {trade.trade_type === 'Long' ? (
                       <TrendingUp className="w-3 h-3 mr-1" />
@@ -1231,15 +1231,15 @@ function TradeHistoryTable({
                     {trade.trade_type}
                   </Badge>
                 </td>
-                <td className="py-3 px-4 text-right">
+                <td className="py-3 px-4 text-center">
                   <MonoText className="font-semibold">${trade.entry_price.toFixed(2)}</MonoText>
                 </td>
-                <td className="py-3 px-4 text-right">
+                <td className="py-3 px-4 text-center">
                   <MonoText className="font-semibold">${trade.exit_price?.toFixed(2) || '--'}</MonoText>
                 </td>
-                <td className="py-3 px-4 text-right">
+                <td className="py-3 px-4 text-center">
                   <div
-                    className="inline-flex flex-col items-end px-2 py-1 rounded-lg"
+                    className="inline-flex flex-col items-center px-2 py-1 rounded-lg"
                     style={{
                       background: isProfitable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                     }}
@@ -1249,8 +1249,8 @@ function TradeHistoryTable({
                     </MonoText>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-right" style={{ color: colors.textSecondary }}>
-                  <div className="flex items-center justify-end gap-1.5">
+                <td className="py-3 px-4 text-center" style={{ color: colors.textSecondary }}>
+                  <div className="inline-flex items-center gap-1.5">
                     <Clock className="w-3 h-3" style={{ color: colors.textMuted }} />
                     {formatDistanceToNow(closeTime, { addSuffix: true })}
                   </div>
