@@ -80,6 +80,9 @@ function GlassCard({
   hoverable?: boolean;
   glowColor?: string;
 }) {
+  // Check if className contains flex layout classes
+  const hasFlexLayout = className.includes('flex');
+
   return (
     <motion.div
       variants={itemVariants}
@@ -95,7 +98,12 @@ function GlassCard({
       }
       className={`relative overflow-hidden rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] transition-all duration-300 ${hoverable ? 'cursor-pointer' : ''} ${className}`}
     >
-      <div className={noPadding ? '' : 'p-4'}>{children}</div>
+      {hasFlexLayout ? (
+        // When using flex layout, render children directly without wrapper
+        children
+      ) : (
+        <div className={noPadding ? '' : 'p-4'}>{children}</div>
+      )}
     </motion.div>
   );
 }
@@ -585,7 +593,7 @@ function OrderBook({
           let askTotal = 0;
           let bidTotal = 0;
 
-          for (let i = 0; i < 8; i++) {
+          for (let i = 0; i < 12; i++) {
             // Asks (sell orders) above mid price
             const askPrice = realPrice + spread / 2 + i * tickSize;
             const askQuantity = Math.random() * 2 + 0.1;
@@ -686,7 +694,7 @@ function OrderBook({
   };
 
   return (
-    <GlassCard noPadding>
+    <GlassCard noPadding className="h-full flex flex-col">
       <PanelHeader title={t('paperTradingPage.orderBook.title')} icon={BarChart3} />
 
       {/* Column Headers */}
@@ -699,9 +707,9 @@ function OrderBook({
         <div className="text-right">{t('paperTradingPage.orderBook.total')}</div>
       </div>
 
-      {/* Asks (reversed) */}
-      <div className="flex flex-col-reverse">
-        {asks.slice(0, 8).map((ask, i) => (
+      {/* Asks (reversed) - flex-1 to take available space */}
+      <div className="flex flex-col-reverse flex-1 justify-end">
+        {asks.slice(0, 12).map((ask, i) => (
           <OrderRow key={`ask-${i}`} level={ask} type="ask" maxTotal={maxAskTotal} />
         ))}
       </div>
@@ -726,9 +734,9 @@ function OrderBook({
         </span>
       </motion.div>
 
-      {/* Bids */}
-      <div>
-        {bids.slice(0, 8).map((bid, i) => (
+      {/* Bids - flex-1 to take available space */}
+      <div className="flex-1">
+        {bids.slice(0, 12).map((bid, i) => (
           <OrderRow key={`bid-${i}`} level={bid} type="bid" maxTotal={maxBidTotal} />
         ))}
       </div>
@@ -809,7 +817,7 @@ function OrderForm({
   const isBuy = side === 'buy';
 
   return (
-    <GlassCard noPadding>
+    <GlassCard noPadding className="h-full flex flex-col">
       <PanelHeader title={t('paperTradingPage.orderForm.title')} icon={Target} />
 
       {/* Buy/Sell Toggle - Premium styling */}
@@ -847,7 +855,7 @@ function OrderForm({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 space-y-4">
+      <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-1 flex flex-col">
         {/* Order Type Tabs */}
         <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.08]">
           {(['market', 'limit', 'stop-limit'] as const).map((type) => {
@@ -932,6 +940,9 @@ function OrderForm({
           </div>
         </div>
 
+        {/* Spacer to push Order Summary and Button to bottom */}
+        <div className="flex-1" />
+
         {/* Order Summary - Premium glass panel */}
         <div
           className="p-4 rounded-xl space-y-2 text-xs"
@@ -1001,7 +1012,7 @@ function PositionsTable({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center h-full">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -1014,7 +1025,7 @@ function PositionsTable({
 
   if (trades.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12" style={{ color: colors.textMuted }}>
+      <div className="flex flex-col items-center justify-center h-full" style={{ color: colors.textMuted }}>
         <div
           className="p-4 rounded-2xl mb-3"
           style={{
@@ -1144,7 +1155,7 @@ function TradeHistoryTable({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center h-full">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -1157,7 +1168,7 @@ function TradeHistoryTable({
 
   if (trades.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12" style={{ color: colors.textMuted }}>
+      <div className="flex flex-col items-center justify-center h-full" style={{ color: colors.textMuted }}>
         <div
           className="p-4 rounded-2xl mb-3"
           style={{
@@ -1510,10 +1521,10 @@ export default function PaperTrading() {
             />
           </div>
 
-          {/* Positions/History Tabs - Premium styling with proper scroll */}
-          {/* Mobile: no max-height for natural flow, Desktop: capped height */}
+          {/* Positions/History Tabs - Premium styling with FIXED height */}
+          {/* Fixed height ensures consistent layout regardless of content */}
           <div
-            className="rounded-t-2xl flex flex-col min-h-[200px] lg:min-h-[250px] lg:max-h-[40vh]"
+            className="rounded-t-2xl flex flex-col h-[280px] lg:h-[300px]"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.02)',
               flex: '0 0 auto',    // Don't grow, don't shrink from initial
@@ -1618,12 +1629,12 @@ export default function PaperTrading() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
-            <div style={{ backgroundColor: colors.bgPrimary }}>
+            <div className="h-full flex flex-col" style={{ backgroundColor: colors.bgPrimary }}>
               <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} t={t} />
             </div>
 
             {/* Order Form */}
-            <div style={{ backgroundColor: colors.bgPrimary }}>
+            <div className="h-full flex flex-col" style={{ backgroundColor: colors.bgPrimary }}>
               <OrderForm
                 symbol={selectedSymbol}
                 onSubmit={handleOrderSubmit}

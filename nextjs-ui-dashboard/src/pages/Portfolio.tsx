@@ -538,10 +538,10 @@ const Portfolio = () => {
         {/* ================================================================
             SECTION 2 & 3: POSITION ALLOCATION + OPEN TRADES
             ================================================================ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Position Allocation Donut Chart */}
           <motion.div className="lg:col-span-1" variants={itemVariants}>
-            <GlassCard noPadding>
+            <GlassCard noPadding className="h-full flex flex-col">
               <div className="p-4 sm:p-6 pb-2">
                 <div className="flex items-center gap-2 mb-4">
                   <GlowIcon icon={Layers} color={themeColors.cyan} size="md" />
@@ -550,7 +550,7 @@ const Portfolio = () => {
                   </h3>
                 </div>
               </div>
-              <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex-1 flex flex-col">
                 {openTrades.length > 0 ? (
                   <>
                     <div className="h-[220px] sm:h-[260px] md:h-[280px] relative">
@@ -615,7 +615,7 @@ const Portfolio = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="h-[220px] sm:h-[260px] md:h-[280px] flex items-center justify-center">
+                  <div className="flex-1 min-h-[220px] sm:min-h-[260px] md:min-h-[280px] flex items-center justify-center">
                     <div className="text-center">
                       <Layers className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
                       <p className="text-sm sm:text-base" style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noPositions')}</p>
@@ -628,8 +628,8 @@ const Portfolio = () => {
           </motion.div>
 
           {/* Recent Closed Trades Table */}
-          <motion.div className="lg:col-span-2" variants={itemVariants}>
-            <GlassCard noPadding>
+          <motion.div className="lg:col-span-1" variants={itemVariants}>
+            <GlassCard noPadding className="h-full flex flex-col">
               <div className="p-4 sm:p-6 pb-2">
                 <div className="flex items-center gap-2">
                   <GlowIcon icon={BarChart3} color={themeColors.cyan} size="md" />
@@ -638,9 +638,9 @@ const Portfolio = () => {
                   </h3>
                 </div>
               </div>
-              <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex-1 flex flex-col">
                 {closedTrades.length > 0 ? (
-                  <div className="overflow-x-auto max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto">
+                  <div className="overflow-x-auto max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto flex-1">
                     <table className="w-full">
                       <thead className="sticky top-0" style={{ backgroundColor: themeColors.bgSecondary }}>
                         <tr style={{ borderBottom: `1px solid ${themeColors.borderSubtle}` }}>
@@ -735,7 +735,7 @@ const Portfolio = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="h-[150px] sm:h-[180px] md:h-[200px] flex items-center justify-center">
+                  <div className="flex-1 min-h-[220px] sm:min-h-[260px] md:min-h-[280px] flex items-center justify-center">
                     <div className="text-center">
                       <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3" style={{ color: themeColors.textMuted }} />
                       <p className="text-sm sm:text-base" style={{ color: themeColors.textMuted }}>{t('portfolio.empty.noClosedTrades')}</p>
@@ -855,9 +855,9 @@ const Portfolio = () => {
             ================================================================ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {/* Best Trade */}
-          <motion.div variants={itemVariants}>
-            <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-3 sm:p-4 md:p-5 relative">
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard className="overflow-hidden h-full" noPadding>
+              <div className="p-3 sm:p-4 md:p-5 relative h-full">
                 <div
                   className="absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
@@ -892,9 +892,9 @@ const Portfolio = () => {
           </motion.div>
 
           {/* Worst Trade */}
-          <motion.div variants={itemVariants}>
-            <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-3 sm:p-4 md:p-5 relative">
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard className="overflow-hidden h-full" noPadding>
+              <div className="p-3 sm:p-4 md:p-5 relative h-full">
                 <div
                   className="hidden sm:block absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
@@ -929,9 +929,9 @@ const Portfolio = () => {
           </motion.div>
 
           {/* Max Drawdown */}
-          <motion.div variants={itemVariants}>
-            <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-3 sm:p-4 md:p-5 relative">
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard className="overflow-hidden h-full" noPadding>
+              <div className="p-3 sm:p-4 md:p-5 relative h-full">
                 <div
                   className="hidden sm:block absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{
@@ -958,9 +958,9 @@ const Portfolio = () => {
           </motion.div>
 
           {/* Sharpe Ratio */}
-          <motion.div variants={itemVariants}>
-            <GlassCard className="overflow-hidden" noPadding>
-              <div className="p-3 sm:p-4 md:p-5 relative">
+          <motion.div variants={itemVariants} className="h-full">
+            <GlassCard className="overflow-hidden h-full" noPadding>
+              <div className="p-3 sm:p-4 md:p-5 relative h-full">
                 <div
                   className="hidden sm:block absolute top-0 right-0 w-24 h-24 blur-2xl"
                   style={{

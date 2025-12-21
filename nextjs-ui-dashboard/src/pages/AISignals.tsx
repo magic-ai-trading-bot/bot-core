@@ -90,6 +90,10 @@ interface SignalOutcomeEvent {
 
 // API Base URL
 const RUST_API_URL = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
+const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
+
+// Default symbols for AI analysis
+const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 
 
 // ============================================================================
@@ -785,10 +789,12 @@ const AISignals = () => {
     }
   };
 
-  // Fetch cached signals and history on mount
+  // On mount: ONLY load existing signals from database (no new AI requests)
+  // New signals are only generated when user clicks "Làm mới" (Refresh) button
+  // @spec:FR-AI-013 - Cached Signal Display
   useEffect(() => {
-    fetchCachedSignals(); // Load cached signals first for immediate display
-    fetchSignalsHistory();
+    fetchCachedSignals(); // Load 4 latest cached signals (one per symbol)
+    fetchSignalsHistory(); // Load signal history for stats
   }, []);
 
   // Listen for signal outcome updates via WebSocket
@@ -931,9 +937,57 @@ const AISignals = () => {
     return { wins, losses, winRate, totalPnl, pending: historySignals.length - total };
   }, [apiStats, historySignals]);
 
+  // Request NEW AI signals for all symbols (called when user clicks refresh button)
+  // Calls Python AI service to generate fresh signals via GPT-4 analysis
+  // @spec:FR-AI-014 - Manual Signal Refresh
+  const requestNewSignals = async () => {
+    try {
+      // Call Python AI service /ai/analyze for each symbol in parallel
+      // This triggers fresh GPT-4 analysis and saves new signals to database
+      const results = await Promise.allSettled(
+        DEFAULT_SYMBOLS.map(async (symbol) => {
+          const response = await fetch(`${PYTHON_API_URL}/ai/analyze`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              symbol,
+              timeframe_data: {}, // Python AI will fetch real candles
+              current_price: 0,   // Will be fetched by Python
+              volume_24h: 0,
+              timestamp: Date.now(),
+              strategy_context: {
+                selected_strategies: ["RSI Strategy", "MACD Strategy", "Bollinger Bands Strategy"],
+                market_condition: "Unknown",
+                risk_level: "Moderate",
+              },
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to analyze ${symbol}: ${response.status}`);
+          }
+          return response.json();
+        })
+      );
+
+      // Log results for debugging
+      const successful = results.filter(r => r.status === "fulfilled").length;
+      const failed = results.filter(r => r.status === "rejected").length;
+      console.log(`AI Signal refresh: ${successful} successful, ${failed} failed`);
+
+      // After generating new signals, fetch updated cached signals from database
+      await fetchCachedSignals();
+      await fetchSignalsHistory();
+    } catch (error) {
+      console.error("Failed to request new AI signals:", error);
+      // Still try to fetch cached signals even if request fails
+      await fetchCachedSignals();
+      await fetchSignalsHistory();
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchSignalsHistory();
+    await requestNewSignals();
     setIsRefreshing(false);
   };
 
