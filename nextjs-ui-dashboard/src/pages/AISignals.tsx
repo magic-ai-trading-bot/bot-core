@@ -731,21 +731,25 @@ const AISignals = () => {
       setHistorySignals(transformedSignals);
       setApiStats(data.stats || { total: 0, wins: 0, losses: 0, pending: 0, win_rate: 0, total_pnl: 0 });
 
-      // Also populate cachedSignals with latest signal per symbol from history
-      // This ensures live signals show immediately on page load
-      const latestPerSymbol = new Map<string, SignalWithMeta>();
-      transformedSignals.forEach((signal) => {
-        const existing = latestPerSymbol.get(signal.symbol);
-        if (!existing || new Date(signal.timestamp) > new Date(existing.timestamp)) {
-          latestPerSymbol.set(signal.symbol, signal);
-        }
+      // Note: cachedSignals is populated by fetchCachedSignals (faster endpoint)
+      // Only update cachedSignals from history if it's still empty (fallback)
+      setCachedSignals((prev) => {
+        if (prev.length > 0) return prev; // Keep existing cached signals
+        // Fallback: extract latest per symbol from history
+        const latestPerSymbol = new Map<string, SignalWithMeta>();
+        transformedSignals.forEach((signal) => {
+          const existing = latestPerSymbol.get(signal.symbol);
+          if (!existing || new Date(signal.timestamp) > new Date(existing.timestamp)) {
+            latestPerSymbol.set(signal.symbol, signal);
+          }
+        });
+        return Array.from(latestPerSymbol.values());
       });
-      setCachedSignals(Array.from(latestPerSymbol.values()));
     } catch (error) {
       console.error("Failed to fetch signals history:", error);
     } finally {
       setIsLoadingHistory(false);
-      setIsLoadingCached(false); // Also mark cached as loaded
+      // Note: setIsLoadingCached is handled by fetchCachedSignals (faster endpoint)
     }
   };
 
@@ -801,12 +805,18 @@ const AISignals = () => {
     }
   };
 
-  // On mount: ONLY load existing signals from database (no new AI requests)
+  // On mount: Load existing signals from database in parallel for FAST display
+  // 1. fetchCachedSignals: Fast endpoint (latest signal per symbol) - shows immediately
+  // 2. fetchSignalsHistory: Full history for stats/history panel - loads in background
   // New signals are only generated when user clicks "Làm mới" (Refresh) button
-  // fetchSignalsHistory also populates cachedSignals with latest signal per symbol
   // @spec:FR-AI-013 - Cached Signal Display
   useEffect(() => {
-    fetchSignalsHistory(); // Load signal history AND populate live signals (latest per symbol)
+    // Call both in parallel for faster initial load
+    // fetchCachedSignals is faster and populates live signals immediately
+    Promise.all([
+      fetchCachedSignals(), // Fast: latest signal per symbol for immediate display
+      fetchSignalsHistory(), // Slower: full history for history panel
+    ]);
   }, []);
 
   // Listen for signal outcome updates via WebSocket
@@ -1049,7 +1059,24 @@ const AISignals = () => {
               }
             />
 
-            {liveSignals.length > 0 ? (
+            {isLoadingCached ? (
+              // Loading skeleton for faster perceived performance
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <GlassCard key={i} className="animate-pulse">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-xl" style={{ backgroundColor: themeColors.bgSecondary }} />
+                      <div className="flex-1">
+                        <div className="h-5 w-20 rounded mb-2" style={{ backgroundColor: themeColors.bgSecondary }} />
+                        <div className="h-3 w-32 rounded" style={{ backgroundColor: themeColors.bgSecondary }} />
+                      </div>
+                    </div>
+                    <div className="h-8 w-24 rounded mb-4" style={{ backgroundColor: themeColors.bgSecondary }} />
+                    <div className="h-10 w-full rounded" style={{ backgroundColor: themeColors.bgSecondary }} />
+                  </GlassCard>
+                ))}
+              </div>
+            ) : liveSignals.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {liveSignals.map((signal, index) => (
                   <SignalCard
