@@ -730,10 +730,22 @@ const AISignals = () => {
 
       setHistorySignals(transformedSignals);
       setApiStats(data.stats || { total: 0, wins: 0, losses: 0, pending: 0, win_rate: 0, total_pnl: 0 });
+
+      // Also populate cachedSignals with latest signal per symbol from history
+      // This ensures live signals show immediately on page load
+      const latestPerSymbol = new Map<string, SignalWithMeta>();
+      transformedSignals.forEach((signal) => {
+        const existing = latestPerSymbol.get(signal.symbol);
+        if (!existing || new Date(signal.timestamp) > new Date(existing.timestamp)) {
+          latestPerSymbol.set(signal.symbol, signal);
+        }
+      });
+      setCachedSignals(Array.from(latestPerSymbol.values()));
     } catch (error) {
       console.error("Failed to fetch signals history:", error);
     } finally {
       setIsLoadingHistory(false);
+      setIsLoadingCached(false); // Also mark cached as loaded
     }
   };
 
@@ -791,10 +803,10 @@ const AISignals = () => {
 
   // On mount: ONLY load existing signals from database (no new AI requests)
   // New signals are only generated when user clicks "Làm mới" (Refresh) button
+  // fetchSignalsHistory also populates cachedSignals with latest signal per symbol
   // @spec:FR-AI-013 - Cached Signal Display
   useEffect(() => {
-    fetchCachedSignals(); // Load 4 latest cached signals (one per symbol)
-    fetchSignalsHistory(); // Load signal history for stats
+    fetchSignalsHistory(); // Load signal history AND populate live signals (latest per symbol)
   }, []);
 
   // Listen for signal outcome updates via WebSocket
