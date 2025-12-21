@@ -297,20 +297,51 @@ const Settings = () => {
     fetchTradingPairs();
   }, []);
 
-  // Refresh system health periodically with real health check
+  // Refresh system health periodically with real data from backend
   useEffect(() => {
     const fetchSystemHealth = async () => {
       try {
+        // Fetch both health check and system metrics in parallel
         const startTime = Date.now();
-        const response = await fetch(`${API_BASE}/api/health`);
+        const [healthRes, systemRes, connectionRes] = await Promise.all([
+          fetch(`${API_BASE}/api/health`),
+          fetch(`${API_BASE}/api/monitoring/system`).catch(() => null),
+          fetch(`${API_BASE}/api/monitoring/connection`).catch(() => null),
+        ]);
         const latency = Date.now() - startTime;
-        const isHealthy = response.ok;
+        const isHealthy = healthRes.ok;
+
+        // Parse system metrics if available
+        let systemMetrics = null;
+        if (systemRes?.ok) {
+          const data = await systemRes.json();
+          systemMetrics = data.data || data;
+        }
+
+        // Parse connection status if available
+        let connectionStatus = null;
+        if (connectionRes?.ok) {
+          const data = await connectionRes.json();
+          connectionStatus = data.data || data;
+        }
+
+        // Format uptime from seconds to human readable
+        const formatUptime = (seconds: number): string => {
+          if (!seconds || seconds <= 0) return "--";
+          const hours = Math.floor(seconds / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          if (hours > 0) return `${hours}h ${minutes}m`;
+          return `${minutes}m`;
+        };
 
         setSystemHealth((prev) => ({
           ...prev,
+          cpu: systemMetrics?.cpu_usage_percent ?? prev.cpu,
+          memory: systemMetrics?.memory_usage_mb ? Math.round(systemMetrics.memory_usage_mb) : prev.memory,
+          uptime: systemMetrics?.uptime_seconds ? formatUptime(systemMetrics.uptime_seconds) : prev.uptime,
           apiLatency: latency,
-          wsConnected: isHealthy,
-          dbConnected: isHealthy,
+          wsConnected: connectionStatus?.websocket_connected ?? isHealthy,
+          dbConnected: connectionStatus?.api_responsive ?? isHealthy,
           lastUpdate: new Date().toLocaleTimeString(),
         }));
       } catch {
