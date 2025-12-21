@@ -62,111 +62,262 @@ jobs:
           # Create deploy script
           cat > deploy.sh << 'DEPLOY_SCRIPT'
           #!/bin/bash
-          set -e
 
-          echo "📦 Pulling latest code..."
-          cd /root/bot-core
+          # ============================================================================
+          # SAFE DEPLOYMENT SCRIPT
+          # ============================================================================
+          # CRITICAL: This script is designed to NEVER delete data volumes
+          # Only application containers are restarted, infrastructure stays running
+          # ============================================================================
 
-          # Backup .env file before git reset (preserves secrets like JWT_SECRET)
-          echo "🔐 Backing up secrets..."
-          if [ -f .env ]; then
-            cp .env /tmp/.env.backup
-            echo "  ✓ .env backed up"
+          # Don't use set -e globally - handle errors explicitly
+          # set -e would exit on first error, leaving system in bad state
+
+          DEPLOY_SUCCESS=true
+          DEPLOY_DIR="/root/bot-core"
+          BACKUP_DIR="/root/backups"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+          # Colors for output
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          YELLOW='\033[1;33m'
+          NC='\033[0m' # No Color
+
+          log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+          log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+          log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+          # ============================================================================
+          # STEP 1: PRE-DEPLOYMENT CHECKS
+          # ============================================================================
+          log_info "🔍 Step 1: Pre-deployment checks..."
+
+          cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
+
+          # Create backup directory
+          mkdir -p "$BACKUP_DIR"
+
+          # Check critical volumes exist
+          log_info "Checking data volumes..."
+          MONGODB_VOLUME=$(docker volume ls -q | grep mongodb_data || true)
+          REDIS_VOLUME=$(docker volume ls -q | grep redis_data || true)
+
+          if [ -n "$MONGODB_VOLUME" ]; then
+            log_info "✅ MongoDB volume exists: $MONGODB_VOLUME"
+          else
+            log_warn "⚠️ MongoDB volume not found - first deployment?"
           fi
 
-          git fetch origin main
-          git reset --hard origin/main
+          if [ -n "$REDIS_VOLUME" ]; then
+            log_info "✅ Redis volume exists: $REDIS_VOLUME"
+          else
+            log_warn "⚠️ Redis volume not found"
+          fi
 
-          # Restore .env file after git reset (preserves JWT_SECRET for user sessions)
-          echo "🔐 Restoring secrets..."
+          # ============================================================================
+          # STEP 2: BACKUP SECRETS
+          # ============================================================================
+          log_info "🔐 Step 2: Backing up secrets..."
+
+          if [ -f .env ]; then
+            cp .env "$BACKUP_DIR/.env.backup.$TIMESTAMP"
+            cp .env /tmp/.env.backup
+            log_info "✅ .env backed up"
+          else
+            log_warn "⚠️ No .env file found"
+          fi
+
+          # ============================================================================
+          # STEP 3: BACKUP MONGODB DATA (Optional but recommended)
+          # ============================================================================
+          log_info "💾 Step 3: Creating MongoDB backup..."
+
+          if docker ps | grep -q "mongodb.*healthy\|mongodb.*Up"; then
+            # Quick dump of critical collections
+            docker exec mongodb mongosh --eval "
+              db = db.getSiblingDB('bot_core');
+              print('Users: ' + db.users.countDocuments({}));
+              print('Trades: ' + db.paper_trades.countDocuments({}));
+              print('Portfolios: ' + db.paper_portfolios.countDocuments({}));
+            " 2>/dev/null || log_warn "Could not get MongoDB stats"
+
+            # Create backup (non-blocking, continues even if fails)
+            docker exec mongodb mongodump --db=bot_core --out=/tmp/backup_$TIMESTAMP 2>/dev/null && \
+              docker cp mongodb:/tmp/backup_$TIMESTAMP "$BACKUP_DIR/mongodb_backup_$TIMESTAMP" 2>/dev/null && \
+              log_info "✅ MongoDB backup created" || \
+              log_warn "⚠️ MongoDB backup skipped (non-critical)"
+          else
+            log_warn "⚠️ MongoDB not running, skipping backup"
+          fi
+
+          # ============================================================================
+          # STEP 4: PULL LATEST CODE
+          # ============================================================================
+          log_info "📦 Step 4: Pulling latest code..."
+
+          git fetch origin main || { log_error "Git fetch failed"; exit 1; }
+          git reset --hard origin/main || { log_error "Git reset failed"; exit 1; }
+          log_info "✅ Code updated to $(git rev-parse --short HEAD)"
+
+          # ============================================================================
+          # STEP 5: RESTORE SECRETS
+          # ============================================================================
+          log_info "🔐 Step 5: Restoring secrets..."
+
           if [ -f /tmp/.env.backup ]; then
             cp /tmp/.env.backup .env
-            echo "  ✓ .env restored from backup"
+            log_info "✅ .env restored from backup"
           elif [ -f /root/bot-secrets.txt ]; then
-            # Fallback: source from bot-secrets.txt created during initial setup
             cp .env.example .env
             source /root/bot-secrets.txt
             sed -i "s|MONGO_ROOT_PASSWORD=.*|MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD|g" .env
             sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|g" .env
-            echo "  ✓ .env created from bot-secrets.txt"
+            log_info "✅ .env created from bot-secrets.txt"
           else
-            echo "  ⚠️ Warning: No .env backup found, using defaults"
+            log_error "❌ No .env backup found!"
+            exit 1
           fi
 
-          echo "🧹 Docker cleanup (preserving data volumes)..."
-          # IMPORTANT: Only stop app containers, keep infrastructure (mongodb, redis) running
-          # This prevents data loss from volume deletion
-          docker compose stop rust-core-engine python-ai-service nextjs-ui-dashboard || true
-          docker compose rm -f rust-core-engine python-ai-service nextjs-ui-dashboard || true
+          # ============================================================================
+          # STEP 6: STOP ONLY APPLICATION CONTAINERS (KEEP INFRASTRUCTURE RUNNING!)
+          # ============================================================================
+          log_info "🛑 Step 6: Stopping application containers ONLY..."
+          log_warn "⚠️ IMPORTANT: MongoDB and Redis will NOT be stopped to preserve data"
 
-          # Remove stopped containers and dangling images only
-          docker container prune -f || true
-          docker image prune -f || true
+          # List of app containers to restart (NOT infrastructure)
+          APP_CONTAINERS="rust-core-engine python-ai-service nextjs-ui-dashboard"
 
-          # DO NOT remove dangling volumes - this was deleting mongodb_data!
-          # Named volumes should persist across deployments
-          # docker volume ls -qf dangling=true | xargs -r docker volume rm || true
+          for container in $APP_CONTAINERS; do
+            if docker ps -a | grep -q "$container"; then
+              docker stop "$container" 2>/dev/null || true
+              docker rm -f "$container" 2>/dev/null || true
+              log_info "Stopped: $container"
+            fi
+          done
 
-          # Remove build cache
-          docker builder prune -f || true
+          # Also handle celery containers (can be restarted safely)
+          CELERY_CONTAINERS="celery-worker celery-beat flower"
+          for container in $CELERY_CONTAINERS; do
+            if docker ps -a | grep -q "$container"; then
+              docker stop "$container" 2>/dev/null || true
+              docker rm -f "$container" 2>/dev/null || true
+              log_info "Stopped: $container"
+            fi
+          done
 
-          # Show disk usage after cleanup
-          echo "📊 Disk usage after cleanup:"
-          df -h /
-          docker system df
+          # ============================================================================
+          # STEP 7: CLEANUP (SAFE - NO VOLUME DELETION!)
+          # ============================================================================
+          log_info "🧹 Step 7: Safe cleanup..."
 
-          echo "🔨 Building services..."
-          docker compose build rust-core-engine nextjs-ui-dashboard python-ai-service
+          # Remove stopped containers (safe)
+          docker container prune -f 2>/dev/null || true
 
-          echo "🔄 Starting services in correct order..."
+          # Remove dangling images only (safe)
+          docker image prune -f 2>/dev/null || true
 
-          # Step 1: Ensure infrastructure services are running (mongodb, redis)
-          # These should already be running (we didn't stop them to preserve data)
-          echo "📦 Step 1: Ensuring infrastructure services are running..."
-          docker compose up -d mongodb
-          docker compose --profile redis up -d redis-cache
-          sleep 10
+          # Remove build cache (safe)
+          docker builder prune -f 2>/dev/null || true
+
+          # ============================================================================
+          # ⚠️ NEVER DELETE VOLUMES! ⚠️
+          # The following commands are DANGEROUS and should NEVER be run:
+          # - docker volume prune
+          # - docker volume rm
+          # - docker system prune -a --volumes
+          # - docker compose down -v
+          # ============================================================================
+
+          log_info "📊 Disk usage after cleanup:"
+          df -h / | tail -1
+
+          # ============================================================================
+          # STEP 8: BUILD NEW IMAGES
+          # ============================================================================
+          log_info "🔨 Step 8: Building application images..."
+
+          docker compose build rust-core-engine nextjs-ui-dashboard python-ai-service || {
+            log_error "Build failed!"
+            exit 1
+          }
+          log_info "✅ Images built successfully"
+
+          # ============================================================================
+          # STEP 9: VERIFY INFRASTRUCTURE IS RUNNING
+          # ============================================================================
+          log_info "🔍 Step 9: Verifying infrastructure services..."
+
+          # Ensure MongoDB is running (should already be running)
+          if ! docker ps | grep -q "mongodb"; then
+            log_warn "MongoDB not running, starting..."
+            docker compose up -d mongodb
+            sleep 15
+          fi
 
           # Verify MongoDB has data
-          echo "🔍 Checking MongoDB data..."
-          docker exec mongodb mongosh --eval "db.adminCommand('listDatabases')" || true
+          log_info "Checking MongoDB data..."
+          docker exec mongodb mongosh --eval "
+            db = db.getSiblingDB('bot_core');
+            var users = db.users.countDocuments({});
+            var trades = db.paper_trades.countDocuments({});
+            print('Database check - Users: ' + users + ', Trades: ' + trades);
+            if (users == 0) {
+              print('WARNING: No users found in database!');
+            }
+          " 2>/dev/null || log_warn "Could not verify MongoDB data"
 
-          # Step 2: Start core application services (rebuilt with new code)
-          echo "🚀 Step 2: Starting core services..."
+          # Ensure Redis is running
+          if ! docker ps | grep -q "redis-cache"; then
+            log_warn "Redis not running, starting..."
+            docker compose --profile redis up -d redis
+            sleep 5
+          fi
+
+          # ============================================================================
+          # STEP 10: START APPLICATION SERVICES
+          # ============================================================================
+          log_info "🚀 Step 10: Starting application services..."
+
           docker compose --profile prod up -d rust-core-engine python-ai-service nextjs-ui-dashboard
           sleep 30
 
-          # Step 3: Start messaging services (RabbitMQ first, then Celery)
-          echo "📨 Step 3: Starting messaging services..."
-          docker compose --profile messaging up -d rabbitmq
-          sleep 20
+          # ============================================================================
+          # STEP 11: START MESSAGING SERVICES
+          # ============================================================================
+          log_info "📨 Step 11: Starting messaging services..."
 
-          # Ensure RabbitMQ has proper setup (user/vhost)
-          echo "🔧 Initializing RabbitMQ..."
+          # RabbitMQ
+          if ! docker ps | grep -q "rabbitmq"; then
+            docker compose --profile messaging up -d rabbitmq
+            sleep 20
+          fi
+
+          # Wait for RabbitMQ to be ready
           for i in {1..5}; do
             if docker exec rabbitmq rabbitmqctl list_vhosts 2>/dev/null | grep -q "bot-core"; then
-              echo "✅ RabbitMQ vhost exists"
+              log_info "✅ RabbitMQ ready"
               break
             fi
-            echo "⏳ Waiting for RabbitMQ initialization (attempt $i/5)..."
+            log_info "Waiting for RabbitMQ... ($i/5)"
             sleep 5
           done
 
-          # Start Celery services (non-blocking)
-          echo "🔄 Starting Celery services..."
-          docker compose --profile messaging up -d celery-worker celery-beat flower || true
+          # Celery services
+          docker compose --profile messaging up -d celery-worker celery-beat flower 2>/dev/null || true
 
-          # Step 4: Start monitoring and gateway
-          echo "📊 Step 4: Starting monitoring and gateway..."
-          docker compose --profile monitoring --profile api-gateway up -d || true
+          # ============================================================================
+          # STEP 12: START MONITORING (Optional)
+          # ============================================================================
+          log_info "📊 Step 12: Starting monitoring services..."
+          docker compose --profile monitoring --profile api-gateway up -d 2>/dev/null || true
 
-          echo "⏳ Waiting for services to be healthy..."
-          sleep 45
+          # ============================================================================
+          # STEP 13: HEALTH CHECKS
+          # ============================================================================
+          log_info "⏳ Step 13: Running health checks..."
+          sleep 30
 
-          echo "✅ Checking service health with retries..."
-          docker ps --format "table {{.Names}}\t{{.Status}}"
-
-          # Function to check service with retries
           check_service() {
             local name=$1
             local url=$2
@@ -175,7 +326,7 @@ jobs:
 
             while [ $attempt -le $max_attempts ]; do
               if curl -sf "$url" > /dev/null 2>&1; then
-                echo "✅ $name healthy"
+                log_info "✅ $name healthy"
                 return 0
               fi
               echo "⏳ $name not ready, attempt $attempt/$max_attempts..."
@@ -183,50 +334,35 @@ jobs:
               attempt=$((attempt + 1))
             done
 
-            echo "❌ $name unhealthy after $max_attempts attempts"
+            log_error "❌ $name unhealthy after $max_attempts attempts"
             return 1
           }
 
-          # Core services health check with retries
-          check_service "Rust API" "http://localhost:8080/api/health" || exit 1
-          check_service "Python AI" "http://localhost:8000/health" || exit 1
-          check_service "Frontend" "http://localhost:3000" || exit 1
+          # Core services health check
+          check_service "Rust API" "http://localhost:8080/api/health" || DEPLOY_SUCCESS=false
+          check_service "Python AI" "http://localhost:8000/health" || DEPLOY_SUCCESS=false
+          check_service "Frontend" "http://localhost:3000" || DEPLOY_SUCCESS=false
 
-          # Enterprise services health check
-          if docker ps | grep -q "celery-worker.*healthy"; then
-            echo "✅ Celery Worker healthy"
-          else
-            echo "⚠️ Celery Worker not healthy (non-critical)"
-          fi
-
-          if docker ps | grep -q "celery-beat.*healthy"; then
-            echo "✅ Celery Beat healthy"
-          else
-            echo "⚠️ Celery Beat not healthy (non-critical)"
-          fi
-
-          if docker ps | grep -q "rabbitmq.*healthy"; then
-            echo "✅ RabbitMQ healthy"
-          else
-            echo "⚠️ RabbitMQ not healthy (non-critical)"
-          fi
-
-          # Show all running services
+          # ============================================================================
+          # STEP 14: FINAL STATUS
+          # ============================================================================
           echo ""
-          echo "📋 All running services:"
-          docker compose ps --format "table {{.Names}}\t{{.Status}}" | grep -v "Created\|Exited"
-
-          # Cleanup dangling images only (not all unused)
-          echo "🧹 Final cleanup..."
-          docker image prune -f || true
+          log_info "📋 All running services:"
+          docker compose ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -v "Created\|Exited" || docker ps --format "table {{.Names}}\t{{.Status}}"
 
           echo ""
-          echo "📊 Final disk usage:"
+          log_info "📊 Final disk usage:"
           df -h /
 
           echo ""
-          echo "🎉 Deployment successful!"
-          echo "📊 Dashboard: http://$(curl -s ifconfig.me):3000"
+          if [ "$DEPLOY_SUCCESS" = true ]; then
+            log_info "🎉 Deployment successful!"
+            echo "📊 Dashboard: http://$(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_IP'):3000"
+            exit 0
+          else
+            log_error "❌ Deployment completed with errors - check logs above"
+            exit 1
+          fi
           DEPLOY_SCRIPT
 
           # Execute deploy script on VPS
