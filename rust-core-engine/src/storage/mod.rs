@@ -43,7 +43,14 @@ impl Storage {
 
                 info!("MongoDB connected successfully to: {}", config.url);
 
-                Ok(Self { db: Some(db) })
+                let storage = Self { db: Some(db) };
+
+                // Create indexes for better query performance
+                if let Err(e) = storage.ensure_indexes().await {
+                    warn!("Failed to create indexes (non-fatal): {}", e);
+                }
+
+                Ok(storage)
             } else {
                 info!(
                     "Database URL not recognized as MongoDB connection string: {}",
@@ -60,6 +67,60 @@ impl Storage {
                 _phantom: std::marker::PhantomData,
             })
         }
+    }
+
+    /// Create indexes for better query performance
+    /// @spec:FR-PERF-001 - Database Index Optimization
+    #[cfg(feature = "database")]
+    async fn ensure_indexes(&self) -> Result<()> {
+        use mongodb::IndexModel;
+        use mongodb::options::IndexOptions;
+
+        if let Some(db) = &self.db {
+            // Index for ai_signals collection (used by get_latest_signals_per_symbol)
+            // Compound index on (symbol, timestamp) for fast grouping and sorting
+            let ai_signals: Collection<Document> = db.collection("ai_signals");
+            let ai_signal_index = IndexModel::builder()
+                .keys(doc! { "symbol": 1, "timestamp": -1 })
+                .options(IndexOptions::builder().background(Some(true)).build())
+                .build();
+            if let Err(e) = ai_signals.create_index(ai_signal_index).await {
+                warn!("Failed to create ai_signals index: {}", e);
+            } else {
+                info!("✅ Created index on ai_signals (symbol, timestamp)");
+            }
+
+            // Index for paper_trades collection
+            let paper_trades: Collection<Document> = db.collection("paper_trades");
+            let trades_index = IndexModel::builder()
+                .keys(doc! { "signal_id": 1 })
+                .options(IndexOptions::builder().background(Some(true)).build())
+                .build();
+            if let Err(e) = paper_trades.create_index(trades_index).await {
+                warn!("Failed to create paper_trades index: {}", e);
+            } else {
+                info!("✅ Created index on paper_trades (signal_id)");
+            }
+
+            // Index for signals_history collection
+            let signals_history: Collection<Document> = db.collection("signals_history");
+            let history_index = IndexModel::builder()
+                .keys(doc! { "timestamp": -1 })
+                .options(IndexOptions::builder().background(Some(true)).build())
+                .build();
+            if let Err(e) = signals_history.create_index(history_index).await {
+                warn!("Failed to create signals_history index: {}", e);
+            } else {
+                info!("✅ Created index on signals_history (timestamp)");
+            }
+        }
+
+        Ok(())
+    }
+
+    #[cfg(not(feature = "database"))]
+    async fn ensure_indexes(&self) -> Result<()> {
+        Ok(())
     }
 
     pub async fn store_analysis(&self, analysis: &MultiTimeframeAnalysis) -> Result<()> {
