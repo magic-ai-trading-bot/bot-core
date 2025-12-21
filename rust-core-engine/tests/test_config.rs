@@ -958,9 +958,9 @@ mod monitoring_tests {
         // uptime_seconds is u64, always >= 0
         assert!(metrics.last_update > 0);
 
-        // Placeholder values
-        assert_eq!(metrics.memory_usage_mb, 50.0);
-        assert_eq!(metrics.cpu_usage_percent, 10.0);
+        // Real system metrics - validate they're in reasonable range (0-100%)
+        assert!(metrics.memory_usage_mb >= 0.0 && metrics.memory_usage_mb <= 100.0);
+        assert!(metrics.cpu_usage_percent >= 0.0 && metrics.cpu_usage_percent <= 100.0);
     }
 
     #[test]
