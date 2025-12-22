@@ -100,7 +100,7 @@ jobs:
           fi
 
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: rust-coverage-report
           path: rust-core-engine/coverage/
@@ -234,7 +234,7 @@ jobs:
           fi
 
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: python-coverage-report
           path: python-ai-service/htmlcov/
@@ -291,7 +291,7 @@ jobs:
           fi
 
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-coverage-report
           path: nextjs-ui-dashboard/coverage/
@@ -396,7 +396,7 @@ jobs:
           echo "View detailed reports in workflow artifacts." >> coverage-summary.md
 
       - name: Upload summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-summary
           path: coverage-summary.md
@@ -443,7 +443,7 @@ jobs:
       #     sarif_file: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-scan-results-test-coverage
           path: trivy-results.sarif
@@ -472,7 +472,7 @@ jobs:
           cargo bench --no-fail-fast || echo "Benchmarks not configured yet"
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: rust-benchmarks
           path: rust-core-engine/target/criterion/

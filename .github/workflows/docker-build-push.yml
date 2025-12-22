@@ -172,7 +172,7 @@ jobs:
           output-file: sbom-${{ matrix.service }}.spdx.json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: github.event_name != 'pull_request'
         with:
           name: sbom-${{ matrix.service }}
