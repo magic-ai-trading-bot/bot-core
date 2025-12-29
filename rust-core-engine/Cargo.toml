@@ -54,6 +54,6 @@ database = ["mongodb", "bson"]
 tokio-test = "0.4"
 actix-web = { version = "4.12", features = ["macros"] }
 futures-util = "0.3"
-tempfile = "3.8"
+tempfile = "3.24"
 anyhow = "1.0"
 criterion = { version = "0.8", features = ["html_reports"] } 
