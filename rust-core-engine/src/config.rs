@@ -234,12 +234,33 @@ impl Config {
             config.database.url = database_url;
         }
 
-        if let Ok(binance_api_key) = std::env::var("BINANCE_API_KEY") {
-            config.binance.api_key = binance_api_key;
-        }
+        // Check testnet flag first to determine which keys to use
+        let use_testnet = std::env::var("BINANCE_TESTNET")
+            .map(|v| v == "true")
+            .unwrap_or(config.binance.testnet);
 
-        if let Ok(binance_secret_key) = std::env::var("BINANCE_SECRET_KEY") {
-            config.binance.secret_key = binance_secret_key;
+        // Use testnet-specific keys if available and testnet mode is enabled
+        if use_testnet {
+            if let Ok(testnet_api_key) = std::env::var("BINANCE_TESTNET_API_KEY") {
+                config.binance.api_key = testnet_api_key;
+            } else if let Ok(api_key) = std::env::var("BINANCE_API_KEY") {
+                config.binance.api_key = api_key;
+            }
+
+            if let Ok(testnet_secret_key) = std::env::var("BINANCE_TESTNET_SECRET_KEY") {
+                config.binance.secret_key = testnet_secret_key;
+            } else if let Ok(secret_key) = std::env::var("BINANCE_SECRET_KEY") {
+                config.binance.secret_key = secret_key;
+            }
+        } else {
+            // Mainnet: use regular keys
+            if let Ok(api_key) = std::env::var("BINANCE_API_KEY") {
+                config.binance.api_key = api_key;
+            }
+
+            if let Ok(secret_key) = std::env::var("BINANCE_SECRET_KEY") {
+                config.binance.secret_key = secret_key;
+            }
         }
 
         if let Ok(testnet) = std::env::var("BINANCE_TESTNET") {
