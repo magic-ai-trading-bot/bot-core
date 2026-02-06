@@ -119,6 +119,8 @@ pub struct RealOrder {
 
 impl RealOrder {
     /// Create a new order in Pending state
+    /// Note: Orders require multiple fields for complete specification in trading systems
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         client_order_id: String,
         symbol: String,

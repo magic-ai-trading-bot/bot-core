@@ -821,7 +821,8 @@ def analyze_trade(
                 timeout=5,
             )
             market_data = response.json() if response.status_code == 200 else {}
-        except Exception:
+        except (requests.exceptions.RequestException, ValueError) as e:
+            logger.warning(f"Failed to fetch market data for {symbol}: {e}")
             market_data = {}
 
         # Build analysis prompt
@@ -1152,7 +1153,8 @@ def _build_gpt4_analysis_prompt() -> str:
             timeout=10,
         )
         market_data = response.json() if response.status_code == 200 else {}
-    except Exception:
+    except (requests.exceptions.RequestException, ValueError) as e:
+        logger.warning(f"Failed to fetch Binance market data: {e}")
         market_data = {}
 
     # Convert model accuracy history to dict format (serialize datetime objects)

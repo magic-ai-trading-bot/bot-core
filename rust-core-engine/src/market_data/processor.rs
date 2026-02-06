@@ -332,10 +332,13 @@ impl MarketDataProcessor {
         // This must be done BEFORE moving websocket into the spawned task
         let command_sender = websocket.get_command_sender();
         {
-            let mut guard = self
-                .ws_command_sender
-                .lock()
-                .expect("Command sender mutex poisoned");
+            let mut guard = match self.ws_command_sender.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => {
+                    error!("Command sender mutex poisoned, attempting recovery");
+                    poisoned.into_inner()
+                }
+            };
             *guard = Some(command_sender);
         }
         info!("📡 WebSocket command sender stored for dynamic subscription");
@@ -715,10 +718,13 @@ impl MarketDataProcessor {
     /// Subscribe to a new symbol on the live WebSocket connection
     /// This enables real-time price updates without requiring service restart
     pub fn subscribe_symbol(&self, symbol: &str, timeframes: &[String]) -> Result<()> {
-        let guard = self
-            .ws_command_sender
-            .lock()
-            .expect("Command sender mutex poisoned");
+        let guard = match self.ws_command_sender.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                error!("Command sender mutex poisoned during subscribe, attempting recovery");
+                poisoned.into_inner()
+            }
+        };
         if let Some(ref sender) = *guard {
             let cmd = WebSocketCommand::Subscribe {
                 symbol: symbol.to_string(),
@@ -746,10 +752,13 @@ impl MarketDataProcessor {
 
     /// Unsubscribe from a symbol on the live WebSocket connection
     pub fn unsubscribe_symbol(&self, symbol: &str, timeframes: &[String]) -> Result<()> {
-        let guard = self
-            .ws_command_sender
-            .lock()
-            .expect("Command sender mutex poisoned");
+        let guard = match self.ws_command_sender.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                error!("Command sender mutex poisoned during unsubscribe, attempting recovery");
+                poisoned.into_inner()
+            }
+        };
         if let Some(ref sender) = *guard {
             let cmd = WebSocketCommand::Unsubscribe {
                 symbol: symbol.to_string(),

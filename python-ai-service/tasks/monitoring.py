@@ -145,8 +145,9 @@ def system_health_check(self) -> Dict[str, Any]:
                         }
                         logger.info(f"  ✅ {service_name}: OK (recovered)")
                         continue
-                except:
-                    pass
+                except (requests.exceptions.RequestException, OSError) as retry_err:
+                    logger.warning(f"Retry failed for {service_name}: {retry_err}")
+                    pass  # Fall through to mark service as down
 
             health_report["services"][service_name] = {
                 "status": "down",

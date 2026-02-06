@@ -381,12 +381,21 @@ impl PaperTradingEngine {
         for symbol in &symbols {
             match self.binance_client.get_symbol_price(symbol).await {
                 Ok(price_info) => {
-                    let price: f64 = price_info.price.parse().unwrap_or(0.0);
-                    debug!(
-                        "📊 Price update: {} = ${:.2} (source: Binance API)",
-                        symbol, price
-                    );
-                    new_prices.insert(symbol.clone(), price);
+                    match price_info.price.parse::<f64>() {
+                        Ok(price) if price > 0.0 => {
+                            debug!(
+                                "📊 Price update: {} = ${:.2} (source: Binance API)",
+                                symbol, price
+                            );
+                            new_prices.insert(symbol.clone(), price);
+                        }
+                        Ok(price) => {
+                            warn!("⚠️ Invalid price {} for {}, skipping update", price, symbol);
+                        }
+                        Err(e) => {
+                            warn!("⚠️ Failed to parse price '{}' for {}: {}", price_info.price, symbol, e);
+                        }
+                    }
                 },
                 Err(e) => {
                     warn!("⚠️ Failed to get price for {}: {}", symbol, e);
@@ -2558,28 +2567,25 @@ impl PaperTradingEngine {
     /// @spec:FR-PAPER-003 - Manual Order Placement
     /// @doc:docs/features/paper-trading.md#manual-orders
     ///
+    /// Execute a manual order with the given parameters
+    ///
     /// # Arguments
-    /// * `symbol` - Trading pair (e.g., "BTCUSDT")
-    /// * `side` - "buy" for Long, "sell" for Short
-    /// * `order_type` - "market" or "limit"
-    /// * `quantity` - Position size in base asset
-    /// * `price` - Optional limit price (required for limit and stop-limit orders)
-    /// * `stop_price` - Optional stop price (required for stop-limit orders)
-    /// * `leverage` - Optional leverage (defaults to settings)
-    /// * `stop_loss_pct` - Optional stop loss percentage
-    /// * `take_profit_pct` - Optional take profit percentage
+    /// * `params` - Order parameters including symbol, side, type, quantity, prices, etc.
     pub async fn execute_manual_order(
         &self,
-        symbol: String,
-        side: String,
-        order_type: String,
-        quantity: f64,
-        price: Option<f64>,
-        stop_price: Option<f64>,
-        leverage: Option<u8>,
-        stop_loss_pct: Option<f64>,
-        take_profit_pct: Option<f64>,
+        params: super::ManualOrderParams,
     ) -> Result<TradeExecutionResult> {
+        // Extract parameters from struct
+        let symbol = params.symbol;
+        let side = params.side;
+        let order_type = params.order_type;
+        let quantity = params.quantity;
+        let price = params.price;
+        let stop_price = params.stop_price;
+        let leverage = params.leverage;
+        let stop_loss_pct = params.stop_loss_pct;
+        let take_profit_pct = params.take_profit_pct;
+
         info!(
             "📝 Processing manual order: {} {} {} qty={} price={:?} stop_price={:?}",
             side, order_type, symbol, quantity, price, stop_price
@@ -3261,17 +3267,17 @@ impl PaperTradingEngine {
 
         // Execute as a limit order at the limit price
         let result = self
-            .execute_manual_order(
-                order.symbol.clone(),
-                order.side.clone(),
-                "limit".to_string(),
-                order.quantity,
-                Some(order.limit_price),
-                None, // No stop price for limit execution
-                Some(order.leverage),
-                order.stop_loss_pct,
-                order.take_profit_pct,
-            )
+            .execute_manual_order(super::ManualOrderParams {
+                symbol: order.symbol.clone(),
+                side: order.side.clone(),
+                order_type: "limit".to_string(),
+                quantity: order.quantity,
+                price: Some(order.limit_price),
+                stop_price: None, // No stop price for limit execution
+                leverage: Some(order.leverage),
+                stop_loss_pct: order.stop_loss_pct,
+                take_profit_pct: order.take_profit_pct,
+            })
             .await?;
 
         // Broadcast execution event

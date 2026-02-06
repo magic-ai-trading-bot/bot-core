@@ -10,6 +10,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import logger from "@/utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -746,7 +747,7 @@ const AISignals = () => {
         return Array.from(latestPerSymbol.values());
       });
     } catch (error) {
-      console.error("Failed to fetch signals history:", error);
+      logger.error("Failed to fetch signals history:", error);
     } finally {
       setIsLoadingHistory(false);
       // Note: setIsLoadingCached is handled by fetchCachedSignals (faster endpoint)
@@ -799,7 +800,7 @@ const AISignals = () => {
 
       setCachedSignals(transformedSignals);
     } catch (error) {
-      console.error("Failed to fetch cached signals:", error);
+      logger.error("Failed to fetch cached signals:", error);
     } finally {
       setIsLoadingCached(false);
     }
@@ -994,13 +995,13 @@ const AISignals = () => {
       // Log results for debugging
       const successful = results.filter(r => r.status === "fulfilled").length;
       const failed = results.filter(r => r.status === "rejected").length;
-      console.log(`AI Signal refresh: ${successful} successful, ${failed} failed`);
+      logger.info(`AI Signal refresh: ${successful} successful, ${failed} failed`);
 
       // After generating new signals, fetch updated cached signals from database
       await fetchCachedSignals();
       await fetchSignalsHistory();
     } catch (error) {
-      console.error("Failed to request new AI signals:", error);
+      logger.error("Failed to request new AI signals:", error);
       // Still try to fetch cached signals even if request fails
       await fetchCachedSignals();
       await fetchSignalsHistory();

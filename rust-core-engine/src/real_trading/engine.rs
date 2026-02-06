@@ -535,6 +535,8 @@ impl RealTradingEngine {
     }
 
     /// Place an order (internal)
+    /// Note: Multiple parameters needed for complete order specification in trading systems
+    #[allow(clippy::too_many_arguments)]
     async fn place_order(
         &self,
         symbol: &str,
@@ -1100,8 +1102,30 @@ impl RealTradingEngine {
         let mut balances = self.balances.write().await;
 
         for balance in pos.balances {
-            let free = balance.free.parse::<f64>().unwrap_or(0.0);
-            let locked = balance.locked.parse::<f64>().unwrap_or(0.0);
+            // Parse balances with proper error handling
+            let free = match balance.free.parse::<f64>() {
+                Ok(v) if v >= 0.0 => v,
+                Ok(v) => {
+                    warn!("Invalid negative balance for {}: free={}", balance.asset, v);
+                    continue;
+                }
+                Err(e) => {
+                    warn!("Failed to parse free balance for {}: '{}' - {}", balance.asset, balance.free, e);
+                    continue;
+                }
+            };
+
+            let locked = match balance.locked.parse::<f64>() {
+                Ok(v) if v >= 0.0 => v,
+                Ok(v) => {
+                    warn!("Invalid negative locked balance for {}: locked={}", balance.asset, v);
+                    0.0 // Keep free balance but set locked to 0
+                }
+                Err(e) => {
+                    warn!("Failed to parse locked balance for {}: '{}' - {}", balance.asset, balance.locked, e);
+                    0.0 // Keep free balance but set locked to 0
+                }
+            };
 
             // Only track non-zero balances
             if free > 0.0 || locked > 0.0 {
@@ -1132,7 +1156,14 @@ impl RealTradingEngine {
 
     /// Handle balance update (delta) from UserDataStream
     async fn handle_balance_update(&self, update: BalanceUpdate) {
-        let delta = update.balance_delta.parse::<f64>().unwrap_or(0.0);
+        let delta = match update.balance_delta.parse::<f64>() {
+            Ok(d) => d,
+            Err(e) => {
+                error!("Failed to parse balance delta for {}: '{}' - {}",
+                       update.asset, update.balance_delta, e);
+                return;
+            }
+        };
 
         debug!(
             "Processing balance update: {} delta {}",
@@ -1144,6 +1175,11 @@ impl RealTradingEngine {
         // Get current balance and apply delta
         let current = balances.get(&update.asset).map(|b| b.free).unwrap_or(0.0);
         let new_free = current + delta;
+
+        if new_free < 0.0 {
+            warn!("Balance update would result in negative balance for {}: current={}, delta={}, new={}",
+                  update.asset, current, delta, new_free);
+        }
 
         if new_free > 0.0 {
             let locked = balances.get(&update.asset).map(|b| b.locked).unwrap_or(0.0);

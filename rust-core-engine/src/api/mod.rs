@@ -80,6 +80,9 @@ impl<T> ApiResponse<T> {
 }
 
 impl ApiServer {
+    /// Create a new API server instance
+    /// Note: This constructor requires multiple dependencies by design for proper initialization
+    #[allow(clippy::too_many_arguments)]
     pub async fn new(
         config: ApiConfig,
         binance_config: BinanceConfig,

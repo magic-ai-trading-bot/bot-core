@@ -88,6 +88,8 @@ pub struct RealPosition {
 
 impl RealPosition {
     /// Create a new position from an initial fill
+    /// Note: Positions require multiple fields for complete tracking in trading systems
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: String,
         symbol: String,

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import logger from "@/utils/logger";
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -75,7 +76,7 @@ export function NotificationSettings() {
           setSettings(JSON.parse(saved));
         }
       } catch (error) {
-        console.error('Failed to load notification settings:', error);
+        logger.error('Failed to load notification settings:', error);
       }
     };
     loadSettings();
@@ -90,7 +91,7 @@ export function NotificationSettings() {
         await new Promise((resolve) => setTimeout(resolve, 500));
         setLastSaved(new Date());
       } catch (error) {
-        console.error('Failed to save notification settings:', error);
+        logger.error('Failed to save notification settings:', error);
       } finally {
         setIsSaving(false);
       }

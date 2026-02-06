@@ -13,8 +13,8 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_inter_service_token}
-      - PYTHON_API_KEY=${PYTHON_API_KEY:-default_python_api_key}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:?INTER_SERVICE_TOKEN env var required}
+      - PYTHON_API_KEY=${PYTHON_API_KEY:?PYTHON_API_KEY env var required}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - RUST_API_URL=http://rust-core-engine:8080
@@ -112,12 +112,12 @@ services:
       - RUST_LOG=${RUST_LOG:-info}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
-      - BINANCE_API_KEY=${BINANCE_API_KEY:-default_binance_api_key}
-      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-default_binance_secret}
+      - BINANCE_API_KEY=${BINANCE_API_KEY:?BINANCE_API_KEY env var required}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:?BINANCE_SECRET_KEY env var required}
       - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
       - TRADING_ENABLED=${TRADING_ENABLED:-false}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_inter_service_token}
-      - RUST_API_KEY=${RUST_API_KEY:-default_rust_api_key}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:?INTER_SERVICE_TOKEN env var required}
+      - RUST_API_KEY=${RUST_API_KEY:?RUST_API_KEY env var required}
     volumes:
       - ./rust-core-engine/data:/app/data
       - ./rust-core-engine/logs:/app/logs
@@ -160,15 +160,15 @@ services:
       - RUST_BACKTRACE=1
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
-      - BINANCE_API_KEY=${BINANCE_API_KEY:-default_binance_api_key}
-      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-default_binance_secret}
+      - BINANCE_API_KEY=${BINANCE_API_KEY:?BINANCE_API_KEY env var required}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:?BINANCE_SECRET_KEY env var required}
       # CRITICAL: Use production API (false) for paper trading to get REAL prices
       # Paper trading is safe with production API - it only reads prices, never trades
       # TESTNET is unreliable and causes stop-loss to fail
       - BINANCE_TESTNET=${BINANCE_TESTNET:-false}
       - TRADING_ENABLED=${TRADING_ENABLED:-false}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-default_inter_service_token}
-      - RUST_API_KEY=${RUST_API_KEY:-default_rust_api_key}
+      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:?INTER_SERVICE_TOKEN env var required}
+      - RUST_API_KEY=${RUST_API_KEY:?RUST_API_KEY env var required}
     volumes:
       - ./rust-core-engine/src:/app/src
       - ./rust-core-engine/Cargo.toml:/app/Cargo.toml
@@ -215,7 +215,7 @@ services:
       - VITE_API_TIMEOUT=10000
       - VITE_REFRESH_INTERVAL=5000
       - VITE_ENABLE_REALTIME=true
-      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:-default_dashboard_session_secret}
+      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:?DASHBOARD_SESSION_SECRET env var required}
       - NODE_OPTIONS="--max-old-space-size=${NODE_MEMORY:-1024}"
     # No volumes needed for production static serving
     networks:

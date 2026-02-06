@@ -2089,6 +2089,285 @@ db.ai_analysis_results.createIndex({ "symbol": 1, "timestamp": 1 })
 
 ---
 
+## Additional Endpoints
+
+### POST /predict-trend
+
+**Description:** Legacy ML-based trend prediction (may be deprecated in favor of `/ai/analyze`)
+
+**Authentication:** Optional (Bearer JWT)
+
+**Request Body:**
+```json
+{
+  "symbol": "BTCUSDT",
+  "timeframe": "1h",
+  "candles": 100
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "symbol": "BTCUSDT",
+  "trend": "BULLISH",
+  "confidence": 0.75,
+  "prediction_horizon": "24h"
+}
+```
+
+**Code Location:** `python-ai-service/main.py:2862`
+**Status:** Legacy endpoint, consider using `/ai/analyze` instead
+
+---
+
+### GET /ai/cost/statistics
+
+**Description:** Get OpenAI API cost statistics and usage tracking
+
+**Authentication:** None (Should be admin-only in production)
+
+**Success Response (200 OK):**
+```json
+{
+  "total_requests": 1250,
+  "total_tokens": 450000,
+  "estimated_cost_usd": 12.50,
+  "requests_by_model": {
+    "gpt-4o-mini": 1250
+  },
+  "requests_today": 48,
+  "cost_today_usd": 0.48,
+  "average_cost_per_request": 0.01
+}
+```
+
+**Code Location:** `python-ai-service/main.py:3205`
+**Related FR:** FR-AI-COST-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### POST /ai/config-analysis/trigger
+
+**Description:** Trigger AI-powered configuration optimization analysis
+
+**Authentication:** None (Should be admin-only in production)
+
+**Request Body:**
+```json
+{
+  "analyze_strategies": true,
+  "analyze_risk_settings": true,
+  "days_historical": 30
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "analysis_id": "config_analysis_20260206_140000",
+  "status": "COMPLETED",
+  "suggestions_generated": 12,
+  "timestamp": "2026-02-06T14:00:00Z"
+}
+```
+
+**Code Location:** `python-ai-service/main.py:3341`
+**Related FR:** FR-AI-CONFIG-001
+**Rate Limit:** 5 requests per hour
+
+---
+
+### GET /ai/config-suggestions
+
+**Description:** Get AI-generated configuration optimization suggestions
+
+**Authentication:** None (Should be admin-only in production)
+
+**Query Parameters:**
+- `days` (optional): Historical data analysis period (default: 30)
+- `limit` (optional): Maximum suggestions (default: 20)
+
+**Success Response (200 OK):**
+```json
+{
+  "suggestions": [
+    {
+      "category": "risk_management",
+      "current_value": 0.05,
+      "suggested_value": 0.03,
+      "reasoning": "Daily loss limit too high based on historical volatility",
+      "impact": "HIGH",
+      "confidence": 0.85
+    },
+    {
+      "category": "strategy_weight",
+      "strategy": "RSI Strategy",
+      "current_weight": 0.25,
+      "suggested_weight": 0.35,
+      "reasoning": "RSI shows 68% win rate, should increase allocation",
+      "impact": "MEDIUM",
+      "confidence": 0.78
+    }
+  ],
+  "total_suggestions": 12,
+  "analysis_date": "2026-02-06T14:00:00Z"
+}
+```
+
+**Code Location:** `python-ai-service/main.py:3385`
+**Related FR:** FR-AI-CONFIG-002
+**Rate Limit:** 60 requests per minute
+
+---
+
+### GET /ai/gpt4-analysis-history
+
+**Description:** View historical GPT-4 analysis results with pagination
+
+**Authentication:** None
+
+**Query Parameters:**
+- `days` (optional): Historical period in days (default: 30)
+- `limit` (optional): Maximum results (default: 20)
+
+**Success Response (200 OK):**
+```json
+{
+  "total": 450,
+  "limit": 20,
+  "analyses": [
+    {
+      "symbol": "BTCUSDT",
+      "signal": "Long",
+      "confidence": 0.82,
+      "reasoning": "Strong bullish momentum...",
+      "timestamp": "2026-02-06T14:00:00Z"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "signal": "Neutral",
+      "confidence": 0.65,
+      "reasoning": "Mixed signals, consolidating...",
+      "timestamp": "2026-02-06T13:55:00Z"
+    }
+  ]
+}
+```
+
+**Code Location:** `python-ai-service/main.py:3426`
+**Related FR:** FR-AI-HISTORY-001
+**Rate Limit:** 60 requests per minute
+
+---
+
+### POST /api/chat/project
+
+**Description:** Chat with AI about project codebase and documentation
+
+**Authentication:** None (Should be admin-only in production)
+
+**Request Body:**
+```json
+{
+  "message": "How does the paper trading risk management work?",
+  "conversation_id": "conv_123456"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "response": "The paper trading system includes three main risk management features: 1) Daily loss limit (5% max)...",
+  "conversation_id": "conv_123456",
+  "sources": [
+    "docs/features/paper-trading.md",
+    "rust-core-engine/src/paper_trading/engine.rs"
+  ],
+  "timestamp": "2026-02-06T14:00:00Z"
+}
+```
+
+**Code Location:** `python-ai-service/main.py:3473`
+**Related FR:** FR-CHAT-001
+**Rate Limit:** 20 requests per minute
+
+---
+
+### GET /api/chat/project/suggestions
+
+**Description:** Get suggested questions for project chatbot
+
+**Authentication:** None
+
+**Success Response (200 OK):**
+```json
+{
+  "suggestions": [
+    "How does trailing stop loss work?",
+    "What are the available trading strategies?",
+    "How do I enable paper trading?",
+    "What are the risk management features?"
+  ]
+}
+```
+
+**Code Location:** `python-ai-service/main.py:3527`
+**Related FR:** FR-CHAT-002
+**Rate Limit:** 60 requests per minute
+
+---
+
+### POST /api/chat/project/clear
+
+**Description:** Clear project chat history
+
+**Authentication:** None (Should be admin-only in production)
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Chat history cleared successfully",
+  "conversations_deleted": 15,
+  "timestamp": "2026-02-06T14:00:00Z"
+}
+```
+
+**Code Location:** `python-ai-service/main.py:3541`
+**Related FR:** FR-CHAT-003
+**Rate Limit:** 5 requests per minute
+
+---
+
+## Error Format Standardization
+
+### Current State
+
+**Rust Core Engine:**
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "data": null
+}
+```
+
+**Python AI Service:**
+```json
+{
+  "detail": "Error message"
+}
+```
+
+### Recommendation
+
+Python service should implement custom exception handler to match Rust format for consistency. Frontend must currently handle both formats.
+
+**Code Location for Fix:** `python-ai-service/error_handlers.py` (to be created)
+
+---
+
 ## Related Documentation
 
 - [API-RUST-CORE.md](./API-RUST-CORE.md) - Rust Core Engine API
@@ -2098,7 +2377,30 @@ db.ai_analysis_results.createIndex({ "symbol": 1, "timestamp": 1 })
 
 ---
 
-**Document Version:** 3.0.0
-**Last Updated:** 2025-11-22
+## Changelog
+
+### Version 3.1.0 (2026-02-06)
+- Added 8 previously undocumented endpoints:
+  - `/predict-trend` - Legacy trend prediction
+  - `/ai/cost/statistics` - OpenAI cost tracking
+  - `/ai/config-analysis/trigger` - Config optimization trigger
+  - `/ai/config-suggestions` - AI config recommendations
+  - `/ai/gpt4-analysis-history` - Historical analysis viewer
+  - `/api/chat/project` - Project chatbot interface
+  - `/api/chat/project/suggestions` - Chat suggestions
+  - `/api/chat/project/clear` - Clear chat history
+- Added error format standardization section
+- Updated version to 3.1.0
+
+### Version 3.0.0 (2025-11-22)
+- Added async task management endpoints
+- Added training management endpoints
+- Added backtest management endpoints
+- Added monitoring & alerts endpoints
+
+---
+
+**Document Version:** 3.1.0
+**Last Updated:** 2026-02-06
 **Author:** Claude Code
 **Status:** Complete

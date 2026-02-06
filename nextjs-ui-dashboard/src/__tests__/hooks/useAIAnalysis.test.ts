@@ -6,15 +6,6 @@ import { useAIAnalysis } from '../../hooks/useAIAnalysis'
 vi.mock('@/services/api', () => {
   const createMockFn = () => vi.fn()
 
-  const mockCandles = [{
-    timestamp: 1700000000000,
-    open: 50000,
-    high: 51000,
-    low: 49500,
-    close: 50500,
-    volume: 1000
-  }]
-
   const mockApiClient = {
     analyzeAI: createMockFn(),
     getStrategyRecommendations: createMockFn(),
@@ -77,21 +68,24 @@ describe('useAIAnalysis', () => {
     vi.clearAllMocks()
 
     // Mock chart data for all timeframes (required by useAIAnalysis)
-    const mockCandles = [
-      {
-        timestamp: Date.now() - 3600000,
-        open: 50000,
-        high: 51000,
-        low: 49500,
-        close: 50500,
-        volume: 1000
-      }
-    ]
+    // The hook calls getChartData 4 times: 15m, 30m, 1h, 4h
+    // Each must return candles array for the hook validation to pass
+    const createMockCandles = (count: number = 10) => {
+      const now = Date.now()
+      return Array.from({ length: count }, (_, i) => ({
+        timestamp: now - (count - i) * 3600000,
+        open: 50000 + Math.random() * 100,
+        high: 51000 + Math.random() * 100,
+        low: 49500 + Math.random() * 100,
+        close: 50500 + Math.random() * 100,
+        volume: 1000 + Math.random() * 500
+      }))
+    }
 
     mockGetChartData.mockResolvedValue({
       symbol: 'BTCUSDT',
       timeframe: '1h',
-      candles: mockCandles,
+      candles: createMockCandles(10),
       latest_price: 50500,
       volume_24h: 75000,
       price_change_24h: 500,

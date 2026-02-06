@@ -13,6 +13,7 @@ import { Canvas } from '@react-three/fiber';
 import { Float, Environment, Stars, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
+import logger from '@/utils/logger';
 
 // Crypto coin component
 function CryptoCoin({ position, color }: { position: [number, number, number]; color: string }) {
@@ -145,7 +146,7 @@ export function Hero3DScene() {
 
   // Error boundary for WebGL issues
   const handleError = () => {
-    console.warn('WebGL not supported, falling back to gradient animation');
+    logger.warn('WebGL not supported, falling back to gradient animation');
     setHasError(true);
     setUseFallback(true);
   };

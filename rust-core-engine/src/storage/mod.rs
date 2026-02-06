@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use futures::stream::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 #[cfg(feature = "database")]
 use bson::{doc, Bson, Document};
@@ -350,21 +350,71 @@ impl Storage {
                 let collection: Collection<Document> = db.collection("market_data");
 
                 let mut docs = Vec::new();
+                let mut parse_errors = 0;
+
                 for kline in klines {
+                    // Parse prices with proper error handling - skip invalid data
+                    let open_price = match kline.open.parse::<f64>() {
+                        Ok(p) if p > 0.0 => p,
+                        Ok(p) => {
+                            warn!("Invalid open price {} for {} at {}, skipping kline", p, symbol, kline.open_time);
+                            parse_errors += 1;
+                            continue;
+                        }
+                        Err(e) => {
+                            warn!("Failed to parse open price '{}' for {} at {}: {}, skipping kline",
+                                  kline.open, symbol, kline.open_time, e);
+                            parse_errors += 1;
+                            continue;
+                        }
+                    };
+
+                    let high_price = match kline.high.parse::<f64>() {
+                        Ok(p) if p > 0.0 => p,
+                        _ => {
+                            parse_errors += 1;
+                            continue;
+                        }
+                    };
+
+                    let low_price = match kline.low.parse::<f64>() {
+                        Ok(p) if p > 0.0 => p,
+                        _ => {
+                            parse_errors += 1;
+                            continue;
+                        }
+                    };
+
+                    let close_price = match kline.close.parse::<f64>() {
+                        Ok(p) if p > 0.0 => p,
+                        _ => {
+                            parse_errors += 1;
+                            continue;
+                        }
+                    };
+
+                    let volume = kline.volume.parse::<f64>().unwrap_or(0.0);
+                    let quote_volume = kline.quote_asset_volume.parse::<f64>().unwrap_or(0.0);
+
                     let doc = doc! {
                         "symbol": symbol,
                         "timeframe": timeframe,
                         "open_time": kline.open_time,
                         "close_time": kline.close_time,
-                        "open_price": kline.open.parse::<f64>().unwrap_or(0.0),
-                        "high_price": kline.high.parse::<f64>().unwrap_or(0.0),
-                        "low_price": kline.low.parse::<f64>().unwrap_or(0.0),
-                        "close_price": kline.close.parse::<f64>().unwrap_or(0.0),
-                        "volume": kline.volume.parse::<f64>().unwrap_or(0.0),
-                        "quote_volume": kline.quote_asset_volume.parse::<f64>().unwrap_or(0.0),
+                        "open_price": open_price,
+                        "high_price": high_price,
+                        "low_price": low_price,
+                        "close_price": close_price,
+                        "volume": volume,
+                        "quote_volume": quote_volume,
                         "trades_count": kline.number_of_trades
                     };
                     docs.push(doc);
+                }
+
+                if parse_errors > 0 {
+                    error!("Skipped {} invalid klines for {} {} due to parse errors",
+                           parse_errors, symbol, timeframe);
                 }
 
                 if !docs.is_empty() {
@@ -407,27 +457,51 @@ impl Storage {
                     .await?;
 
                 let mut klines = Vec::new();
+                let mut retrieval_errors = 0;
                 while let Some(result) = cursor.next().await {
-                    if let Ok(doc) = result {
-                        let kline = Kline {
-                            open_time: doc.get_i64("open_time").unwrap_or(0),
-                            close_time: doc.get_i64("close_time").unwrap_or(0),
-                            open: doc.get_f64("open_price").unwrap_or(0.0).to_string(),
-                            high: doc.get_f64("high_price").unwrap_or(0.0).to_string(),
-                            low: doc.get_f64("low_price").unwrap_or(0.0).to_string(),
-                            close: doc.get_f64("close_price").unwrap_or(0.0).to_string(),
-                            volume: doc.get_f64("volume").unwrap_or(0.0).to_string(),
-                            quote_asset_volume: doc
-                                .get_f64("quote_volume")
-                                .unwrap_or(0.0)
-                                .to_string(),
-                            number_of_trades: doc.get_i64("trades_count").unwrap_or(0),
-                            taker_buy_base_asset_volume: "0".to_string(),
-                            taker_buy_quote_asset_volume: "0".to_string(),
-                            ignore: "0".to_string(),
-                        };
-                        klines.push(kline);
+                    match result {
+                        Ok(doc) => {
+                            // Validate required fields exist before constructing Kline
+                            match (
+                                doc.get_i64("open_time"),
+                                doc.get_i64("close_time"),
+                                doc.get_f64("open_price"),
+                                doc.get_f64("high_price"),
+                                doc.get_f64("low_price"),
+                                doc.get_f64("close_price"),
+                            ) {
+                                (Ok(open_time), Ok(close_time), Ok(open), Ok(high), Ok(low), Ok(close)) => {
+                                    let kline = Kline {
+                                        open_time,
+                                        close_time,
+                                        open: open.to_string(),
+                                        high: high.to_string(),
+                                        low: low.to_string(),
+                                        close: close.to_string(),
+                                        volume: doc.get_f64("volume").unwrap_or(0.0).to_string(),
+                                        quote_asset_volume: doc.get_f64("quote_volume").unwrap_or(0.0).to_string(),
+                                        number_of_trades: doc.get_i64("trades_count").unwrap_or(0),
+                                        taker_buy_base_asset_volume: "0".to_string(),
+                                        taker_buy_quote_asset_volume: "0".to_string(),
+                                        ignore: "0".to_string(),
+                                    };
+                                    klines.push(kline);
+                                }
+                                _ => {
+                                    retrieval_errors += 1;
+                                    warn!("Skipping invalid market data document for {} {}: missing required fields", symbol, timeframe);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            retrieval_errors += 1;
+                            warn!("Failed to retrieve document from cursor for {} {}: {}", symbol, timeframe, e);
+                        }
                     }
+                }
+
+                if retrieval_errors > 0 {
+                    warn!("Encountered {} errors while retrieving market data for {} {}", retrieval_errors, symbol, timeframe);
                 }
 
                 // Reverse to get chronological order

@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import logger from "@/utils/logger";
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -95,7 +96,7 @@ export function TradingSettings() {
           setLoadError('Using cached settings (API unavailable)');
         }
       } catch (error) {
-        console.error('Failed to load trading settings:', error);
+        logger.error('Failed to load trading settings:', error);
         // Fall back to localStorage
         const saved = localStorage.getItem('tradingSettings');
         if (saved) {
@@ -144,7 +145,7 @@ export function TradingSettings() {
           confirmBeforeTrade: newSettings.confirmBeforeTrade,
         }));
       } catch (error) {
-        console.error('Failed to save trading settings:', error);
+        logger.error('Failed to save trading settings:', error);
         // Fallback to localStorage
         localStorage.setItem('tradingSettings', JSON.stringify(newSettings));
         setLastSaved(new Date());

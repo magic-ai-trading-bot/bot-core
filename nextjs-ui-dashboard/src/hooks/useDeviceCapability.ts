@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import logger from "@/utils/logger";
 
 interface DeviceCapability {
   supports3D: boolean;
@@ -57,7 +58,7 @@ export function useDeviceCapability(): DeviceCapability {
           }
         }
       } catch (e) {
-        console.warn('WebGL detection failed:', e);
+        logger.warn('WebGL detection failed:', e);
       }
 
       const supports3D = webglVersion !== null;
@@ -101,7 +102,7 @@ export function useDeviceCapability(): DeviceCapability {
             }
           }
         } catch (e) {
-          console.warn('GPU detection failed:', e);
+          logger.warn('GPU detection failed:', e);
         }
 
         // Additional heuristics

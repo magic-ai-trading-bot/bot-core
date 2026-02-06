@@ -10,6 +10,7 @@ pub use engine::PaperTradingEngine;
 pub use portfolio::PaperPortfolio;
 pub use settings::PaperTradingSettings;
 pub use trade::{CloseReason, PaperTrade, TradeType};
+// ManualOrderParams is exported directly from this module (defined below)
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -67,6 +68,30 @@ pub struct TradeExecutionResult {
     pub error_message: Option<String>,
     pub execution_price: Option<f64>,
     pub fees_paid: Option<f64>,
+}
+
+/// Parameters for manual order execution
+/// Groups multiple order parameters to reduce function argument count
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ManualOrderParams {
+    /// Trading symbol (e.g., "BTCUSDT")
+    pub symbol: String,
+    /// Order side: "buy" or "sell"
+    pub side: String,
+    /// Order type: "market", "limit", or "stop-limit"
+    pub order_type: String,
+    /// Quantity to trade
+    pub quantity: f64,
+    /// Limit price (required for limit and stop-limit orders)
+    pub price: Option<f64>,
+    /// Stop price (required for stop-limit orders)
+    pub stop_price: Option<f64>,
+    /// Leverage (optional, defaults to settings)
+    pub leverage: Option<u8>,
+    /// Stop loss percentage (optional)
+    pub stop_loss_pct: Option<f64>,
+    /// Take profit percentage (optional)
+    pub take_profit_pct: Option<f64>,
 }
 
 /// Order type for manual orders

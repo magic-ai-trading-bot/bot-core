@@ -2,9 +2,11 @@
 # Copy this file to config.toml and customize for your needs
 
 [binance]
-# Binance Testnet API credentials for safe testing
-api_key = "iiZAQULhnkkfDiueUWavpVXzePSi1WjKlJwiB3k72EZTif2k4BcWuCC8FNqo1R1F"
-secret_key = "oJNiTwYTh3oc2iPz5oXg2Phqoa7MhhV2IO9llyezVkh3pHtCYiC2v4Uym1kcAriK"
+# Binance API credentials - MUST be set via environment variables
+# SECURITY: Never commit real API keys to git!
+# Set BINANCE_API_KEY and BINANCE_SECRET_KEY in .env or docker-compose
+api_key = "${BINANCE_API_KEY}"
+secret_key = "${BINANCE_SECRET_KEY}"
 
 # Use testnet for safe testing (no real money involved)
 testnet = true
@@ -81,9 +83,9 @@ margin_type = "CROSSED"        # CROSSED or ISOLATED
 
 [database]
 # MongoDB database for storing trade history and analysis results
-# Enable MongoDB for user authentication and data storage
-# NOTE: URL is overridden by DATABASE_URL env var in docker-compose
-url = "mongodb://botuser:defaultpassword@mongodb:27017/bot_core?authSource=admin"
+# SECURITY: Set DATABASE_URL env var with credentials, never hardcode passwords
+# This default only works in development with docker-compose
+url = "${DATABASE_URL:-mongodb://localhost:27017/bot_core}"
 database_name = "bot_core"
 max_connections = 10
 enable_logging = false
@@ -94,7 +96,9 @@ host = "0.0.0.0"
 port = 8080
 
 # CORS settings for web dashboard
-cors_origins = ["*"]
+# SECURITY: Never use "*" in production - specify exact origins
+# Set CORS_ALLOWED_ORIGINS env var for production domains
+cors_origins = ["http://localhost:3000", "http://localhost:5173"]
 
 # Enable metrics collection
 enable_metrics = true

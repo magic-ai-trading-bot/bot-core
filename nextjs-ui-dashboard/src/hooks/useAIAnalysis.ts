@@ -68,6 +68,8 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   const isMountedRef = useRef(true);
   // Use ref to track availableSymbols to avoid infinite loop in startAutoRefresh
   const availableSymbolsRef = useRef<string[]>(FALLBACK_SYMBOLS);
+  // AbortController ref to cancel pending requests on unmount
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const setLoading = useCallback((loading: boolean) => {
     if (isMountedRef.current) {
@@ -89,16 +91,16 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   // This is CRITICAL for accurate AI analysis - fake data leads to wrong trading decisions!
   // Now includes 15m AND 30m timeframes for comprehensive short-term trend detection
   const fetchRealCandles = useCallback(
-    async (symbol: string): Promise<Record<string, CandleDataAI[]>> => {
+    async (symbol: string, signal?: AbortSignal): Promise<Record<string, CandleDataAI[]>> => {
       try {
         // Fetch real candle data from Rust API for ALL timeframes in parallel
         // Including 15m & 30m for short-term trend detection (fixes issue where short-term downtrend
         // was ignored because AI only looked at 1H/4H which showed bullish)
         const [chartData15m, chartData30m, chartData1h, chartData4h] = await Promise.all([
-          apiClient.rust.getChartData(symbol, "15m", 100), // Very short-term trend
-          apiClient.rust.getChartData(symbol, "30m", 100), // Short-term trend
-          apiClient.rust.getChartData(symbol, "1h", 100),  // Medium-term trend
-          apiClient.rust.getChartData(symbol, "4h", 50),   // Long-term trend
+          apiClient.rust.getChartData(symbol, "15m", 100, signal), // Very short-term trend
+          apiClient.rust.getChartData(symbol, "30m", 100, signal), // Short-term trend
+          apiClient.rust.getChartData(symbol, "1h", 100, signal),  // Medium-term trend
+          apiClient.rust.getChartData(symbol, "4h", 50, signal),   // Long-term trend
         ]);
 
         // Convert CandleData to CandleDataAI format
@@ -133,14 +135,14 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   );
 
   const analyzeSymbol = useCallback(
-    async (symbol: string, strategies: string[] = DEFAULT_STRATEGIES) => {
+    async (symbol: string, strategies: string[] = DEFAULT_STRATEGIES, signal?: AbortSignal) => {
       try {
         setLoading(true);
         setError(null);
 
         // FIXED: Fetch REAL candle data from Rust API (not fake random data!)
         const [timeframeData, currentPrice] = await Promise.all([
-          fetchRealCandles(symbol),
+          fetchRealCandles(symbol, signal),
           fetchBinancePrice(symbol, async () => {
             const prices = await apiClient.rust.getLatestPrices();
             return prices[symbol] || 0;
@@ -170,10 +172,10 @@ export const useAIAnalysis = (): AIAnalysisHook => {
           } as AIStrategyContext,
         };
 
-        const signal = await apiClient.rust.analyzeAI(request);
+        const aiResponse = await apiClient.rust.analyzeAI(request);
 
         // Add symbol to the response for display purposes
-        const enhancedSignal = { ...signal, symbol };
+        const enhancedSignal = { ...aiResponse, symbol };
 
         if (isMountedRef.current) {
           setState((prev) => ({
@@ -195,11 +197,11 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   );
 
   const getStrategyRecommendations = useCallback(
-    async (symbol: string) => {
+    async (symbol: string, signal?: AbortSignal) => {
       try {
         // FIXED: Fetch REAL candle data from Rust API (not fake random data!)
         const [timeframeData, currentPrice] = await Promise.all([
-          fetchRealCandles(symbol),
+          fetchRealCandles(symbol, signal),
           fetchBinancePrice(symbol, async () => {
             const prices = await apiClient.rust.getLatestPrices();
             return prices[symbol] || 0;
@@ -236,11 +238,11 @@ export const useAIAnalysis = (): AIAnalysisHook => {
   );
 
   const analyzeMarketCondition = useCallback(
-    async (symbol: string) => {
+    async (symbol: string, signal?: AbortSignal) => {
       try {
         // FIXED: Fetch REAL candle data from Rust API (not fake random data!)
         const [timeframeData, currentPrice] = await Promise.all([
-          fetchRealCandles(symbol),
+          fetchRealCandles(symbol, signal),
           fetchBinancePrice(symbol, async () => {
             const prices = await apiClient.rust.getLatestPrices();
             return prices[symbol] || 0;
@@ -331,6 +333,14 @@ export const useAIAnalysis = (): AIAnalysisHook => {
     }
 
     refreshIntervalRef.current = setInterval(() => {
+      // Cancel previous request if still pending
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new AbortController for this request
+      abortControllerRef.current = new AbortController();
+
       // Use ref to access current symbols without causing infinite loop
       // (avoids stale closure by reading ref.current instead of state)
       const symbols = availableSymbolsRef.current.length > 0
@@ -338,7 +348,7 @@ export const useAIAnalysis = (): AIAnalysisHook => {
         : FALLBACK_SYMBOLS;
       const symbolIndex = Math.floor(Date.now() / REFRESH_INTERVAL) % symbols.length;
       const symbol = symbols[symbolIndex];
-      analyzeSymbol(symbol);
+      analyzeSymbol(symbol, DEFAULT_STRATEGIES, abortControllerRef.current.signal);
     }, REFRESH_INTERVAL);
   }, [analyzeSymbol]); // Removed state.availableSymbols - use ref instead
 
@@ -347,28 +357,37 @@ export const useAIAnalysis = (): AIAnalysisHook => {
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
     }
+    // Cancel any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
   }, []);
 
   // Initialize on mount
   useEffect(() => {
+    const abortController = new AbortController();
+
     // Fetch service info and available symbols from API (includes user-added symbols)
     refreshServiceInfo();
     refreshAvailableSymbols().then((symbols) => {
       // Auto-analyze first symbol on mount to show initial data
-      if (symbols.length > 0) {
-        analyzeSymbol(symbols[0]);
+      if (symbols.length > 0 && !abortController.signal.aborted) {
+        analyzeSymbol(symbols[0], DEFAULT_STRATEGIES, abortController.signal);
       }
     });
 
-    // Start auto-refresh to periodically analyze symbols (every 10 minutes)
+    // Start auto-refresh to periodically analyze symbols (every 30 seconds)
     startAutoRefresh();
 
     return () => {
       // Mark as unmounted to prevent state updates
       isMountedRef.current = false;
+      // Cancel all pending requests
+      abortController.abort();
       stopAutoRefresh();
     };
-     
+
   }, []); // Only run once on mount
 
   return {
