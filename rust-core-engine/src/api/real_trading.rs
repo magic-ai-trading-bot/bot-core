@@ -2,17 +2,23 @@
 // @ref:specs/02-design/2.3-api/API-RUST-CORE.md
 // @test:TC-REAL-API-001, TC-REAL-API-002, TC-REAL-API-003
 
+use chrono::{DateTime, Duration, Utc};
+use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use uuid::Uuid;
 use warp::http::StatusCode;
 use warp::{Filter, Rejection, Reply};
 
+use crate::binance::types::OrderSide;
 use crate::real_trading::RealTradingEngine;
 
 /// API handlers for real trading functionality
 /// SAFETY: This involves REAL MONEY - all operations require explicit confirmation
 pub struct RealTradingApi {
     engine: Option<Arc<RealTradingEngine>>,
+    /// Pending order confirmations (token -> order details)
+    pending_confirmations: DashMap<String, PendingConfirmation>,
 }
 
 // ============================================================================
@@ -121,6 +127,81 @@ pub struct CloseTradeRequest {
     pub reason: Option<String>,
 }
 
+// ============================================================================
+// ORDER PLACEMENT TYPES (Phase 4)
+// ============================================================================
+
+/// Request to place an order
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaceOrderRequest {
+    pub symbol: String,
+    pub side: String,           // "BUY" or "SELL"
+    pub order_type: String,     // "MARKET", "LIMIT"
+    pub quantity: f64,
+    pub price: Option<f64>,     // Required for LIMIT orders
+    pub stop_loss: Option<f64>, // Optional SL price
+    pub take_profit: Option<f64>, // Optional TP price
+    /// Confirmation token (if provided, executes order; if not, returns confirmation)
+    pub confirmation_token: Option<String>,
+}
+
+/// Order info response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderInfo {
+    pub id: String,
+    pub exchange_order_id: i64,
+    pub symbol: String,
+    pub side: String,
+    pub order_type: String,
+    pub quantity: f64,
+    pub executed_quantity: f64,
+    pub price: Option<f64>,
+    pub avg_fill_price: f64,
+    pub status: String,
+    pub is_entry: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Confirmation request (for 2-step order placement)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfirmationResponse {
+    pub token: String,
+    pub expires_at: String,
+    pub summary: String,
+    pub order_details: PlaceOrderRequest,
+}
+
+/// Query parameters for listing orders
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListOrdersQuery {
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>, // "active", "filled", "cancelled", "all"
+    #[serde(default = "default_limit")]
+    pub limit: usize,
+}
+
+fn default_limit() -> usize {
+    50
+}
+
+/// Request to modify SL/TP
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModifySlTpRequest {
+    pub stop_loss: Option<f64>,
+    pub take_profit: Option<f64>,
+}
+
+/// Pending confirmation entry
+#[derive(Debug, Clone)]
+struct PendingConfirmation {
+    token: String,
+    order_request: PlaceOrderRequest,
+    expires_at: DateTime<Utc>,
+}
+
 /// Request to update settings
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateSettingsRequest {
@@ -166,7 +247,62 @@ fn with_api(
 
 impl RealTradingApi {
     pub fn new(engine: Option<Arc<RealTradingEngine>>) -> Self {
-        Self { engine }
+        Self {
+            engine,
+            pending_confirmations: DashMap::new(),
+        }
+    }
+
+    /// Clean up expired confirmations
+    fn cleanup_expired_confirmations(&self) {
+        let now = Utc::now();
+        self.pending_confirmations
+            .retain(|_, conf| conf.expires_at > now);
+    }
+
+    /// Generate a confirmation token for an order
+    fn create_confirmation(&self, request: PlaceOrderRequest) -> ConfirmationResponse {
+        self.cleanup_expired_confirmations();
+
+        let token = Uuid::new_v4().to_string();
+        let expires_at = Utc::now() + Duration::seconds(60);
+
+        let summary = format!(
+            "{} {} {} {} @ {}",
+            request.side,
+            request.quantity,
+            request.symbol,
+            request.order_type,
+            request.price.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "MARKET".to_string())
+        );
+
+        self.pending_confirmations.insert(
+            token.clone(),
+            PendingConfirmation {
+                token: token.clone(),
+                order_request: request.clone(),
+                expires_at,
+            },
+        );
+
+        ConfirmationResponse {
+            token,
+            expires_at: expires_at.to_rfc3339(),
+            summary,
+            order_details: request,
+        }
+    }
+
+    /// Validate and consume a confirmation token
+    fn consume_confirmation(&self, token: &str) -> Option<PlaceOrderRequest> {
+        self.cleanup_expired_confirmations();
+
+        if let Some((_, conf)) = self.pending_confirmations.remove(token) {
+            if conf.expires_at > Utc::now() {
+                return Some(conf.order_request);
+            }
+        }
+        None
     }
 
     /// Create real trading API routes
@@ -258,6 +394,56 @@ impl RealTradingApi {
             .and(with_api(api.clone()))
             .and_then(update_settings);
 
+        // ============ ORDER MANAGEMENT ROUTES (Phase 4) ============
+
+        // POST /api/real-trading/orders - Place order (with confirmation)
+        let place_order_route = base_path
+            .and(warp::path("orders"))
+            .and(warp::path::end())
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(place_order);
+
+        // GET /api/real-trading/orders - List active orders
+        let list_orders_route = base_path
+            .and(warp::path("orders"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(warp::query::<ListOrdersQuery>())
+            .and(with_api(api.clone()))
+            .and_then(list_orders);
+
+        // DELETE /api/real-trading/orders/{id} - Cancel specific order
+        let cancel_order_route = base_path
+            .and(warp::path("orders"))
+            .and(warp::path::param::<String>())
+            .and(warp::path::end())
+            .and(warp::delete())
+            .and(with_api(api.clone()))
+            .and_then(cancel_order);
+
+        // DELETE /api/real-trading/orders - Cancel all orders
+        let cancel_all_orders_route = base_path
+            .and(warp::path("orders"))
+            .and(warp::path("all"))
+            .and(warp::path::end())
+            .and(warp::delete())
+            .and(warp::query::<CancelAllQuery>())
+            .and(with_api(api.clone()))
+            .and_then(cancel_all_orders);
+
+        // PUT /api/real-trading/positions/{symbol}/sltp - Modify SL/TP
+        let modify_sltp_route = base_path
+            .and(warp::path("positions"))
+            .and(warp::path::param::<String>())
+            .and(warp::path("sltp"))
+            .and(warp::path::end())
+            .and(warp::put())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(modify_sltp);
+
         // Combine all routes
         status_route
             .or(portfolio_route)
@@ -268,8 +454,20 @@ impl RealTradingApi {
             .or(close_trade_route)
             .or(get_settings_route)
             .or(update_settings_route)
+            .or(place_order_route)
+            .or(list_orders_route)
+            .or(cancel_order_route)
+            .or(cancel_all_orders_route)
+            .or(modify_sltp_route)
             .with(cors)
     }
+}
+
+/// Query for cancel all orders
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CancelAllQuery {
+    #[serde(default)]
+    pub symbol: Option<String>,
 }
 
 // ============================================================================
@@ -703,6 +901,408 @@ async fn update_settings(
     }
 }
 
+// ============================================================================
+// ORDER MANAGEMENT HANDLERS (Phase 4)
+// ============================================================================
+
+/// POST /api/real-trading/orders - Place order with 2-step confirmation
+async fn place_order(
+    request: PlaceOrderRequest,
+    api: Arc<RealTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    let engine = match &api.engine {
+        Some(e) => e,
+        None => {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<serde_json::Value>::error(
+                    "Real trading service is not configured".to_string(),
+                )),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ))
+        },
+    };
+
+    // Validate request
+    if request.symbol.is_empty() {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error("Symbol is required".to_string())),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    if request.quantity <= 0.0 {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Quantity must be positive".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    let side_upper = request.side.to_uppercase();
+    if side_upper != "BUY" && side_upper != "SELL" {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Side must be BUY or SELL".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    let order_type_upper = request.order_type.to_uppercase();
+    if order_type_upper != "MARKET" && order_type_upper != "LIMIT" {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Order type must be MARKET or LIMIT".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    if order_type_upper == "LIMIT" && request.price.is_none() {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(
+                "Price is required for LIMIT orders".to_string(),
+            )),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    // Check if this is a confirmation or initial request
+    if let Some(token) = &request.confirmation_token {
+        // Validate and consume the confirmation token
+        if let Some(confirmed_request) = api.consume_confirmation(token) {
+            // Execute the order
+            tracing::info!(
+                "🔴 EXECUTING REAL ORDER: {} {} {} @ {:?}",
+                confirmed_request.side,
+                confirmed_request.quantity,
+                confirmed_request.symbol,
+                confirmed_request.price
+            );
+
+            let side = if confirmed_request.side.to_uppercase() == "BUY" {
+                OrderSide::Buy
+            } else {
+                OrderSide::Sell
+            };
+
+            let result = if confirmed_request.order_type.to_uppercase() == "MARKET" {
+                engine
+                    .place_market_order(
+                        &confirmed_request.symbol,
+                        side,
+                        confirmed_request.quantity,
+                        None,
+                        true,
+                    )
+                    .await
+            } else {
+                engine
+                    .place_limit_order(
+                        &confirmed_request.symbol,
+                        side,
+                        confirmed_request.quantity,
+                        confirmed_request.price.unwrap(),
+                        None,
+                        true,
+                    )
+                    .await
+            };
+
+            match result {
+                Ok(order) => {
+                    // Set SL/TP if provided
+                    if let Some(sl) = confirmed_request.stop_loss {
+                        let _ = engine.set_stop_loss(&confirmed_request.symbol, sl).await;
+                    }
+                    if let Some(tp) = confirmed_request.take_profit {
+                        let _ = engine.set_take_profit(&confirmed_request.symbol, tp).await;
+                    }
+
+                    let order_info = OrderInfo {
+                        id: order.client_order_id.clone(),
+                        exchange_order_id: order.exchange_order_id,
+                        symbol: order.symbol.clone(),
+                        side: order.side.clone(),
+                        order_type: order.order_type.clone(),
+                        quantity: order.original_quantity,
+                        executed_quantity: order.executed_quantity,
+                        price: order.price,
+                        avg_fill_price: order.average_fill_price,
+                        status: format!("{:?}", order.state),
+                        is_entry: order.is_entry,
+                        created_at: order.created_at.to_rfc3339(),
+                        updated_at: order.updated_at.to_rfc3339(),
+                    };
+
+                    Ok(warp::reply::with_status(
+                        warp::reply::json(&ApiResponse::success(order_info)),
+                        StatusCode::CREATED,
+                    ))
+                },
+                Err(e) => Ok(warp::reply::with_status(
+                    warp::reply::json(&ApiResponse::<()>::error(format!(
+                        "Failed to place order: {}",
+                        e
+                    ))),
+                    StatusCode::BAD_REQUEST,
+                )),
+            }
+        } else {
+            // Invalid or expired token
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<()>::error(
+                    "Invalid or expired confirmation token".to_string(),
+                )),
+                StatusCode::BAD_REQUEST,
+            ))
+        }
+    } else {
+        // No token - create confirmation
+        let confirmation = api.create_confirmation(request);
+        Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::success(confirmation)),
+            StatusCode::OK,
+        ))
+    }
+}
+
+/// GET /api/real-trading/orders - List orders
+async fn list_orders(
+    query: ListOrdersQuery,
+    api: Arc<RealTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    let engine = match &api.engine {
+        Some(e) => e,
+        None => {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<Vec<OrderInfo>>::error(
+                    "Real trading service is not configured".to_string(),
+                )),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ))
+        },
+    };
+
+    let orders = engine.get_active_orders();
+
+    let filtered_orders: Vec<OrderInfo> = orders
+        .into_iter()
+        .filter(|o| {
+            // Filter by symbol if provided
+            if let Some(ref sym) = query.symbol {
+                if o.symbol != *sym {
+                    return false;
+                }
+            }
+            // Filter by status if provided
+            if let Some(ref status) = query.status {
+                let status_lower = status.to_lowercase();
+                if status_lower != "all" {
+                    let order_status = format!("{:?}", o.state).to_lowercase();
+                    if !order_status.contains(&status_lower) {
+                        return false;
+                    }
+                }
+            }
+            true
+        })
+        .take(query.limit)
+        .map(|o| OrderInfo {
+            id: o.client_order_id.clone(),
+            exchange_order_id: o.exchange_order_id,
+            symbol: o.symbol.clone(),
+            side: o.side.clone(),
+            order_type: o.order_type.clone(),
+            quantity: o.original_quantity,
+            executed_quantity: o.executed_quantity,
+            price: o.price,
+            avg_fill_price: o.average_fill_price,
+            status: format!("{:?}", o.state),
+            is_entry: o.is_entry,
+            created_at: o.created_at.to_rfc3339(),
+            updated_at: o.updated_at.to_rfc3339(),
+        })
+        .collect();
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(filtered_orders)),
+        StatusCode::OK,
+    ))
+}
+
+/// DELETE /api/real-trading/orders/{id} - Cancel specific order
+async fn cancel_order(order_id: String, api: Arc<RealTradingApi>) -> Result<impl Reply, Rejection> {
+    let engine = match &api.engine {
+        Some(e) => e,
+        None => {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<serde_json::Value>::error(
+                    "Real trading service is not configured".to_string(),
+                )),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ))
+        },
+    };
+
+    tracing::info!("🔴 CANCELLING ORDER: {}", order_id);
+
+    match engine.cancel_order(&order_id).await {
+        Ok(order) => {
+            let order_info = OrderInfo {
+                id: order.client_order_id.clone(),
+                exchange_order_id: order.exchange_order_id,
+                symbol: order.symbol.clone(),
+                side: order.side.clone(),
+                order_type: order.order_type.clone(),
+                quantity: order.original_quantity,
+                executed_quantity: order.executed_quantity,
+                price: order.price,
+                avg_fill_price: order.average_fill_price,
+                status: format!("{:?}", order.state),
+                is_entry: order.is_entry,
+                created_at: order.created_at.to_rfc3339(),
+                updated_at: order.updated_at.to_rfc3339(),
+            };
+
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(order_info)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(format!(
+                "Failed to cancel order: {}",
+                e
+            ))),
+            StatusCode::BAD_REQUEST,
+        )),
+    }
+}
+
+/// DELETE /api/real-trading/orders/all - Cancel all orders
+async fn cancel_all_orders(
+    query: CancelAllQuery,
+    api: Arc<RealTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    let engine = match &api.engine {
+        Some(e) => e,
+        None => {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<serde_json::Value>::error(
+                    "Real trading service is not configured".to_string(),
+                )),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ))
+        },
+    };
+
+    tracing::warn!(
+        "🔴 CANCELLING ALL ORDERS{}",
+        query
+            .symbol
+            .as_ref()
+            .map(|s| format!(" for {}", s))
+            .unwrap_or_default()
+    );
+
+    match engine.cancel_all_orders(query.symbol.as_deref()).await {
+        Ok(cancelled_ids) => {
+            let result = serde_json::json!({
+                "cancelled_count": cancelled_ids.len(),
+                "cancelled_order_ids": cancelled_ids,
+            });
+
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(result)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(format!(
+                "Failed to cancel orders: {}",
+                e
+            ))),
+            StatusCode::BAD_REQUEST,
+        )),
+    }
+}
+
+/// PUT /api/real-trading/positions/{symbol}/sltp - Modify SL/TP for position
+async fn modify_sltp(
+    symbol: String,
+    request: ModifySlTpRequest,
+    api: Arc<RealTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    let engine = match &api.engine {
+        Some(e) => e,
+        None => {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::<serde_json::Value>::error(
+                    "Real trading service is not configured".to_string(),
+                )),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ))
+        },
+    };
+
+    tracing::info!(
+        "🔧 Modifying SL/TP for {}: SL={:?}, TP={:?}",
+        symbol,
+        request.stop_loss,
+        request.take_profit
+    );
+
+    // Check if position exists
+    let position = engine.get_position(&symbol);
+    if position.is_none() {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(format!(
+                "No open position for {}",
+                symbol
+            ))),
+            StatusCode::NOT_FOUND,
+        ));
+    }
+
+    // Update SL/TP
+    let mut errors = Vec::new();
+
+    if let Some(sl) = request.stop_loss {
+        if let Err(e) = engine.set_stop_loss(&symbol, sl).await {
+            errors.push(format!("SL: {}", e));
+        }
+    }
+
+    if let Some(tp) = request.take_profit {
+        if let Err(e) = engine.set_take_profit(&symbol, tp).await {
+            errors.push(format!("TP: {}", e));
+        }
+    }
+
+    if !errors.is_empty() {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(errors.join("; "))),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    // Get updated position
+    let updated_position = engine.get_position(&symbol);
+    let result = serde_json::json!({
+        "symbol": symbol,
+        "stop_loss": updated_position.as_ref().and_then(|p| p.stop_loss),
+        "take_profit": updated_position.as_ref().and_then(|p| p.take_profit),
+        "message": "SL/TP updated successfully",
+    });
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(result)),
+        StatusCode::OK,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -859,5 +1459,151 @@ mod tests {
         let json_empty = r#"{}"#;
         let request_empty: CloseTradeRequest = serde_json::from_str(json_empty).unwrap();
         assert!(request_empty.reason.is_none());
+    }
+
+    // ============================================================================
+    // PHASE 4 TESTS - Order Placement Types
+    // ============================================================================
+
+    #[test]
+    fn test_place_order_request_deserialization() {
+        let json = r#"{
+            "symbol": "BTCUSDT",
+            "side": "BUY",
+            "order_type": "LIMIT",
+            "quantity": 0.01,
+            "price": 50000.0,
+            "stop_loss": 48000.0,
+            "take_profit": 55000.0
+        }"#;
+
+        let request: PlaceOrderRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(request.symbol, "BTCUSDT");
+        assert_eq!(request.side, "BUY");
+        assert_eq!(request.order_type, "LIMIT");
+        assert_eq!(request.quantity, 0.01);
+        assert_eq!(request.price, Some(50000.0));
+        assert_eq!(request.stop_loss, Some(48000.0));
+        assert_eq!(request.take_profit, Some(55000.0));
+        assert!(request.confirmation_token.is_none());
+    }
+
+    #[test]
+    fn test_place_order_request_market_order() {
+        let json = r#"{
+            "symbol": "ETHUSDT",
+            "side": "SELL",
+            "order_type": "MARKET",
+            "quantity": 1.5
+        }"#;
+
+        let request: PlaceOrderRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(request.symbol, "ETHUSDT");
+        assert_eq!(request.side, "SELL");
+        assert_eq!(request.order_type, "MARKET");
+        assert_eq!(request.quantity, 1.5);
+        assert!(request.price.is_none());
+    }
+
+    #[test]
+    fn test_order_info_serialization() {
+        let order = OrderInfo {
+            id: "real_abc123".to_string(),
+            exchange_order_id: 123456789,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            order_type: "LIMIT".to_string(),
+            quantity: 0.01,
+            executed_quantity: 0.005,
+            price: Some(50000.0),
+            avg_fill_price: 49950.0,
+            status: "PartiallyFilled".to_string(),
+            is_entry: true,
+            created_at: "2025-01-01T00:00:00Z".to_string(),
+            updated_at: "2025-01-01T00:01:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&order).unwrap();
+        assert!(json.contains("real_abc123"));
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("123456789"));
+        assert!(json.contains("PartiallyFilled"));
+    }
+
+    #[test]
+    fn test_confirmation_response_serialization() {
+        let confirmation = ConfirmationResponse {
+            token: "uuid-token-123".to_string(),
+            expires_at: "2025-01-01T00:01:00Z".to_string(),
+            summary: "BUY 0.01 BTCUSDT LIMIT @ $50000.00".to_string(),
+            order_details: PlaceOrderRequest {
+                symbol: "BTCUSDT".to_string(),
+                side: "BUY".to_string(),
+                order_type: "LIMIT".to_string(),
+                quantity: 0.01,
+                price: Some(50000.0),
+                stop_loss: None,
+                take_profit: None,
+                confirmation_token: None,
+            },
+        };
+
+        let json = serde_json::to_string(&confirmation).unwrap();
+        assert!(json.contains("uuid-token-123"));
+        assert!(json.contains("BUY 0.01 BTCUSDT LIMIT"));
+    }
+
+    #[test]
+    fn test_list_orders_query_defaults() {
+        let json = r#"{}"#;
+        let query: ListOrdersQuery = serde_json::from_str(json).unwrap();
+        assert!(query.symbol.is_none());
+        assert!(query.status.is_none());
+        assert_eq!(query.limit, 50);
+    }
+
+    #[test]
+    fn test_list_orders_query_with_filters() {
+        let json = r#"{
+            "symbol": "BTCUSDT",
+            "status": "active",
+            "limit": 10
+        }"#;
+
+        let query: ListOrdersQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.symbol, Some("BTCUSDT".to_string()));
+        assert_eq!(query.status, Some("active".to_string()));
+        assert_eq!(query.limit, 10);
+    }
+
+    #[test]
+    fn test_modify_sltp_request() {
+        let json = r#"{
+            "stop_loss": 48000.0,
+            "take_profit": 55000.0
+        }"#;
+
+        let request: ModifySlTpRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(request.stop_loss, Some(48000.0));
+        assert_eq!(request.take_profit, Some(55000.0));
+    }
+
+    #[test]
+    fn test_modify_sltp_request_partial() {
+        let json = r#"{"stop_loss": 48000.0}"#;
+        let request: ModifySlTpRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(request.stop_loss, Some(48000.0));
+        assert!(request.take_profit.is_none());
+    }
+
+    #[test]
+    fn test_cancel_all_query() {
+        let json = r#"{"symbol": "BTCUSDT"}"#;
+        let query: CancelAllQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.symbol, Some("BTCUSDT".to_string()));
+
+        let json_empty = r#"{}"#;
+        let query_empty: CancelAllQuery = serde_json::from_str(json_empty).unwrap();
+        assert!(query_empty.symbol.is_none());
     }
 }

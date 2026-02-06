@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// Configuration for real trading engine
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct RealTradingConfig {
     // ============ Risk Limits ============
     /// Maximum value for a single position in USDT

@@ -11,6 +11,8 @@ fn create_test_config() -> BinanceConfig {
     BinanceConfig {
         api_key: "test_api_key".to_string(),
         secret_key: "test_secret_key".to_string(),
+        futures_api_key: String::new(),
+        futures_secret_key: String::new(),
         testnet: true,
         base_url: binance_urls::TESTNET_BASE_URL.to_string(),
         ws_url: binance_urls::TESTNET_WS_URL.to_string(),
@@ -70,6 +72,8 @@ async fn test_sign_request() {
     let config = BinanceConfig {
         api_key: "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A".to_string(),
         secret_key: "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j".to_string(),
+        futures_api_key: String::new(),
+        futures_secret_key: String::new(),
         testnet: true,
         base_url: binance_urls::MAINNET_BASE_URL.to_string(),
         ws_url: binance_urls::MAINNET_WS_URL.to_string(),
@@ -284,17 +288,17 @@ async fn test_funding_rate_parsing() {
 
 #[tokio::test]
 async fn test_account_info_parsing() {
-    // Test AccountInfo deserialization
+    // Test AccountInfo deserialization with camelCase (Binance API format)
     let json_data = json!({
-        "maker_commission": 10,
-        "taker_commission": 10,
-        "buyer_commission": 0,
-        "seller_commission": 0,
-        "can_trade": true,
-        "can_withdraw": true,
-        "can_deposit": true,
-        "update_time": 1701234567000i64,
-        "account_type": "SPOT",
+        "makerCommission": 10,
+        "takerCommission": 10,
+        "buyerCommission": 0,
+        "sellerCommission": 0,
+        "canTrade": true,
+        "canWithdraw": true,
+        "canDeposit": true,
+        "updateTime": 1701234567000i64,
+        "accountType": "SPOT",
         "balances": [
             {
                 "asset": "BTC",
@@ -323,23 +327,23 @@ async fn test_account_info_parsing() {
 
 #[tokio::test]
 async fn test_futures_position_parsing() {
-    // Test FuturesPosition deserialization
+    // Test FuturesPosition deserialization with camelCase (matches Binance API)
     let json_data = json!({
         "symbol": "BTCUSDT",
-        "position_amt": "0.001",
-        "entry_price": "45000.00",
-        "mark_price": "45200.00",
-        "unrealized_pnl": "0.20",
-        "liquidation_price": "0",
+        "positionAmt": "0.001",
+        "entryPrice": "45000.00",
+        "markPrice": "45200.00",
+        "unRealizedProfit": "0.20",
+        "liquidationPrice": "0",
         "leverage": "10",
-        "max_notional_value": "100000",
-        "margin_type": "cross",
-        "isolated_margin": "0.00000000",
-        "is_auto_add_margin": false,
-        "position_side": "BOTH",
+        "maxNotionalValue": "100000",
+        "marginType": "cross",
+        "isolatedMargin": "0.00000000",
+        "isAutoAddMargin": false,
+        "positionSide": "BOTH",
         "notional": "45.20",
-        "isolated_wallet": "0",
-        "update_time": 1701234567000i64
+        "isolatedWallet": "0",
+        "updateTime": 1701234567000i64
     });
 
     let position: FuturesPosition = serde_json::from_value(json_data).unwrap();
@@ -353,26 +357,26 @@ async fn test_futures_position_parsing() {
 
 #[tokio::test]
 async fn test_futures_order_parsing() {
-    // Test FuturesOrder deserialization
+    // Test FuturesOrder deserialization with camelCase (matches Binance API)
     let json_data = json!({
         "symbol": "BTCUSDT",
-        "order_id": 123456789,
-        "order_list_id": -1,
-        "client_order_id": "test_order_id",
+        "orderId": 123456789,
+        "orderListId": -1,
+        "clientOrderId": "test_order_id",
         "price": "45000.00",
-        "orig_qty": "0.001",
-        "executed_qty": "0.000",
-        "cumulative_quote_qty": "0.00",
+        "origQty": "0.001",
+        "executedQty": "0.000",
+        "cumQuoteQty": "0.00",
         "status": "NEW",
-        "time_in_force": "GTC",
+        "timeInForce": "GTC",
         "type": "LIMIT",
         "side": "BUY",
-        "stop_price": "0.00",
-        "iceberg_qty": "0.00",
+        "stopPrice": "0.00",
+        "icebergQty": "0.00",
         "time": 1701234567000i64,
-        "update_time": 1701234567000i64,
-        "is_working": true,
-        "orig_quote_order_qty": "45.00"
+        "updateTime": 1701234567000i64,
+        "isWorking": true,
+        "origQuoteOrderQty": "45.00"
     });
 
     let order: FuturesOrder = serde_json::from_value(json_data).unwrap();
@@ -648,6 +652,8 @@ async fn test_empty_api_key_handling() {
     let config = BinanceConfig {
         api_key: "".to_string(),
         secret_key: "".to_string(),
+        futures_api_key: String::new(),
+        futures_secret_key: String::new(),
         testnet: true,
         base_url: binance_urls::TESTNET_BASE_URL.to_string(),
         ws_url: binance_urls::TESTNET_WS_URL.to_string(),
@@ -727,6 +733,8 @@ async fn test_testnet_vs_production_urls() {
     let testnet_config = BinanceConfig {
         api_key: "test".to_string(),
         secret_key: "test".to_string(),
+        futures_api_key: String::new(),
+        futures_secret_key: String::new(),
         testnet: true,
         base_url: binance_urls::TESTNET_BASE_URL.to_string(),
         ws_url: binance_urls::TESTNET_WS_URL.to_string(),
@@ -738,6 +746,8 @@ async fn test_testnet_vs_production_urls() {
     let production_config = BinanceConfig {
         api_key: "test".to_string(),
         secret_key: "test".to_string(),
+        futures_api_key: String::new(),
+        futures_secret_key: String::new(),
         testnet: false,
         base_url: binance_urls::MAINNET_BASE_URL.to_string(),
         ws_url: binance_urls::MAINNET_WS_URL.to_string(),

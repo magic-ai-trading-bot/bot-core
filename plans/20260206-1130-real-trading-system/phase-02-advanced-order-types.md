@@ -1,6 +1,6 @@
 # Phase 02: Advanced Order Types
 
-**Status**: Pending | **Estimated Time**: 1 day
+**Status**: ✅ Done | **Completed**: 2026-02-06
 
 ## Context
 
@@ -123,25 +123,38 @@ pub async fn attach_trailing_stop(
 
 ## Todo
 
-- [ ] Add SpotOrderType variants to types.rs
-- [ ] Add `place_oco_order()` to BinanceClient
-- [ ] Add `cancel_oco_order()` to BinanceClient
-- [ ] Implement trailing stop order placement
-- [ ] Add `attach_stop_loss()` to engine
-- [ ] Add `attach_take_profit()` to engine
-- [ ] Add `attach_oco()` to engine
-- [ ] Track SL/TP order IDs in RealOrder
-- [ ] Handle OCO fill events (cancel paired order)
-- [ ] Test SL/TP on testnet
-- [ ] Test OCO on testnet
+- [x] Add SpotOrderType variants to types.rs (STOP_LOSS_LIMIT, TAKE_PROFIT_LIMIT)
+- [x] Add `place_oco_order()` to BinanceClient (new API format with aboveType/belowType)
+- [x] Add `cancel_oco_order()` to BinanceClient
+- [x] Add OcoOrderRequest with new API format (2024+)
+- [x] Test SL/TP on testnet - PASSED
+- [x] Test OCO on testnet - PASSED (Order List ID: 14639)
+- [ ] Implement trailing stop order placement (deferred to engine integration)
+- [ ] Add `attach_stop_loss()` to engine (Phase 4)
+- [ ] Add `attach_take_profit()` to engine (Phase 4)
+- [ ] Add `attach_oco()` to engine (Phase 4)
+- [ ] Track SL/TP order IDs in RealOrder (Phase 4)
+- [ ] Handle OCO fill events via WebSocket (Phase 4)
+
+## Test Results (Testnet)
+
+```
+✅ Market Buy Order (Order ID: 399879) - FILLED
+✅ OCO Order (Order List ID: 14639) - EXECUTING
+   - Stop Loss: STOP_LOSS_LIMIT @ $62,930.95 (Order ID: 399880)
+   - Take Profit: LIMIT_MAKER @ $65,835.45 (Order ID: 399881)
+✅ OCO Cancel - ALL_DONE
+✅ Stop-Loss Limit (Order ID: 399888) - NEW
+✅ Take-Profit Limit (Order ID: 399889) - NEW
+```
 
 ## Success Criteria
 
-- [ ] Place stop-loss order successfully
-- [ ] Place take-profit order successfully
-- [ ] Place OCO order with both SL and TP
-- [ ] OCO: when one side fills, other cancels
-- [ ] Trailing stop adjusts as price moves favorably
+- [x] Place stop-loss order successfully
+- [x] Place take-profit order successfully
+- [x] Place OCO order with both SL and TP
+- [ ] OCO: when one side fills, other cancels (requires WebSocket integration)
+- [ ] Trailing stop adjusts as price moves favorably (not available on Spot testnet)
 
 ## Risk Assessment
 

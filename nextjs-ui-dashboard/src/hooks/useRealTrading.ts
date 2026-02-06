@@ -37,12 +37,48 @@ export interface RealTradingState {
   portfolio: RealPortfolioMetrics;
   openTrades: RealTrade[];
   closedTrades: RealTrade[];
+  activeOrders: RealOrder[];
   settings: RealTradingSettings;
   recentSignals: AISignal[];
   isLoading: boolean;
   error: string | null;
   lastUpdated: Date | null;
   updateCounter: number;
+  pendingConfirmation: PendingOrderConfirmation | null;
+}
+
+export interface RealOrder {
+  id: string;
+  exchange_order_id: number;
+  symbol: string;
+  side: string;
+  order_type: string;
+  quantity: number;
+  executed_quantity: number;
+  price: number | null;
+  avg_fill_price: number;
+  status: string;
+  is_entry: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlaceOrderRequest {
+  symbol: string;
+  side: string;
+  order_type: string;
+  quantity: number;
+  price?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  confirmation_token?: string;
+}
+
+export interface PendingOrderConfirmation {
+  token: string;
+  expires_at: string;
+  summary: string;
+  order_details: PlaceOrderRequest;
 }
 
 const defaultSettings: RealTradingSettings = {
@@ -98,12 +134,14 @@ export const useRealTrading = () => {
     portfolio: defaultPortfolio,
     openTrades: [],
     closedTrades: [],
+    activeOrders: [],
     settings: defaultSettings,
     recentSignals: [],
     isLoading: false,
     error: null,
     lastUpdated: null,
     updateCounter: 0,
+    pendingConfirmation: null,
   });
 
   // API base URL
@@ -116,6 +154,7 @@ export const useRealTrading = () => {
   const fetchPortfolioStatusRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const fetchOpenTradesRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const fetchClosedTradesRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const fetchOrdersRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const deduplicateSignalsRef = useRef<(signals: AISignal[]) => AISignal[]>((s) => s);
 
   // Safety check: Only fetch data when in real mode
@@ -155,12 +194,28 @@ export const useRealTrading = () => {
     try {
       // TODO: Update endpoint when real trading API is ready
       const response = await fetch(`${API_BASE}/api/real-trading/portfolio`);
-      const data: RustRealTradingResponse<RealPortfolioMetrics> = await response.json();
+      const data = await response.json();
 
       if (data.success && data.data) {
+        // Map API response to frontend type
+        // API returns: total_balance, available_balance, locked_balance
+        // Frontend expects: current_balance, equity, margin_used, free_margin
+        const apiData = data.data;
+        const mappedPortfolio: RealPortfolioMetrics = {
+          ...defaultPortfolio,
+          current_balance: apiData.total_balance || 0,
+          equity: apiData.total_balance || 0,
+          margin_used: apiData.locked_balance || 0,
+          free_margin: apiData.available_balance || 0,
+          total_pnl: apiData.realized_pnl || 0,
+          total_pnl_percentage: apiData.total_balance > 0
+            ? ((apiData.realized_pnl || 0) / apiData.total_balance) * 100
+            : 0,
+        };
+
         setState((prev) => ({
           ...prev,
-          portfolio: data.data!,
+          portfolio: mappedPortfolio,
           lastUpdated: new Date(),
         }));
       } else {
@@ -290,11 +345,12 @@ export const useRealTrading = () => {
     return Array.from(signalMap.values()).slice(0, 8);
   }, []);
 
-  // Update refs
+  // Update refs (will be set after fetchOrders is defined)
   fetchPortfolioStatusRef.current = fetchPortfolioStatus;
   fetchOpenTradesRef.current = fetchOpenTrades;
   fetchClosedTradesRef.current = fetchClosedTrades;
   deduplicateSignalsRef.current = deduplicateSignals;
+  // Note: fetchOrdersRef.current is set after fetchOrders is defined below
 
   // Fetch AI signals (re-use paper trading signals for now)
   const fetchAISignals = useCallback(async () => {
@@ -607,6 +663,324 @@ export const useRealTrading = () => {
     });
   }, [toast]);
 
+  // ========================================
+  // Phase 5: Order Management Methods
+  // ========================================
+
+  // Fetch active orders
+  const fetchOrders = useCallback(async () => {
+    if (!isRealMode) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/real-trading/orders`);
+      const data: RustRealTradingResponse<RealOrder[]> = await response.json();
+
+      if (data.success && data.data) {
+        setState((prev) => ({
+          ...prev,
+          activeOrders: data.data!,
+          lastUpdated: new Date(),
+        }));
+      }
+    } catch (error) {
+      logger.error("Failed to fetch orders:", error);
+    }
+  }, [API_BASE, isRealMode]);
+
+  // Update fetchOrdersRef after fetchOrders is defined
+  fetchOrdersRef.current = fetchOrders;
+
+  // Place order with 2-step confirmation
+  // Step 1: Call without token → returns confirmation token + summary
+  // Step 2: Call with token → executes order
+  const placeOrder = useCallback(
+    async (request: PlaceOrderRequest): Promise<boolean> => {
+      if (!isRealMode) {
+        toast({
+          title: "Error",
+          description: "Cannot place order - not in real mode",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        const response = await fetch(`${API_BASE}/api/real-trading/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(request),
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || "Failed to place order");
+        }
+
+        // Check if this is a confirmation request (no token provided)
+        if (data.data?.requires_confirmation) {
+          // Store pending confirmation
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            pendingConfirmation: {
+              token: data.data.token,
+              expires_at: data.data.expires_at,
+              summary: data.data.summary,
+              order_details: request,
+            },
+          }));
+
+          toast({
+            title: "⚠️ Confirmation Required",
+            description: data.data.summary,
+          });
+
+          return false; // Needs confirmation
+        }
+
+        // Order was executed (had confirmation token)
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          pendingConfirmation: null,
+        }));
+
+        await fetchOrders();
+        await fetchOpenTrades();
+        await fetchPortfolioStatus();
+
+        toast({
+          title: "✅ Order Placed",
+          description: `${request.side} ${request.quantity} ${request.symbol}`,
+        });
+
+        return true;
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to place order",
+          variant: "destructive",
+        });
+        return false;
+      }
+    },
+    [API_BASE, fetchOrders, fetchOpenTrades, fetchPortfolioStatus, isRealMode, toast]
+  );
+
+  // Confirm pending order
+  const confirmOrder = useCallback(async (): Promise<boolean> => {
+    if (!state.pendingConfirmation) {
+      toast({
+        title: "Error",
+        description: "No pending order to confirm",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Check if token expired
+    if (new Date(state.pendingConfirmation.expires_at) < new Date()) {
+      setState((prev) => ({ ...prev, pendingConfirmation: null }));
+      toast({
+        title: "Error",
+        description: "Confirmation token expired. Please place order again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Place order with confirmation token
+    const orderWithToken: PlaceOrderRequest = {
+      ...state.pendingConfirmation.order_details,
+      confirmation_token: state.pendingConfirmation.token,
+    };
+
+    return placeOrder(orderWithToken);
+  }, [placeOrder, state.pendingConfirmation, toast]);
+
+  // Clear pending confirmation
+  const clearPendingConfirmation = useCallback(() => {
+    setState((prev) => ({ ...prev, pendingConfirmation: null }));
+  }, []);
+
+  // Cancel specific order
+  const cancelOrder = useCallback(
+    async (orderId: string): Promise<boolean> => {
+      if (!isRealMode) {
+        toast({
+          title: "Error",
+          description: "Cannot cancel order - not in real mode",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        const response = await fetch(`${API_BASE}/api/real-trading/orders/${orderId}`, {
+          method: "DELETE",
+        });
+
+        const data: RustRealTradingResponse<SimpleApiResponse> = await response.json();
+
+        if (data.success) {
+          setState((prev) => ({ ...prev, isLoading: false }));
+          await fetchOrders();
+
+          toast({
+            title: "Order Cancelled",
+            description: `Order ${orderId} has been cancelled`,
+          });
+
+          return true;
+        } else {
+          throw new Error(data.error || "Failed to cancel order");
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to cancel order",
+          variant: "destructive",
+        });
+        return false;
+      }
+    },
+    [API_BASE, fetchOrders, isRealMode, toast]
+  );
+
+  // Cancel all orders
+  const cancelAllOrders = useCallback(
+    async (symbol?: string): Promise<boolean> => {
+      if (!isRealMode) {
+        toast({
+          title: "Error",
+          description: "Cannot cancel orders - not in real mode",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        const url = symbol
+          ? `${API_BASE}/api/real-trading/orders/all?symbol=${symbol}`
+          : `${API_BASE}/api/real-trading/orders/all`;
+
+        const response = await fetch(url, {
+          method: "DELETE",
+        });
+
+        const data: RustRealTradingResponse<SimpleApiResponse> = await response.json();
+
+        if (data.success) {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            activeOrders: [],
+          }));
+
+          toast({
+            title: "All Orders Cancelled",
+            description: symbol ? `All ${symbol} orders cancelled` : "All orders cancelled",
+          });
+
+          return true;
+        } else {
+          throw new Error(data.error || "Failed to cancel orders");
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to cancel orders",
+          variant: "destructive",
+        });
+        return false;
+      }
+    },
+    [API_BASE, isRealMode, toast]
+  );
+
+  // Modify position SL/TP
+  const modifySlTp = useCallback(
+    async (symbol: string, stopLoss?: number, takeProfit?: number): Promise<boolean> => {
+      if (!isRealMode) {
+        toast({
+          title: "Error",
+          description: "Cannot modify position - not in real mode",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        const response = await fetch(`${API_BASE}/api/real-trading/positions/${symbol}/sltp`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            stop_loss: stopLoss,
+            take_profit: takeProfit,
+          }),
+        });
+
+        const data: RustRealTradingResponse<SimpleApiResponse> = await response.json();
+
+        if (data.success) {
+          setState((prev) => ({ ...prev, isLoading: false }));
+          await fetchOpenTrades();
+          await fetchOrders();
+
+          toast({
+            title: "Position Updated",
+            description: `SL/TP updated for ${symbol}`,
+          });
+
+          return true;
+        } else {
+          throw new Error(data.error || "Failed to modify SL/TP");
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to modify SL/TP",
+          variant: "destructive",
+        });
+        return false;
+      }
+    },
+    [API_BASE, fetchOpenTrades, fetchOrders, isRealMode, toast]
+  );
+
   // Initial data fetch (only when in real mode)
   useEffect(() => {
     if (!isRealMode) {
@@ -616,26 +990,30 @@ export const useRealTrading = () => {
         portfolio: defaultPortfolio,
         openTrades: [],
         closedTrades: [],
+        activeOrders: [],
         settings: defaultSettings,
         recentSignals: [],
         isLoading: false,
         error: null,
         lastUpdated: null,
         updateCounter: 0,
+        pendingConfirmation: null,
       });
       return;
     }
 
     fetchBotStatus();
+    fetchPortfolioStatus(); // Fetch real balance from Binance
     fetchOpenTrades();
     fetchClosedTrades();
+    fetchOrders();
     fetchCurrentSettings();
 
     if (!aiSignalsFetchedRef.current) {
       aiSignalsFetchedRef.current = true;
       fetchAISignals();
     }
-     
+
   }, [isRealMode]);
 
   // WebSocket connection (same as paper trading but with real endpoints)
@@ -735,6 +1113,19 @@ export const useRealTrading = () => {
             }
             break;
 
+          // Order events (Phase 5)
+          case "order_placed":
+          case "order_filled":
+          case "order_partially_filled":
+            fetchOrdersRef.current();
+            fetchPortfolioStatusRef.current();
+            fetchOpenTradesRef.current();
+            break;
+
+          case "order_cancelled":
+            fetchOrdersRef.current();
+            break;
+
           default:
             break;
         }
@@ -778,11 +1169,20 @@ export const useRealTrading = () => {
     updateSettings,
     resetPortfolio,
 
+    // Order management (Phase 5)
+    placeOrder,
+    confirmOrder,
+    cancelOrder,
+    cancelAllOrders,
+    modifySlTp,
+    clearPendingConfirmation,
+
     // Manual refresh functions
     refreshData: fetchPortfolioStatus,
     refreshStatus: fetchBotStatus,
     refreshSettings: fetchCurrentSettings,
     refreshAISignals: fetchAISignals,
+    refreshOrders: fetchOrders,
     refreshTrades: useCallback(async () => {
       await fetchOpenTrades();
       await fetchClosedTrades();

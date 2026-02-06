@@ -1,5 +1,31 @@
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+/// Helper function to deserialize bool from various formats (string, bool, number)
+fn deserialize_bool_from_anything<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::Error;
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum BoolOrString {
+        Bool(bool),
+        String(String),
+        Number(i64),
+    }
+
+    match BoolOrString::deserialize(deserializer)? {
+        BoolOrString::Bool(b) => Ok(b),
+        BoolOrString::String(s) => match s.to_lowercase().as_str() {
+            "true" | "1" | "yes" => Ok(true),
+            "false" | "0" | "no" | "" => Ok(false),
+            _ => Err(D::Error::custom(format!("Invalid boolean value: {}", s))),
+        },
+        BoolOrString::Number(n) => Ok(n != 0),
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kline {
@@ -146,44 +172,122 @@ pub struct OrderBookEvent {
     pub asks: Vec<(String, String)>,
 }
 
+/// Futures order structure (for open orders query)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FuturesOrder {
+    #[serde(default)]
     pub symbol: String,
+    #[serde(default)]
     pub order_id: i64,
+    #[serde(default)]
     pub order_list_id: i64,
+    #[serde(default)]
     pub client_order_id: String,
+    #[serde(default)]
     pub price: String,
+    #[serde(default)]
     pub orig_qty: String,
+    #[serde(default)]
     pub executed_qty: String,
+    #[serde(default, rename = "cumQuoteQty")]
     pub cumulative_quote_qty: String,
+    #[serde(default)]
     pub status: String,
+    #[serde(default)]
     pub time_in_force: String,
+    #[serde(default, rename = "type")]
     pub r#type: String,
+    #[serde(default)]
     pub side: String,
+    #[serde(default)]
     pub stop_price: String,
+    #[serde(default)]
     pub iceberg_qty: String,
+    #[serde(default)]
     pub time: i64,
+    #[serde(default)]
     pub update_time: i64,
+    #[serde(default)]
     pub is_working: bool,
+    #[serde(default)]
     pub orig_quote_order_qty: String,
 }
 
+/// Response from placing a futures order
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FuturesPosition {
+#[serde(rename_all = "camelCase")]
+pub struct FuturesOrderResponse {
+    #[serde(default)]
     pub symbol: String,
-    pub position_amt: String,
-    pub entry_price: String,
-    pub mark_price: String,
-    pub unrealized_pnl: String,
-    pub liquidation_price: String,
-    pub leverage: String,
-    pub max_notional_value: String,
-    pub margin_type: String,
-    pub isolated_margin: String,
-    pub is_auto_add_margin: bool,
+    #[serde(default)]
+    pub order_id: i64,
+    #[serde(default)]
+    pub client_order_id: String,
+    #[serde(default)]
+    pub price: String,
+    #[serde(default)]
+    pub orig_qty: String,
+    #[serde(default)]
+    pub executed_qty: String,
+    #[serde(default, rename = "cumQuoteQty")]
+    pub cumulative_quote_qty: String,
+    #[serde(default, rename = "cumQty")]
+    pub cum_qty: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub time_in_force: String,
+    #[serde(default, rename = "type")]
+    pub order_type: String,
+    #[serde(default)]
+    pub side: String,
+    #[serde(default)]
+    pub stop_price: String,
+    #[serde(default)]
+    pub avg_price: String,
+    #[serde(default)]
     pub position_side: String,
+    #[serde(default)]
+    pub reduce_only: bool,
+    #[serde(default)]
+    pub close_position: bool,
+    #[serde(default)]
+    pub update_time: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FuturesPosition {
+    #[serde(default)]
+    pub symbol: String,
+    #[serde(default)]
+    pub position_amt: String,
+    #[serde(default)]
+    pub entry_price: String,
+    #[serde(default)]
+    pub mark_price: String,
+    #[serde(default, rename = "unRealizedProfit")]
+    pub unrealized_pnl: String,
+    #[serde(default)]
+    pub liquidation_price: String,
+    #[serde(default)]
+    pub leverage: String,
+    #[serde(default)]
+    pub max_notional_value: String,
+    #[serde(default)]
+    pub margin_type: String,
+    #[serde(default)]
+    pub isolated_margin: String,
+    #[serde(default, deserialize_with = "deserialize_bool_from_anything")]
+    pub is_auto_add_margin: bool,
+    #[serde(default)]
+    pub position_side: String,
+    #[serde(default)]
     pub notional: String,
+    #[serde(default)]
     pub isolated_wallet: String,
+    #[serde(default)]
     pub update_time: i64,
 }
 
@@ -601,6 +705,187 @@ pub struct CancelOrderResponse {
     #[serde(rename = "type")]
     pub order_type: String,
     pub side: String,
+}
+
+// ============================================================================
+// OCO ORDER TYPES (Phase 2: Advanced Order Types)
+// @spec:FR-REAL-010, FR-REAL-011
+// @ref:specs/02-design/2.3-api/API-RUST-CORE.md
+// ============================================================================
+
+/// OCO (One-Cancels-Other) Order Request
+/// Creates a pair of orders: limit order + stop-loss order
+/// When one fills, the other is automatically cancelled
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// OCO Order Request - New API format (2024+)
+/// For LONG positions (Sell OCO): Take profit ABOVE current price, Stop loss BELOW current price
+/// For SHORT positions (Buy OCO): Take profit BELOW current price, Stop loss ABOVE current price
+pub struct OcoOrderRequest {
+    pub symbol: String,
+    pub side: OrderSide,
+    /// Quantity for both orders
+    pub quantity: String,
+    /// Type for the order above current price (LIMIT_MAKER, STOP_LOSS, STOP_LOSS_LIMIT)
+    pub above_type: String,
+    /// Price for above order (take profit for LONG/sell)
+    pub above_price: Option<String>,
+    /// Type for the order below current price (LIMIT_MAKER, STOP_LOSS, STOP_LOSS_LIMIT)
+    pub below_type: String,
+    /// Stop trigger price for below order
+    pub below_stop_price: Option<String>,
+    /// Limit price for below order (for STOP_LOSS_LIMIT)
+    pub below_price: Option<String>,
+    /// Time in force for above order
+    pub above_time_in_force: Option<TimeInForce>,
+    /// Time in force for below order
+    pub below_time_in_force: Option<TimeInForce>,
+    /// Custom order ID for the entire OCO list
+    pub list_client_order_id: Option<String>,
+    /// Custom order ID for the above order
+    pub above_client_order_id: Option<String>,
+    /// Custom order ID for the below order
+    pub below_client_order_id: Option<String>,
+    /// Response type: ACK, RESULT, or FULL
+    pub new_order_resp_type: Option<String>,
+}
+
+impl OcoOrderRequest {
+    /// Create a new OCO order for LONG position protection (Sell OCO)
+    /// - Take profit: LIMIT_MAKER above current price
+    /// - Stop loss: STOP_LOSS_LIMIT below current price
+    pub fn new(
+        symbol: &str,
+        side: OrderSide,
+        quantity: &str,
+        take_profit_price: &str,
+        stop_loss_trigger: &str,
+        stop_loss_limit: &str,
+    ) -> Self {
+        Self {
+            symbol: symbol.to_uppercase(),
+            side,
+            quantity: quantity.to_string(),
+            // Above = Take Profit (LIMIT_MAKER - maker order that provides liquidity)
+            above_type: "LIMIT_MAKER".to_string(),
+            above_price: Some(take_profit_price.to_string()),
+            // Below = Stop Loss (STOP_LOSS_LIMIT - triggered when price drops)
+            below_type: "STOP_LOSS_LIMIT".to_string(),
+            below_stop_price: Some(stop_loss_trigger.to_string()),
+            below_price: Some(stop_loss_limit.to_string()),
+            above_time_in_force: None, // LIMIT_MAKER doesn't need TIF
+            below_time_in_force: Some(TimeInForce::Gtc),
+            list_client_order_id: None,
+            above_client_order_id: None,
+            below_client_order_id: None,
+            new_order_resp_type: Some("FULL".to_string()),
+        }
+    }
+
+    /// Create OCO for SHORT position (Buy OCO)
+    /// - Take profit: LIMIT_MAKER below current price
+    /// - Stop loss: STOP_LOSS_LIMIT above current price
+    pub fn new_short(
+        symbol: &str,
+        quantity: &str,
+        take_profit_price: &str,
+        stop_loss_trigger: &str,
+        stop_loss_limit: &str,
+    ) -> Self {
+        Self {
+            symbol: symbol.to_uppercase(),
+            side: OrderSide::Buy,
+            quantity: quantity.to_string(),
+            // For SHORT: Above = Stop Loss
+            above_type: "STOP_LOSS_LIMIT".to_string(),
+            above_price: Some(stop_loss_limit.to_string()),
+            // For SHORT: Below = Take Profit
+            below_type: "LIMIT_MAKER".to_string(),
+            below_stop_price: Some(stop_loss_trigger.to_string()),
+            below_price: Some(take_profit_price.to_string()),
+            above_time_in_force: Some(TimeInForce::Gtc),
+            below_time_in_force: None,
+            list_client_order_id: None,
+            above_client_order_id: None,
+            below_client_order_id: None,
+            new_order_resp_type: Some("FULL".to_string()),
+        }
+    }
+
+    /// Add custom order IDs for tracking
+    pub fn with_client_order_ids(
+        mut self,
+        list_id: &str,
+        above_id: &str,
+        below_id: &str,
+    ) -> Self {
+        self.list_client_order_id = Some(list_id.to_string());
+        self.above_client_order_id = Some(above_id.to_string());
+        self.below_client_order_id = Some(below_id.to_string());
+        self
+    }
+}
+
+/// OCO Order Response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OcoOrderResponse {
+    pub order_list_id: i64,
+    pub contingency_type: String,
+    pub list_status_type: String,
+    pub list_order_status: String,
+    pub list_client_order_id: String,
+    pub transaction_time: i64,
+    pub symbol: String,
+    pub orders: Vec<OcoOrderInfo>,
+    #[serde(default)]
+    pub order_reports: Vec<OcoOrderReport>,
+}
+
+/// Order info within OCO response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OcoOrderInfo {
+    pub symbol: String,
+    pub order_id: i64,
+    pub client_order_id: String,
+}
+
+/// Detailed order report within OCO response (when newOrderRespType=FULL)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OcoOrderReport {
+    pub symbol: String,
+    pub order_id: i64,
+    pub order_list_id: i64,
+    pub client_order_id: String,
+    pub transact_time: i64,
+    pub price: String,
+    pub orig_qty: String,
+    pub executed_qty: String,
+    #[serde(rename = "cummulativeQuoteQty")]
+    pub cumulative_quote_qty: String,
+    pub status: String,
+    pub time_in_force: String,
+    #[serde(rename = "type")]
+    pub order_type: String,
+    pub side: String,
+    #[serde(default)]
+    pub stop_price: String,
+}
+
+/// Cancel OCO Response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelOcoResponse {
+    pub order_list_id: i64,
+    pub contingency_type: String,
+    pub list_status_type: String,
+    pub list_order_status: String,
+    pub list_client_order_id: String,
+    pub transaction_time: i64,
+    pub symbol: String,
+    pub orders: Vec<OcoOrderInfo>,
+    pub order_reports: Vec<OcoOrderReport>,
 }
 
 // ============================================================================
@@ -1143,25 +1428,26 @@ mod tests {
 
     #[test]
     fn test_futures_order_deserialization() {
+        // Note: FuturesOrder uses camelCase (matches Binance API response)
         let json = r#"{
             "symbol": "BTCUSDT",
-            "order_id": 12345,
-            "order_list_id": -1,
-            "client_order_id": "test123",
+            "orderId": 12345,
+            "orderListId": -1,
+            "clientOrderId": "test123",
             "price": "34000.00",
-            "orig_qty": "0.01",
-            "executed_qty": "0.005",
-            "cumulative_quote_qty": "170.00",
+            "origQty": "0.01",
+            "executedQty": "0.005",
+            "cumQuoteQty": "170.00",
             "status": "PARTIALLY_FILLED",
-            "time_in_force": "GTC",
+            "timeInForce": "GTC",
             "type": "LIMIT",
             "side": "BUY",
-            "stop_price": "0.00",
-            "iceberg_qty": "0.00",
+            "stopPrice": "0.00",
+            "icebergQty": "0.00",
             "time": 1625097600000,
-            "update_time": 1625097610000,
-            "is_working": true,
-            "orig_quote_order_qty": "340.00"
+            "updateTime": 1625097610000,
+            "isWorking": true,
+            "origQuoteOrderQty": "340.00"
         }"#;
 
         let order: FuturesOrder = serde_json::from_str(json).unwrap();
@@ -1174,22 +1460,23 @@ mod tests {
 
     #[test]
     fn test_futures_position_deserialization() {
+        // Note: FuturesPosition uses camelCase (matches Binance API response)
         let json = r#"{
             "symbol": "BTCUSDT",
-            "position_amt": "0.01",
-            "entry_price": "34000.00",
-            "mark_price": "34100.00",
-            "unrealized_pnl": "1.00",
-            "liquidation_price": "30000.00",
+            "positionAmt": "0.01",
+            "entryPrice": "34000.00",
+            "markPrice": "34100.00",
+            "unRealizedProfit": "1.00",
+            "liquidationPrice": "30000.00",
             "leverage": "10",
-            "max_notional_value": "100000.00",
-            "margin_type": "isolated",
-            "isolated_margin": "340.00",
-            "is_auto_add_margin": false,
-            "position_side": "LONG",
+            "maxNotionalValue": "100000.00",
+            "marginType": "isolated",
+            "isolatedMargin": "340.00",
+            "isAutoAddMargin": "false",
+            "positionSide": "LONG",
             "notional": "341.00",
-            "isolated_wallet": "340.00",
-            "update_time": 1625097600000
+            "isolatedWallet": "340.00",
+            "updateTime": 1625097600000
         }"#;
 
         let position: FuturesPosition = serde_json::from_str(json).unwrap();

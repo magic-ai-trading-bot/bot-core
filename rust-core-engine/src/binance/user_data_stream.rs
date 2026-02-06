@@ -415,6 +415,8 @@ mod tests {
         BinanceConfig {
             api_key: "test_api_key".to_string(),
             secret_key: "test_secret_key".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://testnet.binance.vision".to_string(),
             ws_url: "wss://testnet.binance.vision/ws".to_string(),
             futures_base_url: "https://testnet.binancefuture.com".to_string(),

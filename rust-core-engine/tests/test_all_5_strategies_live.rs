@@ -34,6 +34,8 @@ async fn test_all_5_strategies_with_real_binance_data() {
     let config = BinanceConfig {
         api_key: "".to_string(),
         secret_key: "".to_string(),
+        futures_api_key: String::new(),
+        futures_secret_key: String::new(),
         testnet: false,
         base_url: "https://api.binance.com".to_string(),
         ws_url: "wss://stream.binance.com:9443".to_string(),

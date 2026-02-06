@@ -219,12 +219,12 @@ const Portfolio = () => {
   // Calculate real portfolio metrics from paper trading data
   const portfolioMetrics = useMemo(() => {
     const initialBalance = 10000; // Default initial balance
-    const currentBalance = portfolio.current_balance;
-    const equity = portfolio.equity;
-    const totalPnL = portfolio.total_pnl;
-    const totalPnLPercentage = portfolio.total_pnl_percentage;
-    const winRate = portfolio.win_rate;
-    const totalTrades = portfolio.total_trades;
+    const currentBalance = portfolio?.current_balance || initialBalance;
+    const equity = portfolio?.equity || initialBalance;
+    const totalPnL = portfolio?.total_pnl || 0;
+    const totalPnLPercentage = portfolio?.total_pnl_percentage || 0;
+    const winRate = portfolio?.win_rate || 0;
+    const totalTrades = portfolio?.total_trades || 0;
 
     return {
       currentBalance,

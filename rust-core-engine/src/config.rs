@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+use crate::real_trading::RealTradingConfig;
+
 // @spec:FR-TRADING-001 - Binance API Configuration
 // @ref:specs/01-requirements/1.1-functional-requirements/FR-TRADING.md
 
@@ -97,12 +99,25 @@ pub struct Config {
     pub trading: TradingConfig,
     pub database: DatabaseConfig,
     pub api: ApiConfig,
+    /// Real trading configuration (optional - enable with [real_trading] section)
+    #[serde(default)]
+    pub real_trading: Option<RealTradingConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinanceConfig {
+    /// Spot API key (testnet.binance.vision or api.binance.com)
     pub api_key: String,
+    /// Spot Secret key
     pub secret_key: String,
+    /// Futures API key (testnet.binancefuture.com or fapi.binance.com)
+    /// Falls back to api_key if not set
+    #[serde(default)]
+    pub futures_api_key: String,
+    /// Futures Secret key
+    /// Falls back to secret_key if not set
+    #[serde(default)]
+    pub futures_secret_key: String,
     pub testnet: bool,
     pub base_url: String,
     pub ws_url: String,
@@ -161,6 +176,8 @@ impl Default for Config {
             binance: BinanceConfig {
                 api_key: String::new(),
                 secret_key: String::new(),
+                futures_api_key: String::new(),
+                futures_secret_key: String::new(),
                 testnet: true,
                 base_url: binance_urls::TESTNET_BASE_URL.to_string(),
                 ws_url: binance_urls::TESTNET_WS_URL.to_string(),
@@ -210,6 +227,7 @@ impl Default for Config {
                 cors_origins: vec!["*".to_string()],
                 enable_metrics: true,
             },
+            real_trading: None,
         }
     }
 }
@@ -241,6 +259,7 @@ impl Config {
 
         // Use testnet-specific keys if available and testnet mode is enabled
         if use_testnet {
+            // Spot testnet keys
             if let Ok(testnet_api_key) = std::env::var("BINANCE_TESTNET_API_KEY") {
                 config.binance.api_key = testnet_api_key;
             } else if let Ok(api_key) = std::env::var("BINANCE_API_KEY") {
@@ -252,6 +271,19 @@ impl Config {
             } else if let Ok(secret_key) = std::env::var("BINANCE_SECRET_KEY") {
                 config.binance.secret_key = secret_key;
             }
+
+            // Futures testnet keys (separate from Spot testnet)
+            if let Ok(futures_api_key) = std::env::var("BINANCE_FUTURES_TESTNET_API_KEY") {
+                config.binance.futures_api_key = futures_api_key;
+            } else if let Ok(futures_api_key) = std::env::var("BINANCE_FUTURES_API_KEY") {
+                config.binance.futures_api_key = futures_api_key;
+            }
+
+            if let Ok(futures_secret_key) = std::env::var("BINANCE_FUTURES_TESTNET_SECRET_KEY") {
+                config.binance.futures_secret_key = futures_secret_key;
+            } else if let Ok(futures_secret_key) = std::env::var("BINANCE_FUTURES_SECRET_KEY") {
+                config.binance.futures_secret_key = futures_secret_key;
+            }
         } else {
             // Mainnet: use regular keys
             if let Ok(api_key) = std::env::var("BINANCE_API_KEY") {
@@ -260,6 +292,15 @@ impl Config {
 
             if let Ok(secret_key) = std::env::var("BINANCE_SECRET_KEY") {
                 config.binance.secret_key = secret_key;
+            }
+
+            // Futures mainnet keys (fall back to spot keys if not set)
+            if let Ok(futures_api_key) = std::env::var("BINANCE_FUTURES_API_KEY") {
+                config.binance.futures_api_key = futures_api_key;
+            }
+
+            if let Ok(futures_secret_key) = std::env::var("BINANCE_FUTURES_SECRET_KEY") {
+                config.binance.futures_secret_key = futures_secret_key;
             }
         }
 

@@ -450,6 +450,8 @@ async fn test_connection(api: Arc<SettingsApi>) -> Result<impl Reply, Rejection>
     let config = BinanceConfig {
         api_key: api_key.clone(),
         secret_key: api_secret.clone(),
+        futures_api_key: String::new(),
+        futures_secret_key: String::new(),
         testnet: use_testnet,
         base_url: if use_testnet {
             "https://testnet.binancefuture.com".to_string()
