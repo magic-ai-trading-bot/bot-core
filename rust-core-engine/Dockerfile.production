@@ -34,14 +34,19 @@ RUN apk add --no-cache \
     ca-certificates \
     libressl
 
+# SECURITY: Create non-root user for running the application
+RUN addgroup -g 1001 -S appuser && \
+    adduser -u 1001 -S appuser -G appuser
+
 WORKDIR /app
 
 # Copy the binary from builder stage
 COPY --from=builder /app/target/release/binance-trading-bot /app/binance-trading-bot
 COPY --from=builder /app/config.toml /app/config.toml
 
-# Create directories
-RUN mkdir -p /app/data /app/logs
+# Create directories and set ownership
+RUN mkdir -p /app/data /app/logs && \
+    chown -R appuser:appuser /app
 
 # Set permissions
 RUN chmod +x /app/binance-trading-bot
@@ -52,6 +57,9 @@ EXPOSE 8080
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# SECURITY: Run as non-root user
+USER appuser
 
 # Run the binary
 CMD ["./binance-trading-bot"] 

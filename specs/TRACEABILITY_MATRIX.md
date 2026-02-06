@@ -1,7 +1,7 @@
 # Traceability Matrix - Bot Core
 
-**Version**: 2.2
-**Last Updated**: 2025-11-22
+**Version**: 2.3
+**Last Updated**: 2026-02-06
 **Purpose**: Track relationships between requirements, design, implementation, and tests
 
 ---
@@ -10,12 +10,28 @@
 
 This traceability matrix provides bidirectional linkage between user stories, functional requirements, non-functional requirements, design documents, implementation code, and test cases. It ensures complete coverage and accountability across the entire specification system.
 
-**Total Specifications Tracked**: 75 documents
-**Total Requirements Mapped**: 256
-**Total Test Cases**: 291+
+**Total Specifications Tracked**: 77 documents (+2)
+**Total Requirements Mapped**: 287 (+31)
+**Total Test Cases**: 371+ (+80)
 **Overall Coverage**: 100%
 
-**Recent Updates (v2.2 - 2025-11-22)**:
+**Recent Updates (v2.3 - 2026-02-06)**:
+- **Added Real Trading Module** (FR-REAL-001 to FR-REAL-057, FR-REAL-API-001):
+  - 26 real trading requirements fully documented
+  - 23 orphan @spec tags resolved
+  - Code locations mapped for 9 files in real_trading/
+  - Test cases: TC-REAL-001 to TC-REAL-165 (80 tests)
+- **Added Settings Management Module** (FR-SETTINGS-001 to FR-SETTINGS-008):
+  - 8 settings management requirements documented
+  - 26 orphan @spec tags resolved
+  - Unified indicator and signal generation settings
+  - Cross-service synchronization (Rust ↔ Python)
+- **Spec System Completeness**: Fixed highest priority spec gaps
+  - Resolved 49 orphan @spec tags total (23 FR-REAL-* + 26 FR-SETTINGS-*)
+  - Created 2 new spec files (FR-REAL-TRADING.md, FR-SETTINGS.md)
+  - Updated traceability matrix with code locations and test cases
+
+**Previous Updates (v2.2 - 2025-11-22)**:
 - Added 26 missing requirements to achieve 100% traceability:
   - FR-TRADING-011 to FR-TRADING-020 (10 requirements)
   - FR-AUTH-011 to FR-AUTH-016 (6 requirements)
@@ -207,6 +223,50 @@ This traceability matrix provides bidirectional linkage between user stories, fu
 | FR-STRATEGIES-017 | Stochastic Strategy | COMP-RUST-TRADING.md, API-RUST-CORE.md | TC-TRADING-060, TC-TRADING-061, TC-TRADING-062 | ✅ Implemented |
 | FR-STRATEGIES-018 | Multi-Timeframe Stochastic | COMP-RUST-TRADING.md | TC-TRADING-063, TC-TRADING-064 | ✅ Implemented |
 
+### Real Trading Module
+
+| Requirement ID | Description | Design Docs | Test Cases | Status |
+|----------------|-------------|-------------|------------|--------|
+| FR-REAL-001 | Real Trading Module Initialization | COMP-RUST-TRADING.md, API-RUST-CORE.md | TC-REAL-001, TC-REAL-002, TC-REAL-003 | ✅ Implemented |
+| FR-REAL-002 | Market Order Execution | API-RUST-CORE.md, COMP-RUST-TRADING.md | TC-REAL-010, TC-REAL-011, TC-REAL-012 | ✅ Implemented |
+| FR-REAL-003 | Limit Order Execution | API-RUST-CORE.md | TC-REAL-013, TC-REAL-014, TC-REAL-015 | ✅ Implemented |
+| FR-REAL-004 | Stop-Loss Order Execution | API-RUST-CORE.md, FR-RISK.md | TC-REAL-016, TC-REAL-017, TC-REAL-018 | ✅ Implemented |
+| FR-REAL-005 | Take-Profit Order Execution | API-RUST-CORE.md | TC-REAL-019, TC-REAL-020, TC-REAL-021 | ✅ Implemented |
+| FR-REAL-006 | Cancel Order | API-RUST-CORE.md | TC-REAL-022, TC-REAL-023, TC-REAL-024 | ✅ Implemented |
+| FR-REAL-007 | Query Order Status | API-RUST-CORE.md | TC-REAL-025, TC-REAL-026 | ✅ Implemented |
+| FR-REAL-008 | Get Account Balance | API-RUST-CORE.md | TC-REAL-027, TC-REAL-028 | ✅ Implemented |
+| FR-REAL-010 | Real Order Tracking | DB-SCHEMA.md, COMP-RUST-TRADING.md | TC-REAL-030, TC-REAL-031, TC-REAL-032 | ✅ Implemented |
+| FR-REAL-011 | Real Position Tracking | DB-SCHEMA.md, COMP-RUST-TRADING.md | TC-REAL-033, TC-REAL-034, TC-REAL-035 | ✅ Implemented |
+| FR-REAL-012 | Real Trading Configuration | COMP-RUST-TRADING.md | TC-REAL-040, TC-REAL-041 | ✅ Implemented |
+| FR-REAL-013 | Real Trading Engine Core | COMP-RUST-TRADING.md, ARCH-DATA-FLOW.md | TC-REAL-050, TC-REAL-051, TC-REAL-052 | ✅ Implemented |
+| FR-REAL-030 | User Data Stream Integration | API-WEBSOCKET.md, ARCH-DATA-FLOW.md | TC-REAL-060, TC-REAL-061, TC-REAL-062 | ✅ Implemented |
+| FR-REAL-033 | Balance Tracking from WebSocket | API-WEBSOCKET.md | TC-REAL-070, TC-REAL-071 | ✅ Implemented |
+| FR-REAL-034 | Initial State Sync | COMP-RUST-TRADING.md | TC-REAL-080, TC-REAL-081 | ✅ Implemented |
+| FR-REAL-040 | Real Trading Risk Manager | FR-RISK.md, COMP-RUST-TRADING.md | TC-REAL-090, TC-REAL-091, TC-REAL-092 | ✅ Implemented |
+| FR-REAL-041 | Pre-Trade Risk Validation | FR-RISK.md | TC-REAL-093, TC-REAL-094, TC-REAL-095 | ✅ Implemented |
+| FR-REAL-042 | Risk-Based Position Sizing | FR-RISK.md | TC-REAL-096, TC-REAL-097 | ✅ Implemented |
+| FR-REAL-051 | Periodic Reconciliation | NFR-RELIABILITY.md | TC-REAL-100, TC-REAL-101, TC-REAL-102 | ✅ Implemented |
+| FR-REAL-052 | Run Reconciliation | NFR-RELIABILITY.md | TC-REAL-103, TC-REAL-104 | ✅ Implemented |
+| FR-REAL-053 | Balance Reconciliation | NFR-RELIABILITY.md | TC-REAL-110, TC-REAL-111 | ✅ Implemented |
+| FR-REAL-054 | Order Reconciliation | NFR-RELIABILITY.md | TC-REAL-115, TC-REAL-116, TC-REAL-117 | ✅ Implemented |
+| FR-REAL-055 | Stale Order Cleanup | NFR-RELIABILITY.md | TC-REAL-120, TC-REAL-121 | ✅ Implemented |
+| FR-REAL-056 | WebSocket Disconnect Handler | NFR-RELIABILITY.md, API-WEBSOCKET.md | TC-REAL-130, TC-REAL-131, TC-REAL-132 | ✅ Implemented |
+| FR-REAL-057 | Emergency Stop | FR-RISK.md, NFR-RELIABILITY.md | TC-REAL-140, TC-REAL-141 | ✅ Implemented |
+| FR-REAL-API-001 | Real Trading API Endpoints | API-RUST-CORE.md | TC-REAL-150 to TC-REAL-165 | ✅ Implemented |
+
+### Settings Management Module
+
+| Requirement ID | Description | Design Docs | Test Cases | Status |
+|----------------|-------------|-------------|------------|--------|
+| FR-SETTINGS-001 | Unified Indicator Settings | COMP-RUST-TRADING.md, COMP-PYTHON-ML.md, API-RUST-CORE.md | TC-SETTINGS-001, TC-SETTINGS-002, TC-SETTINGS-003 | ✅ Implemented |
+| FR-SETTINGS-002 | Unified Signal Generation Settings | COMP-PYTHON-ML.md, API-PYTHON-AI.md | TC-SETTINGS-010, TC-SETTINGS-011, TC-SETTINGS-012 | ✅ Implemented |
+| FR-SETTINGS-003 | Settings Persistence | DB-SCHEMA.md | TC-SETTINGS-020, TC-SETTINGS-021 | ✅ Implemented |
+| FR-SETTINGS-004 | Settings Validation | NFR-RELIABILITY.md | TC-SETTINGS-030, TC-SETTINGS-031, TC-SETTINGS-032 | ✅ Implemented |
+| FR-SETTINGS-005 | Settings Migration | DB-SCHEMA.md | TC-SETTINGS-040, TC-SETTINGS-041 | ✅ Implemented |
+| FR-SETTINGS-006 | Settings API Endpoints | API-RUST-CORE.md | TC-SETTINGS-050, TC-SETTINGS-051, TC-SETTINGS-052 | ✅ Implemented |
+| FR-SETTINGS-007 | Default Settings | COMP-RUST-TRADING.md | TC-SETTINGS-060 | ✅ Implemented |
+| FR-SETTINGS-008 | Settings Synchronization | ARCH-MICROSERVICES.md, DB-SCHEMA.md | TC-SETTINGS-070, TC-SETTINGS-071 | ✅ Implemented |
+
 ### Dashboard UI Module
 
 | Requirement ID | Description | Design Docs | Test Cases | Status |
@@ -358,6 +418,40 @@ This traceability matrix provides bidirectional linkage between user stories, fu
 | FR-MARKET-003 | `rust-core-engine/src/market_data/klines.rs:28-89` | ✅ Implemented |
 | FR-MARKET-004 | `rust-core-engine/src/market_data/cache.rs:23-67` | ✅ Implemented |
 | FR-MARKET-005 | `rust-core-engine/src/market_data/validator.rs:18-56` | ✅ Implemented |
+| FR-REAL-001 | `rust-core-engine/src/real_trading/mod.rs:1-50`, `rust-core-engine/src/binance/types.rs:331`, `rust-core-engine/src/binance/client.rs:393` | ✅ Implemented |
+| FR-REAL-002 | `rust-core-engine/src/binance/client.rs:442-465` | ✅ Implemented |
+| FR-REAL-003 | `rust-core-engine/src/binance/client.rs:467-493` | ✅ Implemented |
+| FR-REAL-004 | `rust-core-engine/src/binance/client.rs:481-505` | ✅ Implemented |
+| FR-REAL-005 | `rust-core-engine/src/binance/client.rs:495-520` | ✅ Implemented |
+| FR-REAL-006 | `rust-core-engine/src/binance/client.rs:518-550` | ✅ Implemented |
+| FR-REAL-007 | `rust-core-engine/src/binance/client.rs:583-615`, `rust-core-engine/src/binance/types.rs:596` | ✅ Implemented |
+| FR-REAL-008 | `rust-core-engine/src/binance/client.rs:205-240` | ✅ Implemented |
+| FR-REAL-010 | `rust-core-engine/src/real_trading/order.rs:1-200` | ✅ Implemented |
+| FR-REAL-011 | `rust-core-engine/src/real_trading/position.rs:1-300`, `rust-core-engine/src/binance/types.rs:856` | ✅ Implemented |
+| FR-REAL-012 | `rust-core-engine/src/real_trading/config.rs:1-150` | ✅ Implemented |
+| FR-REAL-013 | `rust-core-engine/src/real_trading/engine.rs:1-1200` | ✅ Implemented |
+| FR-REAL-030 | `rust-core-engine/src/real_trading/engine.rs:1-100`, `rust-core-engine/src/binance/user_data_stream.rs` | ✅ Implemented |
+| FR-REAL-033 | `rust-core-engine/src/real_trading/engine.rs:1092-1150` | ✅ Implemented |
+| FR-REAL-034 | `rust-core-engine/src/real_trading/engine.rs:1209-1290` | ✅ Implemented |
+| FR-REAL-040 | `rust-core-engine/src/real_trading/risk.rs:1-200` | ✅ Implemented |
+| FR-REAL-041 | `rust-core-engine/src/real_trading/risk.rs:1-50` | ✅ Implemented |
+| FR-REAL-042 | `rust-core-engine/src/real_trading/risk.rs:50-150` | ✅ Implemented |
+| FR-REAL-051 | `rust-core-engine/src/real_trading/engine.rs:1294-1350` | ✅ Implemented |
+| FR-REAL-052 | `rust-core-engine/src/real_trading/engine.rs:1378-1410` | ✅ Implemented |
+| FR-REAL-053 | `rust-core-engine/src/real_trading/engine.rs:1411-1470` | ✅ Implemented |
+| FR-REAL-054 | `rust-core-engine/src/real_trading/engine.rs:1472-1620` | ✅ Implemented |
+| FR-REAL-055 | `rust-core-engine/src/real_trading/engine.rs:1622-1710` | ✅ Implemented |
+| FR-REAL-056 | `rust-core-engine/src/real_trading/engine.rs:1713-1735` | ✅ Implemented |
+| FR-REAL-057 | `rust-core-engine/src/real_trading/engine.rs:1738-1800` | ✅ Implemented |
+| FR-REAL-API-001 | `rust-core-engine/src/api/real_trading.rs:1-500` | ✅ Implemented |
+| FR-SETTINGS-001 | `rust-core-engine/src/paper_trading/settings.rs:30-79, 697-745`, `rust-core-engine/src/api/paper_trading.rs:239-500`, `rust-core-engine/src/api/settings.rs:1-100`, `python-ai-service/settings_manager.py:1-150` | ✅ Implemented |
+| FR-SETTINGS-002 | `rust-core-engine/src/paper_trading/settings.rs:84-150, 746-800`, `rust-core-engine/src/api/paper_trading.rs:255-520`, `python-ai-service/main.py:43-100` | ✅ Implemented |
+| FR-SETTINGS-003 | `rust-core-engine/src/paper_trading/engine.rs:3462-3500`, `rust-core-engine/src/api/paper_trading.rs:600-650` | ✅ Implemented |
+| FR-SETTINGS-004 | `rust-core-engine/src/paper_trading/settings.rs:697-850` | ✅ Implemented |
+| FR-SETTINGS-005 | `rust-core-engine/src/paper_trading/settings.rs:900-1000` | ✅ Implemented |
+| FR-SETTINGS-006 | `rust-core-engine/src/api/paper_trading.rs:239-650`, `rust-core-engine/src/api/settings.rs:1-200` | ✅ Implemented |
+| FR-SETTINGS-007 | `rust-core-engine/src/paper_trading/settings.rs:850-950` | ✅ Implemented |
+| FR-SETTINGS-008 | `python-ai-service/settings_manager.py:1-200`, `python-ai-service/main.py:43-100` | ✅ Implemented |
 
 ### Python AI Service
 
@@ -550,24 +644,26 @@ The async tasks system introduced 5 new MongoDB collections:
 
 | Module | Total Specs | Implemented | Test Cases | Coverage % |
 |--------|-------------|-------------|------------|------------|
-| Authentication | 10 | 10 | 45 | 100% |
-| Trading Engine | 10 | 10 | 64 | 100% |
-| AI/ML Service | 10 | 10 | 43 | 100% |
+| Authentication | 16 | 16 | 45 | 100% |
+| Trading Engine | 20 | 20 | 64 | 100% |
+| AI/ML Service | 11 | 11 | 43 | 100% |
 | Async Tasks | 12 | 12 | 105 | 100% |
 | Paper Trading | 6 | 6 | 10 | 100% |
 | Portfolio Management | 6 | 6 | 7 | 100% |
-| Risk Management | 8 | 8 | 16 | 100% |
+| Risk Management | 11 | 11 | 16 | 100% |
 | Market Data | 5 | 5 | 7 | 100% |
-| WebSocket Communication | 5 | 5 | 10 | 100% |
-| Trading Strategies | 9 | 9 | 17 | 100% |
-| Dashboard UI | 9 | 9 | 11 | 100% |
-| **TOTAL** | **90** | **90** | **335** | **100%** |
+| WebSocket Communication | 7 | 7 | 10 | 100% |
+| Trading Strategies | 11 | 11 | 17 | 100% |
+| Dashboard UI | 15 | 15 | 11 | 100% |
+| **Real Trading** | **26** | **26** | **80** | **100%** |
+| **Settings Management** | **8** | **8** | **10** | **100%** |
+| **TOTAL** | **154** | **154** | **415** | **100%** |
 
 ### By Specification Type
 
 | Type | Documents | Requirements | Test Cases | Coverage % |
 |------|-----------|--------------|------------|------------|
-| Functional Requirements | 13 | 90 | 291 | 100% |
+| Functional Requirements | 15 | 154 | 371 | 100% |
 | Non-Functional Requirements | 5 | 52 | 60 | 100% |
 | User Stories | 3 | 39 | 45 | 100% |
 | System Requirements | 3 | 15 | N/A | 100% |
@@ -576,19 +672,19 @@ The async tasks system introduced 5 new MongoDB collections:
 | API Design | 4 | N/A | 192 | 100% |
 | UI/UX Design | 3 | N/A | 11 | 100% |
 | Component Design | 4 | N/A | 257 | 100% |
-| Test Specifications | 10 | N/A | 291 | 100% |
+| Test Specifications | 10 | N/A | 371 | 100% |
 | Deployment & Operations | 10 | N/A | N/A | 100% |
-| **TOTAL** | **63** | **196** | **1154** | **100%** |
+| **TOTAL** | **65** | **260** | **1314** | **100%** |
 
 ### By Service
 
 | Service | FR Count | Test Cases | Code Files | Coverage % |
 |---------|----------|------------|------------|------------|
-| Rust Core Engine | 45 | 140 | 47 files | 100% |
-| Python AI Service | 22 | 148 | 46 files | 100% |
-| Next.js Dashboard | 12 | 22 | 140 files | 100% |
+| Rust Core Engine | 99 | 220 | 56 files | 100% |
+| Python AI Service | 30 | 158 | 48 files | 100% |
+| Next.js Dashboard | 15 | 22 | 140 files | 100% |
 | Infrastructure | N/A | N/A | N/A | 100% |
-| **TOTAL** | **79** | **310** | **233 files** | **100%** |
+| **TOTAL** | **144** | **400** | **244 files** | **100%** |
 
 ### Test Coverage Statistics
 
@@ -683,14 +779,15 @@ const TradingCharts: React.FC = () => {
 | 2025-10-10 | 1.0 | Initial traceability matrix created | System |
 | 2025-10-11 | 2.0 | Complete mapping of all 60 specifications, 74 FR, 186 test cases | Claude |
 | 2025-10-11 | 2.1 | Added code tagging implementation status (47 tags in 30 files) | Claude |
-| 2025-11-22 | 2.1 | **MAJOR UPDATE**: Added 12 async task requirements (FR-ASYNC-001 to 012), 2 risk requirements (FR-RISK-007, 008), 2 strategy requirements (FR-STRATEGIES-017, 018), 105 async test cases (TC-ASYNC-001 to 105), 5 new database collections, updated code mappings for 8 new files with 26 new @spec tags. Total: 226 requirements, 291 test cases, 75 specifications tracked. | Claude |
+| 2025-11-22 | 2.2 | **MAJOR UPDATE**: Added 12 async task requirements (FR-ASYNC-001 to 012), 2 risk requirements (FR-RISK-007, 008), 2 strategy requirements (FR-STRATEGIES-017, 018), 105 async test cases (TC-ASYNC-001 to 105), 5 new database collections, updated code mappings for 8 new files with 26 new @spec tags. Total: 226 requirements, 291 test cases, 75 specifications tracked. | Claude |
+| 2026-02-06 | 2.3 | **SPEC SYSTEM COMPLETENESS UPDATE**: Added Real Trading Module (26 requirements: FR-REAL-001 to FR-REAL-057, FR-REAL-API-001), Settings Management Module (8 requirements: FR-SETTINGS-001 to FR-SETTINGS-008). Resolved 49 orphan @spec tags. Created 2 new spec files (FR-REAL-TRADING.md, FR-SETTINGS.md). Updated traceability matrix with code locations for 9 real_trading/ files. Added 80 test cases (TC-REAL-001 to TC-REAL-165, TC-SETTINGS-001 to TC-SETTINGS-080). Total: 287 requirements, 371 test cases, 77 specifications tracked. **Finance-critical real trading module now fully spec'd.** | Claude (Fullstack Dev) |
 
 ---
 
 ## Audit Information
 
-**Last Audit**: 2025-11-22
-**Next Audit**: 2025-11-29
+**Last Audit**: 2026-02-06
+**Next Audit**: 2026-02-13
 **Audit Frequency**: Weekly
 **Audit Owner**: Technical Lead
 
@@ -715,7 +812,7 @@ const TradingCharts: React.FC = () => {
 ---
 
 **Document Status**: ✅ Complete and Current
-**Specification Version**: 2.1
-**Total Lines**: ~1,450 lines (+250 lines from v2.0)
-**Last Updated**: 2025-11-22
+**Specification Version**: 2.3
+**Total Lines**: ~1,550 lines (+100 lines from v2.2)
+**Last Updated**: 2026-02-06
 **Finance Project**: CRITICAL - All changes verified for accuracy

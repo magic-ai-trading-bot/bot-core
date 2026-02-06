@@ -1,13 +1,14 @@
 # Binance Trading Bot Configuration
 # Copy this file to config.toml and customize for your needs
+# IMPORTANT: Never commit config.toml with real API keys!
 
 [binance]
-# Your Binance API credentials
-# Get these from https://www.binance.com/en/support/faq/360002502072
-api_key = "your_binance_api_key_here"
-secret_key = "your_binance_secret_key_here"
+# Binance API credentials - SET VIA ENVIRONMENT VARIABLES
+# Override with: BINANCE_API_KEY and BINANCE_SECRET_KEY env vars
+api_key = "${BINANCE_API_KEY}"
+secret_key = "${BINANCE_SECRET_KEY}"
 
-# Use testnet for safe testing (recommended)
+# Use testnet for safe testing (no real money involved)
 testnet = true
 
 # For testnet, use these URLs:
@@ -16,76 +17,99 @@ ws_url = "wss://stream.testnet.binance.vision"
 futures_base_url = "https://testnet.binancefuture.com"
 futures_ws_url = "wss://stream.binancefuture.com/ws"
 
-# For mainnet (live trading), use these URLs:
-# testnet = false
-# base_url = "https://api.binance.com"
-# ws_url = "wss://stream.binance.com:9443"
-# futures_base_url = "https://fapi.binance.com"
-# futures_ws_url = "wss://fstream.binance.com"
-
 [market_data]
-# Cryptocurrency symbols to monitor
-symbols = ["BTCUSDT", "ETHUSDT", "ADAUSDT", "DOTUSDT", "LINKUSDT"]
-
-# Timeframes to track simultaneously (collect data for multiple timeframes)
-# UI allows selecting which timeframe to use for trading signals
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
 timeframes = ["1m", "3m", "5m", "15m", "30m", "1h", "4h", "1d"]
-
-# Number of historical candles to fetch per timeframe
-kline_limit = 200
-
-# How often to update data (milliseconds)
-update_interval_ms = 1000
-
-# WebSocket reconnection settings
-reconnect_interval_ms = 1000
-max_reconnect_attempts = 10
-
-# Cache settings
-cache_size = 1000
-
-# Python AI service URL for market analysis
-python_ai_service_url = "http://localhost:8000"
+kline_limit = 300
+update_interval_ms = 100
+reconnect_interval_ms = 500
+max_reconnect_attempts = 5
+cache_size = 500
+python_ai_service_url = "http://python-ai-service-dev:8000"
 
 [trading]
-# IMPORTANT: Set to true only when you're ready for live trading
 enabled = false
-
-# Maximum number of concurrent positions
-max_positions = 5
-
-# Default position size (in base currency)
+max_positions = 3
 default_quantity = 0.01
-
-# Risk management settings
-risk_percentage = 2.0          # Maximum risk per trade (% of account)
-stop_loss_percentage = 2.0     # Default stop loss distance (%)
-take_profit_percentage = 4.0   # Default take profit target (%)
-
-# Order timeout (seconds)
-order_timeout_seconds = 30
-
-# How often to check position status (seconds)
-position_check_interval_seconds = 5
-
-# Futures trading settings
-leverage = 1                   # Trading leverage (1-125)
-margin_type = "CROSSED"        # CROSSED or ISOLATED
+risk_percentage = 2.0
+stop_loss_percentage = 2.0
+take_profit_percentage = 4.0
+order_timeout_seconds = 15
+position_check_interval_seconds = 10
+leverage = 1
+margin_type = "CROSSED"
 
 [database]
-# MongoDB database for storing trade history and analysis results
-url = "mongodb://botuser:defaultpassword@localhost:27017/bot_core?authSource=admin"
+# IMPORTANT: Set via DATABASE_URL environment variable
+url = "${DATABASE_URL}"
 database_name = "bot_core"
 max_connections = 10
 enable_logging = false
 
 [api]
-# HTTP API server settings for dashboard access
 host = "0.0.0.0"
 port = 8080
+# IMPORTANT: Set specific origins in production via CORS_ALLOWED_ORIGINS env var
+cors_origins = ["http://localhost:3000", "http://localhost:5173"]
+enable_metrics = true
 
-# CORS settings for web dashboard
-cors_origins = ["*"]
+[strategies]
+execution_mode = "consensus"
+min_confidence = 0.6
 
-# Enable metrics collection
-enable_metrics = true 
+[strategies.rsi]
+enabled = true
+weight = 1.0
+period = 10
+oversold_threshold = 25.0
+overbought_threshold = 75.0
+extreme_oversold = 15.0
+extreme_overbought = 85.0
+
+[strategies.macd]
+enabled = true
+weight = 1.0
+fast_period = 10
+slow_period = 22
+signal_period = 8
+
+[strategies.bollinger]
+enabled = true
+weight = 1.0
+period = 15
+std_dev_multiplier = 2.5
+
+[strategies.volume]
+enabled = true
+weight = 1.0
+volume_spike_threshold = 1.8
+volume_ma_period = 15
+min_volume_ratio = 0.5
+
+[strategies.stochastic]
+enabled = true
+weight = 1.0
+k_period = 10
+d_period = 2
+oversold_threshold = 15.0
+overbought_threshold = 85.0
+extreme_oversold = 10.0
+extreme_overbought = 90.0
+
+[trend_filter]
+enabled = true
+use_ml = true
+ml_service_url = "http://python-ai-service-dev:8000"
+ml_timeout_ms = 2000
+ml_min_confidence = 0.65
+ml_fallback_on_error = true
+block_counter_trend = true
+ml_weight = 0.4
+mtf_weight = 0.6
+
+[trend_filter.multi_timeframe]
+ema_period = 200
+trend_threshold = 0.01
+min_alignment_score = 0.6
+require_daily_alignment = true
+require_4h_alignment = true

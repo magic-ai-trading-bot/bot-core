@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import logger from '@/utils/logger';
 
 interface PriceData {
   symbol: string;
@@ -87,7 +88,7 @@ export function LivePriceTicker() {
         }
       } catch (_error) {
          
-        console.error('Error parsing price update:', error);
+        logger.error('Error parsing price update:', error);
       }
     }
   }, [lastMessage]);

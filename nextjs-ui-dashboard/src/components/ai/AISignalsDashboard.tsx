@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PremiumButton } from "@/styles/luxury-design-system";
@@ -20,75 +21,79 @@ export function AISignalsDashboard() {
   const { state: aiState, clearError } = useAIAnalysisContext();
   const { state: wsState } = useWebSocketContext();
 
-  // Combine signals from both AI analysis and WebSocket
-  const allSignalsRaw = [
-    ...aiState.signals.map((s) => ({ ...s, source: "api" })),
-    ...wsState.aiSignals.map((s) => ({
-      ...s,
-      source: "websocket",
-      // Use reasoning from WebSocket if available, otherwise generate a meaningful default
-      reasoning: s.reasoning ||
-        `Real-time ${s.model_type} analysis for ${s.symbol} on ${s.timeframe} timeframe`,
-      // Use strategy_scores from WebSocket if available
-      strategy_scores: s.strategy_scores || {},
-      market_analysis: {
-        trend_direction:
-          s.signal === "long"
-            ? "Bullish"
-            : s.signal === "short"
-            ? "Bearish"
-            : "Sideways",
-        trend_strength: s.confidence,
-        support_levels: [],
-        resistance_levels: [],
-        volatility_level: "Medium",
-        volume_analysis: "Real-time analysis",
-      },
-      risk_assessment: {
-        overall_risk: "Medium",
-        technical_risk: 0.5,
-        market_risk: 0.5,
-        recommended_position_size: 0.02,
-        stop_loss_suggestion: null,
-        take_profit_suggestion: null,
-      },
-    })),
-  ];
+  // Memoize combined and processed signals to avoid expensive recalculation on every render
+  const allSignals = useMemo(() => {
+    // Combine signals from both AI analysis and WebSocket
+    const allSignalsRaw = [
+      ...aiState.signals.map((s) => ({ ...s, source: "api" })),
+      ...wsState.aiSignals.map((s) => ({
+        ...s,
+        source: "websocket",
+        // Use reasoning from WebSocket if available, otherwise generate a meaningful default
+        reasoning: s.reasoning ||
+          `Real-time ${s.model_type} analysis for ${s.symbol} on ${s.timeframe} timeframe`,
+        // Use strategy_scores from WebSocket if available
+        strategy_scores: s.strategy_scores || {},
+        market_analysis: {
+          trend_direction:
+            s.signal === "long"
+              ? "Bullish"
+              : s.signal === "short"
+              ? "Bearish"
+              : "Sideways",
+          trend_strength: s.confidence,
+          support_levels: [],
+          resistance_levels: [],
+          volatility_level: "Medium",
+          volume_analysis: "Real-time analysis",
+        },
+        risk_assessment: {
+          overall_risk: "Medium",
+          technical_risk: 0.5,
+          market_risk: 0.5,
+          recommended_position_size: 0.02,
+          stop_loss_suggestion: null,
+          take_profit_suggestion: null,
+        },
+      })),
+    ];
 
-  // Normalize and sort signals by timestamp (newest first)
-  const normalizedSignals = allSignalsRaw
-    .map((signal) => {
-      const dateObj = new Date(signal.timestamp);
-      const isValidDate = !isNaN(dateObj.getTime());
+    // Normalize and sort signals by timestamp (newest first)
+    const normalizedSignals = allSignalsRaw
+      .map((signal) => {
+        const dateObj = new Date(signal.timestamp);
+        const isValidDate = !isNaN(dateObj.getTime());
 
-      return {
-        ...signal,
-        symbol: (signal.symbol || "unknown").toUpperCase(),
-        timestamp:
-          typeof signal.timestamp === "string" && isValidDate
-            ? signal.timestamp
-            : isValidDate
-            ? dateObj.toISOString()
-            : new Date().toISOString(),
-        timestampMs: isValidDate ? dateObj.getTime() : Date.now(),
-      };
-    })
-    .sort((a, b) => b.timestampMs - a.timestampMs);
+        return {
+          ...signal,
+          symbol: (signal.symbol || "unknown").toUpperCase(),
+          timestamp:
+            typeof signal.timestamp === "string" && isValidDate
+              ? signal.timestamp
+              : isValidDate
+              ? dateObj.toISOString()
+              : new Date().toISOString(),
+          timestampMs: isValidDate ? dateObj.getTime() : Date.now(),
+        };
+      })
+      .sort((a, b) => b.timestampMs - a.timestampMs);
 
-  // Filter to show only the most recent signal per token pair
-  const uniqueSignalsMap = new Map<string, typeof normalizedSignals[0]>();
-  normalizedSignals.forEach((signal) => {
-    const symbol = signal.symbol;
-    if (!uniqueSignalsMap.has(symbol)) {
-      uniqueSignalsMap.set(symbol, signal);
-    }
-  });
+    // Filter to show only the most recent signal per token pair
+    const uniqueSignalsMap = new Map<string, typeof normalizedSignals[0]>();
+    normalizedSignals.forEach((signal) => {
+      const symbol = signal.symbol;
+      if (!uniqueSignalsMap.has(symbol)) {
+        uniqueSignalsMap.set(symbol, signal);
+      }
+    });
 
-  const allSignals = Array.from(uniqueSignalsMap.values()).sort(
-    (a, b) => b.timestampMs - a.timestampMs
-  );
+    return Array.from(uniqueSignalsMap.values()).sort(
+      (a, b) => b.timestampMs - a.timestampMs
+    );
+  }, [aiState.signals, wsState.aiSignals]);
 
-  const formatSignalForDisplay = (signal: CombinedSignal): FormattedSignal => ({
+  // Memoize formatSignalForDisplay function to avoid recreation on every render
+  const formatSignalForDisplay = useCallback((signal: CombinedSignal): FormattedSignal => ({
     id: `${signal.symbol}-${signal.timestamp}-${signal.source}`,
     signal: (signal.signal || "NEUTRAL").toUpperCase() as "LONG" | "SHORT" | "NEUTRAL",
     confidence: signal.confidence || 0,
@@ -101,7 +106,7 @@ export function AISignalsDashboard() {
     strategyScores: signal.strategy_scores,
     source: signal.source,
     isWebSocket: signal.source === "websocket",
-  });
+  }), []);
 
   return (
     <Card className="h-full flex flex-col w-full">

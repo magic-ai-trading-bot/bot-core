@@ -1,8 +1,11 @@
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 def ensure_directory_exists(directory_path: str) -> None:
@@ -91,7 +94,8 @@ def create_dataframe_from_ohlcv(data: Dict[str, Any]) -> Optional[pd.DataFrame]:
         df.sort_index(inplace=True)
 
         return df
-    except Exception:
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Failed to create DataFrame from OHLCV data: {e}")
         return None
 
 

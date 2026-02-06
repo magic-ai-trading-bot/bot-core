@@ -1,7 +1,7 @@
 # Database Schema Specification
 
-**Version:** 2.0.0
-**Last Updated:** 2025-11-22
+**Version:** 2.1.0
+**Last Updated:** 2026-02-06
 **Database:** MongoDB 7.0+
 **Author:** Bot Core Team
 
@@ -63,6 +63,36 @@ bot_core_db/
 
 ---
 
+## Changelog
+
+### Version 2.1.0 (2026-02-06)
+
+**Schema Updates - User Collection:**
+- Added `display_name` field (optional string, max 100 chars)
+- Added `avatar_url` field (optional string, stores profile image URL or base64)
+- Added `two_factor_enabled` field (boolean, default false)
+- Added `two_factor_secret` field (optional string, TOTP secret for 2FA)
+
+**Documentation Fixes:**
+- Fixed schema drift identified in integration review
+- Updated example documents to reflect actual implementation
+- Updated validation rules for new fields
+- Bumped version from 2.0.0 to 2.1.0
+
+**Impact:** Low - All changes are additive, no breaking changes to existing documents.
+
+### Version 2.0.0 (2025-11-22)
+
+**Major Update - Async Task System:**
+- Added 5 new collections for async task management
+- Added Celery task tracking support
+- Added training jobs management
+- Added backtest results storage
+- Added monitoring alerts collection
+- Added task schedules collection
+
+---
+
 ## Collection Schemas
 
 ### 1. users Collection
@@ -75,9 +105,13 @@ bot_core_db/
   _id: ObjectId,                    // Primary key
   email: string,                    // Unique, indexed
   password_hash: string,            // bcrypt hash
-  full_name: string | null,         // Optional display name
+  full_name: string | null,         // Optional full name
+  display_name: string | null,      // Optional display name ← NEW
+  avatar_url: string | null,        // Profile avatar URL ← NEW
   is_active: boolean,               // Account status (default: true)
   is_admin: boolean,                // Admin privileges (default: false)
+  two_factor_enabled: boolean,      // 2FA enabled status (default: false) ← NEW
+  two_factor_secret: string | null, // TOTP secret for 2FA (encrypted) ← NEW
   created_at: DateTime,             // Account creation timestamp
   updated_at: DateTime,             // Last profile update
   last_login: DateTime | null,      // Last successful login
@@ -109,6 +143,9 @@ db.users.createIndex({ "is_active": 1 })
 **Validation Rules:**
 - `email`: Must be valid email format, unique
 - `password_hash`: Minimum 60 characters (bcrypt)
+- `display_name`: Maximum 100 characters
+- `avatar_url`: Valid URL or base64 encoded image (max 500KB)
+- `two_factor_secret`: 32-character base32 encoded string (when enabled)
 - `settings.max_positions`: Range 1-10
 - `settings.default_quantity`: Positive number > 0
 
@@ -119,11 +156,15 @@ db.users.createIndex({ "is_active": 1 })
   "email": "trader@example.com",
   "password_hash": "$2b$12$KIXxLVRZ8YjE.VGH3lKP5OZq.hR5ZCqGvxEwFxH8yJ0RvMj5KqY8S",
   "full_name": "John Doe",
+  "display_name": "JohnTrader",
+  "avatar_url": "https://example.com/avatars/johndoe.jpg",
   "is_active": true,
   "is_admin": false,
+  "two_factor_enabled": true,
+  "two_factor_secret": "JBSWY3DPEHPK3PXP",
   "created_at": ISODate("2025-01-15T10:30:00Z"),
-  "updated_at": ISODate("2025-10-10T14:22:00Z"),
-  "last_login": ISODate("2025-10-10T14:22:00Z"),
+  "updated_at": ISODate("2026-02-06T14:22:00Z"),
+  "last_login": ISODate("2026-02-06T14:22:00Z"),
   "settings": {
     "trading_enabled": true,
     "risk_level": "Medium",

@@ -10,6 +10,7 @@ import { useSecurity } from "@/hooks/useSecurity";
 import { useNotificationPreferences, localToApiFormat } from "@/hooks/useNotificationPreferences";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import ChatBot from "@/components/ChatBot";
+import logger from "@/utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
@@ -286,7 +287,7 @@ const Settings = () => {
           setTradingPairs(pairs);
         }
       } catch (error) {
-        console.error('Failed to fetch trading pairs:', error);
+        logger.error('Failed to fetch trading pairs:', error);
         // Fallback to empty array - no mock data
         setTradingPairs([]);
       } finally {

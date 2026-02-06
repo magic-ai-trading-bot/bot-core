@@ -482,12 +482,35 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ Using fallback settings from config.yaml")
 
+    # Error handler for background tasks
+    def handle_task_exception(task: asyncio.Task) -> None:
+        """Handle exceptions from background tasks to prevent silent failures."""
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass  # Expected during shutdown
+        except Exception as e:
+            task_name = task.get_name()
+            logger.error(
+                f"❌ Background task '{task_name}' failed: {e}",
+                exc_info=True
+            )
+            # TODO: Add notification system to alert on critical task failures
+
     # Start background settings refresh task (every 5 minutes)
-    settings_refresh_task = asyncio.create_task(refresh_settings_periodically())
+    settings_refresh_task = asyncio.create_task(
+        refresh_settings_periodically(),
+        name="settings_refresh"
+    )
+    settings_refresh_task.add_done_callback(handle_task_exception)
     logger.info("🔄 Started settings refresh background task")
 
     # Start background analysis task
-    analysis_task = asyncio.create_task(periodic_analysis_runner())
+    analysis_task = asyncio.create_task(
+        periodic_analysis_runner(),
+        name="periodic_analysis"
+    )
+    analysis_task.add_done_callback(handle_task_exception)
     logger.info(
         f"🔄 Started periodic analysis task (every {ANALYSIS_INTERVAL_MINUTES} minutes)"
     )
@@ -496,10 +519,26 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("🛑 Shutting down AI Trading Service")
+
+    # Cancel tasks
     analysis_task.cancel()
     settings_refresh_task.cancel()
+
+    # Wait for tasks to finish cancellation
+    try:
+        await asyncio.gather(
+            analysis_task,
+            settings_refresh_task,
+            return_exceptions=True
+        )
+        logger.info("✅ Background tasks cancelled successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Error during task cleanup: {e}")
+
+    # Close MongoDB connection
     if mongodb_client:
         mongodb_client.close()
+        logger.info("✅ MongoDB connection closed")
 
 
 # Initialize rate limiter (disabled in test environment)
@@ -1201,7 +1240,7 @@ class DirectOpenAIClient:
         messages: list,
         temperature: float = 0.0,
         max_tokens: int = 1200,  # Default reduced from 2000 to 1200
-    ):
+    ) -> Dict[str, Any]:
         """Direct HTTP call to OpenAI chat completions API with auto-fallback on rate limits."""
         global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME
         import httpx

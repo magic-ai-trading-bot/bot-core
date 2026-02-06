@@ -2,6 +2,16 @@
 """
 Backtesting & Strategy Optimization Tasks
 Long-running strategy testing and parameter optimization
+
+⚠️ WARNING: EXPERIMENTAL FEATURE ⚠️
+Current implementation returns SIMULATED results using random data.
+DO NOT use for production trading decisions until real backtest engine is implemented.
+
+TODO: Implement real backtest engine with:
+- Historical data from MongoDB/Binance API
+- Actual strategy execution simulation
+- Realistic slippage and fee calculations
+- Position tracking and P&L computation
 """
 
 from datetime import datetime, timedelta
@@ -111,6 +121,8 @@ def backtest_strategy(
             },
         )
 
+        # ⚠️ WARNING: These are SIMULATED results - NOT real backtest data
+        # TODO: Replace with real historical data analysis
         results = {
             "strategy": strategy_name,
             "symbol": symbol,
@@ -125,6 +137,10 @@ def backtest_strategy(
             "profit_factor": round(np.random.uniform(1.5, 3.0), 2),
             "avg_trade_duration_hours": round(np.random.uniform(12, 48), 1),
             "parameters_used": parameters or {},
+            # WARNING FLAGS
+            "_warning": "EXPERIMENTAL: Results are SIMULATED, not real backtest data",
+            "_simulated": True,
+            "_data_source": "random_generation",
         }
 
         self.update_state(
@@ -144,6 +160,10 @@ def backtest_strategy(
             "status": "success",
             "results": results,
             "task_id": self.request.id,
+            # ⚠️ CRITICAL WARNING
+            "warning": "⚠️ EXPERIMENTAL: These results are SIMULATED using random data. "
+                      "DO NOT use for real trading decisions. Real backtest engine not yet implemented.",
+            "is_simulated": True,
         }
 
     except Exception as e:
@@ -201,21 +221,23 @@ def optimize_strategy(
                 },
             )
 
-            # TODO: Generate parameter variation
-            # TODO: Run backtest with these parameters
-            # For now, generate dummy results
+            # ⚠️ WARNING: Using RANDOM parameter generation
+            # TODO: Implement real grid search or genetic algorithm
+            # TODO: Run actual backtests with real historical data
             params = {
                 "rsi_period": np.random.randint(10, 20),
                 "rsi_overbought": np.random.randint(65, 80),
                 "rsi_oversold": np.random.randint(20, 35),
             }
 
+            # ⚠️ WARNING: These metrics are FAKE random numbers
             result = {
                 "parameters": params,
                 "win_rate": np.random.uniform(55, 75),
                 "total_return": np.random.uniform(5, 30),
                 "sharpe_ratio": np.random.uniform(1.0, 3.0),
                 "max_drawdown": np.random.uniform(5, 20),
+                "_simulated": True,  # Flag indicating fake data
             }
 
             all_results.append(result)
@@ -242,6 +264,10 @@ def optimize_strategy(
             },
             "top_10_results": all_results[:10],
             "task_id": self.request.id,
+            # ⚠️ CRITICAL WARNING
+            "warning": "⚠️ EXPERIMENTAL: Optimization uses RANDOM parameters, not real analysis. "
+                      "These 'optimal' parameters are meaningless. Real optimization not yet implemented.",
+            "is_simulated": True,
         }
 
     except Exception as e:

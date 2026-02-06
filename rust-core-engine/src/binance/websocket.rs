@@ -133,11 +133,14 @@ impl BinanceWebSocket {
 
         // Take the command receiver from self (only first connection gets it)
         // This receiver is connected to the command_sender, so subscribe_symbol() calls work
-        let mut cmd_rx = self
-            .command_receiver
-            .lock()
-            .expect("Command receiver mutex poisoned")
-            .take();
+        let mut cmd_rx = match self.command_receiver.lock() {
+            Ok(mut guard) => guard.take(),
+            Err(poisoned) => {
+                error!("Command receiver mutex poisoned, attempting recovery");
+                // Clear the poison and recover the data
+                poisoned.into_inner().take()
+            }
+        };
 
         loop {
             select! {

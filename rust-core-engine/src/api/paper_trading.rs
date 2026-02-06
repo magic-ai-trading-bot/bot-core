@@ -842,17 +842,17 @@ async fn create_manual_order(
     let is_stop_limit = order_type == "stop-limit";
     match api
         .engine
-        .execute_manual_order(
-            request.symbol.clone(),
-            request.side.clone(),
-            request.order_type.clone(),
-            request.quantity,
-            request.price,
-            request.stop_price,
-            request.leverage,
-            request.stop_loss_pct,
-            request.take_profit_pct,
-        )
+        .execute_manual_order(crate::paper_trading::ManualOrderParams {
+            symbol: request.symbol.clone(),
+            side: request.side.clone(),
+            order_type: request.order_type.clone(),
+            quantity: request.quantity,
+            price: request.price,
+            stop_price: request.stop_price,
+            leverage: request.leverage,
+            stop_loss_pct: request.stop_loss_pct,
+            take_profit_pct: request.take_profit_pct,
+        })
         .await
     {
         Ok(result) => {

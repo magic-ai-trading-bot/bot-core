@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
+import logger from "@/utils/logger";
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -131,7 +132,7 @@ export function Profile() {
         toast.error(data.message || t('profile.errors.updateFailed'));
       }
     } catch (error) {
-      console.error('Profile update error:', error);
+      logger.error('Profile update error:', error);
       toast.error(t('profile.errors.updateFailed'));
     } finally {
       setIsSaving(false);
@@ -198,7 +199,7 @@ export function Profile() {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Avatar upload error:', error);
+      logger.error('Avatar upload error:', error);
       toast.error(t('profile.errors.avatarUploadFailed'));
       setIsUploadingAvatar(false);
     }
