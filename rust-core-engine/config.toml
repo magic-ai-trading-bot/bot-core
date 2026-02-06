@@ -81,6 +81,22 @@ position_check_interval_seconds = 10
 leverage = 1                   # Trading leverage (1-125)
 margin_type = "CROSSED"        # CROSSED or ISOLATED
 
+# ============================================================================
+# REAL TRADING CONFIGURATION (Binance Testnet)
+# ============================================================================
+[real_trading]
+# Use testnet (REQUIRED for safe testing)
+use_testnet = true
+
+# Risk management
+max_position_size_usdt = 1000.0
+max_total_exposure_usdt = 5000.0
+max_daily_loss_usdt = 100.0
+max_positions = 5
+
+# Maximum leverage (1 = spot only)
+max_leverage = 20
+
 [database]
 # MongoDB database for storing trade history and analysis results
 # SECURITY: Set DATABASE_URL env var with credentials, never hardcode passwords

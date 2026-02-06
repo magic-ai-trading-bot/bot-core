@@ -1350,12 +1350,12 @@ export default function PaperTrading() {
     >
       {/* Portfolio Stats Bar */}
       <PortfolioStatsBar
-        balance={paperTrading.portfolio.current_balance}
-        equity={paperTrading.portfolio.equity}
-        totalPnl={paperTrading.portfolio.total_pnl}
-        totalPnlPercent={paperTrading.portfolio.total_pnl_percentage}
-        winRate={paperTrading.portfolio.win_rate}
-        totalTrades={paperTrading.portfolio.total_trades}
+        balance={paperTrading.portfolio?.current_balance || 0}
+        equity={paperTrading.portfolio?.equity || 0}
+        totalPnl={paperTrading.portfolio?.total_pnl || 0}
+        totalPnlPercent={paperTrading.portfolio?.total_pnl_percentage || 0}
+        winRate={paperTrading.portfolio?.win_rate || 0}
+        totalTrades={paperTrading.portfolio?.total_trades || 0}
         t={t}
         onResetClick={() => setShowResetConfirm(true)}
         showResetConfirm={showResetConfirm}

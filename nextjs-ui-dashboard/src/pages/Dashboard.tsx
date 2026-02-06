@@ -1256,15 +1256,15 @@ const Dashboard = () => {
   // Use real portfolio data from usePaperTrading hook
   const portfolioData = useMemo(() => {
     // Prefer usePaperTrading data, fallback to WebSocket for real-time updates
-    const balance = portfolio.current_balance || portfolio.equity || 10000;
-    const totalPnl = portfolio.total_pnl || wsState.botStatus?.total_pnl || 0;
-    const pnlPercentage = portfolio.total_pnl_percentage || (totalPnl / 10000) * 100;
+    const balance = portfolio?.current_balance || portfolio?.equity || 10000;
+    const totalPnl = portfolio?.total_pnl || wsState.botStatus?.total_pnl || 0;
+    const pnlPercentage = portfolio?.total_pnl_percentage || (totalPnl / 10000) * 100;
 
     logger.debug('Portfolio data from API:', {
       balance,
       pnl: totalPnl,
       pnlPercentage,
-      source: portfolio.current_balance ? 'usePaperTrading' : 'WebSocket',
+      source: portfolio?.current_balance ? 'usePaperTrading' : 'WebSocket',
     });
 
     return {
@@ -1277,10 +1277,10 @@ const Dashboard = () => {
   // Calculate stats from real data
   const statsData = useMemo(() => {
     return {
-      winRate: portfolio.win_rate || 0,
-      totalTrades: portfolio.total_trades || 0,
-      avgProfit: portfolio.profit_factor ? (portfolio.profit_factor - 1) * 100 : 0,
-      maxDrawdown: portfolio.max_drawdown_percentage || 0,
+      winRate: portfolio?.win_rate || 0,
+      totalTrades: portfolio?.total_trades || 0,
+      avgProfit: portfolio?.profit_factor ? (portfolio.profit_factor - 1) * 100 : 0,
+      maxDrawdown: portfolio?.max_drawdown_percentage || 0,
     };
   }, [portfolio]);
 
@@ -1294,7 +1294,7 @@ const Dashboard = () => {
   }, []);
 
   // Loading is false when either API data arrives or initial timeout completes
-  const isLoading = isPaperTradingLoading || (!initialLoadComplete && !wsState.botStatus && !portfolio.current_balance);
+  const isLoading = isPaperTradingLoading || (!initialLoadComplete && !wsState.botStatus && !portfolio?.current_balance);
 
   const { balance, pnl, pnlPercentage } = portfolioData;
 

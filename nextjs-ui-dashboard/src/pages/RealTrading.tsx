@@ -15,7 +15,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRealTrading } from '@/hooks/useRealTrading';
+import { useRealTrading, type RealOrder } from '@/hooks/useRealTrading';
 import { useTradingMode } from '@/hooks/useTradingMode';
 import { TradingViewChart } from '@/components/trading/TradingViewChart';
 import { type OrderFormData } from '@/components/trading/OrderForm';
@@ -470,7 +470,7 @@ function OrderBook({
           let askTotal = 0;
           let bidTotal = 0;
 
-          for (let i = 0; i < 8; i++) {
+          for (let i = 0; i < 12; i++) {
             const askPrice = realPrice + spread / 2 + i * tickSize;
             const askQuantity = Math.random() * 2 + 0.1;
             askTotal += askQuantity;
@@ -1208,6 +1208,139 @@ function TradeHistoryTable({ trades, isLoading }: { trades: PaperTrade[]; isLoad
 }
 
 // ============================================================================
+// ACTIVE ORDERS TABLE (Phase 5)
+// ============================================================================
+
+function OrdersTable({
+  orders,
+  isLoading,
+  onCancelOrder,
+}: {
+  orders: RealOrder[];
+  isLoading: boolean;
+  onCancelOrder?: (id: string) => void;
+}) {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+          <RefreshCw className="w-6 h-6" style={{ color: colors.loss }} />
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12" style={{ color: colors.textMuted }}>
+        <div className="p-4 rounded-2xl mb-3" style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+          <Target className="w-8 h-8 opacity-50" />
+        </div>
+        <p className="text-sm font-medium">{t('realTrading.orders.noOrders')}</p>
+        <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+          {t('realTrading.orders.placeOrder')}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto overflow-y-auto custom-scrollbar h-full">
+      <table className="w-full text-xs">
+        <thead className="sticky top-0 z-10" style={{ backgroundColor: colors.bgPrimary }}>
+          <tr style={{ color: colors.textMuted }}>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.orders.symbol')}</th>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.orders.type')}</th>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.orders.side')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.orders.price')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.orders.quantity')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.orders.filled')}</th>
+            <th className="text-left py-3 px-4 font-bold uppercase tracking-wider">{t('realTrading.orders.status')}</th>
+            <th className="text-right py-3 px-4 font-bold uppercase tracking-wider">{t('table.action')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order, index) => {
+            const isBuy = order.side.toUpperCase() === 'BUY';
+            const fillPercent = order.quantity > 0 ? (order.executed_quantity / order.quantity) * 100 : 0;
+            return (
+              <motion.tr
+                key={order.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+                className="border-t border-white/[0.06]"
+              >
+                <td className="py-3 px-4">
+                  <span className="font-bold text-white">{order.symbol.replace('USDT', '')}</span>
+                  <span className="text-[10px] ml-1" style={{ color: colors.textMuted }}>USDT</span>
+                </td>
+                <td className="py-3 px-4">
+                  <span className="text-[10px] px-2 py-1 rounded" style={{ background: 'rgba(255, 255, 255, 0.1)' }}>
+                    {order.order_type}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  <Badge variant={isBuy ? 'buy' : 'sell'}>
+                    {isBuy ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                    {order.side}
+                  </Badge>
+                </td>
+                <td className="py-3 px-4 text-right">
+                  <MonoText className="font-semibold">
+                    {order.price ? `$${order.price.toFixed(2)}` : 'Market'}
+                  </MonoText>
+                </td>
+                <td className="py-3 px-4 text-right">
+                  <MonoText>{order.quantity.toFixed(4)}</MonoText>
+                </td>
+                <td className="py-3 px-4 text-right">
+                  <div className="flex flex-col items-end">
+                    <MonoText>{order.executed_quantity.toFixed(4)}</MonoText>
+                    <span className="text-[10px]" style={{ color: colors.textMuted }}>
+                      ({fillPercent.toFixed(0)}%)
+                    </span>
+                  </div>
+                </td>
+                <td className="py-3 px-4">
+                  <span
+                    className="text-[10px] px-2 py-1 rounded font-medium"
+                    style={{
+                      background: order.status === 'FILLED' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                      color: order.status === 'FILLED' ? colors.profit : colors.warning,
+                    }}
+                  >
+                    {order.status}
+                  </span>
+                </td>
+                <td className="py-3 px-4 text-right">
+                  {order.status !== 'FILLED' && order.status !== 'CANCELED' && (
+                    <motion.button
+                      onClick={() => onCancelOrder?.(order.id)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-3 py-1.5 text-[10px] font-bold rounded-lg flex items-center gap-1"
+                      style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: colors.loss }}
+                    >
+                      <X className="w-3 h-3" />
+                      Cancel
+                    </motion.button>
+                  )}
+                </td>
+              </motion.tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ============================================================================
 // MODE SWITCH PROMPT (When not in Real mode)
 // ============================================================================
 
@@ -1363,6 +1496,152 @@ function ComingSoonOverlay() {
 }
 
 // ============================================================================
+// PENDING ORDER CONFIRMATION DIALOG (Phase 5 - API 2-Step Confirmation)
+// ============================================================================
+
+function PendingConfirmationDialog({
+  confirmation,
+  onConfirm,
+  onCancel,
+  isLoading,
+}: {
+  confirmation: { token: string; expires_at: string; summary: string } | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const { t } = useTranslation('dashboard');
+  const colors = useThemeColors();
+  const [timeLeft, setTimeLeft] = useState(60);
+
+  useEffect(() => {
+    if (!confirmation) return;
+
+    const expiresAt = new Date(confirmation.expires_at).getTime();
+    const updateTimer = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        onCancel();
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [confirmation, onCancel]);
+
+  if (!confirmation) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        onClick={onCancel}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="relative max-w-md w-full mx-4 p-6 rounded-2xl"
+          style={{
+            background: 'rgba(13, 17, 23, 0.95)',
+            border: '2px solid rgba(239, 68, 68, 0.5)',
+            boxShadow: '0 0 40px rgba(239, 68, 68, 0.3)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(239, 68, 68, 0.2)' }}>
+              <AlertOctagon className="w-6 h-6" style={{ color: colors.loss }} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">{t('realTrading.confirm.title')}</h3>
+              <p className="text-xs" style={{ color: colors.textMuted }}>
+                {t('realTrading.confirm.subtitle')}
+              </p>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div
+            className="p-4 rounded-xl mb-4"
+            style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+          >
+            <p className="text-sm text-white font-medium">{confirmation.summary}</p>
+          </div>
+
+          {/* Timer */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Clock className="w-4 h-4" style={{ color: timeLeft <= 10 ? colors.loss : colors.warning }} />
+            <span
+              className="text-sm font-mono font-bold"
+              style={{ color: timeLeft <= 10 ? colors.loss : colors.warning }}
+            >
+              {timeLeft}s
+            </span>
+            <span className="text-xs" style={{ color: colors.textMuted }}>
+              {t('realTrading.confirm.expires')}
+            </span>
+          </div>
+
+          {/* Warning */}
+          <p className="text-[10px] text-center mb-4" style={{ color: colors.textMuted }}>
+            ⚠️ {t('realTrading.confirm.warning')}
+          </p>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onCancel}
+              disabled={isLoading}
+              className="flex-1 py-3 px-4 rounded-xl text-sm font-bold"
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: colors.textSecondary,
+              }}
+            >
+              {t('common.cancel')}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex-1 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+              style={{
+                background: colors.gradientDanger,
+                boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)',
+                color: '#fff',
+              }}
+            >
+              {isLoading ? (
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                  <RefreshCw className="w-4 h-4" />
+                </motion.div>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  {t('realTrading.confirm.execute')}
+                </>
+              )}
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ============================================================================
 // MAIN REAL TRADING PAGE
 // ============================================================================
 
@@ -1376,7 +1655,7 @@ export default function RealTrading() {
   const availableSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT'];
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
   const [selectedPrice, setSelectedPrice] = useState<number | undefined>();
-  const [activeTab, setActiveTab] = useState<'positions' | 'history'>('positions');
+  const [activeTab, setActiveTab] = useState<'positions' | 'orders' | 'history'>('positions');
   const [selectedTimeframe, setSelectedTimeframe] = useState('5m');
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
 
@@ -1436,11 +1715,30 @@ export default function RealTrading() {
   const handleOrderSubmit = async (order: OrderFormData) => {
     logger.info('Real trading order submitted:', order);
 
-    toast({
-      title: 'Real Order Executed',
-      description: `${order.side.toUpperCase()} ${order.quantity} ${order.symbol} with ${order.leverage}x leverage`,
-      variant: 'destructive',
+    // Map frontend order type to API order type
+    const orderTypeMap: Record<string, string> = {
+      'market': 'MARKET',
+      'limit': 'LIMIT',
+      'stop-limit': 'STOP_LOSS_LIMIT',
+    };
+
+    const success = await realTrading.placeOrder({
+      symbol: order.symbol,
+      side: order.side.toUpperCase(), // 'BUY' or 'SELL'
+      order_type: orderTypeMap[order.orderType] || 'MARKET',
+      quantity: order.quantity,
+      price: order.price,
+      stop_loss: order.stopLoss,
+      take_profit: order.takeProfit,
     });
+
+    if (success) {
+      toast({
+        title: '✅ Order Placed',
+        description: `${order.side.toUpperCase()} ${order.quantity} ${order.symbol}`,
+      });
+    }
+    // Error toast is handled by placeOrder
   };
 
   const handlePriceClick = (price: number) => {
@@ -1455,14 +1753,22 @@ export default function RealTrading() {
       animate="visible"
       variants={containerVariants}
     >
+      {/* API Order Confirmation Dialog (Phase 5) */}
+      <PendingConfirmationDialog
+        confirmation={realTrading.pendingConfirmation}
+        onConfirm={realTrading.confirmOrder}
+        onCancel={realTrading.clearPendingConfirmation}
+        isLoading={realTrading.isLoading}
+      />
+
       {/* Portfolio Stats Bar */}
       <PortfolioStatsBar
-        balance={realTrading.portfolio.current_balance}
-        equity={realTrading.portfolio.equity}
-        totalPnl={realTrading.portfolio.total_pnl}
-        totalPnlPercent={realTrading.portfolio.total_pnl_percentage || 0}
-        winRate={realTrading.portfolio.win_rate}
-        totalTrades={realTrading.portfolio.total_trades}
+        balance={realTrading.portfolio?.current_balance || 0}
+        equity={realTrading.portfolio?.equity || 0}
+        totalPnl={realTrading.portfolio?.total_pnl || 0}
+        totalPnlPercent={realTrading.portfolio?.total_pnl_percentage || 0}
+        winRate={realTrading.portfolio?.win_rate || 0}
+        totalTrades={realTrading.portfolio?.total_trades || 0}
       />
 
       {/* Main Trading Grid - Responsive: stacked on mobile, side-by-side on lg+ */}
@@ -1591,11 +1897,12 @@ export default function RealTrading() {
             <div className="flex border-b border-white/[0.08]">
               {[
                 { id: 'positions', label: t('realTrading.positions.title'), icon: Activity, count: realTrading.openTrades.length },
+                { id: 'orders', label: t('realTrading.orders.title'), icon: Target, count: realTrading.activeOrders.length },
                 { id: 'history', label: t('realTrading.history.title'), icon: Clock },
               ].map((tab) => (
                 <motion.button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as 'positions' | 'history')}
+                  onClick={() => setActiveTab(tab.id as 'positions' | 'orders' | 'history')}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="relative px-3 md:px-5 py-2 md:py-3 text-[10px] md:text-xs font-bold flex items-center gap-1.5 md:gap-2"
@@ -1627,11 +1934,17 @@ export default function RealTrading() {
 
             <div className="flex-1 min-h-0 overflow-hidden">
               <AnimatePresence mode="wait">
-                {activeTab === 'positions' ? (
+                {activeTab === 'positions' && (
                   <motion.div key="positions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full overflow-auto">
                     <PositionsTable trades={realTrading.openTrades} isLoading={realTrading.isLoading} onCloseTrade={realTrading.closeTrade} />
                   </motion.div>
-                ) : (
+                )}
+                {activeTab === 'orders' && (
+                  <motion.div key="orders" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full overflow-auto">
+                    <OrdersTable orders={realTrading.activeOrders} isLoading={realTrading.isLoading} onCancelOrder={realTrading.cancelOrder} />
+                  </motion.div>
+                )}
+                {activeTab === 'history' && (
                   <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full overflow-auto">
                     <TradeHistoryTable trades={realTrading.closedTrades} isLoading={realTrading.isLoading} />
                   </motion.div>

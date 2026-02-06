@@ -19,6 +19,8 @@ mod tests {
         let config = crate::config::BinanceConfig {
             api_key: "test".to_string(),
             secret_key: "test".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),
@@ -37,6 +39,8 @@ mod tests {
         let config = crate::config::BinanceConfig {
             api_key: "test".to_string(),
             secret_key: "test".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),
@@ -54,6 +58,8 @@ mod tests {
         let config = crate::config::BinanceConfig {
             api_key: "testnet_key".to_string(),
             secret_key: "testnet_secret".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://testnet.binance.vision".to_string(),
             ws_url: "wss://testnet.binance.vision/ws".to_string(),
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
@@ -72,6 +78,8 @@ mod tests {
         let config = crate::config::BinanceConfig {
             api_key: "".to_string(),
             secret_key: "".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),

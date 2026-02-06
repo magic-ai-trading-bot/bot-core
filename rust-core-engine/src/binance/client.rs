@@ -48,8 +48,46 @@ impl BinanceClient {
     }
 
     // Authentication helpers
+
+    /// Get the appropriate API key for the endpoint (spot or futures)
+    fn get_api_key_for_endpoint(&self, endpoint: &str) -> &str {
+        if endpoint.starts_with("/fapi/") {
+            // Use futures key if available, otherwise fall back to spot key
+            if !self.config.futures_api_key.is_empty() {
+                &self.config.futures_api_key
+            } else {
+                &self.config.api_key
+            }
+        } else {
+            &self.config.api_key
+        }
+    }
+
+    /// Get the appropriate secret key for the endpoint (spot or futures)
+    fn get_secret_key_for_endpoint(&self, endpoint: &str) -> &str {
+        if endpoint.starts_with("/fapi/") {
+            // Use futures key if available, otherwise fall back to spot key
+            if !self.config.futures_secret_key.is_empty() {
+                &self.config.futures_secret_key
+            } else {
+                &self.config.secret_key
+            }
+        } else {
+            &self.config.secret_key
+        }
+    }
+
     fn sign_request(&self, query_string: &str) -> Result<String> {
         let mut mac = HmacSha256::new_from_slice(self.config.secret_key.as_bytes())
+            .map_err(|e| anyhow::anyhow!("Failed to create HMAC instance: {}", e))?;
+        mac.update(query_string.as_bytes());
+        Ok(hex::encode(mac.finalize().into_bytes()))
+    }
+
+    /// Sign request with the appropriate key for the endpoint
+    fn sign_request_for_endpoint(&self, query_string: &str, endpoint: &str) -> Result<String> {
+        let secret_key = self.get_secret_key_for_endpoint(endpoint);
+        let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())
             .map_err(|e| anyhow::anyhow!("Failed to create HMAC instance: {}", e))?;
         mac.update(query_string.as_bytes());
         Ok(hex::encode(mac.finalize().into_bytes()))
@@ -103,7 +141,8 @@ impl BinanceClient {
                 .collect::<Vec<_>>()
                 .join("&");
 
-            let signature = self.sign_request(&query_string)?;
+            // Use appropriate key for endpoint (spot vs futures)
+            let signature = self.sign_request_for_endpoint(&query_string, endpoint)?;
 
             // Add query parameters to URL in the same order as signature calculation
             for key in &sorted_keys {
@@ -127,8 +166,10 @@ impl BinanceClient {
             // Add headers
             request_builder = request_builder.header("Content-Type", "application/json");
 
-            if signed || !self.config.api_key.is_empty() {
-                request_builder = request_builder.header("X-MBX-APIKEY", &self.config.api_key);
+            // Use appropriate API key for endpoint (spot vs futures)
+            let api_key = self.get_api_key_for_endpoint(endpoint);
+            if signed || !api_key.is_empty() {
+                request_builder = request_builder.header("X-MBX-APIKEY", api_key);
             }
 
             trace!("Making request to: {url} (attempt {})", attempt + 1);
@@ -307,7 +348,7 @@ impl BinanceClient {
             .await
     }
 
-    pub async fn place_futures_order(&self, order: NewOrderRequest) -> Result<OrderResponse> {
+    pub async fn place_futures_order(&self, order: NewOrderRequest) -> Result<FuturesOrderResponse> {
         let mut params = HashMap::new();
 
         params.insert("symbol".to_string(), order.symbol);
@@ -328,6 +369,10 @@ impl BinanceClient {
 
         if let Some(reduce_only) = order.reduce_only {
             params.insert("reduceOnly".to_string(), reduce_only.to_string());
+        }
+
+        if let Some(position_side) = order.position_side {
+            params.insert("positionSide".to_string(), position_side);
         }
 
         if let Some(new_client_order_id) = order.new_client_order_id {
@@ -526,6 +571,84 @@ impl BinanceClient {
             .await
     }
 
+    // =========================================================================
+    // OCO ORDERS (Phase 2: Advanced Order Types)
+    // @spec:FR-REAL-010, FR-REAL-011
+    // =========================================================================
+
+    /// Place an OCO (One-Cancels-Other) order - New API format (2024+)
+    /// Uses /orderList/oco endpoint with aboveType/belowType parameters
+    /// Creates a pair: above order + below order relative to current price
+    /// When one fills, the other is automatically cancelled
+    pub async fn place_oco_order(&self, order: OcoOrderRequest) -> Result<OcoOrderResponse> {
+        let mut params = HashMap::new();
+
+        params.insert("symbol".to_string(), order.symbol);
+        params.insert("side".to_string(), order.side.to_string());
+        params.insert("quantity".to_string(), order.quantity);
+
+        // Above order parameters (e.g., Take Profit for LONG)
+        params.insert("aboveType".to_string(), order.above_type);
+        if let Some(above_price) = order.above_price {
+            params.insert("abovePrice".to_string(), above_price);
+        }
+        if let Some(tif) = order.above_time_in_force {
+            params.insert("aboveTimeInForce".to_string(), tif.to_string());
+        }
+        if let Some(above_id) = order.above_client_order_id {
+            params.insert("aboveClientOrderId".to_string(), above_id);
+        }
+
+        // Below order parameters (e.g., Stop Loss for LONG)
+        params.insert("belowType".to_string(), order.below_type);
+        if let Some(below_price) = order.below_price {
+            params.insert("belowPrice".to_string(), below_price);
+        }
+        if let Some(below_stop_price) = order.below_stop_price {
+            params.insert("belowStopPrice".to_string(), below_stop_price);
+        }
+        if let Some(tif) = order.below_time_in_force {
+            params.insert("belowTimeInForce".to_string(), tif.to_string());
+        }
+        if let Some(below_id) = order.below_client_order_id {
+            params.insert("belowClientOrderId".to_string(), below_id);
+        }
+
+        // List-level parameters
+        if let Some(list_id) = order.list_client_order_id {
+            params.insert("listClientOrderId".to_string(), list_id);
+        }
+
+        if let Some(resp_type) = order.new_order_resp_type {
+            params.insert("newOrderRespType".to_string(), resp_type);
+        }
+
+        self.make_request(Method::POST, "/orderList/oco", Some(params), true)
+            .await
+    }
+
+    /// Cancel an OCO order by order list ID or list client order ID
+    pub async fn cancel_oco_order(
+        &self,
+        symbol: &str,
+        order_list_id: Option<i64>,
+        list_client_order_id: Option<&str>,
+    ) -> Result<CancelOcoResponse> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+
+        if let Some(id) = order_list_id {
+            params.insert("orderListId".to_string(), id.to_string());
+        }
+
+        if let Some(client_id) = list_client_order_id {
+            params.insert("listClientOrderId".to_string(), client_id.to_string());
+        }
+
+        self.make_request(Method::DELETE, "/orderList", Some(params), true)
+            .await
+    }
+
     /// Get order status by order ID or client order ID
     /// @spec:FR-REAL-006
     pub async fn get_spot_order_status(
@@ -666,6 +789,8 @@ mod tests {
         BinanceConfig {
             api_key: "test_api_key".to_string(),
             secret_key: "test_secret_key".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),
@@ -920,6 +1045,8 @@ mod tests {
         let config = BinanceConfig {
             api_key: "prod_api_key".to_string(),
             secret_key: "prod_secret_key".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),
@@ -939,6 +1066,8 @@ mod tests {
         let config = BinanceConfig {
             api_key: "test_api_key".to_string(),
             secret_key: "test_secret_key".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://testnet.binance.vision".to_string(),
             ws_url: "wss://testnet.binance.vision/ws".to_string(),
             futures_base_url: "https://testnet.binancefuture.com".to_string(),
@@ -957,6 +1086,8 @@ mod tests {
         let config = BinanceConfig {
             api_key: "".to_string(),
             secret_key: "".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),
@@ -976,6 +1107,8 @@ mod tests {
         let config = BinanceConfig {
             api_key: long_key.clone(),
             secret_key: long_key.clone(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),
@@ -994,6 +1127,8 @@ mod tests {
         let config = BinanceConfig {
             api_key: "key!@#$%^&*()".to_string(),
             secret_key: "secret+=-_{}[]|:;<>,.?/~`".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),
@@ -1324,6 +1459,8 @@ mod tests {
         let config = BinanceConfig {
             api_key: "test_key".to_string(),
             secret_key: "test_secret".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://custom.binance.com".to_string(),
             ws_url: "wss://custom.binance.com/ws".to_string(),
             futures_base_url: "https://custom-futures.binance.com".to_string(),
@@ -1454,6 +1591,8 @@ mod tests {
         let config = BinanceConfig {
             api_key: "original_key".to_string(),
             secret_key: "original_secret".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
             base_url: "https://api.binance.com".to_string(),
             ws_url: "wss://stream.binance.com:9443/ws".to_string(),
             futures_base_url: "https://fapi.binance.com".to_string(),

@@ -29,6 +29,8 @@ use api::ApiServer;
 use config::Config;
 use market_data::MarketDataProcessor;
 use paper_trading::{PaperTradingEngine, PaperTradingSettings};
+use real_trading::RealTradingEngine;
+use trading::risk_manager::RiskManager;
 use trading::TradingEngine;
 
 #[derive(Debug, StructOpt)]
@@ -172,16 +174,78 @@ async fn main() -> Result<()> {
         .await?,
     );
 
+    // Initialize Real Trading Engine if configured
+    let real_trading_engine = if let Some(ref real_trading_config) = config.real_trading {
+        info!("🔥 Real trading configuration found, initializing engine...");
+
+        // Create a separate Binance client for real trading with testnet settings
+        let real_binance_config = config::BinanceConfig {
+            api_key: std::env::var("BINANCE_TESTNET_API_KEY")
+                .unwrap_or_else(|_| config.binance.api_key.clone()),
+            secret_key: std::env::var("BINANCE_TESTNET_SECRET_KEY")
+                .unwrap_or_else(|_| config.binance.secret_key.clone()),
+            futures_api_key: std::env::var("BINANCE_FUTURES_TESTNET_API_KEY")
+                .unwrap_or_else(|_| config.binance.futures_api_key.clone()),
+            futures_secret_key: std::env::var("BINANCE_FUTURES_TESTNET_SECRET_KEY")
+                .unwrap_or_else(|_| config.binance.futures_secret_key.clone()),
+            testnet: real_trading_config.use_testnet,
+            base_url: if real_trading_config.use_testnet {
+                config::binance_urls::TESTNET_BASE_URL.to_string()
+            } else {
+                config::binance_urls::MAINNET_BASE_URL.to_string()
+            },
+            ws_url: if real_trading_config.use_testnet {
+                config::binance_urls::TESTNET_WS_URL.to_string()
+            } else {
+                config::binance_urls::MAINNET_WS_URL.to_string()
+            },
+            futures_base_url: if real_trading_config.use_testnet {
+                config::binance_urls::FUTURES_TESTNET_BASE_URL.to_string()
+            } else {
+                config::binance_urls::FUTURES_MAINNET_BASE_URL.to_string()
+            },
+            futures_ws_url: if real_trading_config.use_testnet {
+                config::binance_urls::FUTURES_TESTNET_WS_URL.to_string()
+            } else {
+                config::binance_urls::FUTURES_MAINNET_WS_URL.to_string()
+            },
+            trading_mode: if real_trading_config.use_testnet {
+                config::TradingMode::RealTestnet
+            } else {
+                config::TradingMode::RealMainnet
+            },
+        };
+
+        let real_binance_client = binance::BinanceClient::new(real_binance_config)?;
+        let risk_manager = RiskManager::new(config.trading.clone());
+
+        match RealTradingEngine::new(
+            real_trading_config.clone(),
+            real_binance_client,
+            risk_manager,
+        ).await {
+            Ok(engine) => {
+                info!("✅ Real trading engine initialized successfully (testnet={})", real_trading_config.use_testnet);
+                Some(std::sync::Arc::new(engine))
+            }
+            Err(e) => {
+                tracing::warn!("⚠️ Failed to initialize real trading engine: {}. Continuing without it.", e);
+                None
+            }
+        }
+    } else {
+        info!("📝 No real trading configuration found, running in paper trading mode only");
+        None
+    };
+
     // Initialize API server with WebSocket broadcaster
-    // Note: real_trading_engine is None for now - set ENABLE_REAL_TRADING=true
-    // and configure Binance API keys to enable real trading
     let api_server = ApiServer::new(
         config.api.clone(),
         config.binance.clone(),
         market_data_processor.clone(),
         trading_engine.clone(),
         paper_trading_engine.clone(),
-        None, // Real trading engine - configure via ENABLE_REAL_TRADING env var
+        real_trading_engine,
         ws_sender.clone(),
         storage.clone(),
     )
