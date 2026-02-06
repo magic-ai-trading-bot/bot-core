@@ -1,8 +1,9 @@
 # Production Dockerfile for Rust Core Engine
-FROM rust:alpine AS builder
+FROM rust:1.86-alpine AS builder
 
-# Install dependencies
-RUN apk add --no-cache \
+# Update base packages for security and install build dependencies
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
     musl-dev \
     libressl-dev \
     pkgconfig \
@@ -27,10 +28,12 @@ COPY config.toml ./config.toml
 # Build application
 RUN cargo build --release --bin binance-trading-bot
 
-# Runtime stage
-FROM alpine:latest
+# Runtime stage - Use specific version and update packages for security
+FROM alpine:3.21
 
-RUN apk add --no-cache \
+# Update base packages for security fixes and install runtime dependencies
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
     ca-certificates \
     libressl
 
