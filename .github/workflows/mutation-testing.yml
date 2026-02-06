@@ -421,25 +421,26 @@ jobs:
           path: summary.md
           retention-days: 90
 
-      - name: Create issue for low scores
-        if: github.event_name == 'schedule'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require('fs');
-            const summary = fs.readFileSync('summary.md', 'utf8');
-
-            // Check if any service failed
-            const rustResult = '${{ needs.mutation-test-rust.result }}';
-            const pythonResult = '${{ needs.mutation-test-python.result }}';
-            const frontendResult = '${{ needs.mutation-test-frontend.result }}';
-
-            if (rustResult === 'failure' || pythonResult === 'failure' || frontendResult === 'failure') {
-              github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: '⚠️ Mutation Testing Scores Below Threshold',
-                body: summary,
-                labels: ['quality', 'testing', 'mutation-testing']
-              });
-            }
+      # NOTE: Auto-issue creation disabled to reduce noise
+      # Mutation testing reports are available as artifacts instead
+      # To re-enable, uncomment the step below
+      #
+      # - name: Create issue for low scores
+      #   if: github.event_name == 'schedule'
+      #   uses: actions/github-script@v8
+      #   with:
+      #     script: |
+      #       const fs = require('fs');
+      #       const summary = fs.readFileSync('summary.md', 'utf8');
+      #       const rustResult = '${{ needs.mutation-test-rust.result }}';
+      #       const pythonResult = '${{ needs.mutation-test-python.result }}';
+      #       const frontendResult = '${{ needs.mutation-test-frontend.result }}';
+      #       if (rustResult === 'failure' || pythonResult === 'failure' || frontendResult === 'failure') {
+      #         github.rest.issues.create({
+      #           owner: context.repo.owner,
+      #           repo: context.repo.repo,
+      #           title: '⚠️ Mutation Testing Scores Below Threshold',
+      #           body: summary,
+      #           labels: ['quality', 'testing', 'mutation-testing']
+      #         });
+      #       }
