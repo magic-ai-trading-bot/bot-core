@@ -92,19 +92,31 @@ impl BinanceClient {
         if signed {
             query_params.insert("timestamp".to_string(), Self::get_timestamp().to_string());
 
-            let query_string = query_params
+            // IMPORTANT: Sort keys to ensure consistent signature calculation
+            // Binance requires signature to match the exact query string order
+            let mut sorted_keys: Vec<_> = query_params.keys().cloned().collect();
+            sorted_keys.sort();
+
+            let query_string = sorted_keys
                 .iter()
-                .map(|(k, v)| format!("{k}={v}"))
+                .map(|k| format!("{}={}", k, query_params.get(k).unwrap()))
                 .collect::<Vec<_>>()
                 .join("&");
 
             let signature = self.sign_request(&query_string)?;
-            query_params.insert("signature".to_string(), signature);
-        }
 
-        // Add query parameters to URL
-        for (key, value) in &query_params {
-            url.query_pairs_mut().append_pair(key, value);
+            // Add query parameters to URL in the same order as signature calculation
+            for key in &sorted_keys {
+                url.query_pairs_mut()
+                    .append_pair(key, query_params.get(key).unwrap());
+            }
+            // Add signature last
+            url.query_pairs_mut().append_pair("signature", &signature);
+        } else {
+            // Add query parameters to URL (unsigned)
+            for (key, value) in &query_params {
+                url.query_pairs_mut().append_pair(key, value);
+            }
         }
 
         // Retry logic for rate limiting (403/429)

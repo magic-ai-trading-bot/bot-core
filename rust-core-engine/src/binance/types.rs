@@ -188,17 +188,29 @@ pub struct FuturesPosition {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AccountInfo {
+    #[serde(default)]
     pub maker_commission: i64,
+    #[serde(default)]
     pub taker_commission: i64,
+    #[serde(default)]
     pub buyer_commission: i64,
+    #[serde(default)]
     pub seller_commission: i64,
+    #[serde(default)]
     pub can_trade: bool,
+    #[serde(default)]
     pub can_withdraw: bool,
+    #[serde(default)]
     pub can_deposit: bool,
+    #[serde(default)]
     pub update_time: i64,
+    #[serde(default)]
     pub account_type: String,
+    #[serde(default)]
     pub balances: Vec<Balance>,
+    #[serde(default)]
     pub permissions: Vec<String>,
 }
 
@@ -1190,16 +1202,17 @@ mod tests {
 
     #[test]
     fn test_account_info_deserialization() {
+        // Note: AccountInfo uses camelCase (matches Binance API response)
         let json = r#"{
-            "maker_commission": 10,
-            "taker_commission": 10,
-            "buyer_commission": 0,
-            "seller_commission": 0,
-            "can_trade": true,
-            "can_withdraw": true,
-            "can_deposit": true,
-            "update_time": 1625097600000,
-            "account_type": "SPOT",
+            "makerCommission": 10,
+            "takerCommission": 10,
+            "buyerCommission": 0,
+            "sellerCommission": 0,
+            "canTrade": true,
+            "canWithdraw": true,
+            "canDeposit": true,
+            "updateTime": 1625097600000,
+            "accountType": "SPOT",
             "balances": [
                 {"asset": "BTC", "free": "1.0", "locked": "0.0"},
                 {"asset": "USDT", "free": "10000.0", "locked": "500.0"}
