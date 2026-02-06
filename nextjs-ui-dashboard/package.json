@@ -120,5 +120,8 @@
     "vite": "^7.2.6",
     "vite-bundle-visualizer": "^1.2.1",
     "vitest": "^4.0.10"
+  },
+  "overrides": {
+    "form-data": "^4.0.5"
   }
 }

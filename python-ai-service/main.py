@@ -1259,7 +1259,7 @@ class DirectOpenAIClient:
                             OPENAI_RATE_LIMIT_RESET_TIME - datetime.now()
                         ).total_seconds()
                         logger.warning(
-                            f"⏰ Key {key_index + 1} in rate limit "
+                            f"⏰ API key in rate limit "
                             f"period, {remaining_time:.0f}s remaining"
                         )
                         # Try next key
@@ -1269,7 +1269,7 @@ class DirectOpenAIClient:
                         # Rate limit period expired, reset it
                         OPENAI_RATE_LIMIT_RESET_TIME = None
                         self.rate_limited_keys.discard(key_index)
-                        logger.info(f"✅ Key {key_index + 1} rate limit expired")
+                        logger.info(f"✅ API key rate limit expired")
 
             # Rate limiting: ensure minimum delay between requests
             # (checked outside lock to allow sleep without blocking)
@@ -1312,7 +1312,7 @@ class DirectOpenAIClient:
                 }
 
             try:
-                logger.info(f"🔑 Using API key {key_index + 1}/{len(self.api_keys)}")
+                logger.info(f"🔑 Using API key (attempt {attempt + 1}/{max_attempts})")
 
                 async with httpx.AsyncClient(timeout=30.0) as client:
                     response = await client.post(
@@ -1331,7 +1331,7 @@ class DirectOpenAIClient:
                             )
                             OPENAI_RATE_LIMIT_RESET_TIME = reset_time
                             logger.warning(
-                                f"⏰ Key {key_index + 1} rate limited until {reset_time}"
+                                f"⏰ API key rate limited until {reset_time}"
                             )
                         else:
                             # Default to 1 hour if no retry-after header
@@ -1339,7 +1339,7 @@ class DirectOpenAIClient:
                                 hours=1
                             )
                             logger.warning(
-                                f"⏰ Key {key_index + 1} rate limited for 1 hour"
+                                f"⏰ API key rate limited for 1 hour"
                             )
 
                         # Try next key
@@ -1352,25 +1352,25 @@ class DirectOpenAIClient:
 
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 429:
-                    logger.error(f"🚫 Key {key_index + 1} rate limit exceeded (429)")
+                    logger.error(f"🚫 API key rate limit exceeded (429)")
                     self.rate_limited_keys.add(key_index)
                     self.current_key_index += 1
                     continue
                 elif e.response.status_code == 401:
-                    logger.error(f"🔑 Key {key_index + 1} authentication failed (401)")
+                    logger.error(f"🔑 API key authentication failed (401)")
                     self.current_key_index += 1
                     continue
                 elif e.response.status_code == 403:
-                    logger.error(f"💰 Key {key_index + 1} quota exceeded (403)")
+                    logger.error(f"💰 API key quota exceeded (403)")
                     self.current_key_index += 1
                     continue
                 else:
                     logger.error(
-                        f"❌ Key {key_index + 1} API error: {e.response.status_code}"
+                        f"❌ API key API error: {e.response.status_code}"
                     )
                     raise
             except Exception as e:
-                logger.error(f"❌ Key {key_index + 1} network error: {e}")
+                logger.error(f"❌ API key network error: {e}")
                 if attempt == max_attempts - 1:  # Last attempt
                     raise
                 else:
