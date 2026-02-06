@@ -1347,7 +1347,7 @@ class DirectOpenAIClient:
                         continue
 
                     response.raise_for_status()
-                    logger.info(f"✅ Request successful with key {key_index + 1}")
+                    logger.info("✅ Request successful with API key")
                     return response.json()
 
             except httpx.HTTPStatusError as e:
