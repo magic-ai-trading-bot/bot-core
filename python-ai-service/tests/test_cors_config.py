@@ -39,8 +39,12 @@ class TestCORSMiddleware:
                 "http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080",
             )
 
-            assert "localhost" in default_origins
-            assert "127.0.0.1" in default_origins
+            # Use exact URL matching instead of substring check
+            origins_list = [o.strip() for o in default_origins.split(",")]
+            localhost_origins = [o for o in origins_list if o.startswith("http://localhost:")]
+            loopback_origins = [o for o in origins_list if o.startswith("http://127.0.0.1:")]
+            assert len(localhost_origins) > 0, "Should have localhost origins"
+            assert len(loopback_origins) > 0, "Should have 127.0.0.1 origins"
 
     def test_cors_origins_split_by_comma(self):
         """Test that CORS origins are properly split by comma"""
