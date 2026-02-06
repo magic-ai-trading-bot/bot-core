@@ -26,7 +26,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Run Trivy vulnerability scanner in repo mode
       uses: aquasecurity/trivy-action@master
@@ -50,7 +50,7 @@ jobs:
     #     sarif_file: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: trivy-scan-results
         path: trivy-results.sarif
@@ -81,7 +81,7 @@ jobs:
     #       nextjs-image-scan.sarif
 
     - name: Upload Docker image scan results as artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: github.event_name == 'push'
       with:
         name: docker-image-scan-results
@@ -106,7 +106,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
@@ -131,7 +131,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Run Semgrep
       run: |
@@ -139,7 +139,7 @@ jobs:
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload Semgrep results
-    #   uses: actions/upload-artifact@v4
+    #   uses: actions/upload-artifact@v6
     #   if: always()
     #   with:
     #     name: semgrep-results
@@ -151,12 +151,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: Run TruffleHog Secret Scan
-      uses: trufflesecurity/trufflehog@v3.88.26
+      uses: trufflesecurity/trufflehog@v3.92.3
       continue-on-error: true
       with:
         path: ./
@@ -175,7 +175,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Python  
       uses: actions/setup-python@v5
@@ -213,7 +213,7 @@ jobs:
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload dependency check results
-    #   uses: actions/upload-artifact@v4
+    #   uses: actions/upload-artifact@v6
     #   if: always()
     #   with:
     #     name: dependency-check-results
@@ -228,7 +228,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Install license checker
       run: |
@@ -257,7 +257,7 @@ jobs:
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload license reports
-    #   uses: actions/upload-artifact@v4
+    #   uses: actions/upload-artifact@v6
     #   with:
     #     name: license-reports
     #     path: |
@@ -307,14 +307,14 @@ jobs:
 
     # Temporarily disabled due to artifact storage quota
     # - name: Upload security summary
-    #   uses: actions/upload-artifact@v4
+    #   uses: actions/upload-artifact@v6
     #   with:
     #     name: security-summary
     #     path: security-summary.md
 
     - name: Comment security summary on PR
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
+      uses: actions/github-script@v8
       with:
         script: |
           const fs = require('fs');
