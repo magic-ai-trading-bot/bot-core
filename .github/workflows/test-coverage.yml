@@ -13,9 +13,9 @@ permissions:
   checks: write
 
 env:
-  RUST_COVERAGE_THRESHOLD: 90.0
-  PYTHON_COVERAGE_THRESHOLD: 89.0
-  FRONTEND_COVERAGE_THRESHOLD: 90.0
+  RUST_COVERAGE_THRESHOLD: 95.0
+  PYTHON_COVERAGE_THRESHOLD: 95.0
+  FRONTEND_COVERAGE_THRESHOLD: 95.0
 
 jobs:
   test-rust:
@@ -93,8 +93,8 @@ jobs:
           echo "Required threshold: $RUST_COVERAGE_THRESHOLD%"
 
           if (( $(echo "$COVERAGE < $RUST_COVERAGE_THRESHOLD" | bc -l) )); then
-            echo "⚠️ Coverage $COVERAGE% is below $RUST_COVERAGE_THRESHOLD% threshold"
-            echo "This is a warning, not blocking the build yet"
+            echo "❌ Coverage $COVERAGE% is below $RUST_COVERAGE_THRESHOLD% threshold"
+            exit 1
           else
             echo "✅ Coverage $COVERAGE% meets threshold"
           fi
@@ -278,14 +278,31 @@ jobs:
       - name: Check coverage threshold
         working-directory: ./nextjs-ui-dashboard
         run: |
-          # Try to extract coverage from test output
-          COVERAGE=$(npm run test:coverage 2>&1 | grep -oP '\d+\.\d+(?=%)' | head -1 || echo "0")
+          # Extract coverage from coverage-final.json (already generated above)
+          if [ -f coverage/coverage-final.json ]; then
+            COVERAGE=$(node -e "
+              const data = require('./coverage/coverage-final.json');
+              let totalStatements = 0, coveredStatements = 0;
+              for (const file of Object.values(data)) {
+                const s = file.s;
+                for (const key of Object.keys(s)) {
+                  totalStatements++;
+                  if (s[key] > 0) coveredStatements++;
+                }
+              }
+              console.log(totalStatements > 0 ? (coveredStatements / totalStatements * 100).toFixed(2) : '0');
+            ")
+          else
+            echo "❌ coverage-final.json not found"
+            exit 1
+          fi
+
           echo "Current Frontend coverage: $COVERAGE%"
           echo "Required threshold: $FRONTEND_COVERAGE_THRESHOLD%"
 
           if (( $(echo "$COVERAGE < $FRONTEND_COVERAGE_THRESHOLD" | bc -l) )); then
-            echo "⚠️ Coverage $COVERAGE% is below $FRONTEND_COVERAGE_THRESHOLD% threshold"
-            echo "This is a warning, not blocking the build yet"
+            echo "❌ Coverage $COVERAGE% is below $FRONTEND_COVERAGE_THRESHOLD% threshold"
+            exit 1
           else
             echo "✅ Coverage $COVERAGE% meets threshold"
           fi
@@ -424,7 +441,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.31.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
