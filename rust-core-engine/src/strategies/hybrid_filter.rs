@@ -82,15 +82,12 @@ impl HybridFilter {
             .check_alignment(candles_1d, candles_4h, candles_1h)?;
 
         // Step 2: Get ML prediction if enabled
-        let ml_prediction = if self.config.use_ml && self.ml_predictor.is_some() {
-            self.ml_predictor
-                .as_ref()
-                .unwrap()
-                .predict_trend_with_fallback(symbol, "4h")
-                .await
-        } else {
-            None
-        };
+        let ml_prediction =
+            if let (true, Some(predictor)) = (self.config.use_ml, self.ml_predictor.as_ref()) {
+                predictor.predict_trend_with_fallback(symbol, "4h").await
+            } else {
+                None
+            };
 
         // Step 3: Combine signals
         let filter_result =

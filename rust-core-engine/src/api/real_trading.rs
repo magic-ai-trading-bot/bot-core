@@ -197,7 +197,7 @@ pub struct ModifySlTpRequest {
 /// Pending confirmation entry
 #[derive(Debug, Clone)]
 struct PendingConfirmation {
-    token: String,
+    _token: String,
     order_request: PlaceOrderRequest,
     expires_at: DateTime<Utc>,
 }
@@ -282,7 +282,7 @@ impl RealTradingApi {
         self.pending_confirmations.insert(
             token.clone(),
             PendingConfirmation {
-                token: token.clone(),
+                _token: token.clone(),
                 order_request: request.clone(),
                 expires_at,
             },
