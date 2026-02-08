@@ -139,7 +139,7 @@ impl BinanceWebSocket {
                 error!("Command receiver mutex poisoned, attempting recovery");
                 // Clear the poison and recover the data
                 poisoned.into_inner().take()
-            }
+            },
         };
 
         loop {

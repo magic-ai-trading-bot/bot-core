@@ -162,7 +162,7 @@ def backtest_strategy(
             "task_id": self.request.id,
             # ⚠️ CRITICAL WARNING
             "warning": "⚠️ EXPERIMENTAL: These results are SIMULATED using random data. "
-                      "DO NOT use for real trading decisions. Real backtest engine not yet implemented.",
+            "DO NOT use for real trading decisions. Real backtest engine not yet implemented.",
             "is_simulated": True,
         }
 
@@ -266,7 +266,7 @@ def optimize_strategy(
             "task_id": self.request.id,
             # ⚠️ CRITICAL WARNING
             "warning": "⚠️ EXPERIMENTAL: Optimization uses RANDOM parameters, not real analysis. "
-                      "These 'optimal' parameters are meaningless. Real optimization not yet implemented.",
+            "These 'optimal' parameters are meaningless. Real optimization not yet implemented.",
             "is_simulated": True,
         }
 

@@ -337,7 +337,7 @@ impl MarketDataProcessor {
                 Err(poisoned) => {
                     error!("Command sender mutex poisoned, attempting recovery");
                     poisoned.into_inner()
-                }
+                },
             };
             *guard = Some(command_sender);
         }
@@ -723,7 +723,7 @@ impl MarketDataProcessor {
             Err(poisoned) => {
                 error!("Command sender mutex poisoned during subscribe, attempting recovery");
                 poisoned.into_inner()
-            }
+            },
         };
         if let Some(ref sender) = *guard {
             let cmd = WebSocketCommand::Subscribe {
@@ -757,7 +757,7 @@ impl MarketDataProcessor {
             Err(poisoned) => {
                 error!("Command sender mutex poisoned during unsubscribe, attempting recovery");
                 poisoned.into_inner()
-            }
+            },
         };
         if let Some(ref sender) = *guard {
             let cmd = WebSocketCommand::Unsubscribe {

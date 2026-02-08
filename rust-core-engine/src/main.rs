@@ -223,15 +223,23 @@ async fn main() -> Result<()> {
             real_trading_config.clone(),
             real_binance_client,
             risk_manager,
-        ).await {
+        )
+        .await
+        {
             Ok(engine) => {
-                info!("✅ Real trading engine initialized successfully (testnet={})", real_trading_config.use_testnet);
+                info!(
+                    "✅ Real trading engine initialized successfully (testnet={})",
+                    real_trading_config.use_testnet
+                );
                 Some(std::sync::Arc::new(engine))
-            }
+            },
             Err(e) => {
-                tracing::warn!("⚠️ Failed to initialize real trading engine: {}. Continuing without it.", e);
+                tracing::warn!(
+                    "⚠️ Failed to initialize real trading engine: {}. Continuing without it.",
+                    e
+                );
                 None
-            }
+            },
         }
     } else {
         info!("📝 No real trading configuration found, running in paper trading mode only");
