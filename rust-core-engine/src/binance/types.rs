@@ -812,12 +812,7 @@ impl OcoOrderRequest {
     }
 
     /// Add custom order IDs for tracking
-    pub fn with_client_order_ids(
-        mut self,
-        list_id: &str,
-        above_id: &str,
-        below_id: &str,
-    ) -> Self {
+    pub fn with_client_order_ids(mut self, list_id: &str, above_id: &str, below_id: &str) -> Self {
         self.list_client_order_id = Some(list_id.to_string());
         self.above_client_order_id = Some(above_id.to_string());
         self.below_client_order_id = Some(below_id.to_string());

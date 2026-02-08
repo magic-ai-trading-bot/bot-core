@@ -491,24 +491,19 @@ async def lifespan(app: FastAPI):
             pass  # Expected during shutdown
         except Exception as e:
             task_name = task.get_name()
-            logger.error(
-                f"❌ Background task '{task_name}' failed: {e}",
-                exc_info=True
-            )
+            logger.error(f"❌ Background task '{task_name}' failed: {e}", exc_info=True)
             # TODO: Add notification system to alert on critical task failures
 
     # Start background settings refresh task (every 5 minutes)
     settings_refresh_task = asyncio.create_task(
-        refresh_settings_periodically(),
-        name="settings_refresh"
+        refresh_settings_periodically(), name="settings_refresh"
     )
     settings_refresh_task.add_done_callback(handle_task_exception)
     logger.info("🔄 Started settings refresh background task")
 
     # Start background analysis task
     analysis_task = asyncio.create_task(
-        periodic_analysis_runner(),
-        name="periodic_analysis"
+        periodic_analysis_runner(), name="periodic_analysis"
     )
     analysis_task.add_done_callback(handle_task_exception)
     logger.info(
@@ -527,9 +522,7 @@ async def lifespan(app: FastAPI):
     # Wait for tasks to finish cancellation
     try:
         await asyncio.gather(
-            analysis_task,
-            settings_refresh_task,
-            return_exceptions=True
+            analysis_task, settings_refresh_task, return_exceptions=True
         )
         logger.info("✅ Background tasks cancelled successfully")
     except Exception as e:
@@ -1338,9 +1331,7 @@ class DirectOpenAIClient:
                             OPENAI_RATE_LIMIT_RESET_TIME = datetime.now() + timedelta(
                                 hours=1
                             )
-                            logger.warning(
-                                f"⏰ API key rate limited for 1 hour"
-                            )
+                            logger.warning(f"⏰ API key rate limited for 1 hour")
 
                         # Try next key
                         self.current_key_index += 1
@@ -1365,9 +1356,7 @@ class DirectOpenAIClient:
                     self.current_key_index += 1
                     continue
                 else:
-                    logger.error(
-                        f"❌ API key API error: {e.response.status_code}"
-                    )
+                    logger.error(f"❌ API key API error: {e.response.status_code}")
                     raise
             except Exception as e:
                 logger.error(f"❌ API key network error: {e}")

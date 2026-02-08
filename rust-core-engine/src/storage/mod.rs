@@ -357,16 +357,21 @@ impl Storage {
                     let open_price = match kline.open.parse::<f64>() {
                         Ok(p) if p > 0.0 => p,
                         Ok(p) => {
-                            warn!("Invalid open price {} for {} at {}, skipping kline", p, symbol, kline.open_time);
+                            warn!(
+                                "Invalid open price {} for {} at {}, skipping kline",
+                                p, symbol, kline.open_time
+                            );
                             parse_errors += 1;
                             continue;
-                        }
+                        },
                         Err(e) => {
-                            warn!("Failed to parse open price '{}' for {} at {}: {}, skipping kline",
-                                  kline.open, symbol, kline.open_time, e);
+                            warn!(
+                                "Failed to parse open price '{}' for {} at {}: {}, skipping kline",
+                                kline.open, symbol, kline.open_time, e
+                            );
                             parse_errors += 1;
                             continue;
-                        }
+                        },
                     };
 
                     let high_price = match kline.high.parse::<f64>() {
@@ -374,7 +379,7 @@ impl Storage {
                         _ => {
                             parse_errors += 1;
                             continue;
-                        }
+                        },
                     };
 
                     let low_price = match kline.low.parse::<f64>() {
@@ -382,7 +387,7 @@ impl Storage {
                         _ => {
                             parse_errors += 1;
                             continue;
-                        }
+                        },
                     };
 
                     let close_price = match kline.close.parse::<f64>() {
@@ -390,7 +395,7 @@ impl Storage {
                         _ => {
                             parse_errors += 1;
                             continue;
-                        }
+                        },
                     };
 
                     let volume = kline.volume.parse::<f64>().unwrap_or(0.0);
@@ -413,8 +418,10 @@ impl Storage {
                 }
 
                 if parse_errors > 0 {
-                    error!("Skipped {} invalid klines for {} {} due to parse errors",
-                           parse_errors, symbol, timeframe);
+                    error!(
+                        "Skipped {} invalid klines for {} {} due to parse errors",
+                        parse_errors, symbol, timeframe
+                    );
                 }
 
                 if !docs.is_empty() {
@@ -470,7 +477,14 @@ impl Storage {
                                 doc.get_f64("low_price"),
                                 doc.get_f64("close_price"),
                             ) {
-                                (Ok(open_time), Ok(close_time), Ok(open), Ok(high), Ok(low), Ok(close)) => {
+                                (
+                                    Ok(open_time),
+                                    Ok(close_time),
+                                    Ok(open),
+                                    Ok(high),
+                                    Ok(low),
+                                    Ok(close),
+                                ) => {
                                     let kline = Kline {
                                         open_time,
                                         close_time,
@@ -479,29 +493,38 @@ impl Storage {
                                         low: low.to_string(),
                                         close: close.to_string(),
                                         volume: doc.get_f64("volume").unwrap_or(0.0).to_string(),
-                                        quote_asset_volume: doc.get_f64("quote_volume").unwrap_or(0.0).to_string(),
+                                        quote_asset_volume: doc
+                                            .get_f64("quote_volume")
+                                            .unwrap_or(0.0)
+                                            .to_string(),
                                         number_of_trades: doc.get_i64("trades_count").unwrap_or(0),
                                         taker_buy_base_asset_volume: "0".to_string(),
                                         taker_buy_quote_asset_volume: "0".to_string(),
                                         ignore: "0".to_string(),
                                     };
                                     klines.push(kline);
-                                }
+                                },
                                 _ => {
                                     retrieval_errors += 1;
                                     warn!("Skipping invalid market data document for {} {}: missing required fields", symbol, timeframe);
-                                }
+                                },
                             }
-                        }
+                        },
                         Err(e) => {
                             retrieval_errors += 1;
-                            warn!("Failed to retrieve document from cursor for {} {}: {}", symbol, timeframe, e);
-                        }
+                            warn!(
+                                "Failed to retrieve document from cursor for {} {}: {}",
+                                symbol, timeframe, e
+                            );
+                        },
                     }
                 }
 
                 if retrieval_errors > 0 {
-                    warn!("Encountered {} errors while retrieving market data for {} {}", retrieval_errors, symbol, timeframe);
+                    warn!(
+                        "Encountered {} errors while retrieving market data for {} {}",
+                        retrieval_errors, symbol, timeframe
+                    );
                 }
 
                 // Reverse to get chronological order

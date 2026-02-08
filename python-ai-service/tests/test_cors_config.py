@@ -41,8 +41,12 @@ class TestCORSMiddleware:
 
             # Use exact URL matching instead of substring check
             origins_list = [o.strip() for o in default_origins.split(",")]
-            localhost_origins = [o for o in origins_list if o.startswith("http://localhost:")]
-            loopback_origins = [o for o in origins_list if o.startswith("http://127.0.0.1:")]
+            localhost_origins = [
+                o for o in origins_list if o.startswith("http://localhost:")
+            ]
+            loopback_origins = [
+                o for o in origins_list if o.startswith("http://127.0.0.1:")
+            ]
             assert len(localhost_origins) > 0, "Should have localhost origins"
             assert len(loopback_origins) > 0, "Should have 127.0.0.1 origins"
 

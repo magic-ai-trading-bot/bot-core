@@ -380,22 +380,23 @@ impl PaperTradingEngine {
         // Get current prices for all symbols
         for symbol in &symbols {
             match self.binance_client.get_symbol_price(symbol).await {
-                Ok(price_info) => {
-                    match price_info.price.parse::<f64>() {
-                        Ok(price) if price > 0.0 => {
-                            debug!(
-                                "📊 Price update: {} = ${:.2} (source: Binance API)",
-                                symbol, price
-                            );
-                            new_prices.insert(symbol.clone(), price);
-                        }
-                        Ok(price) => {
-                            warn!("⚠️ Invalid price {} for {}, skipping update", price, symbol);
-                        }
-                        Err(e) => {
-                            warn!("⚠️ Failed to parse price '{}' for {}: {}", price_info.price, symbol, e);
-                        }
-                    }
+                Ok(price_info) => match price_info.price.parse::<f64>() {
+                    Ok(price) if price > 0.0 => {
+                        debug!(
+                            "📊 Price update: {} = ${:.2} (source: Binance API)",
+                            symbol, price
+                        );
+                        new_prices.insert(symbol.clone(), price);
+                    },
+                    Ok(price) => {
+                        warn!("⚠️ Invalid price {} for {}, skipping update", price, symbol);
+                    },
+                    Err(e) => {
+                        warn!(
+                            "⚠️ Failed to parse price '{}' for {}: {}",
+                            price_info.price, symbol, e
+                        );
+                    },
                 },
                 Err(e) => {
                     warn!("⚠️ Failed to get price for {}: {}", symbol, e);

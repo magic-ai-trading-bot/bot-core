@@ -135,11 +135,11 @@ pub struct CloseTradeRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaceOrderRequest {
     pub symbol: String,
-    pub side: String,           // "BUY" or "SELL"
-    pub order_type: String,     // "MARKET", "LIMIT"
+    pub side: String,       // "BUY" or "SELL"
+    pub order_type: String, // "MARKET", "LIMIT"
     pub quantity: f64,
-    pub price: Option<f64>,     // Required for LIMIT orders
-    pub stop_loss: Option<f64>, // Optional SL price
+    pub price: Option<f64>,       // Required for LIMIT orders
+    pub stop_loss: Option<f64>,   // Optional SL price
     pub take_profit: Option<f64>, // Optional TP price
     /// Confirmation token (if provided, executes order; if not, returns confirmation)
     pub confirmation_token: Option<String>,
@@ -273,7 +273,10 @@ impl RealTradingApi {
             request.quantity,
             request.symbol,
             request.order_type,
-            request.price.map(|p| format!("${:.2}", p)).unwrap_or_else(|| "MARKET".to_string())
+            request
+                .price
+                .map(|p| format!("${:.2}", p))
+                .unwrap_or_else(|| "MARKET".to_string())
         );
 
         self.pending_confirmations.insert(

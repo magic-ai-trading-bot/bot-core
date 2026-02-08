@@ -89,7 +89,10 @@ async fn main() -> Result<()> {
 
                     println!("\n   Orders in OCO:");
                     for order in &oco_response.orders {
-                        println!("     - Order ID: {}, Client ID: {}", order.order_id, order.client_order_id);
+                        println!(
+                            "     - Order ID: {}, Client ID: {}",
+                            order.order_id, order.client_order_id
+                        );
                     }
 
                     if !oco_response.order_reports.is_empty() {
@@ -97,7 +100,11 @@ async fn main() -> Result<()> {
                         for report in &oco_response.order_reports {
                             println!(
                                 "     - {} {} @ {} (Status: {}, Type: {})",
-                                report.side, report.orig_qty, report.price, report.status, report.order_type
+                                report.side,
+                                report.orig_qty,
+                                report.price,
+                                report.status,
+                                report.order_type
                             );
                         }
                     }
@@ -111,22 +118,22 @@ async fn main() -> Result<()> {
                         Ok(cancel_response) => {
                             println!("✅ OCO cancelled successfully!");
                             println!("   List Status: {}", cancel_response.list_order_status);
-                        }
+                        },
                         Err(e) => {
                             println!("⚠️  Failed to cancel OCO: {}", e);
                             println!("   (May have already been filled or cancelled)");
-                        }
+                        },
                     }
-                }
+                },
                 Err(e) => {
                     println!("❌ Failed to place OCO order: {}", e);
                     println!("   Note: OCO may not be available on testnet for all pairs");
-                }
+                },
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to place buy order: {}", e);
-        }
+        },
     }
 
     // Test Stop-Loss Limit order directly
@@ -154,10 +161,10 @@ async fn main() -> Result<()> {
                 .cancel_spot_order("BTCUSDT", Some(response.order_id), None)
                 .await;
             println!("   (Cancelled for cleanup)");
-        }
+        },
         Err(e) => {
             println!("❌ Failed to place SL order: {}", e);
-        }
+        },
     }
 
     // Test Take-Profit Limit order directly
@@ -185,10 +192,10 @@ async fn main() -> Result<()> {
                 .cancel_spot_order("BTCUSDT", Some(response.order_id), None)
                 .await;
             println!("   (Cancelled for cleanup)");
-        }
+        },
         Err(e) => {
             println!("❌ Failed to place TP order: {}", e);
-        }
+        },
     }
 
     println!("\n✅ All Phase 2 tests completed!");

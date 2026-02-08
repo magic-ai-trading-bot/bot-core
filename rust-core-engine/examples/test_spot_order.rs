@@ -61,15 +61,18 @@ async fn main() -> Result<()> {
                     let free: f64 = balance.free.parse().unwrap_or(0.0);
                     let locked: f64 = balance.locked.parse().unwrap_or(0.0);
                     if free > 0.0 || locked > 0.0 {
-                        println!("   {} - Free: {:.8}, Locked: {:.8}", balance.asset, free, locked);
+                        println!(
+                            "   {} - Free: {:.8}, Locked: {:.8}",
+                            balance.asset, free, locked
+                        );
                     }
                 }
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to get account info: {}", e);
             return Ok(());
-        }
+        },
     }
 
     // Test 2: Get current BTC price
@@ -78,17 +81,19 @@ async fn main() -> Result<()> {
         Ok(price) => {
             let price_f64: f64 = price.price.parse().unwrap_or(0.0);
             println!("✅ BTCUSDT Price: ${:.2}", price_f64);
-        }
+        },
         Err(e) => {
             println!("❌ Failed to get price: {}", e);
-        }
+        },
     }
 
     // Test 3: Place a small market buy order
     println!("\n📝 Test 3: Place Market Buy Order (0.0001 BTC)...");
     // Use the helper method for cleaner code
-    let order_request = SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0.0001")
-        .with_client_order_id(&format!("test_order_{}", chrono::Utc::now().timestamp_millis()));
+    let order_request =
+        SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0.0001").with_client_order_id(
+            &format!("test_order_{}", chrono::Utc::now().timestamp_millis()),
+        );
 
     match client.place_spot_order(order_request).await {
         Ok(response) => {
@@ -103,14 +108,16 @@ async fn main() -> Result<()> {
             if !response.fills.is_empty() {
                 println!("   Fills:");
                 for fill in &response.fills {
-                    println!("     - Price: {}, Qty: {}, Commission: {} {}",
-                        fill.price, fill.qty, fill.commission, fill.commission_asset);
+                    println!(
+                        "     - Price: {}, Qty: {}, Commission: {} {}",
+                        fill.price, fill.qty, fill.commission, fill.commission_asset
+                    );
                 }
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to place order: {}", e);
-        }
+        },
     }
 
     // Test 4: Get open orders
@@ -122,14 +129,16 @@ async fn main() -> Result<()> {
             } else {
                 println!("✅ Open orders: {}", orders.len());
                 for order in &orders {
-                    println!("   - {} {} {} @ {} (Status: {})",
-                        order.symbol, order.side, order.orig_qty, order.price, order.status);
+                    println!(
+                        "   - {} {} {} @ {} (Status: {})",
+                        order.symbol, order.side, order.orig_qty, order.price, order.status
+                    );
                 }
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to get open orders: {}", e);
-        }
+        },
     }
 
     println!("\n✅ All tests completed!");

@@ -1108,23 +1108,32 @@ impl RealTradingEngine {
                 Ok(v) => {
                     warn!("Invalid negative balance for {}: free={}", balance.asset, v);
                     continue;
-                }
+                },
                 Err(e) => {
-                    warn!("Failed to parse free balance for {}: '{}' - {}", balance.asset, balance.free, e);
+                    warn!(
+                        "Failed to parse free balance for {}: '{}' - {}",
+                        balance.asset, balance.free, e
+                    );
                     continue;
-                }
+                },
             };
 
             let locked = match balance.locked.parse::<f64>() {
                 Ok(v) if v >= 0.0 => v,
                 Ok(v) => {
-                    warn!("Invalid negative locked balance for {}: locked={}", balance.asset, v);
+                    warn!(
+                        "Invalid negative locked balance for {}: locked={}",
+                        balance.asset, v
+                    );
                     0.0 // Keep free balance but set locked to 0
-                }
+                },
                 Err(e) => {
-                    warn!("Failed to parse locked balance for {}: '{}' - {}", balance.asset, balance.locked, e);
+                    warn!(
+                        "Failed to parse locked balance for {}: '{}' - {}",
+                        balance.asset, balance.locked, e
+                    );
                     0.0 // Keep free balance but set locked to 0
-                }
+                },
             };
 
             // Only track non-zero balances
@@ -1159,10 +1168,12 @@ impl RealTradingEngine {
         let delta = match update.balance_delta.parse::<f64>() {
             Ok(d) => d,
             Err(e) => {
-                error!("Failed to parse balance delta for {}: '{}' - {}",
-                       update.asset, update.balance_delta, e);
+                error!(
+                    "Failed to parse balance delta for {}: '{}' - {}",
+                    update.asset, update.balance_delta, e
+                );
                 return;
-            }
+            },
         };
 
         debug!(

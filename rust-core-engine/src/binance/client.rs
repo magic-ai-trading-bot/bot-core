@@ -348,7 +348,10 @@ impl BinanceClient {
             .await
     }
 
-    pub async fn place_futures_order(&self, order: NewOrderRequest) -> Result<FuturesOrderResponse> {
+    pub async fn place_futures_order(
+        &self,
+        order: NewOrderRequest,
+    ) -> Result<FuturesOrderResponse> {
         let mut params = HashMap::new();
 
         params.insert("symbol".to_string(), order.symbol);

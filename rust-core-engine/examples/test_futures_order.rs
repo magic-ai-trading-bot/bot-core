@@ -27,8 +27,14 @@ async fn main() -> Result<()> {
     }
 
     // Set Futures testnet keys (from user input)
-    std::env::set_var("BINANCE_FUTURES_TESTNET_API_KEY", "xTAotoNWsNbtk8GmJ3xDSjKt43J192ZmRDVTsnhodjtNYhcdlwuaaGEJJjlx2eHi");
-    std::env::set_var("BINANCE_FUTURES_TESTNET_SECRET_KEY", "yQj7Y7eDXJCDKEFDwT5JhmCItz4tAdd1SBeUCW7tyjP6Ugj9UUqentNmU33wUh5D");
+    std::env::set_var(
+        "BINANCE_FUTURES_TESTNET_API_KEY",
+        "xTAotoNWsNbtk8GmJ3xDSjKt43J192ZmRDVTsnhodjtNYhcdlwuaaGEJJjlx2eHi",
+    );
+    std::env::set_var(
+        "BINANCE_FUTURES_TESTNET_SECRET_KEY",
+        "yQj7Y7eDXJCDKEFDwT5JhmCItz4tAdd1SBeUCW7tyjP6Ugj9UUqentNmU33wUh5D",
+    );
 
     println!("🔧 Loading configuration...");
 
@@ -59,11 +65,11 @@ async fn main() -> Result<()> {
             if let Some(can_trade) = account.get("canTrade") {
                 println!("   Can Trade: {}", can_trade);
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to get futures account: {}", e);
             return Ok(());
-        }
+        },
     }
 
     // Test 2: Get current BTCUSDT price (futures)
@@ -83,10 +89,10 @@ async fn main() -> Result<()> {
             if let Some(max_notional) = response.get("maxNotionalValue") {
                 println!("   Max Notional: {}", max_notional);
             }
-        }
+        },
         Err(e) => {
             println!("⚠️ Leverage change: {} (may already be set)", e);
-        }
+        },
     }
 
     // Test 4: Set Margin Type to ISOLATED
@@ -94,7 +100,7 @@ async fn main() -> Result<()> {
     match client.change_margin_type("BTCUSDT", "ISOLATED").await {
         Ok(_) => {
             println!("✅ Margin type set to ISOLATED!");
-        }
+        },
         Err(e) => {
             // Error -4046 means "No need to change margin type" - this is OK
             let err_str = e.to_string();
@@ -103,7 +109,7 @@ async fn main() -> Result<()> {
             } else {
                 println!("⚠️ Margin type change: {}", e);
             }
-        }
+        },
     }
 
     // Test 5: Get Position Risk
@@ -116,14 +122,18 @@ async fn main() -> Result<()> {
                 if position_amt.abs() > 0.0 {
                     println!(
                         "   {} - Amt: {}, Entry: {}, Unrealized PnL: {}, Leverage: {}x",
-                        pos.symbol, pos.position_amt, pos.entry_price, pos.unrealized_pnl, pos.leverage
+                        pos.symbol,
+                        pos.position_amt,
+                        pos.entry_price,
+                        pos.unrealized_pnl,
+                        pos.leverage
                     );
                 }
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to get positions: {}", e);
-        }
+        },
     }
 
     // Test 6: Place a LONG Market Order
@@ -155,10 +165,10 @@ async fn main() -> Result<()> {
             println!("   Status: {}", response.status);
             println!("   Executed Qty: {}", response.executed_qty);
             println!("   Avg Price: {}", response.price);
-        }
+        },
         Err(e) => {
             println!("❌ Failed to place LONG order: {}", e);
-        }
+        },
     }
 
     // Wait a bit
@@ -183,10 +193,10 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to get positions: {}", e);
-        }
+        },
     }
 
     // Test 8: Close position with reduce-only order
@@ -216,10 +226,10 @@ async fn main() -> Result<()> {
             println!("   Order ID: {}", response.order_id);
             println!("   Status: {}", response.status);
             println!("   Executed Qty: {}", response.executed_qty);
-        }
+        },
         Err(e) => {
             println!("❌ Failed to close position: {}", e);
-        }
+        },
     }
 
     // Test 9: Verify position closed
@@ -236,10 +246,10 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-        }
+        },
         Err(e) => {
             println!("❌ Failed to get positions: {}", e);
-        }
+        },
     }
 
     println!("\n✅ All Phase 3 Futures tests completed!");
