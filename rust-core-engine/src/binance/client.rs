@@ -77,6 +77,7 @@ impl BinanceClient {
         }
     }
 
+    #[cfg(test)]
     fn sign_request(&self, query_string: &str) -> Result<String> {
         let mut mac = HmacSha256::new_from_slice(self.config.secret_key.as_bytes())
             .map_err(|e| anyhow::anyhow!("Failed to create HMAC instance: {}", e))?;
