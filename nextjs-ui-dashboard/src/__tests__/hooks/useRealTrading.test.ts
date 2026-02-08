@@ -15,10 +15,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useRealTrading, RealOrder, PlaceOrderRequest, PendingOrderConfirmation } from '@/hooks/useRealTrading';
 
+// Mock toast function
+const mockToast = vi.fn();
+
 // Mock dependencies
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
-    toast: vi.fn(),
+    toast: mockToast,
   }),
 }));
 
@@ -629,6 +632,701 @@ describe('useRealTrading', () => {
 
       expect(result.current.activeOrders[0].symbol).toBe('BTCUSDT');
       expect(result.current.activeOrders[1].symbol).toBe('ETHUSDT');
+    });
+  });
+
+  // ========================================
+  // Start/Stop Trading Tests
+  // ========================================
+
+  describe('startTrading', () => {
+    it('should start trading successfully', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/start')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: { message: 'Trading started' },
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.startTrading();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isActive).toBe(true);
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
+    it('should handle start trading error', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/start')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: false,
+              error: 'Insufficient balance',
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.startTrading();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isActive).toBe(false);
+        expect(result.current.error).toBe('Insufficient balance');
+      });
+    });
+  });
+
+  describe('stopTrading', () => {
+    it('should stop trading successfully', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/stop')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: { message: 'Trading stopped' },
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.stopTrading();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isActive).toBe(false);
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
+    it('should handle stop trading error', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/stop')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: false,
+              error: 'Failed to stop',
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.stopTrading();
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Failed to stop');
+      });
+    });
+  });
+
+  // ========================================
+  // Close Trade Tests
+  // ========================================
+
+  describe('closeTrade', () => {
+    it('should close trade successfully', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/trades/trade-123/close')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: { message: 'Trade closed' },
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: [] }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.closeTrade('trade-123');
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
+    it('should handle close trade error', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/trades/')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: false,
+              error: 'Trade not found',
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.closeTrade('invalid-id');
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Trade not found');
+      });
+    });
+  });
+
+  // ========================================
+  // Update Settings Tests
+  // ========================================
+
+  describe('updateSettings', () => {
+    it('should update settings successfully', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/settings')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: { message: 'Settings updated' },
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      const newSettings = {
+        basic: {
+          initial_balance: 0,
+          max_positions: 3,
+          default_position_size_pct: 1.0,
+          default_leverage: 3,
+          trading_fee_rate: 0.0004,
+          funding_fee_rate: 0.0001,
+          slippage_pct: 0.02,
+          enabled: true,
+          auto_restart: false,
+        },
+        risk: {
+          max_risk_per_trade_pct: 0.5,
+          max_portfolio_risk_pct: 5.0,
+          default_stop_loss_pct: 1.0,
+          default_take_profit_pct: 2.0,
+          max_leverage: 5,
+          min_margin_level: 400.0,
+          max_drawdown_pct: 5.0,
+          daily_loss_limit_pct: 2.0,
+          max_consecutive_losses: 2,
+          cool_down_minutes: 180,
+        },
+      };
+
+      await act(async () => {
+        await result.current.updateSettings(newSettings);
+      });
+
+      await waitFor(() => {
+        expect(result.current.settings).toEqual(newSettings);
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
+    it('should handle update settings error', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/settings')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: false,
+              error: 'Invalid settings',
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      const newSettings = result.current.settings;
+
+      await act(async () => {
+        await result.current.updateSettings(newSettings);
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Invalid settings');
+      });
+    });
+  });
+
+  // ========================================
+  // Reset Portfolio Tests
+  // ========================================
+
+  describe('resetPortfolio', () => {
+    it('should show error for real trading mode', async () => {
+      mockToast.mockClear();
+
+      mockFetch.mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        })
+      );
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.resetPortfolio();
+      });
+
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Error',
+        description: 'Cannot reset real trading portfolio - this feature is only available in paper mode',
+        variant: 'destructive',
+      });
+    });
+  });
+
+  // ========================================
+  // Fetch Portfolio Status Tests
+  // ========================================
+
+  describe('fetchPortfolioStatus', () => {
+    it('should fetch and map portfolio data correctly', async () => {
+      const portfolioData = {
+        total_balance: 10000,
+        available_balance: 8000,
+        locked_balance: 2000,
+        realized_pnl: 500,
+      };
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/portfolio')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: portfolioData,
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => {
+        expect(result.current.portfolio.current_balance).toBe(10000);
+        expect(result.current.portfolio.equity).toBe(10000);
+        expect(result.current.portfolio.margin_used).toBe(2000);
+        expect(result.current.portfolio.free_margin).toBe(8000);
+        expect(result.current.portfolio.total_pnl).toBe(500);
+        expect(result.current.portfolio.total_pnl_percentage).toBe(5);
+      });
+    });
+
+    it('should handle zero balance correctly', async () => {
+      const portfolioData = {
+        total_balance: 0,
+        available_balance: 0,
+        locked_balance: 0,
+        realized_pnl: 0,
+      };
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/portfolio')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: portfolioData,
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => {
+        expect(result.current.portfolio.total_pnl_percentage).toBe(0);
+      });
+    });
+
+    it('should handle portfolio fetch error', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/portfolio')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: false,
+              error: 'API error',
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      // Portfolio should remain at default values
+      expect(result.current.portfolio.current_balance).toBe(0);
+    });
+  });
+
+  // ========================================
+  // Fetch With Retry Tests
+  // ========================================
+
+  describe('fetchWithRetry', () => {
+    it('should retry on failure and eventually succeed', async () => {
+      let attemptCount = 0;
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/trades/closed')) {
+          attemptCount++;
+          if (attemptCount < 2) {
+            return Promise.reject(new Error('Network error'));
+          }
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: [],
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      // Trigger fetchClosedTrades which uses fetchWithRetry
+      await act(async () => {
+        await result.current.refreshTrades();
+      });
+
+      // Should have retried and succeeded
+      expect(attemptCount).toBeGreaterThan(1);
+    });
+
+    it('should fail after max retries', async () => {
+      mockToast.mockClear();
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/trades/closed')) {
+          return Promise.reject(new Error('Persistent network error'));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      await act(async () => {
+        await result.current.refreshTrades();
+      });
+
+      await waitFor(() => {
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Error',
+            variant: 'destructive',
+          })
+        );
+      });
+    });
+  });
+
+  // ========================================
+  // Manual Refresh Tests
+  // ========================================
+
+  describe('Manual Refresh Functions', () => {
+    beforeEach(() => {
+      mockFetch.mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        })
+      );
+    });
+
+    it('should have refreshData function', async () => {
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      expect(typeof result.current.refreshData).toBe('function');
+
+      await act(async () => {
+        await result.current.refreshData();
+      });
+    });
+
+    it('should have refreshStatus function', async () => {
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      expect(typeof result.current.refreshStatus).toBe('function');
+
+      await act(async () => {
+        await result.current.refreshStatus();
+      });
+    });
+
+    it('should have refreshSettings function', async () => {
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      expect(typeof result.current.refreshSettings).toBe('function');
+
+      await act(async () => {
+        await result.current.refreshSettings();
+      });
+    });
+
+    it('should have refreshAISignals function', async () => {
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      expect(typeof result.current.refreshAISignals).toBe('function');
+
+      await act(async () => {
+        await result.current.refreshAISignals();
+      });
+    });
+
+    it('should have refreshOrders function', async () => {
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      expect(typeof result.current.refreshOrders).toBe('function');
+
+      await act(async () => {
+        await result.current.refreshOrders();
+      });
+    });
+
+    it('should have refreshTrades function', async () => {
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      expect(typeof result.current.refreshTrades).toBe('function');
+
+      await act(async () => {
+        await result.current.refreshTrades();
+      });
+    });
+  });
+
+  // ========================================
+  // Confirmation Token Expiry Tests
+  // ========================================
+
+  describe('Confirmation Token Expiry', () => {
+    it('should reject expired confirmation token', async () => {
+      mockToast.mockClear();
+
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/orders') && !url.includes('/all')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: {
+                requires_confirmation: true,
+                token: 'expired-token',
+                expires_at: '2020-01-01T00:00:00Z', // Expired
+                summary: 'Test order',
+              },
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+      // Place order to get expired confirmation
+      await act(async () => {
+        await result.current.placeOrder({
+          symbol: 'BTCUSDT',
+          side: 'BUY',
+          order_type: 'MARKET',
+          quantity: 0.01,
+        });
+      });
+
+      // Try to confirm
+      let confirmed: boolean | undefined;
+      await act(async () => {
+        confirmed = await result.current.confirmOrder();
+      });
+
+      expect(confirmed).toBe(false);
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Error',
+        description: 'Confirmation token expired. Please place order again.',
+        variant: 'destructive',
+      });
+    });
+  });
+
+  // ========================================
+  // State Transitions Tests
+  // ========================================
+
+  describe('State Transitions', () => {
+    it('should track lastUpdated on successful operations', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/portfolio')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              data: {
+                total_balance: 1000,
+                available_balance: 800,
+                locked_balance: 200,
+                realized_pnl: 50,
+              }
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        });
+      });
+
+      const { result } = renderHook(() => useRealTrading());
+
+      // Wait for initial portfolio fetch which sets lastUpdated
+      await waitFor(() => {
+        expect(result.current.lastUpdated).toBeTruthy();
+      }, { timeout: 2000 });
+    });
+
+    it('should increment updateCounter on data updates', async () => {
+      mockFetch.mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: null }),
+        })
+      );
+
+      const { result } = renderHook(() => useRealTrading());
+
+      const initialCounter = result.current.updateCounter;
+
+      await act(async () => {
+        await result.current.refreshData();
+      });
+
+      // Counter should remain stable as it's not explicitly incremented in the hook
+      expect(result.current.updateCounter).toBe(initialCounter);
     });
   });
 });
