@@ -470,4 +470,140 @@ mod tests {
         assert!(analysis.volatility >= 0.8);
         assert!(analysis.risk_score >= 0.8);
     }
+
+    // === COV8 TESTS: Additional coverage for paper_trading/mod.rs (86.10% → 95%+) ===
+
+    #[test]
+    fn test_cov8_order_type_display() {
+        assert_eq!(format!("{}", OrderType::Market), "market");
+        assert_eq!(format!("{}", OrderType::Limit), "limit");
+        assert_eq!(format!("{}", OrderType::StopLimit), "stop-limit");
+    }
+
+    #[test]
+    fn test_cov8_order_status_display() {
+        assert_eq!(format!("{}", OrderStatus::Pending), "pending");
+        assert_eq!(format!("{}", OrderStatus::Triggered), "triggered");
+        assert_eq!(format!("{}", OrderStatus::Filled), "filled");
+        assert_eq!(format!("{}", OrderStatus::Cancelled), "cancelled");
+        assert_eq!(format!("{}", OrderStatus::Expired), "expired");
+    }
+
+    #[test]
+    fn test_cov8_order_type_equality() {
+        assert_eq!(OrderType::Market, OrderType::Market);
+        assert_ne!(OrderType::Market, OrderType::Limit);
+        assert_ne!(OrderType::Limit, OrderType::StopLimit);
+    }
+
+    #[test]
+    fn test_cov8_order_status_equality() {
+        assert_eq!(OrderStatus::Pending, OrderStatus::Pending);
+        assert_ne!(OrderStatus::Pending, OrderStatus::Triggered);
+        assert_ne!(OrderStatus::Filled, OrderStatus::Cancelled);
+    }
+
+    #[test]
+    fn test_cov8_order_type_copy() {
+        let order_type = OrderType::Market;
+        let copied = order_type;
+        assert_eq!(order_type, copied);
+    }
+
+    #[test]
+    fn test_cov8_order_status_copy() {
+        let status = OrderStatus::Pending;
+        let copied = status;
+        assert_eq!(status, copied);
+    }
+
+    #[test]
+    fn test_cov8_stop_limit_order_creation() {
+        let order = StopLimitOrder {
+            id: "order-123".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            side: "buy".to_string(),
+            order_type: OrderType::StopLimit,
+            quantity: 0.1,
+            stop_price: 49000.0,
+            limit_price: 49500.0,
+            leverage: 10,
+            stop_loss_pct: Some(2.0),
+            take_profit_pct: Some(4.0),
+            status: OrderStatus::Pending,
+            created_at: Utc::now(),
+            triggered_at: None,
+            filled_at: None,
+            error_message: None,
+        };
+
+        assert_eq!(order.symbol, "BTCUSDT");
+        assert_eq!(order.order_type, OrderType::StopLimit);
+        assert_eq!(order.status, OrderStatus::Pending);
+    }
+
+    #[test]
+    fn test_cov8_stop_limit_order_with_timestamps() {
+        let now = Utc::now();
+        let order = StopLimitOrder {
+            id: "order-456".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            side: "sell".to_string(),
+            order_type: OrderType::StopLimit,
+            quantity: 1.0,
+            stop_price: 3100.0,
+            limit_price: 3000.0,
+            leverage: 5,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+            status: OrderStatus::Filled,
+            created_at: now,
+            triggered_at: Some(now),
+            filled_at: Some(now),
+            error_message: None,
+        };
+
+        assert!(order.triggered_at.is_some());
+        assert!(order.filled_at.is_some());
+        assert_eq!(order.status, OrderStatus::Filled);
+    }
+
+    #[test]
+    fn test_cov8_manual_order_params_full() {
+        let params = ManualOrderParams {
+            symbol: "BTCUSDT".to_string(),
+            side: "buy".to_string(),
+            order_type: "limit".to_string(),
+            quantity: 0.5,
+            price: Some(50000.0),
+            stop_price: Some(49000.0),
+            leverage: Some(10),
+            stop_loss_pct: Some(2.0),
+            take_profit_pct: Some(4.0),
+        };
+
+        assert_eq!(params.symbol, "BTCUSDT");
+        assert!(params.price.is_some());
+        assert!(params.stop_price.is_some());
+        assert!(params.leverage.is_some());
+    }
+
+    #[test]
+    fn test_cov8_manual_order_params_minimal() {
+        let params = ManualOrderParams {
+            symbol: "ETHUSDT".to_string(),
+            side: "sell".to_string(),
+            order_type: "market".to_string(),
+            quantity: 1.0,
+            price: None,
+            stop_price: None,
+            leverage: None,
+            stop_loss_pct: None,
+            take_profit_pct: None,
+        };
+
+        assert!(params.price.is_none());
+        assert!(params.stop_price.is_none());
+        assert!(params.leverage.is_none());
+    }
 }

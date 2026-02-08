@@ -823,6 +823,7 @@ pub fn parse_user_agent(user_agent: &str) -> (String, String, String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auth::models::Session;
 
     #[test]
     fn test_parse_user_agent_chrome_mac() {
@@ -836,7 +837,7 @@ mod tests {
     #[test]
     fn test_parse_user_agent_safari_iphone() {
         let ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
-        let (device, browser, os) = parse_user_agent(ua);
+        let (_device, browser, os) = parse_user_agent(ua);
         assert_eq!(browser, "Safari");
         assert_eq!(os, "iOS");
     }
@@ -854,5 +855,318 @@ mod tests {
         let service = SecurityService::new_dummy();
         // Should not panic
         let _ = service.clone();
+    }
+
+    #[test]
+    fn test_cov7_parse_user_agent_edge() {
+        let ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0";
+        let (device, browser, os) = parse_user_agent(ua);
+        assert_eq!(browser, "Chrome");
+        assert_eq!(os, "Windows");
+        assert!(device.contains("Chrome"));
+    }
+
+    #[test]
+    fn test_cov7_parse_user_agent_android() {
+        let ua = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+        let (device, browser, os) = parse_user_agent(ua);
+        assert_eq!(browser, "Chrome");
+        assert_eq!(os, "Android");
+        assert!(device.contains("Chrome"));
+    }
+
+    #[test]
+    fn test_cov7_parse_user_agent_linux() {
+        let ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+        let (_device, browser, os) = parse_user_agent(ua);
+        assert_eq!(browser, "Chrome");
+        assert_eq!(os, "Linux");
+    }
+
+    #[test]
+    fn test_cov7_parse_user_agent_ipad() {
+        let ua = "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+        let (_device, browser, os) = parse_user_agent(ua);
+        assert_eq!(browser, "Safari");
+        assert_eq!(os, "iOS");
+    }
+
+    #[test]
+    fn test_cov7_parse_user_agent_unknown() {
+        let ua = "SomeCustomBot/1.0";
+        let (device, browser, os) = parse_user_agent(ua);
+        assert_eq!(browser, "Unknown");
+        assert_eq!(os, "Unknown");
+        assert!(device.contains("Unknown"));
+    }
+
+    #[test]
+    fn test_cov7_security_service_new() {
+        let user_repo = UserRepository::new_dummy();
+        let session_repo = SessionRepository::new_dummy();
+        let service = SecurityService::new(
+            user_repo,
+            session_repo,
+            "test-jwt-secret".to_string()
+        );
+        let _ = service.clone();
+    }
+
+    #[tokio::test]
+    async fn test_cov7_extract_user_id_invalid_header() {
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        let result = extract_user_id("InvalidHeader", &jwt_service);
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_extract_user_id_invalid_token() {
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        let result = extract_user_id("Bearer invalid-token", &jwt_service);
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_extract_user_id_invalid_object_id() {
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        // Create a token with invalid ObjectId
+        let token = jwt_service.generate_token("not-an-object-id", "test@example.com", false).unwrap();
+        let result = extract_user_id(&format!("Bearer {}", token), &jwt_service);
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_change_password_validation_failure() {
+        let service = Arc::new(SecurityService::new_dummy());
+
+        // Create invalid request (password too short)
+        let request = ChangePasswordRequest {
+            current_password: "old123".to_string(),
+            new_password: "12345".to_string(), // Too short (< 6 chars)
+        };
+
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+
+        let result = handle_change_password(
+            format!("Bearer {}", token),
+            request,
+            service.clone()
+        ).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_profile_validation_failure() {
+        let service = Arc::new(SecurityService::new_dummy());
+
+        // Create invalid request (display name too long)
+        let request = UpdateProfileRequest {
+            display_name: Some("a".repeat(101)),
+            avatar_base64: None,
+        };
+
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+
+        let result = handle_update_profile(
+            format!("Bearer {}", token),
+            request,
+            service.clone()
+        ).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_profile_avatar_with_data_url_prefix() {
+        let service = Arc::new(SecurityService::new_dummy());
+
+        let request = UpdateProfileRequest {
+            display_name: Some("Test User".to_string()),
+            avatar_base64: Some("data:image/png;base64,iVBORw0KGgo=".to_string()),
+        };
+
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+
+        let result = handle_update_profile(
+            format!("Bearer {}", token),
+            request,
+            service.clone()
+        ).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_profile_avatar_without_data_url_prefix() {
+        let service = Arc::new(SecurityService::new_dummy());
+
+        let request = UpdateProfileRequest {
+            display_name: Some("Test User".to_string()),
+            avatar_base64: Some("iVBORw0KGgo=".to_string()),
+        };
+
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+
+        let result = handle_update_profile(
+            format!("Bearer {}", token),
+            request,
+            service.clone()
+        ).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_verify_2fa_validation_failure() {
+        let service = Arc::new(SecurityService::new_dummy());
+
+        // Create invalid request (code not 6 digits)
+        let request = Verify2FARequest {
+            code: "12345".to_string(), // Only 5 digits
+        };
+
+        let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
+        let user_id = bson::oid::ObjectId::new();
+        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+
+        let result = handle_verify_2fa(
+            format!("Bearer {}", token),
+            request,
+            service.clone()
+        ).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov7_session_to_info() {
+        let user_id = bson::oid::ObjectId::new();
+        let session = Session::new(
+            user_id,
+            "Chrome on MacOS".to_string(),
+            "Chrome".to_string(),
+            "MacOS".to_string(),
+            "192.168.1.1".to_string(),
+            "San Francisco, US".to_string(),
+            "Mozilla/5.0".to_string(),
+        );
+
+        let current_session_id = session.session_id.clone();
+        let info = session.to_info(&current_session_id);
+
+        assert_eq!(info.session_id, session.session_id);
+        assert_eq!(info.device, "Chrome on MacOS");
+        assert!(info.is_current);
+    }
+
+    #[test]
+    fn test_cov7_session_to_info_not_current() {
+        let user_id = bson::oid::ObjectId::new();
+        let session = Session::new(
+            user_id,
+            "Chrome on MacOS".to_string(),
+            "Chrome".to_string(),
+            "MacOS".to_string(),
+            "192.168.1.1".to_string(),
+            "San Francisco, US".to_string(),
+            "Mozilla/5.0".to_string(),
+        );
+
+        let info = session.to_info("different-session-id");
+
+        assert!(!info.is_current);
+    }
+
+    #[test]
+    fn test_cov7_change_password_request_serialization() {
+        let request = ChangePasswordRequest {
+            current_password: "oldpass123".to_string(),
+            new_password: "newpass456".to_string(),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let deserialized: ChangePasswordRequest = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(request.current_password, deserialized.current_password);
+        assert_eq!(request.new_password, deserialized.new_password);
+    }
+
+    #[test]
+    fn test_cov7_update_profile_request_serialization() {
+        let request = UpdateProfileRequest {
+            display_name: Some("Test User".to_string()),
+            avatar_base64: Some("base64data".to_string()),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let deserialized: UpdateProfileRequest = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(request.display_name, deserialized.display_name);
+        assert_eq!(request.avatar_base64, deserialized.avatar_base64);
+    }
+
+    #[test]
+    fn test_cov7_verify_2fa_request_serialization() {
+        let request = Verify2FARequest {
+            code: "123456".to_string(),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let deserialized: Verify2FARequest = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(request.code, deserialized.code);
+    }
+
+    #[test]
+    fn test_cov7_setup_2fa_response_serialization() {
+        let response = Setup2FAResponse {
+            secret: "JBSWY3DPEHPK3PXP".to_string(),
+            qr_code: "data:image/png;base64,iVBOR...".to_string(),
+            otpauth_url: "otpauth://totp/BotCore:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=BotCore".to_string(),
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        let deserialized: Setup2FAResponse = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(response.secret, deserialized.secret);
+        assert_eq!(response.qr_code, deserialized.qr_code);
+        assert_eq!(response.otpauth_url, deserialized.otpauth_url);
+    }
+
+    #[test]
+    fn test_cov7_session_list_response_serialization() {
+        let session_info = SessionInfo {
+            session_id: "test-session".to_string(),
+            device: "Chrome on MacOS".to_string(),
+            browser: "Chrome".to_string(),
+            os: "MacOS".to_string(),
+            location: "San Francisco, US".to_string(),
+            is_current: true,
+            created_at: chrono::Utc::now(),
+            last_active: chrono::Utc::now(),
+        };
+
+        let response = SessionListResponse {
+            sessions: vec![session_info],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        let deserialized: SessionListResponse = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(response.sessions.len(), deserialized.sessions.len());
+    }
+
+    #[test]
+    fn test_cov7_totp_issuer_constant() {
+        assert_eq!(TOTP_ISSUER, "BotCore Trading");
     }
 }

@@ -962,4 +962,105 @@ mod tests {
         // Closure SHOULD be called for Err results
         assert!(closure_called_on_error);
     }
+
+    // ========== ADDITIONAL COV2 TESTS ==========
+
+    #[test]
+    fn test_cov2_all_error_variants_display() {
+        // Test all error variants' Display implementations
+        let errors = vec![
+            (AppError::DataProcessing("dp".to_string()), "Data processing error: dp"),
+            (AppError::MissingData("md".to_string()), "Missing required data: md"),
+            (AppError::ParseError("pe".to_string()), "Parse error: pe"),
+            (AppError::Serialization("se".to_string()), "Serialization error: se"),
+            (AppError::InvalidInput("ii".to_string()), "Invalid input: ii"),
+            (AppError::CalculationError("ce".to_string()), "Calculation error: ce"),
+            (AppError::StorageError("sto".to_string()), "Storage error: sto"),
+            (AppError::TradeNotFound("tnf".to_string()), "Trade not found: tnf"),
+            (AppError::InvalidTradeStatus("its".to_string()), "Invalid trade status: its"),
+            (AppError::PositionError("pe".to_string()), "Position error: pe"),
+            (AppError::RiskManagementError("rme".to_string()), "Risk management error: rme"),
+            (AppError::IndicatorError("ie".to_string()), "Indicator calculation error: ie"),
+            (AppError::StrategyError("se".to_string()), "Strategy execution error: se"),
+            (AppError::MarketDataError("mde".to_string()), "Market data error: mde"),
+            (AppError::AIServiceError("ase".to_string()), "AI service error: ase"),
+            (AppError::BinanceError("be".to_string()), "Binance API error: be"),
+            (AppError::HttpError("he".to_string()), "HTTP error: he"),
+            (AppError::JsonError("je".to_string()), "JSON error: je"),
+            (AppError::IoError("ioe".to_string()), "IO error: ioe"),
+            (AppError::CollectionNotInitialized, "Collection not initialized"),
+            (AppError::InvalidPriceData("ipd".to_string()), "Invalid price data: ipd"),
+            (AppError::InsufficientDataForCalculation("idc".to_string()), "Insufficient data for calculation: idc"),
+        ];
+
+        for (error, expected) in errors {
+            assert_eq!(format!("{}", error), expected);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_cov2_handle_rejection_all_error_types() {
+        // Test handle_rejection for all error types to cover all branches
+        let errors = vec![
+            AppError::DataProcessing("test".to_string()),
+            AppError::ParseError("test".to_string()),
+            AppError::Serialization("test".to_string()),
+            AppError::MissingData("test".to_string()),
+            AppError::TradeNotFound("test".to_string()),
+            AppError::InvalidInput("test".to_string()),
+            AppError::InvalidPriceData("test".to_string()),
+            AppError::CalculationError("test".to_string()),
+            AppError::IndicatorError("test".to_string()),
+            AppError::StorageError("test".to_string()),
+            AppError::InvalidTradeStatus("test".to_string()),
+            AppError::PositionError("test".to_string()),
+            AppError::RiskManagementError("test".to_string()),
+            AppError::StrategyError("test".to_string()),
+            AppError::MarketDataError("test".to_string()),
+            AppError::AIServiceError("test".to_string()),
+            AppError::BinanceError("test".to_string()),
+            AppError::HttpError("test".to_string()),
+            AppError::JsonError("test".to_string()),
+            AppError::IoError("test".to_string()),
+            AppError::CollectionNotInitialized,
+            AppError::InsufficientDataForCalculation("test".to_string()),
+        ];
+
+        for error in errors {
+            let rejection = reject::custom(error);
+            let result = handle_rejection(rejection).await;
+            assert!(result.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_cov2_error_variant_debug() {
+        // Ensure all new error variants are Debug
+        let errors = vec![
+            AppError::DataProcessing("test".to_string()),
+            AppError::ParseError("test".to_string()),
+            AppError::CalculationError("test".to_string()),
+            AppError::StorageError("test".to_string()),
+            AppError::TradeNotFound("test".to_string()),
+            AppError::InvalidTradeStatus("test".to_string()),
+            AppError::PositionError("test".to_string()),
+            AppError::RiskManagementError("test".to_string()),
+            AppError::IndicatorError("test".to_string()),
+            AppError::StrategyError("test".to_string()),
+            AppError::MarketDataError("test".to_string()),
+            AppError::AIServiceError("test".to_string()),
+            AppError::BinanceError("test".to_string()),
+            AppError::HttpError("test".to_string()),
+            AppError::JsonError("test".to_string()),
+            AppError::IoError("test".to_string()),
+            AppError::CollectionNotInitialized,
+            AppError::InvalidPriceData("test".to_string()),
+            AppError::InsufficientDataForCalculation("test".to_string()),
+        ];
+
+        for error in errors {
+            let debug_str = format!("{:?}", error);
+            assert!(!debug_str.is_empty());
+        }
+    }
 }

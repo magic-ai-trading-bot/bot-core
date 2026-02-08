@@ -690,4 +690,252 @@ mod tests {
         // Strong trend should produce reasonable confidence
         assert!(output.confidence > 0.4);
     }
+
+    // ========== ADDITIONAL COV2 TESTS ==========
+
+    #[tokio::test]
+    async fn test_cov2_bollinger_strategy_default() {
+        let strategy = BollingerStrategy::default();
+        assert_eq!(strategy.name(), "Bollinger Bands Strategy");
+        assert_eq!(strategy.get_bb_period(), 20);
+    }
+
+    #[tokio::test]
+    async fn test_cov2_bollinger_strategy_squeeze_detection() {
+        let strategy = BollingerStrategy::new();
+
+        // Create tight squeeze
+        let prices_1h = vec![100.0; 30];
+        let prices_4h = vec![100.0; 30];
+        let current_price = 100.0;
+
+        let input = create_test_input(prices_1h, prices_4h, current_price);
+        let result = strategy.analyze(&input).await;
+
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.metadata.contains_key("is_squeeze_1h"));
+    }
+
+    #[tokio::test]
+    async fn test_cov2_bollinger_strategy_expansion_detection() {
+        let strategy = BollingerStrategy::new();
+
+        // Create expanding volatility
+        let prices_1h: Vec<f64> = (0..30).map(|i| {
+            let base = 100.0;
+            let volatility = (i as f64 % 5.0 - 2.0) * (i as f64 / 5.0);
+            base + volatility
+        }).collect();
+        let prices_4h = vec![100.0; 30];
+        let current_price = 105.0;
+
+        let input = create_test_input(prices_1h, prices_4h, current_price);
+        let result = strategy.analyze(&input).await;
+
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.metadata.contains_key("bb_expanding"));
+    }
+
+    #[tokio::test]
+    async fn test_cov2_bollinger_strategy_different_params() {
+        let mut config = StrategyConfig::default();
+        config.parameters.insert("bb_period".to_string(), json!(10));
+        config.parameters.insert("bb_multiplier".to_string(), json!(1.5));
+        config.parameters.insert("squeeze_threshold".to_string(), json!(0.03));
+
+        let strategy = BollingerStrategy::with_config(config);
+
+        assert_eq!(strategy.get_bb_period(), 10);
+        assert_eq!(strategy.get_bb_multiplier(), 1.5);
+        assert_eq!(strategy.get_squeeze_threshold(), 0.03);
+    }
+
+    #[tokio::test]
+    async fn test_cov2_bollinger_validate_missing_timeframe() {
+        let strategy = BollingerStrategy::new();
+
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), create_test_candles(vec![100.0; 30]));
+        // Missing 4h timeframe
+
+        let input = StrategyInput {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 100.0,
+            volume_24h: 1000000.0,
+            timestamp: 1234567890,
+        };
+
+        let result = strategy.validate_data(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_cov2_analyze_bollinger_signals_breakdown_after_squeeze() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            89.0,  // current_price (below lower band)
+            110.0, 100.0, 90.0, // 1h
+            108.0, 100.0, 92.0,  // 4h
+            -0.1,  // bb_position_1h (below 0.0 = below lower band)
+            0.4,   // bb_position_4h
+            0.18,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, // is_squeeze_1h
+            true,  // is_squeeze_4h
+            true,  // bb_expanding_1h
+            false, // bb_contracting_1h
+        );
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.87);
+    }
+
+    #[test]
+    fn test_cov2_analyze_bollinger_signals_trend_continuation_long() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            108.0, // current_price
+            110.0, 100.0, 90.0, // 1h
+            108.0, 100.0, 92.0,  // 4h
+            0.85,  // bb_position_1h
+            0.65,  // bb_position_4h
+            0.20,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, // is_squeeze_1h
+            false, // is_squeeze_4h
+            true,  // bb_expanding_1h
+            false, // bb_contracting_1h
+        );
+
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.69);
+    }
+
+    #[test]
+    fn test_cov2_analyze_bollinger_signals_trend_continuation_short() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            91.0,  // current_price
+            110.0, 100.0, 90.0, // 1h
+            108.0, 100.0, 92.0,  // 4h
+            0.15,  // bb_position_1h
+            0.35,  // bb_position_4h
+            0.20,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, // is_squeeze_1h
+            false, // is_squeeze_4h
+            true,  // bb_expanding_1h
+            false, // bb_contracting_1h
+        );
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.69);
+    }
+
+    #[test]
+    fn test_cov2_analyze_bollinger_signals_moderate_long() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            92.0,  // current_price
+            110.0, 100.0, 90.0, // 1h
+            108.0, 101.0, 92.0,  // 4h (middle_4h = 101.0 > current_price)
+            0.20,  // bb_position_1h
+            0.45,  // bb_position_4h
+            0.20,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, // is_squeeze_1h
+            false, // is_squeeze_4h
+            false, // bb_expanding_1h
+            false, // bb_contracting_1h
+        );
+
+        // No conditions match, returns default neutral
+        assert_eq!(signal, TradingSignal::Neutral);
+        assert_eq!(confidence, 0.45);
+    }
+
+    #[test]
+    fn test_cov2_analyze_bollinger_signals_moderate_short() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            108.0, // current_price
+            110.0, 100.0, 90.0, // 1h
+            108.0, 99.0, 92.0,  // 4h (middle_4h = 99.0 < current_price)
+            0.80,  // bb_position_1h
+            0.55,  // bb_position_4h
+            0.20,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, // is_squeeze_1h
+            false, // is_squeeze_4h
+            false, // bb_expanding_1h
+            false, // bb_contracting_1h
+        );
+
+        // No conditions match, returns default neutral (current_price 108 not < middle_4h 99)
+        assert_eq!(signal, TradingSignal::Neutral);
+        assert_eq!(confidence, 0.45);
+    }
+
+    #[test]
+    fn test_cov2_analyze_bollinger_signals_default_neutral() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            100.0, // current_price
+            110.0, 100.0, 90.0, // 1h
+            108.0, 100.0, 92.0,  // 4h
+            0.50,  // bb_position_1h
+            0.50,  // bb_position_4h
+            0.20,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, // is_squeeze_1h
+            false, // is_squeeze_4h
+            false, // bb_expanding_1h
+            false, // bb_contracting_1h
+        );
+
+        assert_eq!(signal, TradingSignal::Neutral);
+        assert_eq!(confidence, 0.45);
+    }
+
+    // ========== COV8 TESTS - Target untested branches ==========
+
+    #[test]
+    fn test_cov8_analyze_bollinger_moderate_long_price_above_middle_4h() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            102.0, // current_price > middle_4h
+            110.0, 100.0, 90.0, // 1h
+            108.0, 101.0, 92.0,  // 4h (middle_4h = 101.0 < current_price)
+            0.24,  // bb_position_1h < 0.25
+            0.45,  // bb_position_4h
+            0.20,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, false, false, false,
+        );
+
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.58);
+    }
+
+    #[test]
+    fn test_cov8_analyze_bollinger_moderate_short_price_below_middle_4h() {
+        let strategy = BollingerStrategy::new();
+        let (signal, confidence, _) = strategy.analyze_bollinger_signals(
+            98.0,  // current_price < middle_4h
+            110.0, 100.0, 90.0, // 1h
+            108.0, 99.0, 92.0,  // 4h (middle_4h = 99.0 > current_price)
+            0.76,  // bb_position_1h > 0.75
+            0.55,  // bb_position_4h
+            0.20,  // bb_width_1h
+            0.16,  // bb_width_4h
+            false, false, false, false,
+        );
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.58);
+    }
+
 }

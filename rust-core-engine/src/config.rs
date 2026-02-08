@@ -697,4 +697,328 @@ mod tests {
         assert_eq!(config.trading.enabled, deserialized.trading.enabled);
         assert_eq!(config.market_data.symbols, deserialized.market_data.symbols);
     }
+
+    // Additional TradingMode tests
+    #[test]
+    fn test_trading_mode_is_real_trading() {
+        assert!(!TradingMode::PaperTrading.is_real_trading());
+        assert!(TradingMode::RealTestnet.is_real_trading());
+        assert!(TradingMode::RealMainnet.is_real_trading());
+    }
+
+    #[test]
+    fn test_trading_mode_is_testnet() {
+        assert!(!TradingMode::PaperTrading.is_testnet());
+        assert!(TradingMode::RealTestnet.is_testnet());
+        assert!(!TradingMode::RealMainnet.is_testnet());
+    }
+
+    #[test]
+    fn test_trading_mode_is_mainnet() {
+        assert!(!TradingMode::PaperTrading.is_mainnet());
+        assert!(!TradingMode::RealTestnet.is_mainnet());
+        assert!(TradingMode::RealMainnet.is_mainnet());
+    }
+
+    #[test]
+    fn test_trading_mode_is_paper() {
+        assert!(TradingMode::PaperTrading.is_paper());
+        assert!(!TradingMode::RealTestnet.is_paper());
+        assert!(!TradingMode::RealMainnet.is_paper());
+    }
+
+    #[test]
+    fn test_trading_mode_get_base_url() {
+        assert_eq!(
+            TradingMode::PaperTrading.get_base_url(),
+            binance_urls::MAINNET_BASE_URL
+        );
+        assert_eq!(
+            TradingMode::RealTestnet.get_base_url(),
+            binance_urls::TESTNET_BASE_URL
+        );
+        assert_eq!(
+            TradingMode::RealMainnet.get_base_url(),
+            binance_urls::MAINNET_BASE_URL
+        );
+    }
+
+    #[test]
+    fn test_trading_mode_get_ws_url() {
+        assert_eq!(
+            TradingMode::PaperTrading.get_ws_url(),
+            binance_urls::MAINNET_WS_URL
+        );
+        assert_eq!(
+            TradingMode::RealTestnet.get_ws_url(),
+            binance_urls::TESTNET_WS_URL
+        );
+        assert_eq!(
+            TradingMode::RealMainnet.get_ws_url(),
+            binance_urls::MAINNET_WS_URL
+        );
+    }
+
+    #[test]
+    fn test_trading_mode_get_user_data_ws_url() {
+        assert_eq!(
+            TradingMode::PaperTrading.get_user_data_ws_url(),
+            binance_urls::MAINNET_USER_DATA_WS_URL
+        );
+        assert_eq!(
+            TradingMode::RealTestnet.get_user_data_ws_url(),
+            binance_urls::TESTNET_USER_DATA_WS_URL
+        );
+        assert_eq!(
+            TradingMode::RealMainnet.get_user_data_ws_url(),
+            binance_urls::MAINNET_USER_DATA_WS_URL
+        );
+    }
+
+    #[test]
+    fn test_trading_mode_default() {
+        let mode = TradingMode::default();
+        assert_eq!(mode, TradingMode::PaperTrading);
+    }
+
+    #[test]
+    fn test_trading_mode_serialization() {
+        let mode = TradingMode::RealTestnet;
+        let serialized = serde_json::to_string(&mode).unwrap();
+        assert_eq!(serialized, "\"real_testnet\"");
+
+        let deserialized: TradingMode = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(deserialized, mode);
+    }
+
+    // Config default value tests
+    #[test]
+    fn test_config_default_binance_config() {
+        let config = Config::default();
+        assert_eq!(config.binance.testnet, true);
+        assert_eq!(config.binance.trading_mode, TradingMode::PaperTrading);
+        assert_eq!(config.binance.base_url, binance_urls::TESTNET_BASE_URL);
+    }
+
+    #[test]
+    fn test_config_default_market_data_config() {
+        let config = Config::default();
+        assert_eq!(config.market_data.symbols.len(), 2);
+        assert!(config.market_data.symbols.contains(&"BTCUSDT".to_string()));
+        assert_eq!(config.market_data.timeframes.len(), 6);
+        assert_eq!(config.market_data.kline_limit, 500);
+    }
+
+    #[test]
+    fn test_config_default_trading_config() {
+        let config = Config::default();
+        assert_eq!(config.trading.enabled, false);
+        assert_eq!(config.trading.max_positions, 5);
+        assert_eq!(config.trading.leverage, 1);
+        assert_eq!(config.trading.margin_type, "CROSSED");
+    }
+
+    #[test]
+    fn test_config_default_database_config() {
+        let config = Config::default();
+        assert!(config.database.url.contains("mongodb"));
+        assert_eq!(config.database.max_connections, 10);
+        assert_eq!(config.database.enable_logging, false);
+    }
+
+    #[test]
+    fn test_config_default_api_config() {
+        let config = Config::default();
+        assert_eq!(config.api.host, "0.0.0.0");
+        assert_eq!(config.api.port, 8080);
+        assert_eq!(config.api.enable_metrics, true);
+    }
+
+    #[test]
+    fn test_config_default_real_trading_none() {
+        let config = Config::default();
+        assert!(config.real_trading.is_none());
+    }
+
+    // Validation edge cases
+    #[test]
+    fn test_config_validate_risk_percentage_zero() {
+        let mut config = Config::default();
+        config.trading.risk_percentage = 0.0;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_config_validate_risk_percentage_exactly_100() {
+        let mut config = Config::default();
+        config.trading.risk_percentage = 100.0;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_risk_percentage_valid_ranges() {
+        let mut config = Config::default();
+
+        config.trading.risk_percentage = 0.01;
+        assert!(config.validate().is_ok());
+
+        config.trading.risk_percentage = 50.0;
+        assert!(config.validate().is_ok());
+
+        config.trading.risk_percentage = 99.99;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_multiple_symbols() {
+        let mut config = Config::default();
+        config.market_data.symbols = vec![
+            "BTCUSDT".to_string(),
+            "ETHUSDT".to_string(),
+            "BNBUSDT".to_string(),
+        ];
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_single_symbol() {
+        let mut config = Config::default();
+        config.market_data.symbols = vec!["BTCUSDT".to_string()];
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_multiple_timeframes() {
+        let mut config = Config::default();
+        config.market_data.timeframes = vec!["1m".to_string(), "5m".to_string(), "1h".to_string()];
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_single_timeframe() {
+        let mut config = Config::default();
+        config.market_data.timeframes = vec!["1m".to_string()];
+        assert!(config.validate().is_ok());
+    }
+
+    // Clone tests
+    #[test]
+    fn test_config_clone() {
+        let config1 = Config::default();
+        let config2 = config1.clone();
+
+        assert_eq!(config1.binance.testnet, config2.binance.testnet);
+        assert_eq!(config1.trading.enabled, config2.trading.enabled);
+    }
+
+    #[test]
+    fn test_binance_config_clone() {
+        let config1 = BinanceConfig {
+            api_key: "test".to_string(),
+            secret_key: "secret".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
+            testnet: true,
+            base_url: "url".to_string(),
+            ws_url: "ws_url".to_string(),
+            futures_base_url: "futures_url".to_string(),
+            futures_ws_url: "futures_ws".to_string(),
+            trading_mode: TradingMode::PaperTrading,
+        };
+
+        let config2 = config1.clone();
+        assert_eq!(config1.api_key, config2.api_key);
+    }
+
+    // Environment variable override tests for trading mode
+    #[test]
+    fn test_config_env_var_trading_mode_paper() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_mode_paper.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("TRADING_MODE", "paper_trading");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::PaperTrading);
+
+        env::remove_var("TRADING_MODE");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_trading_mode_testnet() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_mode_testnet.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("TRADING_MODE", "real_testnet");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::RealTestnet);
+
+        env::remove_var("TRADING_MODE");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_trading_mode_mainnet() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_mode_mainnet.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("TRADING_MODE", "real_mainnet");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::RealMainnet);
+
+        env::remove_var("TRADING_MODE");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_trading_mode_aliases() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_mode_alias.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        // Test "paper" alias
+        env::set_var("TRADING_MODE", "paper");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::PaperTrading);
+
+        // Test "testnet" alias
+        env::set_var("TRADING_MODE", "testnet");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::RealTestnet);
+
+        // Test "mainnet" alias
+        env::set_var("TRADING_MODE", "mainnet");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::RealMainnet);
+
+        env::remove_var("TRADING_MODE");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_trading_mode_invalid_defaults_to_paper() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_mode_invalid.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("TRADING_MODE", "invalid_mode");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::PaperTrading);
+
+        env::remove_var("TRADING_MODE");
+        let _ = std::fs::remove_file(&temp_path);
+    }
 }

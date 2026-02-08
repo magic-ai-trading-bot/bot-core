@@ -1620,4 +1620,329 @@ mod tests {
         assert_eq!(overview.timeframe_analyses.len(), 1);
         assert_eq!(overview.data_freshness.get("1h"), Some(&60));
     }
+
+    #[test]
+    fn test_cov8_combine_signals_empty() {
+        let cache = create_test_cache_with_data();
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let signals = HashMap::new();
+        let (signal, confidence) = analyzer.combine_signals(&signals);
+
+        assert!(matches!(signal, TradingSignal::Hold));
+        assert_eq!(confidence, 0.0);
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_strong_sell() {
+        let cache = create_test_cache_with_data();
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let mut signals = HashMap::new();
+        signals.insert(
+            "1d".to_string(),
+            AnalysisResponse {
+                symbol: "BTCUSDT".to_string(),
+                timeframe: "1d".to_string(),
+                timestamp: 1609459200000,
+                signal: TradingSignal::StrongSell,
+                confidence: 0.9,
+                indicators: HashMap::new(),
+                analysis_details: serde_json::json!({}),
+            },
+        );
+
+        let (signal, _) = analyzer.combine_signals(&signals);
+        assert!(matches!(signal, TradingSignal::StrongSell));
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_hold_boundary() {
+        let cache = create_test_cache_with_data();
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let mut signals = HashMap::new();
+        signals.insert(
+            "1m".to_string(),
+            AnalysisResponse {
+                symbol: "BTCUSDT".to_string(),
+                timeframe: "1m".to_string(),
+                timestamp: 1609459200000,
+                signal: TradingSignal::Hold,
+                confidence: 0.5,
+                indicators: HashMap::new(),
+                analysis_details: serde_json::json!({}),
+            },
+        );
+
+        let (signal, confidence) = analyzer.combine_signals(&signals);
+        assert!(matches!(signal, TradingSignal::Hold));
+        assert!(confidence > 0.0);
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_unknown_timeframe_weight() {
+        let cache = create_test_cache_with_data();
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let mut signals = HashMap::new();
+        signals.insert(
+            "3h".to_string(), // Unknown timeframe
+            AnalysisResponse {
+                symbol: "BTCUSDT".to_string(),
+                timeframe: "3h".to_string(),
+                timestamp: 1609459200000,
+                signal: TradingSignal::Buy,
+                confidence: 0.7,
+                indicators: HashMap::new(),
+                analysis_details: serde_json::json!({}),
+            },
+        );
+
+        let (signal, _) = analyzer.combine_signals(&signals);
+        // Should use default weight of 1.0
+        assert!(matches!(signal, TradingSignal::Buy | TradingSignal::Hold));
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_mixed_signals() {
+        let cache = create_test_cache_with_data();
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let mut signals = HashMap::new();
+        signals.insert(
+            "1m".to_string(),
+            AnalysisResponse {
+                symbol: "BTCUSDT".to_string(),
+                timeframe: "1m".to_string(),
+                timestamp: 1609459200000,
+                signal: TradingSignal::Buy,
+                confidence: 0.6,
+                indicators: HashMap::new(),
+                analysis_details: serde_json::json!({}),
+            },
+        );
+        signals.insert(
+            "1h".to_string(),
+            AnalysisResponse {
+                symbol: "BTCUSDT".to_string(),
+                timeframe: "1h".to_string(),
+                timestamp: 1609459200000,
+                signal: TradingSignal::Sell,
+                confidence: 0.8,
+                indicators: HashMap::new(),
+                analysis_details: serde_json::json!({}),
+            },
+        );
+
+        let (signal, confidence) = analyzer.combine_signals(&signals);
+        // With mixed signals, should produce a combined result
+        assert!(confidence > 0.0);
+        assert!(matches!(
+            signal,
+            TradingSignal::Hold | TradingSignal::Sell | TradingSignal::Buy
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_cov8_analyze_single_timeframe_empty_cache() {
+        let cache = MarketDataCache::new(100);
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let result = analyzer
+            .analyze_single_timeframe("BTCUSDT", "1m", "trend_analysis", Some(100))
+            .await;
+
+        // Should return error for no data
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("No candle data"));
+    }
+
+    #[tokio::test]
+    async fn test_cov8_analyze_multi_timeframe_all_fail() {
+        let cache = MarketDataCache::new(100);
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let timeframes = vec!["1m".to_string(), "5m".to_string(), "1h".to_string()];
+
+        let result = analyzer
+            .analyze_multi_timeframe("BTCUSDT", &timeframes, "trend_analysis", Some(100))
+            .await;
+
+        // Should return error when all analyses fail
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("All timeframe analyses failed"));
+    }
+
+    #[tokio::test]
+    async fn test_cov8_calculate_trade_parameters_no_price() {
+        let cache = MarketDataCache::new(100);
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let signals = HashMap::new();
+        let result = analyzer
+            .calculate_trade_parameters("BTCUSDT", &signals)
+            .await;
+
+        assert!(result.is_ok());
+        let (entry, stop, profit, ratio) = result.unwrap();
+        assert!(entry.is_none());
+        assert!(stop.is_none());
+        assert!(profit.is_none());
+        assert!(ratio.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cov8_calculate_trade_parameters_sell_signal() {
+        let cache = create_test_cache_with_data();
+        let analyzer = MarketDataAnalyzer::new("http://localhost:8000".to_string(), cache);
+
+        let mut signals = HashMap::new();
+        signals.insert(
+            "1d".to_string(),
+            AnalysisResponse {
+                symbol: "BTCUSDT".to_string(),
+                timeframe: "1d".to_string(),
+                timestamp: 1609459200000,
+                signal: TradingSignal::Sell,
+                confidence: 0.85,
+                indicators: HashMap::new(),
+                analysis_details: serde_json::json!({}),
+            },
+        );
+
+        let result = analyzer
+            .calculate_trade_parameters("BTCUSDT", &signals)
+            .await;
+
+        assert!(result.is_ok());
+        let (entry, stop, profit, _ratio) = result.unwrap();
+        assert!(entry.is_some());
+        assert!(stop.is_some());
+        assert!(profit.is_some());
+        // Verify sell position: stop > entry, profit < entry
+        if let (Some(e), Some(s), Some(p)) = (entry, stop, profit) {
+            assert!(s > e);
+            assert!(p < e);
+        }
+    }
+
+    #[test]
+    fn test_cov8_trading_signal_serialization() {
+        let signal_buy = TradingSignal::Buy;
+        let json = serde_json::to_string(&signal_buy).unwrap();
+        assert!(json.contains("BUY"));
+
+        let signal_sell = TradingSignal::Sell;
+        let json = serde_json::to_string(&signal_sell).unwrap();
+        assert!(json.contains("SELL"));
+
+        let signal_hold = TradingSignal::Hold;
+        let json = serde_json::to_string(&signal_hold).unwrap();
+        assert!(json.contains("HOLD"));
+
+        let signal_strong_buy = TradingSignal::StrongBuy;
+        let json = serde_json::to_string(&signal_strong_buy).unwrap();
+        assert!(json.contains("STRONG_BUY"));
+
+        let signal_strong_sell = TradingSignal::StrongSell;
+        let json = serde_json::to_string(&signal_strong_sell).unwrap();
+        assert!(json.contains("STRONG_SELL"));
+    }
+
+    #[test]
+    fn test_cov8_candle_data_for_analysis_conversion() {
+        use super::super::cache::CandleData as CacheCandleData;
+
+        let cache_candle = CacheCandleData {
+            open_time: 1609459200000,
+            close_time: 1609459260000,
+            open: 50000.0,
+            high: 50500.0,
+            low: 49500.0,
+            close: 50250.0,
+            volume: 1000.0,
+            quote_volume: 50000000.0,
+            trades: 100,
+            is_closed: true,
+        };
+
+        let analysis_candle = CandleDataForAnalysis::from(&cache_candle);
+
+        assert_eq!(analysis_candle.timestamp, 1609459200000);
+        assert_eq!(analysis_candle.open, 50000.0);
+        assert_eq!(analysis_candle.high, 50500.0);
+        assert_eq!(analysis_candle.low, 49500.0);
+        assert_eq!(analysis_candle.close, 50250.0);
+        assert_eq!(analysis_candle.volume, 1000.0);
+    }
+
+    #[test]
+    fn test_cov8_strategy_context_with_user_preferences() {
+        let mut user_prefs = HashMap::new();
+        user_prefs.insert(
+            "max_position_size".to_string(),
+            serde_json::json!(0.1),
+        );
+        user_prefs.insert(
+            "preferred_timeframe".to_string(),
+            serde_json::json!("1h"),
+        );
+
+        let mut indicators = HashMap::new();
+        indicators.insert("rsi".to_string(), serde_json::json!(65.0));
+
+        let context = StrategyContext {
+            active_strategies: vec!["rsi".to_string(), "macd".to_string()],
+            portfolio_size: 25000.0,
+            risk_tolerance: "aggressive".to_string(),
+            market_condition: "Bullish".to_string(),
+            risk_level: "High".to_string(),
+            user_preferences: user_prefs.clone(),
+            technical_indicators: indicators.clone(),
+        };
+
+        assert_eq!(context.active_strategies.len(), 2);
+        assert_eq!(context.portfolio_size, 25000.0);
+        assert_eq!(context.user_preferences.len(), 2);
+        assert_eq!(context.technical_indicators.len(), 1);
+    }
+
+    #[test]
+    fn test_cov8_multi_timeframe_analysis_serialization() {
+        let mut timeframe_signals = HashMap::new();
+        timeframe_signals.insert(
+            "1h".to_string(),
+            AnalysisResponse {
+                symbol: "BTCUSDT".to_string(),
+                timeframe: "1h".to_string(),
+                timestamp: 1609459200000,
+                signal: TradingSignal::Buy,
+                confidence: 0.8,
+                indicators: HashMap::new(),
+                analysis_details: serde_json::json!({}),
+            },
+        );
+
+        let analysis = MultiTimeframeAnalysis {
+            symbol: "BTCUSDT".to_string(),
+            timestamp: 1609459200000,
+            timeframe_signals: timeframe_signals.clone(),
+            overall_signal: TradingSignal::Buy,
+            overall_confidence: 0.8,
+            entry_price: Some(50000.0),
+            stop_loss: Some(49000.0),
+            take_profit: Some(52000.0),
+            risk_reward_ratio: Some(2.0),
+        };
+
+        let json = serde_json::to_string(&analysis);
+        assert!(json.is_ok());
+
+        let deserialized: Result<MultiTimeframeAnalysis, _> =
+            serde_json::from_str(&json.unwrap());
+        assert!(deserialized.is_ok());
+    }
 }

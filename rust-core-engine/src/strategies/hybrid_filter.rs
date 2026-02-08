@@ -426,4 +426,371 @@ mod tests {
         assert_eq!(result.confidence, 0.2);
         assert!(result.reasoning.contains("BLOCKED"));
     }
+
+    #[test]
+    fn test_combine_signals_short_with_aligned_mtf() {
+        let filter = create_test_filter();
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Downtrend,
+            four_hour: TrendDirection::Downtrend,
+            one_hour: TrendDirection::Downtrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Short, 0.75, &alignment, None);
+
+        assert!(!result.should_block);
+        assert!(result.adjusted_confidence > 0.5);
+    }
+
+    #[test]
+    fn test_combine_signals_short_with_uptrend_mtf() {
+        let filter = create_test_filter();
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Uptrend,
+            four_hour: TrendDirection::Uptrend,
+            one_hour: TrendDirection::Neutral,
+            alignment_score: 0.2,
+            is_aligned: false,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Short, 0.75, &alignment, None);
+
+        assert!(result.should_block); // Should block counter-trend
+    }
+
+    #[test]
+    fn test_combine_signals_with_ml_confirmation_long() {
+        let filter = create_test_filter();
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Uptrend,
+            four_hour: TrendDirection::Uptrend,
+            one_hour: TrendDirection::Uptrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Uptrend,
+            confidence: 0.85,
+            model: "LSTM".to_string(),
+            timestamp: 123456,
+        };
+
+        let result =
+            filter.combine_signals(TradingSignal::Long, 0.70, &alignment, Some(&ml_prediction));
+
+        assert!(!result.should_block);
+        assert!(result.adjusted_confidence > 0.70); // Should boost confidence
+        assert!(result.reasoning.contains("ML confirms"));
+    }
+
+    #[test]
+    fn test_combine_signals_with_ml_conflict_long() {
+        let filter = create_test_filter();
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Uptrend,
+            four_hour: TrendDirection::Uptrend,
+            one_hour: TrendDirection::Uptrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Downtrend,
+            confidence: 0.80,
+            model: "LSTM".to_string(),
+            timestamp: 123456,
+        };
+
+        let result =
+            filter.combine_signals(TradingSignal::Long, 0.70, &alignment, Some(&ml_prediction));
+
+        assert!(result.should_block); // Block due to ML conflict
+        assert!(result.reasoning.contains("blocking LONG"));
+    }
+
+    #[test]
+    fn test_combine_signals_with_ml_neutral() {
+        let filter = create_test_filter();
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Uptrend,
+            four_hour: TrendDirection::Uptrend,
+            one_hour: TrendDirection::Uptrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Neutral,
+            confidence: 0.60,
+            model: "LSTM".to_string(),
+            timestamp: 123456,
+        };
+
+        let result =
+            filter.combine_signals(TradingSignal::Long, 0.70, &alignment, Some(&ml_prediction));
+
+        assert!(!result.should_block);
+        assert!(result.adjusted_confidence < 0.70); // Slight penalty
+        assert!(result.reasoning.contains("ML neutral"));
+    }
+
+    #[test]
+    fn test_filter_config_custom_weights() {
+        let config = HybridFilterConfig {
+            enabled: true,
+            use_ml: true,
+            ml_weight: 0.7,
+            mtf_weight: 0.3,
+            block_counter_trend: false,
+        };
+
+        assert_eq!(config.ml_weight, 0.7);
+        assert_eq!(config.mtf_weight, 0.3);
+        assert!(!config.block_counter_trend);
+    }
+
+    #[test]
+    fn test_filter_result_clone() {
+        let result = FilterResult {
+            should_block: true,
+            adjusted_confidence: 0.65,
+            reasoning: "Test".to_string(),
+            mtf_alignment: None,
+            ml_prediction: None,
+        };
+
+        let cloned = result.clone();
+        assert_eq!(cloned.should_block, result.should_block);
+        assert_eq!(cloned.adjusted_confidence, result.adjusted_confidence);
+    }
+
+    #[test]
+    fn test_config_getter() {
+        let filter = create_test_filter();
+        let config = filter.config();
+
+        assert!(config.enabled);
+        assert_eq!(config.ml_weight, 0.4);
+        assert_eq!(config.mtf_weight, 0.6);
+    }
+
+    #[test]
+    fn test_apply_to_output_confidence_unchanged() {
+        let filter = create_test_filter();
+
+        let output = StrategyOutput {
+            signal: TradingSignal::Long,
+            confidence: 0.75,
+            reasoning: "Original".to_string(),
+            timeframe: "1h".to_string(),
+            timestamp: 1234567890,
+            metadata: Default::default(),
+        };
+
+        let filter_result = FilterResult {
+            should_block: false,
+            adjusted_confidence: 0.75, // Same as original
+            reasoning: "No change".to_string(),
+            mtf_alignment: None,
+            ml_prediction: None,
+        };
+
+        let result = filter.apply_to_output(output.clone(), filter_result);
+        assert_eq!(result.reasoning, output.reasoning); // Should not append filter reasoning
+    }
+
+    #[test]
+    fn test_combine_signals_no_block_counter_trend_long() {
+        let mut config = HybridFilterConfig::default();
+        config.block_counter_trend = false;
+
+        let trend_filter_config = TrendFilterConfig {
+            ema_period: 20,
+            ..Default::default()
+        };
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+
+        let filter = HybridFilter::new(config, trend_filter, None);
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Downtrend,
+            four_hour: TrendDirection::Downtrend,
+            one_hour: TrendDirection::Downtrend,
+            alignment_score: 0.2,
+            is_aligned: false,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Long, 0.75, &alignment, None);
+
+        assert!(!result.should_block); // Should not block even if counter-trend
+        assert!(result.adjusted_confidence < 0.75); // But confidence reduced
+    }
+
+    #[test]
+    fn test_combine_signals_no_block_counter_trend_short() {
+        let mut config = HybridFilterConfig::default();
+        config.block_counter_trend = false;
+
+        let trend_filter_config = TrendFilterConfig {
+            ema_period: 20,
+            ..Default::default()
+        };
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+
+        let filter = HybridFilter::new(config, trend_filter, None);
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Uptrend,
+            four_hour: TrendDirection::Uptrend,
+            one_hour: TrendDirection::Uptrend,
+            alignment_score: 0.2,
+            is_aligned: false,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Short, 0.75, &alignment, None);
+
+        assert!(!result.should_block);
+        assert!(result.adjusted_confidence < 0.75);
+    }
+
+    // ========== COV8 TESTS - Target untested branches ==========
+
+    #[test]
+    fn test_cov8_combine_signals_short_with_ml_uptrend() {
+        let filter = create_test_filter();
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Downtrend,
+            four_hour: TrendDirection::Downtrend,
+            one_hour: TrendDirection::Downtrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Uptrend,
+            confidence: 0.85,
+            model: "LSTM".to_string(),
+            timestamp: 123456,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Short, 0.70, &alignment, Some(&ml_prediction));
+
+        assert!(result.should_block); // Should block SHORT when ML predicts Uptrend
+        assert!(result.reasoning.contains("blocking SHORT"));
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_short_with_ml_neutral() {
+        let filter = create_test_filter();
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Downtrend,
+            four_hour: TrendDirection::Downtrend,
+            one_hour: TrendDirection::Downtrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Neutral,
+            confidence: 0.70,
+            model: "GRU".to_string(),
+            timestamp: 123456,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Short, 0.75, &alignment, Some(&ml_prediction));
+
+        assert!(!result.should_block);
+        assert!(result.adjusted_confidence < 0.75); // Should be reduced by 0.85
+        assert!(result.reasoning.contains("ML neutral"));
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_long_with_ml_neutral() {
+        let filter = create_test_filter();
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Uptrend,
+            four_hour: TrendDirection::Uptrend,
+            one_hour: TrendDirection::Uptrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Neutral,
+            confidence: 0.65,
+            model: "Ensemble".to_string(),
+            timestamp: 123456,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Long, 0.80, &alignment, Some(&ml_prediction));
+
+        assert!(!result.should_block);
+        assert!(result.adjusted_confidence < 0.80); // Should be reduced by 0.85
+        assert!(result.reasoning.contains("ML neutral"));
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_no_block_long_with_ml_conflict() {
+        let mut config = HybridFilterConfig::default();
+        config.block_counter_trend = false;
+
+        let trend_filter_config = TrendFilterConfig::default();
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+        let filter = HybridFilter::new(config, trend_filter, None);
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Uptrend,
+            four_hour: TrendDirection::Uptrend,
+            one_hour: TrendDirection::Uptrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Downtrend,
+            confidence: 0.80,
+            model: "LSTM".to_string(),
+            timestamp: 123456,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Long, 0.75, &alignment, Some(&ml_prediction));
+
+        assert!(!result.should_block); // Should not block when block_counter_trend = false
+        assert!(result.adjusted_confidence < 0.75); // Confidence penalized by 0.2
+        assert!(result.reasoning.contains("ML conflict"));
+    }
+
+    #[test]
+    fn test_cov8_combine_signals_no_block_short_with_ml_conflict() {
+        let mut config = HybridFilterConfig::default();
+        config.block_counter_trend = false;
+
+        let trend_filter_config = TrendFilterConfig::default();
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+        let filter = HybridFilter::new(config, trend_filter, None);
+
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Downtrend,
+            four_hour: TrendDirection::Downtrend,
+            one_hour: TrendDirection::Downtrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Uptrend,
+            confidence: 0.78,
+            model: "GRU".to_string(),
+            timestamp: 123456,
+        };
+
+        let result = filter.combine_signals(TradingSignal::Short, 0.70, &alignment, Some(&ml_prediction));
+
+        assert!(!result.should_block);
+        assert!(result.adjusted_confidence < 0.70); // Confidence penalized by 0.2
+        assert!(result.reasoning.contains("ML conflict"));
+    }
 }

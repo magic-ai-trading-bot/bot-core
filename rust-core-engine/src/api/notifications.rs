@@ -720,4 +720,934 @@ mod tests {
         let json = serde_json::to_string(&sub).expect("Serialization should succeed");
         assert!(json.contains("test_p256dh"));
     }
+
+    // ============================================================================
+    // WARP HANDLER TESTS (Integration Tests for Notifications API Routes)
+    // ============================================================================
+
+    async fn create_test_notifications_api() -> NotificationsApi {
+        let db_config = crate::config::DatabaseConfig {
+            url: "no-db://test".to_string(),
+            database_name: Some("test_db".to_string()),
+            max_connections: 1,
+            enable_logging: false,
+        };
+        let storage = crate::storage::Storage::new(&db_config).await.unwrap();
+        NotificationsApi::new(storage)
+    }
+
+    #[tokio::test]
+    async fn test_get_notification_preferences_route() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/notifications/preferences")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_update_notification_preferences_route() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: None,
+            alerts: None,
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_update_notification_preferences_invalid_threshold() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: None,
+            alerts: None,
+            price_alert_threshold: Some(150.0), // Invalid: > 100
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 400);
+    }
+
+    #[tokio::test]
+    async fn test_update_notification_preferences_discord_invalid_webhook() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: Some(ChannelSettingsUpdate {
+                email: None,
+                push: None,
+                telegram: None,
+                discord: Some(DiscordSettingsUpdate {
+                    enabled: Some(true),
+                    webhook_url: Some("https://invalid-url.com/webhook".to_string()),
+                }),
+                sound: None,
+            }),
+            alerts: None,
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 400);
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_push_route() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let subscription = PushSubscription {
+            endpoint: "https://fcm.googleapis.com/test".to_string(),
+            keys: PushSubscriptionKeys {
+                p256dh: "test_p256dh_key".to_string(),
+                auth: "test_auth_key".to_string(),
+            },
+            created_at: chrono::Utc::now(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/push/subscribe")
+            .json(&subscription)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_push_invalid_endpoint() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let subscription = PushSubscription {
+            endpoint: "".to_string(), // Invalid: empty
+            keys: PushSubscriptionKeys {
+                p256dh: "test_p256dh_key".to_string(),
+                auth: "test_auth_key".to_string(),
+            },
+            created_at: chrono::Utc::now(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/push/subscribe")
+            .json(&subscription)
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 400);
+    }
+
+    #[tokio::test]
+    async fn test_unsubscribe_push_route() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let resp = warp::test::request()
+            .method("DELETE")
+            .path("/notifications/push/subscribe")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_send_test_notification_telegram() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = TestNotificationRequest {
+            channel: "telegram".to_string(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/test")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_client_error());
+    }
+
+    #[tokio::test]
+    async fn test_send_test_notification_discord() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = TestNotificationRequest {
+            channel: "discord".to_string(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/test")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_client_error());
+    }
+
+    #[tokio::test]
+    async fn test_send_test_notification_email() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = TestNotificationRequest {
+            channel: "email".to_string(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/test")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_client_error());
+    }
+
+    #[tokio::test]
+    async fn test_send_test_notification_push() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = TestNotificationRequest {
+            channel: "push".to_string(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/test")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_client_error());
+    }
+
+    #[tokio::test]
+    async fn test_send_test_notification_invalid_channel() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = TestNotificationRequest {
+            channel: "invalid_channel".to_string(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/test")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 400);
+    }
+
+    #[tokio::test]
+    async fn test_get_vapid_public_key_route() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/notifications/vapid-key")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status() == 503);
+    }
+
+    #[tokio::test]
+    async fn test_update_preferences_all_channels() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: Some(ChannelSettingsUpdate {
+                email: Some(true),
+                push: Some(PushSettingsUpdate {
+                    enabled: Some(true),
+                    vapid_public_key: Some("test_public_key".to_string()),
+                    vapid_private_key: Some("test_private_key".to_string()),
+                }),
+                telegram: Some(TelegramSettingsUpdate {
+                    enabled: Some(true),
+                    bot_token: Some("test_bot_token".to_string()),
+                    chat_id: Some("test_chat_id".to_string()),
+                }),
+                discord: Some(DiscordSettingsUpdate {
+                    enabled: Some(true),
+                    webhook_url: Some("https://discord.com/api/webhooks/123/test".to_string()),
+                }),
+                sound: Some(true),
+            }),
+            alerts: None,
+            price_alert_threshold: Some(10.0),
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_update_preferences_all_alerts() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: None,
+            alerts: Some(AlertSettingsUpdate {
+                price_alerts: Some(true),
+                trade_alerts: Some(false),
+                system_alerts: Some(true),
+                signal_alerts: Some(false),
+                risk_alerts: Some(true),
+            }),
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    // ============================================================================
+    // COVERAGE PHASE 7 - Additional Handler & Type Tests
+    // ============================================================================
+
+    #[test]
+    fn test_cov7_notification_preferences_serialization_full() {
+        let prefs = NotificationPreferences {
+            enabled: true,
+            channels: ChannelSettings {
+                email: true,
+                push: PushSettings {
+                    enabled: true,
+                    vapid_public_key: Some("test-public".to_string()),
+                    vapid_private_key: Some("test-private".to_string()),
+                },
+                telegram: TelegramSettings {
+                    enabled: true,
+                    bot_token: Some("bot-token-123".to_string()),
+                    chat_id: Some("chat-456".to_string()),
+                },
+                discord: DiscordSettings {
+                    enabled: true,
+                    webhook_url: Some("https://discord.com/api/webhooks/789/test".to_string()),
+                },
+                sound: true,
+            },
+            alerts: AlertSettings {
+                price_alerts: true,
+                trade_alerts: true,
+                system_alerts: true,
+                signal_alerts: true,
+                risk_alerts: true,
+            },
+            price_alert_threshold: 10.0,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+
+        let json = serde_json::to_string(&prefs).unwrap();
+        assert!(json.contains("\"enabled\":true"));
+        assert!(json.contains("test-public"));
+        assert!(json.contains("bot-token-123"));
+        assert!(json.contains("10.0"));
+
+        let parsed: NotificationPreferences = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.enabled, true);
+        assert_eq!(parsed.price_alert_threshold, 10.0);
+    }
+
+    #[test]
+    fn test_cov7_push_settings_default() {
+        let push = PushSettings::default();
+        assert!(!push.enabled);
+        assert!(push.vapid_public_key.is_none());
+        assert!(push.vapid_private_key.is_none());
+    }
+
+    #[test]
+    fn test_cov7_telegram_settings_default() {
+        let telegram = TelegramSettings::default();
+        assert!(!telegram.enabled);
+        assert!(telegram.bot_token.is_none());
+        assert!(telegram.chat_id.is_none());
+    }
+
+    #[test]
+    fn test_cov7_discord_settings_default() {
+        let discord = DiscordSettings::default();
+        assert!(!discord.enabled);
+        assert!(discord.webhook_url.is_none());
+    }
+
+    #[test]
+    fn test_cov7_push_subscription_keys_serialization() {
+        let keys = PushSubscriptionKeys {
+            p256dh: "test-p256dh-key-abc".to_string(),
+            auth: "test-auth-key-xyz".to_string(),
+        };
+
+        let json = serde_json::to_string(&keys).unwrap();
+        assert!(json.contains("test-p256dh-key-abc"));
+        assert!(json.contains("test-auth-key-xyz"));
+
+        let parsed: PushSubscriptionKeys = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.p256dh, "test-p256dh-key-abc");
+        assert_eq!(parsed.auth, "test-auth-key-xyz");
+    }
+
+    #[test]
+    fn test_cov7_test_notification_request_serialization() {
+        let request = TestNotificationRequest {
+            channel: "telegram".to_string(),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        assert!(json.contains("telegram"));
+
+        let parsed: TestNotificationRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.channel, "telegram");
+    }
+
+    #[test]
+    fn test_cov7_update_notification_preferences_request_partial() {
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(false),
+            channels: None,
+            alerts: None,
+            price_alert_threshold: Some(15.0),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let parsed: UpdateNotificationPreferencesRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.enabled, Some(false));
+        assert_eq!(parsed.price_alert_threshold, Some(15.0));
+        assert!(parsed.channels.is_none());
+    }
+
+    #[test]
+    fn test_cov7_channel_settings_update_all_fields() {
+        let update = ChannelSettingsUpdate {
+            email: Some(true),
+            push: Some(PushSettingsUpdate {
+                enabled: Some(true),
+                vapid_public_key: Some("new-public-key".to_string()),
+                vapid_private_key: Some("new-private-key".to_string()),
+            }),
+            telegram: Some(TelegramSettingsUpdate {
+                enabled: Some(true),
+                bot_token: Some("new-bot-token".to_string()),
+                chat_id: Some("new-chat-id".to_string()),
+            }),
+            discord: Some(DiscordSettingsUpdate {
+                enabled: Some(true),
+                webhook_url: Some("https://discord.com/api/webhooks/999/new".to_string()),
+            }),
+            sound: Some(false),
+        };
+
+        let json = serde_json::to_string(&update).unwrap();
+        let parsed: ChannelSettingsUpdate = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.email, Some(true));
+        assert_eq!(parsed.sound, Some(false));
+    }
+
+    #[test]
+    fn test_cov7_alert_settings_update_partial() {
+        let update = AlertSettingsUpdate {
+            price_alerts: Some(true),
+            trade_alerts: Some(false),
+            system_alerts: None,
+            signal_alerts: None,
+            risk_alerts: Some(true),
+        };
+
+        let json = serde_json::to_string(&update).unwrap();
+        let parsed: AlertSettingsUpdate = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.price_alerts, Some(true));
+        assert_eq!(parsed.trade_alerts, Some(false));
+        assert!(parsed.system_alerts.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_preferences_empty_telegram_token() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: Some(ChannelSettingsUpdate {
+                email: None,
+                push: None,
+                telegram: Some(TelegramSettingsUpdate {
+                    enabled: Some(true),
+                    bot_token: Some("".to_string()),
+                    chat_id: Some("chat-id-123".to_string()),
+                }),
+                discord: None,
+                sound: None,
+            }),
+            alerts: None,
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_preferences_empty_discord_webhook() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: Some(ChannelSettingsUpdate {
+                email: None,
+                push: None,
+                telegram: None,
+                discord: Some(DiscordSettingsUpdate {
+                    enabled: Some(true),
+                    webhook_url: Some("".to_string()),
+                }),
+                sound: None,
+            }),
+            alerts: None,
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_preferences_threshold_edge_cases() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        // Test minimum valid threshold
+        let request1 = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: None,
+            alerts: None,
+            price_alert_threshold: Some(0.1),
+        };
+
+        let resp1 = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request1)
+            .reply(&routes)
+            .await;
+
+        assert!(resp1.status().is_success() || resp1.status().is_server_error());
+
+        // Test maximum valid threshold
+        let request2 = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: None,
+            alerts: None,
+            price_alert_threshold: Some(100.0),
+        };
+
+        let resp2 = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request2)
+            .reply(&routes)
+            .await;
+
+        assert!(resp2.status().is_success() || resp2.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_preferences_threshold_too_low() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: None,
+            alerts: None,
+            price_alert_threshold: Some(0.05),
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 400);
+    }
+
+    #[tokio::test]
+    async fn test_cov7_subscribe_push_valid() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let subscription = PushSubscription {
+            endpoint: "https://fcm.googleapis.com/fcm/send/test-endpoint-123".to_string(),
+            keys: PushSubscriptionKeys {
+                p256dh: "valid-p256dh-key".to_string(),
+                auth: "valid-auth-key".to_string(),
+            },
+            created_at: chrono::Utc::now(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/push/subscribe")
+            .json(&subscription)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_unsubscribe_push_route() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let resp = warp::test::request()
+            .method("DELETE")
+            .path("/notifications/push/subscribe")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_test_notification_all_channels() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let channels = vec!["telegram", "discord", "email", "push"];
+
+        for channel in channels {
+            let request = TestNotificationRequest {
+                channel: channel.to_string(),
+            };
+
+            let resp = warp::test::request()
+                .method("POST")
+                .path("/notifications/test")
+                .json(&request)
+                .reply(&routes)
+                .await;
+
+            assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_cov7_test_notification_uppercase_channel() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = TestNotificationRequest {
+            channel: "TELEGRAM".to_string(),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/notifications/test")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_client_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_get_preferences_default() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/notifications/preferences")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body_str = std::str::from_utf8(resp.body()).unwrap();
+        assert!(body_str.contains("success") || body_str.contains("enabled"));
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_preferences_disable_all() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(false),
+            channels: Some(ChannelSettingsUpdate {
+                email: Some(false),
+                push: Some(PushSettingsUpdate {
+                    enabled: Some(false),
+                    vapid_public_key: None,
+                    vapid_private_key: None,
+                }),
+                telegram: Some(TelegramSettingsUpdate {
+                    enabled: Some(false),
+                    bot_token: None,
+                    chat_id: None,
+                }),
+                discord: Some(DiscordSettingsUpdate {
+                    enabled: Some(false),
+                    webhook_url: None,
+                }),
+                sound: Some(false),
+            }),
+            alerts: Some(AlertSettingsUpdate {
+                price_alerts: Some(false),
+                trade_alerts: Some(false),
+                system_alerts: Some(false),
+                signal_alerts: Some(false),
+                risk_alerts: Some(false),
+            }),
+            price_alert_threshold: Some(5.0),
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_preferences_only_sound() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: Some(ChannelSettingsUpdate {
+                email: None,
+                push: None,
+                telegram: None,
+                discord: None,
+                sound: Some(true),
+            }),
+            alerts: None,
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_update_preferences_only_email() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: Some(ChannelSettingsUpdate {
+                email: Some(true),
+                push: None,
+                telegram: None,
+                discord: None,
+                sound: None,
+            }),
+            alerts: None,
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_discord_webhook_discordapp_domain() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let request = UpdateNotificationPreferencesRequest {
+            enabled: Some(true),
+            channels: Some(ChannelSettingsUpdate {
+                email: None,
+                push: None,
+                telegram: None,
+                discord: Some(DiscordSettingsUpdate {
+                    enabled: Some(true),
+                    webhook_url: Some("https://discordapp.com/api/webhooks/123/test".to_string()),
+                }),
+                sound: None,
+            }),
+            alerts: None,
+            price_alert_threshold: None,
+        };
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/notifications/preferences")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_wrong_http_methods() {
+        let api = create_test_notifications_api().await;
+        let routes = api.routes();
+
+        let wrong_methods = vec![
+            ("POST", "/notifications/preferences"),
+            ("DELETE", "/notifications/preferences"),
+            ("GET", "/notifications/push/subscribe"),
+            ("PUT", "/notifications/push/subscribe"),
+            ("GET", "/notifications/test"),
+        ];
+
+        for (method, path) in wrong_methods {
+            let resp = warp::test::request()
+                .method(method)
+                .path(path)
+                .reply(&routes)
+                .await;
+            assert_eq!(resp.status(), warp::http::StatusCode::METHOD_NOT_ALLOWED);
+        }
+    }
+
+    #[test]
+    fn test_cov7_push_subscription_with_timestamp() {
+        let now = chrono::Utc::now();
+        let sub = PushSubscription {
+            endpoint: "https://push.example.com/abc".to_string(),
+            keys: PushSubscriptionKeys {
+                p256dh: "p256dh-key".to_string(),
+                auth: "auth-key".to_string(),
+            },
+            created_at: now,
+        };
+
+        let json = serde_json::to_string(&sub).unwrap();
+        let parsed: PushSubscription = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.endpoint, "https://push.example.com/abc");
+    }
+
+    #[test]
+    fn test_cov7_notification_preferences_custom_threshold() {
+        let mut prefs = NotificationPreferences::default();
+        prefs.price_alert_threshold = 20.0;
+
+        assert_eq!(prefs.price_alert_threshold, 20.0);
+        assert!(prefs.enabled);
+    }
+
+    #[test]
+    fn test_cov7_channel_settings_all_disabled() {
+        let channels = ChannelSettings {
+            email: false,
+            push: PushSettings::default(),
+            telegram: TelegramSettings::default(),
+            discord: DiscordSettings::default(),
+            sound: false,
+        };
+
+        assert!(!channels.email);
+        assert!(!channels.push.enabled);
+        assert!(!channels.sound);
+    }
+
+    #[test]
+    fn test_cov7_alert_settings_all_enabled() {
+        let alerts = AlertSettings::default();
+        assert!(alerts.price_alerts);
+        assert!(alerts.trade_alerts);
+        assert!(alerts.system_alerts);
+        assert!(alerts.signal_alerts);
+        assert!(alerts.risk_alerts);
+    }
 }

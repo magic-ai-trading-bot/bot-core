@@ -481,7 +481,10 @@ fn test_trade_update_pnl_short_profit() {
 
     trade.update_with_price(48000.0, None); // Price down to 48000
 
-    assert!(trade.unrealized_pnl > 0.0, "Short should profit on price drop");
+    assert!(
+        trade.unrealized_pnl > 0.0,
+        "Short should profit on price drop"
+    );
     assert!(trade.pnl_percentage > 0.0);
 }
 
@@ -501,7 +504,10 @@ fn test_trade_update_pnl_short_loss() {
 
     trade.update_with_price(52000.0, None); // Price up to 52000
 
-    assert!(trade.unrealized_pnl < 0.0, "Short should lose on price increase");
+    assert!(
+        trade.unrealized_pnl < 0.0,
+        "Short should lose on price increase"
+    );
     assert!(trade.pnl_percentage < 0.0);
 }
 
@@ -612,12 +618,17 @@ fn test_trade_close_already_closed() {
     );
 
     let exit_fees = (0.1 * 52000.0) * (0.001 / 1.0);
-    trade.close(52000.0, CloseReason::TakeProfit, exit_fees).unwrap();
+    trade
+        .close(52000.0, CloseReason::TakeProfit, exit_fees)
+        .unwrap();
 
     // Try to close again
     let exit_fees2 = (0.1 * 53000.0) * (0.001 / 1.0);
     let result = trade.close(53000.0, CloseReason::Manual, exit_fees2);
-    assert!(result.is_err(), "Should not allow closing already closed trade");
+    assert!(
+        result.is_err(),
+        "Should not allow closing already closed trade"
+    );
 }
 
 #[test]
@@ -776,7 +787,10 @@ fn test_trade_pnl_with_zero_quantity() {
     );
 
     trade.update_with_price(52000.0, None);
-    assert_eq!(trade.unrealized_pnl, 0.0, "Zero quantity should have zero PnL");
+    assert_eq!(
+        trade.unrealized_pnl, 0.0,
+        "Zero quantity should have zero PnL"
+    );
 }
 
 #[test]

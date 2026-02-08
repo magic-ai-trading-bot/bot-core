@@ -3380,4 +3380,597 @@ mod tests {
         assert!(deserialized.executed);
         assert!(deserialized.trade_id.is_some());
     }
+
+    // ========== NULL-DB COVERAGE TESTS ==========
+    // These tests call storage methods with null-DB to cover error paths
+
+    async fn create_null_db_storage() -> Storage {
+        let config = crate::config::DatabaseConfig {
+            url: "no-db://test".to_string(),
+            database_name: Some("test".to_string()),
+            max_connections: 10,
+            enable_logging: false,
+        };
+        Storage::new(&config).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_database() {
+        let storage = create_null_db_storage().await;
+        assert!(storage.get_database().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_collection_errors() {
+        let storage = create_null_db_storage().await;
+        assert!(storage.paper_trades().is_err());
+        assert!(storage.portfolio_history().is_err());
+        assert!(storage.ai_signals().is_err());
+        assert!(storage.performance_metrics().is_err());
+        assert!(storage.paper_trading_settings().is_err());
+        assert!(storage.user_symbols().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_store_analysis() {
+        let storage = create_null_db_storage().await;
+        let analysis = MultiTimeframeAnalysis {
+            symbol: "BTCUSDT".to_string(),
+            timestamp: Utc::now().timestamp_millis(),
+            timeframe_signals: std::collections::HashMap::new(),
+            overall_signal: crate::market_data::analyzer::TradingSignal::Buy,
+            overall_confidence: 0.85,
+            entry_price: Some(50000.0),
+            stop_loss: Some(48000.0),
+            take_profit: Some(55000.0),
+            risk_reward_ratio: Some(2.5),
+        };
+        let result = storage.store_analysis(&analysis).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_latest_analysis() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_latest_analysis("BTCUSDT").await;
+        assert!(result.unwrap().is_none()); // Returns Ok(None) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_analysis_history() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_analysis_history("BTCUSDT", Some(50)).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_store_trade_record() {
+        let storage = create_null_db_storage().await;
+        let trade = create_sample_trade_record();
+        let result = storage.store_trade_record(&trade).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_trade_history() {
+        let storage = create_null_db_storage().await;
+        assert!(storage.get_trade_history(Some("BTCUSDT"), Some(20)).await.unwrap().is_empty());
+        assert!(storage.get_trade_history(None, None).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_performance_stats() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_performance_stats().await;
+        assert!(result.is_ok()); // Returns Ok(PerformanceStats::default())
+    }
+
+    #[tokio::test]
+    async fn test_null_db_store_market_data() {
+        let storage = create_null_db_storage().await;
+        let klines = vec![create_sample_kline()];
+        let result = storage.store_market_data("BTCUSDT", "1h", &klines).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_market_data() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_market_data("BTCUSDT", "1h", Some(100)).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_store_price_history() {
+        let storage = create_null_db_storage().await;
+        let result = storage.store_price_history("BTCUSDT", 50000.0, 1000000.0, 500.0, 1.0).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_paper_trades_history() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_paper_trades_history(Some(30)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_portfolio_history() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_portfolio_history(Some(7)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_ai_signals_history() {
+        let storage = create_null_db_storage().await;
+        assert!(storage.get_ai_signals_history(None, Some(50)).await.is_err());
+        assert!(storage.get_ai_signals_history(Some("BTCUSDT"), None).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_latest_signals_per_symbol() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_latest_signals_per_symbol().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_save_paper_trading_settings() {
+        let storage = create_null_db_storage().await;
+        let settings = crate::paper_trading::PaperTradingSettings::default();
+        let result = storage.save_paper_trading_settings(&settings).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_load_paper_trading_settings() {
+        let storage = create_null_db_storage().await;
+        let result = storage.load_paper_trading_settings().await;
+        assert!(result.unwrap().is_none()); // Returns Ok(None) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_save_user_symbols() {
+        let storage = create_null_db_storage().await;
+        let symbols = vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()];
+        let result = storage.save_user_symbols(&symbols).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_load_user_symbols() {
+        let storage = create_null_db_storage().await;
+        let result = storage.load_user_symbols().await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_save_api_key() {
+        let storage = create_null_db_storage().await;
+        let key = crate::api::settings::StoredApiKey {
+            api_key: "test_key".to_string(),
+            api_secret_encrypted: "encrypted".to_string(),
+            api_secret_nonce: "nonce".to_string(),
+            use_testnet: true,
+            permissions: crate::api::settings::ApiKeyPermissions::default(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        let result = storage.save_api_key(&key).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_load_api_key() {
+        let storage = create_null_db_storage().await;
+        let result = storage.load_api_key().await;
+        assert!(result.unwrap().is_none()); // Returns Ok(None) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_delete_api_key() {
+        let storage = create_null_db_storage().await;
+        let result = storage.delete_api_key().await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_save_notification_preferences() {
+        let storage = create_null_db_storage().await;
+        let prefs = crate::api::notifications::NotificationPreferences::default();
+        let result = storage.save_notification_preferences(&prefs).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_load_notification_preferences() {
+        let storage = create_null_db_storage().await;
+        let result = storage.load_notification_preferences().await;
+        // Returns default NotificationPreferences when db is None (enabled=true by default)
+        assert!(result.enabled);
+    }
+
+    #[tokio::test]
+    async fn test_null_db_delete_push_subscription() {
+        let storage = create_null_db_storage().await;
+        let result = storage.delete_push_subscription().await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_trade_analyses() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_trade_analyses(false, Some(10)).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_latest_config_suggestion() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_latest_config_suggestion().await;
+        assert!(result.unwrap().is_none()); // Returns Ok(None) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_null_db_update_signal_outcome() {
+        let storage = create_null_db_storage().await;
+        let result = storage.update_signal_outcome(
+            "signal123", "win", 500.0, 2.5, 52000.0, "TAKE_PROFIT"
+        ).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cov6_storage_clone_null_db() {
+        let storage = create_null_db_storage().await;
+        let cloned = storage.clone();
+        assert!(cloned.get_database().is_none());
+    }
+
+    // =========================================================================
+    // COV7: Additional collection accessor tests
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_cov7_null_db_trade_analyses_collection() {
+        let storage = create_null_db_storage().await;
+        assert!(storage.trade_analyses().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_null_db_config_suggestions_collection() {
+        let storage = create_null_db_storage().await;
+        assert!(storage.config_suggestions().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cov7_null_db_get_config_suggestions() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_config_suggestions(Some(20)).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_cov7_null_db_get_trade_analysis_by_id() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_trade_analysis_by_id("trade123").await;
+        assert!(result.unwrap().is_none()); // Returns Ok(None) when db is None
+    }
+
+    // =========================================================================
+    // COV7: Add/remove user symbol tests
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_cov7_null_db_add_user_symbol() {
+        let storage = create_null_db_storage().await;
+        let result = storage.add_user_symbol("BTCUSDT").await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_cov7_null_db_remove_user_symbol() {
+        let storage = create_null_db_storage().await;
+        let result = storage.remove_user_symbol("BTCUSDT").await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    // =========================================================================
+    // COV7: Push subscription tests
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_cov7_null_db_save_push_subscription() {
+        let storage = create_null_db_storage().await;
+        let subscription = crate::api::notifications::PushSubscription {
+            endpoint: "https://push.example.com".to_string(),
+            keys: crate::api::notifications::PushSubscriptionKeys {
+                p256dh: "key123".to_string(),
+                auth: "auth456".to_string(),
+            },
+            created_at: Utc::now(),
+        };
+        let result = storage.save_push_subscription(&subscription).await;
+        assert!(result.is_ok()); // Returns Ok(()) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_cov7_null_db_load_push_subscription() {
+        let storage = create_null_db_storage().await;
+        let result = storage.load_push_subscription().await;
+        assert!(result.is_none()); // Returns None when db is None
+    }
+
+    // =========================================================================
+    // COV7: Edge cases for get_trade_analyses with only_losing parameter
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_cov7_null_db_get_trade_analyses_only_losing() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_trade_analyses(true, Some(50)).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    #[tokio::test]
+    async fn test_cov7_null_db_get_trade_analyses_all() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_trade_analyses(false, None).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    // =========================================================================
+    // COV7: Data structure serialization edge cases
+    // =========================================================================
+
+    #[test]
+    fn test_cov7_trade_record_large_quantity() {
+        let trade = TradeRecord {
+            id: None,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            quantity: 999999.999999,
+            entry_price: 100000.0,
+            exit_price: Some(110000.0),
+            stop_loss: None,
+            take_profit: None,
+            entry_time: 1640000000000,
+            exit_time: Some(1640086400000),
+            pnl: Some(10000000.0),
+            status: "closed".to_string(),
+            strategy_used: Some("WHALE".to_string()),
+        };
+
+        let json = serde_json::to_string(&trade).unwrap();
+        let deserialized: TradeRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.quantity, 999999.999999);
+        assert_eq!(deserialized.pnl, Some(10000000.0));
+    }
+
+    #[test]
+    fn test_cov7_performance_stats_zero_win_rate() {
+        let stats = PerformanceStats {
+            total_trades: 100,
+            winning_trades: 0,
+            losing_trades: 100,
+            win_rate: 0.0,
+            total_pnl: -50000.0,
+            avg_pnl: -500.0,
+            max_win: 0.0,
+            max_loss: -5000.0,
+        };
+
+        let json = serde_json::to_string(&stats).unwrap();
+        let deserialized: PerformanceStats = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.win_rate, 0.0);
+        assert_eq!(deserialized.winning_trades, 0);
+        assert!(deserialized.total_pnl < 0.0);
+    }
+
+    #[test]
+    fn test_cov7_ai_signal_record_high_risk() {
+        let timestamp = Utc::now();
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "high_risk_signal".to_string(),
+            symbol: "ALTUSDT".to_string(),
+            signal_type: "LONG".to_string(),
+            confidence: 0.55,
+            reasoning: "High volatility, use caution".to_string(),
+            entry_price: 1.5,
+            trend_direction: "UP".to_string(),
+            trend_strength: 0.5,
+            volatility: 0.95,
+            risk_score: 0.95, // Very high risk
+            executed: false,
+            trade_id: None,
+            created_at: timestamp,
+            timestamp,
+            outcome: Some("pending".to_string()),
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: AISignalRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.risk_score, 0.95);
+        assert_eq!(deserialized.volatility, 0.95);
+        assert!(!deserialized.executed);
+    }
+
+    #[test]
+    fn test_cov7_portfolio_history_record_zero_trades() {
+        let timestamp = Utc::now();
+        let record = PortfolioHistoryRecord {
+            id: None,
+            timestamp,
+            current_balance: 10000.0,
+            equity: 10000.0,
+            margin_used: 0.0,
+            free_margin: 10000.0,
+            total_pnl: 0.0,
+            total_pnl_percentage: 0.0,
+            total_trades: 0, // No trades yet
+            win_rate: 0.0,
+            profit_factor: 0.0,
+            max_drawdown: 0.0,
+            max_drawdown_percentage: 0.0,
+            open_positions: 0,
+            created_at: timestamp,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PortfolioHistoryRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.total_trades, 0);
+        assert_eq!(deserialized.open_positions, 0);
+        assert_eq!(deserialized.total_pnl, 0.0);
+    }
+
+    #[test]
+    fn test_cov7_paper_trading_record_closed_with_profit() {
+        let open_time = Utc::now();
+        let close_time = open_time + chrono::Duration::hours(2);
+
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: "profitable_trade".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            trade_type: "LONG".to_string(),
+            status: "CLOSED".to_string(),
+            entry_price: 3000.0,
+            exit_price: Some(3300.0),
+            quantity: 1.0,
+            leverage: 5,
+            pnl: Some(1500.0), // 300 * 5 leverage
+            pnl_percentage: 50.0, // 10% price gain * 5 leverage
+            trading_fees: 15.0,
+            funding_fees: 2.5,
+            open_time,
+            close_time: Some(close_time),
+            ai_signal_id: Some("signal_winner".to_string()),
+            ai_confidence: Some(0.88),
+            close_reason: Some("TAKE_PROFIT".to_string()),
+            created_at: open_time,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PaperTradingRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.status, "CLOSED");
+        assert!(deserialized.pnl.unwrap() > 0.0);
+        assert_eq!(deserialized.leverage, 5);
+    }
+
+    #[test]
+    fn test_cov7_kline_zero_volume() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "50000.0".to_string(),
+            high: "50000.0".to_string(),
+            low: "50000.0".to_string(),
+            close: "50000.0".to_string(),
+            volume: "0".to_string(), // No volume
+            quote_asset_volume: "0".to_string(),
+            number_of_trades: 0,
+            taker_buy_base_asset_volume: "0".to_string(),
+            taker_buy_quote_asset_volume: "0".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let volume: f64 = kline.volume.parse().unwrap();
+        assert_eq!(volume, 0.0);
+        assert_eq!(kline.number_of_trades, 0);
+    }
+
+    #[test]
+    fn test_cov7_performance_metrics_record_negative_sharpe() {
+        let date = Utc::now();
+        let record = PerformanceMetricsRecord {
+            id: None,
+            date,
+            total_trades: 50,
+            winning_trades: 20,
+            losing_trades: 30,
+            win_rate: 40.0,
+            average_win: 100.0,
+            average_loss: -150.0,
+            largest_win: 500.0,
+            largest_loss: -800.0,
+            profit_factor: 0.67, // More losses than wins
+            sharpe_ratio: -0.5, // Negative Sharpe (underperforming)
+            max_drawdown: 5000.0,
+            max_drawdown_percentage: 25.0,
+            total_pnl: -1500.0,
+            daily_pnl: -30.0,
+            created_at: date,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PerformanceMetricsRecord = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.sharpe_ratio < 0.0);
+        assert!(deserialized.profit_factor < 1.0);
+        assert!(deserialized.total_pnl < 0.0);
+    }
+
+    #[test]
+    fn test_cov7_trade_record_cancelled_status() {
+        let trade = TradeRecord {
+            id: None,
+            symbol: "SOLUSDT".to_string(),
+            side: "SELL".to_string(),
+            quantity: 0.0,
+            entry_price: 100.0,
+            exit_price: None,
+            stop_loss: Some(98.0),
+            take_profit: Some(105.0),
+            entry_time: 1640000000000,
+            exit_time: None,
+            pnl: None,
+            status: "cancelled".to_string(),
+            strategy_used: Some("MOMENTUM".to_string()),
+        };
+
+        let json = serde_json::to_string(&trade).unwrap();
+        let deserialized: TradeRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.status, "cancelled");
+        assert_eq!(deserialized.quantity, 0.0);
+        assert!(deserialized.exit_price.is_none());
+    }
+
+    // =========================================================================
+    // COV7: Null DB tests for get_analysis_history with None limit
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_cov7_null_db_get_analysis_history_no_limit() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_analysis_history("ETHUSDT", None).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    // =========================================================================
+    // COV7: Null DB tests for get_market_data with None limit
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_cov7_null_db_get_market_data_no_limit() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_market_data("BTCUSDT", "15m", None).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
+
+    // =========================================================================
+    // COV7: Null DB tests for get_config_suggestions with None limit
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_cov7_null_db_get_config_suggestions_no_limit() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_config_suggestions(None).await;
+        assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
+    }
 }
