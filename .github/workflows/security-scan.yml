@@ -29,25 +29,19 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Run Trivy vulnerability scanner in repo mode
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.31.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
 
-    # Note: SARIF upload is disabled because it requires GitHub Advanced Security
-    # for private repos (paid feature). The scan results are still available in
-    # the trivy-results.sarif artifact. To enable:
-    # 1. Make repo public, OR
-    # 2. Enable GitHub Advanced Security in repo settings
-    # 3. Uncomment the step below
-    # - name: Upload Trivy scan results to GitHub Security tab
-    #   uses: github/codeql-action/upload-sarif@v3
-    #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    #   continue-on-error: true
-    #   with:
-    #     sarif_file: 'trivy-results.sarif'
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      continue-on-error: true
+      with:
+        sarif_file: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results as artifact
       uses: actions/upload-artifact@v6
@@ -69,16 +63,29 @@ jobs:
         trivy image --format sarif --output python-image-scan.sarif python-ai-service
         trivy image --format sarif --output nextjs-image-scan.sarif nextjs-ui-dashboard
 
-    # Note: SARIF upload is disabled (see comment above for details)
-    # - name: Upload Docker image scan results
-    #   uses: github/codeql-action/upload-sarif@v3
-    #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    #   continue-on-error: true
-    #   with:
-    #     sarif_file: |
-    #       rust-image-scan.sarif
-    #       python-image-scan.sarif
-    #       nextjs-image-scan.sarif
+    - name: Upload Docker image scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: github.event_name == 'push'
+      continue-on-error: true
+      with:
+        sarif_file: 'rust-image-scan.sarif'
+        category: 'docker-rust'
+
+    - name: Upload Python Docker image scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: github.event_name == 'push'
+      continue-on-error: true
+      with:
+        sarif_file: 'python-image-scan.sarif'
+        category: 'docker-python'
+
+    - name: Upload Next.js Docker image scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: github.event_name == 'push'
+      continue-on-error: true
+      with:
+        sarif_file: 'nextjs-image-scan.sarif'
+        category: 'docker-nextjs'
 
     - name: Upload Docker image scan results as artifacts
       uses: actions/upload-artifact@v6
