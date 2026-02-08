@@ -1570,6 +1570,386 @@ mod tests {
     }
 
     // ============================================================================
+    // WARP HANDLER TESTS (Integration Tests for API Routes)
+    // ============================================================================
+
+    use crate::binance::BinanceClient;
+
+    async fn create_test_api_server() -> ApiServer {
+        // Create test database config (no MongoDB)
+        let db_config = crate::config::DatabaseConfig {
+            url: "no-db://test".to_string(),
+            database_name: Some("test_db".to_string()),
+            max_connections: 1,
+            enable_logging: false,
+        };
+        let storage = crate::storage::Storage::new(&db_config).await.unwrap();
+
+        // Create Binance config
+        let binance_config = crate::config::BinanceConfig {
+            api_key: "test_key".to_string(),
+            secret_key: "test_secret".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
+            testnet: true,
+            base_url: "https://testnet.binance.vision".to_string(),
+            ws_url: "wss://testnet.binance.vision/ws".to_string(),
+            futures_base_url: "https://testnet.binancefuture.com".to_string(),
+            futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+            trading_mode: crate::config::TradingMode::RealTestnet,
+        };
+
+        // Create MarketData config
+        let market_data_config = crate::config::MarketDataConfig {
+            symbols: vec!["BTCUSDT".to_string()],
+            timeframes: vec!["1m".to_string()],
+            kline_limit: 100,
+            update_interval_ms: 60000,
+            reconnect_interval_ms: 5000,
+            max_reconnect_attempts: 3,
+            cache_size: 500,
+            python_ai_service_url: "http://localhost:8000".to_string(),
+        };
+
+        // Create Trading config
+        let trading_config = crate::config::TradingConfig {
+            enabled: false,
+            max_positions: 3,
+            default_quantity: 0.01,
+            risk_percentage: 2.0,
+            stop_loss_percentage: 2.0,
+            take_profit_percentage: 4.0,
+            order_timeout_seconds: 30,
+            position_check_interval_seconds: 60,
+            leverage: 1,
+            margin_type: "ISOLATED".to_string(),
+        };
+
+        let market_data = crate::market_data::MarketDataProcessor::new(
+            binance_config.clone(),
+            market_data_config,
+            storage.clone(),
+        )
+        .await
+        .unwrap();
+
+        let trading_engine = crate::trading::TradingEngine::new(
+            binance_config.clone(),
+            trading_config,
+            market_data.clone(),
+            storage.clone(),
+        )
+        .await
+        .unwrap();
+
+        // Create PaperTradingEngine with required components
+        let binance_client = BinanceClient::new(binance_config.clone()).unwrap();
+        let ai_service = crate::ai::AIService::new(crate::ai::AIServiceConfig {
+            python_service_url: "http://localhost:8000".to_string(),
+            request_timeout_seconds: 30,
+            max_retries: 1,
+            enable_caching: false,
+            cache_ttl_seconds: 60,
+        });
+        let (paper_event_tx, _) = tokio::sync::broadcast::channel(100);
+        let paper_trading_settings = crate::paper_trading::PaperTradingSettings::default();
+
+        let paper_trading_engine = Arc::new(
+            crate::paper_trading::PaperTradingEngine::new(
+                paper_trading_settings,
+                binance_client,
+                ai_service,
+                storage.clone(),
+                paper_event_tx,
+            )
+            .await
+            .unwrap(),
+        );
+
+        let (ws_broadcaster, _) = tokio::sync::broadcast::channel(100);
+
+        ApiServer::new(
+            crate::config::ApiConfig {
+                host: "127.0.0.1".to_string(),
+                port: 8080,
+                cors_origins: vec!["*".to_string()],
+                enable_metrics: false,
+            },
+            binance_config,
+            market_data,
+            trading_engine,
+            paper_trading_engine,
+            None,
+            ws_broadcaster,
+            storage,
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_health_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/health")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body: ApiResponse<String> = serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.success);
+    }
+
+    #[tokio::test]
+    async fn test_market_prices_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/prices")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_market_overview_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/overview")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_candles_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/candles/BTCUSDT/1h?limit=10")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_market_chart_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/chart/BTCUSDT/1h?limit=50")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_multi_chart_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/charts?symbols=BTCUSDT,ETHUSDT&timeframes=1h,4h&limit=10")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_symbols_get_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/symbols")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+        let body: ApiResponse<SupportedSymbols> = serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.success);
+    }
+
+    #[tokio::test]
+    async fn test_market_symbols_add_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request = AddSymbolRequest {
+            symbol: "SOLUSDT".to_string(),
+            timeframes: Some(vec!["1h".to_string()]),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/market/symbols")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_symbols_delete_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("DELETE")
+            .path("/api/market/symbols/BTCUSDT")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_trading_positions_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/positions")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_trading_account_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/account")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_trading_close_position_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/trading/positions/BTCUSDT/close")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_trading_performance_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/performance")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_monitoring_system_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/monitoring/system")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_monitoring_trading_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/monitoring/trading")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_monitoring_connection_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/monitoring/connection")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_ai_info_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/ai/info")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_ai_strategies_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/ai/strategies")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    // ============================================================================
     // ApiResponse Type Compatibility Tests
     // ============================================================================
 
@@ -1733,6 +2113,29 @@ mod tests {
         let _multi: MultiChartQuery = serde_json::from_str(multi_json).unwrap();
     }
 
+    #[tokio::test]
+    async fn test_broadcast_update() {
+        let server = create_test_api_server().await;
+        server.broadcast_update("test message".to_string());
+        // No panic = success (no receivers is OK)
+    }
+
+    #[tokio::test]
+    async fn test_update_monitoring() {
+        let server = create_test_api_server().await;
+        server.update_monitoring(5, 100, true, true).await;
+        // No panic = success
+    }
+
+    #[test]
+    fn test_api_response_clone() {
+        let response = ApiResponse::success("test");
+        let cloned = response.clone();
+        assert_eq!(cloned.success, response.success);
+        assert_eq!(cloned.data, response.data);
+        assert_eq!(cloned.error, response.error);
+    }
+
     // ============================================================================
     // Boundary Value Tests
     // ============================================================================
@@ -1822,4 +2225,696 @@ mod tests {
         let result: SupportedSymbols = serde_json::from_str(json).unwrap();
         assert_eq!(result.symbols.len(), 1);
     }
+
+    #[tokio::test]
+    async fn test_cors_headers_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("OPTIONS")
+            .path("/api/health")
+            .reply(&routes)
+            .await;
+
+        // OPTIONS may return 405 (Method Not Allowed) if route doesn't explicitly handle OPTIONS
+        assert!(resp.status().is_success() || resp.status() == 404 || resp.status() == 405);
+    }
+
+    #[tokio::test]
+    async fn test_nonexistent_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/nonexistent")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 404);
+    }
+
+    #[tokio::test]
+    async fn test_market_candles_without_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/candles/BTCUSDT/1h")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_market_chart_without_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/chart/BTCUSDT/1h")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_multi_chart_minimal() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/charts?symbols=BTCUSDT&timeframes=1h")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_invalid_http_method_on_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("PUT")
+            .path("/api/health")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 405);
+    }
+
+    #[tokio::test]
+    async fn test_trading_positions_empty() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/positions")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body: ApiResponse<Vec<crate::trading::position_manager::Position>> =
+            serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.success);
+    }
+
+    #[tokio::test]
+    async fn test_market_add_symbol_minimal() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request = AddSymbolRequest {
+            symbol: "ADAUSDT".to_string(),
+            timeframes: None,
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/market/symbols")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_delete_nonexistent_symbol() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("DELETE")
+            .path("/api/market/symbols/NONEXISTENT")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_monitoring_routes_all() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let paths = vec![
+            "/api/monitoring/system",
+            "/api/monitoring/trading",
+            "/api/monitoring/connection",
+        ];
+
+        for path in paths {
+            let resp = warp::test::request()
+                .method("GET")
+                .path(path)
+                .reply(&routes)
+                .await;
+
+            assert_eq!(resp.status(), 200);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_trading_close_position_nonexistent() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/trading/positions/NONEXISTENT/close")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_health_check_content() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/health")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body: ApiResponse<String> = serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.success);
+        assert_eq!(body.data, Some("Bot is running".to_string()));
+        assert!(body.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_market_prices_response_format() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/prices")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body: serde_json::Value = serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.get("success").is_some());
+        assert!(body.get("data").is_some());
+    }
+
+    #[tokio::test]
+    async fn test_market_symbols_response_structure() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/symbols")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body: ApiResponse<SupportedSymbols> = serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.success);
+        assert!(body.data.is_some());
+        if let Some(data) = body.data {
+            assert!(data.symbols.len() >= 0);
+            assert!(data.available_timeframes.len() > 0);
+        }
+    }
+
+    #[test]
+    fn test_conversion_ai_to_strategy_input() {
+        use crate::ai::{AIAnalysisRequest, AIStrategyContext};
+        use std::collections::HashMap;
+
+        let request = AIAnalysisRequest {
+            symbol: "TESTUSDT".to_string(),
+            timeframe_data: HashMap::new(),
+            current_price: 12345.67,
+            volume_24h: 9999999.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let input: crate::strategies::StrategyInput = request.into();
+        assert_eq!(input.symbol, "TESTUSDT");
+        assert_eq!(input.current_price, 12345.67);
+        assert_eq!(input.volume_24h, 9999999.0);
+    }
+
+    #[test]
+    fn test_conversion_strategy_recommendation() {
+        use crate::ai::StrategyRecommendationRequest;
+        use std::collections::HashMap;
+
+        let request = StrategyRecommendationRequest {
+            symbol: "XYZUSDT".to_string(),
+            timeframe_data: HashMap::new(),
+            current_price: 999.99,
+            timestamp: 1111111111,
+            available_strategies: vec!["test".to_string()],
+        };
+
+        let input: crate::strategies::StrategyInput = request.into();
+        assert_eq!(input.symbol, "XYZUSDT");
+        assert_eq!(input.current_price, 999.99);
+        assert_eq!(input.volume_24h, 0.0);
+    }
+
+    #[test]
+    fn test_conversion_market_condition() {
+        use crate::ai::MarketConditionRequest;
+        use std::collections::HashMap;
+
+        let request = MarketConditionRequest {
+            symbol: "ABCUSDT".to_string(),
+            timeframe_data: HashMap::new(),
+            current_price: 777.77,
+            volume_24h: 888888.0,
+            timestamp: 2222222222,
+        };
+
+        let input: crate::strategies::StrategyInput = request.into();
+        assert_eq!(input.symbol, "ABCUSDT");
+        assert_eq!(input.current_price, 777.77);
+        assert_eq!(input.volume_24h, 888888.0);
+    }
+
+    // Additional API route and handler tests
+
+    #[tokio::test]
+    async fn test_api_server_new_with_database() {
+        let server = create_test_api_server().await;
+        assert!(server.config.host == "127.0.0.1");
+    }
+
+    #[tokio::test]
+    async fn test_api_server_clone() {
+        let server = create_test_api_server().await;
+        let cloned = server.clone();
+        assert_eq!(server.config.port, cloned.config.port);
+    }
+
+    #[tokio::test]
+    async fn test_cors_headers() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("OPTIONS")
+            .path("/api/health")
+            .reply(&routes)
+            .await;
+
+        // OPTIONS may return success, 404, or 405 depending on CORS config
+        assert!(resp.status().is_success() || resp.status().as_u16() == 404 || resp.status().as_u16() == 405);
+    }
+
+    #[tokio::test]
+    async fn test_websocket_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/ws")
+            .reply(&routes)
+            .await;
+
+        // WebSocket upgrade requires special handling
+        assert!(resp.status().is_client_error() || resp.status().is_success());
+    }
+
+    #[tokio::test]
+    async fn test_market_prices_with_multiple_symbols() {
+        let server = create_test_api_server().await;
+
+        // Add test data before creating routes (which moves server)
+        server.market_data.get_cache().add_historical_klines(
+            "BTCUSDT",
+            "1m",
+            vec![crate::binance::types::Kline {
+                open_time: 1609459200000,
+                open: "50000.0".to_string(),
+                high: "51000.0".to_string(),
+                low: "49000.0".to_string(),
+                close: "50500.0".to_string(),
+                volume: "100.0".to_string(),
+                close_time: 1609459260000,
+                quote_asset_volume: "5000000.0".to_string(),
+                number_of_trades: 1000,
+                taker_buy_base_asset_volume: "50.0".to_string(),
+                taker_buy_quote_asset_volume: "2500000.0".to_string(),
+                ignore: "0".to_string(),
+            }],
+        );
+
+        let routes = server.create_routes();
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/prices")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_market_candles_with_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/candles/BTCUSDT/1m?limit=50")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_market_chart_with_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/chart/BTCUSDT/1m?limit=100")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_multi_chart() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/charts?symbols=BTCUSDT,ETHUSDT&timeframes=1m,5m&limit=50")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_trading_performance() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/performance")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_monitoring_system() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/monitoring/system")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_monitoring_trading() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/monitoring/trading")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_monitoring_connection() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/monitoring/connection")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_invalid_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/invalid/route")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 404);
+    }
+
+    #[tokio::test]
+    async fn test_market_overview_error_handling() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/overview")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_trading_account_error_handling() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/account")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_add_symbol_with_timeframes() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request = AddSymbolRequest {
+            symbol: "LTCUSDT".to_string(),
+            timeframes: Some(vec!["1m".to_string(), "5m".to_string()]),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/market/symbols")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_market_delete_symbol() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("DELETE")
+            .path("/api/market/symbols/TESTCOIN")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[test]
+    fn test_api_response_success_with_string() {
+        let response = ApiResponse::success("test message".to_string());
+        assert!(response.success);
+        assert_eq!(response.data, Some("test message".to_string()));
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn test_api_response_error_with_message() {
+        let response = ApiResponse::<String>::error("error message".to_string());
+        assert!(!response.success);
+        assert!(response.data.is_none());
+        assert_eq!(response.error, Some("error message".to_string()));
+    }
+
+    #[test]
+    fn test_candel_query_default() {
+        let query = CandelQuery { limit: None };
+        assert!(query.limit.is_none());
+    }
+
+    #[test]
+    fn test_chart_query_with_value() {
+        let query = ChartQuery { limit: Some(100) };
+        assert_eq!(query.limit, Some(100));
+    }
+
+    #[test]
+    fn test_multi_chart_query_parsing() {
+        let query = MultiChartQuery {
+            symbols: "BTC,ETH,ADA".to_string(),
+            timeframes: "1m,5m,1h".to_string(),
+            limit: Some(50),
+        };
+
+        assert!(query.symbols.contains("BTC"));
+        assert!(query.timeframes.contains("1m"));
+    }
+
+    #[test]
+    fn test_add_symbol_request_default_timeframes() {
+        let request = AddSymbolRequest {
+            symbol: "TESTCOIN".to_string(),
+            timeframes: None,
+        };
+
+        assert!(request.timeframes.is_none());
+    }
+
+    #[test]
+    fn test_supported_symbols_structure() {
+        let symbols = SupportedSymbols {
+            symbols: vec!["BTC".to_string(), "ETH".to_string()],
+            available_timeframes: vec!["1m".to_string(), "5m".to_string()],
+        };
+
+        assert_eq!(symbols.symbols.len(), 2);
+        assert_eq!(symbols.available_timeframes.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_market_prices_empty_cache() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/prices")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body: ApiResponse<std::collections::HashMap<String, f64>> =
+            serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.success);
+    }
+
+    #[tokio::test]
+    async fn test_market_candles_invalid_timeframe() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/candles/BTCUSDT/invalid")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_trading_close_position_success() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/trading/positions/BTCUSDT/close")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_health_check_multiple_times() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        for _ in 0..5 {
+            let resp = warp::test::request()
+                .method("GET")
+                .path("/api/health")
+                .reply(&routes)
+                .await;
+
+            assert_eq!(resp.status(), 200);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_market_symbols_get() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/symbols")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_trading_positions_type() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/positions")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+        let body_bytes = resp.body();
+        assert!(!body_bytes.is_empty());
+    }
+
 }

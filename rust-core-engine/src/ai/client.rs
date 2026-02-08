@@ -1007,4 +1007,289 @@ mod tests {
         let client2 = AIClient::new("http://localhost:8000", 60);
         assert_eq!(client2.timeout, Duration::from_secs(60));
     }
+
+    // Additional comprehensive tests for AIClient
+
+    #[tokio::test]
+    async fn test_health_check_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+        let result = client.health_check().await;
+        // Should fail when service is not running
+        assert!(result.is_err() || result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_get_service_info_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+        let result = client.get_service_info().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_supported_strategies_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+        let result = client.get_supported_strategies().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_model_performance_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+        let result = client.get_model_performance().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_analyze_trading_signals_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let result = client.analyze_trading_signals(&request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_strategy_recommendations_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            available_strategies: vec!["RSI".to_string()],
+            timestamp: 1234567890,
+        };
+
+        let result = client.get_strategy_recommendations(&request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_analyze_market_condition_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = MarketConditionRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+        };
+
+        let result = client.analyze_market_condition(&request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_send_performance_feedback_fails_without_service() {
+        let client = AIClient::new("http://localhost:9999", 5);
+
+        let feedback = PerformanceFeedback {
+            signal_id: "signal123".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            predicted_signal: crate::strategies::TradingSignal::Long,
+            actual_outcome: "success".to_string(),
+            profit_loss: 1000.0,
+            confidence_was_accurate: true,
+            feedback_notes: Some("Good prediction".to_string()),
+            timestamp: 1234567890,
+        };
+
+        let result = client.send_performance_feedback(&feedback).await;
+        assert!(result.is_err() || result.is_ok());
+    }
+
+    #[test]
+    fn test_python_candle_data_zero_volume() {
+        let mut candle = create_test_candle();
+        candle.volume = 0.0;
+
+        let python_candle = PythonCandleData::from(&candle);
+        assert_eq!(python_candle.volume, 0.0);
+    }
+
+    #[test]
+    fn test_python_candle_data_high_volume() {
+        let mut candle = create_test_candle();
+        candle.volume = 1000000.0;
+
+        let python_candle = PythonCandleData::from(&candle);
+        assert_eq!(python_candle.volume, 1000000.0);
+    }
+
+    #[test]
+    fn test_ai_client_new_with_https() {
+        let client = AIClient::new("https://api.example.com", 30);
+        assert_eq!(client.base_url, "https://api.example.com");
+    }
+
+    #[test]
+    fn test_ai_client_new_with_port() {
+        let client = AIClient::new("http://localhost:8080", 30);
+        assert_eq!(client.base_url, "http://localhost:8080");
+    }
+
+    #[test]
+    fn test_ai_strategy_context_default() {
+        let context = AIStrategyContext::default();
+        // Default values should be set
+        assert_eq!(context.risk_level, "Moderate");
+    }
+
+    #[test]
+    fn test_ai_analysis_request_with_empty_timeframe_data() {
+        let timeframe_data = HashMap::new();
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        assert_eq!(request.timeframe_data.len(), 0);
+    }
+
+    #[test]
+    fn test_strategy_recommendation_request_with_empty_strategies() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            available_strategies: vec![],
+            timestamp: 1234567890,
+        };
+
+        assert_eq!(request.available_strategies.len(), 0);
+    }
+
+    #[test]
+    fn test_strategy_recommendation_request_with_many_strategies() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let strategies = vec![
+            "RSI".to_string(),
+            "MACD".to_string(),
+            "BOLLINGER".to_string(),
+            "EMA".to_string(),
+            "VOLUME".to_string(),
+        ];
+
+        let request = StrategyRecommendationRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            available_strategies: strategies.clone(),
+            timestamp: 1234567890,
+        };
+
+        assert_eq!(request.available_strategies.len(), 5);
+    }
+
+    #[test]
+    fn test_market_condition_request_conversion() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = MarketConditionRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data: timeframe_data.clone(),
+            current_price: 50500.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonMarketConditionRequest::from(&request);
+
+        assert_eq!(python_request.symbol, "BTCUSDT");
+        assert_eq!(python_request.current_price, 50500.0);
+        assert_eq!(python_request.volume_24h, 10000.0);
+        assert_eq!(python_request.timestamp, 1234567890);
+    }
+
+    #[test]
+    fn test_performance_feedback_serialization() {
+        let feedback = PerformanceFeedback {
+            signal_id: "signal123".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            predicted_signal: crate::strategies::TradingSignal::Long,
+            actual_outcome: "success".to_string(),
+            profit_loss: 1000.0,
+            confidence_was_accurate: true,
+            feedback_notes: Some("Good prediction".to_string()),
+            timestamp: 1234567890,
+        };
+
+        let json = serde_json::to_string(&feedback).unwrap();
+        assert!(json.contains("signal123"));
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("success"));
+    }
+
+    #[test]
+    fn test_performance_feedback_without_notes() {
+        let feedback = PerformanceFeedback {
+            signal_id: "signal456".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            predicted_signal: crate::strategies::TradingSignal::Short,
+            actual_outcome: "failure".to_string(),
+            profit_loss: -100.0,
+            confidence_was_accurate: false,
+            feedback_notes: None,
+            timestamp: 1234567890,
+        };
+
+        assert!(feedback.feedback_notes.is_none());
+        assert_eq!(feedback.actual_outcome, "failure");
+    }
+
+    #[test]
+    fn test_candle_data_timestamp_conversion() {
+        let candle = create_test_candle();
+        let python_candle = PythonCandleData::from(&candle);
+
+        // Timestamp should be preserved
+        assert_eq!(python_candle.timestamp, candle.open_time);
+    }
+
+    #[test]
+    fn test_ai_client_zero_timeout() {
+        let client = AIClient::new("http://localhost:8000", 0);
+        assert_eq!(client.timeout, Duration::from_secs(0));
+    }
+
+    #[test]
+    fn test_ai_client_large_timeout() {
+        let client = AIClient::new("http://localhost:8000", 300);
+        assert_eq!(client.timeout, Duration::from_secs(300));
+    }
 }

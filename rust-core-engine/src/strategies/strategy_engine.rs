@@ -1531,4 +1531,287 @@ mod tests {
         assert_eq!(deserialized.combined_confidence, signal.combined_confidence);
         assert_eq!(deserialized.symbol, signal.symbol);
     }
+
+    // ========== COV8 TESTS - Target untested branches ==========
+
+    #[test]
+    fn test_cov8_strategy_type_name() {
+        let strategies = vec![
+            StrategyType::Rsi(RsiStrategy::new()),
+            StrategyType::Macd(MacdStrategy::new()),
+            StrategyType::Bollinger(BollingerStrategy::new()),
+            StrategyType::Stochastic(StochasticStrategy::new()),
+            StrategyType::Volume(VolumeStrategy::new()),
+        ];
+
+        for strategy in strategies {
+            let name = strategy.name();
+            assert!(!name.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_cov8_strategy_type_config() {
+        let strategies = vec![
+            StrategyType::Rsi(RsiStrategy::new()),
+            StrategyType::Macd(MacdStrategy::new()),
+            StrategyType::Bollinger(BollingerStrategy::new()),
+            StrategyType::Stochastic(StochasticStrategy::new()),
+            StrategyType::Volume(VolumeStrategy::new()),
+        ];
+
+        for strategy in strategies {
+            let config = strategy.config();
+            assert!(config.enabled);
+        }
+    }
+
+    #[test]
+    fn test_cov8_strategy_type_update_config() {
+        let mut strategies = vec![
+            StrategyType::Rsi(RsiStrategy::new()),
+            StrategyType::Macd(MacdStrategy::new()),
+            StrategyType::Bollinger(BollingerStrategy::new()),
+            StrategyType::Stochastic(StochasticStrategy::new()),
+            StrategyType::Volume(VolumeStrategy::new()),
+        ];
+
+        for strategy in &mut strategies {
+            let mut new_config = StrategyConfig::default();
+            new_config.weight = 2.5;
+            strategy.update_config(new_config);
+            assert_eq!(strategy.config().weight, 2.5);
+        }
+    }
+
+    #[test]
+    fn test_cov8_strategy_type_validate_data() {
+        let strategy = StrategyType::Rsi(RsiStrategy::new());
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), create_test_candles(10));
+
+        let input = StrategyInput {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 100.0,
+            volume_24h: 1000.0,
+            timestamp: 123456,
+        };
+
+        let result = strategy.validate_data(&input);
+        assert!(result.is_err()); // Should fail with insufficient data
+    }
+
+    #[tokio::test]
+    async fn test_cov8_strategy_type_analyze() {
+        let strategy = StrategyType::Rsi(RsiStrategy::new());
+        let input = create_test_input();
+
+        let result = strategy.analyze(&input).await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov8_combine_consensus_insufficient_strategies() {
+        let engine = StrategyEngine::new();
+        // Only 3 strategies, but min_strategies_agreement = 4
+        let results = vec![
+            StrategySignalResult {
+                strategy_name: "S1".to_string(),
+                signal: TradingSignal::Long,
+                confidence: 0.8,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S2".to_string(),
+                signal: TradingSignal::Long,
+                confidence: 0.75,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S3".to_string(),
+                signal: TradingSignal::Long,
+                confidence: 0.7,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+        ];
+
+        let (signal, _, _) = engine.combine_consensus(&results);
+
+        // Should return Neutral when total_count < min_required
+        assert_eq!(signal, TradingSignal::Neutral);
+    }
+
+    #[test]
+    fn test_cov8_combine_consensus_short_majority() {
+        let engine = StrategyEngine::new();
+        let results = vec![
+            StrategySignalResult {
+                strategy_name: "S1".to_string(),
+                signal: TradingSignal::Short,
+                confidence: 0.8,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S2".to_string(),
+                signal: TradingSignal::Short,
+                confidence: 0.75,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S3".to_string(),
+                signal: TradingSignal::Short,
+                confidence: 0.72,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S4".to_string(),
+                signal: TradingSignal::Short,
+                confidence: 0.7,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S5".to_string(),
+                signal: TradingSignal::Long,
+                confidence: 0.6,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+        ];
+
+        let (signal, confidence, _) = engine.combine_consensus(&results);
+
+        // 4/5 strategies agree on Short
+        assert_eq!(signal, TradingSignal::Short);
+        assert!(confidence > 0.0);
+    }
+
+    #[test]
+    fn test_cov8_combine_best_confidence_single_result() {
+        let engine = StrategyEngine::new();
+        let results = vec![StrategySignalResult {
+            strategy_name: "OnlyStrategy".to_string(),
+            signal: TradingSignal::Long,
+            confidence: 0.85,
+            reasoning: "Single".to_string(),
+            weight: 1.0,
+            metadata: HashMap::new(),
+        }];
+
+        let (signal, confidence, _) = engine.combine_best_confidence(&results);
+
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.85);
+    }
+
+    #[test]
+    fn test_cov8_combine_weighted_average_all_short() {
+        let engine = StrategyEngine::new();
+        let results = vec![
+            StrategySignalResult {
+                strategy_name: "S1".to_string(),
+                signal: TradingSignal::Short,
+                confidence: 0.8,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S2".to_string(),
+                signal: TradingSignal::Short,
+                confidence: 0.75,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+        ];
+
+        let (signal, confidence, _) = engine.combine_weighted_average(&results);
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert!((confidence - 0.775).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cov8_combine_weighted_average_tie() {
+        let engine = StrategyEngine::new();
+        let results = vec![
+            StrategySignalResult {
+                strategy_name: "S1".to_string(),
+                signal: TradingSignal::Long,
+                confidence: 0.8,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S2".to_string(),
+                signal: TradingSignal::Short,
+                confidence: 0.8,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+        ];
+
+        let (signal, confidence, _) = engine.combine_weighted_average(&results);
+
+        // Tie - neutral should win or first evaluated
+        assert!(signal == TradingSignal::Neutral || signal == TradingSignal::Long);
+        assert!((confidence - 0.8).abs() < 0.01);
+    }
+
+    #[tokio::test]
+    async fn test_cov8_strategy_engine_empty_enabled_strategies() {
+        let mut config = StrategyEngineConfig::default();
+        config.enabled_strategies = vec![];
+
+        let engine = StrategyEngine::with_config(config);
+        let input = create_test_input();
+
+        let result = engine.analyze_market(&input).await;
+        assert!(result.is_ok()); // Empty list means all enabled
+    }
+
+    #[test]
+    fn test_cov8_strategy_type_clone() {
+        let strategy = StrategyType::Rsi(RsiStrategy::new());
+        let cloned = strategy.clone();
+
+        assert_eq!(strategy.name(), cloned.name());
+    }
+
+    #[test]
+    fn test_cov8_strategy_engine_with_hybrid_filter() {
+        let trend_config = TrendFilterConfig::default();
+        let ml_config = MLPredictorConfig::default();
+        let hybrid_config = HybridFilterConfig::default();
+
+        let engine = StrategyEngine::with_hybrid_filter(trend_config, Some(ml_config), hybrid_config);
+        assert!(!engine.get_strategy_names().is_empty());
+    }
+
+    #[test]
+    fn test_cov8_strategy_engine_with_hybrid_filter_no_ml() {
+        let trend_config = TrendFilterConfig::default();
+        let hybrid_config = HybridFilterConfig::default();
+
+        let engine = StrategyEngine::with_hybrid_filter(trend_config, None, hybrid_config);
+        assert!(!engine.get_strategy_names().is_empty());
+    }
 }

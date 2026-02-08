@@ -871,4 +871,291 @@ mod tests {
         // Size should be positive
         assert!(size > 0.0);
     }
+
+    #[tokio::test]
+    async fn test_calculate_position_size_auto_sl_short() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        let (size, sl) = rm
+            .calculate_position_size_auto_sl(50000.0, 10000.0, false)
+            .await;
+
+        // SL should be 2% above entry for short
+        assert!((sl - 51000.0).abs() < 0.01);
+        assert!(size > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_risk_validation_result_with_warning() {
+        let result = RiskValidationResult::success()
+            .with_warning("Test warning".to_string());
+
+        assert!(result.passed);
+        assert_eq!(result.warnings.len(), 1);
+        assert_eq!(result.warnings[0], "Test warning");
+    }
+
+    #[tokio::test]
+    async fn test_risk_validation_result_with_suggested_size() {
+        let result = RiskValidationResult::success()
+            .with_suggested_size(0.05);
+
+        assert!(result.passed);
+        assert_eq!(result.suggested_size, Some(0.05));
+    }
+
+    #[tokio::test]
+    async fn test_validate_order_symbol_not_allowed() {
+        let mut config = create_test_config();
+        config.allowed_symbols = vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()];
+
+        let rm = RealTradingRiskManager::new(config);
+        let positions = DashMap::new();
+        let mut balances = HashMap::new();
+        balances.insert("USDT".to_string(), 10000.0);
+
+        let result = rm
+            .validate_order(
+                "DOGEUSDT", // Not in allowed list
+                OrderSide::Buy,
+                0.01,
+                1000.0,
+                &positions,
+                &balances,
+            )
+            .await
+            .unwrap();
+
+        assert!(!result.passed);
+        assert!(result.errors[0].contains("not in allowed list"));
+    }
+
+    #[tokio::test]
+    async fn test_validate_order_risk_based_warning() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+        let positions = DashMap::new();
+        let mut balances = HashMap::new();
+        balances.insert("USDT".to_string(), 500.0); // Smaller balance
+
+        // Order value = 0.01 * 50000 = $500. With risk_per_trade=2% and stop_loss=2%:
+        // max_risk_amount = 500 * 0.02 = 10, max_allowed = 10 * 50 = 500
+        // Use sell to avoid buy balance check, and quantity slightly over risk limit
+        let result = rm
+            .validate_order(
+                "BTCUSDT",
+                OrderSide::Sell,
+                0.011,
+                50000.0, // $550 order > $500 max_allowed
+                &positions,
+                &balances,
+            )
+            .await
+            .unwrap();
+
+        // Should pass but with warning and suggested size
+        assert!(result.passed);
+        assert!(!result.warnings.is_empty());
+        assert!(result.suggested_size.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_validate_order_existing_position_allowed() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+        let positions = DashMap::new();
+
+        // Add 5 positions
+        for i in 0..5 {
+            positions.insert(
+                format!("SYMBOL{}", i),
+                RealPosition::new(
+                    format!("pos-{}", i),
+                    format!("SYMBOL{}", i),
+                    super::super::position::PositionSide::Long,
+                    0.01,
+                    50000.0,
+                    "order".to_string(),
+                    None,
+                    None,
+                ),
+            );
+        }
+
+        let mut balances = HashMap::new();
+        balances.insert("USDT".to_string(), 10000.0);
+
+        // Adding to existing position should be allowed
+        let result = rm
+            .validate_order(
+                "SYMBOL0", // Existing position
+                OrderSide::Buy,
+                0.01,
+                1000.0,
+                &positions,
+                &balances,
+            )
+            .await
+            .unwrap();
+
+        assert!(result.passed);
+    }
+
+    #[tokio::test]
+    async fn test_daily_reset_check() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        rm.record_trade(-100.0).await;
+        assert_eq!(rm.get_daily_loss().await, 100.0);
+
+        // Manually trigger reset by updating last_reset to yesterday
+        {
+            let yesterday = chrono::Utc::now() - chrono::Duration::days(1);
+            *rm.last_reset.write().await = yesterday;
+        }
+
+        // Check should reset counters
+        rm.check_daily_reset().await;
+
+        assert_eq!(rm.get_daily_loss().await, 0.0);
+        assert_eq!(rm.get_daily_trades().await, 0);
+        assert_eq!(rm.get_daily_pnl().await, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_update_and_get_config() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        let mut new_config = create_test_config();
+        new_config.max_daily_loss_usdt = 1000.0;
+
+        rm.update_config(new_config.clone()).await;
+
+        let retrieved = rm.get_config().await;
+        assert_eq!(retrieved.max_daily_loss_usdt, 1000.0);
+    }
+
+    #[tokio::test]
+    async fn test_risk_manager_clone() {
+        let rm1 = RealTradingRiskManager::new(create_test_config());
+        rm1.record_trade(-100.0).await;
+
+        let rm2 = rm1.clone();
+
+        // Cloned manager should share state
+        assert_eq!(rm2.get_daily_loss().await, 100.0);
+
+        // Changes to clone affect original
+        rm2.record_trade(-50.0).await;
+        assert_eq!(rm1.get_daily_loss().await, 150.0);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_stop_loss_long() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        let sl = rm.calculate_stop_loss(50000.0, true).await;
+        assert!((sl - 49000.0).abs() < 0.01); // 2% below
+    }
+
+    #[tokio::test]
+    async fn test_calculate_stop_loss_short() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        let sl = rm.calculate_stop_loss(50000.0, false).await;
+        assert!((sl - 51000.0).abs() < 0.01); // 2% above
+    }
+
+    #[tokio::test]
+    async fn test_calculate_take_profit_long() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        let tp = rm.calculate_take_profit(50000.0, true).await;
+        assert!((tp - 52000.0).abs() < 0.01); // 4% above
+    }
+
+    #[tokio::test]
+    async fn test_calculate_take_profit_short() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        let tp = rm.calculate_take_profit(50000.0, false).await;
+        assert!((tp - 48000.0).abs() < 0.01); // 4% below
+    }
+
+    #[tokio::test]
+    async fn test_get_risk_utilization_zero() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+        let positions = DashMap::new();
+
+        assert_eq!(rm.get_risk_utilization(&positions).await, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_get_risk_utilization_full() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+        let positions = DashMap::new();
+
+        // Add position exactly at max total exposure
+        let mut pos = RealPosition::new(
+            "pos-1".to_string(),
+            "BTCUSDT".to_string(),
+            super::super::position::PositionSide::Long,
+            0.1,
+            50000.0,
+            "order".to_string(),
+            None,
+            None,
+        );
+        pos.update_price(50000.0);
+        positions.insert("BTCUSDT".to_string(), pos);
+
+        let util = rm.get_risk_utilization(&positions).await;
+        assert!((util - 1.0).abs() < 0.01); // 5000/5000 = 100%
+    }
+
+    #[tokio::test]
+    async fn test_record_trade_mixed() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+
+        rm.record_trade(-100.0).await;
+        rm.record_trade(50.0).await;
+        rm.record_trade(-75.0).await;
+
+        assert_eq!(rm.get_daily_loss().await, 175.0); // Only losses counted
+        assert_eq!(rm.get_daily_pnl().await, -125.0); // Net PnL
+        assert_eq!(rm.get_daily_trades().await, 3);
+    }
+
+    #[test]
+    fn test_calculate_position_size_invalid_stop() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+        let config = create_test_config();
+
+        // Entry price equals stop loss (zero distance)
+        let size = rm.calculate_position_size(50000.0, 50000.0, 10000.0, &config);
+
+        // Should use minimum stop distance
+        assert!(size > 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_validate_order_sell_side() {
+        let rm = RealTradingRiskManager::new(create_test_config());
+        let positions = DashMap::new();
+        let mut balances = HashMap::new();
+        balances.insert("USDT".to_string(), 100.0); // Low balance OK for sell
+
+        let result = rm
+            .validate_order(
+                "BTCUSDT",
+                OrderSide::Sell,
+                0.01,
+                50000.0, // $500 order but SELL doesn't need USDT
+                &positions,
+                &balances,
+            )
+            .await
+            .unwrap();
+
+        // Should pass even with low balance because it's a sell order
+        assert!(result.passed);
+    }
 }

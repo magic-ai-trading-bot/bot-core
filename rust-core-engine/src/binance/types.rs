@@ -3132,4 +3132,250 @@ mod tests {
         assert_eq!(position.leverage, deserialized.leverage);
         assert_eq!(position.is_auto_add_margin, deserialized.is_auto_add_margin);
     }
+
+    #[test]
+    fn test_order_side_display() {
+        assert_eq!(OrderSide::Buy.to_string(), "BUY");
+        assert_eq!(OrderSide::Sell.to_string(), "SELL");
+    }
+
+    #[test]
+    fn test_order_side_serialization() {
+        let buy = OrderSide::Buy;
+        let sell = OrderSide::Sell;
+
+        let buy_json = serde_json::to_string(&buy).unwrap();
+        let sell_json = serde_json::to_string(&sell).unwrap();
+
+        assert_eq!(buy_json, "\"BUY\"");
+        assert_eq!(sell_json, "\"SELL\"");
+    }
+
+    #[test]
+    fn test_spot_order_type_display() {
+        assert_eq!(SpotOrderType::Market.to_string(), "MARKET");
+        assert_eq!(SpotOrderType::Limit.to_string(), "LIMIT");
+        assert_eq!(SpotOrderType::StopLossLimit.to_string(), "STOP_LOSS_LIMIT");
+        assert_eq!(
+            SpotOrderType::TakeProfitLimit.to_string(),
+            "TAKE_PROFIT_LIMIT"
+        );
+        assert_eq!(SpotOrderType::LimitMaker.to_string(), "LIMIT_MAKER");
+    }
+
+    #[test]
+    fn test_time_in_force_display() {
+        assert_eq!(TimeInForce::Gtc.to_string(), "GTC");
+        assert_eq!(TimeInForce::Ioc.to_string(), "IOC");
+        assert_eq!(TimeInForce::Fok.to_string(), "FOK");
+    }
+
+    #[test]
+    fn test_spot_order_request_market() {
+        let order = SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0.01");
+
+        assert_eq!(order.symbol, "BTCUSDT");
+        assert_eq!(order.side, OrderSide::Buy);
+        assert_eq!(order.order_type, SpotOrderType::Market);
+        assert_eq!(order.quantity, Some("0.01".to_string()));
+        assert_eq!(order.new_order_resp_type, Some("FULL".to_string()));
+    }
+
+    #[test]
+    fn test_spot_order_request_limit() {
+        let order = SpotOrderRequest::limit("ETHUSDT", OrderSide::Sell, "1.5", "2000.00");
+
+        assert_eq!(order.symbol, "ETHUSDT");
+        assert_eq!(order.side, OrderSide::Sell);
+        assert_eq!(order.order_type, SpotOrderType::Limit);
+        assert_eq!(order.price, Some("2000.00".to_string()));
+        assert_eq!(order.time_in_force, Some(TimeInForce::Gtc));
+    }
+
+    #[test]
+    fn test_spot_order_request_stop_loss_limit() {
+        let order = SpotOrderRequest::stop_loss_limit(
+            "BNBUSDT",
+            OrderSide::Sell,
+            "10.0",
+            "300.00",
+            "305.00",
+        );
+
+        assert_eq!(order.symbol, "BNBUSDT");
+        assert_eq!(order.order_type, SpotOrderType::StopLossLimit);
+        assert_eq!(order.price, Some("300.00".to_string()));
+        assert_eq!(order.stop_price, Some("305.00".to_string()));
+    }
+
+    #[test]
+    fn test_spot_order_request_take_profit_limit() {
+        let order = SpotOrderRequest::take_profit_limit(
+            "ADAUSDT",
+            OrderSide::Sell,
+            "100.0",
+            "0.50",
+            "0.48",
+        );
+
+        assert_eq!(order.symbol, "ADAUSDT");
+        assert_eq!(order.order_type, SpotOrderType::TakeProfitLimit);
+        assert_eq!(order.price, Some("0.50".to_string()));
+        assert_eq!(order.stop_price, Some("0.48".to_string()));
+    }
+
+    #[test]
+    fn test_spot_order_request_with_client_order_id() {
+        let order = SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0.01")
+            .with_client_order_id("my_order_123");
+
+        assert_eq!(order.client_order_id, Some("my_order_123".to_string()));
+    }
+
+    #[test]
+    fn test_spot_order_request_with_time_in_force() {
+        let order = SpotOrderRequest::limit("ETHUSDT", OrderSide::Sell, "1.0", "2000.00")
+            .with_time_in_force(TimeInForce::Ioc);
+
+        assert_eq!(order.time_in_force, Some(TimeInForce::Ioc));
+    }
+
+    #[test]
+    fn test_spot_order_request_with_quote_qty() {
+        let order =
+            SpotOrderRequest::market("BTCUSDT", OrderSide::Buy, "0.01").with_quote_qty("1000.00");
+
+        assert_eq!(order.quote_order_qty, Some("1000.00".to_string()));
+    }
+
+    #[test]
+    fn test_oco_order_request_new() {
+        let oco = OcoOrderRequest::new(
+            "BTCUSDT",
+            OrderSide::Sell,
+            "0.01",
+            "36000.00",
+            "33000.00",
+            "32900.00",
+        );
+
+        assert_eq!(oco.symbol, "BTCUSDT");
+        assert_eq!(oco.side, OrderSide::Sell);
+        assert_eq!(oco.above_type, "LIMIT_MAKER");
+        assert_eq!(oco.below_type, "STOP_LOSS_LIMIT");
+        assert_eq!(oco.above_price, Some("36000.00".to_string()));
+        assert_eq!(oco.below_stop_price, Some("33000.00".to_string()));
+    }
+
+    #[test]
+    fn test_oco_order_request_new_short() {
+        let oco = OcoOrderRequest::new_short("BTCUSDT", "0.01", "33000.00", "36000.00", "36100.00");
+
+        assert_eq!(oco.side, OrderSide::Buy);
+        assert_eq!(oco.below_type, "LIMIT_MAKER");
+        assert_eq!(oco.above_type, "STOP_LOSS_LIMIT");
+    }
+
+    #[test]
+    fn test_oco_order_request_with_client_order_ids() {
+        let oco = OcoOrderRequest::new(
+            "ETHUSDT",
+            OrderSide::Sell,
+            "1.0",
+            "2100.00",
+            "1900.00",
+            "1890.00",
+        )
+        .with_client_order_ids("list_001", "above_001", "below_001");
+
+        assert_eq!(oco.list_client_order_id, Some("list_001".to_string()));
+        assert_eq!(oco.above_client_order_id, Some("above_001".to_string()));
+        assert_eq!(oco.below_client_order_id, Some("below_001".to_string()));
+    }
+
+    #[test]
+    fn test_execution_report_is_filled() {
+        let mut report = ExecutionReport {
+            event_type: "executionReport".to_string(),
+            event_time: 123456,
+            symbol: "BTCUSDT".to_string(),
+            client_order_id: "test".to_string(),
+            side: "BUY".to_string(),
+            order_type: "LIMIT".to_string(),
+            time_in_force: "GTC".to_string(),
+            order_quantity: "0.01".to_string(),
+            order_price: "34000.00".to_string(),
+            stop_price: "0.00".to_string(),
+            iceberg_quantity: "0.00".to_string(),
+            original_client_order_id: "".to_string(),
+            execution_type: "TRADE".to_string(),
+            order_status: "FILLED".to_string(),
+            order_reject_reason: "".to_string(),
+            order_id: 12345,
+            last_executed_quantity: "0.01".to_string(),
+            cumulative_filled_quantity: "0.01".to_string(),
+            last_executed_price: "34000.00".to_string(),
+            commission_amount: "0.00001".to_string(),
+            commission_asset: Some("BTC".to_string()),
+            transaction_time: 123456,
+            trade_id: 1001,
+            is_on_book: false,
+            is_maker: false,
+            order_creation_time: 123455,
+            cumulative_quote_qty: "340.00".to_string(),
+            last_quote_qty: "340.00".to_string(),
+            quote_order_qty: "0.00".to_string(),
+        };
+
+        assert!(report.is_filled());
+
+        report.order_status = "PARTIALLY_FILLED".to_string();
+        assert!(!report.is_filled());
+
+        report.order_status = "NEW".to_string();
+        assert!(!report.is_filled());
+    }
+
+    #[test]
+    fn test_deserialize_bool_from_string_true() {
+        let json = r#"{"test": "true"}"#;
+        #[derive(Deserialize)]
+        struct Test {
+            #[serde(deserialize_with = "super::deserialize_bool_from_anything")]
+            test: bool,
+        }
+
+        let result: Test = serde_json::from_str(json).unwrap();
+        assert!(result.test);
+    }
+
+    #[test]
+    fn test_deserialize_bool_from_string_false() {
+        let json = r#"{"test": "false"}"#;
+        #[derive(Deserialize)]
+        struct Test {
+            #[serde(deserialize_with = "super::deserialize_bool_from_anything")]
+            test: bool,
+        }
+
+        let result: Test = serde_json::from_str(json).unwrap();
+        assert!(!result.test);
+    }
+
+    #[test]
+    fn test_deserialize_bool_from_number() {
+        let json = r#"{"test": 1}"#;
+        #[derive(Deserialize)]
+        struct Test {
+            #[serde(deserialize_with = "super::deserialize_bool_from_anything")]
+            test: bool,
+        }
+
+        let result: Test = serde_json::from_str(json).unwrap();
+        assert!(result.test);
+
+        let json_false = r#"{"test": 0}"#;
+        let result_false: Test = serde_json::from_str(json_false).unwrap();
+        assert!(!result_false.test);
+    }
 }

@@ -551,4 +551,150 @@ mod tests {
         assert_eq!(strategy.name(), "Stochastic Strategy");
         assert_eq!(strategy.get_k_period(), 14);
     }
+
+    // ========== COV8 TESTS - Target untested branches ==========
+
+    #[test]
+    fn test_cov8_analyze_stochastic_bullish_crossover_oversold_both() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            12.0, // k_1h <= oversold (15)
+            10.0, // d_1h
+            14.0, // k_4h <= oversold
+            12.0, // d_4h
+            10.0, // prev_k_1h (crossover: prev_k <= prev_d, now k > d)
+            11.0, // prev_d_1h
+            13.0, 13.5,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.89);
+        assert!(reasoning.contains("Strong bullish crossover"));
+    }
+
+    #[test]
+    fn test_cov8_analyze_stochastic_bearish_crossover_overbought_both() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            87.0, // k_1h >= overbought (85)
+            88.0, // d_1h
+            86.0, // k_4h >= overbought
+            85.5, // d_4h
+            89.0, // prev_k_1h (crossover: prev_k >= prev_d, now k < d)
+            88.0, // prev_d_1h
+            87.0, 86.0,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.89);
+        assert!(reasoning.contains("Strong bearish crossover"));
+    }
+
+    #[test]
+    fn test_cov8_analyze_stochastic_moderate_bullish_crossover() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            23.0, // k_1h <= oversold + 10 (25)
+            22.0, // d_1h
+            45.0, // k_4h < 50
+            46.0, // d_4h
+            21.0, // prev_k_1h (crossover: prev_k <= prev_d, now k > d)
+            22.5, // prev_d_1h
+            44.0, 45.0,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.72);
+        assert!(reasoning.contains("Bullish crossover recovery"));
+    }
+
+    #[test]
+    fn test_cov8_analyze_stochastic_moderate_bearish_crossover() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            77.0, // k_1h >= overbought - 10 (75)
+            78.0, // d_1h
+            55.0, // k_4h > 50
+            54.0, // d_4h
+            79.0, // prev_k_1h (crossover: prev_k >= prev_d, now k < d)
+            78.0, // prev_d_1h
+            56.0, 55.0,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.72);
+        assert!(reasoning.contains("Bearish crossover decline"));
+    }
+
+    #[test]
+    fn test_cov8_analyze_stochastic_weak_bullish_rising() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            35.0, // k_1h > d_1h, k_1h < 50
+            30.0, // d_1h
+            40.0, // k_4h < 50
+            38.0, // d_4h
+            33.0, // prev_k_1h < k_1h (rising)
+            30.0, 39.0, 38.0,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.52);
+        assert!(reasoning.contains("Weak bullish momentum"));
+    }
+
+    #[test]
+    fn test_cov8_analyze_stochastic_weak_bearish_falling() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            60.0, // k_1h < d_1h, k_1h > 50
+            65.0, // d_1h
+            55.0, // k_4h > 50
+            56.0, // d_4h
+            62.0, // prev_k_1h > k_1h (falling)
+            64.0, 56.0, 55.0,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.52);
+        assert!(reasoning.contains("Weak bearish momentum"));
+    }
+
+    #[test]
+    fn test_cov8_analyze_stochastic_neutral_mid_range() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            48.0, // k_1h: (48-50).abs() < 15
+            47.0, // d_1h
+            52.0, // k_4h: (52-50).abs() < 20
+            51.0, // d_4h
+            47.0, 46.0, 51.0, 50.0,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Neutral);
+        assert_eq!(confidence, 0.63);
+        assert!(reasoning.contains("Consolidation phase"));
+    }
+
+    #[test]
+    fn test_cov8_analyze_stochastic_neutral_default() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
+            70.0, // Not in mid-range
+            68.0, 72.0, 71.0,
+            69.0, 68.0, 71.0, 71.0,
+            15.0, 85.0, 10.0, 90.0,
+        );
+
+        assert_eq!(signal, TradingSignal::Neutral);
+        assert_eq!(confidence, 0.47);
+        assert!(reasoning.contains("Consolidation phase"));
+    }
 }

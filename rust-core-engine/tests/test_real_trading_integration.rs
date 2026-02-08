@@ -606,8 +606,8 @@ mod engine_unit_tests {
     use binance_trading_bot::binance::BinanceClient;
     use binance_trading_bot::config::{BinanceConfig, TradingConfig, TradingMode};
     use binance_trading_bot::real_trading::{
-        CircuitBreakerState, DailyMetrics, OrderState, RealOrder, RealPosition,
-        RealTradingConfig, RealTradingEngine, PositionSide,
+        CircuitBreakerState, DailyMetrics, OrderState, PositionSide, RealOrder, RealPosition,
+        RealTradingConfig, RealTradingEngine,
     };
     use binance_trading_bot::trading::risk_manager::RiskManager;
 
@@ -1054,9 +1054,7 @@ mod engine_unit_tests {
         let mut config = RealTradingConfig::testnet_default();
         config.max_position_size_usdt = -10.0;
         let errors = config.validate().unwrap_err();
-        assert!(errors
-            .iter()
-            .any(|e| e.contains("max_position_size_usdt")));
+        assert!(errors.iter().any(|e| e.contains("max_position_size_usdt")));
     }
 
     #[test]
@@ -1065,9 +1063,7 @@ mod engine_unit_tests {
         config.max_position_size_usdt = 1000.0;
         config.max_total_exposure_usdt = 500.0; // Less than position size
         let errors = config.validate().unwrap_err();
-        assert!(errors
-            .iter()
-            .any(|e| e.contains("max_total_exposure_usdt")));
+        assert!(errors.iter().any(|e| e.contains("max_total_exposure_usdt")));
     }
 
     #[test]
@@ -1075,9 +1071,7 @@ mod engine_unit_tests {
         let mut config = RealTradingConfig::testnet_default();
         config.risk_per_trade_percent = 150.0; // Over 100%
         let errors = config.validate().unwrap_err();
-        assert!(errors
-            .iter()
-            .any(|e| e.contains("risk_per_trade_percent")));
+        assert!(errors.iter().any(|e| e.contains("risk_per_trade_percent")));
     }
 
     #[test]

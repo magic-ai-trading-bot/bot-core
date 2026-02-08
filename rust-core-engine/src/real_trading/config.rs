@@ -354,4 +354,159 @@ mod tests {
         assert!(config.circuit_breaker_close_positions);
         assert_eq!(config.reconciliation_interval_secs, 60); // More frequent
     }
+
+    // === COV8 TESTS: Additional coverage for real_trading/config.rs (91.80% → 95%+) ===
+
+    #[test]
+    fn test_cov8_validation_zero_circuit_breaker_errors() {
+        let mut config = RealTradingConfig::default();
+        config.circuit_breaker_errors = 0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("circuit_breaker_errors")));
+    }
+
+    #[test]
+    fn test_cov8_validation_invalid_slippage_negative() {
+        let mut config = RealTradingConfig::default();
+        config.default_slippage_percent = -1.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("slippage")));
+    }
+
+    #[test]
+    fn test_cov8_validation_invalid_slippage_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.default_slippage_percent = 15.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("slippage")));
+    }
+
+    #[test]
+    fn test_cov8_validation_zero_stop_loss() {
+        let mut config = RealTradingConfig::default();
+        config.default_stop_loss_percent = 0.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("stop_loss")));
+    }
+
+    #[test]
+    fn test_cov8_validation_stop_loss_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.default_stop_loss_percent = 60.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("stop_loss")));
+    }
+
+    #[test]
+    fn test_cov8_validation_zero_leverage() {
+        let mut config = RealTradingConfig::default();
+        config.max_leverage = 0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("leverage")));
+    }
+
+    #[test]
+    fn test_cov8_validation_leverage_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.max_leverage = 126;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("leverage")));
+    }
+
+    #[test]
+    fn test_cov8_validation_multiple_errors() {
+        let mut config = RealTradingConfig::default();
+        config.max_position_size_usdt = -100.0;
+        config.circuit_breaker_errors = 0;
+        config.default_slippage_percent = -5.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.len() >= 3);
+    }
+
+    #[test]
+    fn test_cov8_is_symbol_allowed_not_in_list() {
+        let mut config = RealTradingConfig::default();
+        config.allowed_symbols = vec!["BTCUSDT".to_string()];
+        assert!(!config.is_symbol_allowed("ETHUSDT"));
+        assert!(!config.is_symbol_allowed("SOLUSDT"));
+    }
+
+    #[test]
+    fn test_cov8_calculate_max_position_risk_based_larger() {
+        let config = RealTradingConfig {
+            max_position_size_usdt: 10000.0,
+            risk_per_trade_percent: 1.0,
+            ..Default::default()
+        };
+        let balance = 50000.0;
+        let max_size = config.calculate_max_position_size(balance);
+        assert_eq!(max_size, 500.0); // 1% of 50000
+    }
+
+    #[test]
+    fn test_cov8_calculate_max_position_capped() {
+        let config = RealTradingConfig {
+            max_position_size_usdt: 1000.0,
+            risk_per_trade_percent: 10.0,
+            ..Default::default()
+        };
+        let balance = 50000.0;
+        let max_size = config.calculate_max_position_size(balance);
+        assert_eq!(max_size, 1000.0); // Capped at max
+    }
+
+    #[test]
+    fn test_cov8_calculate_stop_loss_short() {
+        let config = RealTradingConfig {
+            default_stop_loss_percent: 3.0,
+            ..Default::default()
+        };
+        let entry = 50000.0;
+        let sl = config.calculate_stop_loss(entry, false);
+        assert!((sl - 51500.0).abs() < 0.01); // Short: SL above entry
+    }
+
+    #[test]
+    fn test_cov8_calculate_take_profit_short() {
+        let config = RealTradingConfig {
+            default_take_profit_percent: 5.0,
+            ..Default::default()
+        };
+        let entry = 50000.0;
+        let tp = config.calculate_take_profit(entry, false);
+        assert!((tp - 47500.0).abs() < 0.01); // Short: TP below entry
+    }
+
+    #[test]
+    fn test_cov8_serde_default_annotation() {
+        // Test that #[serde(default)] works correctly
+        let json = "{}";
+        let config: RealTradingConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.max_position_size_usdt, 1000.0);
+        assert_eq!(config.use_testnet, true);
+    }
+
+    #[test]
+    fn test_cov8_config_clone() {
+        let config = RealTradingConfig::default();
+        let cloned = config.clone();
+        assert_eq!(config.max_position_size_usdt, cloned.max_position_size_usdt);
+        assert_eq!(config.use_testnet, cloned.use_testnet);
+    }
 }

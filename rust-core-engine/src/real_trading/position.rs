@@ -497,4 +497,218 @@ mod tests {
         assert_eq!(PositionSide::Long.closing_order_side(), "SELL");
         assert_eq!(PositionSide::Short.closing_order_side(), "BUY");
     }
+
+    #[test]
+    fn test_position_side_as_str() {
+        assert_eq!(PositionSide::Long.as_str(), "LONG");
+        assert_eq!(PositionSide::Short.as_str(), "SHORT");
+    }
+
+    #[test]
+    fn test_position_side_from_unknown() {
+        // Unknown sides default to Long
+        assert_eq!(PositionSide::from_order_side("UNKNOWN"), PositionSide::Long);
+        assert_eq!(PositionSide::from_order_side(""), PositionSide::Long);
+    }
+
+    #[test]
+    fn test_position_value_and_cost_basis() {
+        let mut pos = create_test_position(PositionSide::Long);
+        // Entry: 50000, Qty: 0.1
+
+        assert!((pos.cost_basis() - 5000.0).abs() < 0.01); // 50000 * 0.1
+        assert!((pos.position_value() - 5000.0).abs() < 0.01); // Same at entry
+
+        pos.update_price(55000.0);
+        assert!((pos.cost_basis() - 5000.0).abs() < 0.01); // Cost doesn't change
+        assert!((pos.position_value() - 5500.0).abs() < 0.01); // Value updated
+    }
+
+    #[test]
+    fn test_position_zero_quantity() {
+        let mut pos = create_test_position(PositionSide::Long);
+
+        // Close entire position
+        pos.partial_close(51000.0, 0.1, 0.5, "close-all".to_string());
+
+        assert!(pos.is_closed());
+        assert!(!pos.is_open());
+        assert_eq!(pos.calculate_unrealized_pnl(), 0.0);
+    }
+
+    #[test]
+    fn test_position_partial_close_quantity_capped() {
+        let mut pos = create_test_position(PositionSide::Long);
+        // 0.1 BTC @ 50000
+
+        // Try to close more than we have
+        pos.partial_close(52000.0, 0.5, 0.25, "close-order".to_string());
+
+        // Should only close 0.1 (max available)
+        assert_eq!(pos.quantity, 0.0);
+        assert!(pos.is_closed());
+    }
+
+    #[test]
+    fn test_position_add_fill_zero_quantity() {
+        let mut pos = create_test_position(PositionSide::Long);
+        let original_qty = pos.quantity;
+        let original_entry = pos.entry_price;
+
+        // Add zero quantity
+        pos.add_fill(52000.0, 0.0, 0.0, "order-zero".to_string());
+
+        // Entry price and quantity shouldn't change
+        assert_eq!(pos.quantity, original_qty);
+        assert_eq!(pos.entry_price, original_entry);
+    }
+
+    #[test]
+    fn test_position_trailing_stop_short() {
+        let mut pos = create_test_position(PositionSide::Short);
+        // Entry at 50000, activate trailing at 48000 (price going down), 2% trail
+        pos.enable_trailing_stop(48000.0, 2.0);
+
+        // Price above activation - no trailing stop yet
+        pos.update_price(49000.0);
+        assert!(pos.trailing_stop_price.is_none());
+
+        // Price hits activation
+        pos.update_price(48000.0);
+        // Trailing stop = 48000 * 1.02 = 48960
+        assert!((pos.trailing_stop_price.unwrap() - 48960.0).abs() < 1.0);
+
+        // Price goes lower - trailing stop moves down
+        pos.update_price(46000.0);
+        // Trailing stop = 46000 * 1.02 = 46920
+        assert!((pos.trailing_stop_price.unwrap() - 46920.0).abs() < 1.0);
+
+        // Price rises but trailing stop doesn't go up
+        pos.update_price(47000.0);
+        assert!((pos.trailing_stop_price.unwrap() - 46920.0).abs() < 1.0);
+
+        // Check trigger when price rises to trailing stop
+        pos.update_price(46920.0);
+        assert!(pos.should_trigger_stop_loss());
+    }
+
+    #[test]
+    fn test_position_stop_loss_trigger_short() {
+        let mut pos = create_test_position(PositionSide::Short);
+        pos.set_sl_tp(Some(51000.0), Some(48000.0));
+
+        // Below SL - no trigger
+        pos.update_price(50000.0);
+        assert!(!pos.should_trigger_stop_loss());
+
+        // At SL - trigger
+        pos.update_price(51000.0);
+        assert!(pos.should_trigger_stop_loss());
+
+        // Above SL - trigger
+        pos.update_price(52000.0);
+        assert!(pos.should_trigger_stop_loss());
+    }
+
+    #[test]
+    fn test_position_take_profit_trigger_short() {
+        let mut pos = create_test_position(PositionSide::Short);
+        pos.set_sl_tp(Some(51000.0), Some(48000.0));
+
+        // Above TP - no trigger
+        pos.update_price(49000.0);
+        assert!(!pos.should_trigger_take_profit());
+
+        // At TP - trigger
+        pos.update_price(48000.0);
+        assert!(pos.should_trigger_take_profit());
+
+        // Below TP - trigger
+        pos.update_price(47000.0);
+        assert!(pos.should_trigger_take_profit());
+    }
+
+    #[test]
+    fn test_position_effective_stop_loss() {
+        let mut pos = create_test_position(PositionSide::Long);
+
+        // No stops set
+        assert!(pos.effective_stop_loss().is_none());
+
+        // Set fixed SL
+        pos.set_sl_tp(Some(49000.0), None);
+        assert_eq!(pos.effective_stop_loss(), Some(49000.0));
+
+        // Enable trailing stop
+        pos.enable_trailing_stop(52000.0, 2.0);
+        pos.update_price(52000.0); // Activate trailing
+
+        // Trailing stop should take precedence
+        assert!(pos.trailing_stop_price.is_some());
+        assert_eq!(pos.effective_stop_loss(), pos.trailing_stop_price);
+    }
+
+    #[test]
+    fn test_position_short_unrealized_pnl() {
+        let mut pos = create_test_position(PositionSide::Short);
+
+        // Partial close at profit
+        let pnl = pos.partial_close(48000.0, 0.05, 0.25, "exit-1".to_string());
+
+        // PnL: (50000 - 48000) * 0.05 - 0.25 = 100 - 0.25 = 99.75
+        assert!((pnl - 99.75).abs() < 0.01);
+        assert!((pos.quantity - 0.05).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_position_pnl_percentage_negative() {
+        let mut pos = create_test_position(PositionSide::Long);
+
+        pos.update_price(45000.0); // 10% loss
+        // PnL: -500, percentage: -500/5000 * 100 = -10%
+        assert!((pos.pnl_percentage() - (-10.0)).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_position_pnl_percentage_zero_cost() {
+        let mut pos = create_test_position(PositionSide::Long);
+        pos.quantity = 0.0; // Force zero cost basis
+
+        assert_eq!(pos.pnl_percentage(), 0.0);
+    }
+
+    #[test]
+    fn test_position_total_pnl_with_realized() {
+        let mut pos = create_test_position(PositionSide::Long);
+
+        // Partial close with profit
+        pos.partial_close(52000.0, 0.05, 0.25, "exit-1".to_string());
+
+        // Update price for unrealized PnL
+        pos.update_price(51000.0);
+
+        // Total PnL = realized + unrealized
+        let total = pos.total_pnl();
+        assert!((total - (pos.realized_pnl + pos.unrealized_pnl)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_position_order_ids_tracking() {
+        let pos = create_test_position(PositionSide::Long);
+
+        assert_eq!(pos.entry_order_ids.len(), 1);
+        assert_eq!(pos.entry_order_ids[0], "order-123");
+        assert_eq!(pos.exit_order_ids.len(), 0);
+    }
+
+    #[test]
+    fn test_position_commission_tracking() {
+        let mut pos = create_test_position(PositionSide::Long);
+
+        pos.add_fill(51000.0, 0.05, 2.5, "order-2".to_string());
+        pos.partial_close(52000.0, 0.05, 1.25, "exit-1".to_string());
+
+        // Total commission = 2.5 + 1.25 = 3.75
+        assert!((pos.total_commission - 3.75).abs() < 0.01);
+    }
 }

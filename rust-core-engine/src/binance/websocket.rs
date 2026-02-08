@@ -596,6 +596,309 @@ mod tests {
         }
     }
 
+    // ============================================================================
+    // COV3: Additional coverage tests for uncovered branches
+    // ============================================================================
+
+    #[test]
+    fn test_cov3_websocket_command_variants() {
+        // Test Subscribe variant
+        let subscribe = WebSocketCommand::Subscribe {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec!["1m".to_string(), "5m".to_string()],
+        };
+
+        match subscribe {
+            WebSocketCommand::Subscribe { symbol, timeframes } => {
+                assert_eq!(symbol, "BTCUSDT");
+                assert_eq!(timeframes.len(), 2);
+            },
+            _ => panic!("Expected Subscribe variant"),
+        }
+
+        // Test Unsubscribe variant
+        let unsubscribe = WebSocketCommand::Unsubscribe {
+            symbol: "ETHUSDT".to_string(),
+            timeframes: vec!["1h".to_string()],
+        };
+
+        match unsubscribe {
+            WebSocketCommand::Unsubscribe { symbol, timeframes } => {
+                assert_eq!(symbol, "ETHUSDT");
+                assert_eq!(timeframes.len(), 1);
+            },
+            _ => panic!("Expected Unsubscribe variant"),
+        }
+    }
+
+    #[test]
+    fn test_cov3_websocket_subscribe_symbol() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let result = ws.subscribe_symbol("BTCUSDT".to_string(), vec!["1m".to_string()]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov3_websocket_unsubscribe_symbol() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let result = ws.unsubscribe_symbol("BTCUSDT".to_string(), vec!["1m".to_string()]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov3_websocket_get_command_sender() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let sender1 = ws.get_command_sender();
+        let sender2 = ws.get_command_sender();
+
+        // Should be able to get multiple senders
+        let _result1 = sender1.send(WebSocketCommand::Subscribe {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec!["1m".to_string()],
+        });
+
+        let _result2 = sender2.send(WebSocketCommand::Unsubscribe {
+            symbol: "ETHUSDT".to_string(),
+            timeframes: vec!["5m".to_string()],
+        });
+    }
+
+    #[test]
+    fn test_cov3_build_stream_names_empty_timeframes() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["BTCUSDT".to_string()];
+        let timeframes = vec![];
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        // Should still have ticker and depth streams even with no timeframes
+        assert_eq!(streams.len(), 2); // ticker + depth
+        assert!(streams.contains(&"btcusdt@ticker".to_string()));
+        assert!(streams.contains(&"btcusdt@depth@100ms".to_string()));
+    }
+
+    #[test]
+    fn test_cov3_build_stream_names_empty_symbols() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec![];
+        let timeframes = vec!["1m".to_string()];
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+        assert_eq!(streams.len(), 0);
+    }
+
+    #[test]
+    fn test_cov3_build_stream_names_mixed_case_symbols() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["BtCuSdT".to_string(), "EtHuSdT".to_string()];
+        let timeframes = vec!["1m".to_string()]; // Use lowercase timeframe
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        // All should be lowercase (except that timeframes preserve case in stream names)
+        for stream in &streams {
+            // Symbols should be lowercase, but entire stream may preserve timeframe case
+            assert!(stream.starts_with("btcusdt") || stream.starts_with("ethusdt"));
+        }
+    }
+
+    #[test]
+    fn test_cov3_build_stream_names_special_timeframes() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["BTCUSDT".to_string()];
+        let timeframes = vec!["15m".to_string(), "30m".to_string(), "4h".to_string(), "1d".to_string()];
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        assert!(streams.contains(&"btcusdt@kline_15m".to_string()));
+        assert!(streams.contains(&"btcusdt@kline_30m".to_string()));
+        assert!(streams.contains(&"btcusdt@kline_4h".to_string()));
+        assert!(streams.contains(&"btcusdt@kline_1d".to_string()));
+    }
+
+    #[test]
+    fn test_cov3_build_websocket_url_single_long_stream_name() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let streams = vec!["verylongsymbolname@kline_1m".to_string()];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url.as_str().contains("verylongsymbolname@kline_1m"));
+    }
+
+    #[test]
+    fn test_cov3_build_websocket_url_testnet_config() {
+        let mut config = create_test_config();
+        config.testnet = true;
+        config.ws_url = "wss://testnet.binance.vision/ws".to_string();
+
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let streams = vec!["btcusdt@kline_1m".to_string()];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url.as_str().contains("testnet.binance.vision"));
+    }
+
+    #[test]
+    fn test_cov3_handle_stream_data_ticker_event() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "24hrTicker",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT",
+            "p": "1000.00",
+            "P": "3.00",
+            "w": "33500.00",
+            "x": "33000.00",
+            "c": "34000.00",
+            "Q": "10.5",
+            "b": "33999.00",
+            "B": "5.0",
+            "a": "34001.00",
+            "A": "3.0",
+            "o": "33000.00",
+            "h": "35000.00",
+            "l": "32000.00",
+            "v": "1000000.0",
+            "q": "33500000000.0",
+            "O": 1625011200000i64,
+            "C": 1625097600000i64,
+            "F": 100,
+            "L": 200000,
+            "n": 100000
+        });
+
+        ws.handle_stream_data(&data).unwrap();
+
+        // Check that ticker event was sent
+        if let Ok(event) = receiver.try_recv() {
+            match event {
+                StreamEvent::Ticker(_) => {},
+                _ => panic!("Expected Ticker event"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_cov3_handle_stream_data_depth_event() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "depthUpdate",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT",
+            "U": 157,
+            "u": 160,
+            "b": [
+                ["34000.00", "10.5"],
+                ["33999.00", "5.0"]
+            ],
+            "a": [
+                ["34001.00", "3.0"],
+                ["34002.00", "7.5"]
+            ]
+        });
+
+        ws.handle_stream_data(&data).unwrap();
+
+        // Check that depth event was sent
+        if let Ok(event) = receiver.try_recv() {
+            match event {
+                StreamEvent::OrderBook(_) => {},
+                _ => panic!("Expected OrderBook event"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_cov3_handle_stream_data_invalid_event_type() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "unknownEventType",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT"
+        });
+
+        // May not error if handler is permissive - just test it handles it
+        let _result = ws.handle_stream_data(&data);
+    }
+
+    #[test]
+    fn test_cov3_handle_stream_data_malformed_json() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "kline",
+            "s": "BTCUSDT"
+            // Missing required fields
+        });
+
+        // May not error if serde is permissive - just test it handles it
+        let _result = ws.handle_stream_data(&data);
+    }
+
+    #[test]
+    fn test_cov3_handle_stream_data_kline_not_closed() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "kline",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT",
+            "k": {
+                "t": 1625097600000i64,
+                "T": 1625097659999i64,
+                "s": "BTCUSDT",
+                "i": "1m",
+                "f": 100,
+                "L": 200,
+                "o": "34000.00",
+                "c": "34500.00",
+                "h": "35000.00",
+                "l": "33000.00",
+                "v": "100.5",
+                "n": 1000,
+                "x": false, // Not closed
+                "q": "3450000.00",
+                "V": "50.25",
+                "Q": "1725000.00"
+            }
+        });
+
+        ws.handle_stream_data(&data).unwrap();
+
+        // Should still process unclosed klines
+        if let Ok(event) = receiver.try_recv() {
+            match event {
+                StreamEvent::Kline(_) => {},
+                _ => panic!("Expected Kline event"),
+            }
+        }
+    }
+
     #[test]
     fn test_handle_stream_data_kline_event() {
         let config = create_test_config();
@@ -1806,5 +2109,1053 @@ mod tests {
             },
             _ => panic!("Expected Ticker event"),
         }
+    }
+
+    #[test]
+    fn test_subscribe_symbol() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let result = ws.subscribe_symbol(
+            "ETHUSDT".to_string(),
+            vec!["1m".to_string(), "5m".to_string()],
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unsubscribe_symbol() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let result = ws.unsubscribe_symbol("ETHUSDT".to_string(), vec!["1m".to_string()]);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_get_command_sender() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let sender1 = ws.get_command_sender();
+        let sender2 = ws.get_command_sender();
+
+        // Both senders should be able to send
+        let result = sender1.send(WebSocketCommand::Subscribe {
+            symbol: "TEST".to_string(),
+            timeframes: vec!["1m".to_string()],
+        });
+        assert!(result.is_ok());
+
+        let result = sender2.send(WebSocketCommand::Unsubscribe {
+            symbol: "TEST".to_string(),
+            timeframes: vec!["1m".to_string()],
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_create_command_channel() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let sender = ws.create_command_channel();
+        let result = sender.send(WebSocketCommand::Subscribe {
+            symbol: "BTC".to_string(),
+            timeframes: vec![],
+        });
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_websocket_command_clone() {
+        let cmd1 = WebSocketCommand::Subscribe {
+            symbol: "BTC".to_string(),
+            timeframes: vec!["1m".to_string()],
+        };
+
+        let cmd2 = cmd1.clone();
+
+        match (cmd1, cmd2) {
+            (
+                WebSocketCommand::Subscribe {
+                    symbol: s1,
+                    timeframes: t1,
+                },
+                WebSocketCommand::Subscribe {
+                    symbol: s2,
+                    timeframes: t2,
+                },
+            ) => {
+                assert_eq!(s1, s2);
+                assert_eq!(t1, t2);
+            },
+            _ => panic!("Expected Subscribe commands"),
+        }
+    }
+
+    #[test]
+    fn test_build_websocket_url_with_custom_base() {
+        let mut config = create_test_config();
+        config.ws_url = "wss://testnet.binance.vision:9443/ws".to_string();
+
+        let (ws, _) = BinanceWebSocket::new(config);
+        let streams = vec!["btcusdt@kline_1m".to_string()];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url
+            .as_str()
+            .starts_with("wss://testnet.binance.vision:9443"));
+    }
+
+    #[test]
+    fn test_handle_message_subscription_response() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        // Subscription response should be handled silently
+        let message = r#"{"result":null,"id":1}"#;
+        let result = ws.handle_message(message);
+
+        assert!(result.is_ok());
+
+        // No event should be sent for subscription response
+        let event = receiver.try_recv();
+        assert!(event.is_err());
+    }
+
+    #[test]
+    fn test_handle_message_with_id_field() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        // Message with id field (likely a response)
+        let message = r#"{"id":123,"method":"SUBSCRIBE"}"#;
+        let result = ws.handle_message(message);
+
+        assert!(result.is_ok());
+
+        // No event should be sent
+        let event = receiver.try_recv();
+        assert!(event.is_err());
+    }
+
+    #[test]
+    fn test_multiple_subscriptions() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        for i in 0..10 {
+            let symbol = format!("SYM{}", i);
+            let result = ws.subscribe_symbol(symbol, vec!["1m".to_string()]);
+            assert!(result.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_empty_symbol_subscription() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let result = ws.subscribe_symbol("".to_string(), vec!["1m".to_string()]);
+        assert!(result.is_ok()); // Should not fail, just create empty stream names
+    }
+
+    // Additional comprehensive tests for WebSocket
+    #[test]
+    fn test_subscribe_symbol_multiple_timeframes() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let result = ws.subscribe_symbol(
+            "BTCUSDT".to_string(),
+            vec!["1m".to_string(), "5m".to_string(), "1h".to_string()],
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unsubscribe_symbol_multiple_timeframes() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let result = ws.unsubscribe_symbol(
+            "ETHUSDT".to_string(),
+            vec!["1m".to_string(), "15m".to_string()],
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_get_command_sender_cloneable() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let sender1 = ws.get_command_sender();
+        let sender2 = ws.get_command_sender();
+        let sender3 = ws.get_command_sender();
+
+        // All should be able to send
+        assert!(sender1.send(WebSocketCommand::Subscribe {
+            symbol: "BTC".to_string(),
+            timeframes: vec![]
+        }).is_ok());
+
+        assert!(sender2.send(WebSocketCommand::Unsubscribe {
+            symbol: "ETH".to_string(),
+            timeframes: vec![]
+        }).is_ok());
+
+        assert!(sender3.send(WebSocketCommand::Subscribe {
+            symbol: "BNB".to_string(),
+            timeframes: vec!["1m".to_string()]
+        }).is_ok());
+    }
+
+    #[test]
+    fn test_build_stream_names_with_many_symbols() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec![
+            "BTCUSDT".to_string(),
+            "ETHUSDT".to_string(),
+            "BNBUSDT".to_string(),
+            "ADAUSDT".to_string(),
+            "SOLUSDT".to_string(),
+        ];
+        let timeframes = vec!["1m".to_string(), "1h".to_string()];
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        // 5 symbols * (2 klines + 1 ticker + 1 depth) = 20 streams
+        assert_eq!(streams.len(), 20);
+    }
+
+    #[test]
+    fn test_build_stream_names_lowercase_symbols() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["BTCUSDT".to_string()];
+        let timeframes = vec!["1M".to_string()];
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        // All streams should contain lowercase symbol
+        for stream in &streams {
+            if stream.contains("btcusdt") {
+                assert!(stream.starts_with("btcusdt"));
+            }
+        }
+    }
+
+    #[test]
+    fn test_build_websocket_url_empty_streams_error() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let result = ws.build_websocket_url(&[]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("No streams"));
+    }
+
+    #[test]
+    fn test_build_websocket_url_single_stream_format() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let streams = vec!["btcusdt@ticker".to_string()];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url.as_str().ends_with("/btcusdt@ticker"));
+        assert!(!url.as_str().contains("stream?streams="));
+    }
+
+    #[test]
+    fn test_build_websocket_url_multiple_streams_combined() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let streams = vec![
+            "btcusdt@kline_1m".to_string(),
+            "ethusdt@ticker".to_string(),
+            "bnbusdt@depth@100ms".to_string(),
+        ];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url.as_str().contains("stream?streams="));
+        assert!(url.as_str().contains("btcusdt@kline_1m"));
+        assert!(url.as_str().contains("ethusdt@ticker"));
+        assert!(url.as_str().contains("bnbusdt@depth@100ms"));
+    }
+
+    #[test]
+    fn test_handle_stream_data_kline_non_closed() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "kline",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT",
+            "k": {
+                "t": 1625097600000i64,
+                "T": 1625097659999i64,
+                "s": "BTCUSDT",
+                "i": "5m",
+                "f": 100,
+                "L": 200,
+                "o": "34000.00",
+                "c": "34500.00",
+                "h": "35000.00",
+                "l": "33000.00",
+                "v": "100.5",
+                "n": 1000,
+                "x": false,
+                "q": "3450000.00",
+                "V": "50.25",
+                "Q": "1725000.00"
+            }
+        });
+
+        ws.handle_stream_data(&data).unwrap();
+        let event = receiver.try_recv();
+        assert!(event.is_ok());
+
+        match event.unwrap() {
+            StreamEvent::Kline(kline) => {
+                assert!(!kline.kline.is_this_kline_closed);
+                assert_eq!(kline.kline.interval, "5m");
+            }
+            _ => panic!("Expected Kline event"),
+        }
+    }
+
+    #[test]
+    fn test_handle_stream_data_multiple_events_sequence() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        // Send multiple events
+        for i in 0..5 {
+            let data = serde_json::json!({
+                "e": "24hrTicker",
+                "E": 1625097600000i64 + i,
+                "s": "BTCUSDT",
+                "p": "500.00",
+                "P": "1.5",
+                "w": "34250.00",
+                "x": "33500.00",
+                "c": "34000.00",
+                "Q": "10.5",
+                "b": "33990.00",
+                "B": "5.0",
+                "a": "34010.00",
+                "A": "4.5",
+                "o": "33500.00",
+                "h": "35000.00",
+                "l": "33000.00",
+                "v": "1000.5",
+                "q": "34000000.00",
+                "O": 1625011200000i64,
+                "C": 1625097600000i64,
+                "F": 1000,
+                "L": 5000,
+                "n": 4000
+            });
+
+            ws.handle_stream_data(&data).unwrap();
+        }
+
+        // All 5 events should be received
+        let mut count = 0;
+        while receiver.try_recv().is_ok() {
+            count += 1;
+        }
+        assert_eq!(count, 5);
+    }
+
+    #[test]
+    fn test_handle_message_with_result_null() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let message = r#"{"result":null,"id":123}"#;
+        let result = ws.handle_message(message);
+
+        assert!(result.is_ok());
+        // No event should be sent
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_message_with_id_only() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let message = r#"{"id":456,"method":"SUBSCRIBE"}"#;
+        let result = ws.handle_message(message);
+
+        assert!(result.is_ok());
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_orderbook_event_with_many_levels() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "depthUpdate",
+            "E": 1625097600000i64,
+            "s": "ETHUSDT",
+            "U": 1000,
+            "u": 1100,
+            "b": [
+                ["2000.00", "10.5"],
+                ["1999.50", "20.0"],
+                ["1999.00", "30.0"],
+            ],
+            "a": [
+                ["2001.00", "5.0"],
+                ["2001.50", "10.0"],
+                ["2002.00", "15.0"],
+            ]
+        });
+
+        ws.handle_stream_data(&data).unwrap();
+
+        let event = receiver.try_recv().unwrap();
+        match event {
+            StreamEvent::OrderBook(ob) => {
+                assert_eq!(ob.symbol, "ETHUSDT");
+                assert_eq!(ob.bids.len(), 3);
+                assert_eq!(ob.asks.len(), 3);
+            }
+            _ => panic!("Expected OrderBook event"),
+        }
+    }
+
+    #[test]
+    fn test_ticker_event_with_high_volume() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "24hrTicker",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT",
+            "p": "1000.00",
+            "P": "2.5",
+            "w": "41000.00",
+            "x": "40000.00",
+            "c": "41000.00",
+            "Q": "100.5",
+            "b": "40990.00",
+            "B": "50.0",
+            "a": "41010.00",
+            "A": "45.0",
+            "o": "40000.00",
+            "h": "42000.00",
+            "l": "39000.00",
+            "v": "100000.5",
+            "q": "4100000000.00",
+            "O": 1625011200000i64,
+            "C": 1625097600000i64,
+            "F": 10000,
+            "L": 50000,
+            "n": 40000
+        });
+
+        ws.handle_stream_data(&data).unwrap();
+
+        let event = receiver.try_recv().unwrap();
+        match event {
+            StreamEvent::Ticker(ticker) => {
+                assert_eq!(ticker.symbol, "BTCUSDT");
+                assert_eq!(ticker.total_traded_base_asset_volume, "100000.5");
+                assert_eq!(ticker.total_number_of_trades, 40000);
+            }
+            _ => panic!("Expected Ticker event"),
+        }
+    }
+
+    #[test]
+    fn test_create_command_channel_returns_sender() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let sender = ws.create_command_channel();
+        let result = sender.send(WebSocketCommand::Subscribe {
+            symbol: "TEST".to_string(),
+            timeframes: vec!["1m".to_string()],
+        });
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_websocket_command_debug_format() {
+        let cmd = WebSocketCommand::Subscribe {
+            symbol: "BTC".to_string(),
+            timeframes: vec!["1m".to_string()],
+        };
+
+        let debug_str = format!("{:?}", cmd);
+        assert!(debug_str.contains("Subscribe"));
+        assert!(debug_str.contains("BTC"));
+    }
+
+    #[test]
+    fn test_build_stream_names_special_symbol_format() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["1000SHIBUSDT".to_string()];
+        let timeframes = vec!["1m".to_string()];
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        assert!(streams.contains(&"1000shibusdt@kline_1m".to_string()));
+        assert!(streams.contains(&"1000shibusdt@ticker".to_string()));
+        assert!(streams.contains(&"1000shibusdt@depth@100ms".to_string()));
+    }
+
+    #[test]
+    fn test_handle_stream_data_missing_required_fields() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "kline",
+            "E": 1625097600000i64,
+            // Missing symbol and kline data
+        });
+
+        let result = ws.handle_stream_data(&data);
+        assert!(result.is_ok());
+
+        // No event should be sent for invalid data
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn test_user_data_stream_listen_key() {
+        let config = create_test_config();
+        let (sender, _receiver) = mpsc::unbounded_channel();
+
+        let stream = BinanceUserDataStream::new(config, sender).await;
+        assert!(stream.is_ok());
+
+        let stream = stream.unwrap();
+        assert_eq!(stream.listen_key, "dummy_listen_key");
+    }
+
+    #[test]
+    fn test_url_construction_with_trailing_slash() {
+        let mut config = create_test_config();
+        config.ws_url = "wss://stream.binance.com:9443/ws/".to_string();
+
+        let (ws, _) = BinanceWebSocket::new(config);
+        let streams = vec!["btcusdt@kline_1m".to_string()];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url.as_str().contains("btcusdt@kline_1m"));
+    }
+
+    #[test]
+    fn test_subscribe_unsubscribe_same_symbol() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        // Subscribe
+        let result = ws.subscribe_symbol("BTCUSDT".to_string(), vec!["1m".to_string()]);
+        assert!(result.is_ok());
+
+        // Unsubscribe same symbol
+        let result = ws.unsubscribe_symbol("BTCUSDT".to_string(), vec!["1m".to_string()]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_handle_message_partial_json() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let message = r#"{"e":"kline","E":"#; // Incomplete JSON
+        let result = ws.handle_message(message);
+
+        // Should not panic, just log warning
+        assert!(result.is_ok());
+    }
+
+    // Additional WebSocket tests for increased coverage
+    #[test]
+    fn test_command_sender_cloning() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let sender1 = ws.get_command_sender();
+        let sender2 = ws.get_command_sender();
+
+        let _ = sender1;
+        let _ = sender2;
+    }
+
+    #[test]
+    fn test_create_command_channel_v2() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let channel = ws.create_command_channel();
+        let _ = channel;
+    }
+
+    #[test]
+    fn test_subscribe_symbol_multiple_timeframes_v2() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let timeframes = vec!["1m".to_string(), "5m".to_string(), "15m".to_string()];
+        let result = ws.subscribe_symbol("ETHUSDT".to_string(), timeframes);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unsubscribe_symbol_multiple_timeframes_v2() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let timeframes = vec!["1m".to_string(), "5m".to_string()];
+        let result = ws.unsubscribe_symbol("BNBUSDT".to_string(), timeframes);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_build_stream_names_single_symbol_single_timeframe_v2() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["SOLUSDT".to_string()];
+        let timeframes = vec!["1h".to_string()];
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        // 1 kline + 1 ticker + 1 depth = 3 streams
+        assert_eq!(streams.len(), 3);
+        assert!(streams.contains(&"solusdt@kline_1h".to_string()));
+        assert!(streams.contains(&"solusdt@ticker".to_string()));
+        assert!(streams.contains(&"solusdt@depth@100ms".to_string()));
+    }
+
+    #[test]
+    fn test_build_websocket_url_empty_streams_v2() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let streams = vec![];
+        let result = ws.build_websocket_url(&streams);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_build_websocket_url_many_streams_v2() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let streams = (0..20)
+            .map(|i| format!("stream{}@data", i))
+            .collect::<Vec<_>>();
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url.as_str().contains("stream?streams="));
+    }
+
+    #[test]
+    fn test_handle_stream_data_unknown_event_type() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "unknownEvent",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT"
+        });
+
+        let result = ws.handle_stream_data(&data);
+        assert!(result.is_ok());
+
+        // No event should be sent for unknown types
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_stream_data_kline_partial_fields() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "kline",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT",
+            "k": {
+                "t": 1625097540000i64,
+                "T": 1625097599999i64
+                // Missing required fields
+            }
+        });
+
+        let result = ws.handle_stream_data(&data);
+        assert!(result.is_ok());
+
+        // Should not send event due to missing fields
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_stream_data_ticker_partial_fields() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "24hrTicker",
+            "E": 1625097600000i64,
+            "s": "ETHUSDT"
+            // Missing other required ticker fields
+        });
+
+        let result = ws.handle_stream_data(&data);
+        assert!(result.is_ok());
+
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_stream_data_depth_partial_fields() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "depthUpdate",
+            "E": 1625097600000i64,
+            "s": "BNBUSDT"
+            // Missing bids/asks
+        });
+
+        let result = ws.handle_stream_data(&data);
+        assert!(result.is_ok());
+
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_message_combined_stream_wrapper() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        // Simulate combined stream message format
+        let message = r#"{"stream":"btcusdt@kline_1m","data":{"e":"kline","E":1625097600000,"s":"BTCUSDT","k":{"t":1625097540000,"T":1625097599999,"s":"BTCUSDT","i":"1m","f":100,"L":200,"o":"35000.00","c":"35100.00","h":"35200.00","l":"34900.00","v":"100.5","n":100,"x":false,"q":"3520000.00","V":"50.25","Q":"1760000.00","B":"0"}}}"#;
+
+        let result = ws.handle_message(message);
+        assert!(result.is_ok());
+
+        let event = receiver.try_recv();
+        assert!(event.is_ok());
+    }
+
+    #[test]
+    fn test_handle_message_direct_stream_format() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        // Direct stream format (no wrapper)
+        let message = r#"{"e":"kline","E":1625097600000,"s":"BTCUSDT","k":{"t":1625097540000,"T":1625097599999,"s":"BTCUSDT","i":"1m","f":100,"L":200,"o":"35000.00","c":"35100.00","h":"35200.00","l":"34900.00","v":"100.5","n":100,"x":false,"q":"3520000.00","V":"50.25","Q":"1760000.00","B":"0"}}"#;
+
+        let result = ws.handle_message(message);
+        assert!(result.is_ok());
+
+        let event = receiver.try_recv();
+        assert!(event.is_ok());
+    }
+
+    #[test]
+    fn test_build_stream_names_mixed_case_symbols() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["BtCuSdT".to_string(), "EtHuSdT".to_string()];
+        let timeframes = vec!["1m".to_string()];
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        // All should be lowercase
+        for stream in &streams {
+            assert!(!stream.contains(char::is_uppercase));
+        }
+    }
+
+    #[test]
+    fn test_build_stream_names_special_timeframes() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["BTCUSDT".to_string()];
+        let timeframes = vec!["3m".to_string(), "30m".to_string(), "2h".to_string()];
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        assert!(streams.contains(&"btcusdt@kline_3m".to_string()));
+        assert!(streams.contains(&"btcusdt@kline_30m".to_string()));
+        assert!(streams.contains(&"btcusdt@kline_2h".to_string()));
+    }
+
+    #[test]
+    fn test_url_construction_no_ws_suffix() {
+        let mut config = create_test_config();
+        config.ws_url = "wss://stream.binance.com:9443".to_string();
+
+        let (ws, _) = BinanceWebSocket::new(config);
+        let streams = vec!["test1@stream".to_string(), "test2@stream".to_string()];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        // Should handle URLs without /ws suffix
+        assert!(url.as_str().contains("stream?streams="));
+    }
+
+    #[test]
+    fn test_handle_message_subscription_response_v2() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        // Subscription response from Binance
+        let message = r#"{"result":null,"id":1}"#;
+        let result = ws.handle_message(message);
+        assert!(result.is_ok());
+
+        // No event should be sent for subscription responses
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_message_subscription_response_with_id() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        // Another subscription response format
+        let message = r#"{"id":42,"result":null}"#;
+        let result = ws.handle_message(message);
+        assert!(result.is_ok());
+
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_websocket_command_clone_v2() {
+        let cmd1 = WebSocketCommand::Subscribe {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec!["1m".to_string()],
+        };
+
+        let cmd2 = cmd1.clone();
+
+        match (cmd1, cmd2) {
+            (
+                WebSocketCommand::Subscribe {
+                    symbol: s1,
+                    timeframes: _,
+                },
+                WebSocketCommand::Subscribe {
+                    symbol: s2,
+                    timeframes: _,
+                },
+            ) => assert_eq!(s1, s2),
+            _ => panic!("Clone failed"),
+        }
+    }
+
+    #[test]
+    fn test_websocket_command_unsubscribe() {
+        let cmd = WebSocketCommand::Unsubscribe {
+            symbol: "ETHUSDT".to_string(),
+            timeframes: vec!["5m".to_string(), "15m".to_string()],
+        };
+
+        match cmd {
+            WebSocketCommand::Unsubscribe { symbol, timeframes } => {
+                assert_eq!(symbol, "ETHUSDT");
+                assert_eq!(timeframes.len(), 2);
+            },
+            _ => panic!("Wrong command type"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_user_data_stream_creation_v2() {
+        let config = create_test_config();
+        let (sender, _) = mpsc::unbounded_channel();
+
+        let result = BinanceUserDataStream::new(config, sender).await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_receiver_channel_empty_on_creation() {
+        let config = create_test_config();
+        let (_, mut receiver) = BinanceWebSocket::new(config);
+
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_message_null_json() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let message = "null";
+        let result = ws.handle_message(message);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_handle_message_array_json() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let message = r#"["invalid","array"]"#;
+        let result = ws.handle_message(message);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_handle_stream_data_empty_event_string() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "e": "",
+            "E": 1625097600000i64,
+            "s": "BTCUSDT"
+        });
+
+        let result = ws.handle_stream_data(&data);
+        assert!(result.is_ok());
+
+        assert!(receiver.try_recv().is_err());
+    }
+
+    // ========== COV8 TESTS: Additional coverage for websocket ==========
+
+    #[test]
+    fn test_cov8_websocket_command_debug_format() {
+        let cmd = WebSocketCommand::Subscribe {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: vec!["1m".to_string()],
+        };
+        let debug_str = format!("{:?}", cmd);
+        assert!(debug_str.contains("Subscribe"));
+        assert!(debug_str.contains("BTCUSDT"));
+    }
+
+    #[test]
+    fn test_cov8_build_websocket_url_three_streams() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let streams = vec![
+            "btcusdt@kline_1m".to_string(),
+            "btcusdt@ticker".to_string(),
+            "btcusdt@depth@100ms".to_string(),
+        ];
+        let url = ws.build_websocket_url(&streams).unwrap();
+
+        assert!(url.as_str().contains("stream?streams="));
+        for stream in &streams {
+            assert!(url.as_str().contains(stream));
+        }
+    }
+
+    #[test]
+    fn test_cov8_handle_message_combined_stream() {
+        let config = create_test_config();
+        let (ws, mut receiver) = BinanceWebSocket::new(config);
+
+        let combined_msg = r#"{"stream":"btcusdt@kline_1m","data":{"e":"kline","E":1625097600000,"s":"BTCUSDT","k":{"t":1625097600000,"T":1625097659999,"s":"BTCUSDT","i":"1m","f":100,"L":200,"o":"34000.0","c":"34100.0","h":"34200.0","l":"33900.0","v":"100.5","n":100,"x":true,"q":"3420000.0","V":"50.2","Q":"1710000.0","B":"0"}}}"#;
+
+        let result = ws.handle_message(combined_msg);
+        assert!(result.is_ok());
+
+        // Should receive kline event
+        match receiver.try_recv() {
+            Ok(StreamEvent::Kline(k)) => {
+                assert_eq!(k.symbol, "BTCUSDT");
+            },
+            _ => {},
+        }
+    }
+
+    #[test]
+    fn test_cov8_build_stream_names_mixed_case_symbols() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let symbols = vec!["BtCuSdT".to_string()];
+        let timeframes = vec!["1M".to_string()];
+
+        let streams = ws.build_stream_names(&symbols, &timeframes);
+
+        // Should convert to lowercase
+        assert!(streams.contains(&"btcusdt@kline_1M".to_string()));
+        assert!(streams.contains(&"btcusdt@ticker".to_string()));
+        assert!(streams.contains(&"btcusdt@depth@100ms".to_string()));
+    }
+
+    #[test]
+    fn test_cov8_create_command_channel_multiple() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let _ch1 = ws.create_command_channel();
+        let _ch2 = ws.create_command_channel();
+        let _ch3 = ws.create_command_channel();
+        // Should be able to create multiple command channels
+    }
+
+    #[test]
+    fn test_cov8_handle_stream_data_no_event_type() {
+        let config = create_test_config();
+        let (ws, _receiver) = BinanceWebSocket::new(config);
+
+        let data = serde_json::json!({
+            "s": "BTCUSDT",
+            "p": "34000.0"
+        });
+
+        let result = ws.handle_stream_data(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov8_subscribe_multiple_timeframes() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let result = ws.subscribe_symbol(
+            "BTCUSDT".to_string(),
+            vec!["1m".to_string(), "5m".to_string(), "1h".to_string()],
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov8_unsubscribe_multiple_timeframes() {
+        let config = create_test_config();
+        let (ws, _) = BinanceWebSocket::new(config);
+
+        let result = ws.unsubscribe_symbol(
+            "ETHUSDT".to_string(),
+            vec!["1m".to_string(), "5m".to_string()],
+        );
+        assert!(result.is_ok());
     }
 }

@@ -56,7 +56,8 @@ fn test_password_verify_fails_on_wrong_password() {
 
     assert!(!PasswordService::verify_password("WrongPassword", &hash).unwrap());
     assert!(!PasswordService::verify_password("correctpassword", &hash).unwrap()); // Case sensitive
-    assert!(!PasswordService::verify_password("CorrectPassword ", &hash).unwrap()); // Trailing space
+    assert!(!PasswordService::verify_password("CorrectPassword ", &hash).unwrap());
+    // Trailing space
 }
 
 #[test]
