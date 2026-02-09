@@ -44,7 +44,7 @@ qrcode = "0.14"
 image = "0.25"
 slab = "0.4.12"
 rand = "0.9"
-sysinfo = "0.35"
+sysinfo = "0.38"
 
 [features]
 default = ["database"]
