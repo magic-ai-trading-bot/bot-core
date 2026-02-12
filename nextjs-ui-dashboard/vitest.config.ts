@@ -50,7 +50,7 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text'],
+      reporter: ['text', 'json'],
       reportsDirectory: './coverage',
       exclude: [
         'node_modules/',

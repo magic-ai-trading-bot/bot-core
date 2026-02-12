@@ -3,8 +3,9 @@ Tests to push coverage from 94% to 95%.
 Targets: chatbot endpoints, config analysis endpoints, strategy scores, counter-trend logic.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 @pytest.mark.asyncio
