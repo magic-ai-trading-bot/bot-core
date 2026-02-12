@@ -838,8 +838,9 @@ class TestFeatureEngineeringUncovered:
 
     def test_add_lag_features_with_valid_data(self):
         """Test _add_lag_features with valid data to cover lines 123-125."""
-        from features.feature_engineering import FeatureEngineer
         import pandas as pd
+
+        from features.feature_engineering import FeatureEngineer
 
         engineer = FeatureEngineer()
 
@@ -859,8 +860,9 @@ class TestFeatureEngineeringUncovered:
 
     def test_prepare_for_inference_insufficient_data(self):
         """Test prepare_for_inference with insufficient data (lines 258-262)."""
-        from features.feature_engineering import FeatureEngineer
         import pandas as pd
+
+        from features.feature_engineering import FeatureEngineer
 
         engineer = FeatureEngineer()
 
@@ -882,9 +884,10 @@ class TestFeatureEngineeringUncovered:
 
     def test_prepare_for_inference_no_feature_columns(self):
         """Test prepare_for_inference when feature_columns not set (lines 265-273)."""
-        from features.feature_engineering import FeatureEngineer
-        import pandas as pd
         import numpy as np
+        import pandas as pd
+
+        from features.feature_engineering import FeatureEngineer
 
         engineer = FeatureEngineer()
         engineer.feature_columns = []  # Empty list
@@ -918,8 +921,9 @@ class TestProjectChatbotUncovered:
 
     def test_find_project_root_docker_paths(self):
         """Test _find_project_root with Docker paths."""
-        from services.project_chatbot import _find_project_root
         from pathlib import Path
+
+        from services.project_chatbot import _find_project_root
 
         # Test will use fallback logic
         # The function should handle missing paths gracefully
@@ -1019,8 +1023,9 @@ class TestConfigLoaderUncovered:
 
     def test_load_config_invalid_yaml(self):
         """Test load_config with invalid YAML (lines 29-31)."""
-        from config_loader import load_config
         import tempfile
+
+        from config_loader import load_config
 
         # Create temp file with invalid YAML
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
