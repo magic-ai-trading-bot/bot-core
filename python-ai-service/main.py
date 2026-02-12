@@ -3356,12 +3356,20 @@ async def trigger_config_analysis(request: Request):
             return {
                 "success": True,
                 "message": "Config analysis completed successfully",
-                "suggestions": suggestions if isinstance(suggestions, (list, dict, type(None))) else None,
-                "trade_stats": trade_stats if isinstance(trade_stats, (dict, type(None))) else None,
+                "suggestions": (
+                    suggestions
+                    if isinstance(suggestions, (list, dict, type(None)))
+                    else None
+                ),
+                "trade_stats": (
+                    trade_stats if isinstance(trade_stats, (dict, type(None))) else None
+                ),
                 "timestamp": str(timestamp) if timestamp else None,
             }
         else:
-            logger.warning(f"Config analysis returned non-success: {result.get('message', 'unknown')}")
+            logger.warning(
+                f"Config analysis returned non-success: {result.get('message', 'unknown')}"
+            )
             return {
                 "success": False,
                 "message": "Config analysis failed. Check server logs for details.",
