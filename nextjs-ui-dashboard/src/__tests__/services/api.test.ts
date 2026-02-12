@@ -1411,4 +1411,313 @@ describe('API Service Tests', () => {
       expect(result).toEqual(mockData)
     })
   })
+
+  // NEW TESTS FOR UNCOVERED CODE PATHS
+
+  describe('Auth Token Management with localStorage errors', () => {
+    it('should handle SecurityError when setting auth token', () => {
+      const originalSetItem = localStorage.setItem
+      Object.defineProperty(localStorage, 'setItem', {
+        value: () => {
+          throw new DOMException('SecurityError')
+        },
+        configurable: true
+      })
+
+      const client = new BotCoreApiClient()
+      // Should not throw - error handled gracefully
+      expect(() => client.auth.setAuthToken('test-token')).not.toThrow()
+
+      Object.defineProperty(localStorage, 'setItem', {
+        value: originalSetItem,
+        configurable: true
+      })
+    })
+
+    it('should handle SecurityError when removing auth token', () => {
+      const originalRemoveItem = localStorage.removeItem
+      Object.defineProperty(localStorage, 'removeItem', {
+        value: () => {
+          throw new DOMException('SecurityError')
+        },
+        configurable: true
+      })
+
+      const client = new BotCoreApiClient()
+      expect(() => client.auth.removeAuthToken()).not.toThrow()
+
+      Object.defineProperty(localStorage, 'removeItem', {
+        value: originalRemoveItem,
+        configurable: true
+      })
+    })
+
+    it('should handle SecurityError when getting auth token', () => {
+      const originalGetItem = localStorage.getItem
+      Object.defineProperty(localStorage, 'getItem', {
+        value: () => {
+          throw new DOMException('SecurityError')
+        },
+        configurable: true
+      })
+
+      const client = new BotCoreApiClient()
+      const token = client.auth.getAuthToken()
+      expect(token).toBeNull()
+
+      Object.defineProperty(localStorage, 'getItem', {
+        value: originalGetItem,
+        configurable: true
+      })
+    })
+
+    it('should return true for expired tokens', () => {
+      const client = new BotCoreApiClient()
+      const expiredToken = 'header.' + btoa(JSON.stringify({ exp: Date.now() / 1000 - 3600 })) + '.signature'
+      expect(client.auth.isTokenExpired(expiredToken)).toBe(true)
+    })
+
+    it('should return true for invalid token format', () => {
+      const client = new BotCoreApiClient()
+      expect(client.auth.isTokenExpired('invalid-token')).toBe(true)
+    })
+
+    it('should return true when no token provided and none in localStorage', () => {
+      localStorage.clear()
+      const client = new BotCoreApiClient()
+      expect(client.auth.isTokenExpired()).toBe(true)
+    })
+  })
+
+  describe('AuthApiClient - Error Handling', () => {
+    it('should handle login failure with error message', async () => {
+      mockAxiosInstance.post.mockResolvedValue({
+        data: {
+          success: false,
+          error: 'Invalid credentials'
+        }
+      })
+
+      const client = new BotCoreApiClient()
+      await expect(client.auth.login({ email: 'test@test.com', password: 'wrong' }))
+        .rejects.toThrow('Invalid credentials')
+    })
+
+    it('should handle register failure', async () => {
+      mockAxiosInstance.post.mockResolvedValue({
+        data: {
+          success: false,
+          error: 'Email already exists'
+        }
+      })
+
+      const client = new BotCoreApiClient()
+      await expect(client.auth.register({ email: 'test@test.com', password: '123456' }))
+        .rejects.toThrow('Email already exists')
+    })
+
+    it('should handle verifyToken failure', async () => {
+      mockAxiosInstance.get.mockResolvedValue({
+        data: {
+          success: false,
+          error: 'Token invalid'
+        }
+      })
+
+      const client = new BotCoreApiClient()
+      await expect(client.auth.verifyToken()).rejects.toThrow('Token invalid')
+    })
+
+    it('should handle getProfile failure', async () => {
+      mockAxiosInstance.get.mockResolvedValue({
+        data: {
+          success: false,
+          error: 'Profile not found'
+        }
+      })
+
+      const client = new BotCoreApiClient()
+      await expect(client.auth.getProfile()).rejects.toThrow('Profile not found')
+    })
+  })
+
+  describe('RustTradingApiClient - Fast Methods (No Retry)', () => {
+    it('should call getChartDataFast without retry', async () => {
+      const mockChartData: ChartData = {
+        symbol: 'BTCUSDT',
+        timeframe: '1h',
+        candles: [],
+        latest_price: 50000,
+        volume_24h: 1000000,
+        price_change_24h: 1000,
+        price_change_percent_24h: 2
+      }
+
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { data: mockChartData }
+      })
+
+      const client = new BotCoreApiClient()
+      const result = await client.rust.getChartDataFast('BTCUSDT', '1h')
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1)
+      expect(result).toEqual(mockChartData)
+    })
+
+    it('should call getSupportedSymbols without retry', async () => {
+      const mockSymbols: SupportedSymbols = {
+        symbols: ['BTCUSDT', 'ETHUSDT'],
+        available_timeframes: ['1m', '5m', '1h']
+      }
+
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { data: mockSymbols }
+      })
+
+      const client = new BotCoreApiClient()
+      const result = await client.rust.getSupportedSymbols()
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1)
+      expect(result).toEqual(mockSymbols)
+    })
+
+    it('should call getLatestPrices without retry', async () => {
+      const mockPrices = { BTCUSDT: 50000, ETHUSDT: 3000 }
+
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { data: mockPrices }
+      })
+
+      const client = new BotCoreApiClient()
+      const result = await client.rust.getLatestPrices()
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1)
+      expect(result).toEqual(mockPrices)
+    })
+  })
+
+  describe('PythonAIApiClient - Model Training', () => {
+    it('should train model with no retry (long operation)', async () => {
+      const mockResponse = {
+        message: 'Training complete',
+        model_type: 'LSTM',
+        training_samples: 10000,
+        status: 'success'
+      }
+
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockResponse
+      })
+
+      const client = new BotCoreApiClient()
+      const result = await client.python.trainModel({
+        symbol: 'BTCUSDT',
+        candles: []
+      })
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1)
+      expect(result).toEqual(mockResponse)
+    })
+
+    it('should handle training failure without retry', async () => {
+      mockAxiosInstance.post.mockRejectedValue(new Error('Training failed'))
+
+      const client = new BotCoreApiClient()
+
+      await expect(client.python.trainModel({
+        symbol: 'BTCUSDT',
+        candles: []
+      })).rejects.toThrow('Training failed')
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Combined API Health Check', () => {
+    it('should return overall healthy status when both services are up', async () => {
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({ data: { status: 'ok' } })
+        .mockResolvedValueOnce({ data: { status: 'ok', model_loaded: true } })
+
+      const client = new BotCoreApiClient()
+      const health = await client.healthCheck()
+
+      expect(health.overall).toBe(true)
+      expect(health.rust.healthy).toBe(true)
+      expect(health.python.healthy).toBe(true)
+      expect(health.python.model_loaded).toBe(true)
+    })
+
+    it('should return overall unhealthy when rust service is down', async () => {
+      mockAxiosInstance.get
+        .mockRejectedValueOnce(new Error('Service unavailable'))
+        .mockResolvedValueOnce({ data: { status: 'ok', model_loaded: true } })
+
+      const client = new BotCoreApiClient()
+      const health = await client.healthCheck()
+
+      expect(health.overall).toBe(false)
+      expect(health.rust.healthy).toBe(false)
+      expect(health.python.healthy).toBe(true)
+    })
+
+    it('should return overall unhealthy when python service is down', async () => {
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({ data: { status: 'ok' } })
+        .mockRejectedValueOnce(new Error('Service unavailable'))
+
+      const client = new BotCoreApiClient()
+      const health = await client.healthCheck()
+
+      expect(health.overall).toBe(false)
+      expect(health.rust.healthy).toBe(true)
+      expect(health.python.healthy).toBe(false)
+      expect(health.python.model_loaded).toBe(false)
+    })
+
+    it('should handle complete failure gracefully', async () => {
+      mockAxiosInstance.get.mockRejectedValue(new Error('Network error'))
+
+      const client = new BotCoreApiClient()
+      const health = await client.healthCheck()
+
+      expect(health.overall).toBe(false)
+      expect(health.rust.healthy).toBe(false)
+      expect(health.python.healthy).toBe(false)
+    })
+  })
+
+  describe('AI Integration - Additional Methods', () => {
+    it('should get supported strategies', async () => {
+      const mockStrategies = { strategies: ['RSI', 'MACD', 'Bollinger'] }
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { data: mockStrategies }
+      })
+
+      const client = new BotCoreApiClient()
+      const result = await client.rust.getSupportedStrategies()
+
+      expect(result).toEqual(mockStrategies)
+    })
+
+    it('should send AI feedback', async () => {
+      const mockResponse = { message: 'Feedback received' }
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { data: mockResponse }
+      })
+
+      const client = new BotCoreApiClient()
+      const result = await client.rust.sendAIFeedback({
+        signal_id: 'signal-123',
+        symbol: 'BTCUSDT',
+        predicted_signal: 'long',
+        actual_outcome: 'profit',
+        profit_loss: 100,
+        confidence_was_accurate: true,
+        timestamp: Date.now()
+      })
+
+      expect(result).toEqual(mockResponse)
+    })
+  })
 })

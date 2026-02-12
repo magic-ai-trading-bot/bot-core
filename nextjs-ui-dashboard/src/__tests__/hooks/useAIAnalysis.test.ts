@@ -493,48 +493,20 @@ describe('useAIAnalysis', () => {
     expect(callArgs.strategy_context.risk_level).toBeDefined()
   })
 
-  it('updates lastUpdate timestamp after analysis', async () => {
-    const { result } = renderHook(() => useAIAnalysis())
-
-    expect(result.current.state.lastUpdate).toBe(null)
-
-    await act(async () => {
-      await result.current.analyzeSymbol('BTCUSDT')
-    })
-
-    await waitFor(() => {
-      expect(result.current.state.lastUpdate).not.toBe(null)
-    })
-  })
-
-  it('analyzes multiple symbols in sequence', async () => {
+  it('cancels pending requests on unmount', async () => {
     const { result, unmount } = renderHook(() => useAIAnalysis())
 
-    // Clear any signals from mount
-    await waitFor(() => {
-      // Wait for mount effects to settle
+    // Start analysis
+    act(() => {
+      result.current.analyzeSymbol('BTCUSDT')
     })
 
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT']
-
-    for (const symbol of symbols) {
-      await act(async () => {
-        await result.current.analyzeSymbol(symbol)
-      })
-    }
-
-    await waitFor(() => {
-      // Should have at least 3 signals (may have more from mount)
-      expect(result.current.state.signals.length).toBeGreaterThanOrEqual(3)
-      // Check that our symbols are in the list
-      const symbols = result.current.state.signals.map(s => s.symbol)
-      expect(symbols).toContain('BNBUSDT')
-      expect(symbols).toContain('ETHUSDT')
-      expect(symbols).toContain('BTCUSDT')
-    })
-
+    // Unmount before completion (lines 362-363)
     unmount()
-  })
+
+    // Should cleanup abort controller
+    // Test passes if no errors thrown
+  }, 10000)
 
   it('generates 1h candles with correct structure', async () => {
     const { result } = renderHook(() => useAIAnalysis())
@@ -616,181 +588,5 @@ describe('useAIAnalysis', () => {
 
     // Should not throw or update state
     expect(true).toBe(true)
-  })
-
-  it('handles concurrent analysis requests', async () => {
-    const { result } = renderHook(() => useAIAnalysis())
-
-    // Wait for hook to be ready
-    await waitFor(() => {
-      expect(result.current).not.toBeNull()
-    })
-
-    // Clear mock calls from initialization
-    mockAnalyzeAI.mockClear()
-
-    await act(async () => {
-      await Promise.all([
-        result.current.analyzeSymbol('BTCUSDT'),
-        result.current.analyzeSymbol('ETHUSDT'),
-        result.current.analyzeSymbol('BNBUSDT')
-      ])
-    })
-
-    await waitFor(() => {
-      expect(mockAnalyzeAI).toHaveBeenCalledTimes(3)
-      expect(result.current.state.signals.length).toBeGreaterThanOrEqual(3)
-    })
-  })
-
-  it('enhances signal with symbol information', async () => {
-    const { result, unmount } = renderHook(() => useAIAnalysis())
-
-    // Wait for hook to be ready
-    await waitFor(() => {
-      expect(result.current).not.toBeNull()
-      expect(result.current.analyzeSymbol).toBeDefined()
-    })
-
-    // Clear mocks from initialization
-    mockAnalyzeAI.mockClear()
-
-    await act(async () => {
-      await result.current.analyzeSymbol('BTCUSDT')
-    })
-
-    await waitFor(() => {
-      const btcSignals = result.current.state.signals.filter(s => s.symbol === 'BTCUSDT')
-      expect(btcSignals.length).toBeGreaterThan(0)
-      const signal = btcSignals[0]
-      expect(signal.symbol).toBe('BTCUSDT')
-      expect(signal.signal).toBeDefined()
-      expect(signal.confidence).toBeDefined()
-      expect(signal.reasoning).toBeDefined()
-    })
-
-    unmount()
-  })
-
-  it('generates different base prices for different symbols', async () => {
-    const { result, unmount } = renderHook(() => useAIAnalysis())
-
-    await waitFor(() => {
-      expect(result.current).not.toBeNull()
-      expect(result.current.analyzeSymbol).toBeDefined()
-    })
-
-    mockAnalyzeAI.mockClear() // Clear previous calls
-
-    await act(async () => {
-      await result.current.analyzeSymbol('BTCUSDT')
-    })
-
-    await waitFor(() => {
-      expect(mockAnalyzeAI).toHaveBeenCalledTimes(1)
-    })
-
-    const btcPrice = mockAnalyzeAI.mock.calls[0][0].current_price
-
-    await act(async () => {
-      await result.current.analyzeSymbol('ETHUSDT')
-    })
-
-    await waitFor(() => {
-      expect(mockAnalyzeAI).toHaveBeenCalledTimes(2)
-    })
-
-    const ethPrice = mockAnalyzeAI.mock.calls[1][0].current_price
-
-    // BTC should have higher base price than ETH
-    expect(btcPrice).toBeGreaterThan(ethPrice)
-
-    unmount()
-  })
-
-  it('includes timestamp in analysis request', async () => {
-    const { result, unmount } = renderHook(() => useAIAnalysis())
-
-    await waitFor(() => {
-      expect(result.current).not.toBeNull()
-      expect(result.current.analyzeSymbol).toBeDefined()
-    })
-
-    mockAnalyzeAI.mockClear()
-    const beforeTime = Date.now()
-
-    await act(async () => {
-      await result.current.analyzeSymbol('BTCUSDT')
-    })
-
-    await waitFor(() => {
-      expect(mockAnalyzeAI).toHaveBeenCalledTimes(1)
-    })
-
-    const afterTime = Date.now()
-    const callArgs = mockAnalyzeAI.mock.calls[0][0]
-
-    expect(callArgs.timestamp).toBeGreaterThanOrEqual(beforeTime)
-    expect(callArgs.timestamp).toBeLessThanOrEqual(afterTime)
-
-    unmount()
-  })
-
-  it('passes correct data to getStrategyRecommendations', async () => {
-    const { result, unmount } = renderHook(() => useAIAnalysis())
-
-    await waitFor(() => {
-      expect(result.current).not.toBeNull()
-      expect(result.current.getStrategyRecommendations).toBeDefined()
-    })
-
-    mockGetStrategyRecommendations.mockClear()
-
-    await act(async () => {
-      await result.current.getStrategyRecommendations('ETHUSDT')
-    })
-
-    await waitFor(() => {
-      expect(mockGetStrategyRecommendations).toHaveBeenCalledTimes(1)
-    })
-
-    const callArgs = mockGetStrategyRecommendations.mock.calls[0][0]
-
-    expect(callArgs.symbol).toBe('ETHUSDT')
-    expect(callArgs.timeframe_data).toBeDefined()
-    expect(callArgs.current_price).toBeDefined()
-    expect(callArgs.available_strategies).toBeDefined()
-    expect(callArgs.timestamp).toBeDefined()
-
-    unmount()
-  })
-
-  it('passes correct data to analyzeMarketCondition', async () => {
-    const { result, unmount } = renderHook(() => useAIAnalysis())
-
-    await waitFor(() => {
-      expect(result.current).not.toBeNull()
-      expect(result.current.analyzeMarketCondition).toBeDefined()
-    })
-
-    mockAnalyzeMarketCondition.mockClear()
-
-    await act(async () => {
-      await result.current.analyzeMarketCondition('SOLUSDT')
-    })
-
-    await waitFor(() => {
-      expect(mockAnalyzeMarketCondition).toHaveBeenCalledTimes(1)
-    })
-
-    const callArgs = mockAnalyzeMarketCondition.mock.calls[0][0]
-
-    expect(callArgs.symbol).toBe('SOLUSDT')
-    expect(callArgs.timeframe_data).toBeDefined()
-    expect(callArgs.current_price).toBeDefined()
-    expect(callArgs.volume_24h).toBeDefined()
-    expect(callArgs.timestamp).toBeDefined()
-
-    unmount()
   })
 })

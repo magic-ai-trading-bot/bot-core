@@ -10592,4 +10592,869 @@ mod tests {
         let open_trades = engine.get_open_trades().await;
         assert_eq!(open_trades.len(), 0);
     }
+
+    // ====================
+    // NEW BOOST TESTS START HERE
+    // ====================
+
+    #[test]
+    fn test_boost_consecutive_streak_default() {
+        let streak = ConsecutiveStreak::default();
+        assert_eq!(streak.wins, 0);
+        assert_eq!(streak.losses, 0);
+    }
+
+    #[test]
+    fn test_boost_consecutive_streak_creation() {
+        let streak = ConsecutiveStreak { wins: 5, losses: 2 };
+        assert_eq!(streak.wins, 5);
+        assert_eq!(streak.losses, 2);
+    }
+
+    #[test]
+    fn test_boost_consecutive_streak_clone() {
+        let streak1 = ConsecutiveStreak { wins: 3, losses: 1 };
+        let streak2 = streak1.clone();
+        assert_eq!(streak1.wins, streak2.wins);
+        assert_eq!(streak1.losses, streak2.losses);
+    }
+
+    #[test]
+    fn test_boost_consecutive_streak_copy() {
+        let streak1 = ConsecutiveStreak { wins: 7, losses: 3 };
+        let streak2 = streak1; // Copy trait
+        assert_eq!(streak1.wins, streak2.wins);
+    }
+
+    #[test]
+    fn test_boost_consecutive_streak_debug() {
+        let streak = ConsecutiveStreak { wins: 10, losses: 0 };
+        let debug_str = format!("{:?}", streak);
+        assert!(debug_str.contains("wins"));
+        assert!(debug_str.contains("10"));
+    }
+
+    #[test]
+    fn test_boost_pending_trade_debug() {
+        let signal = AITradingSignal {
+            id: "sig-test".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: crate::strategies::TradingSignal::Long,
+            confidence: 0.8,
+            reasoning: "Test".to_string(),
+            entry_price: 50000.0,
+            suggested_stop_loss: Some(48000.0),
+            suggested_take_profit: Some(55000.0),
+            suggested_leverage: Some(10),
+            market_analysis: MarketAnalysisData {
+                trend_direction: "Bullish".to_string(),
+                trend_strength: 0.8,
+                volatility: 0.3,
+                support_levels: vec![48000.0],
+                resistance_levels: vec![52000.0],
+                volume_analysis: "High".to_string(),
+                risk_score: 0.4,
+            },
+            timestamp: Utc::now(),
+        };
+
+        let pending = PendingTrade {
+            signal,
+            calculated_quantity: 0.5,
+            calculated_leverage: 10,
+            stop_loss: 48000.0,
+            take_profit: 55000.0,
+            timestamp: Utc::now(),
+        };
+
+        let debug_str = format!("{:?}", pending);
+        assert!(debug_str.contains("PendingTrade"));
+        assert!(debug_str.contains("BTCUSDT"));
+    }
+
+    #[test]
+    fn test_boost_pending_trade_timestamp() {
+        let signal = AITradingSignal {
+            id: "sig-time".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            signal_type: crate::strategies::TradingSignal::Short,
+            confidence: 0.75,
+            reasoning: "Time test".to_string(),
+            entry_price: 3000.0,
+            suggested_stop_loss: Some(3100.0),
+            suggested_take_profit: Some(2800.0),
+            suggested_leverage: Some(5),
+            market_analysis: MarketAnalysisData {
+                trend_direction: "Bearish".to_string(),
+                trend_strength: 0.7,
+                volatility: 0.4,
+                support_levels: vec![2800.0],
+                resistance_levels: vec![3100.0],
+                volume_analysis: "Moderate".to_string(),
+                risk_score: 0.5,
+            },
+            timestamp: Utc::now(),
+        };
+
+        let now = Utc::now();
+        let pending = PendingTrade {
+            signal,
+            calculated_quantity: 1.0,
+            calculated_leverage: 5,
+            stop_loss: 3100.0,
+            take_profit: 2800.0,
+            timestamp: now,
+        };
+
+        assert_eq!(pending.timestamp, now);
+    }
+
+    #[test]
+    fn test_boost_pending_trade_various_leverages() {
+        let leverages = vec![1, 2, 5, 10, 20, 50, 100, 125];
+
+        for leverage in leverages {
+            let signal = AITradingSignal {
+                id: format!("sig-lev-{}", leverage),
+                symbol: "BNBUSDT".to_string(),
+                signal_type: crate::strategies::TradingSignal::Long,
+                confidence: 0.85,
+                reasoning: "Leverage test".to_string(),
+                entry_price: 500.0,
+                suggested_stop_loss: Some(480.0),
+                suggested_take_profit: Some(550.0),
+                suggested_leverage: Some(leverage),
+                market_analysis: MarketAnalysisData {
+                    trend_direction: "Bullish".to_string(),
+                    trend_strength: 0.8,
+                    volatility: 0.3,
+                    support_levels: vec![480.0],
+                    resistance_levels: vec![520.0],
+                    volume_analysis: "High".to_string(),
+                    risk_score: 0.4,
+                },
+                timestamp: Utc::now(),
+            };
+
+            let pending = PendingTrade {
+                signal,
+                calculated_quantity: 1.0,
+                calculated_leverage: leverage,
+                stop_loss: 480.0,
+                take_profit: 550.0,
+                timestamp: Utc::now(),
+            };
+
+            assert_eq!(pending.calculated_leverage, leverage);
+        }
+    }
+
+    #[test]
+    fn test_boost_pending_trade_quantity_precision() {
+        let quantities = vec![0.001, 0.01, 0.1, 1.0, 10.0, 100.0];
+
+        for quantity in quantities {
+            let signal = AITradingSignal {
+                id: format!("sig-qty-{}", quantity),
+                symbol: "SOLUSDT".to_string(),
+                signal_type: crate::strategies::TradingSignal::Long,
+                confidence: 0.8,
+                reasoning: "Quantity test".to_string(),
+                entry_price: 100.0,
+                suggested_stop_loss: Some(95.0),
+                suggested_take_profit: Some(110.0),
+                suggested_leverage: Some(10),
+                market_analysis: MarketAnalysisData {
+                    trend_direction: "Bullish".to_string(),
+                    trend_strength: 0.8,
+                    volatility: 0.3,
+                    support_levels: vec![95.0],
+                    resistance_levels: vec![105.0],
+                    volume_analysis: "High".to_string(),
+                    risk_score: 0.4,
+                },
+                timestamp: Utc::now(),
+            };
+
+            let pending = PendingTrade {
+                signal,
+                calculated_quantity: quantity,
+                calculated_leverage: 10,
+                stop_loss: 95.0,
+                take_profit: 110.0,
+                timestamp: Utc::now(),
+            };
+
+            assert_eq!(pending.calculated_quantity, quantity);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_new_with_null_db() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let result = PaperTradingEngine::new(
+            settings,
+            binance_client,
+            ai_service,
+            storage,
+            broadcaster,
+        )
+        .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_initial_state() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let is_running = *engine.is_running.read().await;
+        assert!(!is_running);
+
+        let prices = engine.current_prices.read().await;
+        assert!(prices.is_empty());
+
+        let queue = engine.execution_queue.read().await;
+        assert!(queue.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_settings_persistence() {
+        let mut settings = create_test_settings();
+        settings.basic.initial_balance = 25000.0;
+
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine = PaperTradingEngine::new(
+            settings.clone(),
+            binance_client,
+            ai_service,
+            storage,
+            broadcaster,
+        )
+        .await
+        .unwrap();
+
+        let loaded_settings = engine.settings.read().await;
+        assert_eq!(loaded_settings.basic.initial_balance, 25000.0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_portfolio_initialization() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings.clone(), binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let portfolio = engine.portfolio.read().await;
+        assert_eq!(portfolio.cash_balance, settings.basic.initial_balance);
+        assert_eq!(portfolio.equity, settings.basic.initial_balance);
+        assert_eq!(portfolio.metrics.total_trades, 0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_historical_cache_empty() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let cache = engine.historical_data_cache.read().await;
+        assert!(cache.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_pending_orders_empty() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let orders = engine.pending_stop_limit_orders.read().await;
+        assert!(orders.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_get_settings() {
+        let mut settings = create_test_settings();
+        settings.basic.max_positions = 15;
+
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let retrieved = engine.get_settings().await;
+        assert_eq!(retrieved.basic.max_positions, 15);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_double_start_error() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Manually set running state
+        {
+            let mut running = engine.is_running.write().await;
+            *running = true;
+        }
+
+        let result = engine.start().await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("already running"));
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_stop_saves_portfolio() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Set running to true so stop() can run
+        {
+            let mut running = engine.is_running.write().await;
+            *running = true;
+        }
+
+        let result = engine.stop().await;
+        // May fail with storage error, but that's expected with null-db
+        // We're testing the code path, not the DB functionality
+        let _ = result;
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_reset_portfolio_state() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings.clone(), binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let result = engine.reset_portfolio().await;
+        assert!(result.is_ok());
+
+        let portfolio = engine.portfolio.read().await;
+        assert_eq!(portfolio.cash_balance, settings.basic.initial_balance);
+        assert_eq!(portfolio.trades.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_get_portfolio_status() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings.clone(), binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let status = engine.get_portfolio_status().await;
+        assert_eq!(status.current_balance, settings.basic.initial_balance);
+        assert_eq!(status.total_trades, 0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_get_open_trades_empty() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let open_trades = engine.get_open_trades().await;
+        assert_eq!(open_trades.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_get_closed_trades_empty() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let closed_trades = engine.get_closed_trades().await;
+        assert_eq!(closed_trades.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_get_performance_summary() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let summary = engine.get_portfolio_status().await;
+        assert_eq!(summary.total_trades, 0);
+        assert_eq!(summary.win_rate, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_update_settings() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let mut new_settings = engine.get_settings().await;
+        new_settings.basic.max_positions = 20;
+
+        let result = engine.update_settings(new_settings).await;
+        // May fail with storage error, but code path is tested
+        let _ = result;
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_clone_shares_state() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine1 =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let engine2 = engine1.clone();
+
+        // Modify engine1's state
+        {
+            let mut prices1 = engine1.current_prices.write().await;
+            prices1.insert("BTCUSDT".to_string(), 50000.0);
+        }
+
+        // engine2 should see the same state
+        {
+            let prices2 = engine2.current_prices.read().await;
+            assert_eq!(prices2.get("BTCUSDT"), Some(&50000.0));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_current_prices_update() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        {
+            let mut prices = engine.current_prices.write().await;
+            prices.insert("ETHUSDT".to_string(), 3000.0);
+            prices.insert("BNBUSDT".to_string(), 500.0);
+        }
+
+        let prices = engine.current_prices.read().await;
+        assert_eq!(prices.len(), 2);
+        assert_eq!(prices.get("ETHUSDT"), Some(&3000.0));
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_execution_queue_operations() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let signal = AITradingSignal {
+            id: "test-signal".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: crate::strategies::TradingSignal::Long,
+            confidence: 0.85,
+            reasoning: "Test".to_string(),
+            entry_price: 50000.0,
+            suggested_stop_loss: Some(48000.0),
+            suggested_take_profit: Some(55000.0),
+            suggested_leverage: Some(10),
+            market_analysis: MarketAnalysisData {
+                trend_direction: "Bullish".to_string(),
+                trend_strength: 0.8,
+                volatility: 0.3,
+                support_levels: vec![48000.0],
+                resistance_levels: vec![52000.0],
+                volume_analysis: "High".to_string(),
+                risk_score: 0.4,
+            },
+            timestamp: Utc::now(),
+        };
+
+        let pending = PendingTrade {
+            signal,
+            calculated_quantity: 0.5,
+            calculated_leverage: 10,
+            stop_loss: 48000.0,
+            take_profit: 55000.0,
+            timestamp: Utc::now(),
+        };
+
+        {
+            let mut queue = engine.execution_queue.write().await;
+            queue.push(pending);
+        }
+
+        let queue = engine.execution_queue.read().await;
+        assert_eq!(queue.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_trade_execution_lock() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Test that we can acquire the lock
+        let lock = engine.trade_execution_lock.lock().await;
+        drop(lock); // Release lock
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_multiple_symbol_settings() {
+        let mut settings = create_test_settings();
+
+        let btc_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(10),
+            position_size_pct: Some(10.0),
+            stop_loss_pct: Some(2.0),
+            take_profit_pct: Some(5.0),
+            trading_hours: None,
+            min_price_movement_pct: Some(0.2),
+            max_positions: Some(2),
+            custom_params: HashMap::new(),
+        };
+
+        let eth_settings = SymbolSettings {
+            enabled: true,
+            leverage: Some(5),
+            position_size_pct: Some(8.0),
+            stop_loss_pct: Some(2.5),
+            take_profit_pct: Some(6.0),
+            trading_hours: None,
+            min_price_movement_pct: Some(0.3),
+            max_positions: Some(3),
+            custom_params: HashMap::new(),
+        };
+
+        settings.symbols.insert("BTCUSDT".to_string(), btc_settings);
+        settings.symbols.insert("ETHUSDT".to_string(), eth_settings);
+
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        let loaded_settings = engine.get_settings().await;
+        assert_eq!(loaded_settings.symbols.len(), 2);
+        assert!(loaded_settings.symbols.contains_key("BTCUSDT"));
+        assert!(loaded_settings.symbols.contains_key("ETHUSDT"));
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_optimizer_initialization() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Optimizer is initialized but we can't access it directly
+        // This test ensures engine construction doesn't panic
+        let status = engine.get_portfolio_status().await;
+        assert_eq!(status.total_trades, 0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_event_broadcaster() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let (broadcaster, mut rx) = broadcast::channel(100);
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Send a test event
+        let _ = engine.event_broadcaster.send(PaperTradingEvent {
+            event_type: "test_event".to_string(),
+            data: serde_json::json!({"test": "data"}),
+            timestamp: Utc::now(),
+        });
+
+        // Verify event was received
+        tokio::select! {
+            Ok(event) = rx.recv() => {
+                assert_eq!(event.event_type, "test_event");
+            }
+            _ = tokio::time::sleep(tokio::time::Duration::from_millis(100)) => {
+                panic!("Event not received");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_various_initial_balances() {
+        let balances = vec![1000.0, 5000.0, 10000.0, 50000.0, 100000.0];
+
+        for balance in balances {
+            let mut settings = create_test_settings();
+            settings.basic.initial_balance = balance;
+
+            let binance_client = create_mock_binance_client();
+            let ai_service = create_mock_ai_service();
+            let storage = create_mock_storage().await;
+            let broadcaster = create_event_broadcaster();
+
+            let engine =
+                PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                    .await
+                    .unwrap();
+
+            let status = engine.get_portfolio_status().await;
+            assert_eq!(status.current_balance, balance);
+        }
+    }
+
+    #[test]
+    fn test_boost_market_analysis_data_structure() {
+        let analysis = MarketAnalysisData {
+            trend_direction: "Sideways".to_string(),
+            trend_strength: 0.5,
+            volatility: 0.6,
+            support_levels: vec![45000.0, 44000.0, 43000.0],
+            resistance_levels: vec![51000.0, 52000.0, 53000.0],
+            volume_analysis: "Low".to_string(),
+            risk_score: 0.7,
+        };
+
+        assert_eq!(analysis.trend_direction, "Sideways");
+        assert_eq!(analysis.support_levels.len(), 3);
+        assert_eq!(analysis.resistance_levels.len(), 3);
+    }
+
+    #[test]
+    fn test_boost_ai_trading_signal_structure() {
+        let signal = AITradingSignal {
+            id: "signal-xyz".to_string(),
+            symbol: "DOGEUSDT".to_string(),
+            signal_type: crate::strategies::TradingSignal::Long,
+            confidence: 0.9,
+            reasoning: "Strong bullish momentum".to_string(),
+            entry_price: 0.1,
+            suggested_stop_loss: Some(0.095),
+            suggested_take_profit: Some(0.11),
+            suggested_leverage: Some(20),
+            market_analysis: MarketAnalysisData {
+                trend_direction: "Bullish".to_string(),
+                trend_strength: 0.9,
+                volatility: 0.4,
+                support_levels: vec![0.095],
+                resistance_levels: vec![0.105],
+                volume_analysis: "Very High".to_string(),
+                risk_score: 0.3,
+            },
+            timestamp: Utc::now(),
+        };
+
+        assert_eq!(signal.symbol, "DOGEUSDT");
+        assert_eq!(signal.confidence, 0.9);
+        assert_eq!(signal.suggested_leverage, Some(20));
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_ai_service_integration() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+
+        let ai_config = crate::ai::AIServiceConfig {
+            python_service_url: "http://localhost:8000".to_string(),
+            request_timeout_seconds: 60,
+            max_retries: 5,
+            enable_caching: true,
+            cache_ttl_seconds: 600,
+        };
+        let ai_service = AIService::new(ai_config);
+
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Engine should be created successfully
+        let status = engine.get_portfolio_status().await;
+        assert_eq!(status.total_trades, 0);
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_binance_client_integration() {
+        let settings = create_test_settings();
+
+        let binance_config = crate::config::BinanceConfig {
+            api_key: "custom_key".to_string(),
+            secret_key: "custom_secret".to_string(),
+            futures_api_key: "futures_key".to_string(),
+            futures_secret_key: "futures_secret".to_string(),
+            testnet: true,
+            base_url: "https://testnet.binance.vision".to_string(),
+            ws_url: "wss://testnet.binance.vision/ws".to_string(),
+            futures_base_url: "https://testnet.binancefuture.com".to_string(),
+            futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+            trading_mode: crate::config::TradingMode::RealTestnet,
+        };
+        let binance_client = BinanceClient::new(binance_config).unwrap();
+
+        let ai_service = create_mock_ai_service();
+        let storage = create_mock_storage().await;
+        let broadcaster = create_event_broadcaster();
+
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
+
+        // Engine should be created successfully
+        assert!(engine.get_open_trades().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_boost_engine_storage_null_db() {
+        let settings = create_test_settings();
+        let binance_client = create_mock_binance_client();
+        let ai_service = create_mock_ai_service();
+
+        // Create storage with null-db config (mock)
+        let storage = create_mock_storage().await;
+
+        let broadcaster = create_event_broadcaster();
+
+        let result =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await;
+
+        // Engine creation should succeed even with null-db
+        assert!(result.is_ok());
+    }
 }

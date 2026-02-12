@@ -287,6 +287,145 @@ describe('AuthContext', () => {
     expect(result.current.isAuthenticated).toBe(false)
   })
 
+  it('registers user successfully', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    let registerResult: boolean = false
+    await act(async () => {
+      registerResult = await result.current.register('test@example.com', 'password123', 'Test User')
+    })
+
+    expect(registerResult).toBe(true)
+    expect(result.current.user).toBeDefined()
+    expect(result.current.user?.email).toBe('test@example.com')
+    expect(result.current.isAuthenticated).toBe(true)
+  })
+
+  it('handles register failure', async () => {
+    mockAuthClient.register.mockRejectedValueOnce(new Error('Registration failed'))
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    let registerResult: boolean = true
+    await act(async () => {
+      registerResult = await result.current.register('test@example.com', 'password123')
+    })
+
+    expect(registerResult).toBe(false)
+    expect(result.current.user).toBeNull()
+    expect(result.current.isAuthenticated).toBe(false)
+    expect(result.current.error).toBeTruthy()
+  })
+
+  it('logs out user successfully', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    // First login
+    await act(async () => {
+      await result.current.login('test@example.com', 'password123')
+    })
+
+    expect(result.current.isAuthenticated).toBe(true)
+
+    // Then logout
+    act(() => {
+      result.current.logout()
+    })
+
+    expect(result.current.user).toBeNull()
+    expect(result.current.isAuthenticated).toBe(false)
+    expect(result.current.error).toBeNull()
+  })
+
+  it('refreshes user profile successfully', async () => {
+    const updatedUser = { ...mockUser, full_name: 'Updated Name' }
+    mockAuthClient.getProfile.mockResolvedValueOnce(updatedUser)
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    // First login
+    await act(async () => {
+      await result.current.login('test@example.com', 'password123')
+    })
+
+    // Then refresh
+    await act(async () => {
+      await result.current.refreshUser()
+    })
+
+    expect(result.current.user?.full_name).toBe('Updated Name')
+  })
+
+  it('handles refreshUser error', async () => {
+    mockAuthClient.getProfile.mockRejectedValueOnce(new Error('Refresh failed'))
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    // First login
+    await act(async () => {
+      await result.current.login('test@example.com', 'password123')
+    })
+
+    // Then refresh (should throw)
+    await expect(async () => {
+      await act(async () => {
+        await result.current.refreshUser()
+      })
+    }).rejects.toThrow()
+  })
+
+  it('initializes auth with valid token', async () => {
+    // Reset mocks
+    vi.clearAllMocks()
+
+    // Set up valid token scenario
+    mockAuthClient.getAuthToken.mockReturnValue('valid-token')
+    mockAuthClient.isTokenExpired.mockReturnValue(false)
+    mockAuthClient.getProfile.mockResolvedValue(mockUser)
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    // Wait for initialization
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.user).toBeDefined()
+    expect(result.current.isAuthenticated).toBe(true)
+  })
+
+  it('clears invalid token on initialization', async () => {
+    // Reset mocks
+    vi.clearAllMocks()
+
+    // Set up invalid token scenario
+    mockAuthClient.getAuthToken.mockReturnValue('invalid-token')
+    mockAuthClient.isTokenExpired.mockReturnValue(false)
+    mockAuthClient.getProfile.mockRejectedValue(new Error('Unauthorized'))
+
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    // Wait for initialization
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.user).toBeNull()
+    expect(result.current.isAuthenticated).toBe(false)
+    expect(mockAuthClient.removeAuthToken).toHaveBeenCalled()
+  })
+
+  it('throws error when useAuth is used outside provider', () => {
+    // Mock console.error to suppress error output
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(() => {
+      renderHook(() => useAuth())
+    }).toThrow('useAuth must be used within an AuthProvider')
+
+    consoleErrorSpy.mockRestore()
+  })
+
   it.todo('sets loading state correctly during operations', async () => {
     let resolveLogin: (value: unknown) => void
     const loginPromise = new Promise(resolve => {

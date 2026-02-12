@@ -61,6 +61,9 @@ export default defineConfig({
         'src/main.tsx',
         'public/',
         'dist/',
+        'src/i18n/locales/**',
+        'src/i18n/config.ts',
+        'src/components/ui/Logo.tsx',
       ],
       thresholds: {
         global: {

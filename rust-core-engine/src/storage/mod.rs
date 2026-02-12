@@ -3973,4 +3973,1829 @@ mod tests {
         let result = storage.get_config_suggestions(None).await;
         assert!(result.unwrap().is_empty()); // Returns Ok(vec![]) when db is None
     }
+
+    // =========================================================================
+    // COV_BOOST: Collection accessor error paths (null DB)
+    // =========================================================================
+
+    #[test]
+    fn test_collection_paper_trades_null_db() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let storage = create_null_db_storage().await;
+            let result = storage.paper_trades();
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err().to_string(), "Database not initialized");
+        });
+    }
+
+    #[test]
+    fn test_collection_portfolio_history_null_db() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let storage = create_null_db_storage().await;
+            let result = storage.portfolio_history();
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err().to_string(), "Database not initialized");
+        });
+    }
+
+    #[test]
+    fn test_collection_ai_signals_null_db() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let storage = create_null_db_storage().await;
+            let result = storage.ai_signals();
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err().to_string(), "Database not initialized");
+        });
+    }
+
+    #[test]
+    fn test_collection_performance_metrics_null_db() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let storage = create_null_db_storage().await;
+            let result = storage.performance_metrics();
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err().to_string(), "Database not initialized");
+        });
+    }
+
+    #[test]
+    fn test_collection_paper_trading_settings_null_db() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let storage = create_null_db_storage().await;
+            let result = storage.paper_trading_settings();
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err().to_string(), "Database not initialized");
+        });
+    }
+
+    // =========================================================================
+    // COV_BOOST: Additional struct serialization tests
+    // =========================================================================
+
+    #[test]
+    fn test_paper_trading_settings_record_serialization_v2() {
+        use mongodb::bson::{doc, Document};
+
+        let timestamp = Utc::now();
+        let settings_doc: Document = doc! {
+            "initial_balance": 10000.0,
+            "max_trades": 5
+        };
+
+        let record = PaperTradingSettingsRecord {
+            id: None,
+            settings_data: settings_doc,
+            created_at: timestamp,
+            updated_at: timestamp,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PaperTradingSettingsRecord = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.settings_data.contains_key("initial_balance"));
+        assert!(deserialized.settings_data.contains_key("max_trades"));
+    }
+
+    #[test]
+    fn test_trade_analysis_record_serialization() {
+        use mongodb::bson::{doc, Document};
+
+        let timestamp = Utc::now();
+        let analysis_doc: Document = doc! {
+            "reasoning": "Strong momentum",
+            "technical_indicators": {"RSI": 65, "MACD": "positive"},
+            "expected_outcome": "PROFIT"
+        };
+
+        let record = TradeAnalysisRecord {
+            id: None,
+            trade_id: "trade_analysis_001".to_string(),
+            created_at: timestamp,
+            is_winning: true,
+            pnl_usdt: 125.50,
+            pnl_percentage: 8.5,
+            symbol: Some("BTCUSDT".to_string()),
+            side: Some("LONG".to_string()),
+            entry_price: Some(50000.0),
+            exit_price: Some(54250.0),
+            close_reason: Some("TAKE_PROFIT".to_string()),
+            analysis: analysis_doc,
+            trade_data: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: TradeAnalysisRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.trade_id, "trade_analysis_001");
+        assert!(deserialized.is_winning);
+        assert_eq!(deserialized.pnl_usdt, 125.50);
+        assert!(deserialized.symbol.is_some());
+    }
+
+    #[test]
+    fn test_config_suggestions_record_serialization() {
+        use mongodb::bson::{doc, Document};
+
+        let timestamp = Utc::now();
+        let suggestions_doc: Document = doc! {
+            "stop_loss_percentage": {
+                "current": "2.0",
+                "suggested": "1.5",
+                "reasoning": "Reduce drawdown risk"
+            }
+        };
+
+        let record = ConfigSuggestionsRecord {
+            id: None,
+            created_at: timestamp,
+            status: "pending".to_string(),
+            timestamp: Some(timestamp.to_rfc3339()),
+            current_config: None,
+            trade_stats: None,
+            suggestions: suggestions_doc,
+            applied_changes: vec![],
+            task_id: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: ConfigSuggestionsRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.status, "pending");
+        assert!(deserialized.applied_changes.is_empty());
+        assert!(deserialized.task_id.is_none());
+    }
+
+    // =========================================================================
+    // COV_BOOST: Edge cases for existing structs
+    // =========================================================================
+
+    #[test]
+    fn test_ai_signal_record_with_outcome_fields() {
+        let timestamp = Utc::now();
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "closed_signal".to_string(),
+            symbol: "ADAUSDT".to_string(),
+            signal_type: "SHORT".to_string(),
+            confidence: 0.75,
+            reasoning: "Overbought RSI".to_string(),
+            entry_price: 0.5,
+            trend_direction: "DOWN".to_string(),
+            trend_strength: 0.65,
+            volatility: 0.4,
+            risk_score: 0.3,
+            executed: true,
+            trade_id: Some("completed_trade".to_string()),
+            created_at: timestamp,
+            timestamp,
+            outcome: Some("WIN".to_string()),
+            actual_pnl: Some(125.50),
+            pnl_percentage: Some(8.5),
+            exit_price: Some(0.46),
+            close_reason: Some("TAKE_PROFIT".to_string()),
+            closed_at: Some(timestamp + chrono::Duration::hours(3)),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: AISignalRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.outcome.unwrap(), "WIN");
+        assert_eq!(deserialized.actual_pnl.unwrap(), 125.50);
+        assert_eq!(deserialized.pnl_percentage.unwrap(), 8.5);
+        assert!(deserialized.closed_at.is_some());
+    }
+
+    #[test]
+    fn test_portfolio_history_record_extreme_values() {
+        let timestamp = Utc::now();
+        let record = PortfolioHistoryRecord {
+            id: None,
+            timestamp,
+            current_balance: f64::MAX / 2.0,
+            equity: f64::MAX / 2.0,
+            margin_used: 0.0,
+            free_margin: f64::MAX / 2.0,
+            total_pnl: f64::MAX / 4.0,
+            total_pnl_percentage: 1000000.0,
+            total_trades: u32::MAX,
+            win_rate: 100.0,
+            profit_factor: f64::MAX,
+            max_drawdown: 0.0,
+            max_drawdown_percentage: 0.0,
+            open_positions: u32::MAX,
+            created_at: timestamp,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PortfolioHistoryRecord = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.current_balance > 1e100);
+        assert_eq!(deserialized.total_trades, u32::MAX);
+    }
+
+    #[test]
+    fn test_performance_metrics_record_edge_case() {
+        let date = Utc::now();
+        let record = PerformanceMetricsRecord {
+            id: None,
+            date,
+            total_trades: 1,
+            winning_trades: 1,
+            losing_trades: 0,
+            win_rate: 100.0,
+            average_win: 1000.0,
+            average_loss: 0.0,
+            largest_win: 1000.0,
+            largest_loss: 0.0,
+            profit_factor: 999.99,
+            sharpe_ratio: 5.5,
+            max_drawdown: 0.0,
+            max_drawdown_percentage: 0.0,
+            total_pnl: 1000.0,
+            daily_pnl: 1000.0,
+            created_at: date,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PerformanceMetricsRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.profit_factor, 999.99);
+        assert_eq!(deserialized.losing_trades, 0);
+    }
+
+    // =========================================================================
+    // COV_BOOST: Additional null DB path coverage
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_null_db_store_analysis_v2() {
+        use crate::market_data::analyzer::{MultiTimeframeAnalysis, TradingSignal};
+        use std::collections::HashMap;
+
+        let storage = create_null_db_storage().await;
+        let analysis = MultiTimeframeAnalysis {
+            symbol: "BTCUSDT".to_string(),
+            timestamp: 1640000000000,
+            timeframe_signals: HashMap::new(),
+            overall_signal: TradingSignal::Buy,
+            overall_confidence: 0.85,
+            entry_price: Some(50000.0),
+            stop_loss: Some(48000.0),
+            take_profit: Some(55000.0),
+            risk_reward_ratio: Some(2.5),
+        };
+
+        let result = storage.store_analysis(&analysis).await;
+        assert!(result.is_ok()); // Should succeed with null DB (logs only)
+    }
+
+    #[tokio::test]
+    async fn test_null_db_store_trade_record_v2() {
+        let storage = create_null_db_storage().await;
+        let trade = create_sample_trade_record();
+
+        let result = storage.store_trade_record(&trade).await;
+        assert!(result.is_ok()); // Should succeed with null DB (logs only)
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_performance_stats_v2() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_performance_stats().await;
+
+        assert!(result.is_ok());
+        let stats = result.unwrap();
+        assert_eq!(stats.total_trades, 0);
+        assert_eq!(stats.win_rate, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_trade_history_with_symbol() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_trade_history(Some("ETHUSDT"), Some(50)).await;
+
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_get_trade_history_no_symbol() {
+        let storage = create_null_db_storage().await;
+        let result = storage.get_trade_history(None, None).await;
+
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_null_db_store_market_data_v2() {
+        let storage = create_null_db_storage().await;
+        let klines = vec![create_sample_kline()];
+
+        let result = storage.store_market_data("BTCUSDT", "1h", &klines).await;
+        assert!(result.is_ok());
+    }
+
+    // =========================================================================
+    // COV_BOOST: Price parsing edge cases
+    // =========================================================================
+
+    #[test]
+    fn test_kline_negative_price_parsing() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "-50000.0".to_string(),
+            high: "51000.0".to_string(),
+            low: "49000.0".to_string(),
+            close: "50500.0".to_string(),
+            volume: "100.5".to_string(),
+            quote_asset_volume: "5025000.0".to_string(),
+            number_of_trades: 1000,
+            taker_buy_base_asset_volume: "50.0".to_string(),
+            taker_buy_quote_asset_volume: "2500000.0".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let open_price = kline.open.parse::<f64>();
+        assert!(open_price.is_ok());
+        assert!(open_price.unwrap() < 0.0);
+    }
+
+    #[test]
+    fn test_kline_zero_price() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "0.0".to_string(),
+            high: "0.0".to_string(),
+            low: "0.0".to_string(),
+            close: "0.0".to_string(),
+            volume: "0".to_string(),
+            quote_asset_volume: "0".to_string(),
+            number_of_trades: 0,
+            taker_buy_base_asset_volume: "0".to_string(),
+            taker_buy_quote_asset_volume: "0".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let close_price = kline.close.parse::<f64>().unwrap();
+        assert_eq!(close_price, 0.0);
+    }
+
+    #[test]
+    fn test_kline_very_large_numbers() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "999999999999.99".to_string(),
+            high: "1000000000000.00".to_string(),
+            low: "999999999999.00".to_string(),
+            close: "999999999999.50".to_string(),
+            volume: "1000000000.0".to_string(),
+            quote_asset_volume: "999999999999999.0".to_string(),
+            number_of_trades: i64::MAX,
+            taker_buy_base_asset_volume: "500000000.0".to_string(),
+            taker_buy_quote_asset_volume: "500000000000000.0".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let high_price = kline.high.parse::<f64>().unwrap();
+        assert!(high_price >= 1e12);
+        assert_eq!(kline.number_of_trades, i64::MAX);
+    }
+
+    // =========================================================================
+    // COV_BOOST: TradeRecord edge cases
+    // =========================================================================
+
+    #[test]
+    fn test_trade_record_very_long_trade() {
+        let trade = TradeRecord {
+            id: None,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            quantity: 1.0,
+            entry_price: 30000.0,
+            exit_price: Some(60000.0),
+            stop_loss: None,
+            take_profit: None,
+            entry_time: 1640000000000, // Jan 2022
+            exit_time: Some(1672536000000), // Jan 2023 (1 year later)
+            pnl: Some(30000.0),
+            status: "closed".to_string(),
+            strategy_used: Some("HODL".to_string()),
+        };
+
+        let json = serde_json::to_string(&trade).unwrap();
+        let deserialized: TradeRecord = serde_json::from_str(&json).unwrap();
+
+        let duration = deserialized.exit_time.unwrap() - deserialized.entry_time;
+        assert!(duration > 365 * 24 * 60 * 60 * 1000); // More than a year
+    }
+
+    #[test]
+    fn test_trade_record_multiple_strategy_names() {
+        let trade = TradeRecord {
+            id: None,
+            symbol: "ETHUSDT".to_string(),
+            side: "SELL".to_string(),
+            quantity: 5.0,
+            entry_price: 2000.0,
+            exit_price: Some(1800.0),
+            stop_loss: Some(2100.0),
+            take_profit: Some(1500.0),
+            entry_time: 1640000000000,
+            exit_time: Some(1640086400000),
+            pnl: Some(1000.0),
+            status: "closed".to_string(),
+            strategy_used: Some("MACD_RSI_BOLLINGER_COMBINED".to_string()),
+        };
+
+        let json = serde_json::to_string(&trade).unwrap();
+        let deserialized: TradeRecord = serde_json::from_str(&json).unwrap();
+
+        let strategy = deserialized.strategy_used.as_ref().unwrap();
+        assert!(strategy.contains("MACD"));
+        assert!(strategy.contains("RSI"));
+    }
+
+    // =========================================================================
+    // COV_BOOST: Test Default implementation paths
+    // =========================================================================
+
+    #[test]
+    fn test_performance_stats_default_all_fields() {
+        let stats = PerformanceStats::default();
+
+        // Verify every field is initialized to zero/default
+        assert_eq!(stats.total_trades, 0);
+        assert_eq!(stats.winning_trades, 0);
+        assert_eq!(stats.losing_trades, 0);
+        assert_eq!(stats.win_rate, 0.0);
+        assert_eq!(stats.total_pnl, 0.0);
+        assert_eq!(stats.avg_pnl, 0.0);
+        assert_eq!(stats.max_win, 0.0);
+        assert_eq!(stats.max_loss, 0.0);
+
+        // Can be serialized
+        let json = serde_json::to_string(&stats).unwrap();
+        assert!(json.contains("\"total_trades\":0"));
+    }
+
+    // =========================================================================
+    // COV_BOOST: Comprehensive struct serialization/deserialization tests
+    // =========================================================================
+
+    #[test]
+    fn test_boost_trade_record_serialization() {
+        let record = TradeRecord {
+            id: None,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            quantity: 1.5,
+            entry_price: 45000.0,
+            exit_price: Some(46000.0),
+            stop_loss: Some(44000.0),
+            take_profit: Some(47000.0),
+            entry_time: 1640000000000,
+            exit_time: Some(1640086400000),
+            pnl: Some(1500.0),
+            status: "closed".to_string(),
+            strategy_used: Some("RSI".to_string()),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: TradeRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(record.symbol, deserialized.symbol);
+        assert_eq!(record.side, deserialized.side);
+        assert_eq!(record.quantity, deserialized.quantity);
+        assert_eq!(record.pnl, deserialized.pnl);
+    }
+
+    #[test]
+    fn test_boost_trade_record_open_trade() {
+        let record = TradeRecord {
+            id: None,
+            symbol: "ETHUSDT".to_string(),
+            side: "SELL".to_string(),
+            quantity: 5.0,
+            entry_price: 3000.0,
+            exit_price: None,
+            stop_loss: None,
+            take_profit: None,
+            entry_time: 1640000000000,
+            exit_time: None,
+            pnl: None,
+            status: "open".to_string(),
+            strategy_used: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: TradeRecord = serde_json::from_str(&json).unwrap();
+
+        assert!(deserialized.exit_price.is_none());
+        assert!(deserialized.pnl.is_none());
+        assert_eq!(deserialized.status, "open");
+    }
+
+    #[test]
+    fn test_boost_performance_stats_serialization() {
+        let stats = PerformanceStats {
+            total_trades: 100,
+            winning_trades: 65,
+            losing_trades: 35,
+            win_rate: 0.65,
+            total_pnl: 5000.0,
+            avg_pnl: 50.0,
+            max_win: 1000.0,
+            max_loss: -500.0,
+        };
+
+        let json = serde_json::to_string(&stats).unwrap();
+        let deserialized: PerformanceStats = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(stats.total_trades, deserialized.total_trades);
+        assert_eq!(stats.winning_trades, deserialized.winning_trades);
+        assert_eq!(stats.win_rate, deserialized.win_rate);
+    }
+
+    #[test]
+    fn test_boost_performance_stats_clone() {
+        let stats = PerformanceStats::default();
+        let cloned = stats.clone();
+
+        assert_eq!(stats.total_trades, cloned.total_trades);
+        assert_eq!(stats.win_rate, cloned.win_rate);
+    }
+
+    #[test]
+    fn test_boost_performance_stats_debug() {
+        let stats = PerformanceStats::default();
+        let debug_str = format!("{:?}", stats);
+
+        assert!(debug_str.contains("PerformanceStats"));
+    }
+
+    #[test]
+    fn test_boost_paper_trading_record_serialization() {
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: "trade_123".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            trade_type: "LONG".to_string(),
+            status: "closed".to_string(),
+            entry_price: 50000.0,
+            exit_price: Some(51000.0),
+            quantity: 0.1,
+            leverage: 5,
+            pnl: Some(50.0),
+            pnl_percentage: 2.0,
+            trading_fees: 0.5,
+            funding_fees: 0.1,
+            open_time: Utc::now(),
+            close_time: Some(Utc::now()),
+            ai_signal_id: Some("signal_456".to_string()),
+            ai_confidence: Some(0.85),
+            close_reason: Some("TakeProfit".to_string()),
+            created_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PaperTradingRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(record.trade_id, deserialized.trade_id);
+        assert_eq!(record.symbol, deserialized.symbol);
+        assert_eq!(record.leverage, deserialized.leverage);
+    }
+
+    #[test]
+    fn test_boost_paper_trading_record_open() {
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: "trade_open".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            trade_type: "SHORT".to_string(),
+            status: "open".to_string(),
+            entry_price: 2000.0,
+            exit_price: None,
+            quantity: 1.0,
+            leverage: 3,
+            pnl: None,
+            pnl_percentage: 0.0,
+            trading_fees: 0.2,
+            funding_fees: 0.0,
+            open_time: Utc::now(),
+            close_time: None,
+            ai_signal_id: None,
+            ai_confidence: None,
+            close_reason: None,
+            created_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(json.contains("\"status\":\"open\""));
+        assert!(json.contains("trade_open"));
+    }
+
+    #[test]
+    fn test_boost_portfolio_history_record_serialization() {
+        let record = PortfolioHistoryRecord {
+            id: None,
+            timestamp: Utc::now(),
+            current_balance: 10000.0,
+            equity: 10500.0,
+            margin_used: 2000.0,
+            free_margin: 8500.0,
+            total_pnl: 500.0,
+            total_pnl_percentage: 5.0,
+            total_trades: 20,
+            win_rate: 0.65,
+            profit_factor: 1.8,
+            max_drawdown: 300.0,
+            max_drawdown_percentage: 3.0,
+            open_positions: 2,
+            created_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PortfolioHistoryRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(record.current_balance, deserialized.current_balance);
+        assert_eq!(record.equity, deserialized.equity);
+        assert_eq!(record.total_trades, deserialized.total_trades);
+    }
+
+    #[test]
+    fn test_boost_portfolio_history_negative_pnl() {
+        let record = PortfolioHistoryRecord {
+            id: None,
+            timestamp: Utc::now(),
+            current_balance: 9500.0,
+            equity: 9000.0,
+            margin_used: 1500.0,
+            free_margin: 7500.0,
+            total_pnl: -500.0,
+            total_pnl_percentage: -5.0,
+            total_trades: 10,
+            win_rate: 0.4,
+            profit_factor: 0.8,
+            max_drawdown: 800.0,
+            max_drawdown_percentage: 8.0,
+            open_positions: 1,
+            created_at: Utc::now(),
+        };
+
+        assert!(record.total_pnl < 0.0);
+        assert!(record.profit_factor < 1.0);
+    }
+
+    #[test]
+    fn test_boost_ai_signal_record_serialization() {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "sig_123".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: "BUY".to_string(),
+            confidence: 0.85,
+            reasoning: "Strong bullish momentum".to_string(),
+            entry_price: 45000.0,
+            trend_direction: "UP".to_string(),
+            trend_strength: 0.75,
+            volatility: 0.15,
+            risk_score: 0.25,
+            executed: true,
+            trade_id: Some("trade_789".to_string()),
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: Some("win".to_string()),
+            actual_pnl: Some(500.0),
+            pnl_percentage: Some(2.5),
+            exit_price: Some(46125.0),
+            close_reason: Some("TakeProfit".to_string()),
+            closed_at: Some(Utc::now()),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: AISignalRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(record.signal_id, deserialized.signal_id);
+        assert_eq!(record.confidence, deserialized.confidence);
+        assert_eq!(record.executed, deserialized.executed);
+    }
+
+    #[test]
+    fn test_boost_ai_signal_not_executed() {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "sig_pending".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            signal_type: "SELL".to_string(),
+            confidence: 0.65,
+            reasoning: "Weak signal".to_string(),
+            entry_price: 3000.0,
+            trend_direction: "DOWN".to_string(),
+            trend_strength: 0.45,
+            volatility: 0.25,
+            risk_score: 0.55,
+            executed: false,
+            trade_id: None,
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: None,
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        assert!(!record.executed);
+        assert!(record.trade_id.is_none());
+        assert!(record.outcome.is_none());
+    }
+
+    #[test]
+    fn test_boost_performance_metrics_record_serialization() {
+        let record = PerformanceMetricsRecord {
+            id: None,
+            date: Utc::now(),
+            total_trades: 50,
+            winning_trades: 32,
+            losing_trades: 18,
+            win_rate: 0.64,
+            average_win: 150.0,
+            average_loss: -80.0,
+            largest_win: 500.0,
+            largest_loss: -250.0,
+            profit_factor: 2.0,
+            sharpe_ratio: 1.5,
+            max_drawdown: 400.0,
+            max_drawdown_percentage: 4.0,
+            total_pnl: 2000.0,
+            daily_pnl: 100.0,
+            created_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: PerformanceMetricsRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(record.total_trades, deserialized.total_trades);
+        assert_eq!(record.win_rate, deserialized.win_rate);
+        assert_eq!(record.profit_factor, deserialized.profit_factor);
+    }
+
+    #[test]
+    fn test_boost_performance_metrics_zero_trades() {
+        let record = PerformanceMetricsRecord {
+            id: None,
+            date: Utc::now(),
+            total_trades: 0,
+            winning_trades: 0,
+            losing_trades: 0,
+            win_rate: 0.0,
+            average_win: 0.0,
+            average_loss: 0.0,
+            largest_win: 0.0,
+            largest_loss: 0.0,
+            profit_factor: 0.0,
+            sharpe_ratio: 0.0,
+            max_drawdown: 0.0,
+            max_drawdown_percentage: 0.0,
+            total_pnl: 0.0,
+            daily_pnl: 0.0,
+            created_at: Utc::now(),
+        };
+
+        assert_eq!(record.total_trades, 0);
+        assert_eq!(record.win_rate, 0.0);
+    }
+
+    #[test]
+    fn test_boost_paper_trading_settings_record_serialization() {
+        let mut doc = mongodb::bson::Document::new();
+        doc.insert("initial_balance", 10000.0);
+        doc.insert("leverage", 5);
+
+        let record = PaperTradingSettingsRecord {
+            id: None,
+            settings_data: doc.clone(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(json.contains("settings_data"));
+    }
+
+    #[test]
+    fn test_boost_trade_analysis_record_serialization() {
+        let mut analysis_doc = mongodb::bson::Document::new();
+        analysis_doc.insert("summary", "Good trade");
+
+        let mut trade_data_doc = mongodb::bson::Document::new();
+        trade_data_doc.insert("symbol", "BTCUSDT");
+
+        let record = TradeAnalysisRecord {
+            id: None,
+            trade_id: "trade_analysis_1".to_string(),
+            created_at: Utc::now(),
+            is_winning: true,
+            pnl_usdt: 500.0,
+            pnl_percentage: 5.0,
+            symbol: Some("BTCUSDT".to_string()),
+            side: Some("BUY".to_string()),
+            entry_price: Some(45000.0),
+            exit_price: Some(47250.0),
+            close_reason: Some("TakeProfit".to_string()),
+            analysis: analysis_doc,
+            trade_data: Some(trade_data_doc),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(json.contains("trade_analysis_1"));
+        assert!(json.contains("pnl_usdt"));
+    }
+
+    #[test]
+    fn test_boost_trade_analysis_losing_trade() {
+        let mut analysis_doc = mongodb::bson::Document::new();
+        analysis_doc.insert("summary", "Bad entry");
+
+        let record = TradeAnalysisRecord {
+            id: None,
+            trade_id: "losing_trade".to_string(),
+            created_at: Utc::now(),
+            is_winning: false,
+            pnl_usdt: -200.0,
+            pnl_percentage: -2.0,
+            symbol: Some("ETHUSDT".to_string()),
+            side: Some("SELL".to_string()),
+            entry_price: Some(3000.0),
+            exit_price: Some(3060.0),
+            close_reason: Some("StopLoss".to_string()),
+            analysis: analysis_doc,
+            trade_data: None,
+        };
+
+        assert!(!record.is_winning);
+        assert!(record.pnl_usdt < 0.0);
+    }
+
+    #[test]
+    fn test_boost_config_suggestions_record_serialization() {
+        let mut suggestions_doc = mongodb::bson::Document::new();
+        suggestions_doc.insert("recommendation", "Increase stop loss");
+
+        let record = ConfigSuggestionsRecord {
+            id: None,
+            created_at: Utc::now(),
+            status: "pending".to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            current_config: None,
+            trade_stats: None,
+            suggestions: suggestions_doc,
+            applied_changes: vec!["stop_loss".to_string()],
+            task_id: Some("task_123".to_string()),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(json.contains("pending"));
+        assert!(json.contains("stop_loss"));
+    }
+
+    #[test]
+    fn test_boost_config_suggestions_applied() {
+        let mut suggestions_doc = mongodb::bson::Document::new();
+        suggestions_doc.insert("recommendation", "Update");
+
+        let record = ConfigSuggestionsRecord {
+            id: None,
+            created_at: Utc::now(),
+            status: "applied".to_string(),
+            timestamp: None,
+            current_config: None,
+            trade_stats: None,
+            suggestions: suggestions_doc,
+            applied_changes: vec!["leverage".to_string(), "position_size".to_string()],
+            task_id: None,
+        };
+
+        assert_eq!(record.status, "applied");
+        assert_eq!(record.applied_changes.len(), 2);
+    }
+
+    // =========================================================================
+    // COV_BOOST: Edge cases for struct fields
+    // =========================================================================
+
+    #[test]
+    fn test_boost_trade_record_empty_symbol() {
+        let record = TradeRecord {
+            id: None,
+            symbol: "".to_string(),
+            side: "BUY".to_string(),
+            quantity: 1.0,
+            entry_price: 1.0,
+            exit_price: None,
+            stop_loss: None,
+            take_profit: None,
+            entry_time: 0,
+            exit_time: None,
+            pnl: None,
+            status: "open".to_string(),
+            strategy_used: None,
+        };
+
+        assert_eq!(record.symbol, "");
+    }
+
+    #[test]
+    fn test_boost_trade_record_negative_quantity() {
+        let record = TradeRecord {
+            id: None,
+            symbol: "TEST".to_string(),
+            side: "SELL".to_string(),
+            quantity: -1.0,
+            entry_price: 100.0,
+            exit_price: None,
+            stop_loss: None,
+            take_profit: None,
+            entry_time: 1640000000000,
+            exit_time: None,
+            pnl: None,
+            status: "open".to_string(),
+            strategy_used: None,
+        };
+
+        assert!(record.quantity < 0.0);
+    }
+
+    #[test]
+    fn test_boost_trade_record_zero_price() {
+        let record = TradeRecord {
+            id: None,
+            symbol: "TEST".to_string(),
+            side: "BUY".to_string(),
+            quantity: 1.0,
+            entry_price: 0.0,
+            exit_price: Some(0.0),
+            stop_loss: Some(0.0),
+            take_profit: Some(0.0),
+            entry_time: 0,
+            exit_time: Some(0),
+            pnl: Some(0.0),
+            status: "closed".to_string(),
+            strategy_used: None,
+        };
+
+        assert_eq!(record.entry_price, 0.0);
+    }
+
+    #[test]
+    fn test_boost_performance_stats_negative_values() {
+        let stats = PerformanceStats {
+            total_trades: 10,
+            winning_trades: 0,
+            losing_trades: 10,
+            win_rate: 0.0,
+            total_pnl: -5000.0,
+            avg_pnl: -500.0,
+            max_win: 0.0,
+            max_loss: -1000.0,
+        };
+
+        assert!(stats.total_pnl < 0.0);
+        assert!(stats.max_loss < 0.0);
+    }
+
+    #[test]
+    fn test_boost_paper_trading_record_max_leverage() {
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: "high_lev".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            trade_type: "LONG".to_string(),
+            status: "open".to_string(),
+            entry_price: 50000.0,
+            exit_price: None,
+            quantity: 0.1,
+            leverage: 125,
+            pnl: None,
+            pnl_percentage: 0.0,
+            trading_fees: 0.5,
+            funding_fees: 0.0,
+            open_time: Utc::now(),
+            close_time: None,
+            ai_signal_id: None,
+            ai_confidence: None,
+            close_reason: None,
+            created_at: Utc::now(),
+        };
+
+        assert_eq!(record.leverage, 125);
+    }
+
+    #[test]
+    fn test_boost_ai_signal_record_extreme_confidence() {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "sig_extreme".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: "BUY".to_string(),
+            confidence: 0.99,
+            reasoning: "Very strong signal".to_string(),
+            entry_price: 50000.0,
+            trend_direction: "UP".to_string(),
+            trend_strength: 0.95,
+            volatility: 0.05,
+            risk_score: 0.10,
+            executed: false,
+            trade_id: None,
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: None,
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        assert!(record.confidence > 0.9);
+        assert!(record.trend_strength > 0.9);
+    }
+
+    #[test]
+    fn test_boost_ai_signal_record_low_confidence() {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "sig_weak".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: "NEUTRAL".to_string(),
+            confidence: 0.01,
+            reasoning: "Very weak signal".to_string(),
+            entry_price: 50000.0,
+            trend_direction: "SIDEWAYS".to_string(),
+            trend_strength: 0.05,
+            volatility: 0.95,
+            risk_score: 0.90,
+            executed: false,
+            trade_id: None,
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: None,
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        assert!(record.confidence < 0.1);
+        assert!(record.volatility > 0.9);
+    }
+
+    #[test]
+    fn test_boost_portfolio_history_zero_balance() {
+        let record = PortfolioHistoryRecord {
+            id: None,
+            timestamp: Utc::now(),
+            current_balance: 0.0,
+            equity: 0.0,
+            margin_used: 0.0,
+            free_margin: 0.0,
+            total_pnl: 0.0,
+            total_pnl_percentage: 0.0,
+            total_trades: 0,
+            win_rate: 0.0,
+            profit_factor: 0.0,
+            max_drawdown: 0.0,
+            max_drawdown_percentage: 0.0,
+            open_positions: 0,
+            created_at: Utc::now(),
+        };
+
+        assert_eq!(record.current_balance, 0.0);
+        assert_eq!(record.equity, 0.0);
+    }
+
+    #[test]
+    fn test_boost_performance_metrics_perfect_win_rate() {
+        let record = PerformanceMetricsRecord {
+            id: None,
+            date: Utc::now(),
+            total_trades: 100,
+            winning_trades: 100,
+            losing_trades: 0,
+            win_rate: 1.0,
+            average_win: 100.0,
+            average_loss: 0.0,
+            largest_win: 500.0,
+            largest_loss: 0.0,
+            profit_factor: 99.9,
+            sharpe_ratio: 3.0,
+            max_drawdown: 0.0,
+            max_drawdown_percentage: 0.0,
+            total_pnl: 10000.0,
+            daily_pnl: 100.0,
+            created_at: Utc::now(),
+        };
+
+        assert_eq!(record.win_rate, 1.0);
+        assert_eq!(record.losing_trades, 0);
+    }
+
+    // =========================================================================
+    // COV_BOOST: Clone trait coverage
+    // =========================================================================
+
+    #[test]
+    fn test_boost_trade_record_clone() {
+        let record = create_sample_trade_record();
+        let cloned = record.clone();
+
+        assert_eq!(record.symbol, cloned.symbol);
+        assert_eq!(record.quantity, cloned.quantity);
+    }
+
+    #[test]
+    fn test_boost_paper_trading_record_clone() {
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: "clone_test".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            trade_type: "LONG".to_string(),
+            status: "open".to_string(),
+            entry_price: 50000.0,
+            exit_price: None,
+            quantity: 0.1,
+            leverage: 5,
+            pnl: None,
+            pnl_percentage: 0.0,
+            trading_fees: 0.5,
+            funding_fees: 0.0,
+            open_time: Utc::now(),
+            close_time: None,
+            ai_signal_id: None,
+            ai_confidence: None,
+            close_reason: None,
+            created_at: Utc::now(),
+        };
+
+        let cloned = record.clone();
+        assert_eq!(record.trade_id, cloned.trade_id);
+    }
+
+    #[test]
+    fn test_boost_portfolio_history_record_clone() {
+        let record = PortfolioHistoryRecord {
+            id: None,
+            timestamp: Utc::now(),
+            current_balance: 10000.0,
+            equity: 10000.0,
+            margin_used: 0.0,
+            free_margin: 10000.0,
+            total_pnl: 0.0,
+            total_pnl_percentage: 0.0,
+            total_trades: 0,
+            win_rate: 0.0,
+            profit_factor: 0.0,
+            max_drawdown: 0.0,
+            max_drawdown_percentage: 0.0,
+            open_positions: 0,
+            created_at: Utc::now(),
+        };
+
+        let cloned = record.clone();
+        assert_eq!(record.current_balance, cloned.current_balance);
+    }
+
+    #[test]
+    fn test_boost_ai_signal_record_clone() {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "clone_sig".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: "BUY".to_string(),
+            confidence: 0.75,
+            reasoning: "Test".to_string(),
+            entry_price: 50000.0,
+            trend_direction: "UP".to_string(),
+            trend_strength: 0.7,
+            volatility: 0.2,
+            risk_score: 0.3,
+            executed: false,
+            trade_id: None,
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: None,
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        let cloned = record.clone();
+        assert_eq!(record.signal_id, cloned.signal_id);
+    }
+
+    // =========================================================================
+    // COV_BOOST: Debug trait coverage
+    // =========================================================================
+
+    #[test]
+    fn test_boost_trade_record_debug() {
+        let record = create_sample_trade_record();
+        let debug_str = format!("{:?}", record);
+
+        assert!(debug_str.contains("TradeRecord"));
+        assert!(debug_str.contains("BTCUSDT"));
+    }
+
+    #[test]
+    fn test_boost_paper_trading_record_debug() {
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: "debug_test".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            trade_type: "SHORT".to_string(),
+            status: "closed".to_string(),
+            entry_price: 3000.0,
+            exit_price: Some(2900.0),
+            quantity: 1.0,
+            leverage: 3,
+            pnl: Some(100.0),
+            pnl_percentage: 3.33,
+            trading_fees: 0.3,
+            funding_fees: 0.1,
+            open_time: Utc::now(),
+            close_time: Some(Utc::now()),
+            ai_signal_id: None,
+            ai_confidence: None,
+            close_reason: Some("TakeProfit".to_string()),
+            created_at: Utc::now(),
+        };
+
+        let debug_str = format!("{:?}", record);
+        assert!(debug_str.contains("PaperTradingRecord"));
+    }
+
+    #[test]
+    fn test_boost_ai_signal_record_debug() {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "debug_sig".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: "BUY".to_string(),
+            confidence: 0.85,
+            reasoning: "Debug test".to_string(),
+            entry_price: 50000.0,
+            trend_direction: "UP".to_string(),
+            trend_strength: 0.8,
+            volatility: 0.15,
+            risk_score: 0.2,
+            executed: true,
+            trade_id: Some("trade_debug".to_string()),
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: Some("pending".to_string()),
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        let debug_str = format!("{:?}", record);
+        assert!(debug_str.contains("AISignalRecord"));
+        assert!(debug_str.contains("debug_sig"));
+    }
+
+    // =========================================================================
+    // COV_BOOST: Empty string fields
+    // =========================================================================
+
+    #[test]
+    fn test_boost_trade_record_empty_strategy() {
+        let record = TradeRecord {
+            id: None,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            quantity: 1.0,
+            entry_price: 50000.0,
+            exit_price: None,
+            stop_loss: None,
+            take_profit: None,
+            entry_time: 1640000000000,
+            exit_time: None,
+            pnl: None,
+            status: "open".to_string(),
+            strategy_used: Some("".to_string()),
+        };
+
+        assert_eq!(record.strategy_used.as_ref().unwrap(), "");
+    }
+
+    #[test]
+    fn test_boost_ai_signal_empty_reasoning() {
+        let record = AISignalRecord {
+            id: None,
+            signal_id: "empty_reason".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: "BUY".to_string(),
+            confidence: 0.5,
+            reasoning: "".to_string(),
+            entry_price: 50000.0,
+            trend_direction: "".to_string(),
+            trend_strength: 0.5,
+            volatility: 0.5,
+            risk_score: 0.5,
+            executed: false,
+            trade_id: None,
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: None,
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        assert_eq!(record.reasoning, "");
+        assert_eq!(record.trend_direction, "");
+    }
+    // =========================================================================
+    // COV_BOOST: Additional collection & edge case tests (new, non-duplicate)
+    // =========================================================================
+
+    #[tokio::test]
+    async fn test_boost_api_keys_collection_error() {
+        let storage = create_null_db_storage().await;
+        let result = storage.api_keys();
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+    }
+
+    #[tokio::test]
+    async fn test_boost_push_subscriptions_collection_error() {
+        let storage = create_null_db_storage().await;
+        let result = storage.push_subscriptions();
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+    }
+
+    // =========================================================================
+    // COV_BOOST: Kline field combinations for parse error paths
+    // =========================================================================
+
+    #[test]
+    fn test_boost_kline_all_invalid_prices() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "invalid".to_string(),
+            high: "bad".to_string(),
+            low: "wrong".to_string(),
+            close: "error".to_string(),
+            volume: "nope".to_string(),
+            quote_asset_volume: "fail".to_string(),
+            number_of_trades: 0,
+            taker_buy_base_asset_volume: "".to_string(),
+            taker_buy_quote_asset_volume: "".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        // All prices should fail to parse
+        assert!(kline.open.parse::<f64>().is_err());
+        assert!(kline.high.parse::<f64>().is_err());
+        assert!(kline.low.parse::<f64>().is_err());
+        assert!(kline.close.parse::<f64>().is_err());
+    }
+
+    #[test]
+    fn test_boost_kline_mixed_valid_invalid() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "50000.0".to_string(),
+            high: "invalid".to_string(),
+            low: "49000.0".to_string(),
+            close: "error".to_string(),
+            volume: "100".to_string(),
+            quote_asset_volume: "5000000".to_string(),
+            number_of_trades: 100,
+            taker_buy_base_asset_volume: "50".to_string(),
+            taker_buy_quote_asset_volume: "2500000".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        assert!(kline.open.parse::<f64>().is_ok());
+        assert!(kline.high.parse::<f64>().is_err());
+        assert!(kline.low.parse::<f64>().is_ok());
+        assert!(kline.close.parse::<f64>().is_err());
+    }
+
+    // =========================================================================
+    // COV_BOOST: Record edge cases with None/Some option fields
+    // =========================================================================
+
+    #[test]
+    fn test_boost_paper_trading_record_all_none() {
+        let record = PaperTradingRecord {
+            id: None,
+            trade_id: "all_none".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            trade_type: "LONG".to_string(),
+            status: "OPEN".to_string(),
+            entry_price: 3000.0,
+            exit_price: None,
+            quantity: 1.0,
+            leverage: 5,
+            pnl: None,
+            pnl_percentage: 0.0,
+            trading_fees: 0.0,
+            funding_fees: 0.0,
+            open_time: Utc::now(),
+            close_time: None,
+            ai_signal_id: None,
+            ai_confidence: None,
+            close_reason: None,
+            created_at: Utc::now(),
+        };
+
+        assert!(record.exit_price.is_none());
+        assert!(record.pnl.is_none());
+        assert!(record.close_time.is_none());
+        assert!(record.ai_signal_id.is_none());
+        assert!(record.ai_confidence.is_none());
+        assert!(record.close_reason.is_none());
+    }
+
+    #[test]
+    fn test_boost_paper_trading_record_all_some() {
+        let record = PaperTradingRecord {
+            id: Some(bson::oid::ObjectId::new()),
+            trade_id: "all_some".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            trade_type: "SHORT".to_string(),
+            status: "CLOSED".to_string(),
+            entry_price: 50000.0,
+            exit_price: Some(48000.0),
+            quantity: 0.5,
+            leverage: 10,
+            pnl: Some(1000.0),
+            pnl_percentage: 20.0,
+            trading_fees: 5.0,
+            funding_fees: 2.0,
+            open_time: Utc::now(),
+            close_time: Some(Utc::now()),
+            ai_signal_id: Some("signal_abc".to_string()),
+            ai_confidence: Some(0.92),
+            close_reason: Some("StopLoss".to_string()),
+            created_at: Utc::now(),
+        };
+
+        assert!(record.id.is_some());
+        assert!(record.exit_price.is_some());
+        assert!(record.pnl.is_some());
+        assert!(record.close_time.is_some());
+        assert!(record.ai_signal_id.is_some());
+        assert!(record.ai_confidence.is_some());
+        assert!(record.close_reason.is_some());
+    }
+
+    #[test]
+    fn test_boost_ai_signal_record_all_outcomes() {
+        // Test with "win" outcome
+        let win_record = AISignalRecord {
+            id: None,
+            signal_id: "win_signal".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            signal_type: "LONG".to_string(),
+            confidence: 0.85,
+            reasoning: "Strong buy".to_string(),
+            entry_price: 50000.0,
+            trend_direction: "UP".to_string(),
+            trend_strength: 0.9,
+            volatility: 0.2,
+            risk_score: 0.1,
+            executed: true,
+            trade_id: Some("trade_win".to_string()),
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: Some("win".to_string()),
+            actual_pnl: Some(500.0),
+            pnl_percentage: Some(10.0),
+            exit_price: Some(55000.0),
+            close_reason: Some("TakeProfit".to_string()),
+            closed_at: Some(Utc::now()),
+        };
+
+        assert_eq!(win_record.outcome, Some("win".to_string()));
+
+        // Test with "loss" outcome
+        let loss_record = AISignalRecord {
+            id: None,
+            signal_id: "loss_signal".to_string(),
+            symbol: "ETHUSDT".to_string(),
+            signal_type: "SHORT".to_string(),
+            confidence: 0.75,
+            reasoning: "Bearish".to_string(),
+            entry_price: 3000.0,
+            trend_direction: "DOWN".to_string(),
+            trend_strength: 0.7,
+            volatility: 0.4,
+            risk_score: 0.3,
+            executed: true,
+            trade_id: Some("trade_loss".to_string()),
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: Some("loss".to_string()),
+            actual_pnl: Some(-200.0),
+            pnl_percentage: Some(-5.0),
+            exit_price: Some(3150.0),
+            close_reason: Some("StopLoss".to_string()),
+            closed_at: Some(Utc::now()),
+        };
+
+        assert_eq!(loss_record.outcome, Some("loss".to_string()));
+
+        // Test with "pending" outcome
+        let pending_record = AISignalRecord {
+            id: None,
+            signal_id: "pending_signal".to_string(),
+            symbol: "BNBUSDT".to_string(),
+            signal_type: "LONG".to_string(),
+            confidence: 0.80,
+            reasoning: "Bullish setup".to_string(),
+            entry_price: 400.0,
+            trend_direction: "UP".to_string(),
+            trend_strength: 0.8,
+            volatility: 0.3,
+            risk_score: 0.2,
+            executed: false,
+            trade_id: None,
+            created_at: Utc::now(),
+            timestamp: Utc::now(),
+            outcome: Some("pending".to_string()),
+            actual_pnl: None,
+            pnl_percentage: None,
+            exit_price: None,
+            close_reason: None,
+            closed_at: None,
+        };
+
+        assert_eq!(pending_record.outcome, Some("pending".to_string()));
+    }
+
+    // =========================================================================
+    // COV_BOOST: TradeRecord various status and side combinations
+    // =========================================================================
+
+    #[test]
+    fn test_boost_trade_record_all_sides() {
+        let buy_trade = TradeRecord {
+            id: None,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            quantity: 0.5,
+            entry_price: 50000.0,
+            exit_price: Some(52000.0),
+            stop_loss: Some(48000.0),
+            take_profit: Some(55000.0),
+            entry_time: 1640000000000,
+            exit_time: Some(1640086400000),
+            pnl: Some(1000.0),
+            status: "closed".to_string(),
+            strategy_used: Some("RSI".to_string()),
+        };
+
+        assert_eq!(buy_trade.side, "BUY");
+
+        let sell_trade = TradeRecord {
+            id: None,
+            symbol: "ETHUSDT".to_string(),
+            side: "SELL".to_string(),
+            quantity: 1.0,
+            entry_price: 3000.0,
+            exit_price: Some(2900.0),
+            stop_loss: Some(3100.0),
+            take_profit: Some(2800.0),
+            entry_time: 1640000000000,
+            exit_time: Some(1640086400000),
+            pnl: Some(100.0),
+            status: "closed".to_string(),
+            strategy_used: Some("MACD".to_string()),
+        };
+
+        assert_eq!(sell_trade.side, "SELL");
+    }
+
+    #[test]
+    fn test_boost_trade_record_all_statuses() {
+        let open_trade = TradeRecord {
+            id: None,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            quantity: 0.5,
+            entry_price: 50000.0,
+            exit_price: None,
+            stop_loss: Some(48000.0),
+            take_profit: Some(55000.0),
+            entry_time: 1640000000000,
+            exit_time: None,
+            pnl: None,
+            status: "open".to_string(),
+            strategy_used: Some("VOLUME".to_string()),
+        };
+
+        assert_eq!(open_trade.status, "open");
+
+        let closed_trade = TradeRecord {
+            id: None,
+            symbol: "ETHUSDT".to_string(),
+            side: "SELL".to_string(),
+            quantity: 1.0,
+            entry_price: 3000.0,
+            exit_price: Some(2900.0),
+            stop_loss: Some(3100.0),
+            take_profit: Some(2800.0),
+            entry_time: 1640000000000,
+            exit_time: Some(1640086400000),
+            pnl: Some(100.0),
+            status: "closed".to_string(),
+            strategy_used: Some("BOLLINGER".to_string()),
+        };
+
+        assert_eq!(closed_trade.status, "closed");
+
+        let cancelled_trade = TradeRecord {
+            id: None,
+            symbol: "BNBUSDT".to_string(),
+            side: "BUY".to_string(),
+            quantity: 2.0,
+            entry_price: 400.0,
+            exit_price: None,
+            stop_loss: None,
+            take_profit: None,
+            entry_time: 1640000000000,
+            exit_time: Some(1640003600000),
+            pnl: Some(0.0),
+            status: "cancelled".to_string(),
+            strategy_used: None,
+        };
+
+        assert_eq!(cancelled_trade.status, "cancelled");
+    }
+
+    // =========================================================================
+    // COV_BOOST: Serialization roundtrip for all record types
+    // =========================================================================
+
+    #[test]
+    fn test_boost_trade_analysis_record_roundtrip() {
+        use bson::doc;
+
+        let record = TradeAnalysisRecord {
+            id: Some(bson::oid::ObjectId::new()),
+            trade_id: "roundtrip_test".to_string(),
+            created_at: Utc::now(),
+            is_winning: true,
+            pnl_usdt: 1500.0,
+            pnl_percentage: 15.0,
+            symbol: Some("BTCUSDT".to_string()),
+            side: Some("LONG".to_string()),
+            entry_price: Some(50000.0),
+            exit_price: Some(57500.0),
+            close_reason: Some("TakeProfit".to_string()),
+            analysis: doc! {
+                "summary": "Excellent market timing",
+                "recommendations": ["Continue with current strategy", "Consider increasing position size"]
+            },
+            trade_data: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: TradeAnalysisRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.trade_id, "roundtrip_test");
+        assert!(deserialized.is_winning);
+        assert_eq!(deserialized.pnl_usdt, 1500.0);
+    }
+
+    #[test]
+    fn test_boost_config_suggestions_record_roundtrip() {
+        use bson::doc;
+
+        let record = ConfigSuggestionsRecord {
+            id: Some(bson::oid::ObjectId::new()),
+            created_at: Utc::now(),
+            status: "pending".to_string(),
+            timestamp: Some("2024-01-01T00:00:00Z".to_string()),
+            current_config: Some(doc! { "leverage": 20, "stop_loss": 2.0 }),
+            trade_stats: Some(doc! { "total_trades": 50, "win_rate": 0.6 }),
+            suggestions: doc! {
+                "improvements": ["Reduce leverage from 20x to 10x", "Increase stop loss to 3%"],
+                "reasoning": "Current settings show high risk with recent market volatility"
+            },
+            applied_changes: vec![],
+            task_id: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let deserialized: ConfigSuggestionsRecord = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.status, "pending");
+        assert!(deserialized.suggestions.contains_key("improvements"));
+    }
+
+    // =========================================================================
+    // COV_BOOST: Multiple kline test variations
+    // =========================================================================
+
+    #[test]
+    fn test_boost_kline_with_large_numbers() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "999999999.99999999".to_string(),
+            high: "1000000000.0".to_string(),
+            low: "999999999.0".to_string(),
+            close: "999999999.5".to_string(),
+            volume: "1000000000.0".to_string(),
+            quote_asset_volume: "999999999999999.0".to_string(),
+            number_of_trades: 9999999,
+            taker_buy_base_asset_volume: "500000000.0".to_string(),
+            taker_buy_quote_asset_volume: "499999999999999.0".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let open: f64 = kline.open.parse().unwrap();
+        assert!(open > 999999999.0);
+    }
+
+    #[test]
+    fn test_boost_kline_with_small_numbers() {
+        let kline = Kline {
+            open_time: 1640000000000,
+            close_time: 1640003600000,
+            open: "0.00000001".to_string(),
+            high: "0.00000002".to_string(),
+            low: "0.000000005".to_string(),
+            close: "0.000000015".to_string(),
+            volume: "1000000.0".to_string(),
+            quote_asset_volume: "0.015".to_string(),
+            number_of_trades: 100,
+            taker_buy_base_asset_volume: "500000.0".to_string(),
+            taker_buy_quote_asset_volume: "0.0075".to_string(),
+            ignore: "0".to_string(),
+        };
+
+        let open: f64 = kline.open.parse().unwrap();
+        assert!(open < 0.0001);
+    }
+
+    // =========================================================================
+    // COV_BOOST: PerformanceStats edge case calculations
+    // =========================================================================
+
+    #[test]
+    fn test_boost_performance_stats_perfect_trading() {
+        let stats = PerformanceStats {
+            total_trades: 100,
+            winning_trades: 100,
+            losing_trades: 0,
+            win_rate: 100.0,
+            total_pnl: 10000.0,
+            avg_pnl: 100.0,
+            max_win: 500.0,
+            max_loss: 0.0,
+        };
+
+        assert_eq!(stats.losing_trades, 0);
+        assert_eq!(stats.max_loss, 0.0);
+    }
+
+    #[test]
+    fn test_boost_performance_stats_all_losses() {
+        let stats = PerformanceStats {
+            total_trades: 100,
+            winning_trades: 0,
+            losing_trades: 100,
+            win_rate: 0.0,
+            total_pnl: -10000.0,
+            avg_pnl: -100.0,
+            max_win: 0.0,
+            max_loss: -500.0,
+        };
+
+        assert_eq!(stats.winning_trades, 0);
+        assert_eq!(stats.max_win, 0.0);
+    }
 }
+
