@@ -1382,8 +1382,7 @@ mod tests {
             kline: kline_data,
         });
 
-        let result =
-            MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
+        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
         assert!(result.is_ok());
     }
 
@@ -1399,8 +1398,7 @@ mod tests {
             kline: kline_data,
         });
 
-        let result =
-            MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
+        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
         // Should succeed but skip the update
         assert!(result.is_ok());
     }
@@ -1435,8 +1433,7 @@ mod tests {
             total_number_of_trades: 1000,
         });
 
-        let result =
-            MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
+        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
         assert!(result.is_ok());
     }
 
@@ -1454,8 +1451,7 @@ mod tests {
             asks: vec![],
         });
 
-        let result =
-            MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
+        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &None, &None).await;
         assert!(result.is_ok());
     }
 
@@ -1557,7 +1553,10 @@ mod tests {
             cache.add_historical_klines("BTCUSDT", "1m", vec![kline]);
         }
 
-        let chart_data = processor.get_chart_data("BTCUSDT", "1m", None).await.unwrap();
+        let chart_data = processor
+            .get_chart_data("BTCUSDT", "1m", None)
+            .await
+            .unwrap();
 
         // Should have zero 24h statistics when less than 24 candles
         assert_eq!(chart_data.volume_24h, 0.0);
@@ -1582,7 +1581,10 @@ mod tests {
             cache.add_historical_klines("BTCUSDT", "1m", vec![kline]);
         }
 
-        let chart_data = processor.get_chart_data("BTCUSDT", "1m", None).await.unwrap();
+        let chart_data = processor
+            .get_chart_data("BTCUSDT", "1m", None)
+            .await
+            .unwrap();
 
         // Should calculate 24h statistics
         assert!(chart_data.volume_24h > 0.0);
@@ -1606,7 +1608,10 @@ mod tests {
             cache.add_historical_klines("BTCUSDT", "1m", vec![kline]);
         }
 
-        let chart_data = processor.get_chart_data("BTCUSDT", "1m", Some(10)).await.unwrap();
+        let chart_data = processor
+            .get_chart_data("BTCUSDT", "1m", Some(10))
+            .await
+            .unwrap();
 
         assert!(chart_data.candles.len() <= 10);
     }
@@ -1631,7 +1636,9 @@ mod tests {
         };
 
         let event = StreamEvent::Kline(kline_event);
-        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None).await;
+        let result =
+            MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None)
+                .await;
         assert!(result.is_ok());
 
         // Check that message was broadcast
@@ -1653,7 +1660,9 @@ mod tests {
         };
 
         let event = StreamEvent::Kline(kline_event);
-        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None).await;
+        let result =
+            MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None)
+                .await;
         assert!(result.is_ok());
 
         // Should receive 2 messages: MarketData + ChartUpdate
@@ -1677,7 +1686,9 @@ mod tests {
         };
 
         let event = StreamEvent::Kline(kline_event);
-        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None).await;
+        let result =
+            MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None)
+                .await;
         // Should still return Ok even if data is invalid
         assert!(result.is_ok());
     }
@@ -1805,7 +1816,10 @@ mod tests {
         let symbols = vec!["BTCUSDT".to_string(), "NONEXISTENT".to_string()];
         let timeframes = vec!["1m".to_string()];
 
-        let charts = processor.get_multi_chart_data(symbols, timeframes, None).await.unwrap();
+        let charts = processor
+            .get_multi_chart_data(symbols, timeframes, None)
+            .await
+            .unwrap();
 
         // Should have at least one chart (BTCUSDT)
         assert!(charts.len() >= 1);
@@ -1882,7 +1896,9 @@ mod tests {
         };
 
         let event = StreamEvent::Kline(kline_event);
-        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None).await;
+        let result =
+            MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None)
+                .await;
         assert!(result.is_ok());
     }
 
@@ -1902,7 +1918,9 @@ mod tests {
         };
 
         let event = StreamEvent::Kline(kline_event);
-        let result = MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None).await;
+        let result =
+            MarketDataProcessor::handle_stream_event(&event, &cache, &Some(broadcaster), &None)
+                .await;
         assert!(result.is_ok());
     }
 
@@ -4515,7 +4533,9 @@ mod tests {
             .await
             .unwrap();
 
-        let result = processor.add_symbol("BTCUSDT".to_string(), vec!["1m".to_string()]).await;
+        let result = processor
+            .add_symbol("BTCUSDT".to_string(), vec!["1m".to_string()])
+            .await;
         assert!(result.is_ok() || result.is_err());
     }
 
@@ -4595,12 +4615,8 @@ mod tests {
         let client = BinanceClient::new(binance_config).unwrap();
         let cache = MarketDataCache::new(100);
 
-        let result = MarketDataProcessor::refresh_timeframe_data(
-            &client,
-            &cache,
-            "BTCUSDT",
-            "1m"
-        ).await;
+        let result =
+            MarketDataProcessor::refresh_timeframe_data(&client, &cache, "BTCUSDT", "1m").await;
 
         assert!(result.is_ok() || result.is_err());
     }
@@ -4618,7 +4634,11 @@ mod tests {
         let cache = processor.get_cache();
         let klines: Vec<_> = (0..30)
             .map(|i| {
-                let price = if i == 6 { 0.0 } else { 50000.0 + (i as f64 * 100.0) };
+                let price = if i == 6 {
+                    0.0
+                } else {
+                    50000.0 + (i as f64 * 100.0)
+                };
                 create_test_kline(1609459200000 + i * 3600000, price)
             })
             .collect();
@@ -5835,7 +5855,10 @@ mod tests {
 
         let result = processor.subscribe_symbol("BTCUSDT", &vec!["1m".to_string()]);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("WebSocket not connected"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("WebSocket not connected"));
     }
 
     #[tokio::test]
@@ -5850,7 +5873,10 @@ mod tests {
 
         let result = processor.unsubscribe_symbol("BTCUSDT", &vec!["1m".to_string()]);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("WebSocket not connected"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("WebSocket not connected"));
     }
 
     #[tokio::test]
@@ -5899,11 +5925,13 @@ mod tests {
             .await
             .unwrap();
 
-        let result = processor.get_multi_chart_data(
-            vec!["BTCUSDT".to_string()],
-            vec!["1m".to_string(), "5m".to_string()],
-            None,
-        ).await;
+        let result = processor
+            .get_multi_chart_data(
+                vec!["BTCUSDT".to_string()],
+                vec!["1m".to_string(), "5m".to_string()],
+                None,
+            )
+            .await;
 
         assert!(result.is_ok());
         let charts = result.unwrap();
@@ -6458,5 +6486,4 @@ mod tests {
         let charts = result.unwrap();
         assert!(charts.len() >= 0); // May vary based on cache state
     }
-
 }

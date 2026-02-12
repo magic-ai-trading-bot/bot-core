@@ -2539,7 +2539,11 @@ mod tests {
             .await;
 
         // OPTIONS may return success, 404, or 405 depending on CORS config
-        assert!(resp.status().is_success() || resp.status().as_u16() == 404 || resp.status().as_u16() == 405);
+        assert!(
+            resp.status().is_success()
+                || resp.status().as_u16() == 404
+                || resp.status().as_u16() == 405
+        );
     }
 
     #[tokio::test]
@@ -3223,7 +3227,9 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
     }
 
     #[tokio::test]
@@ -3237,7 +3243,9 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
     }
 
     #[tokio::test]
@@ -3339,8 +3347,16 @@ mod tests {
             limit: Some(100),
         };
 
-        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
-        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+        let symbols: Vec<String> = query
+            .symbols
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
+        let timeframes: Vec<String> = query
+            .timeframes
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
 
         assert_eq!(symbols.len(), 3);
         assert_eq!(timeframes.len(), 3);
@@ -3436,7 +3452,8 @@ mod tests {
 
     #[test]
     fn test_boost_supported_symbols_deserialization() {
-        let json = r#"{"symbols":["SOLUSDT","ADAUSDT"],"available_timeframes":["1m","5m","15m","1h"]}"#;
+        let json =
+            r#"{"symbols":["SOLUSDT","ADAUSDT"],"available_timeframes":["1m","5m","15m","1h"]}"#;
         let supported: SupportedSymbols = serde_json::from_str(json).unwrap();
         assert_eq!(supported.symbols.len(), 2);
         assert_eq!(supported.available_timeframes.len(), 4);
@@ -3444,9 +3461,7 @@ mod tests {
 
     #[test]
     fn test_boost_candle_query_with_limit_serialization() {
-        let query = CandelQuery {
-            limit: Some(100),
-        };
+        let query = CandelQuery { limit: Some(100) };
 
         let json = serde_json::to_string(&query).unwrap();
         assert!(json.contains("100"));
@@ -3454,9 +3469,7 @@ mod tests {
 
     #[test]
     fn test_boost_candle_query_without_limit_serialization() {
-        let query = CandelQuery {
-            limit: None,
-        };
+        let query = CandelQuery { limit: None };
 
         let json = serde_json::to_string(&query).unwrap();
         assert!(json.contains("null") || json.contains("limit"));
@@ -3464,18 +3477,14 @@ mod tests {
 
     #[test]
     fn test_boost_chart_query_with_limit() {
-        let query = ChartQuery {
-            limit: Some(200),
-        };
+        let query = ChartQuery { limit: Some(200) };
 
         assert_eq!(query.limit, Some(200));
     }
 
     #[test]
     fn test_boost_chart_query_without_limit() {
-        let query = ChartQuery {
-            limit: None,
-        };
+        let query = ChartQuery { limit: None };
 
         assert!(query.limit.is_none());
     }
@@ -3488,8 +3497,16 @@ mod tests {
             limit: Some(50),
         };
 
-        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
-        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+        let symbols: Vec<String> = query
+            .symbols
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
+        let timeframes: Vec<String> = query
+            .timeframes
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
 
         assert_eq!(symbols.len(), 1);
         assert_eq!(timeframes.len(), 1);
@@ -3505,7 +3522,11 @@ mod tests {
             limit: None,
         };
 
-        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
+        let symbols: Vec<String> = query
+            .symbols
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
         assert_eq!(symbols.len(), 4);
     }
 
@@ -3517,7 +3538,11 @@ mod tests {
             limit: Some(100),
         };
 
-        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+        let timeframes: Vec<String> = query
+            .timeframes
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
         assert_eq!(timeframes.len(), 7);
     }
 
@@ -3611,9 +3636,7 @@ mod tests {
 
     #[test]
     fn test_boost_chart_query_serialization() {
-        let query = ChartQuery {
-            limit: Some(1000),
-        };
+        let query = ChartQuery { limit: Some(1000) };
 
         let json = serde_json::to_string(&query).unwrap();
         assert!(json.contains("1000"));
@@ -3634,8 +3657,16 @@ mod tests {
             limit: Some(100),
         };
 
-        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
-        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+        let symbols: Vec<String> = query
+            .symbols
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
+        let timeframes: Vec<String> = query
+            .timeframes
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect();
 
         assert_eq!(symbols[0], "BTCUSDT");
         assert_eq!(symbols[1], "ETHUSDT");
@@ -3683,7 +3714,10 @@ mod tests {
         };
 
         assert_eq!(request.symbol, "BTCUSDT");
-        assert!(request.symbol.chars().all(|c| c.is_uppercase() || c.is_numeric()));
+        assert!(request
+            .symbol
+            .chars()
+            .all(|c| c.is_uppercase() || c.is_numeric()));
     }
 
     #[test]
@@ -3716,27 +3750,21 @@ mod tests {
 
     #[test]
     fn test_boost_candle_query_zero_limit() {
-        let query = CandelQuery {
-            limit: Some(0),
-        };
+        let query = CandelQuery { limit: Some(0) };
 
         assert_eq!(query.limit, Some(0));
     }
 
     #[test]
     fn test_boost_candle_query_large_limit() {
-        let query = CandelQuery {
-            limit: Some(10000),
-        };
+        let query = CandelQuery { limit: Some(10000) };
 
         assert_eq!(query.limit, Some(10000));
     }
 
     #[test]
     fn test_boost_chart_query_roundtrip() {
-        let original = ChartQuery {
-            limit: Some(300),
-        };
+        let original = ChartQuery { limit: Some(300) };
 
         let json = serde_json::to_string(&original).unwrap();
         let deserialized: ChartQuery = serde_json::from_str(&json).unwrap();
@@ -3894,5 +3922,4 @@ mod tests {
         assert_eq!(strategy_input.symbol, "BNBUSDT");
         assert_eq!(strategy_input.volume_24h, 50000.0);
     }
-
 }

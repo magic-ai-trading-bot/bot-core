@@ -1406,7 +1406,11 @@ mod tests {
                 .reply(&routes)
                 .await;
 
-            assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+            assert!(
+                resp.status().is_success()
+                    || resp.status().is_client_error()
+                    || resp.status().is_server_error()
+            );
         }
     }
 

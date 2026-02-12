@@ -3454,8 +3454,16 @@ mod tests {
     #[tokio::test]
     async fn test_null_db_get_trade_history() {
         let storage = create_null_db_storage().await;
-        assert!(storage.get_trade_history(Some("BTCUSDT"), Some(20)).await.unwrap().is_empty());
-        assert!(storage.get_trade_history(None, None).await.unwrap().is_empty());
+        assert!(storage
+            .get_trade_history(Some("BTCUSDT"), Some(20))
+            .await
+            .unwrap()
+            .is_empty());
+        assert!(storage
+            .get_trade_history(None, None)
+            .await
+            .unwrap()
+            .is_empty());
     }
 
     #[tokio::test]
@@ -3483,7 +3491,9 @@ mod tests {
     #[tokio::test]
     async fn test_null_db_store_price_history() {
         let storage = create_null_db_storage().await;
-        let result = storage.store_price_history("BTCUSDT", 50000.0, 1000000.0, 500.0, 1.0).await;
+        let result = storage
+            .store_price_history("BTCUSDT", 50000.0, 1000000.0, 500.0, 1.0)
+            .await;
         assert!(result.is_ok()); // Returns Ok(()) when db is None
     }
 
@@ -3504,8 +3514,14 @@ mod tests {
     #[tokio::test]
     async fn test_null_db_get_ai_signals_history() {
         let storage = create_null_db_storage().await;
-        assert!(storage.get_ai_signals_history(None, Some(50)).await.is_err());
-        assert!(storage.get_ai_signals_history(Some("BTCUSDT"), None).await.is_err());
+        assert!(storage
+            .get_ai_signals_history(None, Some(50))
+            .await
+            .is_err());
+        assert!(storage
+            .get_ai_signals_history(Some("BTCUSDT"), None)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
@@ -3615,9 +3631,9 @@ mod tests {
     #[tokio::test]
     async fn test_null_db_update_signal_outcome() {
         let storage = create_null_db_storage().await;
-        let result = storage.update_signal_outcome(
-            "signal123", "win", 500.0, 2.5, 52000.0, "TAKE_PROFIT"
-        ).await;
+        let result = storage
+            .update_signal_outcome("signal123", "win", 500.0, 2.5, 52000.0, "TAKE_PROFIT")
+            .await;
         assert!(result.is_err());
     }
 
@@ -3845,7 +3861,7 @@ mod tests {
             exit_price: Some(3300.0),
             quantity: 1.0,
             leverage: 5,
-            pnl: Some(1500.0), // 300 * 5 leverage
+            pnl: Some(1500.0),    // 300 * 5 leverage
             pnl_percentage: 50.0, // 10% price gain * 5 leverage
             trading_fees: 15.0,
             funding_fees: 2.5,
@@ -3901,7 +3917,7 @@ mod tests {
             largest_win: 500.0,
             largest_loss: -800.0,
             profit_factor: 0.67, // More losses than wins
-            sharpe_ratio: -0.5, // Negative Sharpe (underperforming)
+            sharpe_ratio: -0.5,  // Negative Sharpe (underperforming)
             max_drawdown: 5000.0,
             max_drawdown_percentage: 25.0,
             total_pnl: -1500.0,
@@ -4379,7 +4395,7 @@ mod tests {
             exit_price: Some(60000.0),
             stop_loss: None,
             take_profit: None,
-            entry_time: 1640000000000, // Jan 2022
+            entry_time: 1640000000000,      // Jan 2022
             exit_time: Some(1672536000000), // Jan 2023 (1 year later)
             pnl: Some(30000.0),
             status: "closed".to_string(),
@@ -5337,7 +5353,10 @@ mod tests {
         let result = storage.api_keys();
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Database not initialized"));
     }
 
     #[tokio::test]
@@ -5346,7 +5365,10 @@ mod tests {
         let result = storage.push_subscriptions();
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Database not initialized"));
     }
 
     // =========================================================================
@@ -5798,4 +5820,3 @@ mod tests {
         assert_eq!(stats.max_win, 0.0);
     }
 }
-

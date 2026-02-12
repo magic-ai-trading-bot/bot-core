@@ -905,11 +905,7 @@ mod tests {
     fn test_cov7_security_service_new() {
         let user_repo = UserRepository::new_dummy();
         let session_repo = SessionRepository::new_dummy();
-        let service = SecurityService::new(
-            user_repo,
-            session_repo,
-            "test-jwt-secret".to_string()
-        );
+        let service = SecurityService::new(user_repo, session_repo, "test-jwt-secret".to_string());
         let _ = service.clone();
     }
 
@@ -931,7 +927,9 @@ mod tests {
     async fn test_cov7_extract_user_id_invalid_object_id() {
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         // Create a token with invalid ObjectId
-        let token = jwt_service.generate_token("not-an-object-id", "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token("not-an-object-id", "test@example.com", false)
+            .unwrap();
         let result = extract_user_id(&format!("Bearer {}", token), &jwt_service);
         assert!(result.is_err());
     }
@@ -948,13 +946,12 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_change_password(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result =
+            handle_change_password(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -971,13 +968,12 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_update_profile(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result =
+            handle_update_profile(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -993,13 +989,12 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_update_profile(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result =
+            handle_update_profile(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1015,13 +1010,12 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_update_profile(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result =
+            handle_update_profile(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1037,13 +1031,11 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_verify_2fa(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result = handle_verify_2fa(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1132,7 +1124,9 @@ mod tests {
         let response = Setup2FAResponse {
             secret: "JBSWY3DPEHPK3PXP".to_string(),
             qr_code: "data:image/png;base64,iVBOR...".to_string(),
-            otpauth_url: "otpauth://totp/BotCore:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=BotCore".to_string(),
+            otpauth_url:
+                "otpauth://totp/BotCore:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=BotCore"
+                    .to_string(),
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -1262,9 +1256,7 @@ mod tests {
 
     #[test]
     fn test_session_list_response_empty() {
-        let response = SessionListResponse {
-            sessions: vec![],
-        };
+        let response = SessionListResponse { sessions: vec![] };
         assert_eq!(response.sessions.len(), 0);
     }
 
@@ -1331,13 +1323,12 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_change_password(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result =
+            handle_change_password(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1353,13 +1344,12 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_update_profile(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result =
+            handle_update_profile(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1374,13 +1364,11 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_verify_2fa(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result = handle_verify_2fa(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1395,13 +1383,11 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_verify_2fa(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result = handle_verify_2fa(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1419,13 +1405,12 @@ mod tests {
 
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
-        let result = handle_update_profile(
-            format!("Bearer {}", token),
-            request,
-            service.clone()
-        ).await;
+        let result =
+            handle_update_profile(format!("Bearer {}", token), request, service.clone()).await;
 
         assert!(result.is_ok());
     }
@@ -1581,7 +1566,8 @@ mod tests {
 
     #[test]
     fn test_boost_parse_user_agent_firefox_mac() {
-        let ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/120.0";
+        let ua =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/120.0";
         let (_device, browser, os) = parse_user_agent(ua);
 
         assert_eq!(browser, "Firefox");
@@ -1970,9 +1956,7 @@ mod tests {
 
     #[test]
     fn test_boost_session_list_response_empty() {
-        let response = SessionListResponse {
-            sessions: vec![],
-        };
+        let response = SessionListResponse { sessions: vec![] };
 
         assert_eq!(response.sessions.len(), 0);
     }
@@ -2031,9 +2015,7 @@ mod tests {
 
     #[test]
     fn test_boost_session_list_response_debug() {
-        let response = SessionListResponse {
-            sessions: vec![],
-        };
+        let response = SessionListResponse { sessions: vec![] };
 
         let debug_str = format!("{:?}", response);
         assert!(debug_str.contains("SessionListResponse"));
@@ -2126,11 +2108,8 @@ mod tests {
             new_password: "new123456".to_string(),
         };
 
-        let result = handle_change_password(
-            "Bearer invalid_token".to_string(),
-            request,
-            service,
-        ).await;
+        let result =
+            handle_change_password("Bearer invalid_token".to_string(), request, service).await;
 
         assert!(result.is_ok());
     }
@@ -2144,11 +2123,7 @@ mod tests {
             new_password: "new123456".to_string(),
         };
 
-        let result = handle_change_password(
-            "invalid_header".to_string(),
-            request,
-            service,
-        ).await;
+        let result = handle_change_password("invalid_header".to_string(), request, service).await;
 
         assert!(result.is_ok());
     }
@@ -2162,11 +2137,8 @@ mod tests {
             avatar_base64: None,
         };
 
-        let result = handle_update_profile(
-            "Bearer invalid_token".to_string(),
-            request,
-            service,
-        ).await;
+        let result =
+            handle_update_profile("Bearer invalid_token".to_string(), request, service).await;
 
         assert!(result.is_ok());
     }
@@ -2175,10 +2147,7 @@ mod tests {
     async fn test_boost_handle_setup_2fa_invalid_token() {
         let service = Arc::new(SecurityService::new_dummy());
 
-        let result = handle_setup_2fa(
-            "Bearer invalid_token".to_string(),
-            service,
-        ).await;
+        let result = handle_setup_2fa("Bearer invalid_token".to_string(), service).await;
 
         assert!(result.is_ok());
     }
@@ -2191,11 +2160,7 @@ mod tests {
             code: "123456".to_string(),
         };
 
-        let result = handle_verify_2fa(
-            "Bearer invalid_token".to_string(),
-            request,
-            service,
-        ).await;
+        let result = handle_verify_2fa("Bearer invalid_token".to_string(), request, service).await;
 
         assert!(result.is_ok());
     }
@@ -2208,11 +2173,7 @@ mod tests {
             code: "123456".to_string(),
         };
 
-        let result = handle_disable_2fa(
-            "Bearer invalid_token".to_string(),
-            request,
-            service,
-        ).await;
+        let result = handle_disable_2fa("Bearer invalid_token".to_string(), request, service).await;
 
         assert!(result.is_ok());
     }
@@ -2221,10 +2182,7 @@ mod tests {
     async fn test_boost_handle_list_sessions_invalid_token() {
         let service = Arc::new(SecurityService::new_dummy());
 
-        let result = handle_list_sessions(
-            "Bearer invalid_token".to_string(),
-            service,
-        ).await;
+        let result = handle_list_sessions("Bearer invalid_token".to_string(), service).await;
 
         assert!(result.is_ok());
     }
@@ -2237,7 +2195,8 @@ mod tests {
             "session_id_123".to_string(),
             "Bearer invalid_token".to_string(),
             service,
-        ).await;
+        )
+        .await;
 
         assert!(result.is_ok());
     }
@@ -2246,10 +2205,7 @@ mod tests {
     async fn test_boost_handle_revoke_all_sessions_invalid_token() {
         let service = Arc::new(SecurityService::new_dummy());
 
-        let result = handle_revoke_all_sessions(
-            "Bearer invalid_token".to_string(),
-            service,
-        ).await;
+        let result = handle_revoke_all_sessions("Bearer invalid_token".to_string(), service).await;
 
         assert!(result.is_ok());
     }
@@ -2317,7 +2273,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = ChangePasswordRequest {
             current_password: "oldpass123".to_string(),
@@ -2333,7 +2291,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: Some("New Name".to_string()),
@@ -2349,7 +2309,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_setup_2fa(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -2360,7 +2322,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = Verify2FARequest {
             code: "123456".to_string(),
@@ -2375,7 +2339,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = Verify2FARequest {
             code: "123456".to_string(),
@@ -2390,7 +2356,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_list_sessions(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -2401,9 +2369,16 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
-        let result = handle_revoke_session("session123".to_string(), format!("Bearer {}", token), service).await;
+        let result = handle_revoke_session(
+            "session123".to_string(),
+            format!("Bearer {}", token),
+            service,
+        )
+        .await;
         assert!(result.is_ok());
     }
 
@@ -2412,7 +2387,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_revoke_all_sessions(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -2422,7 +2399,9 @@ mod tests {
     async fn test_fn_extract_user_id_with_valid_token() {
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = extract_user_id(&format!("Bearer {}", token), &jwt_service);
         assert!(result.is_ok());
@@ -2434,7 +2413,10 @@ mod tests {
     #[test]
     fn test_fn_parse_user_agent_variations() {
         let cases = vec![
-            ("Mozilla/5.0 (Windows NT 10.0) Chrome/120", ("Chrome", "Windows")),
+            (
+                "Mozilla/5.0 (Windows NT 10.0) Chrome/120",
+                ("Chrome", "Windows"),
+            ),
             ("Mozilla/5.0 (Macintosh) Safari/605", ("Safari", "MacOS")),
             ("Mozilla/5.0 (X11; Linux) Firefox/120", ("Firefox", "Linux")),
             ("Mozilla/5.0 (iPhone) Safari/604", ("Safari", "iOS")),
@@ -2515,7 +2497,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path("auth")
             .and(warp::path("change-password"))
@@ -2547,7 +2531,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path("auth")
             .and(warp::path("change-password"))
@@ -2579,7 +2565,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path("auth")
             .and(warp::path("profile"))
@@ -2611,7 +2599,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path("auth")
             .and(warp::path("profile"))
@@ -2643,7 +2633,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path!("auth" / "2fa" / "setup")
             .and(warp::post())
@@ -2667,7 +2659,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path!("auth" / "2fa" / "verify")
             .and(warp::post())
@@ -2697,7 +2691,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path!("auth" / "2fa" / "disable")
             .and(warp::post())
@@ -2727,7 +2723,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path("auth")
             .and(warp::path("sessions"))
@@ -2752,7 +2750,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path!("auth" / "sessions" / String)
             .and(warp::delete())
@@ -2776,7 +2776,9 @@ mod tests {
         let service = SecurityService::new_dummy();
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let filter = warp::path!("auth" / "sessions" / "revoke-all")
             .and(warp::post())
@@ -2803,7 +2805,9 @@ mod tests {
         // Test that routes are properly constructed
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         // Test change password route
         let request_body = ChangePasswordRequest {
@@ -2832,7 +2836,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let request = ChangePasswordRequest {
             current_password: "".to_string(),
@@ -2849,7 +2855,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: None,
@@ -2932,7 +2940,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         // Empty current password (min=1, should pass)
         let request = ChangePasswordRequest {
@@ -2949,7 +2959,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: Some("Test".to_string()),
@@ -2965,7 +2977,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: Some("Test".to_string()),
@@ -2983,7 +2997,9 @@ mod tests {
         let user_id = bson::oid::ObjectId::new();
 
         // Generate regular token (session_id handling is tested elsewhere)
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_list_sessions(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -2996,7 +3012,9 @@ mod tests {
         let user_id = bson::oid::ObjectId::new();
 
         // Generate regular token
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_revoke_all_sessions(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -3008,7 +3026,9 @@ mod tests {
         let user_id = bson::oid::ObjectId::new();
 
         // Generate token with is_admin=true
-        let token = jwt_service.generate_token(&user_id.to_hex(), "admin@test.com", true).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "admin@test.com", true)
+            .unwrap();
 
         let result = extract_user_id(&format!("Bearer {}", token), &jwt_service);
         assert!(result.is_ok());
@@ -3115,7 +3135,9 @@ mod tests {
         let routes = service.routes();
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         // Test profile update route
         let profile_req = UpdateProfileRequest {
@@ -3140,7 +3162,9 @@ mod tests {
         let routes = service.routes();
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let resp = request()
             .method("POST")
@@ -3158,7 +3182,9 @@ mod tests {
         let routes = service.routes();
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let verify_req = Verify2FARequest {
             code: "123456".to_string(),
@@ -3181,7 +3207,9 @@ mod tests {
         let routes = service.routes();
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let disable_req = Verify2FARequest {
             code: "123456".to_string(),
@@ -3204,7 +3232,9 @@ mod tests {
         let routes = service.routes();
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let resp = request()
             .method("GET")
@@ -3222,7 +3252,9 @@ mod tests {
         let routes = service.routes();
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let resp = request()
             .method("DELETE")
@@ -3240,7 +3272,9 @@ mod tests {
         let routes = service.routes();
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "test@example.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "test@example.com", false)
+            .unwrap();
 
         let resp = request()
             .method("POST")
@@ -3278,7 +3312,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         // Exactly 6 characters (minimum valid length)
         let request = ChangePasswordRequest {
@@ -3337,7 +3373,9 @@ mod tests {
         let user_id = bson::oid::ObjectId::new();
 
         // Generate token for admin user (is_admin=true)
-        let token = jwt_service.generate_token(&user_id.to_hex(), "admin@test.com", true).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "admin@test.com", true)
+            .unwrap();
 
         let request = ChangePasswordRequest {
             current_password: "oldpass123".to_string(),
@@ -3355,7 +3393,9 @@ mod tests {
         let user_id = bson::oid::ObjectId::new();
 
         // Generate token for admin user (is_admin=true)
-        let token = jwt_service.generate_token(&user_id.to_hex(), "admin@test.com", true).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "admin@test.com", true)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: Some("Updated Name".to_string()),
@@ -3415,7 +3455,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_setup_2fa(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -3426,7 +3468,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = Verify2FARequest {
             code: "123456".to_string(),
@@ -3441,7 +3485,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = Verify2FARequest {
             code: "123456".to_string(),
@@ -3456,7 +3502,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_list_sessions(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -3467,7 +3515,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let session_id = "test-session-id".to_string();
         let result = handle_revoke_session(session_id, format!("Bearer {}", token), service).await;
@@ -3479,7 +3529,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = handle_revoke_all_sessions(format!("Bearer {}", token), service).await;
         assert!(result.is_ok());
@@ -3489,7 +3541,9 @@ mod tests {
     async fn test_boost_extract_user_id_valid() {
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let result = extract_user_id(&format!("Bearer {}", token), &jwt_service);
         assert!(result.is_ok());
@@ -3513,7 +3567,9 @@ mod tests {
     async fn test_boost_extract_user_id_invalid_object_id() {
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         // Generate token with invalid ObjectId string
-        let token = jwt_service.generate_token("invalid-oid", "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token("invalid-oid", "user@test.com", false)
+            .unwrap();
         let result = extract_user_id(&format!("Bearer {}", token), &jwt_service);
         assert!(result.is_err());
     }
@@ -3523,7 +3579,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = ChangePasswordRequest {
             current_password: "oldpass123".to_string(),
@@ -3539,7 +3597,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = ChangePasswordRequest {
             current_password: "oldpass123".to_string(),
@@ -3555,7 +3615,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: Some("a".repeat(150)), // Too long
@@ -3571,7 +3633,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: Some("Test User".to_string()),
@@ -3587,7 +3651,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = Verify2FARequest {
             code: "12345".to_string(), // Too short
@@ -3602,7 +3668,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = Verify2FARequest {
             code: "1234567".to_string(), // Too long
@@ -3611,7 +3679,6 @@ mod tests {
         let result = handle_verify_2fa(format!("Bearer {}", token), request, service).await;
         assert!(result.is_ok()); // Returns error response
     }
-
 
     #[test]
     fn test_boost_change_password_request_with_special_chars() {
@@ -3694,7 +3761,9 @@ mod tests {
         let response = Setup2FAResponse {
             secret: "JBSWY3DPEHPK3PXP".to_string(),
             qr_code: "data:image/png;base64,iVBORw0KGgoAAAANS".to_string(),
-            otpauth_url: "otpauth://totp/BotCore:user@test.com?secret=JBSWY3DPEHPK3PXP&issuer=BotCore".to_string(),
+            otpauth_url:
+                "otpauth://totp/BotCore:user@test.com?secret=JBSWY3DPEHPK3PXP&issuer=BotCore"
+                    .to_string(),
         };
 
         assert!(response.secret.len() > 0);
@@ -3785,11 +3854,8 @@ mod tests {
     async fn test_boost_security_service_new_custom() {
         let user_repo = UserRepository::new_dummy();
         let session_repo = SessionRepository::new_dummy();
-        let service = SecurityService::new(
-            user_repo,
-            session_repo,
-            "custom-secret-123".to_string(),
-        );
+        let service =
+            SecurityService::new(user_repo, session_repo, "custom-secret-123".to_string());
 
         // Verify service is created properly
         let cloned = service.clone();
@@ -3805,7 +3871,9 @@ mod tests {
             new_password: "newpass456".to_string(),
         };
 
-        let result = handle_change_password("Bearer malformed.token.here".to_string(), request, service).await;
+        let result =
+            handle_change_password("Bearer malformed.token.here".to_string(), request, service)
+                .await;
         assert!(result.is_ok()); // Returns error response
     }
 
@@ -3814,7 +3882,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: None,
@@ -3830,7 +3900,9 @@ mod tests {
         let service = Arc::new(SecurityService::new_dummy());
         let jwt_service = JwtService::new("test-secret".to_string(), Some(24 * 7));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "user@test.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "user@test.com", false)
+            .unwrap();
 
         let request = UpdateProfileRequest {
             display_name: Some("Test".to_string()),

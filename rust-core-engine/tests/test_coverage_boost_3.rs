@@ -11,14 +11,14 @@
 
 mod common;
 
+use binance_trading_bot::market_data::cache::CandleData;
 use binance_trading_bot::strategies::bollinger_strategy::BollingerStrategy;
-use binance_trading_bot::strategies::stochastic_strategy::StochasticStrategy;
 use binance_trading_bot::strategies::ml_trend_predictor::{
-    MLPredictorConfig, MLTrendPredictor, MLTrendPrediction,
+    MLPredictorConfig, MLTrendPrediction, MLTrendPredictor,
 };
+use binance_trading_bot::strategies::stochastic_strategy::StochasticStrategy;
 use binance_trading_bot::strategies::trend_filter::TrendDirection;
 use binance_trading_bot::strategies::{Strategy, StrategyConfig, StrategyInput};
-use binance_trading_bot::market_data::cache::CandleData;
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -143,9 +143,15 @@ async fn test_cov3_bollinger_with_config_updates() {
     let mut new_config = StrategyConfig::default();
     new_config.enabled = false;
     new_config.weight = 2.5;
-    new_config.parameters.insert("bb_period".to_string(), json!(30));
-    new_config.parameters.insert("bb_multiplier".to_string(), json!(3.0));
-    new_config.parameters.insert("squeeze_threshold".to_string(), json!(0.025));
+    new_config
+        .parameters
+        .insert("bb_period".to_string(), json!(30));
+    new_config
+        .parameters
+        .insert("bb_multiplier".to_string(), json!(3.0));
+    new_config
+        .parameters
+        .insert("squeeze_threshold".to_string(), json!(0.025));
 
     strategy.update_config(new_config.clone());
 
@@ -227,10 +233,18 @@ async fn test_cov3_stochastic_with_custom_config() {
     config.weight = 1.5;
     config.parameters.insert("k_period".to_string(), json!(10));
     config.parameters.insert("d_period".to_string(), json!(5));
-    config.parameters.insert("oversold_threshold".to_string(), json!(25.0));
-    config.parameters.insert("overbought_threshold".to_string(), json!(75.0));
-    config.parameters.insert("extreme_oversold".to_string(), json!(15.0));
-    config.parameters.insert("extreme_overbought".to_string(), json!(85.0));
+    config
+        .parameters
+        .insert("oversold_threshold".to_string(), json!(25.0));
+    config
+        .parameters
+        .insert("overbought_threshold".to_string(), json!(75.0));
+    config
+        .parameters
+        .insert("extreme_oversold".to_string(), json!(15.0));
+    config
+        .parameters
+        .insert("extreme_overbought".to_string(), json!(85.0));
 
     let strategy = StochasticStrategy::with_config(config.clone());
 

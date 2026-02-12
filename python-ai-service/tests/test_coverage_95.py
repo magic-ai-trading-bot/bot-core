@@ -68,9 +68,7 @@ class TestLifespanManagement:
             with patch("main.AsyncIOMotorClient") as mock_mongo_client:
                 mock_client = AsyncMock()
                 mock_client.admin.command = AsyncMock(return_value={"ok": 1})
-                mock_client.get_default_database = MagicMock(
-                    return_value=AsyncMock()
-                )
+                mock_client.get_default_database = MagicMock(return_value=AsyncMock())
                 mock_mongo_client.return_value = mock_client
 
                 app = FastAPI()
@@ -95,9 +93,7 @@ class TestLifespanManagement:
             with patch("main.AsyncIOMotorClient") as mock_mongo_client:
                 mock_client = AsyncMock()
                 mock_client.admin.command = AsyncMock(return_value={"ok": 1})
-                mock_client.get_default_database = MagicMock(
-                    return_value=AsyncMock()
-                )
+                mock_client.get_default_database = MagicMock(return_value=AsyncMock())
                 mock_mongo_client.return_value = mock_client
 
                 app = FastAPI()
@@ -123,9 +119,7 @@ class TestLifespanManagement:
             with patch("main.AsyncIOMotorClient") as mock_mongo_client:
                 mock_client = AsyncMock()
                 mock_client.admin.command = AsyncMock(return_value={"ok": 1})
-                mock_client.get_default_database = MagicMock(
-                    return_value=AsyncMock()
-                )
+                mock_client.get_default_database = MagicMock(return_value=AsyncMock())
                 mock_mongo_client.return_value = mock_client
 
                 with patch("main.DirectOpenAIClient") as mock_openai_class:
@@ -241,9 +235,7 @@ class TestDirectOpenAIClientRateLimiting:
                         status_code=200,
                         json=AsyncMock(
                             return_value={
-                                "choices": [
-                                    {"message": {"content": "Test response"}}
-                                ]
+                                "choices": [{"message": {"content": "Test response"}}]
                             }
                         ),
                     )
@@ -273,9 +265,7 @@ class TestDirectOpenAIClientRateLimiting:
                         status_code=200,
                         json=AsyncMock(
                             return_value={
-                                "choices": [
-                                    {"message": {"content": "Test response"}}
-                                ]
+                                "choices": [{"message": {"content": "Test response"}}]
                             }
                         ),
                     )
@@ -300,9 +290,7 @@ class TestDirectOpenAIClientRateLimiting:
                             status_code=200,
                             json=AsyncMock(
                                 return_value={
-                                    "choices": [
-                                        {"message": {"content": "Test"}}
-                                    ]
+                                    "choices": [{"message": {"content": "Test"}}]
                                 }
                             ),
                         )
@@ -411,7 +399,11 @@ class TestGPT4TrendPrediction:
                 for i in range(60)
             ]
 
-            candles_by_tf = {"1d": sample_candles, "4h": sample_candles, "1h": sample_candles}
+            candles_by_tf = {
+                "1d": sample_candles,
+                "4h": sample_candles,
+                "1h": sample_candles,
+            }
 
             # Mock OpenAI client
             mock_openai = AsyncMock()
@@ -661,9 +653,7 @@ class TestEdgeCasesAndErrorPaths:
         """Test refresh_settings_periodically background task from settings_manager."""
         from settings_manager import refresh_settings_periodically, settings_manager
 
-        with patch.object(
-            settings_manager, "get_settings"
-        ) as mock_get_settings:
+        with patch.object(settings_manager, "get_settings") as mock_get_settings:
             mock_get_settings.return_value = {"success": True}
 
             # Create task
@@ -991,8 +981,12 @@ class TestSettingsManagerUncovered:
                 return_value={
                     "success": True,
                     "data": {
-                        "indicators": {"rsi_period": 20, "macd_fast": 12, "macd_slow": 26},
-                        "signal": {"trend_threshold_percent": 0.8}
+                        "indicators": {
+                            "rsi_period": 20,
+                            "macd_fast": 12,
+                            "macd_slow": 26,
+                        },
+                        "signal": {"trend_threshold_percent": 0.8},
                     },
                 }
             )
@@ -1029,9 +1023,7 @@ class TestConfigLoaderUncovered:
         import tempfile
 
         # Create temp file with invalid YAML
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("invalid: yaml: content: [[[")
             temp_path = f.name
 

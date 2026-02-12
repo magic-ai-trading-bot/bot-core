@@ -969,28 +969,82 @@ mod tests {
     fn test_cov2_all_error_variants_display() {
         // Test all error variants' Display implementations
         let errors = vec![
-            (AppError::DataProcessing("dp".to_string()), "Data processing error: dp"),
-            (AppError::MissingData("md".to_string()), "Missing required data: md"),
+            (
+                AppError::DataProcessing("dp".to_string()),
+                "Data processing error: dp",
+            ),
+            (
+                AppError::MissingData("md".to_string()),
+                "Missing required data: md",
+            ),
             (AppError::ParseError("pe".to_string()), "Parse error: pe"),
-            (AppError::Serialization("se".to_string()), "Serialization error: se"),
-            (AppError::InvalidInput("ii".to_string()), "Invalid input: ii"),
-            (AppError::CalculationError("ce".to_string()), "Calculation error: ce"),
-            (AppError::StorageError("sto".to_string()), "Storage error: sto"),
-            (AppError::TradeNotFound("tnf".to_string()), "Trade not found: tnf"),
-            (AppError::InvalidTradeStatus("its".to_string()), "Invalid trade status: its"),
-            (AppError::PositionError("pe".to_string()), "Position error: pe"),
-            (AppError::RiskManagementError("rme".to_string()), "Risk management error: rme"),
-            (AppError::IndicatorError("ie".to_string()), "Indicator calculation error: ie"),
-            (AppError::StrategyError("se".to_string()), "Strategy execution error: se"),
-            (AppError::MarketDataError("mde".to_string()), "Market data error: mde"),
-            (AppError::AIServiceError("ase".to_string()), "AI service error: ase"),
-            (AppError::BinanceError("be".to_string()), "Binance API error: be"),
+            (
+                AppError::Serialization("se".to_string()),
+                "Serialization error: se",
+            ),
+            (
+                AppError::InvalidInput("ii".to_string()),
+                "Invalid input: ii",
+            ),
+            (
+                AppError::CalculationError("ce".to_string()),
+                "Calculation error: ce",
+            ),
+            (
+                AppError::StorageError("sto".to_string()),
+                "Storage error: sto",
+            ),
+            (
+                AppError::TradeNotFound("tnf".to_string()),
+                "Trade not found: tnf",
+            ),
+            (
+                AppError::InvalidTradeStatus("its".to_string()),
+                "Invalid trade status: its",
+            ),
+            (
+                AppError::PositionError("pe".to_string()),
+                "Position error: pe",
+            ),
+            (
+                AppError::RiskManagementError("rme".to_string()),
+                "Risk management error: rme",
+            ),
+            (
+                AppError::IndicatorError("ie".to_string()),
+                "Indicator calculation error: ie",
+            ),
+            (
+                AppError::StrategyError("se".to_string()),
+                "Strategy execution error: se",
+            ),
+            (
+                AppError::MarketDataError("mde".to_string()),
+                "Market data error: mde",
+            ),
+            (
+                AppError::AIServiceError("ase".to_string()),
+                "AI service error: ase",
+            ),
+            (
+                AppError::BinanceError("be".to_string()),
+                "Binance API error: be",
+            ),
             (AppError::HttpError("he".to_string()), "HTTP error: he"),
             (AppError::JsonError("je".to_string()), "JSON error: je"),
             (AppError::IoError("ioe".to_string()), "IO error: ioe"),
-            (AppError::CollectionNotInitialized, "Collection not initialized"),
-            (AppError::InvalidPriceData("ipd".to_string()), "Invalid price data: ipd"),
-            (AppError::InsufficientDataForCalculation("idc".to_string()), "Insufficient data for calculation: idc"),
+            (
+                AppError::CollectionNotInitialized,
+                "Collection not initialized",
+            ),
+            (
+                AppError::InvalidPriceData("ipd".to_string()),
+                "Invalid price data: ipd",
+            ),
+            (
+                AppError::InsufficientDataForCalculation("idc".to_string()),
+                "Insufficient data for calculation: idc",
+            ),
         ];
 
         for (error, expected) in errors {

@@ -722,11 +722,13 @@ mod tests {
         let strategy = BollingerStrategy::new();
 
         // Create expanding volatility
-        let prices_1h: Vec<f64> = (0..30).map(|i| {
-            let base = 100.0;
-            let volatility = (i as f64 % 5.0 - 2.0) * (i as f64 / 5.0);
-            base + volatility
-        }).collect();
+        let prices_1h: Vec<f64> = (0..30)
+            .map(|i| {
+                let base = 100.0;
+                let volatility = (i as f64 % 5.0 - 2.0) * (i as f64 / 5.0);
+                base + volatility
+            })
+            .collect();
         let prices_4h = vec![100.0; 30];
         let current_price = 105.0;
 
@@ -742,8 +744,12 @@ mod tests {
     async fn test_cov2_bollinger_strategy_different_params() {
         let mut config = StrategyConfig::default();
         config.parameters.insert("bb_period".to_string(), json!(10));
-        config.parameters.insert("bb_multiplier".to_string(), json!(1.5));
-        config.parameters.insert("squeeze_threshold".to_string(), json!(0.03));
+        config
+            .parameters
+            .insert("bb_multiplier".to_string(), json!(1.5));
+        config
+            .parameters
+            .insert("squeeze_threshold".to_string(), json!(0.03));
 
         let strategy = BollingerStrategy::with_config(config);
 
@@ -776,7 +782,7 @@ mod tests {
     fn test_cov2_analyze_bollinger_signals_breakdown_after_squeeze() {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
-            89.0,  // current_price (below lower band)
+            89.0, // current_price (below lower band)
             110.0, 100.0, 90.0, // 1h
             108.0, 100.0, 92.0,  // 4h
             -0.1,  // bb_position_1h (below 0.0 = below lower band)
@@ -818,7 +824,7 @@ mod tests {
     fn test_cov2_analyze_bollinger_signals_trend_continuation_short() {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
-            91.0,  // current_price
+            91.0, // current_price
             110.0, 100.0, 90.0, // 1h
             108.0, 100.0, 92.0,  // 4h
             0.15,  // bb_position_1h
@@ -839,7 +845,7 @@ mod tests {
     fn test_cov2_analyze_bollinger_signals_moderate_long() {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
-            92.0,  // current_price
+            92.0, // current_price
             110.0, 100.0, 90.0, // 1h
             108.0, 101.0, 92.0,  // 4h (middle_4h = 101.0 > current_price)
             0.20,  // bb_position_1h
@@ -908,11 +914,11 @@ mod tests {
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
             102.0, // current_price > middle_4h
             110.0, 100.0, 90.0, // 1h
-            108.0, 101.0, 92.0,  // 4h (middle_4h = 101.0 < current_price)
-            0.24,  // bb_position_1h < 0.25
-            0.45,  // bb_position_4h
-            0.20,  // bb_width_1h
-            0.16,  // bb_width_4h
+            108.0, 101.0, 92.0, // 4h (middle_4h = 101.0 < current_price)
+            0.24, // bb_position_1h < 0.25
+            0.45, // bb_position_4h
+            0.20, // bb_width_1h
+            0.16, // bb_width_4h
             false, false, false, false,
         );
 
@@ -924,18 +930,17 @@ mod tests {
     fn test_cov8_analyze_bollinger_moderate_short_price_below_middle_4h() {
         let strategy = BollingerStrategy::new();
         let (signal, confidence, _) = strategy.analyze_bollinger_signals(
-            98.0,  // current_price < middle_4h
+            98.0, // current_price < middle_4h
             110.0, 100.0, 90.0, // 1h
-            108.0, 99.0, 92.0,  // 4h (middle_4h = 99.0 > current_price)
-            0.76,  // bb_position_1h > 0.75
-            0.55,  // bb_position_4h
-            0.20,  // bb_width_1h
-            0.16,  // bb_width_4h
+            108.0, 99.0, 92.0, // 4h (middle_4h = 99.0 > current_price)
+            0.76, // bb_position_1h > 0.75
+            0.55, // bb_position_4h
+            0.20, // bb_width_1h
+            0.16, // bb_width_4h
             false, false, false, false,
         );
 
         assert_eq!(signal, TradingSignal::Short);
         assert_eq!(confidence, 0.58);
     }
-
 }

@@ -564,8 +564,7 @@ mod tests {
             12.0, // d_4h
             10.0, // prev_k_1h (crossover: prev_k <= prev_d, now k > d)
             11.0, // prev_d_1h
-            13.0, 13.5,
-            15.0, 85.0, 10.0, 90.0,
+            13.0, 13.5, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -583,8 +582,7 @@ mod tests {
             85.5, // d_4h
             89.0, // prev_k_1h (crossover: prev_k >= prev_d, now k < d)
             88.0, // prev_d_1h
-            87.0, 86.0,
-            15.0, 85.0, 10.0, 90.0,
+            87.0, 86.0, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -602,8 +600,7 @@ mod tests {
             46.0, // d_4h
             21.0, // prev_k_1h (crossover: prev_k <= prev_d, now k > d)
             22.5, // prev_d_1h
-            44.0, 45.0,
-            15.0, 85.0, 10.0, 90.0,
+            44.0, 45.0, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -621,8 +618,7 @@ mod tests {
             54.0, // d_4h
             79.0, // prev_k_1h (crossover: prev_k >= prev_d, now k < d)
             78.0, // prev_d_1h
-            56.0, 55.0,
-            15.0, 85.0, 10.0, 90.0,
+            56.0, 55.0, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -639,8 +635,7 @@ mod tests {
             40.0, // k_4h < 50
             38.0, // d_4h
             33.0, // prev_k_1h < k_1h (rising)
-            30.0, 39.0, 38.0,
-            15.0, 85.0, 10.0, 90.0,
+            30.0, 39.0, 38.0, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Long);
@@ -657,8 +652,7 @@ mod tests {
             55.0, // k_4h > 50
             56.0, // d_4h
             62.0, // prev_k_1h > k_1h (falling)
-            64.0, 56.0, 55.0,
-            15.0, 85.0, 10.0, 90.0,
+            64.0, 56.0, 55.0, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Short);
@@ -674,8 +668,7 @@ mod tests {
             47.0, // d_1h
             52.0, // k_4h: (52-50).abs() < 20
             51.0, // d_4h
-            47.0, 46.0, 51.0, 50.0,
-            15.0, 85.0, 10.0, 90.0,
+            47.0, 46.0, 51.0, 50.0, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Neutral);
@@ -688,9 +681,7 @@ mod tests {
         let strategy = StochasticStrategy::new();
         let (signal, confidence, reasoning) = strategy.analyze_stochastic_signals(
             70.0, // Not in mid-range
-            68.0, 72.0, 71.0,
-            69.0, 68.0, 71.0, 71.0,
-            15.0, 85.0, 10.0, 90.0,
+            68.0, 72.0, 71.0, 69.0, 68.0, 71.0, 71.0, 15.0, 85.0, 10.0, 90.0,
         );
 
         assert_eq!(signal, TradingSignal::Neutral);

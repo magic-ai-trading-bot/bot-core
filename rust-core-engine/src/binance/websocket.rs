@@ -720,7 +720,12 @@ mod tests {
         let (ws, _) = BinanceWebSocket::new(config);
 
         let symbols = vec!["BTCUSDT".to_string()];
-        let timeframes = vec!["15m".to_string(), "30m".to_string(), "4h".to_string(), "1d".to_string()];
+        let timeframes = vec![
+            "15m".to_string(),
+            "30m".to_string(),
+            "4h".to_string(),
+            "1d".to_string(),
+        ];
 
         let streams = ws.build_stream_names(&symbols, &timeframes);
 
@@ -2299,20 +2304,26 @@ mod tests {
         let sender3 = ws.get_command_sender();
 
         // All should be able to send
-        assert!(sender1.send(WebSocketCommand::Subscribe {
-            symbol: "BTC".to_string(),
-            timeframes: vec![]
-        }).is_ok());
+        assert!(sender1
+            .send(WebSocketCommand::Subscribe {
+                symbol: "BTC".to_string(),
+                timeframes: vec![]
+            })
+            .is_ok());
 
-        assert!(sender2.send(WebSocketCommand::Unsubscribe {
-            symbol: "ETH".to_string(),
-            timeframes: vec![]
-        }).is_ok());
+        assert!(sender2
+            .send(WebSocketCommand::Unsubscribe {
+                symbol: "ETH".to_string(),
+                timeframes: vec![]
+            })
+            .is_ok());
 
-        assert!(sender3.send(WebSocketCommand::Subscribe {
-            symbol: "BNB".to_string(),
-            timeframes: vec!["1m".to_string()]
-        }).is_ok());
+        assert!(sender3
+            .send(WebSocketCommand::Subscribe {
+                symbol: "BNB".to_string(),
+                timeframes: vec!["1m".to_string()]
+            })
+            .is_ok());
     }
 
     #[test]
@@ -2430,7 +2441,7 @@ mod tests {
             StreamEvent::Kline(kline) => {
                 assert!(!kline.kline.is_this_kline_closed);
                 assert_eq!(kline.kline.interval, "5m");
-            }
+            },
             _ => panic!("Expected Kline event"),
         }
     }
@@ -2535,7 +2546,7 @@ mod tests {
                 assert_eq!(ob.symbol, "ETHUSDT");
                 assert_eq!(ob.bids.len(), 3);
                 assert_eq!(ob.asks.len(), 3);
-            }
+            },
             _ => panic!("Expected OrderBook event"),
         }
     }
@@ -2579,7 +2590,7 @@ mod tests {
                 assert_eq!(ticker.symbol, "BTCUSDT");
                 assert_eq!(ticker.total_traded_base_asset_volume, "100000.5");
                 assert_eq!(ticker.total_number_of_trades, 40000);
-            }
+            },
             _ => panic!("Expected Ticker event"),
         }
     }

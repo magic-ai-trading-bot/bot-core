@@ -4864,7 +4864,11 @@ mod tests {
         }
 
         // Add current price
-        engine.current_prices.write().await.insert("BTCUSDT".to_string(), 50000.0);
+        engine
+            .current_prices
+            .write()
+            .await
+            .insert("BTCUSDT".to_string(), 50000.0);
 
         // Add a trade
         let trade = PaperTrade::new(
@@ -4886,7 +4890,11 @@ mod tests {
         }
 
         // Close at higher price (profit)
-        engine.current_prices.write().await.insert("BTCUSDT".to_string(), 52000.0);
+        engine
+            .current_prices
+            .write()
+            .await
+            .insert("BTCUSDT".to_string(), 52000.0);
         let result = engine.close_trade(&trade_id, CloseReason::TakeProfit).await;
         assert!(result.is_ok());
 
@@ -4899,7 +4907,11 @@ mod tests {
     async fn test_close_trade_loss_increments_consecutive() {
         let engine = create_test_paper_engine().await;
 
-        engine.current_prices.write().await.insert("BTCUSDT".to_string(), 50000.0);
+        engine
+            .current_prices
+            .write()
+            .await
+            .insert("BTCUSDT".to_string(), 50000.0);
 
         // Add a trade
         let trade = PaperTrade::new(
@@ -4921,7 +4933,11 @@ mod tests {
         }
 
         // Close at lower price (loss)
-        engine.current_prices.write().await.insert("BTCUSDT".to_string(), 48000.0);
+        engine
+            .current_prices
+            .write()
+            .await
+            .insert("BTCUSDT".to_string(), 48000.0);
         let result = engine.close_trade(&trade_id, CloseReason::StopLoss).await;
         assert!(result.is_ok());
 
@@ -4985,7 +5001,9 @@ mod tests {
             settings.execution.simulate_market_impact = false;
         }
 
-        let result = engine.calculate_market_impact("BTCUSDT", 0.1, 50000.0).await;
+        let result = engine
+            .calculate_market_impact("BTCUSDT", 0.1, 50000.0)
+            .await;
         assert_eq!(result, 0.0);
     }
 
@@ -4998,7 +5016,9 @@ mod tests {
             settings.execution.simulate_market_impact = true;
         }
 
-        let result = engine.calculate_market_impact("BTCUSDT", 10.0, 50000.0).await;
+        let result = engine
+            .calculate_market_impact("BTCUSDT", 10.0, 50000.0)
+            .await;
         assert!(result > 0.0);
     }
 
@@ -5218,15 +5238,17 @@ mod tests {
         let engine = create_test_paper_engine().await;
 
         let signal = create_test_signal("BTCUSDT", TradingSignal::Long);
-        let result = engine.process_external_ai_signal(
-            signal.symbol,
-            signal.signal_type,
-            signal.confidence,
-            signal.reasoning,
-            signal.entry_price,
-            signal.suggested_stop_loss,
-            signal.suggested_take_profit,
-        ).await;
+        let result = engine
+            .process_external_ai_signal(
+                signal.symbol,
+                signal.signal_type,
+                signal.confidence,
+                signal.reasoning,
+                signal.entry_price,
+                signal.suggested_stop_loss,
+                signal.suggested_take_profit,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not running"));
@@ -5244,15 +5266,17 @@ mod tests {
         let _ = tokio::time::timeout(Duration::from_millis(100), receiver.recv()).await;
 
         let signal = create_test_signal("BTCUSDT", TradingSignal::Long);
-        let _ = engine.process_external_ai_signal(
-            signal.symbol,
-            signal.signal_type,
-            signal.confidence,
-            signal.reasoning,
-            signal.entry_price,
-            signal.suggested_stop_loss,
-            signal.suggested_take_profit,
-        ).await;
+        let _ = engine
+            .process_external_ai_signal(
+                signal.symbol,
+                signal.signal_type,
+                signal.confidence,
+                signal.reasoning,
+                signal.entry_price,
+                signal.suggested_stop_loss,
+                signal.suggested_take_profit,
+            )
+            .await;
 
         // Should receive AISignalReceived event (not engine_started)
         let event = tokio::time::timeout(Duration::from_secs(1), receiver.recv()).await;
@@ -5806,7 +5830,10 @@ mod tests {
     async fn test_update_settings_preserves_existing_symbols() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.unwrap();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .unwrap();
 
         let mut new_settings = create_test_settings();
         new_settings.basic.initial_balance = 20000.0;
@@ -5856,7 +5883,10 @@ mod tests {
     async fn test_add_symbol_to_settings_duplicate_symbol() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.unwrap();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .unwrap();
         let result = engine.add_symbol_to_settings("BTCUSDT".to_string()).await;
         // Should succeed (idempotent)
         assert!(result.is_ok());
@@ -5871,7 +5901,10 @@ mod tests {
 
         let symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
         for symbol in &symbols {
-            engine.add_symbol_to_settings(symbol.to_string()).await.unwrap();
+            engine
+                .add_symbol_to_settings(symbol.to_string())
+                .await
+                .unwrap();
         }
 
         let settings = engine.get_settings().await;
@@ -6013,7 +6046,10 @@ mod tests {
 
         assert!(engine.is_ok());
         let engine = engine.unwrap();
-        assert_eq!(engine.get_settings().await.basic.initial_balance, settings.basic.initial_balance);
+        assert_eq!(
+            engine.get_settings().await.basic.initial_balance,
+            settings.basic.initial_balance
+        );
     }
 
     // Tests for start() method (lines 152-215)
@@ -6038,7 +6074,6 @@ mod tests {
         assert!(engine.is_running().await);
     }
 
-
     #[tokio::test]
     async fn test_cov2_start_broadcasts_engine_started_event() {
         let storage = create_mock_storage().await;
@@ -6047,15 +6082,10 @@ mod tests {
         let ai_service = create_mock_ai_service();
         let (broadcaster, mut receiver) = broadcast::channel(100);
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         engine.start_async().await.unwrap();
 
@@ -6076,7 +6106,10 @@ mod tests {
         let engine = create_test_paper_engine().await;
 
         // Add symbols
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         // Update prices (will attempt to fetch funding rates)
         let result = engine.update_market_prices().await;
@@ -6089,7 +6122,10 @@ mod tests {
         let engine = create_test_paper_engine().await;
 
         // Add invalid symbol
-        engine.add_symbol_to_settings("INVALID123".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("INVALID123".to_string())
+            .await
+            .ok();
 
         // Should handle error gracefully
         let result = engine.update_market_prices().await;
@@ -6108,7 +6144,10 @@ mod tests {
         engine.update_settings(settings).await.ok();
 
         // Add symbol and update prices
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
         let result = engine.update_market_prices().await;
         let _ = result; // Code path for trailing stop update is executed
     }
@@ -6121,17 +6160,15 @@ mod tests {
         let ai_service = create_mock_ai_service();
         let (broadcaster, mut receiver) = broadcast::channel(100);
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         // Update prices
         let _ = engine.update_market_prices().await;
@@ -6162,7 +6199,10 @@ mod tests {
     async fn test_cov2_process_ai_signals_saves_signal_to_database() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         // Process signals (will attempt to save)
         let result = engine.process_ai_signals().await;
@@ -6179,17 +6219,15 @@ mod tests {
         let ai_service = create_mock_ai_service();
         let (broadcaster, mut receiver) = broadcast::channel(100);
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         // Process signals - they will be below threshold
         let _ = engine.process_ai_signals().await;
@@ -6202,7 +6240,10 @@ mod tests {
     async fn test_cov2_process_ai_signals_handles_signal_processing_failure() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         // Process signals - will attempt and may fail
         let result = engine.process_ai_signals().await;
@@ -6273,14 +6314,20 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let result = engine.process_trading_signal(signal).await;
         assert!(result.is_ok());
         let execution_result = result.unwrap();
         assert!(!execution_result.success);
         assert!(execution_result.error_message.is_some());
-        assert!(execution_result.error_message.unwrap().contains("Daily loss limit reached"));
+        assert!(execution_result
+            .error_message
+            .unwrap()
+            .contains("Daily loss limit reached"));
     }
 
     #[tokio::test]
@@ -6339,13 +6386,19 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let result = engine.process_trading_signal(signal).await;
         assert!(result.is_ok());
         let execution_result = result.unwrap();
         assert!(!execution_result.success);
-        assert!(execution_result.error_message.unwrap().contains("In cool-down period"));
+        assert!(execution_result
+            .error_message
+            .unwrap()
+            .contains("In cool-down period"));
     }
 
     #[tokio::test]
@@ -6398,13 +6451,19 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let result = engine.process_trading_signal(signal).await;
         assert!(result.is_ok());
         let execution_result = result.unwrap();
         assert!(!execution_result.success);
-        assert!(execution_result.error_message.unwrap().contains("Neutral signal cannot be executed"));
+        assert!(execution_result
+            .error_message
+            .unwrap()
+            .contains("Neutral signal cannot be executed"));
     }
 
     #[tokio::test]
@@ -6485,7 +6544,10 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let result = engine.process_trading_signal(signal).await;
         assert!(result.is_ok());
@@ -6494,7 +6556,12 @@ mod tests {
         if !execution_result.success {
             if let Some(msg) = execution_result.error_message {
                 // Check if it's risk limit or other validation error
-                assert!(msg.contains("risk") || msg.contains("correlation") || msg.contains("disabled") || msg.contains("Warmup"));
+                assert!(
+                    msg.contains("risk")
+                        || msg.contains("correlation")
+                        || msg.contains("disabled")
+                        || msg.contains("Warmup")
+                );
             }
         }
     }
@@ -6528,7 +6595,10 @@ mod tests {
         }
 
         // Add symbol but disable it
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
         let mut settings = engine.get_settings().await;
         if let Some(symbol_settings) = settings.symbols.get_mut("BTCUSDT") {
             symbol_settings.enabled = false;
@@ -6561,7 +6631,10 @@ mod tests {
         assert!(result.is_ok());
         let execution_result = result.unwrap();
         assert!(!execution_result.success);
-        assert!(execution_result.error_message.unwrap().contains("Symbol trading disabled"));
+        assert!(execution_result
+            .error_message
+            .unwrap()
+            .contains("Symbol trading disabled"));
     }
 
     // Tests for execution logic (lines 702-879)
@@ -6569,7 +6642,10 @@ mod tests {
     async fn test_cov2_process_trading_signal_checks_existing_positions() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         // Add existing position
         {
@@ -6650,7 +6726,10 @@ mod tests {
     async fn test_cov2_process_trading_signal_uses_current_price_not_signal_price() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         // Set current price
         {
@@ -6689,7 +6768,10 @@ mod tests {
     async fn test_cov2_process_trading_signal_calculates_stop_loss_for_long() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let signal = AITradingSignal {
             id: "test-signal".to_string(),
@@ -6722,7 +6804,10 @@ mod tests {
     async fn test_cov2_process_trading_signal_calculates_stop_loss_for_short() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let signal = AITradingSignal {
             id: "test-signal".to_string(),
@@ -6755,7 +6840,10 @@ mod tests {
     async fn test_cov2_process_trading_signal_calculates_position_size() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let signal = AITradingSignal {
             id: "test-signal".to_string(),
@@ -6795,7 +6883,10 @@ mod tests {
             portfolio.equity = 0.0;
         }
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let signal = AITradingSignal {
             id: "test-signal".to_string(),
@@ -6832,7 +6923,10 @@ mod tests {
     async fn test_cov2_process_trading_signal_adds_to_execution_queue() {
         let engine = create_test_paper_engine().await;
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let signal = AITradingSignal {
             id: "test-signal".to_string(),
@@ -6916,7 +7010,9 @@ mod tests {
         settings.execution.simulate_market_impact = false;
         engine.update_settings(settings).await.ok();
 
-        let impact = engine.calculate_market_impact("BTCUSDT", 1.0, 50000.0).await;
+        let impact = engine
+            .calculate_market_impact("BTCUSDT", 1.0, 50000.0)
+            .await;
         assert_eq!(impact, 0.0);
     }
 
@@ -6931,7 +7027,9 @@ mod tests {
         engine.update_settings(settings).await.ok();
 
         // Large order
-        let impact = engine.calculate_market_impact("BTCUSDT", 1000.0, 50000.0).await;
+        let impact = engine
+            .calculate_market_impact("BTCUSDT", 1000.0, 50000.0)
+            .await;
         assert!(impact > 0.0);
         assert!(impact <= 1.0); // Capped at 1%
     }
@@ -6946,7 +7044,9 @@ mod tests {
         engine.update_settings(settings).await.ok();
 
         // Small order
-        let impact = engine.calculate_market_impact("BTCUSDT", 0.1, 50000.0).await;
+        let impact = engine
+            .calculate_market_impact("BTCUSDT", 0.1, 50000.0)
+            .await;
         assert!(impact >= 0.0);
     }
 
@@ -6960,7 +7060,9 @@ mod tests {
         engine.update_settings(settings).await.ok();
 
         // Unknown symbol (should use default volume)
-        let impact = engine.calculate_market_impact("UNKNOWNUSDT", 1.0, 100.0).await;
+        let impact = engine
+            .calculate_market_impact("UNKNOWNUSDT", 1.0, 100.0)
+            .await;
         assert!(impact >= 0.0);
     }
 
@@ -7023,20 +7125,23 @@ mod tests {
         // Pre-populate cache with sufficient data
         {
             let mut cache = engine.historical_data_cache.write().await;
-            let klines = vec![crate::binance::types::Kline {
-                open_time: 0,
-                open: "50000.0".to_string(),
-                high: "51000.0".to_string(),
-                low: "49000.0".to_string(),
-                close: "50500.0".to_string(),
-                volume: "100.0".to_string(),
-                close_time: 0,
-                quote_asset_volume: "5000000.0".to_string(),
-                number_of_trades: 1000,
-                taker_buy_base_asset_volume: "50.0".to_string(),
-                taker_buy_quote_asset_volume: "2500000.0".to_string(),
-                ignore: "".to_string(),
-            }; 60]; // 60 candles
+            let klines = vec![
+                crate::binance::types::Kline {
+                    open_time: 0,
+                    open: "50000.0".to_string(),
+                    high: "51000.0".to_string(),
+                    low: "49000.0".to_string(),
+                    close: "50500.0".to_string(),
+                    volume: "100.0".to_string(),
+                    close_time: 0,
+                    quote_asset_volume: "5000000.0".to_string(),
+                    number_of_trades: 1000,
+                    taker_buy_base_asset_volume: "50.0".to_string(),
+                    taker_buy_quote_asset_volume: "2500000.0".to_string(),
+                    ignore: "".to_string(),
+                };
+                60
+            ]; // 60 candles
             cache.insert("BTCUSDT_1h".to_string(), klines.clone());
             cache.insert("BTCUSDT_4h".to_string(), klines);
         }
@@ -7053,20 +7158,23 @@ mod tests {
         // Cache with insufficient data
         {
             let mut cache = engine.historical_data_cache.write().await;
-            let klines = vec![crate::binance::types::Kline {
-                open_time: 0,
-                open: "50000.0".to_string(),
-                high: "51000.0".to_string(),
-                low: "49000.0".to_string(),
-                close: "50500.0".to_string(),
-                volume: "100.0".to_string(),
-                close_time: 0,
-                quote_asset_volume: "5000000.0".to_string(),
-                number_of_trades: 1000,
-                taker_buy_base_asset_volume: "50.0".to_string(),
-                taker_buy_quote_asset_volume: "2500000.0".to_string(),
-                ignore: "".to_string(),
-            }; 10]; // Only 10 candles
+            let klines = vec![
+                crate::binance::types::Kline {
+                    open_time: 0,
+                    open: "50000.0".to_string(),
+                    high: "51000.0".to_string(),
+                    low: "49000.0".to_string(),
+                    close: "50500.0".to_string(),
+                    volume: "100.0".to_string(),
+                    close_time: 0,
+                    quote_asset_volume: "5000000.0".to_string(),
+                    number_of_trades: 1000,
+                    taker_buy_base_asset_volume: "50.0".to_string(),
+                    taker_buy_quote_asset_volume: "2500000.0".to_string(),
+                    ignore: "".to_string(),
+                };
+                10
+            ]; // Only 10 candles
             cache.insert("BTCUSDT_1h".to_string(), klines);
         }
 
@@ -7129,18 +7237,20 @@ mod tests {
         // Add daily performance entry
         {
             let mut portfolio = engine.portfolio.write().await;
-            portfolio.daily_performance.push(crate::paper_trading::portfolio::DailyPerformance {
-                date: Utc::now(),
-                balance: 12000.0,
-                equity: 12000.0, // Started day at 12000
-                daily_pnl: 0.0,
-                daily_pnl_percentage: 0.0,
-                trades_executed: 0,
-                winning_trades: 0,
-                losing_trades: 0,
-                total_volume: 0.0,
-                max_drawdown: 0.0,
-            });
+            portfolio
+                .daily_performance
+                .push(crate::paper_trading::portfolio::DailyPerformance {
+                    date: Utc::now(),
+                    balance: 12000.0,
+                    equity: 12000.0, // Started day at 12000
+                    daily_pnl: 0.0,
+                    daily_pnl_percentage: 0.0,
+                    trades_executed: 0,
+                    winning_trades: 0,
+                    losing_trades: 0,
+                    total_volume: 0.0,
+                    max_drawdown: 0.0,
+                });
             portfolio.equity = 11000.0; // Now at 11000 (loss from 12000)
         }
 
@@ -7572,7 +7682,7 @@ mod tests {
                 entry_price: 50000.0,
                 quantity: 1.0,
                 leverage: 10,
-                stop_loss: Some(51000.0), // Above entry for short
+                stop_loss: Some(51000.0),   // Above entry for short
                 take_profit: Some(48000.0), // Below entry for short
                 status: TradeStatus::Open,
                 open_time: Utc::now(),
@@ -7754,7 +7864,10 @@ mod tests {
         settings.execution.simulate_partial_fills = false; // Disable for predictability
         engine.update_settings(settings).await.ok();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let pending_trade = PendingTrade {
             signal: AITradingSignal {
@@ -7798,17 +7911,15 @@ mod tests {
         let ai_service = create_mock_ai_service();
         let (broadcaster, mut receiver) = broadcast::channel(100);
 
-        let engine = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await
-        .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let pending_trade = PendingTrade {
             signal: AITradingSignal {
@@ -8148,7 +8259,11 @@ mod tests {
         assert!(result.error_message.is_some());
         // Accept either warmup error or neutral signal error (both valid for coverage)
         let error_msg = result.error_message.unwrap();
-        assert!(error_msg.contains("Neutral signal") || error_msg.contains("Warmup") || error_msg.contains("warmup"));
+        assert!(
+            error_msg.contains("Neutral signal")
+                || error_msg.contains("Warmup")
+                || error_msg.contains("warmup")
+        );
     }
 
     #[tokio::test]
@@ -8156,7 +8271,10 @@ mod tests {
         let engine = create_test_paper_engine().await;
 
         // Add symbol but disable it
-        engine.add_symbol_to_settings("ETHUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("ETHUSDT".to_string())
+            .await
+            .ok();
         let mut settings = engine.get_settings().await;
         if let Some(symbol_settings) = settings.symbols.get_mut("ETHUSDT") {
             symbol_settings.enabled = false;
@@ -8192,7 +8310,11 @@ mod tests {
         assert!(result.error_message.is_some());
         // Accept either warmup error or disabled symbol error (both valid for coverage)
         let error_msg = result.error_message.unwrap();
-        assert!(error_msg.contains("Symbol trading disabled") || error_msg.contains("Warmup") || error_msg.contains("warmup"));
+        assert!(
+            error_msg.contains("Symbol trading disabled")
+                || error_msg.contains("Warmup")
+                || error_msg.contains("warmup")
+        );
     }
 
     #[tokio::test]
@@ -8205,7 +8327,10 @@ mod tests {
             portfolio.cash_balance = 1.0; // Very low balance
         }
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let signal = AITradingSignal {
             id: "test-insufficient".to_string(),
@@ -8248,7 +8373,10 @@ mod tests {
         settings.execution.simulate_partial_fills = false;
         engine.update_settings(settings).await.ok();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let pending_trade = PendingTrade {
             signal: AITradingSignal {
@@ -8295,7 +8423,10 @@ mod tests {
         settings.execution.partial_fill_probability = 1.0; // Always trigger
         engine.update_settings(settings).await.ok();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let pending_trade = PendingTrade {
             signal: AITradingSignal {
@@ -8342,7 +8473,10 @@ mod tests {
         settings.execution.simulate_partial_fills = false;
         engine.update_settings(settings).await.ok();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let pending_trade = PendingTrade {
             signal: AITradingSignal {
@@ -8389,7 +8523,10 @@ mod tests {
         settings.execution.simulate_partial_fills = false;
         engine.update_settings(settings).await.ok();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let pending_trade = PendingTrade {
             signal: AITradingSignal {
@@ -8436,7 +8573,10 @@ mod tests {
         settings.execution.simulate_partial_fills = false;
         engine.update_settings(settings).await.ok();
 
-        engine.add_symbol_to_settings("BTCUSDT".to_string()).await.ok();
+        engine
+            .add_symbol_to_settings("BTCUSDT".to_string())
+            .await
+            .ok();
 
         let pending_trade = PendingTrade {
             signal: AITradingSignal {
@@ -8535,7 +8675,9 @@ mod tests {
         }
 
         // Close with MarginCall reason
-        let result = engine.close_trade("trade-margin-call", CloseReason::MarginCall).await;
+        let result = engine
+            .close_trade("trade-margin-call", CloseReason::MarginCall)
+            .await;
         assert!(result.is_ok());
     }
 
@@ -8598,7 +8740,9 @@ mod tests {
         }
 
         // Close with AISignal reason
-        let result = engine.close_trade("trade-ai-signal", CloseReason::AISignal).await;
+        let result = engine
+            .close_trade("trade-ai-signal", CloseReason::AISignal)
+            .await;
         assert!(result.is_ok());
     }
 
@@ -8661,7 +8805,9 @@ mod tests {
         }
 
         // Close with RiskManagement reason
-        let result = engine.close_trade("trade-risk-mgmt", CloseReason::RiskManagement).await;
+        let result = engine
+            .close_trade("trade-risk-mgmt", CloseReason::RiskManagement)
+            .await;
         assert!(result.is_ok());
     }
 
@@ -8724,7 +8870,9 @@ mod tests {
         }
 
         // Close with TimeBasedExit reason
-        let result = engine.close_trade("trade-time-exit", CloseReason::TimeBasedExit).await;
+        let result = engine
+            .close_trade("trade-time-exit", CloseReason::TimeBasedExit)
+            .await;
         assert!(result.is_ok());
     }
 
@@ -8739,7 +8887,9 @@ mod tests {
         settings.execution.market_impact_factor = 1.0;
         engine.update_settings(settings).await.ok();
 
-        let impact = engine.calculate_market_impact("BTCUSDT", 10.0, 50000.0).await;
+        let impact = engine
+            .calculate_market_impact("BTCUSDT", 10.0, 50000.0)
+            .await;
         assert!(impact >= 0.0);
     }
 
@@ -8753,7 +8903,9 @@ mod tests {
         settings.execution.market_impact_factor = 1.0;
         engine.update_settings(settings).await.ok();
 
-        let impact = engine.calculate_market_impact("ETHUSDT", 100.0, 3000.0).await;
+        let impact = engine
+            .calculate_market_impact("ETHUSDT", 100.0, 3000.0)
+            .await;
         assert!(impact >= 0.0);
     }
 
@@ -8768,7 +8920,9 @@ mod tests {
         engine.update_settings(settings).await.ok();
 
         // Unknown symbol should use default volume
-        let impact = engine.calculate_market_impact("UNKNOWNUSDT", 10.0, 1000.0).await;
+        let impact = engine
+            .calculate_market_impact("UNKNOWNUSDT", 10.0, 1000.0)
+            .await;
         assert!(impact >= 0.0);
     }
 
@@ -8781,7 +8935,9 @@ mod tests {
         settings.execution.simulate_market_impact = false;
         engine.update_settings(settings).await.ok();
 
-        let impact = engine.calculate_market_impact("BTCUSDT", 10.0, 50000.0).await;
+        let impact = engine
+            .calculate_market_impact("BTCUSDT", 10.0, 50000.0)
+            .await;
         assert_eq!(impact, 0.0);
     }
 
@@ -8877,18 +9033,20 @@ mod tests {
             portfolio.cash_balance = 95000.0;
 
             // Add daily performance entry
-            portfolio.daily_performance.push(crate::paper_trading::portfolio::DailyPerformance {
-                date: Utc::now(),
-                balance: 100000.0,
-                equity: 100000.0,
-                daily_pnl: 0.0,
-                daily_pnl_percentage: 0.0,
-                trades_executed: 0,
-                winning_trades: 0,
-                losing_trades: 0,
-                total_volume: 0.0,
-                max_drawdown: 0.0,
-            });
+            portfolio
+                .daily_performance
+                .push(crate::paper_trading::portfolio::DailyPerformance {
+                    date: Utc::now(),
+                    balance: 100000.0,
+                    equity: 100000.0,
+                    daily_pnl: 0.0,
+                    daily_pnl_percentage: 0.0,
+                    trades_executed: 0,
+                    winning_trades: 0,
+                    losing_trades: 0,
+                    total_volume: 0.0,
+                    max_drawdown: 0.0,
+                });
         }
 
         let result = engine.check_daily_loss_limit().await;
@@ -8915,18 +9073,20 @@ mod tests {
             portfolio.cash_balance = 97000.0;
 
             // Add daily performance entry
-            portfolio.daily_performance.push(crate::paper_trading::portfolio::DailyPerformance {
-                date: Utc::now(),
-                balance: 100000.0,
-                equity: 100000.0,
-                daily_pnl: 0.0,
-                daily_pnl_percentage: 0.0,
-                trades_executed: 0,
-                winning_trades: 0,
-                losing_trades: 0,
-                total_volume: 0.0,
-                max_drawdown: 0.0,
-            });
+            portfolio
+                .daily_performance
+                .push(crate::paper_trading::portfolio::DailyPerformance {
+                    date: Utc::now(),
+                    balance: 100000.0,
+                    equity: 100000.0,
+                    daily_pnl: 0.0,
+                    daily_pnl_percentage: 0.0,
+                    trades_executed: 0,
+                    winning_trades: 0,
+                    losing_trades: 0,
+                    total_volume: 0.0,
+                    max_drawdown: 0.0,
+                });
         }
 
         let result = engine.check_daily_loss_limit().await;
@@ -9142,9 +9302,13 @@ mod tests {
                 metadata: std::collections::HashMap::new(),
             };
 
-            portfolio.trades.insert(long_trade.id.clone(), long_trade.clone());
+            portfolio
+                .trades
+                .insert(long_trade.id.clone(), long_trade.clone());
             portfolio.open_trade_ids.push(long_trade.id.clone());
-            portfolio.trades.insert(short_trade.id.clone(), short_trade.clone());
+            portfolio
+                .trades
+                .insert(short_trade.id.clone(), short_trade.clone());
             portfolio.open_trade_ids.push(short_trade.id.clone());
         }
 
@@ -9251,9 +9415,13 @@ mod tests {
                 metadata: std::collections::HashMap::new(),
             };
 
-            portfolio.trades.insert(long_trade.id.clone(), long_trade.clone());
+            portfolio
+                .trades
+                .insert(long_trade.id.clone(), long_trade.clone());
             portfolio.open_trade_ids.push(long_trade.id.clone());
-            portfolio.trades.insert(short_trade.id.clone(), short_trade.clone());
+            portfolio
+                .trades
+                .insert(short_trade.id.clone(), short_trade.clone());
             portfolio.open_trade_ids.push(short_trade.id.clone());
         }
 
@@ -10068,28 +10236,31 @@ mod tests {
     async fn test_cov8_price_fallback_to_signal_price() {
         let mut settings = create_test_settings();
         let mut symbol_settings = SymbolSettings {
-                enabled: true,
-                leverage: Some(10),
-                position_size_pct: Some(5.0),
-                stop_loss_pct: Some(2.0),
-                take_profit_pct: Some(4.0),
-                trading_hours: None,
-                min_price_movement_pct: None,
-                max_positions: Some(1),
-                custom_params: HashMap::new(),
-            };
+            enabled: true,
+            leverage: Some(10),
+            position_size_pct: Some(5.0),
+            stop_loss_pct: Some(2.0),
+            take_profit_pct: Some(4.0),
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: Some(1),
+            custom_params: HashMap::new(),
+        };
         symbol_settings.enabled = true;
         symbol_settings.max_positions = Some(5);
-        settings.symbols.insert("ETHUSDT".to_string(), symbol_settings);
+        settings
+            .symbols
+            .insert("ETHUSDT".to_string(), symbol_settings);
 
         let binance_client = create_mock_binance_client();
         let ai_service = create_mock_ai_service();
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
-            .await
-            .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         // Pre-load historical data to bypass warmup check
         {
@@ -10155,27 +10326,30 @@ mod tests {
         settings.risk.ai_auto_enable_reversal = false;
 
         let mut symbol_settings = SymbolSettings {
-                enabled: true,
-                leverage: Some(10),
-                position_size_pct: Some(5.0),
-                stop_loss_pct: Some(2.0),
-                take_profit_pct: Some(4.0),
-                trading_hours: None,
-                min_price_movement_pct: None,
-                max_positions: Some(1),
-                custom_params: HashMap::new(),
-            };
+            enabled: true,
+            leverage: Some(10),
+            position_size_pct: Some(5.0),
+            stop_loss_pct: Some(2.0),
+            take_profit_pct: Some(4.0),
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: Some(1),
+            custom_params: HashMap::new(),
+        };
         symbol_settings.enabled = true;
-        settings.symbols.insert("BTCUSDT".to_string(), symbol_settings);
+        settings
+            .symbols
+            .insert("BTCUSDT".to_string(), symbol_settings);
 
         let binance_client = create_mock_binance_client();
         let ai_service = create_mock_ai_service();
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
-            .await
-            .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         // Add an existing Long trade with positive PnL
         {
@@ -10470,27 +10644,30 @@ mod tests {
     async fn test_cov8_signal_processing_warmup_incomplete() {
         let mut settings = create_test_settings();
         let mut symbol_settings = SymbolSettings {
-                enabled: true,
-                leverage: Some(10),
-                position_size_pct: Some(5.0),
-                stop_loss_pct: Some(2.0),
-                take_profit_pct: Some(4.0),
-                trading_hours: None,
-                min_price_movement_pct: None,
-                max_positions: Some(1),
-                custom_params: HashMap::new(),
-            };
+            enabled: true,
+            leverage: Some(10),
+            position_size_pct: Some(5.0),
+            stop_loss_pct: Some(2.0),
+            take_profit_pct: Some(4.0),
+            trading_hours: None,
+            min_price_movement_pct: None,
+            max_positions: Some(1),
+            custom_params: HashMap::new(),
+        };
         symbol_settings.enabled = true;
-        settings.symbols.insert("NEWUSDT".to_string(), symbol_settings);
+        settings
+            .symbols
+            .insert("NEWUSDT".to_string(), symbol_settings);
 
         let binance_client = create_mock_binance_client();
         let ai_service = create_mock_ai_service();
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine = PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
-            .await
-            .unwrap();
+        let engine =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await
+                .unwrap();
 
         // Don't pre-load historical data - warmup should fail
         let signal = AITradingSignal {
@@ -10628,7 +10805,10 @@ mod tests {
 
     #[test]
     fn test_boost_consecutive_streak_debug() {
-        let streak = ConsecutiveStreak { wins: 10, losses: 0 };
+        let streak = ConsecutiveStreak {
+            wins: 10,
+            losses: 0,
+        };
         let debug_str = format!("{:?}", streak);
         assert!(debug_str.contains("wins"));
         assert!(debug_str.contains("10"));
@@ -10797,14 +10977,9 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let result = PaperTradingEngine::new(
-            settings,
-            binance_client,
-            ai_service,
-            storage,
-            broadcaster,
-        )
-        .await;
+        let result =
+            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
+                .await;
 
         assert!(result.is_ok());
     }
@@ -10864,10 +11039,15 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine =
-            PaperTradingEngine::new(settings.clone(), binance_client, ai_service, storage, broadcaster)
-                .await
-                .unwrap();
+        let engine = PaperTradingEngine::new(
+            settings.clone(),
+            binance_client,
+            ai_service,
+            storage,
+            broadcaster,
+        )
+        .await
+        .unwrap();
 
         let portfolio = engine.portfolio.read().await;
         assert_eq!(portfolio.cash_balance, settings.basic.initial_balance);
@@ -10949,10 +11129,7 @@ mod tests {
 
         let result = engine.start().await;
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("already running"));
+        assert!(result.unwrap_err().to_string().contains("already running"));
     }
 
     #[tokio::test]
@@ -10988,10 +11165,15 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine =
-            PaperTradingEngine::new(settings.clone(), binance_client, ai_service, storage, broadcaster)
-                .await
-                .unwrap();
+        let engine = PaperTradingEngine::new(
+            settings.clone(),
+            binance_client,
+            ai_service,
+            storage,
+            broadcaster,
+        )
+        .await
+        .unwrap();
 
         let result = engine.reset_portfolio().await;
         assert!(result.is_ok());
@@ -11009,10 +11191,15 @@ mod tests {
         let storage = create_mock_storage().await;
         let broadcaster = create_event_broadcaster();
 
-        let engine =
-            PaperTradingEngine::new(settings.clone(), binance_client, ai_service, storage, broadcaster)
-                .await
-                .unwrap();
+        let engine = PaperTradingEngine::new(
+            settings.clone(),
+            binance_client,
+            ai_service,
+            storage,
+            broadcaster,
+        )
+        .await
+        .unwrap();
 
         let status = engine.get_portfolio_status().await;
         assert_eq!(status.current_balance, settings.basic.initial_balance);

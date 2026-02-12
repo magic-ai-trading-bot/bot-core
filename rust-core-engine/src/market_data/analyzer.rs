@@ -1882,14 +1882,8 @@ mod tests {
     #[test]
     fn test_cov8_strategy_context_with_user_preferences() {
         let mut user_prefs = HashMap::new();
-        user_prefs.insert(
-            "max_position_size".to_string(),
-            serde_json::json!(0.1),
-        );
-        user_prefs.insert(
-            "preferred_timeframe".to_string(),
-            serde_json::json!("1h"),
-        );
+        user_prefs.insert("max_position_size".to_string(), serde_json::json!(0.1));
+        user_prefs.insert("preferred_timeframe".to_string(), serde_json::json!("1h"));
 
         let mut indicators = HashMap::new();
         indicators.insert("rsi".to_string(), serde_json::json!(65.0));
@@ -1941,8 +1935,7 @@ mod tests {
         let json = serde_json::to_string(&analysis);
         assert!(json.is_ok());
 
-        let deserialized: Result<MultiTimeframeAnalysis, _> =
-            serde_json::from_str(&json.unwrap());
+        let deserialized: Result<MultiTimeframeAnalysis, _> = serde_json::from_str(&json.unwrap());
         assert!(deserialized.is_ok());
     }
 }

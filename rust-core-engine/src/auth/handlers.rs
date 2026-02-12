@@ -761,7 +761,9 @@ mod tests {
                 full_name: None,
             };
 
-            let response = handle_register(request, auth_service.clone()).await.unwrap();
+            let response = handle_register(request, auth_service.clone())
+                .await
+                .unwrap();
             let reply = response.into_response();
             // Can be BAD_REQUEST (validation) or INTERNAL_SERVER_ERROR (dummy DB)
             assert!(reply.status().is_client_error() || reply.status().is_server_error());
@@ -784,7 +786,9 @@ mod tests {
                 full_name: None,
             };
 
-            let response = handle_register(request, auth_service.clone()).await.unwrap();
+            let response = handle_register(request, auth_service.clone())
+                .await
+                .unwrap();
             let reply = response.into_response();
             assert_eq!(reply.status(), warp::http::StatusCode::BAD_REQUEST);
         }
@@ -820,7 +824,9 @@ mod tests {
         use warp::Reply;
 
         let auth_service = AuthService::new_dummy();
-        let response = handle_verify("token_without_bearer".to_string(), auth_service).await.unwrap();
+        let response = handle_verify("token_without_bearer".to_string(), auth_service)
+            .await
+            .unwrap();
         let reply = response.into_response();
         assert_eq!(reply.status(), warp::http::StatusCode::UNAUTHORIZED);
     }
@@ -830,7 +836,9 @@ mod tests {
         use warp::Reply;
 
         let auth_service = AuthService::new_dummy();
-        let response = handle_profile("Bearer ".to_string(), auth_service).await.unwrap();
+        let response = handle_profile("Bearer ".to_string(), auth_service)
+            .await
+            .unwrap();
         let reply = response.into_response();
         assert!(reply.status().is_client_error());
     }
@@ -840,7 +848,9 @@ mod tests {
         use warp::Reply;
 
         let auth_service = AuthService::new_dummy();
-        let response = handle_profile("Bearer malformed.token".to_string(), auth_service).await.unwrap();
+        let response = handle_profile("Bearer malformed.token".to_string(), auth_service)
+            .await
+            .unwrap();
         let reply = response.into_response();
         assert!(reply.status().is_client_error());
     }
@@ -1507,7 +1517,11 @@ mod tests {
         ];
 
         for path in test_paths {
-            let resp = warp::test::request().method("OPTIONS").path(path).reply(&routes).await;
+            let resp = warp::test::request()
+                .method("OPTIONS")
+                .path(path)
+                .reply(&routes)
+                .await;
             assert_ne!(resp.status(), warp::http::StatusCode::NOT_FOUND);
         }
     }
@@ -1600,7 +1614,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_client_error() || resp.status().is_server_error() || resp.status().is_success());
+        assert!(
+            resp.status().is_client_error()
+                || resp.status().is_server_error()
+                || resp.status().is_success()
+        );
     }
 
     #[tokio::test]
@@ -1650,7 +1668,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_client_error() || resp.status().is_server_error() || resp.status().is_success());
+        assert!(
+            resp.status().is_client_error()
+                || resp.status().is_server_error()
+                || resp.status().is_success()
+        );
     }
 
     #[tokio::test]
@@ -1664,7 +1686,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_client_error() || resp.status().is_server_error() || resp.status().is_success());
+        assert!(
+            resp.status().is_client_error()
+                || resp.status().is_server_error()
+                || resp.status().is_success()
+        );
     }
 
     #[tokio::test]
@@ -1679,7 +1705,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_client_error() || resp.status().is_server_error() || resp.status().is_success());
+        assert!(
+            resp.status().is_client_error()
+                || resp.status().is_server_error()
+                || resp.status().is_success()
+        );
     }
 
     #[tokio::test]
@@ -1890,7 +1920,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_client_error() || resp.status().is_server_error() || resp.status().is_success());
+        assert!(
+            resp.status().is_client_error()
+                || resp.status().is_server_error()
+                || resp.status().is_success()
+        );
     }
 
     // ========== ADDITIONAL COV2 TESTS ==========
@@ -2002,7 +2036,9 @@ mod tests {
         let auth_service = AuthService::new(UserRepository::new_dummy(), jwt_secret.clone());
 
         let jwt_service = JwtService::new(jwt_secret, Some(24));
-        let token = jwt_service.generate_token("not_valid_oid", "e@e.com", false).unwrap();
+        let token = jwt_service
+            .generate_token("not_valid_oid", "e@e.com", false)
+            .unwrap();
 
         let res = handle_profile(format!("Bearer {}", token), auth_service).await;
         assert!(res.is_ok());
@@ -2016,7 +2052,9 @@ mod tests {
 
         let jwt_service = JwtService::new(jwt_secret, Some(24));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "e@e.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "e@e.com", false)
+            .unwrap();
 
         let res = handle_profile(format!("Bearer {}", token), auth_service).await;
         assert!(res.is_ok());
@@ -2030,7 +2068,9 @@ mod tests {
 
         let jwt_service = JwtService::new(jwt_secret, Some(24));
         let user_id = bson::oid::ObjectId::new();
-        let token = jwt_service.generate_token(&user_id.to_hex(), "e@e.com", false).unwrap();
+        let token = jwt_service
+            .generate_token(&user_id.to_hex(), "e@e.com", false)
+            .unwrap();
 
         let res = handle_profile(format!("Bearer {}", token), auth_service).await;
         assert!(res.is_ok());
@@ -2052,10 +2092,30 @@ mod tests {
         let routes = auth_service.routes();
 
         // Test all routes exist by making actual requests
-        let _ = warp::test::request().method("POST").path("/auth/register").json(&serde_json::json!({"email":"test@test.com","password":"pass123"})).reply(&routes).await;
-        let _ = warp::test::request().method("POST").path("/auth/login").json(&serde_json::json!({"email":"test@test.com","password":"pass123"})).reply(&routes).await;
-        let _ = warp::test::request().method("GET").path("/auth/verify").header("authorization", "Bearer token").reply(&routes).await;
-        let _ = warp::test::request().method("GET").path("/auth/profile").header("authorization", "Bearer token").reply(&routes).await;
+        let _ = warp::test::request()
+            .method("POST")
+            .path("/auth/register")
+            .json(&serde_json::json!({"email":"test@test.com","password":"pass123"}))
+            .reply(&routes)
+            .await;
+        let _ = warp::test::request()
+            .method("POST")
+            .path("/auth/login")
+            .json(&serde_json::json!({"email":"test@test.com","password":"pass123"}))
+            .reply(&routes)
+            .await;
+        let _ = warp::test::request()
+            .method("GET")
+            .path("/auth/verify")
+            .header("authorization", "Bearer token")
+            .reply(&routes)
+            .await;
+        let _ = warp::test::request()
+            .method("GET")
+            .path("/auth/profile")
+            .header("authorization", "Bearer token")
+            .reply(&routes)
+            .await;
     }
 
     // ========== COV8 TESTS: Additional coverage for auth handlers ==========
@@ -2157,5 +2217,4 @@ mod tests {
 
         let _ = auth_service.clone();
     }
-
 }

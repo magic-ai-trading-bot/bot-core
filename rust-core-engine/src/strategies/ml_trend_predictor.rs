@@ -570,12 +570,7 @@ mod tests {
 
     #[test]
     fn test_ml_predictor_config_boundary_confidence() {
-        let configs = vec![
-            (0.0, 0.0),
-            (0.5, 0.5),
-            (0.65, 0.65),
-            (1.0, 1.0),
-        ];
+        let configs = vec![(0.0, 0.0), (0.5, 0.5), (0.65, 0.65), (1.0, 1.0)];
 
         for (conf, expected) in configs {
             let config = MLPredictorConfig {
@@ -706,7 +701,10 @@ mod tests {
         assert_eq!(predictor.config().service_url, config.service_url);
         assert_eq!(predictor.config().timeout_ms, config.timeout_ms);
         assert_eq!(predictor.config().min_confidence, config.min_confidence);
-        assert_eq!(predictor.config().fallback_on_error, config.fallback_on_error);
+        assert_eq!(
+            predictor.config().fallback_on_error,
+            config.fallback_on_error
+        );
     }
 
     // ========== COV8 TESTS - Target untested branches ==========

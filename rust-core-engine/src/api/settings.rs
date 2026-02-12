@@ -954,7 +954,9 @@ mod tests {
         let (encrypted, nonce) = encrypt_secret(secret).expect("Encryption should work");
 
         // Decode, modify, re-encode to simulate tampering
-        let mut decoded = base64::engine::general_purpose::STANDARD.decode(&encrypted).unwrap();
+        let mut decoded = base64::engine::general_purpose::STANDARD
+            .decode(&encrypted)
+            .unwrap();
         if !decoded.is_empty() {
             decoded[0] ^= 0xFF; // Flip bits
         }
@@ -1068,7 +1070,10 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_client_error() || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED);
+        assert!(
+            resp.status().is_client_error()
+                || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED
+        );
     }
 
     #[tokio::test]
@@ -1082,7 +1087,10 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_client_error() || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED);
+        assert!(
+            resp.status().is_client_error()
+                || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED
+        );
     }
 
     // Save API keys edge cases
@@ -1230,9 +1238,9 @@ mod tests {
         // CORS filter should handle OPTIONS, may return various status codes
         assert!(
             resp.status().is_success()
-            || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED
-            || resp.status() == warp::http::StatusCode::NOT_FOUND
-            || resp.status().is_client_error()
+                || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED
+                || resp.status() == warp::http::StatusCode::NOT_FOUND
+                || resp.status().is_client_error()
         );
     }
 
@@ -1412,9 +1420,7 @@ mod tests {
         let filter = with_api(api_arc.clone());
 
         // Filter should extract the API successfully
-        let result = warp::test::request()
-            .filter(&filter)
-            .await;
+        let result = warp::test::request().filter(&filter).await;
 
         assert!(result.is_ok());
     }
@@ -1488,7 +1494,10 @@ mod tests {
         // Save current env var if it exists
         let original_key = std::env::var("API_KEY_ENCRYPTION_SECRET").ok();
 
-        std::env::set_var("API_KEY_ENCRYPTION_SECRET", "test-env-secret-key-32-bytes-long");
+        std::env::set_var(
+            "API_KEY_ENCRYPTION_SECRET",
+            "test-env-secret-key-32-bytes-long",
+        );
         let key = get_encryption_key();
         assert_eq!(key.len(), 32);
 
@@ -1505,7 +1514,10 @@ mod tests {
         let original_key = std::env::var("API_KEY_ENCRYPTION_SECRET").ok();
 
         // Set a known key to ensure encrypt/decrypt use same key
-        std::env::set_var("API_KEY_ENCRYPTION_SECRET", "special-char-test-key-32-bytes!");
+        std::env::set_var(
+            "API_KEY_ENCRYPTION_SECRET",
+            "special-char-test-key-32-bytes!",
+        );
 
         let secret = "!@#$%^&*()_+-=[]{}|;:',.<>?/~`";
         let result = encrypt_secret(secret);
@@ -1529,12 +1541,18 @@ mod tests {
         let original_key = std::env::var("API_KEY_ENCRYPTION_SECRET").ok();
 
         // Set a known encryption key
-        std::env::set_var("API_KEY_ENCRYPTION_SECRET", "original-key-that-is-32-bytes!!");
+        std::env::set_var(
+            "API_KEY_ENCRYPTION_SECRET",
+            "original-key-that-is-32-bytes!!",
+        );
         let secret = "test-secret";
         let (encrypted, nonce) = encrypt_secret(secret).unwrap();
 
         // Now change to a different encryption key
-        std::env::set_var("API_KEY_ENCRYPTION_SECRET", "different-key-that-is-32-bytes!");
+        std::env::set_var(
+            "API_KEY_ENCRYPTION_SECRET",
+            "different-key-that-is-32-bytes!",
+        );
         let result = decrypt_secret(&encrypted, &nonce);
 
         // Restore original key or remove if it didn't exist
@@ -1725,8 +1743,8 @@ mod tests {
         // Accept any valid response from CORS filter
         assert!(
             resp.status().is_success()
-            || resp.status().is_client_error()
-            || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED
+                || resp.status().is_client_error()
+                || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED
         );
     }
 }

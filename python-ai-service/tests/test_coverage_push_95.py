@@ -14,14 +14,16 @@ class TestProjectChatbotEndpoints:
     async def test_chat_with_project_success(self, client):
         """Test POST /api/chat/project with mocked chatbot."""
         mock_chatbot = AsyncMock()
-        mock_chatbot.chat = AsyncMock(return_value={
-            "success": True,
-            "message": "BotCore is a trading bot platform.",
-            "sources": [{"title": "README", "path": "README.md"}],
-            "confidence": 0.85,
-            "type": "rag",
-            "tokens_used": {"prompt": 100, "completion": 50},
-        })
+        mock_chatbot.chat = AsyncMock(
+            return_value={
+                "success": True,
+                "message": "BotCore is a trading bot platform.",
+                "sources": [{"title": "README", "path": "README.md"}],
+                "confidence": 0.85,
+                "type": "rag",
+                "tokens_used": {"prompt": 100, "completion": 50},
+            }
+        )
         mock_chatbot.openai_client = MagicMock()
 
         with patch("main._project_chatbot", mock_chatbot):
@@ -40,18 +42,22 @@ class TestProjectChatbotEndpoints:
     async def test_chat_with_project_creates_chatbot_if_none(self, client):
         """Test that chatbot is initialized when _project_chatbot is None."""
         mock_chatbot = AsyncMock()
-        mock_chatbot.chat = AsyncMock(return_value={
-            "success": True,
-            "message": "Hello!",
-            "sources": [],
-            "confidence": 0.5,
-            "type": "fallback",
-            "tokens_used": {},
-        })
+        mock_chatbot.chat = AsyncMock(
+            return_value={
+                "success": True,
+                "message": "Hello!",
+                "sources": [],
+                "confidence": 0.5,
+                "type": "fallback",
+                "tokens_used": {},
+            }
+        )
         mock_chatbot.openai_client = MagicMock()
 
-        with patch("main._project_chatbot", None), \
-             patch("main.get_chatbot", AsyncMock(return_value=mock_chatbot)) as mock_get:
+        with (
+            patch("main._project_chatbot", None),
+            patch("main.get_chatbot", AsyncMock(return_value=mock_chatbot)) as mock_get,
+        ):
             response = await client.post(
                 "/api/chat/project",
                 json={"message": "Hi"},
@@ -78,10 +84,12 @@ class TestProjectChatbotEndpoints:
     async def test_chat_suggestions(self, client):
         """Test GET /api/chat/project/suggestions."""
         mock_chatbot = MagicMock()
-        mock_chatbot.get_suggested_questions = MagicMock(return_value=[
-            "What is BotCore?",
-            "How does paper trading work?",
-        ])
+        mock_chatbot.get_suggested_questions = MagicMock(
+            return_value=[
+                "What is BotCore?",
+                "How does paper trading work?",
+            ]
+        )
 
         with patch("main._project_chatbot", mock_chatbot):
             response = await client.get("/api/chat/project/suggestions")
@@ -95,8 +103,10 @@ class TestProjectChatbotEndpoints:
         mock_chatbot = MagicMock()
         mock_chatbot.get_suggested_questions = MagicMock(return_value=["Q1"])
 
-        with patch("main._project_chatbot", None), \
-             patch("main.get_chatbot", AsyncMock(return_value=mock_chatbot)):
+        with (
+            patch("main._project_chatbot", None),
+            patch("main.get_chatbot", AsyncMock(return_value=mock_chatbot)),
+        ):
             response = await client.get("/api/chat/project/suggestions")
             assert response.status_code == 200
 
@@ -135,7 +145,9 @@ class TestConfigAnalysisEndpoints:
         }
         mock_module = MagicMock()
         mock_module._run_config_analysis_direct = MagicMock(return_value=mock_result)
-        with patch.dict("sys.modules", {"tasks": MagicMock(), "tasks.ai_improvement": mock_module}):
+        with patch.dict(
+            "sys.modules", {"tasks": MagicMock(), "tasks.ai_improvement": mock_module}
+        ):
             response = await client.post("/ai/config-analysis/trigger")
             assert response.status_code == 200
             data = response.json()
@@ -147,7 +159,9 @@ class TestConfigAnalysisEndpoints:
         mock_result = {"status": "error", "message": "No data"}
         mock_module = MagicMock()
         mock_module._run_config_analysis_direct = MagicMock(return_value=mock_result)
-        with patch.dict("sys.modules", {"tasks": MagicMock(), "tasks.ai_improvement": mock_module}):
+        with patch.dict(
+            "sys.modules", {"tasks": MagicMock(), "tasks.ai_improvement": mock_module}
+        ):
             response = await client.post("/ai/config-analysis/trigger")
             assert response.status_code == 200
             data = response.json()
@@ -156,6 +170,7 @@ class TestConfigAnalysisEndpoints:
     async def test_trigger_config_analysis_exception(self, client):
         """Test POST /ai/config-analysis/trigger when import raises."""
         import sys as _sys
+
         original = _sys.modules.get("tasks.ai_improvement")
         _sys.modules["tasks.ai_improvement"] = None
         try:
@@ -172,9 +187,11 @@ class TestConfigAnalysisEndpoints:
     async def test_get_config_suggestions(self, client):
         """Test GET /ai/config-suggestions."""
         mock_storage = MagicMock()
-        mock_storage.get_config_suggestions_history = MagicMock(return_value=[
-            {"_id": MagicMock(), "suggestion": "Use RSI=14"},
-        ])
+        mock_storage.get_config_suggestions_history = MagicMock(
+            return_value=[
+                {"_id": MagicMock(), "suggestion": "Use RSI=14"},
+            ]
+        )
         with patch("utils.data_storage.storage", mock_storage):
             response = await client.get("/ai/config-suggestions?days=7&limit=5")
             assert response.status_code == 200
@@ -185,7 +202,9 @@ class TestConfigAnalysisEndpoints:
     async def test_get_config_suggestions_error(self, client):
         """Test GET /ai/config-suggestions when storage fails."""
         mock_storage = MagicMock()
-        mock_storage.get_config_suggestions_history = MagicMock(side_effect=Exception("DB error"))
+        mock_storage.get_config_suggestions_history = MagicMock(
+            side_effect=Exception("DB error")
+        )
         with patch("utils.data_storage.storage", mock_storage):
             response = await client.get("/ai/config-suggestions")
             assert response.status_code == 200
@@ -195,9 +214,11 @@ class TestConfigAnalysisEndpoints:
     async def test_get_gpt4_analysis_history(self, client):
         """Test GET /ai/gpt4-analysis-history."""
         mock_storage = MagicMock()
-        mock_storage.get_gpt4_analysis_history = MagicMock(return_value=[
-            {"_id": MagicMock(), "analysis": "Bullish trend detected"},
-        ])
+        mock_storage.get_gpt4_analysis_history = MagicMock(
+            return_value=[
+                {"_id": MagicMock(), "analysis": "Bullish trend detected"},
+            ]
+        )
         with patch("utils.data_storage.storage", mock_storage):
             response = await client.get("/ai/gpt4-analysis-history?days=7&limit=5")
             assert response.status_code == 200
@@ -208,7 +229,9 @@ class TestConfigAnalysisEndpoints:
     async def test_get_gpt4_analysis_history_error(self, client):
         """Test GET /ai/gpt4-analysis-history when storage fails."""
         mock_storage = MagicMock()
-        mock_storage.get_gpt4_analysis_history = MagicMock(side_effect=Exception("DB error"))
+        mock_storage.get_gpt4_analysis_history = MagicMock(
+            side_effect=Exception("DB error")
+        )
         with patch("utils.data_storage.storage", mock_storage):
             response = await client.get("/ai/gpt4-analysis-history")
             assert response.status_code == 200
@@ -223,6 +246,7 @@ class TestAnalysisStatsError:
     async def test_analysis_stats_error(self):
         """Test get_analysis_statistics when db raises error."""
         import main
+
         original_db = main.mongodb_db
         # Set db to a mock that raises on collection access
         mock_db = MagicMock()
@@ -349,10 +373,16 @@ class TestChatbotOpenAIClientUpdate:
 
         mock_chatbot = AsyncMock()
         mock_chatbot.openai_client = None  # chatbot has no client
-        mock_chatbot.chat = AsyncMock(return_value={
-            "success": True, "message": "ok", "sources": [],
-            "confidence": 0.5, "type": "fallback", "tokens_used": {},
-        })
+        mock_chatbot.chat = AsyncMock(
+            return_value={
+                "success": True,
+                "message": "ok",
+                "sources": [],
+                "confidence": 0.5,
+                "type": "fallback",
+                "tokens_used": {},
+            }
+        )
 
         original_openai = main.openai_client
         main.openai_client = MagicMock()  # main has a client
