@@ -181,6 +181,17 @@ jobs:
             exit 1
           fi
 
+          # Ensure all required env vars exist in .env (auto-generate if missing)
+          REQUIRED_VARS="DASHBOARD_SESSION_SECRET INTER_SERVICE_TOKEN PYTHON_API_KEY RUST_API_KEY BINANCE_API_KEY BINANCE_SECRET_KEY"
+          for var in $REQUIRED_VARS; do
+            if ! grep -q "^${var}=" .env; then
+              GENERATED=$(openssl rand -hex 32)
+              echo "${var}=$GENERATED" >> .env
+              log_warn "⚠️ Generated missing ${var}"
+            fi
+          done
+          log_info "✅ All required env vars verified"
+
           # ============================================================================
           # STEP 6: STOP ONLY APPLICATION CONTAINERS (KEEP INFRASTRUCTURE RUNNING!)
           # ============================================================================
