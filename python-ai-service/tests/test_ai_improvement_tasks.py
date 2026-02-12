@@ -39,12 +39,12 @@ class TestGPT4SelfAnalysis:
         path = parsed_url.path
         netloc = parsed_url.netloc
 
-        # Use proper URL parsing instead of substring checks
+        # Use proper URL parsing with exact domain matching
         if path.endswith("/trades/closed"):
             mock_resp.json.return_value = {"success": True, "data": []}
         elif path.endswith("/accuracy_history"):
             mock_resp.json.return_value = {}
-        elif netloc.endswith("binance.com"):
+        elif netloc == "api.binance.com" or netloc == "www.binance.com":
             mock_resp.json.return_value = {"priceChangePercent": "1.5"}
         else:
             mock_resp.json.return_value = {}
@@ -591,12 +591,12 @@ class TestAIImprovementTasksIntegration:
             path = parsed_url.path
             netloc = parsed_url.netloc
 
-            # Use proper URL parsing instead of substring checks
+            # Use proper URL parsing with exact domain matching
             if path.endswith("/trades/closed"):
                 mock_resp.json.return_value = {"success": True, "data": []}
             elif path.endswith("/accuracy_history"):
                 mock_resp.json.return_value = {}
-            elif netloc.endswith("binance.com"):
+            elif netloc == "api.binance.com" or netloc == "www.binance.com":
                 mock_resp.json.return_value = {"priceChangePercent": "1.5"}
             else:
                 mock_resp.json.return_value = {}

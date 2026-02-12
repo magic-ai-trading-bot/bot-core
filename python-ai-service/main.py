@@ -3349,14 +3349,19 @@ async def trigger_config_analysis(request: Request):
         result = _run_config_analysis_direct(analysis_result=None)
 
         if result.get("status") == "success":
+            # Sanitize output - only return known safe fields
+            suggestions = result.get("suggestions")
+            trade_stats = result.get("trade_stats")
+            timestamp = result.get("timestamp")
             return {
                 "success": True,
                 "message": "Config analysis completed successfully",
-                "suggestions": result.get("suggestions"),
-                "trade_stats": result.get("trade_stats"),
-                "timestamp": result.get("timestamp"),
+                "suggestions": suggestions if isinstance(suggestions, (list, dict, type(None))) else None,
+                "trade_stats": trade_stats if isinstance(trade_stats, (dict, type(None))) else None,
+                "timestamp": str(timestamp) if timestamp else None,
             }
         else:
+            logger.warning(f"Config analysis returned non-success: {result.get('message', 'unknown')}")
             return {
                 "success": False,
                 "message": "Config analysis failed. Check server logs for details.",
