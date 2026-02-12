@@ -3360,7 +3360,6 @@ async def trigger_config_analysis(request: Request):
             return {
                 "success": False,
                 "message": "Config analysis failed. Check server logs for details.",
-                "status": result.get("status"),
             }
 
     except Exception as e:
