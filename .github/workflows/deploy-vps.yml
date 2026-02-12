@@ -48,21 +48,18 @@ jobs:
             echo "Branch: ${{ github.event.workflow_run.head_branch }}"
           fi
 
-      # SECURITY: Use SSH key authentication instead of password
-      # Required secrets: VPS_SSH_PRIVATE_KEY, VPS_HOST, VPS_USER
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Deploy to VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         run: |
-          echo "🔐 Connecting to VPS using SSH key..."
+          echo "🔐 Connecting to VPS using password..."
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
           # Create deploy script
           cat > deploy.sh << 'DEPLOY_SCRIPT'
@@ -370,9 +367,8 @@ jobs:
           fi
           DEPLOY_SCRIPT
 
-          # Execute deploy script on VPS using SSH key
-          # SECURITY: Uses SSH key instead of password for secure authentication
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" 'bash -s' < deploy.sh
+          # Execute deploy script on VPS using password authentication
+          sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" 'bash -s' < deploy.sh
 
       - name: Notify deployment status
         if: always()
