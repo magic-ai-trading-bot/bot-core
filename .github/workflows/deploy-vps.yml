@@ -184,10 +184,14 @@ jobs:
           # Ensure all required env vars exist in .env (auto-generate if missing)
           REQUIRED_VARS="DASHBOARD_SESSION_SECRET INTER_SERVICE_TOKEN PYTHON_API_KEY RUST_API_KEY BINANCE_API_KEY BINANCE_SECRET_KEY"
           for var in $REQUIRED_VARS; do
-            if ! grep -q "^${var}=" .env; then
+            # Check if var exists and has a non-empty value
+            CURRENT_VAL=$(grep "^${var}=" .env 2>/dev/null | head -1 | cut -d'=' -f2-)
+            if [ -z "$CURRENT_VAL" ]; then
+              # Remove empty entry if exists
+              sed -i "/^${var}=$/d" .env 2>/dev/null || true
               GENERATED=$(openssl rand -hex 32)
               echo "${var}=$GENERATED" >> .env
-              log_warn "⚠️ Generated missing ${var}"
+              log_warn "⚠️ Generated missing/empty ${var}"
             fi
           done
           log_info "✅ All required env vars verified"
