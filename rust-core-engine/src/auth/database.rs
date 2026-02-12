@@ -425,7 +425,7 @@ impl SessionRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::models::{RiskLevel, NotificationSettings, UserSettings};
+    use crate::auth::models::{NotificationSettings, RiskLevel, UserSettings};
 
     #[test]
     fn test_user_repository_new_dummy() {
@@ -754,7 +754,9 @@ mod tests {
     async fn test_cov3_dummy_repository_update_2fa_enable() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_2fa(&id, true, Some("totp_secret".to_string())).await;
+        let result = repo
+            .update_2fa(&id, true, Some("totp_secret".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -1151,15 +1153,21 @@ mod tests {
         // Should only contain valid hex characters (0-9, a-f)
         assert!(hex.chars().all(|c| c.is_ascii_hexdigit()));
         // Should be lowercase
-        assert!(hex.chars().filter(|c| c.is_alphabetic()).all(|c| c.is_lowercase()));
+        assert!(hex
+            .chars()
+            .filter(|c| c.is_alphabetic())
+            .all(|c| c.is_lowercase()));
     }
-
 
     #[test]
     fn test_cov_user_model_new_with_display_name() {
         use super::super::models::User;
 
-        let user = User::new("user@test.com".to_string(), "hash789".to_string(), Some("DisplayName".to_string()));
+        let user = User::new(
+            "user@test.com".to_string(),
+            "hash789".to_string(),
+            Some("DisplayName".to_string()),
+        );
 
         assert_eq!(user.email, "user@test.com");
         assert_eq!(user.full_name, Some("DisplayName".to_string())); // User::new sets full_name, not display_name
@@ -1212,19 +1220,34 @@ mod tests {
         // Test all methods return errors with null-db
         let id = ObjectId::new();
 
-        assert!(repo.create_user(User::new("e@e.com".into(), "h".into(), None)).await.is_err());
+        assert!(repo
+            .create_user(User::new("e@e.com".into(), "h".into(), None))
+            .await
+            .is_err());
         assert!(repo.find_by_email("e@e.com").await.is_err());
         assert!(repo.find_by_id(&id).await.is_err());
-        assert!(repo.update_user(&id, User::new("e@e.com".into(), "h".into(), None)).await.is_err());
+        assert!(repo
+            .update_user(&id, User::new("e@e.com".into(), "h".into(), None))
+            .await
+            .is_err());
         assert!(repo.update_last_login(&id).await.is_err());
         assert!(repo.deactivate_user(&id).await.is_err());
         assert!(repo.count_users().await.is_err());
         assert!(repo.email_exists("e@e.com").await.is_err());
         assert!(repo.update_password(&id, "newhash".into()).await.is_err());
-        assert!(repo.update_display_name(&id, Some("Name".into())).await.is_err());
+        assert!(repo
+            .update_display_name(&id, Some("Name".into()))
+            .await
+            .is_err());
         assert!(repo.update_avatar(&id, Some("url".into())).await.is_err());
-        assert!(repo.update_profile(&id, Some("N".into()), Some("u".into())).await.is_err());
-        assert!(repo.update_2fa(&id, true, Some("sec".into())).await.is_err());
+        assert!(repo
+            .update_profile(&id, Some("N".into()), Some("u".into()))
+            .await
+            .is_err());
+        assert!(repo
+            .update_2fa(&id, true, Some("sec".into()))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
@@ -1628,10 +1651,7 @@ mod tests {
         assert!(repo.find_by_user(&user_id).await.is_err());
         assert!(repo.find_by_session_id("sid123").await.is_err());
         assert!(repo.revoke_session("sid123").await.is_err());
-        assert!(repo
-            .revoke_all_except(&user_id, "sid123")
-            .await
-            .is_err());
+        assert!(repo.revoke_all_except(&user_id, "sid123").await.is_err());
         assert!(repo.update_last_active("sid123").await.is_err());
     }
 
@@ -1794,7 +1814,9 @@ mod tests {
     async fn test_cov7_update_display_name_dummy() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_display_name(&id, Some("New Name".to_string())).await;
+        let result = repo
+            .update_display_name(&id, Some("New Name".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -1804,7 +1826,9 @@ mod tests {
     async fn test_cov7_update_avatar_dummy() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_avatar(&id, Some("http://avatar.url".to_string())).await;
+        let result = repo
+            .update_avatar(&id, Some("http://avatar.url".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -1814,11 +1838,13 @@ mod tests {
     async fn test_cov7_update_profile_dummy() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_profile(
-            &id,
-            Some("New Name".to_string()),
-            Some("http://avatar.url".to_string())
-        ).await;
+        let result = repo
+            .update_profile(
+                &id,
+                Some("New Name".to_string()),
+                Some("http://avatar.url".to_string()),
+            )
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -2075,7 +2101,9 @@ mod tests {
     async fn test_cov8_user_repo_update_display_name_fails() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_display_name(&id, Some("New Name".to_string())).await;
+        let result = repo
+            .update_display_name(&id, Some("New Name".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -2085,7 +2113,9 @@ mod tests {
     async fn test_cov8_user_repo_update_avatar_fails() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_avatar(&id, Some("http://avatar.url".to_string())).await;
+        let result = repo
+            .update_avatar(&id, Some("http://avatar.url".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -2095,7 +2125,13 @@ mod tests {
     async fn test_cov8_user_repo_update_profile_fails() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_profile(&id, Some("New Name".to_string()), Some("http://avatar.url".to_string())).await;
+        let result = repo
+            .update_profile(
+                &id,
+                Some("New Name".to_string()),
+                Some("http://avatar.url".to_string()),
+            )
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -2166,10 +2202,23 @@ mod tests {
         let id = ObjectId::new();
 
         // All operations should return "Database not available" error
-        assert!(repo.create_user(User::new("test@test.com".to_string(), "hash".to_string(), None)).await.is_err());
+        assert!(repo
+            .create_user(User::new(
+                "test@test.com".to_string(),
+                "hash".to_string(),
+                None
+            ))
+            .await
+            .is_err());
         assert!(repo.find_by_email("test@test.com").await.is_err());
         assert!(repo.find_by_id(&id).await.is_err());
-        assert!(repo.update_user(&id, User::new("test@test.com".to_string(), "hash".to_string(), None)).await.is_err());
+        assert!(repo
+            .update_user(
+                &id,
+                User::new("test@test.com".to_string(), "hash".to_string(), None)
+            )
+            .await
+            .is_err());
         assert!(repo.update_last_login(&id).await.is_err());
         assert!(repo.deactivate_user(&id).await.is_err());
         assert!(repo.count_users().await.is_err());
@@ -2195,7 +2244,11 @@ mod tests {
     #[tokio::test]
     async fn test_fn_user_repo_create_user_no_db() {
         let repo = UserRepository::new_dummy();
-        let user = User::new("test@example.com".to_string(), "hashed_pw".to_string(), None);
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_pw".to_string(),
+            None,
+        );
         let result = repo.create_user(user).await;
 
         assert!(result.is_err());
@@ -2284,7 +2337,9 @@ mod tests {
     async fn test_fn_user_repo_update_display_name_no_db() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_display_name(&id, Some("New Name".to_string())).await;
+        let result = repo
+            .update_display_name(&id, Some("New Name".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -2294,7 +2349,9 @@ mod tests {
     async fn test_fn_user_repo_update_avatar_no_db() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_avatar(&id, Some("http://avatar.url".to_string())).await;
+        let result = repo
+            .update_avatar(&id, Some("http://avatar.url".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -2304,7 +2361,9 @@ mod tests {
     async fn test_fn_user_repo_update_profile_no_db() {
         let repo = UserRepository::new_dummy();
         let id = ObjectId::new();
-        let result = repo.update_profile(&id, Some("Name".to_string()), Some("url".to_string())).await;
+        let result = repo
+            .update_profile(&id, Some("Name".to_string()), Some("url".to_string()))
+            .await;
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Database not available");
@@ -2500,7 +2559,10 @@ mod tests {
 
         let serialized = bson::to_document(&user).unwrap();
         assert_eq!(serialized.get_str("email").unwrap(), "test@example.com");
-        assert_eq!(serialized.get_str("password_hash").unwrap(), "hashed_password");
+        assert_eq!(
+            serialized.get_str("password_hash").unwrap(),
+            "hashed_password"
+        );
     }
 
     #[test]

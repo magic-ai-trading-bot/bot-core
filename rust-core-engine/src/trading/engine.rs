@@ -1714,8 +1714,14 @@ mod tests {
         };
 
         // Stop loss should trigger close
-        assert!(is_buy_stop_loss_hit(position.current_price, position.stop_loss));
-        assert!(!is_buy_take_profit_hit(position.current_price, position.take_profit));
+        assert!(is_buy_stop_loss_hit(
+            position.current_price,
+            position.stop_loss
+        ));
+        assert!(!is_buy_take_profit_hit(
+            position.current_price,
+            position.take_profit
+        ));
     }
 
     #[test]
@@ -1734,8 +1740,14 @@ mod tests {
         };
 
         // Take profit should trigger close
-        assert!(!is_buy_stop_loss_hit(position.current_price, position.stop_loss));
-        assert!(is_buy_take_profit_hit(position.current_price, position.take_profit));
+        assert!(!is_buy_stop_loss_hit(
+            position.current_price,
+            position.stop_loss
+        ));
+        assert!(is_buy_take_profit_hit(
+            position.current_price,
+            position.take_profit
+        ));
     }
 
     #[test]
@@ -1754,8 +1766,14 @@ mod tests {
         };
 
         // Stop loss should trigger close
-        assert!(is_sell_stop_loss_hit(position.current_price, position.stop_loss));
-        assert!(!is_sell_take_profit_hit(position.current_price, position.take_profit));
+        assert!(is_sell_stop_loss_hit(
+            position.current_price,
+            position.stop_loss
+        ));
+        assert!(!is_sell_take_profit_hit(
+            position.current_price,
+            position.take_profit
+        ));
     }
 
     #[test]
@@ -1774,8 +1792,14 @@ mod tests {
         };
 
         // Take profit should trigger close
-        assert!(!is_sell_stop_loss_hit(position.current_price, position.stop_loss));
-        assert!(is_sell_take_profit_hit(position.current_price, position.take_profit));
+        assert!(!is_sell_stop_loss_hit(
+            position.current_price,
+            position.stop_loss
+        ));
+        assert!(is_sell_take_profit_hit(
+            position.current_price,
+            position.take_profit
+        ));
     }
 
     #[test]
@@ -1794,8 +1818,14 @@ mod tests {
         };
 
         // Should not close
-        assert!(!is_buy_stop_loss_hit(position.current_price, position.stop_loss));
-        assert!(!is_buy_take_profit_hit(position.current_price, position.take_profit));
+        assert!(!is_buy_stop_loss_hit(
+            position.current_price,
+            position.stop_loss
+        ));
+        assert!(!is_buy_take_profit_hit(
+            position.current_price,
+            position.take_profit
+        ));
     }
 
     #[test]
@@ -1814,8 +1844,14 @@ mod tests {
         };
 
         // Should not close
-        assert!(!is_sell_stop_loss_hit(position.current_price, position.stop_loss));
-        assert!(!is_sell_take_profit_hit(position.current_price, position.take_profit));
+        assert!(!is_sell_stop_loss_hit(
+            position.current_price,
+            position.stop_loss
+        ));
+        assert!(!is_sell_take_profit_hit(
+            position.current_price,
+            position.take_profit
+        ));
     }
 
     #[test]
@@ -2179,10 +2215,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_cov7_trading_engine_new() {
+        use super::TradingEngine;
         use crate::config::{BinanceConfig, DatabaseConfig, MarketDataConfig, TradingConfig};
         use crate::market_data::MarketDataProcessor;
         use crate::storage::Storage;
-        use super::TradingEngine;
 
         let binance_config = BinanceConfig {
             api_key: "test_key".to_string(),
@@ -2232,25 +2268,23 @@ mod tests {
         let market_data = MarketDataProcessor::new(
             binance_config.clone(),
             market_data_config.clone(),
-            storage.clone()
-        ).await.unwrap();
+            storage.clone(),
+        )
+        .await
+        .unwrap();
 
-        let engine_result = TradingEngine::new(
-            binance_config,
-            trading_config,
-            market_data,
-            storage,
-        ).await;
+        let engine_result =
+            TradingEngine::new(binance_config, trading_config, market_data, storage).await;
 
         assert!(engine_result.is_ok());
     }
 
     #[tokio::test]
     async fn test_cov7_trading_engine_get_positions() {
+        use super::TradingEngine;
         use crate::config::{BinanceConfig, DatabaseConfig, MarketDataConfig, TradingConfig};
         use crate::market_data::MarketDataProcessor;
         use crate::storage::Storage;
-        use super::TradingEngine;
 
         let binance_config = BinanceConfig {
             api_key: "test_key".to_string(),
@@ -2300,15 +2334,14 @@ mod tests {
         let market_data = MarketDataProcessor::new(
             binance_config.clone(),
             market_data_config.clone(),
-            storage.clone()
-        ).await.unwrap();
+            storage.clone(),
+        )
+        .await
+        .unwrap();
 
-        let engine = TradingEngine::new(
-            binance_config,
-            trading_config,
-            market_data,
-            storage,
-        ).await.unwrap();
+        let engine = TradingEngine::new(binance_config, trading_config, market_data, storage)
+            .await
+            .unwrap();
 
         let positions = engine.get_positions();
         assert_eq!(positions.len(), 0);
@@ -3191,7 +3224,10 @@ mod tests {
         assert!(trade_record.exit_price.is_none());
         assert!(trade_record.pnl.is_none());
         assert_eq!(trade_record.status, "open");
-        assert_eq!(trade_record.strategy_used, Some("multi_timeframe_analysis".to_string()));
+        assert_eq!(
+            trade_record.strategy_used,
+            Some("multi_timeframe_analysis".to_string())
+        );
     }
 
     #[test]
@@ -4269,7 +4305,11 @@ mod tests {
     #[test]
     fn test_close_opposite_side_sell() {
         let sell_position = "SELL";
-        let close_side = if sell_position == "BUY" { "SELL" } else { "BUY" };
+        let close_side = if sell_position == "BUY" {
+            "SELL"
+        } else {
+            "BUY"
+        };
         assert_eq!(close_side, "BUY");
     }
 
@@ -4349,10 +4389,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_async_start_disabled_trading() {
+        use super::TradingEngine;
         use crate::config::{BinanceConfig, DatabaseConfig, MarketDataConfig, TradingConfig};
         use crate::market_data::MarketDataProcessor;
         use crate::storage::Storage;
-        use super::TradingEngine;
 
         let binance_config = BinanceConfig {
             api_key: "test_key".to_string(),
@@ -4402,15 +4442,14 @@ mod tests {
         let market_data = MarketDataProcessor::new(
             binance_config.clone(),
             market_data_config.clone(),
-            storage.clone()
-        ).await.unwrap();
+            storage.clone(),
+        )
+        .await
+        .unwrap();
 
-        let engine = TradingEngine::new(
-            binance_config,
-            trading_config,
-            market_data,
-            storage,
-        ).await.unwrap();
+        let engine = TradingEngine::new(binance_config, trading_config, market_data, storage)
+            .await
+            .unwrap();
 
         // Start should return Ok immediately when trading is disabled
         // Note: We can't actually call start() because it spawns background tasks
@@ -4420,10 +4459,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_async_force_close_position_not_exists() {
+        use super::TradingEngine;
         use crate::config::{BinanceConfig, DatabaseConfig, MarketDataConfig, TradingConfig};
         use crate::market_data::MarketDataProcessor;
         use crate::storage::Storage;
-        use super::TradingEngine;
 
         let binance_config = BinanceConfig {
             api_key: "test_key".to_string(),
@@ -4473,15 +4512,14 @@ mod tests {
         let market_data = MarketDataProcessor::new(
             binance_config.clone(),
             market_data_config.clone(),
-            storage.clone()
-        ).await.unwrap();
+            storage.clone(),
+        )
+        .await
+        .unwrap();
 
-        let engine = TradingEngine::new(
-            binance_config,
-            trading_config,
-            market_data,
-            storage,
-        ).await.unwrap();
+        let engine = TradingEngine::new(binance_config, trading_config, market_data, storage)
+            .await
+            .unwrap();
 
         // Force close position that doesn't exist should return Ok
         let result = engine.force_close_position("ETHUSDT").await;
@@ -4490,10 +4528,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_async_get_performance_stats_with_null_db() {
+        use super::TradingEngine;
         use crate::config::{BinanceConfig, DatabaseConfig, MarketDataConfig, TradingConfig};
         use crate::market_data::MarketDataProcessor;
         use crate::storage::Storage;
-        use super::TradingEngine;
 
         let binance_config = BinanceConfig {
             api_key: "test_key".to_string(),
@@ -4543,15 +4581,14 @@ mod tests {
         let market_data = MarketDataProcessor::new(
             binance_config.clone(),
             market_data_config.clone(),
-            storage.clone()
-        ).await.unwrap();
+            storage.clone(),
+        )
+        .await
+        .unwrap();
 
-        let engine = TradingEngine::new(
-            binance_config,
-            trading_config,
-            market_data,
-            storage,
-        ).await.unwrap();
+        let engine = TradingEngine::new(binance_config, trading_config, market_data, storage)
+            .await
+            .unwrap();
 
         // With null-db, method may return Ok with defaults or Err
         let result = engine.get_performance_stats().await;
@@ -5006,7 +5043,10 @@ mod tests {
         // Test that TradingEngine components are cloneable
         let pm = PositionManager::new();
         let pm_clone = pm.clone();
-        assert_eq!(pm.get_all_positions().len(), pm_clone.get_all_positions().len());
+        assert_eq!(
+            pm.get_all_positions().len(),
+            pm_clone.get_all_positions().len()
+        );
 
         use crate::config::TradingConfig;
         let config = TradingConfig {

@@ -3352,7 +3352,9 @@ mod additional_coverage_tests {
     #[tokio::test]
     async fn test_set_sl_tp_nonexistent() {
         let engine = create_test_engine().await;
-        let result = engine.set_sl_tp("BTCUSDT", Some(49000.0), Some(51000.0)).await;
+        let result = engine
+            .set_sl_tp("BTCUSDT", Some(49000.0), Some(51000.0))
+            .await;
         assert!(result.is_err());
     }
 
@@ -3970,7 +3972,9 @@ mod additional_coverage_tests {
     #[tokio::test]
     async fn test_calculate_position_size_auto_sl_extreme_price() {
         let engine = create_test_engine().await;
-        let (size, stop_loss) = engine.calculate_position_size_auto_sl(1000000.0, true).await;
+        let (size, stop_loss) = engine
+            .calculate_position_size_auto_sl(1000000.0, true)
+            .await;
         assert!(size >= 0.0);
         assert!(stop_loss > 0.0);
         assert!(stop_loss < 1000000.0);
@@ -4815,11 +4819,14 @@ mod additional_coverage_tests {
         let engine = create_test_engine().await;
 
         let mut balances_map = HashMap::new();
-        balances_map.insert("USDT".to_string(), Balance {
-            asset: "USDT".to_string(),
-            free: 10000.0,
-            locked: 500.0,
-        });
+        balances_map.insert(
+            "USDT".to_string(),
+            Balance {
+                asset: "USDT".to_string(),
+                free: 10000.0,
+                locked: 500.0,
+            },
+        );
 
         {
             let mut balances = engine.balances.write().await;
@@ -4842,11 +4849,14 @@ mod additional_coverage_tests {
         let engine = create_test_engine().await;
 
         let mut balances_map = HashMap::new();
-        balances_map.insert("BTC".to_string(), Balance {
-            asset: "BTC".to_string(),
-            free: 1.5,
-            locked: 0.2,
-        });
+        balances_map.insert(
+            "BTC".to_string(),
+            Balance {
+                asset: "BTC".to_string(),
+                free: 1.5,
+                locked: 0.2,
+            },
+        );
 
         {
             let mut balances = engine.balances.write().await;
@@ -4869,11 +4879,14 @@ mod additional_coverage_tests {
         let engine = create_test_engine().await;
 
         let mut balances_map = HashMap::new();
-        balances_map.insert("USDT".to_string(), Balance {
-            asset: "USDT".to_string(),
-            free: 5000.0,
-            locked: 1000.0,
-        });
+        balances_map.insert(
+            "USDT".to_string(),
+            Balance {
+                asset: "USDT".to_string(),
+                free: 5000.0,
+                locked: 1000.0,
+            },
+        );
 
         {
             let mut balances = engine.balances.write().await;
@@ -5257,7 +5270,9 @@ mod additional_coverage_tests {
             metrics.realized_pnl = -10000.0;
         }
 
-        let result = engine.check_risk_limits_legacy("BTCUSDT", 0.001, Some(50000.0)).await;
+        let result = engine
+            .check_risk_limits_legacy("BTCUSDT", 0.001, Some(50000.0))
+            .await;
         assert!(result.is_err());
     }
 
@@ -5280,7 +5295,9 @@ mod additional_coverage_tests {
             engine.positions.insert(symbol, position);
         }
 
-        let result = engine.check_risk_limits_legacy("NEWUSDT", 0.001, Some(50000.0)).await;
+        let result = engine
+            .check_risk_limits_legacy("NEWUSDT", 0.001, Some(50000.0))
+            .await;
         assert!(result.is_err());
     }
 
@@ -5288,7 +5305,9 @@ mod additional_coverage_tests {
     async fn test_check_risk_limits_legacy_position_size() {
         let engine = create_test_engine().await;
 
-        let result = engine.check_risk_limits_legacy("BTCUSDT", 100.0, Some(50000.0)).await;
+        let result = engine
+            .check_risk_limits_legacy("BTCUSDT", 100.0, Some(50000.0))
+            .await;
         assert!(result.is_err());
     }
 
@@ -5296,7 +5315,9 @@ mod additional_coverage_tests {
     async fn test_check_risk_limits_legacy_min_order_value() {
         let engine = create_test_engine().await;
 
-        let result = engine.check_risk_limits_legacy("BTCUSDT", 0.00001, Some(50000.0)).await;
+        let result = engine
+            .check_risk_limits_legacy("BTCUSDT", 0.00001, Some(50000.0))
+            .await;
         assert!(result.is_err());
     }
 
@@ -5408,7 +5429,9 @@ mod additional_coverage_tests {
         );
         engine.positions.insert("BTCUSDT".to_string(), position);
 
-        let result = engine.set_sl_tp("BTCUSDT", Some(49000.0), Some(52000.0)).await;
+        let result = engine
+            .set_sl_tp("BTCUSDT", Some(49000.0), Some(52000.0))
+            .await;
         assert!(result.is_ok());
 
         let pos = engine.get_position("BTCUSDT").unwrap();
@@ -5612,11 +5635,14 @@ mod additional_coverage_tests {
 
         {
             let mut balances = engine.balances.write().await;
-            balances.insert("USDT".to_string(), Balance {
-                asset: "USDT".to_string(),
-                free: 10000.0,
-                locked: 0.0,
-            });
+            balances.insert(
+                "USDT".to_string(),
+                Balance {
+                    asset: "USDT".to_string(),
+                    free: 10000.0,
+                    locked: 0.0,
+                },
+            );
         }
 
         let balance = engine.get_balance("USDT").await;
@@ -5630,11 +5656,14 @@ mod additional_coverage_tests {
 
         {
             let mut balances = engine.balances.write().await;
-            balances.insert("USDT".to_string(), Balance {
-                asset: "USDT".to_string(),
-                free: 5000.0,
-                locked: 1000.0,
-            });
+            balances.insert(
+                "USDT".to_string(),
+                Balance {
+                    asset: "USDT".to_string(),
+                    free: 5000.0,
+                    locked: 1000.0,
+                },
+            );
         }
 
         let balance = engine.get_usdt_balance().await;
@@ -5647,16 +5676,22 @@ mod additional_coverage_tests {
 
         {
             let mut balances = engine.balances.write().await;
-            balances.insert("USDT".to_string(), Balance {
-                asset: "USDT".to_string(),
-                free: 5000.0,
-                locked: 0.0,
-            });
-            balances.insert("BTC".to_string(), Balance {
-                asset: "BTC".to_string(),
-                free: 0.1,
-                locked: 0.0,
-            });
+            balances.insert(
+                "USDT".to_string(),
+                Balance {
+                    asset: "USDT".to_string(),
+                    free: 5000.0,
+                    locked: 0.0,
+                },
+            );
+            balances.insert(
+                "BTC".to_string(),
+                Balance {
+                    asset: "BTC".to_string(),
+                    free: 0.1,
+                    locked: 0.0,
+                },
+            );
         }
 
         let balances = engine.get_all_balances().await;
@@ -5669,11 +5704,14 @@ mod additional_coverage_tests {
 
         {
             let mut balances = engine.balances.write().await;
-            balances.insert("USDT".to_string(), Balance {
-                asset: "USDT".to_string(),
-                free: 10000.0,
-                locked: 0.0,
-            });
+            balances.insert(
+                "USDT".to_string(),
+                Balance {
+                    asset: "USDT".to_string(),
+                    free: 10000.0,
+                    locked: 0.0,
+                },
+            );
         }
 
         let equity = engine.get_total_equity_usdt().await;
@@ -6063,7 +6101,11 @@ mod additional_coverage_tests {
         };
 
         match event {
-            RealTradingEvent::BalanceUpdated { asset, free, locked } => {
+            RealTradingEvent::BalanceUpdated {
+                asset,
+                free,
+                locked,
+            } => {
                 assert_eq!(asset, "BTC");
                 assert_eq!(free, 1.5);
                 assert_eq!(locked, 0.5);
@@ -6090,9 +6132,7 @@ mod additional_coverage_tests {
 
     #[test]
     fn test_cov_real_trading_event_reconciliation_complete() {
-        let event = RealTradingEvent::ReconciliationComplete {
-            discrepancies: 5,
-        };
+        let event = RealTradingEvent::ReconciliationComplete { discrepancies: 5 };
 
         match event {
             RealTradingEvent::ReconciliationComplete { discrepancies } => {
@@ -6188,8 +6228,14 @@ mod additional_coverage_tests {
         let json = serde_json::to_string(&metrics).unwrap();
         let deserialized: ReconciliationMetrics = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(metrics.last_run_duration_ms, deserialized.last_run_duration_ms);
-        assert_eq!(metrics.total_discrepancies_found, deserialized.total_discrepancies_found);
+        assert_eq!(
+            metrics.last_run_duration_ms,
+            deserialized.last_run_duration_ms
+        );
+        assert_eq!(
+            metrics.total_discrepancies_found,
+            deserialized.total_discrepancies_found
+        );
         assert_eq!(metrics.balance_mismatches, deserialized.balance_mismatches);
     }
 
@@ -6978,13 +7024,11 @@ mod additional_coverage_tests {
             event_type: "outboundAccountPosition".to_string(),
             event_time: Utc::now().timestamp_millis(),
             last_update_time: Utc::now().timestamp_millis(),
-            balances: vec![
-                crate::binance::types::AccountBalance {
-                    asset: "INVALID".to_string(),
-                    free: "not_a_number".to_string(),
-                    locked: "100.0".to_string(),
-                },
-            ],
+            balances: vec![crate::binance::types::AccountBalance {
+                asset: "INVALID".to_string(),
+                free: "not_a_number".to_string(),
+                locked: "100.0".to_string(),
+            }],
         };
         engine.handle_account_position(pos).await;
         let balances = engine.get_all_balances().await;
@@ -6998,13 +7042,11 @@ mod additional_coverage_tests {
             event_type: "outboundAccountPosition".to_string(),
             event_time: Utc::now().timestamp_millis(),
             last_update_time: Utc::now().timestamp_millis(),
-            balances: vec![
-                crate::binance::types::AccountBalance {
-                    asset: "NEGATIVE".to_string(),
-                    free: "-100.0".to_string(),
-                    locked: "0.0".to_string(),
-                },
-            ],
+            balances: vec![crate::binance::types::AccountBalance {
+                asset: "NEGATIVE".to_string(),
+                free: "-100.0".to_string(),
+                locked: "0.0".to_string(),
+            }],
         };
         engine.handle_account_position(pos).await;
         let balances = engine.get_all_balances().await;
@@ -7019,13 +7061,11 @@ mod additional_coverage_tests {
             event_type: "outboundAccountPosition".to_string(),
             event_time: Utc::now().timestamp_millis(),
             last_update_time: Utc::now().timestamp_millis(),
-            balances: vec![
-                crate::binance::types::AccountBalance {
-                    asset: "USDT".to_string(),
-                    free: "1000.0".to_string(),
-                    locked: "0.0".to_string(),
-                },
-            ],
+            balances: vec![crate::binance::types::AccountBalance {
+                asset: "USDT".to_string(),
+                free: "1000.0".to_string(),
+                locked: "0.0".to_string(),
+            }],
         };
         engine.handle_account_position(pos1).await;
         assert_eq!(engine.get_all_balances().await.len(), 1);
@@ -7035,13 +7075,11 @@ mod additional_coverage_tests {
             event_type: "outboundAccountPosition".to_string(),
             event_time: Utc::now().timestamp_millis(),
             last_update_time: Utc::now().timestamp_millis(),
-            balances: vec![
-                crate::binance::types::AccountBalance {
-                    asset: "USDT".to_string(),
-                    free: "0.0".to_string(),
-                    locked: "0.0".to_string(),
-                },
-            ],
+            balances: vec![crate::binance::types::AccountBalance {
+                asset: "USDT".to_string(),
+                free: "0.0".to_string(),
+                locked: "0.0".to_string(),
+            }],
         };
         engine.handle_account_position(pos2).await;
         assert_eq!(engine.get_all_balances().await.len(), 0);
@@ -7054,13 +7092,11 @@ mod additional_coverage_tests {
             event_type: "outboundAccountPosition".to_string(),
             event_time: Utc::now().timestamp_millis(),
             last_update_time: Utc::now().timestamp_millis(),
-            balances: vec![
-                crate::binance::types::AccountBalance {
-                    asset: "USDT".to_string(),
-                    free: "1000.0".to_string(),
-                    locked: "0.0".to_string(),
-                },
-            ],
+            balances: vec![crate::binance::types::AccountBalance {
+                asset: "USDT".to_string(),
+                free: "1000.0".to_string(),
+                locked: "0.0".to_string(),
+            }],
         };
         engine.handle_account_position(pos).await;
 
@@ -7084,13 +7120,11 @@ mod additional_coverage_tests {
             event_type: "outboundAccountPosition".to_string(),
             event_time: Utc::now().timestamp_millis(),
             last_update_time: Utc::now().timestamp_millis(),
-            balances: vec![
-                crate::binance::types::AccountBalance {
-                    asset: "USDT".to_string(),
-                    free: "1000.0".to_string(),
-                    locked: "0.0".to_string(),
-                },
-            ],
+            balances: vec![crate::binance::types::AccountBalance {
+                asset: "USDT".to_string(),
+                free: "1000.0".to_string(),
+                locked: "0.0".to_string(),
+            }],
         };
         engine.handle_account_position(pos).await;
 
@@ -7128,13 +7162,11 @@ mod additional_coverage_tests {
             event_type: "outboundAccountPosition".to_string(),
             event_time: Utc::now().timestamp_millis(),
             last_update_time: Utc::now().timestamp_millis(),
-            balances: vec![
-                crate::binance::types::AccountBalance {
-                    asset: "USDT".to_string(),
-                    free: "100.0".to_string(),
-                    locked: "0.0".to_string(),
-                },
-            ],
+            balances: vec![crate::binance::types::AccountBalance {
+                asset: "USDT".to_string(),
+                free: "100.0".to_string(),
+                locked: "0.0".to_string(),
+            }],
         };
         engine.handle_account_position(pos).await;
 
@@ -7653,7 +7685,9 @@ mod additional_coverage_tests {
         );
         recent_order.state = OrderState::Filled;
         recent_order.updated_at = Utc::now() - chrono::Duration::hours(12);
-        engine.orders.insert("recent-filled".to_string(), recent_order);
+        engine
+            .orders
+            .insert("recent-filled".to_string(), recent_order);
 
         let count = engine.cleanup_terminal_orders();
         assert!(count >= 1);

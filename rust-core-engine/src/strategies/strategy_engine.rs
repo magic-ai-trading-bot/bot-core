@@ -1802,7 +1802,8 @@ mod tests {
         let ml_config = MLPredictorConfig::default();
         let hybrid_config = HybridFilterConfig::default();
 
-        let engine = StrategyEngine::with_hybrid_filter(trend_config, Some(ml_config), hybrid_config);
+        let engine =
+            StrategyEngine::with_hybrid_filter(trend_config, Some(ml_config), hybrid_config);
         assert!(!engine.get_strategy_names().is_empty());
     }
 

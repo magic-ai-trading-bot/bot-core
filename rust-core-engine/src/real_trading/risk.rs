@@ -887,8 +887,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_risk_validation_result_with_warning() {
-        let result = RiskValidationResult::success()
-            .with_warning("Test warning".to_string());
+        let result = RiskValidationResult::success().with_warning("Test warning".to_string());
 
         assert!(result.passed);
         assert_eq!(result.warnings.len(), 1);
@@ -897,8 +896,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_risk_validation_result_with_suggested_size() {
-        let result = RiskValidationResult::success()
-            .with_suggested_size(0.05);
+        let result = RiskValidationResult::success().with_suggested_size(0.05);
 
         assert!(result.passed);
         assert_eq!(result.suggested_size, Some(0.05));

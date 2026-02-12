@@ -2648,7 +2648,10 @@ mod tests {
             .await;
 
         // CORS should be configured
-        assert!(resp.status().is_success() || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED);
+        assert!(
+            resp.status().is_success()
+                || resp.status() == warp::http::StatusCode::METHOD_NOT_ALLOWED
+        );
     }
 
     #[tokio::test]
@@ -2681,7 +2684,11 @@ mod tests {
             .await;
 
         // Should handle missing content-type
-        assert!(resp.status().is_client_error() || resp.status().is_server_error() || resp.status() == warp::http::StatusCode::SERVICE_UNAVAILABLE);
+        assert!(
+            resp.status().is_client_error()
+                || resp.status().is_server_error()
+                || resp.status() == warp::http::StatusCode::SERVICE_UNAVAILABLE
+        );
     }
 
     // Coverage tests for order placement handlers (482-585)
@@ -2945,9 +2952,7 @@ mod tests {
         let api = create_test_api();
         let routes = api.routes();
 
-        let close_req = CloseTradeRequest {
-            reason: None,
-        };
+        let close_req = CloseTradeRequest { reason: None };
 
         let resp = warp::test::request()
             .method("POST")
@@ -3204,7 +3209,11 @@ mod tests {
         assert_eq!(resp.status(), warp::http::StatusCode::SERVICE_UNAVAILABLE);
 
         let body = std::str::from_utf8(resp.body()).unwrap_or("");
-        assert!(body.contains("not configured") || body.contains("unavailable") || body.contains("not initialized"));
+        assert!(
+            body.contains("not configured")
+                || body.contains("unavailable")
+                || body.contains("not initialized")
+        );
     }
 
     #[tokio::test]
@@ -3866,7 +3875,6 @@ mod tests {
         assert!(diff < 2); // Within 2 seconds
     }
 
-
     // ============================================================================
     // COVERAGE PHASE 6 - Additional tests for real_trading.rs (85% → 95%)
     // ============================================================================
@@ -4520,7 +4528,8 @@ mod tests {
 
     #[test]
     fn test_cov7_api_response_error_with_message() {
-        let resp: ApiResponse<String> = ApiResponse::error("Database connection failed".to_string());
+        let resp: ApiResponse<String> =
+            ApiResponse::error("Database connection failed".to_string());
         assert!(!resp.success);
         assert!(resp.data.is_none());
         assert_eq!(resp.error, Some("Database connection failed".to_string()));
@@ -4568,9 +4577,7 @@ mod tests {
 
     #[test]
     fn test_cov7_cancel_all_query_no_symbol() {
-        let query = CancelAllQuery {
-            symbol: None,
-        };
+        let query = CancelAllQuery { symbol: None };
         let json = serde_json::to_string(&query).unwrap();
         let parsed: CancelAllQuery = serde_json::from_str(&json).unwrap();
         assert!(parsed.symbol.is_none());
@@ -5009,29 +5016,25 @@ mod tests {
             locked_balance: 5000.0,
             unrealized_pnl: 250.0,
             realized_pnl: 1500.0,
-            positions: vec![
-                PositionInfo {
-                    id: "pos-1".to_string(),
-                    symbol: "BTCUSDT".to_string(),
-                    side: "LONG".to_string(),
-                    quantity: 0.1,
-                    entry_price: 50000.0,
-                    current_price: 51000.0,
-                    unrealized_pnl: 100.0,
-                    unrealized_pnl_pct: 2.0,
-                    stop_loss: Some(49000.0),
-                    take_profit: Some(55000.0),
-                    created_at: "2025-01-15T10:00:00Z".to_string(),
-                },
-            ],
-            balances: vec![
-                BalanceInfo {
-                    asset: "USDT".to_string(),
-                    free: 20000.0,
-                    locked: 5000.0,
-                    total: 25000.0,
-                },
-            ],
+            positions: vec![PositionInfo {
+                id: "pos-1".to_string(),
+                symbol: "BTCUSDT".to_string(),
+                side: "LONG".to_string(),
+                quantity: 0.1,
+                entry_price: 50000.0,
+                current_price: 51000.0,
+                unrealized_pnl: 100.0,
+                unrealized_pnl_pct: 2.0,
+                stop_loss: Some(49000.0),
+                take_profit: Some(55000.0),
+                created_at: "2025-01-15T10:00:00Z".to_string(),
+            }],
+            balances: vec![BalanceInfo {
+                asset: "USDT".to_string(),
+                free: 20000.0,
+                locked: 5000.0,
+                total: 25000.0,
+            }],
         };
 
         let json = serde_json::to_string(&portfolio).unwrap();
@@ -5359,7 +5362,9 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
     }
 
     #[tokio::test]
@@ -5373,7 +5378,9 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
     }
 
     #[tokio::test]
@@ -5429,7 +5436,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_client_error()
+                || resp.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -5443,7 +5454,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_client_error()
+                || resp.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -5628,7 +5643,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -5838,7 +5857,10 @@ mod tests {
         let confirmation = ConfirmationResponse {
             token: "token_market".to_string(),
             expires_at: Utc::now().to_rfc3339(),
-            summary: format!("{} {} {} MARKET", request.side, request.quantity, request.symbol),
+            summary: format!(
+                "{} {} {} MARKET",
+                request.side, request.quantity, request.symbol
+            ),
             order_details: request,
         };
 

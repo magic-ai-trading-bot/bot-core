@@ -925,9 +925,15 @@ mod tests {
         let config1 = UserDataStreamConfig::default();
         let config2 = config1.clone();
 
-        assert_eq!(config1.keepalive_interval_secs, config2.keepalive_interval_secs);
+        assert_eq!(
+            config1.keepalive_interval_secs,
+            config2.keepalive_interval_secs
+        );
         assert_eq!(config1.reconnect_delay_secs, config2.reconnect_delay_secs);
-        assert_eq!(config1.max_reconnect_attempts, config2.max_reconnect_attempts);
+        assert_eq!(
+            config1.max_reconnect_attempts,
+            config2.max_reconnect_attempts
+        );
         assert_eq!(config1.channel_buffer_size, config2.channel_buffer_size);
     }
 
@@ -1505,7 +1511,6 @@ mod tests {
         assert_eq!(report.cumulative_filled_quantity, "0.0");
     }
 
-
     #[tokio::test]
     async fn test_cov_user_data_stream_manager_new() {
         let config = create_test_config();
@@ -1513,7 +1518,6 @@ mod tests {
         let _manager = UserDataStreamManager::new(client);
         assert!(true);
     }
-
 
     #[test]
     fn test_cov_execution_report_rejected() {
@@ -1766,7 +1770,10 @@ mod tests {
         };
 
         let cloned = config.clone();
-        assert_eq!(config.keepalive_interval_secs, cloned.keepalive_interval_secs);
+        assert_eq!(
+            config.keepalive_interval_secs,
+            cloned.keepalive_interval_secs
+        );
         assert_eq!(config.reconnect_delay_secs, cloned.reconnect_delay_secs);
     }
 

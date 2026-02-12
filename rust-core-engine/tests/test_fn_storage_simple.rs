@@ -12,7 +12,9 @@ async fn create_null_db_storage() -> Storage {
         max_connections: 10,
         enable_logging: false,
     };
-    Storage::new(&config).await.expect("Failed to create null-db storage")
+    Storage::new(&config)
+        .await
+        .expect("Failed to create null-db storage")
 }
 
 // ============================================================================
@@ -165,7 +167,10 @@ async fn test_fn_get_paper_trades_history_with_limit() {
     let storage = create_null_db_storage().await;
     let result = storage.get_paper_trades_history(Some(50)).await;
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Database not initialized"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Database not initialized"));
 }
 
 #[tokio::test]
@@ -207,7 +212,9 @@ async fn test_fn_get_portfolio_history_no_limit() {
 #[tokio::test]
 async fn test_fn_get_ai_signals_history_btc() {
     let storage = create_null_db_storage().await;
-    let result = storage.get_ai_signals_history(Some("BTCUSDT"), Some(50)).await;
+    let result = storage
+        .get_ai_signals_history(Some("BTCUSDT"), Some(50))
+        .await;
     assert!(result.is_err());
 }
 
@@ -228,7 +235,9 @@ async fn test_fn_get_ai_signals_history_no_limit() {
 #[tokio::test]
 async fn test_fn_get_ai_signals_history_eth_limit() {
     let storage = create_null_db_storage().await;
-    let result = storage.get_ai_signals_history(Some("ETHUSDT"), Some(100)).await;
+    let result = storage
+        .get_ai_signals_history(Some("ETHUSDT"), Some(100))
+        .await;
     assert!(result.is_err());
 }
 
@@ -370,14 +379,18 @@ async fn test_fn_get_latest_config_suggestion() {
 #[tokio::test]
 async fn test_fn_update_signal_outcome_win() {
     let storage = create_null_db_storage().await;
-    let result = storage.update_signal_outcome("sig123", "win", 100.0, 2.0, 50500.0, "TakeProfit").await;
+    let result = storage
+        .update_signal_outcome("sig123", "win", 100.0, 2.0, 50500.0, "TakeProfit")
+        .await;
     assert!(result.is_err());
 }
 
 #[tokio::test]
 async fn test_fn_update_signal_outcome_loss() {
     let storage = create_null_db_storage().await;
-    let result = storage.update_signal_outcome("sig456", "loss", -50.0, -1.5, 49500.0, "StopLoss").await;
+    let result = storage
+        .update_signal_outcome("sig456", "loss", -50.0, -1.5, 49500.0, "StopLoss")
+        .await;
     assert!(result.is_err());
 }
 

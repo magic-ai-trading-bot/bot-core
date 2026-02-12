@@ -2062,7 +2062,9 @@ mod tests {
         let client = BinanceClient::new(config).unwrap();
 
         let query = "symbol=BTCUSDT&side=BUY";
-        let sig1 = client.sign_request_for_endpoint(query, "/api/v3/order").unwrap();
+        let sig1 = client
+            .sign_request_for_endpoint(query, "/api/v3/order")
+            .unwrap();
         let sig2 = client.sign_request(query).unwrap();
 
         assert_eq!(sig1, sig2);
@@ -2075,7 +2077,9 @@ mod tests {
         let client = BinanceClient::new(config).unwrap();
 
         let query = "symbol=BTCUSDT&side=BUY";
-        let sig1 = client.sign_request_for_endpoint(query, "/fapi/v1/order").unwrap();
+        let sig1 = client
+            .sign_request_for_endpoint(query, "/fapi/v1/order")
+            .unwrap();
         let sig2 = client.sign_request(query).unwrap();
 
         // Should be different because different secret keys
@@ -2096,7 +2100,9 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).unwrap();
 
-        let result = client.cancel_spot_order("BTCUSDT", None, Some("test_order_123")).await;
+        let result = client
+            .cancel_spot_order("BTCUSDT", None, Some("test_order_123"))
+            .await;
         assert!(result.is_err() || result.is_ok());
     }
 
@@ -2105,7 +2111,9 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).unwrap();
 
-        let result = client.get_spot_order_status("BTCUSDT", Some(12345), None).await;
+        let result = client
+            .get_spot_order_status("BTCUSDT", Some(12345), None)
+            .await;
         assert!(result.is_err());
     }
 
@@ -2114,7 +2122,9 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).unwrap();
 
-        let result = client.get_spot_order_status("BTCUSDT", None, Some("test_123")).await;
+        let result = client
+            .get_spot_order_status("BTCUSDT", None, Some("test_123"))
+            .await;
         assert!(result.is_err());
     }
 
@@ -2141,7 +2151,9 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).unwrap();
 
-        let result = client.place_market_order("BTCUSDT", super::OrderSide::Buy, "0.001").await;
+        let result = client
+            .place_market_order("BTCUSDT", super::OrderSide::Buy, "0.001")
+            .await;
         assert!(result.is_err());
     }
 
@@ -2150,7 +2162,9 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).unwrap();
 
-        let result = client.place_limit_order("BTCUSDT", super::OrderSide::Buy, "0.001", "50000").await;
+        let result = client
+            .place_limit_order("BTCUSDT", super::OrderSide::Buy, "0.001", "50000")
+            .await;
         assert!(result.is_err());
     }
 
@@ -2159,13 +2173,15 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).unwrap();
 
-        let result = client.place_stop_loss_limit_order(
-            "BTCUSDT",
-            super::OrderSide::Sell,
-            "0.001",
-            "49000",
-            "49500"
-        ).await;
+        let result = client
+            .place_stop_loss_limit_order(
+                "BTCUSDT",
+                super::OrderSide::Sell,
+                "0.001",
+                "49000",
+                "49500",
+            )
+            .await;
         assert!(result.is_err());
     }
 
@@ -2174,13 +2190,15 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).unwrap();
 
-        let result = client.place_take_profit_limit_order(
-            "BTCUSDT",
-            super::OrderSide::Sell,
-            "0.001",
-            "51000",
-            "50500"
-        ).await;
+        let result = client
+            .place_take_profit_limit_order(
+                "BTCUSDT",
+                super::OrderSide::Sell,
+                "0.001",
+                "51000",
+                "50500",
+            )
+            .await;
         assert!(result.is_err());
     }
 
@@ -2364,7 +2382,9 @@ mod tests {
         let client = BinanceClient::new(config).expect("Failed to create client");
 
         let query = "symbol=BTCUSDT&timestamp=123456";
-        let signature = client.sign_request_for_endpoint(query, "/order").expect("Failed to sign");
+        let signature = client
+            .sign_request_for_endpoint(query, "/order")
+            .expect("Failed to sign");
         assert_eq!(signature.len(), 64);
     }
 
@@ -2375,8 +2395,12 @@ mod tests {
         let client = BinanceClient::new(config).expect("Failed to create client");
 
         let query = "symbol=BTCUSDT&timestamp=123456";
-        let sig_spot = client.sign_request_for_endpoint(query, "/order").expect("Failed to sign");
-        let sig_futures = client.sign_request_for_endpoint(query, "/fapi/v1/order").expect("Failed to sign");
+        let sig_spot = client
+            .sign_request_for_endpoint(query, "/order")
+            .expect("Failed to sign");
+        let sig_futures = client
+            .sign_request_for_endpoint(query, "/fapi/v1/order")
+            .expect("Failed to sign");
 
         // Different keys should produce different signatures
         assert_ne!(sig_spot, sig_futures);
@@ -2406,7 +2430,9 @@ mod tests {
         let config = create_test_config();
         let client = BinanceClient::new(config).expect("Failed to create client");
 
-        let signature = client.sign_request_for_endpoint("", "/order").expect("Failed to sign");
+        let signature = client
+            .sign_request_for_endpoint("", "/order")
+            .expect("Failed to sign");
         assert_eq!(signature.len(), 64);
         assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
     }
@@ -2417,7 +2443,9 @@ mod tests {
         let client = BinanceClient::new(config).expect("Failed to create client");
 
         let query = "symbol=BTCUSDT&side=BUY&type=LIMIT&quantity=1.5&price=50000.00&timeInForce=GTC&timestamp=1234567890&extra1=value1&extra2=value2&extra3=value3";
-        let signature = client.sign_request_for_endpoint(query, "/order").expect("Failed to sign");
+        let signature = client
+            .sign_request_for_endpoint(query, "/order")
+            .expect("Failed to sign");
         assert_eq!(signature.len(), 64);
     }
 }

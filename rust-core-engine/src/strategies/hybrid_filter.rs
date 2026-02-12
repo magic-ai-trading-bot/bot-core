@@ -680,7 +680,8 @@ mod tests {
             timestamp: 123456,
         };
 
-        let result = filter.combine_signals(TradingSignal::Short, 0.70, &alignment, Some(&ml_prediction));
+        let result =
+            filter.combine_signals(TradingSignal::Short, 0.70, &alignment, Some(&ml_prediction));
 
         assert!(result.should_block); // Should block SHORT when ML predicts Uptrend
         assert!(result.reasoning.contains("blocking SHORT"));
@@ -703,7 +704,8 @@ mod tests {
             timestamp: 123456,
         };
 
-        let result = filter.combine_signals(TradingSignal::Short, 0.75, &alignment, Some(&ml_prediction));
+        let result =
+            filter.combine_signals(TradingSignal::Short, 0.75, &alignment, Some(&ml_prediction));
 
         assert!(!result.should_block);
         assert!(result.adjusted_confidence < 0.75); // Should be reduced by 0.85
@@ -727,7 +729,8 @@ mod tests {
             timestamp: 123456,
         };
 
-        let result = filter.combine_signals(TradingSignal::Long, 0.80, &alignment, Some(&ml_prediction));
+        let result =
+            filter.combine_signals(TradingSignal::Long, 0.80, &alignment, Some(&ml_prediction));
 
         assert!(!result.should_block);
         assert!(result.adjusted_confidence < 0.80); // Should be reduced by 0.85
@@ -757,7 +760,8 @@ mod tests {
             timestamp: 123456,
         };
 
-        let result = filter.combine_signals(TradingSignal::Long, 0.75, &alignment, Some(&ml_prediction));
+        let result =
+            filter.combine_signals(TradingSignal::Long, 0.75, &alignment, Some(&ml_prediction));
 
         assert!(!result.should_block); // Should not block when block_counter_trend = false
         assert!(result.adjusted_confidence < 0.75); // Confidence penalized by 0.2
@@ -787,7 +791,8 @@ mod tests {
             timestamp: 123456,
         };
 
-        let result = filter.combine_signals(TradingSignal::Short, 0.70, &alignment, Some(&ml_prediction));
+        let result =
+            filter.combine_signals(TradingSignal::Short, 0.70, &alignment, Some(&ml_prediction));
 
         assert!(!result.should_block);
         assert!(result.adjusted_confidence < 0.70); // Confidence penalized by 0.2

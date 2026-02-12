@@ -5325,7 +5325,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5341,7 +5342,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5363,7 +5365,11 @@ mod tests {
             .await;
 
         // Handler may return BAD_REQUEST (400) when trade not found
-        assert!(resp.status().is_success() || resp.status() == StatusCode::NOT_FOUND || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status() == StatusCode::NOT_FOUND
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -5384,7 +5390,11 @@ mod tests {
             .await;
 
         // Handler may return BAD_REQUEST (400) when trade not found
-        assert!(resp.status().is_success() || resp.status() == StatusCode::NOT_FOUND || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status() == StatusCode::NOT_FOUND
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -5545,7 +5555,11 @@ mod tests {
             .await;
 
         // Handler may not validate side field, accept any valid HTTP status
-        assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_client_error()
+                || resp.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -5587,7 +5601,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5603,7 +5618,12 @@ mod tests {
             .await;
 
         // cancel_pending_order returns Err for nonexistent orders
-        assert!(resp.status().is_success() || resp.status() == StatusCode::NOT_FOUND || resp.status().is_client_error() || resp.status().is_server_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status() == StatusCode::NOT_FOUND
+                || resp.status().is_client_error()
+                || resp.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -5689,7 +5709,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<IndicatorSettingsResponse> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<IndicatorSettingsResponse> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5799,7 +5820,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5815,7 +5837,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5831,7 +5854,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5861,7 +5885,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5877,7 +5902,8 @@ mod tests {
             .await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(resp.body()).unwrap();
         assert!(body.success);
     }
 
@@ -5907,9 +5933,12 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
         if resp.status() == StatusCode::OK {
-            let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+            let body: ApiResponse<Vec<serde_json::Value>> =
+                serde_json::from_slice(resp.body()).unwrap();
             assert!(body.success);
         }
     }
@@ -5926,7 +5955,9 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -5941,7 +5972,9 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -5956,7 +5989,9 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -5971,7 +6006,9 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -5986,7 +6023,9 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -6001,7 +6040,9 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -6016,9 +6057,12 @@ mod tests {
             .await;
 
         // Storage may not be available in test (no-db), accept 500
-        assert!(resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
         if resp.status() == StatusCode::OK {
-            let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(resp.body()).unwrap();
+            let body: ApiResponse<Vec<serde_json::Value>> =
+                serde_json::from_slice(resp.body()).unwrap();
             assert!(body.success);
         }
     }
@@ -6559,7 +6603,12 @@ mod tests {
                 .await;
 
             // Accept any valid HTTP status (success, not found, or client/server error)
-            assert!(resp.status().is_success() || resp.status() == StatusCode::NOT_FOUND || resp.status().is_client_error() || resp.status().is_server_error());
+            assert!(
+                resp.status().is_success()
+                    || resp.status() == StatusCode::NOT_FOUND
+                    || resp.status().is_client_error()
+                    || resp.status().is_server_error()
+            );
         }
     }
 
@@ -6676,7 +6725,11 @@ mod tests {
             .await;
 
         // Accept error responses with no-db
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -6699,7 +6752,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -6725,7 +6782,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -6753,7 +6814,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -6812,7 +6877,11 @@ mod tests {
             .await;
 
         // Accept client errors (e.g., 400 Bad Request) from no-db tests
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -6883,7 +6952,11 @@ mod tests {
             .await;
 
         // Accept client errors (e.g., 400 Bad Request) from no-db tests
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status().is_client_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status().is_client_error()
+        );
     }
 
     #[tokio::test]
@@ -6932,7 +7005,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -6960,7 +7037,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -6975,7 +7056,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -6998,7 +7083,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7013,7 +7102,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7036,7 +7129,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7051,7 +7148,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid (use /latest-signals or /signals-history instead)
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7083,7 +7184,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7098,7 +7203,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7113,7 +7222,11 @@ mod tests {
             .await;
 
         // Route doesn't exist yet - accept 404 as valid
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     // Coverage tests for settings handlers (618-729)
@@ -7164,7 +7277,9 @@ mod tests {
 
         if resp.status().is_success() {
             let body = std::str::from_utf8(resp.body()).unwrap_or("");
-            assert!(body.contains("strategies") || body.contains("risk") || body.contains("engine"));
+            assert!(
+                body.contains("strategies") || body.contains("risk") || body.contains("engine")
+            );
         }
     }
 
@@ -7520,7 +7635,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7549,7 +7668,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7563,7 +7686,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == StatusCode::NOT_FOUND);
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_server_error()
+                || resp.status() == StatusCode::NOT_FOUND
+        );
     }
 
     #[tokio::test]
@@ -7952,14 +8079,17 @@ mod tests {
     #[test]
     fn test_cov7_update_symbol_settings_request_serialization() {
         let mut symbols = std::collections::HashMap::new();
-        symbols.insert("BTCUSDT".to_string(), SymbolConfig {
-            enabled: true,
-            leverage: Some(5),
-            position_size_pct: None,
-            stop_loss_pct: None,
-            take_profit_pct: None,
-            max_positions: None,
-        });
+        symbols.insert(
+            "BTCUSDT".to_string(),
+            SymbolConfig {
+                enabled: true,
+                leverage: Some(5),
+                position_size_pct: None,
+                stop_loss_pct: None,
+                take_profit_pct: None,
+                max_positions: None,
+            },
+        );
 
         let request = UpdateSymbolSettingsRequest { symbols };
         let json = serde_json::to_string(&request).unwrap();
@@ -8220,9 +8350,7 @@ mod tests {
 
     #[test]
     fn test_cov7_config_suggestions_query_serialization() {
-        let query = ConfigSuggestionsQuery {
-            limit: Some(5),
-        };
+        let query = ConfigSuggestionsQuery { limit: Some(5) };
 
         let json = serde_json::to_string(&query).unwrap();
         assert!(json.contains("\"limit\":5"));
@@ -8458,7 +8586,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_client_error()
+                || resp.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -8483,7 +8615,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_client_error()
+                || resp.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -8511,7 +8647,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_client_error() || resp.status().is_server_error());
+        assert!(
+            resp.status().is_success()
+                || resp.status().is_client_error()
+                || resp.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -9294,7 +9434,9 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
     }
 
     #[tokio::test]
@@ -9318,7 +9460,9 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
     }
 
     #[tokio::test]
@@ -9345,7 +9489,9 @@ mod tests {
             .reply(&routes)
             .await;
 
-        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
     }
 
     #[tokio::test]
@@ -10066,32 +10212,41 @@ mod tests {
     fn test_boost_update_symbol_settings_request_multiple() {
         let mut symbols = std::collections::HashMap::new();
 
-        symbols.insert("BTCUSDT".to_string(), SymbolConfig {
-            enabled: true,
-            leverage: Some(10),
-            position_size_pct: Some(10.0),
-            stop_loss_pct: Some(2.0),
-            take_profit_pct: Some(5.0),
-            max_positions: Some(2),
-        });
+        symbols.insert(
+            "BTCUSDT".to_string(),
+            SymbolConfig {
+                enabled: true,
+                leverage: Some(10),
+                position_size_pct: Some(10.0),
+                stop_loss_pct: Some(2.0),
+                take_profit_pct: Some(5.0),
+                max_positions: Some(2),
+            },
+        );
 
-        symbols.insert("ETHUSDT".to_string(), SymbolConfig {
-            enabled: true,
-            leverage: Some(5),
-            position_size_pct: Some(8.0),
-            stop_loss_pct: Some(2.5),
-            take_profit_pct: Some(6.0),
-            max_positions: Some(3),
-        });
+        symbols.insert(
+            "ETHUSDT".to_string(),
+            SymbolConfig {
+                enabled: true,
+                leverage: Some(5),
+                position_size_pct: Some(8.0),
+                stop_loss_pct: Some(2.5),
+                take_profit_pct: Some(6.0),
+                max_positions: Some(3),
+            },
+        );
 
-        symbols.insert("BNBUSDT".to_string(), SymbolConfig {
-            enabled: false,
-            leverage: None,
-            position_size_pct: None,
-            stop_loss_pct: None,
-            take_profit_pct: None,
-            max_positions: None,
-        });
+        symbols.insert(
+            "BNBUSDT".to_string(),
+            SymbolConfig {
+                enabled: false,
+                leverage: None,
+                position_size_pct: None,
+                stop_loss_pct: None,
+                take_profit_pct: None,
+                max_positions: None,
+            },
+        );
 
         let request = UpdateSymbolSettingsRequest { symbols };
 
@@ -10143,9 +10298,7 @@ mod tests {
         let limits = vec![10, 20, 50, 100];
 
         for limit in limits {
-            let query = ConfigSuggestionsQuery {
-                limit: Some(limit),
-            };
+            let query = ConfigSuggestionsQuery { limit: Some(limit) };
 
             assert_eq!(query.limit, Some(limit));
         }
@@ -10413,7 +10566,10 @@ mod tests {
 
         let cloned = settings.clone();
         assert_eq!(settings.confidence_base, cloned.confidence_base);
-        assert_eq!(settings.min_required_timeframes, cloned.min_required_timeframes);
+        assert_eq!(
+            settings.min_required_timeframes,
+            cloned.min_required_timeframes
+        );
     }
 
     // ============================================================================
@@ -10480,7 +10636,8 @@ mod tests {
             .await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(response.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(response.body()).unwrap();
         assert!(body.success);
     }
 
@@ -10502,7 +10659,8 @@ mod tests {
             .await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(response.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(response.body()).unwrap();
         assert!(body.success);
     }
 
@@ -10523,7 +10681,11 @@ mod tests {
             .await;
 
         // With null-db storage, handler may return error status
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10542,7 +10704,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10561,7 +10727,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10581,7 +10751,8 @@ mod tests {
             .await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body: ApiResponse<TradingStrategySettings> = serde_json::from_slice(response.body()).unwrap();
+        let body: ApiResponse<TradingStrategySettings> =
+            serde_json::from_slice(response.body()).unwrap();
         assert!(body.success);
     }
 
@@ -10643,7 +10814,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10662,7 +10837,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10682,7 +10861,8 @@ mod tests {
             .await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body: ApiResponse<Vec<serde_json::Value>> = serde_json::from_slice(response.body()).unwrap();
+        let body: ApiResponse<Vec<serde_json::Value>> =
+            serde_json::from_slice(response.body()).unwrap();
         assert!(body.success);
     }
 
@@ -10703,7 +10883,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10723,7 +10907,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10751,7 +10939,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10870,7 +11062,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10904,7 +11100,10 @@ mod tests {
             .await;
 
         // Market order should succeed or return error based on engine state
-        assert!(response.status() == StatusCode::OK || response.status() == StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(
+            response.status() == StatusCode::OK
+                || response.status() == StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[tokio::test]
@@ -10933,7 +11132,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10962,7 +11165,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     #[tokio::test]
@@ -10996,7 +11203,11 @@ mod tests {
             .reply(&filter)
             .await;
 
-        assert!(response.status().is_success() || response.status().is_client_error() || response.status().is_server_error());
+        assert!(
+            response.status().is_success()
+                || response.status().is_client_error()
+                || response.status().is_server_error()
+        );
     }
 
     // ============================================================
@@ -11025,8 +11236,8 @@ mod tests {
         // Should return 404 (not found) or 400 (error) with null-db
         assert!(
             response.status() == StatusCode::NOT_FOUND
-            || response.status() == StatusCode::BAD_REQUEST
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::BAD_REQUEST
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11051,7 +11262,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11076,7 +11287,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11102,8 +11313,8 @@ mod tests {
         // Should return 404 (not found) or 500 (db error) with null-db
         assert!(
             response.status() == StatusCode::NOT_FOUND
-            || response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::INTERNAL_SERVER_ERROR
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11128,7 +11339,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11153,7 +11364,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11179,7 +11390,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11205,7 +11416,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11231,7 +11442,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
 
@@ -11257,8 +11468,7 @@ mod tests {
         // With null-db, should return error
         assert!(
             response.status() == StatusCode::INTERNAL_SERVER_ERROR
-            || response.status() == StatusCode::OK
+                || response.status() == StatusCode::OK
         );
     }
-
 }

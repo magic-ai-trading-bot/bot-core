@@ -665,7 +665,7 @@ mod tests {
         let mut pos = create_test_position(PositionSide::Long);
 
         pos.update_price(45000.0); // 10% loss
-        // PnL: -500, percentage: -500/5000 * 100 = -10%
+                                   // PnL: -500, percentage: -500/5000 * 100 = -10%
         assert!((pos.pnl_percentage() - (-10.0)).abs() < 0.1);
     }
 

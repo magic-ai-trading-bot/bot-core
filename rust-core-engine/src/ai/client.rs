@@ -1632,5 +1632,4 @@ mod tests {
         assert_eq!(python_request.current_price, 52500.0);
         assert_eq!(python_request.volume_24h, 100000.0);
     }
-
 }
