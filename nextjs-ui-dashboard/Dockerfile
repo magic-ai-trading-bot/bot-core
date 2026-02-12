@@ -1,5 +1,5 @@
 # Multi-stage build for optimized React application with Bun
-FROM oven/bun:1 AS builder
+FROM oven/bun:1.1.44 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +23,7 @@ COPY . .
 RUN bun run build
 
 # Production stage
-FROM oven/bun:1-alpine
+FROM oven/bun:1.1.44-alpine
 
 # Update system packages for security patches and install curl for health checks
 RUN apk update && apk upgrade && apk add --no-cache curl

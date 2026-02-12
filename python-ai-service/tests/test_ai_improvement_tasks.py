@@ -35,11 +35,16 @@ class TestGPT4SelfAnalysis:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
 
-        if "trades/closed" in url:
+        parsed_url = urlparse(url)
+        path = parsed_url.path
+        netloc = parsed_url.netloc
+
+        # Use proper URL parsing instead of substring checks
+        if path.endswith("/trades/closed"):
             mock_resp.json.return_value = {"success": True, "data": []}
-        elif "accuracy_history" in url:
+        elif path.endswith("/accuracy_history"):
             mock_resp.json.return_value = {}
-        elif urlparse(url).netloc.endswith("binance.com"):
+        elif netloc.endswith("binance.com"):
             mock_resp.json.return_value = {"priceChangePercent": "1.5"}
         else:
             mock_resp.json.return_value = {}
@@ -581,11 +586,17 @@ class TestAIImprovementTasksIntegration:
 
             mock_resp = MagicMock()
             mock_resp.status_code = 200
-            if "trades/closed" in url:
+
+            parsed_url = urlparse(url)
+            path = parsed_url.path
+            netloc = parsed_url.netloc
+
+            # Use proper URL parsing instead of substring checks
+            if path.endswith("/trades/closed"):
                 mock_resp.json.return_value = {"success": True, "data": []}
-            elif "accuracy_history" in url:
+            elif path.endswith("/accuracy_history"):
                 mock_resp.json.return_value = {}
-            elif urlparse(url).netloc.endswith("binance.com"):
+            elif netloc.endswith("binance.com"):
                 mock_resp.json.return_value = {"priceChangePercent": "1.5"}
             else:
                 mock_resp.json.return_value = {}

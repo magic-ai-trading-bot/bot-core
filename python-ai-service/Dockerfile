@@ -1,5 +1,5 @@
 # Multi-stage build for optimized Python AI service
-FROM python:3.11-slim AS builder
+FROM python:3.11.11-slim-bookworm AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
     pip install --no-cache-dir -r requirements.txt
 
 # Runtime stage
-FROM python:3.11-slim
+FROM python:3.11.11-slim-bookworm
 
 # Install runtime dependencies and security patches
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
