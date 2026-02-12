@@ -305,8 +305,50 @@ db.market_indicators.createIndex({ symbol: 1, timestamp: -1 });
 db.market_indicators.createIndex({ indicator_type: 1, timestamp: -1 });
 print('✓ Created market_indicators indexes');
 
+// Seed demo users (password: password123)
+print('\n[5/7] Seeding demo users...');
+
+const demoPasswordHash = '$2b$12$MIXXJQAdvglFlvqdlkB7nOaByVpPwEZeXSmpgrABBkLXFiqkVjtbi';
+const now = new Date();
+
+db.users.insertOne({
+  email: 'trader@botcore.com',
+  password_hash: demoPasswordHash,
+  is_active: true,
+  is_admin: false,
+  two_factor_enabled: false,
+  created_at: now,
+  updated_at: now,
+  settings: {
+    trading_enabled: false,
+    risk_level: 'Medium',
+    max_positions: 3,
+    default_quantity: 0.01,
+    notifications: { email_alerts: true, trade_notifications: true, system_alerts: true }
+  }
+});
+print('✓ Created demo trader (trader@botcore.com / password123)');
+
+db.users.insertOne({
+  email: 'admin@botcore.com',
+  password_hash: demoPasswordHash,
+  is_active: true,
+  is_admin: true,
+  two_factor_enabled: false,
+  created_at: now,
+  updated_at: now,
+  settings: {
+    trading_enabled: false,
+    risk_level: 'Medium',
+    max_positions: 5,
+    default_quantity: 0.01,
+    notifications: { email_alerts: true, trade_notifications: true, system_alerts: true }
+  }
+});
+print('✓ Created demo admin (admin@botcore.com / password123)');
+
 // Insert initial system configuration
-print('\n[5/5] Inserting initial configuration...');
+print('\n[6/7] Inserting initial configuration...');
 
 db.system_config.insertOne({
   _id: 'global_config',
@@ -335,7 +377,8 @@ print('==================================================');
 print('\nDatabase: bot_core');
 print('Collections created: 21');
 print('Indexes created: 50+');
-print('Users created: 3');
+print('DB Users created: 3');
+print('Demo app users seeded: 2 (trader@botcore.com, admin@botcore.com)');
 print('\nConnection strings:');
 print('  Admin:     mongodb://bot_core_admin:<password>@localhost:27017/bot_core');
 print('  App:       mongodb://bot_core_app:<password>@localhost:27017/bot_core');

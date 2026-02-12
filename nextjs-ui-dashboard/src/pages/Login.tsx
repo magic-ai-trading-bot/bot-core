@@ -216,9 +216,22 @@ const Login = () => {
             <div className="flex gap-2">
               <motion.button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setEmail('trader@botcore.com');
                   setPassword('password123');
+                  try {
+                    toast.loading(t('login.submitting'), { id: "login-loading" });
+                    const success = await login('trader@botcore.com', 'password123');
+                    if (success) {
+                      toast.success(t('login.success'), { description: t('login.successMessage'), id: "login-loading" });
+                      navigate("/dashboard", { replace: true });
+                    } else {
+                      toast.error(t('login.error'), { description: error || t('login.errorInvalid'), id: "login-loading" });
+                    }
+                  } catch (err) {
+                    logger.error("Demo login error:", err);
+                    toast.error(t('login.error'), { description: t('login.errorGeneric'), id: "login-loading" });
+                  }
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -233,9 +246,22 @@ const Login = () => {
               </motion.button>
               <motion.button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setEmail('admin@botcore.com');
                   setPassword('password123');
+                  try {
+                    toast.loading(t('login.submitting'), { id: "login-loading" });
+                    const success = await login('admin@botcore.com', 'password123');
+                    if (success) {
+                      toast.success(t('login.success'), { description: t('login.successMessage'), id: "login-loading" });
+                      navigate("/dashboard", { replace: true });
+                    } else {
+                      toast.error(t('login.error'), { description: error || t('login.errorInvalid'), id: "login-loading" });
+                    }
+                  } catch (err) {
+                    logger.error("Demo login error:", err);
+                    toast.error(t('login.error'), { description: t('login.errorGeneric'), id: "login-loading" });
+                  }
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

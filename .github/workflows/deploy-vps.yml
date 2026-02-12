@@ -399,7 +399,7 @@ jobs:
           DEPLOY_SCRIPT
 
           # Execute deploy script on VPS using password authentication
-          sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" 'bash -s' < deploy.sh
+          sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=60 "$VPS_USER@$VPS_HOST" 'bash -s' < deploy.sh
 
       - name: Notify deployment status
         if: always()
