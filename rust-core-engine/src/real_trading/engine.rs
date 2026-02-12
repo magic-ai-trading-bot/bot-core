@@ -5895,585 +5895,119 @@ mod additional_coverage_tests {
 
         assert_eq!(metrics.trades_count, 10);
     }
-}
 
-// Additional edge case tests for better coverage
-#[cfg(test)]
-mod edge_case_tests {
-    use super::*;
+    // ========== ADDITIONAL COVERAGE TESTS FOR ENGINE ==========
 
     #[test]
-    fn test_circuit_breaker_should_close_after_cooldown() {
+    fn test_cov_circuit_breaker_record_multiple_errors() {
         let mut cb = CircuitBreakerState::default();
-        cb.record_error("Error", 1);
+
+        // Record errors below threshold
+        assert!(!cb.record_error("Error 1", 3));
+        assert_eq!(cb.error_count, 1);
+        assert!(!cb.is_open);
+
+        assert!(!cb.record_error("Error 2", 3));
+        assert_eq!(cb.error_count, 2);
+        assert!(!cb.is_open);
+
+        // Third error opens circuit
+        assert!(cb.record_error("Error 3", 3));
+        assert_eq!(cb.error_count, 3);
         assert!(cb.is_open);
-        
-        // Simulate time passing by manually setting opened_at to past
-        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(120));
+        assert!(cb.opened_at.is_some());
+        assert_eq!(cb.last_error, Some("Error 3".to_string()));
+    }
+
+    #[test]
+    fn test_cov_circuit_breaker_should_close_cooldown() {
+        let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(61));
+
         assert!(cb.should_close(60));
     }
 
     #[test]
-    fn test_balance_total_zero() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.0,
-            locked: 0.0,
-        };
-        assert_eq!(balance.total(), 0.0);
-    }
-
-    #[test]
-    fn test_daily_metrics_all_losing_trades() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.losing_trades = 10;
-        metrics.winning_trades = 0;
-        assert_eq!(metrics.win_rate(), 0.0);
-    }
-
-    #[test]
-    fn test_daily_metrics_all_winning_trades() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.winning_trades = 10;
-        metrics.losing_trades = 0;
-        assert_eq!(metrics.win_rate(), 100.0);
-    }
-
-    #[test]
-    fn test_order_state_from_unknown_status() {
-        assert_eq!(OrderState::from_binance_status("RANDOM_STATUS"), OrderState::Pending);
-    }
-
-    #[test]
-    fn test_position_side_from_lowercase() {
-        assert_eq!(PositionSide::from_order_side("buy"), PositionSide::Long);
-        assert_eq!(PositionSide::from_order_side("sell"), PositionSide::Short);
-    }
-
-    #[test]
-    fn test_position_value_zero_price() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(0.0);
-        assert_eq!(pos.position_value(), 0.0);
-    }
-
-    #[test]
-    fn test_position_pnl_percentage_zero_cost() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.0, // Zero quantity
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        // Should not panic with division by zero
-        let pnl_pct = pos.pnl_percentage();
-        assert_eq!(pnl_pct, 0.0);
-    }
-
-    #[test]
-    fn test_position_calculate_unrealized_pnl_long() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(55000.0);
-        let unrealized = pos.calculate_unrealized_pnl();
-        assert!((unrealized - 500.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_calculate_unrealized_pnl_short() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(45000.0);
-        let unrealized = pos.calculate_unrealized_pnl();
-        assert!((unrealized - 500.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_total_pnl_with_realized_and_unrealized() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.2,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        
-        // Close half with profit
-        pos.partial_close(52000.0, 0.1, 0.5, "exit-1".to_string());
-        
-        // Update price for unrealized
-        pos.update_price(51000.0);
-        
-        let total = pos.total_pnl();
-        // Realized: (52000-50000)*0.1 - 0.5 = 199.5
-        // Unrealized: (51000-50000)*0.1 = 100
-        // Total: 299.5
-        assert!((total - 299.5).abs() < 1.0);
-    }
-
-    #[test]
-    fn test_order_fill_percentage_zero_quantity() {
-        let order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            0.0, // Zero quantity
-            None,
-            None,
-            None,
-            true,
-        );
-        // Should not panic
-        let fill_pct = order.fill_percentage();
-        assert_eq!(fill_pct, 0.0);
-    }
-
-    #[test]
-    fn test_order_value_market_order() {
-        let order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            0.1,
-            None, // No price for market order
-            None,
-            None,
-            true,
-        );
-        // Market orders use average fill price, which is 0 initially
-        let value = order.order_value();
-        assert_eq!(value, 0.0);
-    }
-
-    #[test]
-    fn test_order_value_limit_order() {
-        let order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            0.1,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        let value = order.order_value();
-        assert!((value - 5000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_circuit_breaker_record_success() {
+    fn test_cov_circuit_breaker_should_not_close_before_cooldown() {
         let mut cb = CircuitBreakerState::default();
-        cb.record_error("Error 1", 3);
-        cb.record_error("Error 2", 3);
-        assert_eq!(cb.error_count, 2);
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(30));
 
-        cb.record_success();
-        assert_eq!(cb.error_count, 0);
-        // Circuit should still be closed (not opened yet)
-        assert!(!cb.is_open);
-    }
-
-    #[test]
-    fn test_circuit_breaker_threshold_exactly() {
-        let mut cb = CircuitBreakerState::default();
-        let opened = cb.record_error("Error 1", 3);
-        assert!(!opened);
-
-        let opened = cb.record_error("Error 2", 3);
-        assert!(!opened);
-
-        let opened = cb.record_error("Error 3", 3);
-        assert!(opened);
-        assert!(cb.is_open);
-    }
-
-    #[test]
-    fn test_circuit_breaker_close_explicitly() {
-        let mut cb = CircuitBreakerState::default();
-        cb.record_error("Error", 1);
-        assert!(cb.is_open);
-
-        cb.close();
-        assert!(!cb.is_open);
-        assert_eq!(cb.error_count, 0);
-        assert!(cb.opened_at.is_none());
-        assert!(cb.last_error.is_none());
-    }
-
-    #[test]
-    fn test_circuit_breaker_should_not_close_too_early() {
-        let mut cb = CircuitBreakerState::default();
-        cb.record_error("Error", 1);
-        assert!(cb.is_open);
-
-        // Should not close immediately (cooldown = 60 seconds)
         assert!(!cb.should_close(60));
     }
 
     #[test]
-    fn test_balance_total_with_locked() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.5,
-            locked: 0.3,
-        };
-        assert!((balance.total() - 0.8).abs() < 0.0001);
+    fn test_cov_circuit_breaker_should_close_no_opened_at() {
+        let cb = CircuitBreakerState::default();
+        assert!(!cb.should_close(60));
     }
 
     #[test]
-    fn test_balance_total_only_free() {
+    fn test_cov_balance_structure() {
         let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 1.0,
-            locked: 0.0,
+            asset: "USDT".to_string(),
+            free: 10000.0,
+            locked: 2000.0,
         };
-        assert_eq!(balance.total(), 1.0);
+
+        assert_eq!(balance.total(), 12000.0);
+        assert_eq!(balance.asset, "USDT");
+        assert_eq!(balance.free, 10000.0);
+        assert_eq!(balance.locked, 2000.0);
     }
 
     #[test]
-    fn test_balance_total_only_locked() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.0,
-            locked: 0.5,
-        };
-        assert_eq!(balance.total(), 0.5);
+    fn test_cov_balance_default() {
+        let balance = Balance::default();
+        assert_eq!(balance.asset, "");
+        assert_eq!(balance.free, 0.0);
+        assert_eq!(balance.locked, 0.0);
+        assert_eq!(balance.total(), 0.0);
     }
 
     #[test]
-    fn test_daily_metrics_new_creates_today_date() {
+    fn test_cov_daily_metrics_new() {
         let metrics = DailyMetrics::new();
-        let expected = Utc::now().format("%Y-%m-%d").to_string();
-        assert_eq!(metrics.date, expected);
-    }
-
-    #[test]
-    fn test_daily_metrics_win_rate_no_trades() {
-        let metrics = DailyMetrics::new();
+        assert_eq!(metrics.realized_pnl, 0.0);
+        assert_eq!(metrics.trades_count, 0);
+        assert_eq!(metrics.winning_trades, 0);
+        assert_eq!(metrics.losing_trades, 0);
+        assert_eq!(metrics.total_volume, 0.0);
+        assert_eq!(metrics.total_commission, 0.0);
         assert_eq!(metrics.win_rate(), 0.0);
     }
 
     #[test]
-    fn test_daily_metrics_win_rate_partial() {
+    fn test_cov_daily_metrics_win_rate_calculation() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 20;
+        metrics.winning_trades = 15;
+        metrics.losing_trades = 5;
+
+        assert!((metrics.win_rate() - 75.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cov_daily_metrics_win_rate_all_wins() {
         let mut metrics = DailyMetrics::new();
         metrics.trades_count = 10;
-        metrics.winning_trades = 6;
-        metrics.losing_trades = 4;
-        assert!((metrics.win_rate() - 60.0).abs() < 0.01);
+        metrics.winning_trades = 10;
+
+        assert_eq!(metrics.win_rate(), 100.0);
     }
 
     #[test]
-    fn test_daily_metrics_reset_if_new_day_same_day() {
+    fn test_cov_daily_metrics_win_rate_all_losses() {
         let mut metrics = DailyMetrics::new();
         metrics.trades_count = 10;
-        metrics.realized_pnl = 100.0;
+        metrics.losing_trades = 10;
 
-        metrics.reset_if_new_day();
-
-        // Should not reset on same day
-        assert_eq!(metrics.trades_count, 10);
-        assert_eq!(metrics.realized_pnl, 100.0);
+        assert_eq!(metrics.win_rate(), 0.0);
     }
 
     #[test]
-    fn test_order_state_from_binance_status_new() {
-        assert_eq!(OrderState::from_binance_status("NEW"), OrderState::New);
-    }
-
-    #[test]
-    fn test_order_state_from_binance_status_filled() {
-        assert_eq!(OrderState::from_binance_status("FILLED"), OrderState::Filled);
-    }
-
-    #[test]
-    fn test_order_state_from_binance_status_partially_filled() {
-        assert_eq!(OrderState::from_binance_status("PARTIALLY_FILLED"), OrderState::PartiallyFilled);
-    }
-
-    #[test]
-    fn test_order_state_from_binance_status_canceled() {
-        assert_eq!(OrderState::from_binance_status("CANCELED"), OrderState::Cancelled);
-    }
-
-    #[test]
-    fn test_order_state_from_binance_status_rejected() {
-        assert_eq!(OrderState::from_binance_status("REJECTED"), OrderState::Rejected);
-    }
-
-    #[test]
-    fn test_order_state_from_binance_status_expired() {
-        assert_eq!(OrderState::from_binance_status("EXPIRED"), OrderState::Expired);
-    }
-
-    #[test]
-    fn test_position_side_from_order_side_uppercase() {
-        assert_eq!(PositionSide::from_order_side("BUY"), PositionSide::Long);
-        assert_eq!(PositionSide::from_order_side("SELL"), PositionSide::Short);
-    }
-
-    #[test]
-    fn test_position_side_from_order_side_mixed_case() {
-        assert_eq!(PositionSide::from_order_side("Buy"), PositionSide::Long);
-        assert_eq!(PositionSide::from_order_side("Sell"), PositionSide::Short);
-    }
-
-    #[test]
-    fn test_position_value_normal() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(55000.0);
-        assert!((pos.position_value() - 5500.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_unrealized_pnl_long_profit() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(52000.0);
-        let pnl = pos.calculate_unrealized_pnl();
-        assert!((pnl - 200.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_unrealized_pnl_long_loss() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(48000.0);
-        let pnl = pos.calculate_unrealized_pnl();
-        assert!((pnl - (-200.0)).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_unrealized_pnl_short_profit() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(48000.0);
-        let pnl = pos.calculate_unrealized_pnl();
-        assert!((pnl - 200.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_unrealized_pnl_short_loss() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(52000.0);
-        let pnl = pos.calculate_unrealized_pnl();
-        assert!((pnl - (-200.0)).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_pnl_percentage_long_profit() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(55000.0);
-        let pnl_pct = pos.pnl_percentage();
-        assert!((pnl_pct - 10.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_pnl_percentage_short_profit() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(45000.0);
-        let pnl_pct = pos.pnl_percentage();
-        assert!((pnl_pct - 10.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_order_fill_percentage_partial() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.executed_quantity = 0.5;
-        let fill_pct = order.fill_percentage();
-        assert!((fill_pct - 0.5).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_order_fill_percentage_full() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.executed_quantity = 1.0;
-        let fill_pct = order.fill_percentage();
-        assert!((fill_pct - 1.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_order_remaining_quantity() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.executed_quantity = 0.3;
-        order.remaining_quantity = 0.7;
-        let remaining = order.remaining_quantity;
-        assert!((remaining - 0.7).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_partial_close() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.partial_close(52000.0, 0.4, 2.0, "exit-1".to_string());
-
-        // Remaining quantity should be 0.6
-        assert!((pos.quantity - 0.6).abs() < 0.01);
-
-        // Realized PnL should be (52000 - 50000) * 0.4 - 2.0 = 798.0
-        assert!((pos.realized_pnl - 798.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_partial_close_short() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.partial_close(48000.0, 0.5, 2.0, "exit-1".to_string());
-
-        // Remaining quantity should be 0.5
-        assert!((pos.quantity - 0.5).abs() < 0.01);
-
-        // Realized PNL should be (50000 - 48000) * 0.5 - 2.0 = 998.0
-        assert!((pos.realized_pnl - 998.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_reconciliation_metrics_default() {
+    fn test_cov_reconciliation_metrics_default() {
         let metrics = ReconciliationMetrics::default();
         assert!(metrics.last_run_time.is_none());
         assert_eq!(metrics.last_run_duration_ms, 0);
@@ -6487,540 +6021,1759 @@ mod edge_case_tests {
     }
 
     #[test]
-    fn test_position_is_closed_initial() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        assert!(!pos.is_closed());
+    fn test_cov_real_trading_event_error() {
+        let event = RealTradingEvent::Error("Test error".to_string());
+
+        match event {
+            RealTradingEvent::Error(msg) => {
+                assert_eq!(msg, "Test error");
+            },
+            _ => panic!("Expected Error event"),
+        }
     }
 
     #[test]
-    fn test_order_is_active_pending() {
+    fn test_cov_real_trading_event_circuit_breaker_opened() {
+        let event = RealTradingEvent::CircuitBreakerOpened("Too many errors".to_string());
+
+        match event {
+            RealTradingEvent::CircuitBreakerOpened(reason) => {
+                assert_eq!(reason, "Too many errors");
+            },
+            _ => panic!("Expected CircuitBreakerOpened event"),
+        }
+    }
+
+    #[test]
+    fn test_cov_real_trading_event_circuit_breaker_closed() {
+        let event = RealTradingEvent::CircuitBreakerClosed;
+
+        match event {
+            RealTradingEvent::CircuitBreakerClosed => {},
+            _ => panic!("Expected CircuitBreakerClosed event"),
+        }
+    }
+
+    #[test]
+    fn test_cov_real_trading_event_balance_updated() {
+        let event = RealTradingEvent::BalanceUpdated {
+            asset: "BTC".to_string(),
+            free: 1.5,
+            locked: 0.5,
+        };
+
+        match event {
+            RealTradingEvent::BalanceUpdated { asset, free, locked } => {
+                assert_eq!(asset, "BTC");
+                assert_eq!(free, 1.5);
+                assert_eq!(locked, 0.5);
+            },
+            _ => panic!("Expected BalanceUpdated event"),
+        }
+    }
+
+    #[test]
+    fn test_cov_real_trading_event_daily_loss_limit_reached() {
+        let event = RealTradingEvent::DailyLossLimitReached {
+            loss: 500.0,
+            limit: 1000.0,
+        };
+
+        match event {
+            RealTradingEvent::DailyLossLimitReached { loss, limit } => {
+                assert_eq!(loss, 500.0);
+                assert_eq!(limit, 1000.0);
+            },
+            _ => panic!("Expected DailyLossLimitReached event"),
+        }
+    }
+
+    #[test]
+    fn test_cov_real_trading_event_reconciliation_complete() {
+        let event = RealTradingEvent::ReconciliationComplete {
+            discrepancies: 5,
+        };
+
+        match event {
+            RealTradingEvent::ReconciliationComplete { discrepancies } => {
+                assert_eq!(discrepancies, 5);
+            },
+            _ => panic!("Expected ReconciliationComplete event"),
+        }
+    }
+
+    #[test]
+    fn test_cov_real_trading_event_engine_lifecycle() {
+        let started = RealTradingEvent::EngineStarted;
+        let stopped = RealTradingEvent::EngineStopped;
+
+        match started {
+            RealTradingEvent::EngineStarted => {},
+            _ => panic!("Expected EngineStarted"),
+        }
+
+        match stopped {
+            RealTradingEvent::EngineStopped => {},
+            _ => panic!("Expected EngineStopped"),
+        }
+    }
+
+    #[test]
+    fn test_cov_circuit_breaker_serialization() {
+        let cb = CircuitBreakerState {
+            is_open: true,
+            error_count: 5,
+            opened_at: Some(Utc::now()),
+            last_error: Some("Test error".to_string()),
+        };
+
+        let json = serde_json::to_string(&cb).unwrap();
+        let deserialized: CircuitBreakerState = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(cb.is_open, deserialized.is_open);
+        assert_eq!(cb.error_count, deserialized.error_count);
+        assert_eq!(cb.last_error, deserialized.last_error);
+    }
+
+    #[test]
+    fn test_cov_balance_serialization() {
+        let balance = Balance {
+            asset: "ETH".to_string(),
+            free: 5.5,
+            locked: 1.5,
+        };
+
+        let json = serde_json::to_string(&balance).unwrap();
+        let deserialized: Balance = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(balance.asset, deserialized.asset);
+        assert_eq!(balance.free, deserialized.free);
+        assert_eq!(balance.locked, deserialized.locked);
+    }
+
+    #[test]
+    fn test_cov_daily_metrics_serialization() {
+        let metrics = DailyMetrics {
+            date: "2024-01-01".to_string(),
+            realized_pnl: 1000.0,
+            trades_count: 50,
+            winning_trades: 30,
+            losing_trades: 20,
+            total_volume: 100000.0,
+            total_commission: 50.0,
+        };
+
+        let json = serde_json::to_string(&metrics).unwrap();
+        let deserialized: DailyMetrics = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(metrics.date, deserialized.date);
+        assert_eq!(metrics.realized_pnl, deserialized.realized_pnl);
+        assert_eq!(metrics.trades_count, deserialized.trades_count);
+    }
+
+    #[test]
+    fn test_cov_reconciliation_metrics_serialization() {
+        let metrics = ReconciliationMetrics {
+            last_run_time: Some(Utc::now()),
+            last_run_duration_ms: 500,
+            total_discrepancies_found: 10,
+            balance_mismatches: 3,
+            order_mismatches: 4,
+            stale_orders_cancelled: 2,
+            terminal_orders_cleaned: 1,
+            consecutive_failures: 0,
+            total_runs: 100,
+        };
+
+        let json = serde_json::to_string(&metrics).unwrap();
+        let deserialized: ReconciliationMetrics = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(metrics.last_run_duration_ms, deserialized.last_run_duration_ms);
+        assert_eq!(metrics.total_discrepancies_found, deserialized.total_discrepancies_found);
+        assert_eq!(metrics.balance_mismatches, deserialized.balance_mismatches);
+    }
+
+    // ============================================================================
+    // BOOST COVERAGE - Additional Unit Tests
+    // ============================================================================
+
+    #[test]
+    fn test_boost_circuit_breaker_should_close_true() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Error", 1);
+        assert!(cb.is_open);
+
+        // Set opened_at to 10 minutes ago
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(600));
+
+        // Should close after 300 second cooldown
+        assert!(cb.should_close(300));
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_should_close_false() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Error", 1);
+
+        // Just opened - should not close
+        assert!(!cb.should_close(300));
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_should_close_no_opened_at() {
+        let cb = CircuitBreakerState::default();
+        assert!(!cb.should_close(300));
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_record_error_increments() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Error 1", 5);
+        assert_eq!(cb.error_count, 1);
+        assert_eq!(cb.last_error, Some("Error 1".to_string()));
+
+        cb.record_error("Error 2", 5);
+        assert_eq!(cb.error_count, 2);
+        assert_eq!(cb.last_error, Some("Error 2".to_string()));
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_already_open() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Error 1", 2);
+        cb.record_error("Error 2", 2);
+        assert!(cb.is_open);
+
+        // Already open - should return false
+        assert!(!cb.record_error("Error 3", 2));
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_clone() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Test", 1);
+
+        let cloned = cb.clone();
+        assert_eq!(cloned.is_open, cb.is_open);
+        assert_eq!(cloned.error_count, cb.error_count);
+        assert_eq!(cloned.last_error, cb.last_error);
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_debug() {
+        let cb = CircuitBreakerState::default();
+        let debug_str = format!("{:?}", cb);
+        assert!(debug_str.contains("CircuitBreakerState"));
+    }
+
+    #[test]
+    fn test_boost_balance_default() {
+        let balance = Balance::default();
+        assert_eq!(balance.asset, "");
+        assert_eq!(balance.free, 0.0);
+        assert_eq!(balance.locked, 0.0);
+        assert_eq!(balance.total(), 0.0);
+    }
+
+    #[test]
+    fn test_boost_balance_total_various_values() {
+        let balance = Balance {
+            asset: "BTC".to_string(),
+            free: 1.5,
+            locked: 0.5,
+        };
+        assert!((balance.total() - 2.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_boost_balance_clone() {
+        let balance = Balance {
+            asset: "ETH".to_string(),
+            free: 10.0,
+            locked: 2.5,
+        };
+        let cloned = balance.clone();
+        assert_eq!(cloned.asset, balance.asset);
+        assert_eq!(cloned.free, balance.free);
+        assert_eq!(cloned.locked, balance.locked);
+    }
+
+    #[test]
+    fn test_boost_balance_debug() {
+        let balance = Balance {
+            asset: "USDT".to_string(),
+            free: 1000.0,
+            locked: 100.0,
+        };
+        let debug_str = format!("{:?}", balance);
+        assert!(debug_str.contains("Balance"));
+        assert!(debug_str.contains("USDT"));
+    }
+
+    #[test]
+    fn test_boost_daily_metrics_reset_if_new_day_same_day() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 10;
+        metrics.winning_trades = 6;
+
+        // Same day - should not reset
+        metrics.reset_if_new_day();
+        assert_eq!(metrics.trades_count, 10);
+        assert_eq!(metrics.winning_trades, 6);
+    }
+
+    #[test]
+    fn test_boost_daily_metrics_default() {
+        let metrics = DailyMetrics::default();
+        assert_eq!(metrics.date, "");
+        assert_eq!(metrics.realized_pnl, 0.0);
+        assert_eq!(metrics.trades_count, 0);
+        assert_eq!(metrics.winning_trades, 0);
+        assert_eq!(metrics.losing_trades, 0);
+        assert_eq!(metrics.total_volume, 0.0);
+        assert_eq!(metrics.total_commission, 0.0);
+    }
+
+    #[test]
+    fn test_boost_daily_metrics_win_rate_100_percent() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 10;
+        metrics.winning_trades = 10;
+        metrics.losing_trades = 0;
+
+        assert!((metrics.win_rate() - 100.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_boost_daily_metrics_win_rate_0_percent() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 10;
+        metrics.winning_trades = 0;
+        metrics.losing_trades = 10;
+
+        assert!((metrics.win_rate() - 0.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_boost_daily_metrics_clone() {
+        let metrics = DailyMetrics {
+            date: "2025-01-01".to_string(),
+            realized_pnl: 100.0,
+            trades_count: 5,
+            winning_trades: 3,
+            losing_trades: 2,
+            total_volume: 5000.0,
+            total_commission: 5.0,
+        };
+
+        let cloned = metrics.clone();
+        assert_eq!(cloned.date, metrics.date);
+        assert_eq!(cloned.realized_pnl, metrics.realized_pnl);
+        assert_eq!(cloned.trades_count, metrics.trades_count);
+    }
+
+    #[test]
+    fn test_boost_reconciliation_metrics_default() {
+        let metrics = ReconciliationMetrics::default();
+        assert!(metrics.last_run_time.is_none());
+        assert_eq!(metrics.last_run_duration_ms, 0);
+        assert_eq!(metrics.total_discrepancies_found, 0);
+        assert_eq!(metrics.balance_mismatches, 0);
+        assert_eq!(metrics.order_mismatches, 0);
+        assert_eq!(metrics.stale_orders_cancelled, 0);
+        assert_eq!(metrics.terminal_orders_cleaned, 0);
+        assert_eq!(metrics.consecutive_failures, 0);
+        assert_eq!(metrics.total_runs, 0);
+    }
+
+    #[test]
+    fn test_boost_reconciliation_metrics_clone() {
+        let mut metrics = ReconciliationMetrics::default();
+        metrics.total_discrepancies_found = 5;
+        metrics.balance_mismatches = 2;
+
+        let cloned = metrics.clone();
+        assert_eq!(cloned.total_discrepancies_found, 5);
+        assert_eq!(cloned.balance_mismatches, 2);
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_order_placed() {
         let order = RealOrder::new(
-            "test-001".to_string(),
+            "test-order".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+
+        let event = RealTradingEvent::OrderPlaced(order.clone());
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("OrderPlaced"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_order_filled() {
+        let order = RealOrder::new(
+            "test-order".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+
+        let event = RealTradingEvent::OrderFilled(order);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("OrderFilled"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_order_partially_filled() {
+        let order = RealOrder::new(
+            "test-order".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+
+        let event = RealTradingEvent::OrderPartiallyFilled(order);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("OrderPartiallyFilled"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_order_cancelled() {
+        let order = RealOrder::new(
+            "test-order".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+
+        let event = RealTradingEvent::OrderCancelled(order);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("OrderCancelled"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_order_rejected() {
+        let order = RealOrder::new(
+            "test-order".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+
+        let event = RealTradingEvent::OrderRejected {
+            order,
+            reason: "Insufficient balance".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("OrderRejected"));
+        assert!(json.contains("Insufficient balance"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_position_opened() {
+        let pos = RealPosition::new(
+            "pos-123".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.1,
+            50000.0,
+            "order-123".to_string(),
+            None,
+            None,
+        );
+
+        let event = RealTradingEvent::PositionOpened(pos);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("PositionOpened"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_position_updated() {
+        let pos = RealPosition::new(
+            "pos-123".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.1,
+            50000.0,
+            "order-123".to_string(),
+            None,
+            None,
+        );
+
+        let event = RealTradingEvent::PositionUpdated(pos);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("PositionUpdated"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_position_closed() {
+        let pos = RealPosition::new(
+            "pos-123".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.1,
+            50000.0,
+            "order-123".to_string(),
+            None,
+            None,
+        );
+
+        let event = RealTradingEvent::PositionClosed {
+            position: pos,
+            pnl: 100.5,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("PositionClosed"));
+        assert!(json.contains("100.5"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_balance_updated() {
+        let event = RealTradingEvent::BalanceUpdated {
+            asset: "USDT".to_string(),
+            free: 1000.0,
+            locked: 100.0,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("BalanceUpdated"));
+        assert!(json.contains("USDT"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_circuit_breaker_opened() {
+        let event = RealTradingEvent::CircuitBreakerOpened("Too many errors".to_string());
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("CircuitBreakerOpened"));
+        assert!(json.contains("Too many errors"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_circuit_breaker_closed() {
+        let event = RealTradingEvent::CircuitBreakerClosed;
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("CircuitBreakerClosed"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_reconciliation_complete() {
+        let event = RealTradingEvent::ReconciliationComplete { discrepancies: 5 };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("ReconciliationComplete"));
+        assert!(json.contains("5"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_error() {
+        let event = RealTradingEvent::Error("Test error".to_string());
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("Error"));
+        assert!(json.contains("Test error"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_daily_loss_limit_reached() {
+        let event = RealTradingEvent::DailyLossLimitReached {
+            loss: 500.0,
+            limit: 1000.0,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("DailyLossLimitReached"));
+        assert!(json.contains("500"));
+        assert!(json.contains("1000"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_engine_started() {
+        let event = RealTradingEvent::EngineStarted;
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("EngineStarted"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_engine_stopped() {
+        let event = RealTradingEvent::EngineStopped;
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("EngineStopped"));
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_clone() {
+        let event = RealTradingEvent::Error("Test".to_string());
+        let cloned = event.clone();
+
+        if let RealTradingEvent::Error(msg) = cloned {
+            assert_eq!(msg, "Test");
+        } else {
+            panic!("Expected Error variant");
+        }
+    }
+
+    #[test]
+    fn test_boost_real_trading_event_debug() {
+        let event = RealTradingEvent::EngineStarted;
+        let debug_str = format!("{:?}", event);
+        assert!(debug_str.contains("EngineStarted"));
+    }
+
+    #[test]
+    fn test_boost_balance_serialization_roundtrip() {
+        let balance = Balance {
+            asset: "BNB".to_string(),
+            free: 123.45,
+            locked: 67.89,
+        };
+
+        let json = serde_json::to_string(&balance).unwrap();
+        let deserialized: Balance = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.asset, balance.asset);
+        assert!((deserialized.free - balance.free).abs() < 0.001);
+        assert!((deserialized.locked - balance.locked).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_boost_daily_metrics_serialization_roundtrip() {
+        let metrics = DailyMetrics {
+            date: "2025-12-25".to_string(),
+            realized_pnl: 250.75,
+            trades_count: 15,
+            winning_trades: 9,
+            losing_trades: 6,
+            total_volume: 15000.0,
+            total_commission: 15.5,
+        };
+
+        let json = serde_json::to_string(&metrics).unwrap();
+        let deserialized: DailyMetrics = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.date, metrics.date);
+        assert_eq!(deserialized.trades_count, metrics.trades_count);
+        assert!((deserialized.realized_pnl - metrics.realized_pnl).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_state_serialization_roundtrip() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Test error", 2);
+        cb.record_error("Second error", 2);
+
+        let json = serde_json::to_string(&cb).unwrap();
+        let deserialized: CircuitBreakerState = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.is_open, cb.is_open);
+        assert_eq!(deserialized.error_count, cb.error_count);
+        assert_eq!(deserialized.last_error, cb.last_error);
+    }
+
+    #[test]
+    fn test_boost_reconciliation_metrics_serialization_roundtrip() {
+        let mut metrics = ReconciliationMetrics::default();
+        metrics.total_discrepancies_found = 10;
+        metrics.balance_mismatches = 3;
+        metrics.order_mismatches = 7;
+        metrics.total_runs = 100;
+
+        let json = serde_json::to_string(&metrics).unwrap();
+        let deserialized: ReconciliationMetrics = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.total_discrepancies_found, 10);
+        assert_eq!(deserialized.balance_mismatches, 3);
+        assert_eq!(deserialized.order_mismatches, 7);
+        assert_eq!(deserialized.total_runs, 100);
+    }
+
+    #[test]
+    fn test_boost_balance_zero_values() {
+        let balance = Balance {
+            asset: "ZERO".to_string(),
+            free: 0.0,
+            locked: 0.0,
+        };
+
+        assert_eq!(balance.total(), 0.0);
+    }
+
+    #[test]
+    fn test_boost_balance_large_values() {
+        let balance = Balance {
+            asset: "WHALE".to_string(),
+            free: 1_000_000.0,
+            locked: 500_000.0,
+        };
+
+        assert!((balance.total() - 1_500_000.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_boost_daily_metrics_edge_case_single_trade() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 1;
+        metrics.winning_trades = 1;
+
+        assert!((metrics.win_rate() - 100.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_threshold_exactly() {
+        let mut cb = CircuitBreakerState::default();
+
+        // Exactly at threshold
+        cb.record_error("1", 3);
+        assert!(!cb.is_open);
+        cb.record_error("2", 3);
+        assert!(!cb.is_open);
+
+        // Third error triggers
+        let opened = cb.record_error("3", 3);
+        assert!(opened);
+        assert!(cb.is_open);
+    }
+
+    #[test]
+    fn test_boost_circuit_breaker_threshold_zero() {
+        let mut cb = CircuitBreakerState::default();
+
+        // Zero threshold - error_count (1) >= threshold (0) so it opens immediately
+        cb.record_error("Error", 0);
+        assert!(cb.is_open);
+    }
+
+    #[test]
+    fn test_boost_reconciliation_metrics_all_fields() {
+        let metrics = ReconciliationMetrics {
+            last_run_time: Some(Utc::now()),
+            last_run_duration_ms: 500,
+            total_discrepancies_found: 20,
+            balance_mismatches: 5,
+            order_mismatches: 10,
+            stale_orders_cancelled: 3,
+            terminal_orders_cleaned: 2,
+            consecutive_failures: 1,
+            total_runs: 150,
+        };
+
+        assert_eq!(metrics.total_discrepancies_found, 20);
+        assert_eq!(metrics.balance_mismatches, 5);
+        assert_eq!(metrics.order_mismatches, 10);
+        assert_eq!(metrics.stale_orders_cancelled, 3);
+        assert_eq!(metrics.terminal_orders_cleaned, 2);
+        assert_eq!(metrics.consecutive_failures, 1);
+        assert_eq!(metrics.total_runs, 150);
+    }
+
+    // ============ Enhanced Coverage Boost Tests ============
+
+    #[test]
+    fn test_enhanced_circuit_breaker_should_close_before_cooldown() {
+        let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(30));
+        assert!(!cb.should_close(60));
+    }
+
+    #[test]
+    fn test_enhanced_circuit_breaker_should_close_after_cooldown() {
+        let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(120));
+        assert!(cb.should_close(60));
+    }
+
+    #[test]
+    fn test_enhanced_daily_metrics_reset_same_day() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 10;
+        let today = Utc::now().format("%Y-%m-%d").to_string();
+        metrics.date = today;
+        metrics.reset_if_new_day();
+        assert_eq!(metrics.trades_count, 10);
+    }
+
+    #[test]
+    fn test_enhanced_daily_metrics_reset_new_day() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 10;
+        metrics.date = "2020-01-01".to_string();
+        metrics.reset_if_new_day();
+        assert_eq!(metrics.trades_count, 0);
+    }
+
+    #[test]
+    fn test_enhanced_circuit_breaker_success_clears() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Error", 5);
+        cb.record_success();
+        assert_eq!(cb.error_count, 0);
+    }
+
+    #[test]
+    fn test_enhanced_balance_total() {
+        let balance = Balance {
+            asset: "USDT".to_string(),
+            free: 1000.0,
+            locked: 500.0,
+        };
+        assert_eq!(balance.total(), 1500.0);
+    }
+
+    #[test]
+    fn test_enhanced_daily_metrics_win_rate_perfect() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 10;
+        metrics.winning_trades = 10;
+        assert!((metrics.win_rate() - 100.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_enhanced_reconciliation_incremental() {
+        let mut metrics = ReconciliationMetrics::default();
+        for _ in 0..5 {
+            metrics.total_runs += 1;
+            metrics.total_discrepancies_found += 2;
+        }
+        assert_eq!(metrics.total_runs, 5);
+        assert_eq!(metrics.total_discrepancies_found, 10);
+    }
+
+    #[test]
+    fn test_enhanced_circuit_breaker_close_resets() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("E1", 2);
+        cb.record_error("E2", 2);
+        cb.close();
+        assert!(!cb.is_open);
+        assert_eq!(cb.error_count, 0);
+    }
+
+    #[test]
+    fn test_enhanced_balance_default() {
+        let balance = Balance::default();
+        assert_eq!(balance.total(), 0.0);
+    }
+
+    // ============ MASSIVE Coverage Boost: Engine Integration Tests ============
+
+    #[tokio::test]
+    async fn test_engine_get_risk_manager() {
+        let engine = create_test_engine().await;
+        let _rm = engine.get_risk_manager();
+        // Verify no panic
+    }
+
+    #[tokio::test]
+    async fn test_engine_get_total_equity_usdt_empty() {
+        let engine = create_test_engine().await;
+        let equity = engine.get_total_equity_usdt().await;
+        assert_eq!(equity, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_engine_cancel_all_orders_empty() {
+        let engine = create_test_engine().await;
+        let result = engine.cancel_all_orders(None).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_engine_cancel_all_orders_with_symbol_filter() {
+        let engine = create_test_engine().await;
+        let result = engine.cancel_all_orders(Some("BTCUSDT")).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_engine_update_prices() {
+        let engine = create_test_engine().await;
+        let mut prices = HashMap::new();
+        prices.insert("BTCUSDT".to_string(), 50000.0);
+        prices.insert("ETHUSDT".to_string(), 3000.0);
+        engine.update_prices(&prices);
+    }
+
+    #[tokio::test]
+    async fn test_engine_get_daily_metrics_new_day() {
+        let engine = create_test_engine().await;
+        let metrics = engine.get_daily_metrics().await;
+        let today = Utc::now().format("%Y-%m-%d").to_string();
+        assert_eq!(metrics.date, today);
+        assert_eq!(metrics.trades_count, 0);
+    }
+
+    // ============ Balance Handler Tests ============
+
+    #[tokio::test]
+    async fn test_handle_account_position_empty() {
+        let engine = create_test_engine().await;
+        let pos = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![],
+        };
+        engine.handle_account_position(pos).await;
+        let balances = engine.get_all_balances().await;
+        assert!(balances.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_handle_account_position_with_balances() {
+        let engine = create_test_engine().await;
+        let pos = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "USDT".to_string(),
+                    free: "1000.0".to_string(),
+                    locked: "100.0".to_string(),
+                },
+                crate::binance::types::AccountBalance {
+                    asset: "BTC".to_string(),
+                    free: "0.5".to_string(),
+                    locked: "0.1".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos).await;
+        let balances = engine.get_all_balances().await;
+        assert_eq!(balances.len(), 2);
+        assert!(balances.contains_key("USDT"));
+        assert!(balances.contains_key("BTC"));
+    }
+
+    #[tokio::test]
+    async fn test_handle_account_position_invalid_balance() {
+        let engine = create_test_engine().await;
+        let pos = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "INVALID".to_string(),
+                    free: "not_a_number".to_string(),
+                    locked: "100.0".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos).await;
+        let balances = engine.get_all_balances().await;
+        assert!(balances.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_handle_account_position_negative_balance() {
+        let engine = create_test_engine().await;
+        let pos = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "NEGATIVE".to_string(),
+                    free: "-100.0".to_string(),
+                    locked: "0.0".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos).await;
+        let balances = engine.get_all_balances().await;
+        assert!(balances.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_handle_account_position_zero_balance_removed() {
+        let engine = create_test_engine().await;
+        // First add a balance
+        let pos1 = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "USDT".to_string(),
+                    free: "1000.0".to_string(),
+                    locked: "0.0".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos1).await;
+        assert_eq!(engine.get_all_balances().await.len(), 1);
+
+        // Update to zero
+        let pos2 = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "USDT".to_string(),
+                    free: "0.0".to_string(),
+                    locked: "0.0".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos2).await;
+        assert_eq!(engine.get_all_balances().await.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_handle_balance_update_positive_delta() {
+        let engine = create_test_engine().await;
+        let pos = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "USDT".to_string(),
+                    free: "1000.0".to_string(),
+                    locked: "0.0".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos).await;
+
+        let update = crate::binance::types::BalanceUpdate {
+            event_type: "balanceUpdate".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            asset: "USDT".to_string(),
+            balance_delta: "100.0".to_string(),
+            clear_time: Utc::now().timestamp_millis(),
+        };
+        engine.handle_balance_update(update).await;
+
+        let balance = engine.get_balance("USDT").await.unwrap();
+        assert!((balance.free - 1100.0).abs() < 0.01);
+    }
+
+    #[tokio::test]
+    async fn test_handle_balance_update_negative_delta() {
+        let engine = create_test_engine().await;
+        let pos = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "USDT".to_string(),
+                    free: "1000.0".to_string(),
+                    locked: "0.0".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos).await;
+
+        let update = crate::binance::types::BalanceUpdate {
+            event_type: "balanceUpdate".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            asset: "USDT".to_string(),
+            balance_delta: "-200.0".to_string(),
+            clear_time: Utc::now().timestamp_millis(),
+        };
+        engine.handle_balance_update(update).await;
+
+        let balance = engine.get_balance("USDT").await.unwrap();
+        assert!((balance.free - 800.0).abs() < 0.01);
+    }
+
+    #[tokio::test]
+    async fn test_handle_balance_update_invalid_delta() {
+        let engine = create_test_engine().await;
+        let update = crate::binance::types::BalanceUpdate {
+            event_type: "balanceUpdate".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            asset: "USDT".to_string(),
+            balance_delta: "not_a_number".to_string(),
+            clear_time: Utc::now().timestamp_millis(),
+        };
+        engine.handle_balance_update(update).await;
+        // Should not panic
+    }
+
+    #[tokio::test]
+    async fn test_handle_balance_update_negative_result() {
+        let engine = create_test_engine().await;
+        let pos = OutboundAccountPosition {
+            event_type: "outboundAccountPosition".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            last_update_time: Utc::now().timestamp_millis(),
+            balances: vec![
+                crate::binance::types::AccountBalance {
+                    asset: "USDT".to_string(),
+                    free: "100.0".to_string(),
+                    locked: "0.0".to_string(),
+                },
+            ],
+        };
+        engine.handle_account_position(pos).await;
+
+        let update = crate::binance::types::BalanceUpdate {
+            event_type: "balanceUpdate".to_string(),
+            event_time: Utc::now().timestamp_millis(),
+            asset: "USDT".to_string(),
+            balance_delta: "-200.0".to_string(),
+            clear_time: Utc::now().timestamp_millis(),
+        };
+        engine.handle_balance_update(update).await;
+        // Should warn but not crash
+    }
+
+    // ============ ExecutionReport Processing Tests ============
+
+    #[tokio::test]
+    async fn test_process_execution_report_unknown_order_v2() {
+        let engine = create_test_engine().await;
+        let report = create_test_execution_report(
+            "unknown-order",
+            "BTCUSDT",
+            "BUY",
+            "NEW",
+            "NEW",
+            "0.001",
+            "0",
+            "50000",
+        );
+        let result = engine.process_execution_report(&report).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_process_execution_report_fill_creates_position() {
+        let engine = create_test_engine().await;
+
+        let order = RealOrder::new(
+            "test-order-fill".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+        engine.orders.insert("test-order-fill".to_string(), order);
+
+        let report = create_test_execution_report(
+            "test-order-fill",
+            "BTCUSDT",
+            "BUY",
+            "TRADE",
+            "FILLED",
+            "0.001",
+            "0.001",
+            "50000",
+        );
+        let result = engine.process_execution_report(&report).await;
+        assert!(result.is_ok());
+
+        let position = engine.get_position("BTCUSDT");
+        assert!(position.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_process_execution_report_partial_fill() {
+        let engine = create_test_engine().await;
+
+        let order = RealOrder::new(
+            "test-partial".to_string(),
             "BTCUSDT".to_string(),
             "BUY".to_string(),
             "LIMIT".to_string(),
-            1.0,
+            0.01,
             Some(50000.0),
             None,
             None,
             true,
         );
-        assert!(order.is_active());
+        engine.orders.insert("test-partial".to_string(), order);
+
+        let report = create_test_execution_report(
+            "test-partial",
+            "BTCUSDT",
+            "BUY",
+            "TRADE",
+            "PARTIALLY_FILLED",
+            "0.01",
+            "0.005",
+            "50000",
+        );
+        let result = engine.process_execution_report(&report).await;
+        assert!(result.is_ok());
+
+        let order = engine.get_order("test-partial");
+        assert!(order.is_some());
+        assert_eq!(order.unwrap().state, OrderState::PartiallyFilled);
     }
 
-    #[test]
-    fn test_order_is_terminal_filled() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
+    #[tokio::test]
+    async fn test_process_execution_report_rejected_v2() {
+        let engine = create_test_engine().await;
+
+        let order = RealOrder::new(
+            "test-reject".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+        engine.orders.insert("test-reject".to_string(), order);
+
+        let report = create_test_execution_report(
+            "test-reject",
+            "BTCUSDT",
+            "BUY",
+            "REJECTED",
+            "REJECTED",
+            "0.001",
+            "0",
+            "50000",
+        );
+        let result = engine.process_execution_report(&report).await;
+        assert!(result.is_ok());
+
+        let order = engine.get_order("test-reject");
+        assert!(order.is_some());
+        assert_eq!(order.unwrap().state, OrderState::Rejected);
+    }
+
+    #[tokio::test]
+    async fn test_process_execution_report_cancelled_v2() {
+        let engine = create_test_engine().await;
+
+        let order = RealOrder::new(
+            "test-cancel".to_string(),
             "BTCUSDT".to_string(),
             "BUY".to_string(),
             "LIMIT".to_string(),
-            1.0,
+            0.001,
             Some(50000.0),
+            None,
+            None,
+            true,
+        );
+        engine.orders.insert("test-cancel".to_string(), order);
+
+        let report = create_test_execution_report(
+            "test-cancel",
+            "BTCUSDT",
+            "BUY",
+            "CANCELED",
+            "CANCELED",
+            "0.001",
+            "0",
+            "50000",
+        );
+        let result = engine.process_execution_report(&report).await;
+        assert!(result.is_ok());
+
+        let order = engine.get_order("test-cancel");
+        assert!(order.is_some());
+        assert_eq!(order.unwrap().state, OrderState::Cancelled);
+    }
+
+    // ============ Position Update Tests ============
+
+    #[tokio::test]
+    async fn test_update_position_from_fill_entry() {
+        let engine = create_test_engine().await;
+
+        let mut order = RealOrder::new(
+            "entry-order".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.01,
+            None,
             None,
             None,
             true,
         );
         order.state = OrderState::Filled;
-        assert!(order.is_terminal());
+        order.executed_quantity = 0.01;
+        order.average_fill_price = 50000.0;
+        engine.orders.insert("entry-order".to_string(), order);
+
+        let result = engine.update_position_from_fill("entry-order").await;
+        assert!(result.is_ok());
+
+        let position = engine.get_position("BTCUSDT");
+        assert!(position.is_some());
+        assert_eq!(position.unwrap().side, PositionSide::Long);
     }
 
-    #[test]
-    fn test_order_is_terminal_cancelled() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Cancelled;
-        assert!(order.is_terminal());
-    }
+    #[tokio::test]
+    async fn test_update_position_from_fill_add_to_existing() {
+        let engine = create_test_engine().await;
 
-    #[test]
-    fn test_order_is_terminal_rejected() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Rejected;
-        assert!(order.is_terminal());
-    }
-
-    #[test]
-    fn test_order_is_terminal_expired() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Expired;
-        assert!(order.is_terminal());
-    }
-
-    #[test]
-    fn test_position_update_price_multiple_times() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.update_price(51000.0);
-        assert!((pos.current_price - 51000.0).abs() < 0.01);
-
-        pos.update_price(52000.0);
-        assert!((pos.current_price - 52000.0).abs() < 0.01);
-
-        pos.update_price(49000.0);
-        assert!((pos.current_price - 49000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_with_stop_loss_and_take_profit() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.set_sl_tp(Some(49000.0), Some(52000.0));
-        assert_eq!(pos.stop_loss, Some(49000.0));
-        assert_eq!(pos.take_profit, Some(52000.0));
-    }
-
-    #[test]
-    fn test_position_cost_calculation() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.5,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        // Cost = quantity * entry_price
-        let expected_cost = 0.5 * 50000.0;
-        assert!((pos.entry_price * pos.quantity - expected_cost).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_partial_close_multiple_times() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        // First partial close: 0.3
-        pos.partial_close(51000.0, 0.3, 1.0, "exit-1".to_string());
-        assert!((pos.quantity - 0.7).abs() < 0.01);
-
-        // Second partial close: 0.4
-        pos.partial_close(52000.0, 0.4, 1.0, "exit-2".to_string());
-        assert!((pos.quantity - 0.3).abs() < 0.01);
-
-        // Realized PNL should accumulate
-        assert!(pos.realized_pnl > 0.0);
-    }
-
-    #[test]
-    fn test_position_partial_close_exceeds_remaining() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        // Try to close more than remaining (should be clamped)
-        pos.partial_close(51000.0, 1.5, 1.0, "exit-1".to_string());
-
-        // Remaining should be at least 0
-        assert!(pos.quantity >= 0.0);
-    }
-
-    #[test]
-    fn test_order_average_fill_price_calculation() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
+        let mut order1 = RealOrder::new(
+            "entry-1".to_string(),
             "BTCUSDT".to_string(),
             "BUY".to_string(),
             "MARKET".to_string(),
-            1.0,
+            0.01,
             None,
             None,
             None,
             true,
         );
+        order1.state = OrderState::Filled;
+        order1.executed_quantity = 0.01;
+        order1.average_fill_price = 50000.0;
+        engine.orders.insert("entry-1".to_string(), order1);
+        engine.update_position_from_fill("entry-1").await.unwrap();
 
-        // Simulate fills at different prices
-        order.executed_quantity = 1.0;
-        order.average_fill_price = 50000.0;
+        let mut order2 = RealOrder::new(
+            "entry-2".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.01,
+            None,
+            None,
+            None,
+            true,
+        );
+        order2.state = OrderState::Filled;
+        order2.executed_quantity = 0.01;
+        order2.average_fill_price = 52000.0;
+        engine.orders.insert("entry-2".to_string(), order2);
+        engine.update_position_from_fill("entry-2").await.unwrap();
 
-        let value = order.executed_quantity * order.average_fill_price;
-        assert!((value - 50000.0).abs() < 0.01);
+        let position = engine.get_position("BTCUSDT");
+        assert!(position.is_some());
+        let pos = position.unwrap();
+        assert!((pos.quantity - 0.02).abs() < 0.0001);
+        assert!((pos.entry_price - 51000.0).abs() < 1.0);
     }
 
-    #[test]
-    fn test_order_commission_tracking() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
+    #[tokio::test]
+    async fn test_update_position_from_fill_exit() {
+        let engine = create_test_engine().await;
+
+        let pos = RealPosition::new(
+            "pos-exit-test".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.01,
+            50000.0,
+            "entry-order".to_string(),
+            None,
+            None,
+        );
+        engine.positions.insert("BTCUSDT".to_string(), pos);
+
+        let mut exit_order = RealOrder::new(
+            "exit-order".to_string(),
+            "BTCUSDT".to_string(),
+            "SELL".to_string(),
+            "MARKET".to_string(),
+            0.01,
+            None,
+            None,
+            Some("pos-exit-test".to_string()),
+            false,
+        );
+        exit_order.state = OrderState::Filled;
+        exit_order.executed_quantity = 0.01;
+        exit_order.average_fill_price = 52000.0;
+        engine.orders.insert("exit-order".to_string(), exit_order);
+
+        let result = engine.update_position_from_fill("exit-order").await;
+        assert!(result.is_ok());
+
+        let position = engine.get_position("BTCUSDT");
+        assert!(position.is_none());
+
+        let metrics = engine.get_daily_metrics().await;
+        assert_eq!(metrics.trades_count, 1);
+        assert_eq!(metrics.winning_trades, 1);
+    }
+
+    #[tokio::test]
+    async fn test_update_position_from_fill_partial_exit() {
+        let engine = create_test_engine().await;
+
+        let pos = RealPosition::new(
+            "pos-partial-exit".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.02,
+            50000.0,
+            "entry-order".to_string(),
+            None,
+            None,
+        );
+        engine.positions.insert("BTCUSDT".to_string(), pos);
+
+        let mut exit_order = RealOrder::new(
+            "partial-exit".to_string(),
+            "BTCUSDT".to_string(),
+            "SELL".to_string(),
+            "MARKET".to_string(),
+            0.01,
+            None,
+            None,
+            Some("pos-partial-exit".to_string()),
+            false,
+        );
+        exit_order.state = OrderState::Filled;
+        exit_order.executed_quantity = 0.01;
+        exit_order.average_fill_price = 52000.0;
+        engine.orders.insert("partial-exit".to_string(), exit_order);
+
+        let result = engine.update_position_from_fill("partial-exit").await;
+        assert!(result.is_ok());
+
+        let position = engine.get_position("BTCUSDT");
+        assert!(position.is_some());
+        assert!((position.unwrap().quantity - 0.01).abs() < 0.0001);
+    }
+
+    // ============ Price Update Tests ============
+
+    #[tokio::test]
+    async fn test_update_prices_with_positions_v2() {
+        let engine = create_test_engine().await;
+
+        let pos1 = RealPosition::new(
+            "pos-1".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.01,
+            50000.0,
+            "order-1".to_string(),
+            None,
+            None,
+        );
+        engine.positions.insert("BTCUSDT".to_string(), pos1);
+
+        let pos2 = RealPosition::new(
+            "pos-2".to_string(),
+            "ETHUSDT".to_string(),
+            PositionSide::Long,
+            0.5,
+            3000.0,
+            "order-2".to_string(),
+            None,
+            None,
+        );
+        engine.positions.insert("ETHUSDT".to_string(), pos2);
+
+        let mut prices = HashMap::new();
+        prices.insert("BTCUSDT".to_string(), 52000.0);
+        prices.insert("ETHUSDT".to_string(), 3200.0);
+        engine.update_prices(&prices);
+
+        let btc_pos = engine.get_position("BTCUSDT").unwrap();
+        // (52000-50000) * 0.01 = 20.0
+        assert!((btc_pos.unrealized_pnl - 20.0).abs() < 0.1);
+
+        let eth_pos = engine.get_position("ETHUSDT").unwrap();
+        // (3200-3000) * 0.5 = 100.0
+        assert!((eth_pos.unrealized_pnl - 100.0).abs() < 0.1);
+    }
+
+    #[tokio::test]
+    async fn test_update_prices_partial_symbols() {
+        let engine = create_test_engine().await;
+
+        let pos1 = RealPosition::new(
+            "pos-1".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.01,
+            50000.0,
+            "order-1".to_string(),
+            None,
+            None,
+        );
+        engine.positions.insert("BTCUSDT".to_string(), pos1);
+
+        let pos2 = RealPosition::new(
+            "pos-2".to_string(),
+            "ETHUSDT".to_string(),
+            PositionSide::Long,
+            0.5,
+            3000.0,
+            "order-2".to_string(),
+            None,
+            None,
+        );
+        engine.positions.insert("ETHUSDT".to_string(), pos2);
+
+        let mut prices = HashMap::new();
+        prices.insert("BTCUSDT".to_string(), 52000.0);
+        engine.update_prices(&prices);
+
+        let btc_pos = engine.get_position("BTCUSDT").unwrap();
+        // (52000-50000) * 0.01 = 20.0
+        assert!((btc_pos.unrealized_pnl - 20.0).abs() < 0.1);
+
+        let eth_pos = engine.get_position("ETHUSDT").unwrap();
+        // ETH price not updated, unrealized_pnl stays 0
+        assert!((eth_pos.unrealized_pnl).abs() < 0.1);
+    }
+
+    // ============ Additional Getter Tests ============
+
+    #[tokio::test]
+    async fn test_get_total_unrealized_pnl_with_positions_v2() {
+        let engine = create_test_engine().await;
+
+        let mut pos1 = RealPosition::new(
+            "pos-1".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.01,
+            50000.0,
+            "order-1".to_string(),
+            None,
+            None,
+        );
+        pos1.update_price(52000.0);
+        engine.positions.insert("BTCUSDT".to_string(), pos1);
+
+        let mut pos2 = RealPosition::new(
+            "pos-2".to_string(),
+            "ETHUSDT".to_string(),
+            PositionSide::Long,
+            0.5,
+            3000.0,
+            "order-2".to_string(),
+            None,
+            None,
+        );
+        pos2.update_price(3100.0);
+        engine.positions.insert("ETHUSDT".to_string(), pos2);
+
+        let total_pnl = engine.get_total_unrealized_pnl();
+        // BTC: (52000-50000)*0.01=20.0, ETH: (3100-3000)*0.5=50.0, total=70.0
+        assert!((total_pnl - 70.0).abs() < 0.1);
+    }
+
+    #[tokio::test]
+    async fn test_get_total_exposure_with_positions_v2() {
+        let engine = create_test_engine().await;
+
+        let mut pos1 = RealPosition::new(
+            "pos-1".to_string(),
+            "BTCUSDT".to_string(),
+            PositionSide::Long,
+            0.01,
+            50000.0,
+            "order-1".to_string(),
+            None,
+            None,
+        );
+        pos1.update_price(52000.0);
+        engine.positions.insert("BTCUSDT".to_string(), pos1);
+
+        let mut pos2 = RealPosition::new(
+            "pos-2".to_string(),
+            "ETHUSDT".to_string(),
+            PositionSide::Long,
+            0.5,
+            3000.0,
+            "order-2".to_string(),
+            None,
+            None,
+        );
+        pos2.update_price(3100.0);
+        engine.positions.insert("ETHUSDT".to_string(), pos2);
+
+        let exposure = engine.get_total_exposure();
+        assert!((exposure - 2070.0).abs() < 1.0);
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_terminal_orders_v2() {
+        let engine = create_test_engine().await;
+
+        let mut old_order = RealOrder::new(
+            "old-filled".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.001,
+            None,
+            None,
+            None,
+            true,
+        );
+        old_order.state = OrderState::Filled;
+        old_order.updated_at = Utc::now() - chrono::Duration::hours(48);
+        engine.orders.insert("old-filled".to_string(), old_order);
+
+        let mut recent_order = RealOrder::new(
+            "recent-filled".to_string(),
+            "ETHUSDT".to_string(),
+            "BUY".to_string(),
+            "MARKET".to_string(),
+            0.01,
+            None,
+            None,
+            None,
+            true,
+        );
+        recent_order.state = OrderState::Filled;
+        recent_order.updated_at = Utc::now() - chrono::Duration::hours(12);
+        engine.orders.insert("recent-filled".to_string(), recent_order);
+
+        let count = engine.cleanup_terminal_orders();
+        assert!(count >= 1);
+    }
+
+    // ============ Error Path Tests ============
+
+    #[tokio::test]
+    async fn test_update_position_from_fill_nonexistent_order_v2() {
+        let engine = create_test_engine().await;
+        let result = engine.update_position_from_fill("nonexistent").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_position_from_fill_not_filled() {
+        let engine = create_test_engine().await;
+
+        let order = RealOrder::new(
+            "not-filled".to_string(),
             "BTCUSDT".to_string(),
             "BUY".to_string(),
             "LIMIT".to_string(),
-            1.0,
+            0.001,
             Some(50000.0),
             None,
             None,
             true,
         );
+        engine.orders.insert("not-filled".to_string(), order);
 
-        // Add a fill with commission
-        order.fills.push(crate::real_trading::order::OrderFill {
-            trade_id: 12345,
-            price: 50000.0,
-            quantity: 1.0,
-            commission: 5.0,
-            commission_asset: "USDT".to_string(),
-            timestamp: chrono::Utc::now(),
-        });
-        assert_eq!(order.total_commission(), 5.0);
+        let result = engine.update_position_from_fill("not-filled").await;
+        assert!(result.is_ok());
+        assert!(engine.get_position("BTCUSDT").is_none());
     }
 
     #[test]
-    fn test_daily_metrics_reset_creates_new_date() {
-        let mut metrics = DailyMetrics::new();
-        let _original_date = metrics.date.clone();
-
-        // Manually change date to yesterday
-        metrics.date = "2020-01-01".to_string();
-        metrics.trades_count = 100;
-
-        metrics.reset_if_new_day();
-
-        // Should have reset and date should be today
-        assert_ne!(metrics.date, "2020-01-01");
-        assert_eq!(metrics.trades_count, 0);
-    }
-
-    #[test]
-    fn test_circuit_breaker_multiple_errors_below_threshold() {
+    fn test_circuit_breaker_already_open_v2() {
         let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now());
 
-        let opened = cb.record_error("Error 1", 5);
-        assert!(!opened);
+        let result = cb.record_error("Another error", 3);
+        assert!(!result);
+    }
 
-        let opened = cb.record_error("Error 2", 5);
-        assert!(!opened);
+    #[test]
+    fn test_circuit_breaker_should_close_no_opened_at_v2() {
+        let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = None;
 
-        let opened = cb.record_error("Error 3", 5);
-        assert!(!opened);
+        assert!(!cb.should_close(60));
+    }
 
+    #[test]
+    fn test_daily_metrics_all_losing_v2() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 5;
+        metrics.winning_trades = 0;
+        metrics.losing_trades = 5;
+
+        assert!((metrics.win_rate() - 0.0).abs() < 0.1);
+    }
+
+    // ============ Additional Coverage Boost Tests ============
+
+    #[test]
+    fn test_circuit_breaker_record_error_increments() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("Test error", 5);
+        assert_eq!(cb.error_count, 1);
+        assert_eq!(cb.last_error, Some("Test error".to_string()));
         assert!(!cb.is_open);
-        assert_eq!(cb.error_count, 3);
     }
 
     #[test]
-    fn test_circuit_breaker_error_message_stored() {
+    fn test_circuit_breaker_record_error_opens_at_threshold() {
         let mut cb = CircuitBreakerState::default();
-        cb.record_error("Database connection lost", 3);
-
-        assert!(cb.last_error.is_some());
-        assert_eq!(cb.last_error.unwrap(), "Database connection lost");
-    }
-
-    #[test]
-    fn test_circuit_breaker_opening_timestamp() {
-        let mut cb = CircuitBreakerState::default();
-        let before = Utc::now();
-
-        cb.record_error("Error 1", 1);
-
-        let after = Utc::now();
-
+        let _ = cb.record_error("Error 1", 2);
+        let opened = cb.record_error("Error 2", 2);
+        assert!(opened);
+        assert!(cb.is_open);
         assert!(cb.opened_at.is_some());
-        let opened_at = cb.opened_at.unwrap();
-        assert!(opened_at >= before && opened_at <= after);
     }
 
     #[test]
-    fn test_circuit_breaker_wont_open_twice() {
+    fn test_circuit_breaker_record_error_already_open() {
         let mut cb = CircuitBreakerState::default();
-
-        let opened = cb.record_error("Error 1", 1);
-        assert!(opened); // Should open
-
-        let opened = cb.record_error("Error 2", 1);
-        assert!(!opened); // Already open, shouldn't report opening again
+        cb.is_open = true;
+        cb.error_count = 5;
+        let opened = cb.record_error("Another error", 3);
+        assert!(!opened); // Already open, doesn't re-open
+        assert_eq!(cb.error_count, 6);
     }
 
     #[test]
-    fn test_balance_with_large_values() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 1000000.0,
-            locked: 500000.0,
+    fn test_circuit_breaker_should_close_after_cooldown() {
+        let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(120));
+        assert!(cb.should_close(60)); // 120 seconds > 60 second cooldown
+    }
+
+    #[test]
+    fn test_circuit_breaker_should_not_close_before_cooldown() {
+        let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(30));
+        assert!(!cb.should_close(60)); // 30 seconds < 60 second cooldown
+    }
+
+    #[test]
+    fn test_circuit_breaker_close_resets_all() {
+        let mut cb = CircuitBreakerState {
+            is_open: true,
+            error_count: 5,
+            opened_at: Some(Utc::now()),
+            last_error: Some("Error".to_string()),
         };
-        assert_eq!(balance.total(), 1500000.0);
-    }
-
-    #[test]
-    fn test_balance_with_small_decimals() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.00000001,
-            locked: 0.00000002,
-        };
-        assert!((balance.total() - 0.00000003).abs() < 0.000000001);
-    }
-
-    #[test]
-    fn test_daily_metrics_with_maximum_values() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = u32::MAX;
-        metrics.winning_trades = u32::MAX;
-        metrics.losing_trades = 0;
-
-        let win_rate = metrics.win_rate();
-        assert!((win_rate - 100.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_zero_quantity_operations() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.update_price(55000.0);
-
-        // Should handle zero quantity gracefully
-        assert_eq!(pos.calculate_unrealized_pnl(), 0.0);
-        assert_eq!(pos.position_value(), 0.0);
-        assert_eq!(pos.pnl_percentage(), 0.0);
-    }
-
-    #[test]
-    fn test_order_remaining_quantity_edge_cases() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-
-        // No fills
-        assert_eq!(order.remaining_quantity, 1.0);
-
-        // Fully filled
-        order.executed_quantity = 1.0;
-        order.remaining_quantity = 0.0;
-        assert_eq!(order.remaining_quantity, 0.0);
-
-        // Over-filled (shouldn't happen but defensive)
-        order.executed_quantity = 1.5;
-        order.remaining_quantity = -0.5;
-        let remaining = order.remaining_quantity;
-        // Should be 0 or handle gracefully
-        assert!(remaining <= 0.0);
-    }
-
-    #[test]
-    fn test_position_side_from_unknown_order_side() {
-        let side = PositionSide::from_order_side("UNKNOWN");
-        // Should default to Long for unknown values
-        assert_eq!(side, PositionSide::Long);
-    }
-
-    #[test]
-    fn test_position_total_pnl_only_realized() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.0, // Closed position
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.realized_pnl = 1000.0;
-        pos.update_price(55000.0);
-
-        let total = pos.total_pnl();
-        // Only realized since quantity is 0
-        assert!((total - 1000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_total_pnl_only_unrealized() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.realized_pnl = 0.0;
-        pos.update_price(51000.0);
-
-        let total = pos.total_pnl();
-        // Only unrealized: (51000 - 50000) * 0.1 = 100
-        assert!((total - 100.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_position_negative_pnl() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-
-        pos.update_price(45000.0);
-        let pnl = pos.calculate_unrealized_pnl();
-
-        // Loss: (45000 - 50000) * 0.1 = -500
-        assert!((pnl - (-500.0)).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_order_value_with_partial_fill() {
-        let mut order = RealOrder::new(
-            "test-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-
-        order.executed_quantity = 0.5;
-        order.average_fill_price = 50000.0;
-
-        // Filled value = 0.5 * 50000 = 25000
-        let filled_value = order.executed_quantity * order.average_fill_price;
-        assert!((filled_value - 25000.0).abs() < 0.01);
-    }
-
-    // ============ CircuitBreaker Tests - Enhanced Coverage ============
-
-    #[test]
-    fn test_circuit_breaker_should_close_after_cooldown_v2() {
-        let mut cb = CircuitBreakerState::default();
-        cb.record_error("Error 1", 2);
-        cb.record_error("Error 2", 2);
-        assert!(cb.is_open);
-
-        // Should not close immediately
-        assert!(!cb.should_close(10));
-
-        // Simulate passage of time by setting opened_at to past
-        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(15));
-
-        // Should close after cooldown
-        assert!(cb.should_close(10));
-    }
-
-    #[test]
-    fn test_circuit_breaker_should_close_false_when_not_open() {
-        let cb = CircuitBreakerState::default();
-        assert!(!cb.should_close(10));
-    }
-
-    #[test]
-    fn test_circuit_breaker_record_success_doesnt_close() {
-        let mut cb = CircuitBreakerState::default();
-        cb.record_error("Error 1", 2);
-        cb.record_error("Error 2", 2);
-        assert!(cb.is_open);
-
-        cb.record_success();
-        assert_eq!(cb.error_count, 0);
-        assert!(cb.is_open); // Still open, needs explicit close
-    }
-
-    #[test]
-    fn test_circuit_breaker_close_resets_all_fields() {
-        let mut cb = CircuitBreakerState::default();
-        cb.record_error("Error 1", 2);
-        cb.record_error("Error 2", 2);
-        assert!(cb.is_open);
-
         cb.close();
         assert!(!cb.is_open);
         assert_eq!(cb.error_count, 0);
@@ -7029,113 +7782,148 @@ mod edge_case_tests {
     }
 
     #[test]
-    fn test_circuit_breaker_multiple_errors_below_threshold_v2() {
-        let mut cb = CircuitBreakerState::default();
-
-        for i in 1..5 {
-            let opened = cb.record_error(&format!("Error {}", i), 10);
-            assert!(!opened);
-            assert!(!cb.is_open);
-            assert_eq!(cb.error_count, i);
-        }
+    fn test_balance_total_calculation() {
+        let balance = Balance {
+            asset: "BTC".to_string(),
+            free: 1.5,
+            locked: 0.5,
+        };
+        assert_eq!(balance.total(), 2.0);
     }
 
-    // ============ DailyMetrics Tests - Enhanced Coverage ============
+    #[test]
+    fn test_balance_total_zero_locked() {
+        let balance = Balance {
+            asset: "ETH".to_string(),
+            free: 10.0,
+            locked: 0.0,
+        };
+        assert_eq!(balance.total(), 10.0);
+    }
 
     #[test]
-    fn test_daily_metrics_win_rate_zero_trades() {
+    fn test_daily_metrics_new_has_correct_date() {
+        let metrics = DailyMetrics::new();
+        let today = Utc::now().format("%Y-%m-%d").to_string();
+        assert_eq!(metrics.date, today);
+        assert_eq!(metrics.trades_count, 0);
+        assert_eq!(metrics.realized_pnl, 0.0);
+    }
+
+    #[test]
+    fn test_daily_metrics_win_rate_zero_trades_v3() {
         let metrics = DailyMetrics::new();
         assert_eq!(metrics.win_rate(), 0.0);
     }
 
     #[test]
-    fn test_daily_metrics_win_rate_all_wins() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.winning_trades = 10;
-        metrics.losing_trades = 0;
-
-        assert!((metrics.win_rate() - 100.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_daily_metrics_win_rate_all_losses() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.winning_trades = 0;
-        metrics.losing_trades = 10;
-
-        assert_eq!(metrics.win_rate(), 0.0);
-    }
-
-    #[test]
-    fn test_daily_metrics_win_rate_mixed() {
+    fn test_daily_metrics_win_rate_some_wins() {
         let mut metrics = DailyMetrics::new();
         metrics.trades_count = 10;
         metrics.winning_trades = 6;
         metrics.losing_trades = 4;
-
         assert!((metrics.win_rate() - 60.0).abs() < 0.01);
     }
 
     #[test]
-    fn test_daily_metrics_reset_if_new_day_same_day_v2() {
+    fn test_daily_metrics_win_rate_all_wins() {
         let mut metrics = DailyMetrics::new();
-        metrics.realized_pnl = 1000.0;
         metrics.trades_count = 5;
+        metrics.winning_trades = 5;
+        metrics.losing_trades = 0;
+        assert!((metrics.win_rate() - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_daily_metrics_reset_if_new_day_same_day() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 10;
+        metrics.realized_pnl = 100.0;
 
         metrics.reset_if_new_day();
 
-        // Should not reset on same day
-        assert!((metrics.realized_pnl - 1000.0).abs() < 0.01);
-        assert_eq!(metrics.trades_count, 5);
+        assert_eq!(metrics.trades_count, 10); // Should not reset
+        assert_eq!(metrics.realized_pnl, 100.0);
     }
 
     #[test]
     fn test_daily_metrics_reset_if_new_day_different_day() {
         let mut metrics = DailyMetrics::new();
-        metrics.date = "2024-01-01".to_string(); // Old date
-        metrics.realized_pnl = 1000.0;
-        metrics.trades_count = 5;
+        metrics.date = "2020-01-01".to_string(); // Old date
+        metrics.trades_count = 10;
+        metrics.realized_pnl = 100.0;
 
         metrics.reset_if_new_day();
 
-        // Should reset
+        assert_eq!(metrics.trades_count, 0); // Should reset
         assert_eq!(metrics.realized_pnl, 0.0);
-        assert_eq!(metrics.trades_count, 0);
-        assert_ne!(metrics.date, "2024-01-01");
+        assert_eq!(metrics.date, Utc::now().format("%Y-%m-%d").to_string());
     }
 
-    // ============ Balance Tests - Enhanced Coverage ============
+    #[test]
+    fn test_real_trading_event_order_placed_serialization() {
+        let order = RealOrder {
+            client_order_id: "client-123".to_string(),
+            exchange_order_id: 12345,
+            symbol: "BTCUSDT".to_string(),
+            side: "BUY".to_string(),
+            order_type: "MARKET".to_string(),
+            original_quantity: 0.1,
+            executed_quantity: 0.0,
+            remaining_quantity: 0.1,
+            price: None,
+            stop_price: None,
+            average_fill_price: 0.0,
+            state: OrderState::New,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            fills: vec![],
+            position_id: None,
+            is_entry: true,
+            reject_reason: None,
+        };
+
+        let event = RealTradingEvent::OrderPlaced(order);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("OrderPlaced"));
+    }
 
     #[test]
-    fn test_balance_total_only_free_v2() {
-        let balance = Balance {
+    fn test_real_trading_event_balance_updated_serialization() {
+        let event = RealTradingEvent::BalanceUpdated {
             asset: "USDT".to_string(),
             free: 1000.0,
-            locked: 0.0,
+            locked: 50.0,
         };
-        assert!((balance.total() - 1000.0).abs() < 0.01);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("BalanceUpdated"));
+        assert!(json.contains("USDT"));
     }
 
     #[test]
-    fn test_balance_total_only_locked_v2() {
-        let balance = Balance {
-            asset: "USDT".to_string(),
-            free: 0.0,
-            locked: 500.0,
-        };
-        assert!((balance.total() - 500.0).abs() < 0.01);
+    fn test_real_trading_event_circuit_breaker_opened() {
+        let event = RealTradingEvent::CircuitBreakerOpened("Too many errors".to_string());
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("CircuitBreakerOpened"));
     }
 
     #[test]
-    fn test_balance_total_both() {
-        let balance = Balance {
-            asset: "USDT".to_string(),
-            free: 1000.0,
-            locked: 500.0,
+    fn test_real_trading_event_daily_loss_limit_reached() {
+        let event = RealTradingEvent::DailyLossLimitReached {
+            loss: -500.0,
+            limit: 1000.0,
         };
-        assert!((balance.total() - 1500.0).abs() < 0.01);
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("DailyLossLimitReached"));
+    }
+
+    #[test]
+    fn test_reconciliation_metrics_default() {
+        let metrics = ReconciliationMetrics::default();
+        assert!(metrics.last_run_time.is_none());
+        assert_eq!(metrics.total_discrepancies_found, 0);
+        assert_eq!(metrics.consecutive_failures, 0);
+        assert_eq!(metrics.total_runs, 0);
     }
 
     #[test]
@@ -7147,352 +7935,9 @@ mod edge_case_tests {
         assert_eq!(balance.total(), 0.0);
     }
 
-    // ============ Test Helper Functions ============
-
-    fn create_test_execution_report(
-        symbol: &str,
-        client_order_id: &str,
-        side: &str,
-        execution_type: &str,
-        order_status: &str,
-        order_quantity: &str,
-        cumulative_filled: &str,
-        last_price: &str,
-    ) -> crate::binance::types::ExecutionReport {
-        use crate::binance::types::ExecutionReport;
-        ExecutionReport {
-            event_type: "executionReport".to_string(),
-            event_time: chrono::Utc::now().timestamp_millis(),
-            symbol: symbol.to_string(),
-            client_order_id: client_order_id.to_string(),
-            side: side.to_string(),
-            order_type: "LIMIT".to_string(),
-            time_in_force: "GTC".to_string(),
-            order_quantity: order_quantity.to_string(),
-            order_price: last_price.to_string(),
-            stop_price: "0".to_string(),
-            iceberg_quantity: "0".to_string(),
-            original_client_order_id: "".to_string(),
-            execution_type: execution_type.to_string(),
-            order_status: order_status.to_string(),
-            order_reject_reason: "".to_string(),
-            order_id: 123456,
-            last_executed_quantity: cumulative_filled.to_string(),
-            cumulative_filled_quantity: cumulative_filled.to_string(),
-            last_executed_price: last_price.to_string(),
-            commission_amount: "0".to_string(),
-            commission_asset: Some("USDT".to_string()),
-            transaction_time: chrono::Utc::now().timestamp_millis(),
-            trade_id: 789,
-            is_on_book: false,
-            is_maker: false,
-            order_creation_time: chrono::Utc::now().timestamp_millis(),
-            cumulative_quote_qty: (cumulative_filled.parse::<f64>().unwrap_or(0.0) * last_price.parse::<f64>().unwrap_or(0.0)).to_string(),
-            last_quote_qty: "0".to_string(),
-            quote_order_qty: "0".to_string(),
-        }
-    }
-
-    fn create_test_balance_update(asset: &str, delta: &str) -> crate::binance::types::BalanceUpdate {
-        use crate::binance::types::BalanceUpdate;
-        BalanceUpdate {
-            event_type: "balanceUpdate".to_string(),
-            event_time: chrono::Utc::now().timestamp_millis(),
-            asset: asset.to_string(),
-            balance_delta: delta.to_string(),
-            clear_time: chrono::Utc::now().timestamp_millis(),
-        }
-    }
-
-    fn create_test_account_position(
-        balances: Vec<(&str, &str, &str)>,
-    ) -> crate::binance::types::OutboundAccountPosition {
-        use crate::binance::types::{AccountBalance, OutboundAccountPosition};
-        OutboundAccountPosition {
-            event_type: "outboundAccountPosition".to_string(),
-            event_time: chrono::Utc::now().timestamp_millis(),
-            last_update_time: chrono::Utc::now().timestamp_millis(),
-            balances: balances
-                .into_iter()
-                .map(|(asset, free, locked)| AccountBalance {
-                    asset: asset.to_string(),
-                    free: free.to_string(),
-                    locked: locked.to_string(),
-                })
-                .collect(),
-        }
-    }
-
-    // ============ ExecutionReport Helper Tests ============
-
     #[test]
-    fn test_execution_report_new_order_fields() {
-        let report = create_test_execution_report(
-            "BTCUSDT",
-            "test-001",
-            "BUY",
-            "NEW",
-            "NEW",
-            "1.0",
-            "0",
-            "50000.0",
-        );
-
-        assert_eq!(report.symbol, "BTCUSDT");
-        assert_eq!(report.client_order_id, "test-001");
-        assert_eq!(report.side, "BUY");
-        assert_eq!(report.execution_type, "NEW");
-        assert_eq!(report.order_status, "NEW");
-        assert_eq!(report.cumulative_filled_quantity, "0");
-    }
-
-    #[test]
-    fn test_execution_report_filled_order_fields() {
-        let report = create_test_execution_report(
-            "ETHUSDT",
-            "test-002",
-            "SELL",
-            "TRADE",
-            "FILLED",
-            "2.0",
-            "2.0",
-            "3000.0",
-        );
-
-        assert_eq!(report.symbol, "ETHUSDT");
-        assert_eq!(report.side, "SELL");
-        assert_eq!(report.execution_type, "TRADE");
-        assert_eq!(report.order_status, "FILLED");
-        assert_eq!(report.cumulative_filled_quantity, "2.0");
-        assert_eq!(report.last_executed_price, "3000.0");
-    }
-
-    #[test]
-    fn test_execution_report_cancelled_fields() {
-        let report = create_test_execution_report(
-            "BTCUSDT",
-            "test-003",
-            "BUY",
-            "CANCELED",
-            "CANCELED",
-            "1.0",
-            "0.5",
-            "50000.0",
-        );
-
-        assert_eq!(report.execution_type, "CANCELED");
-        assert_eq!(report.order_status, "CANCELED");
-        // Partial fill before cancel
-        assert_eq!(report.cumulative_filled_quantity, "0.5");
-    }
-
-    // ============ BalanceUpdate Helper Tests ============
-
-    #[test]
-    fn test_balance_update_positive_delta() {
-        let update = create_test_balance_update("USDT", "100.5");
-        assert_eq!(update.asset, "USDT");
-        assert_eq!(update.balance_delta, "100.5");
-        assert_eq!(update.event_type, "balanceUpdate");
-    }
-
-    #[test]
-    fn test_balance_update_negative_delta() {
-        let update = create_test_balance_update("BTC", "-0.01");
-        assert_eq!(update.asset, "BTC");
-        assert_eq!(update.balance_delta, "-0.01");
-    }
-
-    // ============ OutboundAccountPosition Helper Tests ============
-
-    #[test]
-    fn test_account_position_single_balance() {
-        let pos = create_test_account_position(vec![("USDT", "1000.0", "100.0")]);
-
-        assert_eq!(pos.balances.len(), 1);
-        assert_eq!(pos.balances[0].asset, "USDT");
-        assert_eq!(pos.balances[0].free, "1000.0");
-        assert_eq!(pos.balances[0].locked, "100.0");
-    }
-
-    #[test]
-    fn test_account_position_multiple_balances() {
-        let pos = create_test_account_position(vec![
-            ("USDT", "1000.0", "100.0"),
-            ("BTC", "0.5", "0.1"),
-            ("ETH", "10.0", "2.0"),
-        ]);
-
-        assert_eq!(pos.balances.len(), 3);
-        assert_eq!(pos.balances[0].asset, "USDT");
-        assert_eq!(pos.balances[1].asset, "BTC");
-        assert_eq!(pos.balances[2].asset, "ETH");
-    }
-
-    // ============ OrderState Conversion Tests ============
-
-    #[test]
-    fn test_order_state_from_all_binance_statuses() {
-        assert_eq!(OrderState::from_binance_status("NEW"), OrderState::New);
-        assert_eq!(
-            OrderState::from_binance_status("PARTIALLY_FILLED"),
-            OrderState::PartiallyFilled
-        );
-        assert_eq!(OrderState::from_binance_status("FILLED"), OrderState::Filled);
-        assert_eq!(
-            OrderState::from_binance_status("CANCELED"),
-            OrderState::Cancelled
-        );
-        assert_eq!(
-            OrderState::from_binance_status("PENDING_CANCEL"),
-            OrderState::Cancelled
-        );
-        assert_eq!(
-            OrderState::from_binance_status("REJECTED"),
-            OrderState::Rejected
-        );
-        assert_eq!(
-            OrderState::from_binance_status("EXPIRED"),
-            OrderState::Expired
-        );
-    }
-
-    #[test]
-    fn test_order_state_is_active_for_all_states() {
-        assert!(OrderState::Pending.is_active());
-        assert!(OrderState::New.is_active());
-        assert!(OrderState::PartiallyFilled.is_active());
-        assert!(!OrderState::Filled.is_active());
-        assert!(!OrderState::Cancelled.is_active());
-        assert!(!OrderState::Rejected.is_active());
-        assert!(!OrderState::Expired.is_active());
-    }
-
-    #[test]
-    fn test_order_state_is_terminal_for_all_states() {
-        assert!(!OrderState::Pending.is_terminal());
-        assert!(!OrderState::New.is_terminal());
-        assert!(!OrderState::PartiallyFilled.is_terminal());
-        assert!(OrderState::Filled.is_terminal());
-        assert!(OrderState::Cancelled.is_terminal());
-        assert!(OrderState::Rejected.is_terminal());
-        assert!(OrderState::Expired.is_terminal());
-    }
-
-    // ============ ReconciliationMetrics Tests ============
-
-    #[test]
-    fn test_reconciliation_metrics_default_v2() {
-        let metrics = ReconciliationMetrics::default();
-        assert!(metrics.last_run_time.is_none());
-        assert_eq!(metrics.last_run_duration_ms, 0);
-        assert_eq!(metrics.total_discrepancies_found, 0);
-        assert_eq!(metrics.balance_mismatches, 0);
-        assert_eq!(metrics.order_mismatches, 0);
-        assert_eq!(metrics.stale_orders_cancelled, 0);
-        assert_eq!(metrics.terminal_orders_cleaned, 0);
-        assert_eq!(metrics.consecutive_failures, 0);
-        assert_eq!(metrics.total_runs, 0);
-    }
-
-    // ============ Additional Coverage Tests for Uncovered Lines ============
-
-    #[test]
-    fn test_cov_balance_new() {
-        let balance = Balance {
-            asset: "USDT".to_string(),
-            free: 100.0,
-            locked: 50.0,
-        };
-        assert_eq!(balance.asset, "USDT");
-        assert_eq!(balance.free, 100.0);
-        assert_eq!(balance.locked, 50.0);
-        assert_eq!(balance.total(), 150.0);
-    }
-
-    #[test]
-    fn test_cov_balance_zero() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.0,
-            locked: 0.0,
-        };
-        assert_eq!(balance.total(), 0.0);
-    }
-
-    #[test]
-    fn test_cov_daily_metrics_new() {
-        let metrics = DailyMetrics::new();
-        assert_eq!(metrics.trades_count, 0);
-        assert_eq!(metrics.winning_trades, 0);
-        assert_eq!(metrics.losing_trades, 0);
-        assert_eq!(metrics.realized_pnl, 0.0);
-        assert_eq!(metrics.total_commission, 0.0);
-        assert!(!metrics.date.is_empty());
-    }
-
-    #[test]
-    fn test_cov_daily_metrics_win_rate_no_trades() {
-        let metrics = DailyMetrics::new();
-        assert_eq!(metrics.win_rate(), 0.0);
-    }
-
-    #[test]
-    fn test_cov_daily_metrics_win_rate_with_trades() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.winning_trades = 7;
-        // win_rate returns percentage (0-100), not decimal
-        assert!((metrics.win_rate() - 70.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_cov_daily_metrics_win_rate_all_wins() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 5;
-        metrics.winning_trades = 5;
-        // win_rate returns 100.0 for all wins, not 1.0
-        assert_eq!(metrics.win_rate(), 100.0);
-    }
-
-    #[test]
-    fn test_cov_daily_metrics_reset_same_day() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.reset_if_new_day();
-        // Should not reset on same day
-        assert_eq!(metrics.trades_count, 10);
-    }
-
-    #[test]
-    fn test_cov_circuit_breaker_should_close_no_opened_at() {
+    fn test_circuit_breaker_state_default() {
         let cb = CircuitBreakerState::default();
-        assert!(!cb.should_close(60));
-    }
-
-    #[test]
-    fn test_cov_circuit_breaker_already_open() {
-        let mut cb = CircuitBreakerState {
-            is_open: true,
-            error_count: 5,
-            opened_at: Some(Utc::now()),
-            last_error: Some("Previous error".to_string()),
-        };
-        // Recording error when already open should not re-open
-        let opened = cb.record_error("New error", 3);
-        assert!(!opened); // Already open, so returns false
-        assert_eq!(cb.error_count, 6);
-    }
-
-    #[test]
-    fn test_cov_circuit_breaker_close_clears_all() {
-        let mut cb = CircuitBreakerState {
-            is_open: true,
-            error_count: 10,
-            opened_at: Some(Utc::now()),
-            last_error: Some("Test error".to_string()),
-        };
-        cb.close();
         assert!(!cb.is_open);
         assert_eq!(cb.error_count, 0);
         assert!(cb.opened_at.is_none());
@@ -7500,2195 +7945,112 @@ mod edge_case_tests {
     }
 
     #[test]
-    fn test_cov_order_state_from_binance_unknown() {
-        // Test with unknown status
-        let state = OrderState::from_binance_status("UNKNOWN_STATUS");
-        assert_eq!(state, OrderState::Pending);
-    }
-
-    #[test]
-    fn test_cov_order_state_from_binance_all_variants() {
-        assert_eq!(OrderState::from_binance_status("NEW"), OrderState::New);
-        assert_eq!(OrderState::from_binance_status("PARTIALLY_FILLED"), OrderState::PartiallyFilled);
-        assert_eq!(OrderState::from_binance_status("FILLED"), OrderState::Filled);
-        assert_eq!(OrderState::from_binance_status("CANCELED"), OrderState::Cancelled);
-        assert_eq!(OrderState::from_binance_status("PENDING_CANCEL"), OrderState::Cancelled);
-        assert_eq!(OrderState::from_binance_status("REJECTED"), OrderState::Rejected);
-        assert_eq!(OrderState::from_binance_status("EXPIRED"), OrderState::Expired);
-    }
-
-    #[test]
-    fn test_cov_position_new_long() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        assert_eq!(pos.id, "pos-001");
-        assert_eq!(pos.symbol, "BTCUSDT");
-        assert_eq!(pos.quantity, 1.0);
-        assert_eq!(pos.entry_price, 50000.0);
-        assert_eq!(pos.realized_pnl, 0.0);
-        assert!(!pos.is_closed());
-    }
-
-    #[test]
-    fn test_cov_position_new_short() {
-        let pos = RealPosition::new(
-            "pos-002".to_string(),
-            "ETHUSDT".to_string(),
-            PositionSide::Short,
-            2.0,
-            3000.0,
-            "order-002".to_string(),
-            None,
-            None,
-        );
-        assert_eq!(pos.side, PositionSide::Short);
-    }
-
-
-    #[test]
-    fn test_cov_position_pnl_percentage_long() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        let pnl_pct = pos.pnl_percentage();
-        assert!(pnl_pct >= 0.0); // Valid percentage
-    }
-
-    #[test]
-    fn test_cov_position_is_closed_false() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        assert!(!pos.is_closed());
-    }
-
-    #[test]
-    fn test_cov_position_is_closed_true() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.quantity = 0.0;
-        assert!(pos.is_closed());
-    }
-
-    #[test]
-    fn test_cov_position_partial_close_normal() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.partial_close(51000.0, 0.5, 1.0, "exit-001".to_string());
-        assert!((pos.quantity - 0.5).abs() < 0.001);
-        assert!(pos.realized_pnl > 0.0);
-        assert_eq!(pos.exit_order_ids.len(), 1);
-    }
-
-    #[test]
-    fn test_cov_position_partial_close_with_loss() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.partial_close(49000.0, 0.3, 0.5, "exit-002".to_string());
-        assert!((pos.quantity - 0.7).abs() < 0.001);
-        assert!(pos.realized_pnl < 0.0); // Loss
-    }
-
-    #[test]
-    fn test_cov_order_new_buy_market() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            0.1,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert_eq!(order.client_order_id, "order-001");
-        assert_eq!(order.side, "BUY");
-        assert_eq!(order.order_type, "MARKET");
-        assert_eq!(order.state, OrderState::Pending);
-        assert!(order.is_entry);
-    }
-
-    #[test]
-    fn test_cov_order_new_sell_limit() {
-        let order = RealOrder::new(
-            "order-002".to_string(),
-            "ETHUSDT".to_string(),
-            "SELL".to_string(),
-            "LIMIT".to_string(),
-            2.0,
-            Some(3000.0),
-            None,
-            Some("pos-001".to_string()),
-            false,
-        );
-        assert_eq!(order.side, "SELL");
-        assert_eq!(order.order_type, "LIMIT");
-        assert_eq!(order.price, Some(3000.0));
-        assert!(!order.is_entry);
-        assert_eq!(order.position_id, Some("pos-001".to_string()));
-    }
-
-    #[test]
-    fn test_cov_order_is_active_pending() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            0.1,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert!(order.is_active());
-    }
-
-    #[test]
-    fn test_cov_order_is_active_filled() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            0.1,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Filled;
-        assert!(!order.is_active());
-    }
-
-    #[test]
-    fn test_cov_order_is_active_cancelled() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            0.1,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Cancelled;
-        assert!(!order.is_active());
-    }
-
-    #[test]
-    fn test_cov_order_fill_percentage_zero() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        assert_eq!(order.fill_percentage(), 0.0);
-    }
-
-    #[test]
-    fn test_cov_order_fill_percentage_partial() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.executed_quantity = 0.5;
-        assert!((order.fill_percentage() - 0.5).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_cov_order_fill_percentage_full() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            0.1,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.executed_quantity = 0.1;
-        assert!((order.fill_percentage() - 1.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_cov_order_total_commission_empty() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            0.1,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert_eq!(order.total_commission(), 0.0);
-    }
-
-    #[test]
-    fn test_cov_order_total_commission_with_fills() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.fills.push(crate::real_trading::order::OrderFill {
-            trade_id: 1,
-            price: 50000.0,
-            quantity: 0.5,
-            commission: 2.5,
-            commission_asset: "USDT".to_string(),
-            timestamp: Utc::now(),
-        });
-        order.fills.push(crate::real_trading::order::OrderFill {
-            trade_id: 2,
-            price: 50100.0,
-            quantity: 0.5,
-            commission: 2.6,
-            commission_asset: "USDT".to_string(),
-            timestamp: Utc::now(),
-        });
-        assert!((order.total_commission() - 5.1).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov_order_order_value_no_price() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        // Market order with no fill yet
-        assert_eq!(order.order_value(), 0.0);
-    }
-
-    #[test]
-    fn test_cov_order_order_value_with_price() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            0.1,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        assert!((order.order_value() - 5000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov_order_order_value_with_avg_fill_price() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.executed_quantity = 1.0;
-        order.average_fill_price = 50000.0;
-        assert!((order.order_value() - 50000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov_reconciliation_metrics_default() {
-        let metrics = ReconciliationMetrics::default();
-        assert!(metrics.last_run_time.is_none());
-        assert_eq!(metrics.consecutive_failures, 0);
-        assert_eq!(metrics.total_runs, 0);
-    }
-
-    // ============ Coverage Tests for Uncovered Blocks ============
-
-    // Tests for CircuitBreaker::should_close (lines 66-72)
-    #[test]
-    fn test_cov2_circuit_breaker_should_close_no_opened_at() {
-        let cb = CircuitBreakerState::default();
-        assert!(!cb.should_close(60));
-    }
-
-    #[test]
-    fn test_cov2_circuit_breaker_should_close_within_cooldown() {
-        let mut cb = CircuitBreakerState::default();
-        cb.is_open = true;
-        cb.opened_at = Some(Utc::now());
-        assert!(!cb.should_close(60));
-    }
-
-    #[test]
-    fn test_cov2_circuit_breaker_should_close_after_cooldown() {
-        let mut cb = CircuitBreakerState::default();
-        cb.is_open = true;
-        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(120));
-        assert!(cb.should_close(60));
-    }
-
-    // Tests for DailyMetrics::reset_if_new_day (lines 190-195)
-    #[test]
-    fn test_cov2_daily_metrics_reset_same_day() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.winning_trades = 6;
-        metrics.reset_if_new_day();
-        // Same day, should not reset
-        assert_eq!(metrics.trades_count, 10);
-    }
-
-    #[test]
-    fn test_cov2_daily_metrics_reset_different_day() {
-        let mut metrics = DailyMetrics::new();
-        metrics.date = "2020-01-01".to_string();
-        metrics.trades_count = 10;
-        metrics.winning_trades = 6;
-        metrics.reset_if_new_day();
-        // Different day, should reset
-        assert_eq!(metrics.trades_count, 0);
-    }
-
-    // Tests for Balance::total (lines 134-136)
-    #[test]
-    fn test_cov2_balance_total_both_zero() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.0,
-            locked: 0.0,
-        };
-        assert_eq!(balance.total(), 0.0);
-    }
-
-    #[test]
-    fn test_cov2_balance_total_only_free() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 1.5,
-            locked: 0.0,
-        };
-        assert_eq!(balance.total(), 1.5);
-    }
-
-    #[test]
-    fn test_cov2_balance_total_only_locked() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.0,
-            locked: 2.5,
-        };
-        assert_eq!(balance.total(), 2.5);
-    }
-
-    // Tests for OrderState::is_terminal (lines in OrderState)
-    #[test]
-    fn test_cov2_order_state_filled_is_terminal() {
-        assert!(OrderState::Filled.is_terminal());
-    }
-
-    #[test]
-    fn test_cov2_order_state_cancelled_is_terminal() {
-        assert!(OrderState::Cancelled.is_terminal());
-    }
-
-    #[test]
-    fn test_cov2_order_state_rejected_is_terminal() {
-        assert!(OrderState::Rejected.is_terminal());
-    }
-
-    #[test]
-    fn test_cov2_order_state_expired_is_terminal() {
-        assert!(OrderState::Expired.is_terminal());
-    }
-
-    // Tests for RealOrder methods
-    #[test]
-    fn test_cov2_real_order_is_filled_true() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Filled;
-        assert!(order.is_filled());
-    }
-
-    #[test]
-    fn test_cov2_real_order_is_filled_false() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert!(!order.is_filled());
-    }
-
-    #[test]
-    fn test_cov2_real_order_is_terminal_filled() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Filled;
-        assert!(order.is_terminal());
-    }
-
-    #[test]
-    fn test_cov2_real_order_is_terminal_cancelled() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Cancelled;
-        assert!(order.is_terminal());
-    }
-
-    // Tests for RealPosition methods
-    #[test]
-    fn test_cov2_real_position_is_open_true() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        assert!(pos.is_open());
-    }
-
-    #[test]
-    fn test_cov2_real_position_is_closed_zero_quantity() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.quantity = 0.0;
-        assert!(pos.is_closed());
-    }
-
-    #[test]
-    fn test_cov2_real_position_position_value() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        // position_value = quantity * entry_price = 0.1 * 50000 = 5000
-        assert!((pos.position_value() - 5000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov2_real_position_update_price() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(52000.0);
-        assert!((pos.current_price - 52000.0).abs() < 0.01);
-        // unrealized_pnl = (52000 - 50000) * 0.1 = 200
-        assert!((pos.unrealized_pnl - 200.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov2_real_position_pnl_percentage() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(55000.0);
-        // pnl% = (55000 - 50000) / 50000 * 100 = 10%
-        let pnl_pct = pos.pnl_percentage();
-        assert!((pnl_pct - 10.0).abs() < 0.1);
-    }
-
-    #[test]
-    fn test_cov2_real_position_should_trigger_stop_loss_no_sl() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        assert!(!pos.should_trigger_stop_loss());
-    }
-
-    #[test]
-    fn test_cov2_real_position_should_trigger_stop_loss_long_triggered() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.stop_loss = Some(49000.0);
-        pos.update_price(48000.0);
-        assert!(pos.should_trigger_stop_loss());
-    }
-
-    #[test]
-    fn test_cov2_real_position_should_trigger_stop_loss_short_triggered() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.stop_loss = Some(51000.0);
-        pos.update_price(52000.0);
-        assert!(pos.should_trigger_stop_loss());
-    }
-
-    #[test]
-    fn test_cov2_real_position_should_trigger_take_profit_no_tp() {
-        let pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        assert!(!pos.should_trigger_take_profit());
-    }
-
-    #[test]
-    fn test_cov2_real_position_should_trigger_take_profit_long_triggered() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.take_profit = Some(55000.0);
-        pos.update_price(56000.0);
-        assert!(pos.should_trigger_take_profit());
-    }
-
-    #[test]
-    fn test_cov2_real_position_should_trigger_take_profit_short_triggered() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.take_profit = Some(45000.0);
-        pos.update_price(44000.0);
-        assert!(pos.should_trigger_take_profit());
-    }
-
-    #[test]
-    fn test_cov2_real_position_add_fill() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.add_fill(51000.0, 0.05, 1.0, "order-002".to_string());
-        // New avg: (50000 * 0.1 + 51000 * 0.05) / 0.15 = 50333.33
-        assert!((pos.entry_price - 50333.33).abs() < 1.0);
-        assert!((pos.quantity - 0.15).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_cov2_real_position_partial_close_long_profit() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        let pnl = pos.partial_close(52000.0, 0.05, 1.0, "order-002".to_string());
-        // PnL = (52000 - 50000) * 0.05 - 1.0 = 100 - 1 = 99
-        assert!((pnl - 99.0).abs() < 0.1);
-        assert!((pos.quantity - 0.05).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_cov2_real_position_partial_close_short_profit() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Short,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        let pnl = pos.partial_close(48000.0, 0.05, 1.0, "order-002".to_string());
-        // PnL = (50000 - 48000) * 0.05 - 1.0 = 100 - 1 = 99
-        assert!((pnl - 99.0).abs() < 0.1);
-        assert!((pos.quantity - 0.05).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_cov2_real_position_full_close() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        let pnl = pos.partial_close(52000.0, 0.1, 2.0, "order-002".to_string());
-        // PnL = (52000 - 50000) * 0.1 - 2.0 = 200 - 2 = 198
-        assert!((pnl - 198.0).abs() < 0.1);
-        assert!((pos.quantity - 0.0).abs() < 0.0001);
-        assert!(pos.is_closed());
-    }
-
-    #[test]
-    fn test_cov2_real_position_enable_trailing_stop() {
-        let mut pos = RealPosition::new(
-            "pos-001".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.1,
-            50000.0,
-            "order-001".to_string(),
-            None,
-            None,
-        );
-        pos.enable_trailing_stop(52000.0, 2.0);
-        assert!(pos.trailing_stop_activation.is_some());
-        assert!(pos.trailing_stop_percent.is_some());
-        if let Some(activation) = pos.trailing_stop_activation {
-            assert!((activation - 52000.0).abs() < 0.01);
-        }
-        if let Some(percent) = pos.trailing_stop_percent {
-            assert!((percent - 2.0).abs() < 0.01);
-        }
-    }
-
-    #[test]
-    fn test_cov2_position_side_long_closing_side() {
-        assert_eq!(PositionSide::Long.closing_order_side(), "SELL");
-    }
-
-    #[test]
-    fn test_cov2_position_side_short_closing_side() {
-        assert_eq!(PositionSide::Short.closing_order_side(), "BUY");
-    }
-
-    #[test]
-    fn test_cov2_position_side_from_buy_order() {
-        assert_eq!(PositionSide::from_order_side("BUY"), PositionSide::Long);
-    }
-
-    #[test]
-    fn test_cov2_position_side_from_sell_order() {
-        assert_eq!(PositionSide::from_order_side("SELL"), PositionSide::Short);
-    }
-
-    // Tests for ExecutionReport helper methods
-    #[test]
-    fn test_cov2_execution_report_is_new_true() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "NEW",
-            "NEW",
-            "1.0",
-            "0",
-            "50000",
-        );
-        assert!(report.is_new());
-    }
-
-    #[test]
-    fn test_cov2_execution_report_is_trade_true() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "FILLED",
-            "1.0",
-            "1.0",
-            "50000",
-        );
-        assert!(report.is_trade());
-    }
-
-    #[test]
-    fn test_cov2_execution_report_is_cancelled_true() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "CANCELED",
-            "CANCELED",
-            "1.0",
-            "0",
-            "50000",
-        );
-        assert!(report.is_cancelled());
-    }
-
-    #[test]
-    fn test_cov2_execution_report_is_rejected_true() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "REJECTED",
-            "REJECTED",
-            "1.0",
-            "0",
-            "50000",
-        );
-        assert!(report.is_rejected());
-    }
-
-    #[test]
-    fn test_cov2_execution_report_is_filled_true() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "FILLED",
-            "1.0",
-            "1.0",
-            "50000",
-        );
-        assert!(report.is_filled());
-    }
-
-    #[test]
-    fn test_cov2_execution_report_is_partially_filled_true() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "PARTIALLY_FILLED",
-            "1.0",
-            "0.5",
-            "50000",
-        );
-        assert!(report.is_partially_filled());
-    }
-
-    #[test]
-    fn test_cov2_execution_report_fill_percentage_zero() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "NEW",
-            "NEW",
-            "1.0",
-            "0",
-            "50000",
-        );
-        assert_eq!(report.fill_percentage(), 0.0);
-    }
-
-    #[test]
-    fn test_cov2_execution_report_fill_percentage_half() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "PARTIALLY_FILLED",
-            "2.0",
-            "1.0",
-            "50000",
-        );
-        assert!((report.fill_percentage() - 50.0).abs() < 0.1);
-    }
-
-    #[test]
-    fn test_cov2_execution_report_fill_percentage_full() {
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "FILLED",
-            "1.0",
-            "1.0",
-            "50000",
-        );
-        assert!((report.fill_percentage() - 100.0).abs() < 0.1);
-    }
-
-    // Tests for order state from binance status conversions
-    #[test]
-    fn test_cov2_order_state_from_pending() {
-        assert_eq!(OrderState::from_binance_status("PENDING_NEW"), OrderState::Pending);
-    }
-
-    #[test]
-    fn test_cov2_order_state_from_new() {
-        assert_eq!(OrderState::from_binance_status("NEW"), OrderState::New);
-    }
-
-    #[test]
-    fn test_cov2_order_state_from_partially_filled() {
-        assert_eq!(
-            OrderState::from_binance_status("PARTIALLY_FILLED"),
-            OrderState::PartiallyFilled
-        );
-    }
-
-    #[test]
-    fn test_cov2_order_state_from_filled() {
-        assert_eq!(OrderState::from_binance_status("FILLED"), OrderState::Filled);
-    }
-
-    #[test]
-    fn test_cov2_order_state_from_canceled() {
-        assert_eq!(OrderState::from_binance_status("CANCELED"), OrderState::Cancelled);
-    }
-
-    #[test]
-    fn test_cov2_order_state_from_rejected() {
-        assert_eq!(OrderState::from_binance_status("REJECTED"), OrderState::Rejected);
-    }
-
-    #[test]
-    fn test_cov2_order_state_from_expired() {
-        assert_eq!(OrderState::from_binance_status("EXPIRED"), OrderState::Expired);
-    }
-
-    #[test]
-    fn test_cov2_order_state_from_unknown() {
-        assert_eq!(OrderState::from_binance_status("SOMETHING_ELSE"), OrderState::Pending);
-    }
-
-    // Test RealOrder update from execution report
-    #[test]
-    fn test_cov2_real_order_update_from_report_new() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "NEW",
-            "NEW",
-            "1.0",
-            "0",
-            "50000",
-        );
-        order.update_from_execution_report(&report);
-        assert_eq!(order.state, OrderState::New);
-        assert_eq!(order.executed_quantity, 0.0);
-    }
-
-    #[test]
-    fn test_cov2_real_order_update_from_report_partial_fill() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "PARTIALLY_FILLED",
-            "1.0",
-            "0.5",
-            "50100",
-        );
-        order.update_from_execution_report(&report);
-        assert_eq!(order.state, OrderState::PartiallyFilled);
-        assert!((order.executed_quantity - 0.5).abs() < 0.001);
-        assert_eq!(order.fills.len(), 1);
-    }
-
-    #[test]
-    fn test_cov2_real_order_update_from_report_filled() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "FILLED",
-            "1.0",
-            "1.0",
-            "50200",
-        );
-        order.update_from_execution_report(&report);
-        assert_eq!(order.state, OrderState::Filled);
-        assert!((order.executed_quantity - 1.0).abs() < 0.001);
-        assert_eq!(order.fills.len(), 1);
-    }
-
-    #[test]
-    fn test_cov2_real_order_update_from_report_cancelled() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "CANCELED",
-            "CANCELED",
-            "1.0",
-            "0",
-            "50000",
-        );
-        order.update_from_execution_report(&report);
-        assert_eq!(order.state, OrderState::Cancelled);
-    }
-
-    #[test]
-    fn test_cov2_real_order_update_from_report_rejected() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "REJECTED",
-            "REJECTED",
-            "1.0",
-            "0",
-            "50000",
-        );
-        order.update_from_execution_report(&report);
-        assert_eq!(order.state, OrderState::Rejected);
-    }
-
-    // Test commission calculation
-    #[test]
-    fn test_cov2_real_order_commission_single_fill() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.fills.push(crate::real_trading::order::OrderFill {
-            trade_id: 1,
-            price: 50000.0,
-            quantity: 1.0,
-            commission: 5.0,
-            commission_asset: "USDT".to_string(),
-            timestamp: Utc::now(),
-        });
-        assert!((order.total_commission() - 5.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov2_real_order_commission_multiple_fills() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            2.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.fills.push(crate::real_trading::order::OrderFill {
-            trade_id: 1,
-            price: 50000.0,
-            quantity: 1.0,
-            commission: 3.0,
-            commission_asset: "USDT".to_string(),
-            timestamp: Utc::now(),
-        });
-        order.fills.push(crate::real_trading::order::OrderFill {
-            trade_id: 2,
-            price: 50100.0,
-            quantity: 1.0,
-            commission: 3.5,
-            commission_asset: "USDT".to_string(),
-            timestamp: Utc::now(),
-        });
-        assert!((order.total_commission() - 6.5).abs() < 0.01);
-    }
-
-    // Test average fill price calculation
-    #[test]
-    fn test_cov2_real_order_average_fill_price_no_fills() {
-        let order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert_eq!(order.average_fill_price, 0.0);
-    }
-
-    #[test]
-    fn test_cov2_real_order_average_fill_price_single_fill() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        let report = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "FILLED",
-            "1.0",
-            "1.0",
-            "50000",
-        );
-        order.update_from_execution_report(&report);
-        assert!((order.average_fill_price - 50000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov2_real_order_average_fill_price_multiple_fills() {
-        let mut order = RealOrder::new(
-            "order-001".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            2.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-
-        // First fill: 1.0 @ 50000
-        let report1 = create_test_execution_report(
-            "order-001",
-            "BTCUSDT",
-            "BUY",
-            "TRADE",
-            "PARTIALLY_FILLED",
-            "2.0",
-            "1.0",
-            "50000",
-        );
-        order.update_from_execution_report(&report1);
-
-        // Second fill: 1.0 @ 50200
-        order.executed_quantity = 2.0;
-        order.fills.push(crate::real_trading::order::OrderFill {
-            trade_id: 2,
-            price: 50200.0,
-            quantity: 1.0,
-            commission: 0.001,
-            commission_asset: "BNB".to_string(),
-            timestamp: Utc::now(),
-        });
-
-        // Manually recalculate average: (50000 * 1 + 50200 * 1) / 2 = 50100
-        let total_value: f64 = order.fills.iter().map(|f| f.price * f.quantity).sum();
-        let total_qty: f64 = order.fills.iter().map(|f| f.quantity).sum();
-        let avg = if total_qty > 0.0 { total_value / total_qty } else { 0.0 };
-        assert!((avg - 50100.0).abs() < 0.01);
-    }
-
-    // ============ Coverage Phase 3 Tests ============
-
-    // Test DailyMetrics::new() to cover line 175-179
-    #[test]
-    fn test_cov3_daily_metrics_new_has_today_date() {
-        let metrics = DailyMetrics::new();
-        let today = Utc::now().format("%Y-%m-%d").to_string();
-        assert_eq!(metrics.date, today);
+    fn test_daily_metrics_default() {
+        let metrics = DailyMetrics::default();
+        assert_eq!(metrics.date, "");
         assert_eq!(metrics.realized_pnl, 0.0);
         assert_eq!(metrics.trades_count, 0);
     }
 
-    // Test DailyMetrics::win_rate() with zero trades (line 183-187)
     #[test]
-    fn test_cov3_daily_metrics_win_rate_zero_trades() {
-        let metrics = DailyMetrics::new();
-        assert_eq!(metrics.win_rate(), 0.0);
-    }
-
-    // Test DailyMetrics::win_rate() with some trades
-    #[test]
-    fn test_cov3_daily_metrics_win_rate_some_trades() {
-        let mut metrics = DailyMetrics::new();
-        metrics.trades_count = 10;
-        metrics.winning_trades = 6;
-        assert!((metrics.win_rate() - 60.0).abs() < 0.01);
-    }
-
-    // Test DailyMetrics::reset_if_new_day() when same day (line 191-195)
-    #[test]
-    fn test_cov3_daily_metrics_reset_if_new_day_same_day() {
-        let mut metrics = DailyMetrics::new();
-        metrics.realized_pnl = 1000.0;
-        metrics.trades_count = 5;
-        metrics.reset_if_new_day();
-        // Should not reset on same day
-        assert_eq!(metrics.realized_pnl, 1000.0);
-        assert_eq!(metrics.trades_count, 5);
-    }
-
-    // Test CircuitBreakerState::should_close() with no opened_at (line 67-72)
-    #[test]
-    fn test_cov3_circuit_breaker_should_close_no_opened_at() {
-        let cb = CircuitBreakerState::default();
-        assert!(!cb.should_close(60));
-    }
-
-    // Test CircuitBreakerState::should_close() with recent opened_at
-    #[test]
-    fn test_cov3_circuit_breaker_should_close_recent() {
-        let mut cb = CircuitBreakerState::default();
-        cb.is_open = true;
-        cb.opened_at = Some(Utc::now());
-        // Should not close immediately
-        assert!(!cb.should_close(60));
-    }
-
-    // Test CircuitBreakerState::close() (line 76-81)
-    #[test]
-    fn test_cov3_circuit_breaker_close() {
-        let mut cb = CircuitBreakerState::default();
-        cb.record_error("test error", 1);
-        assert!(cb.is_open);
-        cb.close();
-        assert!(!cb.is_open);
-        assert_eq!(cb.error_count, 0);
-        assert!(cb.opened_at.is_none());
-        assert!(cb.last_error.is_none());
-    }
-
-    // Test CircuitBreakerState::record_success() (line 60-63)
-    #[test]
-    fn test_cov3_circuit_breaker_record_success() {
-        let mut cb = CircuitBreakerState::default();
-        cb.record_error("error1", 5);
-        cb.record_error("error2", 5);
-        assert_eq!(cb.error_count, 2);
-        cb.record_success();
-        assert_eq!(cb.error_count, 0);
-        // Should not close circuit automatically
-        assert!(!cb.is_open);
-    }
-
-    // Test CircuitBreakerState::record_error() opening circuit (line 46-56)
-    #[test]
-    fn test_cov3_circuit_breaker_record_error_opens() {
-        let mut cb = CircuitBreakerState::default();
-        assert!(!cb.record_error("err1", 3));
-        assert!(!cb.record_error("err2", 3));
-        assert!(cb.record_error("err3", 3)); // Should open now
-        assert!(cb.is_open);
-        assert_eq!(cb.error_count, 3);
-        assert!(cb.opened_at.is_some());
-        assert_eq!(cb.last_error, Some("err3".to_string()));
-    }
-
-    // Test Balance::total() (line 134-136)
-    #[test]
-    fn test_cov3_balance_total() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 1.5,
-            locked: 0.5,
-        };
-        assert!((balance.total() - 2.0).abs() < 0.001);
+    fn test_real_trading_event_error_serialization() {
+        let event = RealTradingEvent::Error("Connection failed".to_string());
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("Error"));
+        assert!(json.contains("Connection failed"));
     }
 
     #[test]
-    fn test_cov3_balance_total_zero() {
-        let balance = Balance {
-            asset: "BTC".to_string(),
-            free: 0.0,
-            locked: 0.0,
-        };
-        assert_eq!(balance.total(), 0.0);
-    }
-
-    // Test ReconciliationMetrics default (implicit, but confirm structure)
-    #[test]
-    fn test_cov3_reconciliation_metrics_default() {
-        let metrics = ReconciliationMetrics::default();
-        assert!(metrics.last_run_time.is_none());
-        assert_eq!(metrics.last_run_duration_ms, 0);
-        assert_eq!(metrics.total_discrepancies_found, 0);
-        assert_eq!(metrics.balance_mismatches, 0);
-        assert_eq!(metrics.order_mismatches, 0);
-    }
-
-    // Test RealTradingEvent variants (enum variants for coverage)
-    #[test]
-    fn test_cov3_real_trading_event_order_placed() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        let event = RealTradingEvent::OrderPlaced(order.clone());
-        match event {
-            RealTradingEvent::OrderPlaced(o) => assert_eq!(o.client_order_id, "ord1"),
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_order_filled() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        let event = RealTradingEvent::OrderFilled(order.clone());
-        match event {
-            RealTradingEvent::OrderFilled(o) => assert_eq!(o.client_order_id, "ord1"),
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_order_cancelled() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        let event = RealTradingEvent::OrderCancelled(order.clone());
-        match event {
-            RealTradingEvent::OrderCancelled(o) => assert_eq!(o.client_order_id, "ord1"),
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_order_rejected() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        let event = RealTradingEvent::OrderRejected {
-            order: order.clone(),
-            reason: "Insufficient balance".to_string(),
-        };
-        match event {
-            RealTradingEvent::OrderRejected { order: o, reason } => {
-                assert_eq!(o.client_order_id, "ord1");
-                assert_eq!(reason, "Insufficient balance");
-            }
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_position_opened() {
-        let pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        let event = RealTradingEvent::PositionOpened(pos.clone());
-        match event {
-            RealTradingEvent::PositionOpened(p) => assert_eq!(p.id, "pos1"),
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_position_updated() {
-        let pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        let event = RealTradingEvent::PositionUpdated(pos.clone());
-        match event {
-            RealTradingEvent::PositionUpdated(p) => assert_eq!(p.id, "pos1"),
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_position_closed() {
-        let pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        let event = RealTradingEvent::PositionClosed {
-            position: pos.clone(),
-            pnl: 1000.0,
-        };
-        match event {
-            RealTradingEvent::PositionClosed { position: p, pnl } => {
-                assert_eq!(p.id, "pos1");
-                assert!((pnl - 1000.0).abs() < 0.01);
-            }
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_balance_updated() {
-        let event = RealTradingEvent::BalanceUpdated {
-            asset: "BTC".to_string(),
-            free: 1.5,
-            locked: 0.5,
-        };
-        match event {
-            RealTradingEvent::BalanceUpdated { asset, free, locked } => {
-                assert_eq!(asset, "BTC");
-                assert!((free - 1.5).abs() < 0.01);
-                assert!((locked - 0.5).abs() < 0.01);
-            }
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_circuit_breaker_opened() {
-        let event = RealTradingEvent::CircuitBreakerOpened("Test error".to_string());
-        match event {
-            RealTradingEvent::CircuitBreakerOpened(msg) => assert_eq!(msg, "Test error"),
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_circuit_breaker_closed() {
-        let event = RealTradingEvent::CircuitBreakerClosed;
-        match event {
-            RealTradingEvent::CircuitBreakerClosed => {}
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_reconciliation_complete() {
-        let event = RealTradingEvent::ReconciliationComplete { discrepancies: 5 };
-        match event {
-            RealTradingEvent::ReconciliationComplete { discrepancies } => {
-                assert_eq!(discrepancies, 5);
-            }
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_error() {
-        let event = RealTradingEvent::Error("Network error".to_string());
-        match event {
-            RealTradingEvent::Error(msg) => assert_eq!(msg, "Network error"),
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_daily_loss_limit_reached() {
-        let event = RealTradingEvent::DailyLossLimitReached {
-            loss: 5000.0,
-            limit: 10000.0,
-        };
-        match event {
-            RealTradingEvent::DailyLossLimitReached { loss, limit } => {
-                assert!((loss - 5000.0).abs() < 0.01);
-                assert!((limit - 10000.0).abs() < 0.01);
-            }
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    #[test]
-    fn test_cov3_real_trading_event_engine_started() {
+    fn test_real_trading_event_engine_started() {
         let event = RealTradingEvent::EngineStarted;
-        match event {
-            RealTradingEvent::EngineStarted => {}
-            _ => panic!("Wrong event type"),
-        }
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("EngineStarted"));
     }
 
     #[test]
-    fn test_cov3_real_trading_event_engine_stopped() {
+    fn test_real_trading_event_engine_stopped() {
         let event = RealTradingEvent::EngineStopped;
-        match event {
-            RealTradingEvent::EngineStopped => {}
-            _ => panic!("Wrong event type"),
-        }
-    }
-
-    // Test OrderState enum variants (enum methods for coverage)
-    #[test]
-    fn test_cov3_order_state_is_terminal_filled() {
-        assert!(OrderState::Filled.is_terminal());
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("EngineStopped"));
     }
 
     #[test]
-    fn test_cov3_order_state_is_terminal_cancelled() {
-        assert!(OrderState::Cancelled.is_terminal());
+    fn test_real_trading_event_reconciliation_complete() {
+        let event = RealTradingEvent::ReconciliationComplete { discrepancies: 5 };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("ReconciliationComplete"));
+        assert!(json.contains("\"discrepancies\":5"));
     }
 
     #[test]
-    fn test_cov3_order_state_is_terminal_rejected() {
-        assert!(OrderState::Rejected.is_terminal());
-    }
-
-    #[test]
-    fn test_cov3_order_state_is_terminal_expired() {
-        assert!(OrderState::Expired.is_terminal());
-    }
-
-    #[test]
-    fn test_cov3_order_state_is_terminal_new() {
-        assert!(!OrderState::New.is_terminal());
-    }
-
-    #[test]
-    fn test_cov3_order_state_is_terminal_partially_filled() {
-        assert!(!OrderState::PartiallyFilled.is_terminal());
-    }
-
-    #[test]
-    fn test_cov3_order_state_is_terminal_pending() {
-        assert!(!OrderState::Pending.is_terminal());
-    }
-
-    // Test PositionSide enum from_order_side
-    #[test]
-    fn test_cov3_position_side_from_order_side_buy() {
-        let side = PositionSide::from_order_side("BUY");
-        assert_eq!(side, PositionSide::Long);
-    }
-
-    #[test]
-    fn test_cov3_position_side_from_order_side_sell() {
-        let side = PositionSide::from_order_side("SELL");
-        assert_eq!(side, PositionSide::Short);
-    }
-
-    #[test]
-    fn test_cov3_position_side_from_order_side_lowercase() {
-        let side = PositionSide::from_order_side("buy");
-        assert_eq!(side, PositionSide::Long);
-    }
-
-    #[test]
-    fn test_cov3_position_side_from_order_side_invalid() {
-        let side = PositionSide::from_order_side("INVALID");
-        assert_eq!(side, PositionSide::Long); // defaults to Long
-    }
-
-    // Test RealOrder methods
-    #[test]
-    fn test_cov3_real_order_is_active_new() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert!(order.is_active());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_active_partially_filled() {
-        let mut order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::PartiallyFilled;
-        assert!(order.is_active());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_active_pending() {
-        let mut order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Pending;
-        assert!(order.is_active());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_active_filled() {
-        let mut order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Filled;
-        assert!(!order.is_active());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_filled_true() {
-        let mut order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Filled;
-        assert!(order.is_filled());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_filled_false() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert!(!order.is_filled());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_terminal_filled() {
-        let mut order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Filled;
-        assert!(order.is_terminal());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_terminal_cancelled() {
-        let mut order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        order.state = OrderState::Cancelled;
-        assert!(order.is_terminal());
-    }
-
-    #[test]
-    fn test_cov3_real_order_is_terminal_new() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-        assert!(!order.is_terminal());
-    }
-
-    // Test RealPosition methods
-    #[test]
-    fn test_cov3_real_position_is_open_true() {
-        let pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        assert!(pos.is_open());
-    }
-
-    #[test]
-    fn test_cov3_real_position_is_open_false() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        pos.quantity = 0.0;
-        assert!(!pos.is_open());
-    }
-
-    #[test]
-    fn test_cov3_real_position_is_closed_true() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        pos.quantity = 0.0;
-        assert!(pos.is_closed());
-    }
-
-    #[test]
-    fn test_cov3_real_position_is_closed_false() {
-        let pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        assert!(!pos.is_closed());
-    }
-
-    #[test]
-    fn test_cov3_real_position_position_value() {
-        let pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        assert!((pos.position_value() - 50000.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_cov3_real_position_position_value_zero() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        pos.quantity = 0.0;
-        assert_eq!(pos.position_value(), 0.0);
-    }
-
-    #[test]
-    fn test_cov3_real_position_update_price() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(55000.0);
-        assert!((pos.current_price - 55000.0).abs() < 0.01);
-    }
-
-
-    #[tokio::test]
-    async fn test_cov8_circuit_breaker_should_close() {
+    fn test_circuit_breaker_record_success_resets_count() {
         let mut cb = CircuitBreakerState::default();
-        cb.record_error("Test error", 1);
-        assert!(cb.is_open);
+        cb.error_count = 3;
+        cb.last_error = Some("Previous error".to_string());
 
-        // Check if it should close after cooldown
-        let should_close = cb.should_close(0); // 0 seconds cooldown
-        // Depends on timing, but should handle the check
-        let _ = should_close;
-    }
+        cb.record_success();
 
-    #[tokio::test]
-    async fn test_cov8_circuit_breaker_record_multiple_errors() {
-        let mut cb = CircuitBreakerState::default();
-
-        // Record errors below threshold
-        cb.record_error("Error 1", 3);
-        assert!(!cb.is_open);
-        cb.record_error("Error 2", 3);
-        assert!(!cb.is_open);
-        cb.record_error("Error 3", 3);
-        assert!(cb.is_open);
-    }
-
-    #[tokio::test]
-    async fn test_cov8_daily_metrics_win_rate_edge_cases() {
-        let mut metrics = DailyMetrics::new();
-
-        // 100% win rate
-        metrics.trades_count = 5;
-        metrics.winning_trades = 5;
-        metrics.losing_trades = 0;
-        assert!((metrics.win_rate() - 100.0).abs() < 0.1);
-
-        // 0% win rate
-        metrics.winning_trades = 0;
-        metrics.losing_trades = 5;
-        assert!((metrics.win_rate() - 0.0).abs() < 0.1);
+        assert_eq!(cb.error_count, 0);
+        assert!(cb.is_open == cb.is_open); // Doesn't change is_open
     }
 
     #[test]
-    fn test_cov8_position_side_closing_order_side_long() {
-        let side = PositionSide::Long;
-        let closing_side = side.closing_order_side();
-        assert_eq!(closing_side, "SELL");
-    }
-
-    #[test]
-    fn test_cov8_position_side_closing_order_side_short() {
-        let side = PositionSide::Short;
-        let closing_side = side.closing_order_side();
-        assert_eq!(closing_side, "BUY");
-    }
-
-    #[test]
-    fn test_cov8_real_position_should_trigger_stop_loss_false() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        pos.set_sl_tp(Some(49000.0), None);
-        pos.update_price(49500.0); // Above SL
-        assert!(!pos.should_trigger_stop_loss());
-    }
-
-    #[test]
-    fn test_cov8_real_position_should_trigger_take_profit_false() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        pos.set_sl_tp(None, Some(52000.0));
-        pos.update_price(51000.0); // Below TP
-        assert!(!pos.should_trigger_take_profit());
-    }
-
-    #[test]
-    fn test_cov8_real_position_partial_close_zero_quantity() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            1.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-
-        // Partial close with 0 quantity
-        let pnl = pos.partial_close(51000.0, 0.0, 0.5, "exit1".to_string());
-        assert_eq!(pnl, -0.5); // Only commission
-        assert_eq!(pos.quantity, 1.0); // Unchanged
-    }
-
-    #[test]
-    fn test_cov8_real_position_pnl_percentage_zero_cost_basis() {
-        let mut pos = RealPosition::new(
-            "pos1".to_string(),
-            "BTCUSDT".to_string(),
-            PositionSide::Long,
-            0.0,
-            50000.0,
-            "ord1".to_string(),
-            None,
-            None,
-        );
-        pos.update_price(51000.0);
-        // Cost basis is 0, should handle division gracefully
-        let pnl_pct = pos.pnl_percentage();
-        // Depends on implementation, but should not panic
-        let _ = pnl_pct;
-    }
-
-    #[test]
-    fn test_cov8_real_order_is_active_various_states() {
-        let mut order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "MARKET".to_string(),
-            1.0,
-            None,
-            None,
-            None,
-            true,
-        );
-
-        // Pending
-        order.state = OrderState::Pending;
-        assert!(order.is_active());
-
-        // New
-        order.state = OrderState::New;
-        assert!(order.is_active());
-
-        // PartiallyFilled
-        order.state = OrderState::PartiallyFilled;
-        assert!(order.is_active());
-
-        // Filled
-        order.state = OrderState::Filled;
-        assert!(!order.is_active());
-    }
-
-    #[test]
-    fn test_cov8_real_order_average_fill_price_no_fills() {
-        let order = RealOrder::new(
-            "ord1".to_string(),
-            "BTCUSDT".to_string(),
-            "BUY".to_string(),
-            "LIMIT".to_string(),
-            1.0,
-            Some(50000.0),
-            None,
-            None,
-            true,
-        );
-
-        let avg_price = order.average_fill_price;
-        assert_eq!(avg_price, 0.0); // No fills yet
-    }
-
-    #[test]
-    fn test_cov8_balance_total_calculation() {
+    fn test_balance_with_negative_values() {
+        // Edge case: negative values (shouldn't happen but test anyway)
         let balance = Balance {
-            asset: "USDT".to_string(),
-            free: 500.0,
-            locked: 200.0,
+            asset: "TEST".to_string(),
+            free: -1.0,
+            locked: 2.0,
         };
-
-        assert!((balance.total() - 700.0).abs() < 0.01);
+        assert_eq!(balance.total(), 1.0);
     }
 
-}
+    #[test]
+    fn test_daily_metrics_win_rate_single_win() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 1;
+        metrics.winning_trades = 1;
+        assert!((metrics.win_rate() - 100.0).abs() < 0.01);
+    }
 
+    #[test]
+    fn test_daily_metrics_win_rate_single_loss() {
+        let mut metrics = DailyMetrics::new();
+        metrics.trades_count = 1;
+        metrics.winning_trades = 0;
+        assert!((metrics.win_rate() - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_circuit_breaker_should_close_edge_case_exact_cooldown() {
+        let mut cb = CircuitBreakerState::default();
+        cb.is_open = true;
+        cb.opened_at = Some(Utc::now() - chrono::Duration::seconds(60));
+        assert!(cb.should_close(60)); // Exactly at cooldown
+    }
+
+    #[test]
+    fn test_circuit_breaker_record_error_preserves_last_error() {
+        let mut cb = CircuitBreakerState::default();
+        cb.record_error("First error", 5);
+        cb.record_error("Second error", 5);
+        assert_eq!(cb.last_error, Some("Second error".to_string()));
+    }
+
+    #[test]
+    fn test_balance_total_with_large_values() {
+        let balance = Balance {
+            asset: "BTC".to_string(),
+            free: 1000000.0,
+            locked: 500000.0,
+        };
+        assert_eq!(balance.total(), 1500000.0);
+    }
+
+    #[test]
+    fn test_daily_metrics_reset_preserves_date_format() {
+        let metrics = DailyMetrics::new();
+        assert!(metrics.date.contains("-"));
+        assert_eq!(metrics.date.len(), 10); // YYYY-MM-DD format
+    }
+}

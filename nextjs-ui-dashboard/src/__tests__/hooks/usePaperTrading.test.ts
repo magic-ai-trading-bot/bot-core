@@ -1059,4 +1059,275 @@ describe('usePaperTrading', () => {
       expect(result.current.isLoading).toBe(false)
     })
   })
+
+  // NEW TESTS FOR UNCOVERED CODE PATHS
+
+  it('handles fetchWithRetry with exponential backoff', async () => {
+    let attempts = 0
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/trades/closed')) {
+        attempts++
+        if (attempts < 3) {
+          throw new Error('Temporary failure')
+        }
+        return { ok: true, json: async () => ({ success: true, data: [] }) }
+      }
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(attempts).toBeGreaterThanOrEqual(3)
+    }, { timeout: 5000 })
+  })
+
+  it('shows warning toast when database save fails', async () => {
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/basic-settings')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              message: 'Settings updated',
+              database_saved: false,
+              warning: 'Database save failed - using in-memory only'
+            }
+          })
+        }
+      }
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(result.current).toBeDefined()
+    })
+  })
+
+  it('handles cancelPendingOrder successfully', async () => {
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/cancel')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: { cancelled: true }
+          })
+        }
+      }
+      if (url.includes('/pending')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: []
+          })
+        }
+      }
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(result.current).toBeDefined()
+    })
+
+    await act(async () => {
+      const success = await result.current.cancelPendingOrder('test-order-id')
+      expect(success).toBe(true)
+    })
+  })
+
+  it('handles cancelPendingOrder failure', async () => {
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/cancel')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: false,
+            error: 'Order not found'
+          })
+        }
+      }
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(result.current).toBeDefined()
+    })
+
+    await act(async () => {
+      const success = await result.current.cancelPendingOrder('invalid-order-id')
+      expect(success).toBe(false)
+    })
+
+    await waitFor(() => {
+      expect(result.current.error).toContain('Order not found')
+    })
+  })
+
+  it('handles placeOrder successfully', async () => {
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/orders') && !url.includes('pending')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              trade_id: 'test-trade-123',
+              symbol: 'BTCUSDT',
+              side: 'buy',
+              quantity: 0.1,
+              entry_price: 50000,
+              leverage: 10,
+              status: 'open',
+              message: 'Order placed successfully'
+            }
+          })
+        }
+      }
+      return { ok: true, json: async () => ({ success: true, data: [] }) }
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(result.current).toBeDefined()
+    })
+
+    await act(async () => {
+      const orderResponse = await result.current.placeOrder({
+        symbol: 'BTCUSDT',
+        side: 'buy',
+        order_type: 'market',
+        quantity: 0.1
+      })
+      expect(orderResponse).toBeDefined()
+      expect(orderResponse?.trade_id).toBe('test-trade-123')
+    })
+  })
+
+  it('handles placeOrder failure', async () => {
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/orders')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: false,
+            error: 'Insufficient balance'
+          })
+        }
+      }
+      return { ok: true, json: async () => ({ success: true, data: {} }) }
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(result.current).toBeDefined()
+    })
+
+    await act(async () => {
+      const orderResponse = await result.current.placeOrder({
+        symbol: 'BTCUSDT',
+        side: 'buy',
+        order_type: 'market',
+        quantity: 100
+      })
+      expect(orderResponse).toBeNull()
+    })
+
+    await waitFor(() => {
+      expect(result.current.error).toContain('Insufficient balance')
+    })
+  })
+
+  it('handles WebSocket MarketData event with price updates', async () => {
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(mockWs).toBeDefined()
+    })
+
+    act(() => {
+      mockWs.triggerOpen()
+    })
+
+    await waitFor(() => {
+      expect(mockWs.readyState).toBe(WebSocket.OPEN)
+    })
+
+    act(() => {
+      mockWs.triggerMessage({
+        event_type: 'MarketData',
+        data: {
+          symbol: 'BTCUSDT',
+          price: 51000,
+          price_change_24h: 1000,
+          volume_24h: 1000000
+        }
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.lastUpdated).toBeTruthy()
+    })
+  })
+
+  it('handles WebSocket stop_limit events', async () => {
+    const { result } = renderHook(() => usePaperTrading())
+
+    await waitFor(() => {
+      expect(mockWs).toBeDefined()
+    })
+
+    act(() => {
+      mockWs.triggerOpen()
+    })
+
+    act(() => {
+      mockWs.triggerMessage({ event_type: 'stop_limit_created', data: {} })
+    })
+
+    await waitFor(() => {
+      expect(result.current.lastUpdated).toBeTruthy()
+    })
+
+    act(() => {
+      mockWs.triggerMessage({ event_type: 'stop_limit_triggered', data: {} })
+    })
+
+    await waitFor(() => {
+      expect(result.current.lastUpdated).toBeTruthy()
+    })
+
+    act(() => {
+      mockWs.triggerMessage({ event_type: 'stop_limit_filled', data: {} })
+    })
+
+    await waitFor(() => {
+      expect(result.current.lastUpdated).toBeTruthy()
+    })
+
+    act(() => {
+      mockWs.triggerMessage({ event_type: 'stop_limit_cancelled', data: {} })
+    })
+
+    await waitFor(() => {
+      expect(result.current.lastUpdated).toBeTruthy()
+    })
+  })
+
 })

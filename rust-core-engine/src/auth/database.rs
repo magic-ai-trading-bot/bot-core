@@ -425,6 +425,7 @@ impl SessionRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auth::models::{RiskLevel, NotificationSettings, UserSettings};
 
     #[test]
     fn test_user_repository_new_dummy() {
@@ -2175,4 +2176,519 @@ mod tests {
         assert!(repo.email_exists("test@test.com").await.is_err());
     }
 
+    // =========================================================================
+    // FUNCTION-LEVEL TESTS (test_fn_ prefix for coverage boost)
+    // =========================================================================
+
+    #[test]
+    fn test_fn_user_repository_new_dummy() {
+        let repo = UserRepository::new_dummy();
+        assert!(repo.collection.is_none());
+    }
+
+    #[test]
+    fn test_fn_session_repository_new_dummy() {
+        let repo = SessionRepository::new_dummy();
+        assert!(repo.collection.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_create_user_no_db() {
+        let repo = UserRepository::new_dummy();
+        let user = User::new("test@example.com".to_string(), "hashed_pw".to_string(), None);
+        let result = repo.create_user(user).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_find_by_email_no_db() {
+        let repo = UserRepository::new_dummy();
+        let result = repo.find_by_email("user@example.com").await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_find_by_id_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.find_by_id(&id).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_update_user_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let user = User::new("test@example.com".to_string(), "hash".to_string(), None);
+        let result = repo.update_user(&id, user).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_update_last_login_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.update_last_login(&id).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_deactivate_user_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.deactivate_user(&id).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_count_users_no_db() {
+        let repo = UserRepository::new_dummy();
+        let result = repo.count_users().await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_email_exists_no_db() {
+        let repo = UserRepository::new_dummy();
+        let result = repo.email_exists("test@example.com").await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_update_password_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.update_password(&id, "new_hash".to_string()).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_update_display_name_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.update_display_name(&id, Some("New Name".to_string())).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_update_avatar_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.update_avatar(&id, Some("http://avatar.url".to_string())).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_update_profile_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.update_profile(&id, Some("Name".to_string()), Some("url".to_string())).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_user_repo_update_2fa_no_db() {
+        let repo = UserRepository::new_dummy();
+        let id = ObjectId::new();
+        let result = repo.update_2fa(&id, true, Some("secret".to_string())).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_session_repo_create_session_no_db() {
+        let repo = SessionRepository::new_dummy();
+        let user_id = ObjectId::new();
+        let session = Session::new(
+            user_id,
+            "Device".to_string(),
+            "Browser".to_string(),
+            "OS".to_string(),
+            "127.0.0.1".to_string(),
+            "Location".to_string(),
+            "UA".to_string(),
+        );
+        let result = repo.create_session(session).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_session_repo_find_by_user_no_db() {
+        let repo = SessionRepository::new_dummy();
+        let user_id = ObjectId::new();
+        let result = repo.find_by_user(&user_id).await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_session_repo_find_by_session_id_no_db() {
+        let repo = SessionRepository::new_dummy();
+        let result = repo.find_by_session_id("session123").await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_session_repo_revoke_session_no_db() {
+        let repo = SessionRepository::new_dummy();
+        let result = repo.revoke_session("session123").await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[tokio::test]
+    async fn test_fn_session_repo_revoke_all_except_no_db() {
+        let repo = SessionRepository::new_dummy();
+        let user_id = ObjectId::new();
+        let result = repo.revoke_all_except(&user_id, "current_session").await;
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Database not available");
+    }
+
+    #[test]
+    fn test_fn_user_repository_clone() {
+        let repo1 = UserRepository::new_dummy();
+        let repo2 = repo1.clone();
+
+        assert!(repo1.collection.is_none());
+        assert!(repo2.collection.is_none());
+    }
+
+    #[test]
+    fn test_fn_session_repository_clone() {
+        let repo1 = SessionRepository::new_dummy();
+        let repo2 = repo1.clone();
+
+        assert!(repo1.collection.is_none());
+        assert!(repo2.collection.is_none());
+    }
+
+    // ============================================================================
+    // COVERAGE BOOST: User model tests
+    // ============================================================================
+
+    #[test]
+    fn test_user_new_creation() {
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            Some("Test User".to_string()),
+        );
+
+        assert_eq!(user.email, "test@example.com");
+        assert_eq!(user.password_hash, "hashed_password");
+        assert_eq!(user.full_name, Some("Test User".to_string()));
+        assert_eq!(user.display_name, None);
+        assert_eq!(user.avatar_url, None);
+        assert!(user.is_active);
+        assert!(!user.is_admin);
+        assert!(!user.two_factor_enabled);
+        assert_eq!(user.two_factor_secret, None);
+        assert_eq!(user.last_login, None);
+        assert!(user.id.is_none());
+    }
+
+    #[test]
+    fn test_user_new_without_full_name() {
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            None,
+        );
+
+        assert_eq!(user.full_name, None);
+        assert_eq!(user.email, "test@example.com");
+    }
+
+    #[test]
+    fn test_user_to_profile() {
+        let mut user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            Some("Test User".to_string()),
+        );
+        user.id = Some(ObjectId::new());
+        user.display_name = Some("TestDisplay".to_string());
+        user.avatar_url = Some("http://avatar.url".to_string());
+
+        let profile = user.to_profile();
+
+        assert_eq!(profile.email, "test@example.com");
+        assert_eq!(profile.full_name, Some("Test User".to_string()));
+        assert_eq!(profile.display_name, Some("TestDisplay".to_string()));
+        assert_eq!(profile.avatar_url, Some("http://avatar.url".to_string()));
+        assert!(profile.is_active);
+        assert!(!profile.is_admin);
+        assert!(!profile.two_factor_enabled);
+        assert_eq!(profile.last_login, None);
+        assert!(!profile.id.is_empty());
+    }
+
+    #[test]
+    fn test_user_to_profile_without_id() {
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            None,
+        );
+
+        let profile = user.to_profile();
+
+        assert_eq!(profile.id, "");
+        assert_eq!(profile.email, "test@example.com");
+    }
+
+    #[test]
+    fn test_user_update_last_login() {
+        let mut user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            None,
+        );
+
+        assert_eq!(user.last_login, None);
+        let old_updated_at = user.updated_at;
+
+        // Sleep briefly to ensure timestamp changes
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        user.update_last_login();
+
+        assert!(user.last_login.is_some());
+        assert!(user.updated_at > old_updated_at);
+    }
+
+    #[test]
+    fn test_user_serialization() {
+        let user = User::new(
+            "test@example.com".to_string(),
+            "hashed_password".to_string(),
+            Some("Test User".to_string()),
+        );
+
+        let serialized = bson::to_document(&user).unwrap();
+        assert_eq!(serialized.get_str("email").unwrap(), "test@example.com");
+        assert_eq!(serialized.get_str("password_hash").unwrap(), "hashed_password");
+    }
+
+    #[test]
+    fn test_user_deserialization() {
+        let doc = doc! {
+            "email": "test@example.com",
+            "password_hash": "hashed_password",
+            "full_name": "Test User",
+            "is_active": true,
+            "is_admin": false,
+            "two_factor_enabled": false,
+            "created_at": bson::DateTime::now(),
+            "updated_at": bson::DateTime::now(),
+            "last_login": bson::Bson::Null,
+            "settings": {
+                "trading_enabled": false,
+                "risk_level": "Medium",
+                "max_positions": 3,
+                "default_quantity": 0.01,
+                "notifications": {
+                    "email_alerts": true,
+                    "trade_notifications": true,
+                    "system_alerts": true
+                }
+            }
+        };
+
+        let user: User = bson::from_document(doc).unwrap();
+        assert_eq!(user.email, "test@example.com");
+        assert_eq!(user.password_hash, "hashed_password");
+        assert_eq!(user.full_name, Some("Test User".to_string()));
+        assert_eq!(user.last_login, None);
+    }
+
+    // ============================================================================
+    // COVERAGE BOOST: Session model tests
+    // ============================================================================
+
+    #[test]
+    fn test_session_new_creation() {
+        let user_id = ObjectId::new();
+        let session = Session::new(
+            user_id,
+            "Desktop".to_string(),
+            "Chrome".to_string(),
+            "macOS".to_string(),
+            "127.0.0.1".to_string(),
+            "San Francisco, US".to_string(),
+            "Mozilla/5.0".to_string(),
+        );
+
+        assert_eq!(session.user_id, user_id);
+        assert_eq!(session.device, "Desktop");
+        assert_eq!(session.browser, "Chrome");
+        assert_eq!(session.os, "macOS");
+        assert_eq!(session.ip_address, "127.0.0.1");
+        assert_eq!(session.location, "San Francisco, US");
+        assert_eq!(session.user_agent, "Mozilla/5.0");
+        assert!(!session.revoked);
+        assert_eq!(session.last_active, session.created_at);
+        assert!(session.id.is_none());
+    }
+
+    #[test]
+    fn test_session_to_info() {
+        let user_id = ObjectId::new();
+        let session = Session::new(
+            user_id,
+            "Desktop".to_string(),
+            "Chrome".to_string(),
+            "macOS".to_string(),
+            "127.0.0.1".to_string(),
+            "San Francisco, US".to_string(),
+            "Mozilla/5.0".to_string(),
+        );
+
+        let session_id = session.session_id.clone();
+        let info = session.to_info(&session_id);
+
+        assert_eq!(info.session_id, session_id);
+        assert_eq!(info.device, "Desktop");
+        assert_eq!(info.browser, "Chrome");
+        assert_eq!(info.os, "macOS");
+        assert_eq!(info.location, "San Francisco, US");
+        assert!(info.is_current);
+    }
+
+    #[test]
+    fn test_session_to_info_not_current() {
+        let user_id = ObjectId::new();
+        let session = Session::new(
+            user_id,
+            "Desktop".to_string(),
+            "Chrome".to_string(),
+            "macOS".to_string(),
+            "127.0.0.1".to_string(),
+            "San Francisco, US".to_string(),
+            "Mozilla/5.0".to_string(),
+        );
+
+        let info = session.to_info("different_session_id");
+
+        assert!(!info.is_current);
+    }
+
+    #[test]
+    fn test_session_serialization() {
+        let user_id = ObjectId::new();
+        let session = Session::new(
+            user_id,
+            "Desktop".to_string(),
+            "Chrome".to_string(),
+            "macOS".to_string(),
+            "127.0.0.1".to_string(),
+            "San Francisco, US".to_string(),
+            "Mozilla/5.0".to_string(),
+        );
+
+        let serialized = bson::to_document(&session).unwrap();
+        assert_eq!(serialized.get_str("device").unwrap(), "Desktop");
+        assert_eq!(serialized.get_str("browser").unwrap(), "Chrome");
+        assert_eq!(serialized.get_str("os").unwrap(), "macOS");
+        assert_eq!(serialized.get_bool("revoked").unwrap(), false);
+    }
+
+    // ============================================================================
+    // COVERAGE BOOST: UserSettings tests
+    // ============================================================================
+
+    #[test]
+    fn test_user_settings_default() {
+        let settings = UserSettings::default();
+
+        assert!(!settings.trading_enabled); // Default is false for safety
+        assert!(matches!(settings.risk_level, RiskLevel::Medium));
+        assert_eq!(settings.max_positions, 3);
+        assert_eq!(settings.default_quantity, 0.01);
+        assert!(settings.notifications.email_alerts);
+        assert!(settings.notifications.trade_notifications);
+        assert!(settings.notifications.system_alerts);
+    }
+
+    #[test]
+    fn test_user_settings_custom() {
+        let settings = UserSettings {
+            trading_enabled: false,
+            risk_level: RiskLevel::Low,
+            max_positions: 10,
+            default_quantity: 0.05,
+            notifications: NotificationSettings {
+                email_alerts: false,
+                trade_notifications: true,
+                system_alerts: false,
+            },
+        };
+
+        assert!(!settings.trading_enabled);
+        assert!(matches!(settings.risk_level, RiskLevel::Low));
+        assert_eq!(settings.max_positions, 10);
+        assert_eq!(settings.default_quantity, 0.05);
+        assert!(!settings.notifications.email_alerts);
+        assert!(settings.notifications.trade_notifications);
+        assert!(!settings.notifications.system_alerts);
+    }
+
+    #[test]
+    fn test_risk_level_serialization() {
+        let low = RiskLevel::Low;
+        let medium = RiskLevel::Medium;
+        let high = RiskLevel::High;
+
+        let low_json = serde_json::to_string(&low).unwrap();
+        let medium_json = serde_json::to_string(&medium).unwrap();
+        let high_json = serde_json::to_string(&high).unwrap();
+
+        assert_eq!(low_json, "\"Low\"");
+        assert_eq!(medium_json, "\"Medium\"");
+        assert_eq!(high_json, "\"High\"");
+    }
+
+    #[test]
+    fn test_risk_level_deserialization() {
+        let low: RiskLevel = serde_json::from_str("\"Low\"").unwrap();
+        let medium: RiskLevel = serde_json::from_str("\"Medium\"").unwrap();
+        let high: RiskLevel = serde_json::from_str("\"High\"").unwrap();
+
+        assert!(matches!(low, RiskLevel::Low));
+        assert!(matches!(medium, RiskLevel::Medium));
+        assert!(matches!(high, RiskLevel::High));
+    }
 }

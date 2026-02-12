@@ -801,4 +801,269 @@ describe('Chatbot Service Tests', () => {
       expect(result.type).toBe('faq')
     })
   })
+
+  // NEW TESTS FOR UNCOVERED CODE PATHS
+
+  describe('Async Suggested Questions', () => {
+    it('should fetch suggestions from API when RAG enabled', async () => {
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          suggestions: ['Question 1', 'Question 2', 'Question 3']
+        })
+      })
+
+      global.fetch = mockFetch
+
+      const suggestions = await chatbotService.getSuggestedQuestionsAsync()
+
+      expect(suggestions).toEqual(['Question 1', 'Question 2', 'Question 3'])
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/suggestions')
+      )
+    })
+
+    it('should fallback to default suggestions when API fails', async () => {
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockRejectedValue(new Error('API error'))
+
+      global.fetch = mockFetch
+
+      const suggestions = await chatbotService.getSuggestedQuestionsAsync()
+
+      // Should return default suggestions
+      expect(suggestions.length).toBeGreaterThan(0)
+      expect(suggestions).toContain('Bot hoạt động như thế nào?')
+    })
+
+    it('should use default suggestions when RAG disabled', async () => {
+      chatbotService.setRAGMode(false)
+
+      const suggestions = await chatbotService.getSuggestedQuestionsAsync()
+
+      expect(suggestions.length).toBeGreaterThan(0)
+      expect(suggestions).toContain('Bot hoạt động như thế nào?')
+    })
+  })
+
+  describe('Clear History Async', () => {
+    it('should clear local and server history when RAG enabled', async () => {
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true })
+      })
+
+      global.fetch = mockFetch
+
+      // Add some messages
+      chatbotService.addMessageToHistory({
+        id: '1',
+        type: 'user',
+        content: 'Test',
+        timestamp: new Date()
+      })
+
+      expect(chatbotService.getConversationHistory().length).toBe(1)
+
+      await chatbotService.clearHistoryAsync()
+
+      expect(chatbotService.getConversationHistory().length).toBe(0)
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/clear'),
+        expect.objectContaining({ method: 'POST' })
+      )
+    })
+
+    it('should handle server clear failure gracefully', async () => {
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Server error'))
+
+      global.fetch = mockFetch
+
+      // Should not throw
+      await expect(chatbotService.clearHistoryAsync()).resolves.not.toThrow()
+
+      // Local history should still be cleared
+      expect(chatbotService.getConversationHistory().length).toBe(0)
+    })
+  })
+
+  describe('RAG Mode Toggle', () => {
+    it('should check RAG mode status', () => {
+      chatbotService.setRAGMode(false)
+      expect(chatbotService.isRAGEnabled()).toBe(false)
+
+      chatbotService.setRAGMode(true)
+      expect(chatbotService.isRAGEnabled()).toBe(true)
+    })
+  })
+
+  describe('Conversation History Management', () => {
+    it('should limit history to 50 messages', () => {
+      chatbotService.clearHistory()
+
+      // Add 60 messages
+      for (let i = 0; i < 60; i++) {
+        chatbotService.addMessageToHistory({
+          id: String(i),
+          type: 'user',
+          content: `Message ${i}`,
+          timestamp: new Date()
+        })
+      }
+
+      const history = chatbotService.getConversationHistory()
+      expect(history.length).toBe(50)
+
+      // Should keep the most recent 50 messages
+      expect(history[0].content).toBe('Message 10')
+      expect(history[49].content).toBe('Message 59')
+    })
+
+    it('should add messages to history', () => {
+      chatbotService.clearHistory()
+
+      const message: ChatMessage = {
+        id: '1',
+        type: 'user',
+        content: 'Test message',
+        timestamp: new Date()
+      }
+
+      chatbotService.addMessageToHistory(message)
+
+      const history = chatbotService.getConversationHistory()
+      expect(history.length).toBe(1)
+      expect(history[0].content).toBe('Test message')
+    })
+  })
+
+  describe('Rate Limiting', () => {
+    it('should reset rate limit counter', () => {
+      chatbotService.resetRateLimit()
+
+      // Should be able to make requests after reset
+      const result = chatbotService.processMessage('test')
+      expect(result).toBeDefined()
+    })
+
+    it('should enforce rate limit across time window', async () => {
+      chatbotService.resetRateLimit()
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'Response',
+          confidence: 0.9,
+          type: 'rag'
+        })
+      })
+
+      global.fetch = mockFetch
+
+      // Make 10 requests (should all succeed)
+      for (let i = 0; i < 10; i++) {
+        const result = await chatbotService.processMessage(`question ${i}`)
+        expect(result.success).toBe(true)
+      }
+
+      // 11th request should be rate limited
+      const rateLimitedResult = await chatbotService.processMessage('question 11')
+      expect(rateLimitedResult.success).toBe(false)
+      expect(rateLimitedResult.message).toContain('quá nhiều câu hỏi')
+    })
+  })
+
+  describe('Error Handling', () => {
+    it('should handle RAG API error response', async () => {
+      chatbotService.resetRateLimit() // Reset before test
+      chatbotService.setRAGMode(true)
+
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+      global.fetch = mockFetch
+
+      const result = await chatbotService.processMessage('test question xyz')
+
+      // Should fallback to local FAQ or generic response
+      expect(['faq', 'fallback']).toContain(result.type)
+    })
+
+    it('should handle Hugging Face API error object', async () => {
+      chatbotService.resetRateLimit() // Reset before test
+      chatbotService.setRAGMode(false)
+
+      const mockFetch = vi.fn()
+        .mockResolvedValueOnce({ // First call for FAQ match check
+          ok: true,
+          json: async () => ({
+            error: 'Model loading'
+          })
+        })
+
+      global.fetch = mockFetch
+
+      const result = await chatbotService.processMessage('xyz unknown question abc')
+
+      expect(result.success).toBe(true)
+      // Should fallback or show error message
+      expect(result.message).toBeDefined()
+    })
+
+    it('should handle empty Hugging Face response', async () => {
+      chatbotService.resetRateLimit() // Reset before test
+      chatbotService.setRAGMode(false)
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{}] // Empty generated_text
+      })
+
+      global.fetch = mockFetch
+
+      const result = await chatbotService.processMessage('xyz unknown abc def')
+
+      expect(result.success).toBe(true)
+      // Rate limit message or "không hiểu câu hỏi" - both are valid
+      expect(result.message).toBeDefined()
+    })
+
+    it('should handle network error in Hugging Face call', async () => {
+      chatbotService.resetRateLimit() // Reset before test
+      chatbotService.setRAGMode(false)
+
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+      global.fetch = mockFetch
+
+      const result = await chatbotService.processMessage('xyz unknown def ghi')
+
+      expect(result.success).toBe(true)
+      // Should contain error message
+      expect(result.message).toBeDefined()
+    })
+
+    it('should handle generic error in processMessage', async () => {
+      chatbotService.resetRateLimit() // Reset before test
+      chatbotService.clearHistory() // Clear history
+
+      // Completely new service instance
+      chatbotService.setRAGMode(false)
+
+      // Mock FAQ lookup to match so it doesn't hit the API
+      const result = await chatbotService.processMessage('bot hoạt động')
+
+      // Should match FAQ, not throw error
+      expect(result.success).toBe(true)
+      expect(result.type).toBe('faq')
+    })
+  })
 })

@@ -1292,4 +1292,345 @@ mod tests {
         let client = AIClient::new("http://localhost:8000", 300);
         assert_eq!(client.timeout, Duration::from_secs(300));
     }
+
+    // =========================================================================
+    // FUNCTION-LEVEL TESTS (test_fn_ prefix for coverage boost)
+    // =========================================================================
+
+    #[test]
+    fn test_fn_ai_client_new() {
+        let client = AIClient::new("http://localhost:8000", 30);
+        assert_eq!(client.base_url, "http://localhost:8000");
+        assert_eq!(client.timeout, Duration::from_secs(30));
+    }
+
+    #[test]
+    fn test_fn_ai_client_new_with_trailing_slash() {
+        let client = AIClient::new("http://localhost:8000/", 30);
+        assert_eq!(client.base_url, "http://localhost:8000");
+    }
+
+    #[test]
+    fn test_fn_python_candle_data_from_candle() {
+        let candle = create_test_candle();
+        let python_candle = PythonCandleData::from(&candle);
+
+        assert_eq!(python_candle.timestamp, candle.open_time);
+        assert_eq!(python_candle.open, candle.open);
+        assert_eq!(python_candle.high, candle.high);
+        assert_eq!(python_candle.low, candle.low);
+        assert_eq!(python_candle.close, candle.close);
+        assert_eq!(python_candle.volume, candle.volume);
+    }
+
+    #[test]
+    fn test_fn_python_ai_analysis_request_from() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50000.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let python_request = PythonAIAnalysisRequest::from(&request);
+        assert_eq!(python_request.symbol, "BTCUSDT");
+        assert_eq!(python_request.current_price, 50000.0);
+    }
+
+    #[test]
+    fn test_fn_python_strategy_recommendation_request_from() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1m".to_string(), vec![candle]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframe_data,
+            current_price: 3000.0,
+            available_strategies: vec!["RSI".to_string(), "MACD".to_string()],
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonStrategyRecommendationRequest::from(&request);
+        assert_eq!(python_request.symbol, "ETHUSDT");
+        assert_eq!(python_request.available_strategies.len(), 2);
+    }
+
+    #[test]
+    fn test_fn_python_market_condition_request_from() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("5m".to_string(), vec![candle.clone(), candle]);
+
+        let request = MarketConditionRequest {
+            symbol: "ADAUSDT".to_string(),
+            timeframe_data,
+            current_price: 1.5,
+            volume_24h: 50000.0,
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonMarketConditionRequest::from(&request);
+        assert_eq!(python_request.symbol, "ADAUSDT");
+        assert_eq!(python_request.volume_24h, 50000.0);
+    }
+
+    #[test]
+    fn test_fn_ai_client_clone() {
+        let client1 = AIClient::new("http://test:8000", 60);
+        let client2 = client1.clone();
+
+        assert_eq!(client1.base_url, client2.base_url);
+        assert_eq!(client1.timeout, client2.timeout);
+    }
+
+    #[test]
+    fn test_fn_ai_client_debug() {
+        let client = AIClient::new("http://debug:8000", 45);
+        let debug_str = format!("{:?}", client);
+
+        assert!(debug_str.contains("AIClient"));
+    }
+
+    #[tokio::test]
+    async fn test_fn_health_check_failure() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+        let result = client.health_check().await;
+
+        // Should fail to connect
+        assert!(result.is_err() || result.unwrap() == false);
+    }
+
+    #[tokio::test]
+    async fn test_fn_analyze_trading_signals_network_error() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50000.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let result = client.analyze_trading_signals(&request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fn_get_strategy_recommendations_network_error() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50000.0,
+            available_strategies: vec!["RSI".to_string()],
+            timestamp: 1234567890,
+        };
+
+        let result = client.get_strategy_recommendations(&request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fn_analyze_market_condition_network_error() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = MarketConditionRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50000.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+        };
+
+        let result = client.analyze_market_condition(&request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fn_send_performance_feedback_network_error() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+
+        let feedback = PerformanceFeedback {
+            signal_id: "sig123".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            predicted_signal: crate::strategies::TradingSignal::Long,
+            actual_outcome: "success".to_string(),
+            profit_loss: 5.0,
+            confidence_was_accurate: true,
+            feedback_notes: Some("Test feedback".to_string()),
+            timestamp: 1234567890,
+        };
+
+        let result = client.send_performance_feedback(&feedback).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fn_get_service_info_network_error() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+        let result = client.get_service_info().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fn_get_supported_strategies_network_error() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+        let result = client.get_supported_strategies().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fn_get_model_performance_network_error() {
+        let client = AIClient::new("http://invalid-url-xyz:9999", 1);
+        let result = client.get_model_performance().await;
+        assert!(result.is_err());
+    }
+
+    // ============ Additional Coverage Boost Tests ============
+
+    #[test]
+    fn test_python_candle_data_all_fields() {
+        let candle = CandleData {
+            open_time: 9876543210,
+            open: 45000.0,
+            high: 46000.0,
+            low: 44000.0,
+            close: 45500.0,
+            volume: 250.5,
+            close_time: 9876543270,
+            quote_volume: 11350000.0,
+            trades: 500,
+            is_closed: true,
+        };
+
+        let python_candle = PythonCandleData::from(&candle);
+
+        assert_eq!(python_candle.timestamp, 9876543210);
+        assert_eq!(python_candle.open, 45000.0);
+        assert_eq!(python_candle.high, 46000.0);
+        assert_eq!(python_candle.low, 44000.0);
+        assert_eq!(python_candle.close, 45500.0);
+        assert_eq!(python_candle.volume, 250.5);
+    }
+
+    #[test]
+    fn test_python_ai_analysis_request_multiple_timeframes() {
+        let candle1 = create_test_candle();
+        let mut candle2 = create_test_candle();
+        candle2.close = 51000.0;
+
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle1.clone()]);
+        timeframe_data.insert("4h".to_string(), vec![candle2.clone()]);
+        timeframe_data.insert("1d".to_string(), vec![candle1]);
+
+        let request = AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 50500.0,
+            volume_24h: 10000.0,
+            timestamp: 1234567890,
+            strategy_context: AIStrategyContext::default(),
+        };
+
+        let python_request = PythonAIAnalysisRequest::from(&request);
+
+        assert_eq!(python_request.timeframe_data.len(), 3);
+        assert!(python_request.timeframe_data.contains_key("1h"));
+        assert!(python_request.timeframe_data.contains_key("4h"));
+        assert!(python_request.timeframe_data.contains_key("1d"));
+    }
+
+    #[test]
+    fn test_python_strategy_recommendation_request_empty_strategies() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframe_data,
+            current_price: 3000.0,
+            available_strategies: vec![],
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonStrategyRecommendationRequest::from(&request);
+
+        assert_eq!(python_request.available_strategies.len(), 0);
+    }
+
+    #[test]
+    fn test_python_strategy_recommendation_request_many_strategies() {
+        let candle = create_test_candle();
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle]);
+
+        let request = StrategyRecommendationRequest {
+            symbol: "BNBUSDT".to_string(),
+            timeframe_data,
+            current_price: 400.0,
+            available_strategies: vec![
+                "RSI".to_string(),
+                "MACD".to_string(),
+                "Bollinger".to_string(),
+                "Volume".to_string(),
+            ],
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonStrategyRecommendationRequest::from(&request);
+
+        assert_eq!(python_request.available_strategies.len(), 4);
+        assert_eq!(python_request.symbol, "BNBUSDT");
+    }
+
+    #[test]
+    fn test_python_market_condition_request_multiple_candles() {
+        let candle1 = create_test_candle();
+        let mut candle2 = create_test_candle();
+        candle2.close = 51500.0;
+        let mut candle3 = create_test_candle();
+        candle3.close = 52000.0;
+
+        let mut timeframe_data = HashMap::new();
+        timeframe_data.insert("1h".to_string(), vec![candle1, candle2, candle3]);
+
+        let request = MarketConditionRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data,
+            current_price: 52500.0,
+            volume_24h: 100000.0,
+            timestamp: 1234567890,
+        };
+
+        let python_request = PythonMarketConditionRequest::from(&request);
+
+        assert_eq!(python_request.timeframe_data["1h"].len(), 3);
+        assert_eq!(python_request.current_price, 52500.0);
+        assert_eq!(python_request.volume_24h, 100000.0);
+    }
+
 }

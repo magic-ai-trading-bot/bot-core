@@ -221,4 +221,231 @@ describe('useTradingApi', () => {
     expect(result.current.clearError).toBeDefined()
     expect(typeof result.current.clearError).toBe('function')
   })
+
+  describe('Validation Errors', () => {
+    it('throws error when symbol is empty', async () => {
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: '',
+            side: 'BUY',
+            quantity: 0.01,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Symbol is required')
+    })
+
+    it('throws error when side is invalid', async () => {
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'INVALID' as any,
+            quantity: 0.01,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Side must be either BUY or SELL')
+    })
+
+    it('throws error when quantity is zero', async () => {
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'BUY',
+            quantity: 0,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Quantity must be greater than 0')
+    })
+
+    it('throws error when quantity is negative', async () => {
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'BUY',
+            quantity: -1,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Quantity must be greater than 0')
+    })
+
+    it('throws error when limit order has no price', async () => {
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'BUY',
+            quantity: 0.01,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Price is required for limit orders')
+    })
+
+    it('throws error when limit order has zero price', async () => {
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'BUY',
+            quantity: 0.01,
+            price: 0,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Price is required for limit orders')
+    })
+  })
+
+  describe('API Error Handling', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+    })
+
+    it('handles API error response', async () => {
+      const { apiClient } = await import('@/services/api')
+      apiClient.rust.client.post = vi.fn().mockRejectedValue({
+        response: {
+          data: {
+            error: 'Insufficient funds'
+          }
+        }
+      })
+
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'BUY',
+            quantity: 0.01,
+            price: 50000,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Insufficient funds')
+
+      // Just check that the error was thrown - error state may be cleared by finally block
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it('handles generic error message', async () => {
+      const { apiClient } = await import('@/services/api')
+      apiClient.rust.client.post = vi.fn().mockRejectedValue({
+        message: 'Network error'
+      })
+
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'BUY',
+            quantity: 0.01,
+            price: 50000,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Network error')
+
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it('handles unknown error', async () => {
+      const { apiClient } = await import('@/services/api')
+      apiClient.rust.client.post = vi.fn().mockRejectedValue({})
+
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      await expect(async () => {
+        await act(async () => {
+          await result.current.executeTrade({
+            symbol: 'BTCUSDT',
+            side: 'BUY',
+            quantity: 0.01,
+            price: 50000,
+            type: 'limit'
+          })
+        })
+      }).rejects.toThrow('Failed to execute trade')
+
+      expect(result.current.isLoading).toBe(false)
+    })
+  })
+
+  describe('clearError', () => {
+    it('clears error state', async () => {
+      const { result } = renderHook(() => useTradingApi())
+
+      await waitFor(() => {
+        expect(result.current).not.toBeNull()
+      })
+
+      // Initial error should be null
+      expect(result.current.error).toBeNull()
+
+      // clearError should work without throwing
+      act(() => {
+        result.current.clearError()
+      })
+
+      expect(result.current.error).toBeNull()
+    })
+  })
 })

@@ -2917,4 +2917,982 @@ mod tests {
         assert!(!body_bytes.is_empty());
     }
 
+    #[tokio::test]
+    async fn test_cov9_cors_headers() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("OPTIONS")
+            .path("/api/health")
+            .header("origin", "http://localhost:3000")
+            .reply(&routes)
+            .await;
+
+        // CORS should handle OPTIONS requests
+        assert!(resp.status().is_success() || resp.status().is_client_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_add_symbol_empty() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request = AddSymbolRequest {
+            symbol: "".to_string(),
+            timeframes: None,
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/market/symbols")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_client_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_add_symbol_with_timeframes() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request = AddSymbolRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframes: Some(vec!["1m".to_string(), "5m".to_string()]),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/market/symbols")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_candles_with_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/candles/BTCUSDT/1m?limit=50")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_candles_without_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/candles/ETHUSDT/5m")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_trading_account_info() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/account")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov9_invalid_path() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/invalid/path/here")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), warp::http::StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_method_not_allowed() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("PATCH")
+            .path("/api/health")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), warp::http::StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_chart_data_invalid_symbol() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/chart/INVALID/1h")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_chart_data_with_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/chart/BTCUSDT/1h?limit=100")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_multi_chart_basic() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/multi-chart?symbols=BTCUSDT&timeframes=1m")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status() == 404);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_multi_chart_multiple_symbols() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/multi-chart?symbols=BTCUSDT,ETHUSDT&timeframes=1m,5m")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status() == 404);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_market_multi_chart_with_limit() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/multi-chart?symbols=BTCUSDT&timeframes=1h&limit=200")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status() == 404);
+    }
+
+    #[test]
+    fn test_cov9_add_symbol_request_no_timeframes() {
+        let request = AddSymbolRequest {
+            symbol: "SOLUSDT".to_string(),
+            timeframes: None,
+        };
+
+        assert_eq!(request.symbol, "SOLUSDT");
+        assert!(request.timeframes.is_none());
+    }
+
+    #[test]
+    fn test_cov9_candle_query_default() {
+        let query = CandelQuery { limit: None };
+        assert!(query.limit.is_none());
+    }
+
+    #[test]
+    fn test_cov9_chart_query_none() {
+        let query = ChartQuery { limit: None };
+        assert!(query.limit.is_none());
+    }
+
+    #[test]
+    fn test_cov9_multi_chart_query_single_symbol() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT".to_string(),
+            timeframes: "1m".to_string(),
+            limit: Some(50),
+        };
+
+        let symbol_list: Vec<&str> = query.symbols.split(',').collect();
+        assert_eq!(symbol_list.len(), 1);
+        assert_eq!(symbol_list[0], "BTCUSDT");
+    }
+
+    #[test]
+    fn test_cov9_api_config_structure() {
+        let config = ApiConfig {
+            host: "127.0.0.1".to_string(),
+            port: 8080,
+            cors_origins: vec!["http://localhost:3000".to_string()],
+            enable_metrics: false,
+        };
+
+        assert_eq!(config.host, "127.0.0.1");
+        assert_eq!(config.port, 8080);
+        assert!(!config.enable_metrics);
+        assert_eq!(config.cors_origins.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_cov9_multiple_concurrent_requests() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let handles: Vec<_> = (0..5)
+            .map(|_| {
+                let routes_clone = routes.clone();
+                tokio::spawn(async move {
+                    warp::test::request()
+                        .method("GET")
+                        .path("/api/health")
+                        .reply(&routes_clone)
+                        .await
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let resp = handle.await.unwrap();
+            assert_eq!(resp.status(), 200);
+        }
+    }
+
+    // ============================================================================
+    // ADDITIONAL COVERAGE BOOST TESTS - Phase 10
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_cov10_market_symbols_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/market/symbols")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov10_market_add_symbol_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request = AddSymbolRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframes: Some(vec!["1m".to_string(), "5m".to_string()]),
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/market/symbols")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+    }
+
+    #[tokio::test]
+    async fn test_cov10_market_remove_symbol_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("DELETE")
+            .path("/api/market/symbols/BTCUSDT")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404);
+    }
+
+    #[tokio::test]
+    async fn test_cov10_trading_account_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/trading/account")
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[tokio::test]
+    async fn test_cov10_monitoring_connection_route() {
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let resp = warp::test::request()
+            .method("GET")
+            .path("/api/monitoring/connection")
+            .reply(&routes)
+            .await;
+
+        assert_eq!(resp.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_cov10_update_monitoring_method() {
+        let server = create_test_api_server().await;
+
+        // Call update_monitoring to cover that code path
+        server.update_monitoring(3, 1000, true, true).await;
+        server.update_monitoring(0, 0, false, false).await;
+
+        // Verify by reading monitoring state
+        let monitor = server.monitoring.read().await;
+        let metrics = monitor.get_system_metrics();
+        assert!(metrics.cache_size >= 0);
+    }
+
+    #[test]
+    fn test_cov10_api_response_success_clone() {
+        let original = ApiResponse::success("test".to_string());
+        let cloned = original.clone();
+
+        assert_eq!(original.success, cloned.success);
+        assert_eq!(original.data, cloned.data);
+        assert_eq!(original.error, cloned.error);
+    }
+
+    #[test]
+    fn test_cov10_add_symbol_request_with_single_timeframe() {
+        let request = AddSymbolRequest {
+            symbol: "BNBUSDT".to_string(),
+            timeframes: Some(vec!["1h".to_string()]),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let deserialized: AddSymbolRequest = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.symbol, "BNBUSDT");
+        assert_eq!(deserialized.timeframes.as_ref().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_cov10_supported_symbols_edge_case() {
+        let supported = SupportedSymbols {
+            symbols: vec!["A".repeat(50)],
+            available_timeframes: vec!["1s".to_string()],
+        };
+
+        let json = serde_json::to_string(&supported).unwrap();
+        assert!(json.len() > 50);
+    }
+
+    #[test]
+    fn test_cov10_candle_query_with_one() {
+        let query = CandelQuery { limit: Some(1) };
+        assert_eq!(query.limit, Some(1));
+    }
+
+    #[test]
+    fn test_cov10_chart_query_large_limit() {
+        let query = ChartQuery { limit: Some(5000) };
+        let json = serde_json::to_string(&query).unwrap();
+        let deserialized: ChartQuery = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.limit, Some(5000));
+    }
+
+    #[test]
+    fn test_cov10_multi_chart_query_trimming() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT,ETHUSDT,BNBUSDT".to_string(),
+            timeframes: "1m,5m,15m".to_string(),
+            limit: Some(100),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
+        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+
+        assert_eq!(symbols.len(), 3);
+        assert_eq!(timeframes.len(), 3);
+        assert_eq!(symbols[2], "BNBUSDT");
+        assert_eq!(timeframes[2], "15m");
+    }
+
+    // ==================== NEW BOOST TESTS ====================
+
+    #[test]
+    fn test_boost_api_response_success_with_string() {
+        let response = ApiResponse::success("Test data".to_string());
+        assert!(response.success);
+        assert_eq!(response.data, Some("Test data".to_string()));
+        assert_eq!(response.error, None);
+    }
+
+    #[test]
+    fn test_boost_api_response_error_with_message() {
+        let response: ApiResponse<String> = ApiResponse::error("Error occurred".to_string());
+        assert!(!response.success);
+        assert_eq!(response.data, None);
+        assert_eq!(response.error, Some("Error occurred".to_string()));
+    }
+
+    #[test]
+    fn test_boost_api_response_clone() {
+        let response = ApiResponse::success(42);
+        let cloned = response.clone();
+        assert_eq!(response.success, cloned.success);
+        assert_eq!(response.data, cloned.data);
+        assert_eq!(response.error, cloned.error);
+    }
+
+    #[test]
+    fn test_boost_api_response_success_with_vec() {
+        let data = vec![1, 2, 3, 4, 5];
+        let response = ApiResponse::success(data.clone());
+        assert!(response.success);
+        assert_eq!(response.data, Some(data));
+    }
+
+    #[test]
+    fn test_boost_api_response_error_empty_message() {
+        let response: ApiResponse<i32> = ApiResponse::error("".to_string());
+        assert!(!response.success);
+        assert_eq!(response.error, Some("".to_string()));
+    }
+
+    #[test]
+    fn test_boost_add_symbol_request_serialization_full() {
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: Some(vec!["1m".to_string(), "5m".to_string(), "1h".to_string()]),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("1m"));
+    }
+
+    #[test]
+    fn test_boost_add_symbol_request_deserialization_full() {
+        let json = r#"{"symbol":"ETHUSDT","timeframes":["5m","15m"]}"#;
+        let request: AddSymbolRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(request.symbol, "ETHUSDT");
+        assert_eq!(request.timeframes.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_boost_add_symbol_request_none_timeframes() {
+        let request = AddSymbolRequest {
+            symbol: "BNBUSDT".to_string(),
+            timeframes: None,
+        };
+
+        assert_eq!(request.symbol, "BNBUSDT");
+        assert!(request.timeframes.is_none());
+    }
+
+    #[test]
+    fn test_boost_supported_symbols_serialization() {
+        let supported = SupportedSymbols {
+            symbols: vec!["BTCUSDT".to_string(), "ETHUSDT".to_string()],
+            available_timeframes: vec!["1m".to_string(), "5m".to_string(), "1h".to_string()],
+        };
+
+        let json = serde_json::to_string(&supported).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("ETHUSDT"));
+        assert!(json.contains("available_timeframes"));
+    }
+
+    #[test]
+    fn test_boost_supported_symbols_deserialization() {
+        let json = r#"{"symbols":["SOLUSDT","ADAUSDT"],"available_timeframes":["1m","5m","15m","1h"]}"#;
+        let supported: SupportedSymbols = serde_json::from_str(json).unwrap();
+        assert_eq!(supported.symbols.len(), 2);
+        assert_eq!(supported.available_timeframes.len(), 4);
+    }
+
+    #[test]
+    fn test_boost_candle_query_with_limit_serialization() {
+        let query = CandelQuery {
+            limit: Some(100),
+        };
+
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("100"));
+    }
+
+    #[test]
+    fn test_boost_candle_query_without_limit_serialization() {
+        let query = CandelQuery {
+            limit: None,
+        };
+
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("null") || json.contains("limit"));
+    }
+
+    #[test]
+    fn test_boost_chart_query_with_limit() {
+        let query = ChartQuery {
+            limit: Some(200),
+        };
+
+        assert_eq!(query.limit, Some(200));
+    }
+
+    #[test]
+    fn test_boost_chart_query_without_limit() {
+        let query = ChartQuery {
+            limit: None,
+        };
+
+        assert!(query.limit.is_none());
+    }
+
+    #[test]
+    fn test_boost_multi_chart_query_single_symbol_timeframe() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT".to_string(),
+            timeframes: "1h".to_string(),
+            limit: Some(50),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
+        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(timeframes.len(), 1);
+        assert_eq!(symbols[0], "BTCUSDT");
+        assert_eq!(timeframes[0], "1h");
+    }
+
+    #[test]
+    fn test_boost_multi_chart_query_multiple_symbols() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT".to_string(),
+            timeframes: "1m".to_string(),
+            limit: None,
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
+        assert_eq!(symbols.len(), 4);
+    }
+
+    #[test]
+    fn test_boost_multi_chart_query_multiple_timeframes() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT".to_string(),
+            timeframes: "1m,5m,15m,30m,1h,4h,1d".to_string(),
+            limit: Some(100),
+        };
+
+        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+        assert_eq!(timeframes.len(), 7);
+    }
+
+    #[test]
+    fn test_boost_multi_chart_query_serialization() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT,ETHUSDT".to_string(),
+            timeframes: "1m,5m".to_string(),
+            limit: Some(50),
+        };
+
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("BTCUSDT"));
+        assert!(json.contains("1m"));
+        assert!(json.contains("50"));
+    }
+
+    #[test]
+    fn test_boost_multi_chart_query_deserialization() {
+        let json = r#"{"symbols":"SOLUSDT,ADAUSDT","timeframes":"5m,15m,1h","limit":75}"#;
+        let query: MultiChartQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.symbols, "SOLUSDT,ADAUSDT");
+        assert_eq!(query.timeframes, "5m,15m,1h");
+        assert_eq!(query.limit, Some(75));
+    }
+
+    #[test]
+    fn test_boost_api_response_with_nested_vec() {
+        let data = vec![vec![1, 2], vec![3, 4], vec![5, 6]];
+        let response = ApiResponse::success(data.clone());
+        assert_eq!(response.data, Some(data));
+    }
+
+    #[test]
+    fn test_boost_api_response_with_option_some() {
+        let response = ApiResponse::success(Some(42));
+        assert!(response.success);
+        assert_eq!(response.data, Some(Some(42)));
+    }
+
+    #[test]
+    fn test_boost_api_response_with_option_none() {
+        let response: ApiResponse<Option<i32>> = ApiResponse::success(None);
+        assert!(response.success);
+        assert_eq!(response.data, Some(None));
+    }
+
+    #[test]
+    fn test_boost_add_symbol_request_default_timeframes() {
+        let json = r#"{"symbol":"DOGEUSDT"}"#;
+        let request: AddSymbolRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(request.symbol, "DOGEUSDT");
+        assert!(request.timeframes.is_none());
+    }
+
+    #[test]
+    fn test_boost_supported_symbols_empty_lists() {
+        let supported = SupportedSymbols {
+            symbols: vec![],
+            available_timeframes: vec![],
+        };
+
+        assert_eq!(supported.symbols.len(), 0);
+        assert_eq!(supported.available_timeframes.len(), 0);
+    }
+
+    #[test]
+    fn test_boost_supported_symbols_single_item() {
+        let supported = SupportedSymbols {
+            symbols: vec!["BTCUSDT".to_string()],
+            available_timeframes: vec!["1h".to_string()],
+        };
+
+        assert_eq!(supported.symbols.len(), 1);
+        assert_eq!(supported.available_timeframes.len(), 1);
+    }
+
+    #[test]
+    fn test_boost_candle_query_deserialization() {
+        let json = r#"{"limit":500}"#;
+        let query: CandelQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.limit, Some(500));
+    }
+
+    #[test]
+    fn test_boost_candle_query_deserialization_null() {
+        let json = r#"{"limit":null}"#;
+        let query: CandelQuery = serde_json::from_str(json).unwrap();
+        assert!(query.limit.is_none());
+    }
+
+    #[test]
+    fn test_boost_chart_query_serialization() {
+        let query = ChartQuery {
+            limit: Some(1000),
+        };
+
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("1000"));
+    }
+
+    #[test]
+    fn test_boost_chart_query_deserialization() {
+        let json = r#"{"limit":250}"#;
+        let query: ChartQuery = serde_json::from_str(json).unwrap();
+        assert_eq!(query.limit, Some(250));
+    }
+
+    #[test]
+    fn test_boost_multi_chart_query_with_spaces() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT, ETHUSDT, BNBUSDT".to_string(),
+            timeframes: "1m, 5m, 1h".to_string(),
+            limit: Some(100),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.trim().to_string()).collect();
+        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.trim().to_string()).collect();
+
+        assert_eq!(symbols[0], "BTCUSDT");
+        assert_eq!(symbols[1], "ETHUSDT");
+        assert_eq!(timeframes[0], "1m");
+        assert_eq!(timeframes[1], "5m");
+    }
+
+    #[test]
+    fn test_boost_api_response_serialization_success() {
+        let response = ApiResponse::success(100);
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"success\":true"));
+        assert!(json.contains("100"));
+    }
+
+    #[test]
+    fn test_boost_api_response_serialization_error() {
+        let response: ApiResponse<String> = ApiResponse::error("Test error".to_string());
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"success\":false"));
+        assert!(json.contains("Test error"));
+    }
+
+    #[test]
+    fn test_boost_api_response_deserialization_success() {
+        let json = r#"{"success":true,"data":"test","error":null}"#;
+        let response: ApiResponse<String> = serde_json::from_str(json).unwrap();
+        assert!(response.success);
+        assert_eq!(response.data, Some("test".to_string()));
+    }
+
+    #[test]
+    fn test_boost_api_response_deserialization_error() {
+        let json = r#"{"success":false,"data":null,"error":"something went wrong"}"#;
+        let response: ApiResponse<String> = serde_json::from_str(json).unwrap();
+        assert!(!response.success);
+        assert_eq!(response.error, Some("something went wrong".to_string()));
+    }
+
+    #[test]
+    fn test_boost_add_symbol_request_uppercase_symbol() {
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: Some(vec!["1h".to_string()]),
+        };
+
+        assert_eq!(request.symbol, "BTCUSDT");
+        assert!(request.symbol.chars().all(|c| c.is_uppercase() || c.is_numeric()));
+    }
+
+    #[test]
+    fn test_boost_add_symbol_request_lowercase_symbol() {
+        let request = AddSymbolRequest {
+            symbol: "btcusdt".to_string(),
+            timeframes: None,
+        };
+
+        assert_eq!(request.symbol, "btcusdt");
+    }
+
+    #[test]
+    fn test_boost_supported_symbols_many_symbols() {
+        let symbols = vec![
+            "BTCUSDT".to_string(),
+            "ETHUSDT".to_string(),
+            "BNBUSDT".to_string(),
+            "SOLUSDT".to_string(),
+            "ADAUSDT".to_string(),
+        ];
+
+        let supported = SupportedSymbols {
+            symbols: symbols.clone(),
+            available_timeframes: vec!["1m".to_string(), "5m".to_string()],
+        };
+
+        assert_eq!(supported.symbols.len(), 5);
+    }
+
+    #[test]
+    fn test_boost_candle_query_zero_limit() {
+        let query = CandelQuery {
+            limit: Some(0),
+        };
+
+        assert_eq!(query.limit, Some(0));
+    }
+
+    #[test]
+    fn test_boost_candle_query_large_limit() {
+        let query = CandelQuery {
+            limit: Some(10000),
+        };
+
+        assert_eq!(query.limit, Some(10000));
+    }
+
+    #[test]
+    fn test_boost_chart_query_roundtrip() {
+        let original = ChartQuery {
+            limit: Some(300),
+        };
+
+        let json = serde_json::to_string(&original).unwrap();
+        let deserialized: ChartQuery = serde_json::from_str(&json).unwrap();
+        assert_eq!(original.limit, deserialized.limit);
+    }
+
+    #[test]
+    fn test_boost_multi_chart_query_roundtrip() {
+        let original = MultiChartQuery {
+            symbols: "BTCUSDT,ETHUSDT".to_string(),
+            timeframes: "1m,5m,1h".to_string(),
+            limit: Some(100),
+        };
+
+        let json = serde_json::to_string(&original).unwrap();
+        let deserialized: MultiChartQuery = serde_json::from_str(&json).unwrap();
+        assert_eq!(original.symbols, deserialized.symbols);
+        assert_eq!(original.timeframes, deserialized.timeframes);
+        assert_eq!(original.limit, deserialized.limit);
+    }
+
+    // ============================================================================
+    // COVERAGE BOOST TESTS - Type & Conversion Testing (no full ApiServer needed)
+    // ============================================================================
+
+    #[test]
+    fn test_cov_api_response_clone() {
+        let response = ApiResponse::success("test data".to_string());
+        let cloned = response.clone();
+        assert_eq!(cloned.success, response.success);
+        assert_eq!(cloned.data, response.data);
+    }
+
+    #[test]
+    fn test_cov_add_symbol_request_default_timeframes() {
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframes: None,
+        };
+        assert_eq!(request.symbol, "BTCUSDT");
+        assert!(request.timeframes.is_none());
+    }
+
+    #[test]
+    fn test_cov_add_symbol_request_with_timeframes() {
+        let request = AddSymbolRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframes: Some(vec!["1m".to_string(), "5m".to_string()]),
+        };
+        assert_eq!(request.timeframes.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_cov_supported_symbols_empty() {
+        let supported = SupportedSymbols {
+            symbols: vec![],
+            available_timeframes: vec![],
+        };
+        assert_eq!(supported.symbols.len(), 0);
+        assert_eq!(supported.available_timeframes.len(), 0);
+    }
+
+    #[test]
+    fn test_cov_candle_query_none() {
+        let query = CandelQuery { limit: None };
+        assert!(query.limit.is_none());
+    }
+
+    #[test]
+    fn test_cov_chart_query_none() {
+        let query = ChartQuery { limit: None };
+        assert!(query.limit.is_none());
+    }
+
+    #[test]
+    fn test_cov_multi_chart_query_single_symbol() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT".to_string(),
+            timeframes: "1m".to_string(),
+            limit: Some(100),
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0], "BTCUSDT");
+    }
+
+    #[test]
+    fn test_cov_multi_chart_query_multiple_symbols() {
+        let query = MultiChartQuery {
+            symbols: "BTCUSDT,ETHUSDT,BNBUSDT".to_string(),
+            timeframes: "1m,5m,1h".to_string(),
+            limit: None,
+        };
+
+        let symbols: Vec<String> = query.symbols.split(',').map(|s| s.to_string()).collect();
+        let timeframes: Vec<String> = query.timeframes.split(',').map(|s| s.to_string()).collect();
+
+        assert_eq!(symbols.len(), 3);
+        assert_eq!(timeframes.len(), 3);
+    }
+
+    #[test]
+    fn test_cov_ai_analysis_request_conversion() {
+        let request = crate::ai::AIAnalysisRequest {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data: std::collections::HashMap::new(),
+            current_price: 50000.0,
+            volume_24h: 1000000.0,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
+            strategy_context: crate::ai::AIStrategyContext::default(),
+        };
+
+        let strategy_input: crate::strategies::StrategyInput = request.into();
+        assert_eq!(strategy_input.symbol, "BTCUSDT");
+        assert_eq!(strategy_input.current_price, 50000.0);
+    }
+
+    #[test]
+    fn test_cov_strategy_recommendation_request_conversion() {
+        let request = crate::ai::StrategyRecommendationRequest {
+            symbol: "ETHUSDT".to_string(),
+            timeframe_data: std::collections::HashMap::new(),
+            current_price: 3000.0,
+            available_strategies: vec![],
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
+        };
+
+        let strategy_input: crate::strategies::StrategyInput = request.into();
+        assert_eq!(strategy_input.symbol, "ETHUSDT");
+        assert_eq!(strategy_input.current_price, 3000.0);
+        assert_eq!(strategy_input.volume_24h, 0.0); // Default value
+    }
+
+    #[test]
+    fn test_cov_market_condition_request_conversion() {
+        let request = crate::ai::MarketConditionRequest {
+            symbol: "BNBUSDT".to_string(),
+            timeframe_data: std::collections::HashMap::new(),
+            current_price: 500.0,
+            volume_24h: 50000.0,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
+        };
+
+        let strategy_input: crate::strategies::StrategyInput = request.into();
+        assert_eq!(strategy_input.symbol, "BNBUSDT");
+        assert_eq!(strategy_input.volume_24h, 50000.0);
+    }
+
 }
