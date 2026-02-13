@@ -53,6 +53,9 @@ jobs:
     - name: Run Trivy vulnerability scanner for Docker images
       if: github.event_name == 'push'
       run: |
+        # Copy root lockfile to frontend directory for reproducible Docker builds
+        cp bun.lock nextjs-ui-dashboard/bun.lock 2>/dev/null || true
+
         # Build images first (use CI Dockerfile for Python to save memory/time)
         docker build -t rust-core-engine ./rust-core-engine
         docker build -f python-ai-service/Dockerfile.ci -t python-ai-service ./python-ai-service

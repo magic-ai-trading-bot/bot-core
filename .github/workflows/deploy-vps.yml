@@ -258,6 +258,9 @@ jobs:
           # ============================================================================
           log_info "🔨 Step 8: Building application images (sequential to save disk)..."
 
+          # Copy root lockfile to frontend directory for Docker builds
+          cp bun.lock nextjs-ui-dashboard/bun.lock 2>/dev/null || true
+
           # Build one at a time and prune builder cache between builds
           # Frontend is smallest, build first
           log_info "Building nextjs-ui-dashboard..."

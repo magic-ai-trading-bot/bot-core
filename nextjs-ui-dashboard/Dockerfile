@@ -1,17 +1,14 @@
 # Multi-stage build for optimized React application with Bun
-FROM oven/bun:1.1.45 AS builder
+FROM oven/bun:1.2 AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lockb* ./
+# Copy package files and lockfile (lockfile copied from repo root by CI/deploy scripts)
+COPY package.json bun.lock* bun.lockb* ./
 
-# Install dependencies with all optional dependencies
-RUN bun install
-
-# Update dependencies to get security patches
-RUN bun update esbuild || true
+# Install dependencies
+RUN bun install --frozen-lockfile || bun install
 
 # Add missing rollup dependencies for ARM64
 RUN bun add -D @rollup/rollup-linux-arm64-gnu @rollup/rollup-linux-arm64-musl || true
@@ -23,7 +20,7 @@ COPY . .
 RUN bun run build
 
 # Production stage
-FROM oven/bun:1.1.45-alpine
+FROM oven/bun:1.2-alpine
 
 # Update system packages for security patches and install curl for health checks
 RUN apk update && apk upgrade && apk add --no-cache curl
@@ -57,4 +54,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/ || exit 1
 
 # Serve the built application using Vite preview
-CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "3000"] 
+CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "3000"]
