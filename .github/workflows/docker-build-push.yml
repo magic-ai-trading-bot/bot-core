@@ -96,6 +96,10 @@ jobs:
           echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ'))" >> $GITHUB_OUTPUT
 
+      - name: Copy lockfile for frontend Docker build
+        if: matrix.service == 'nextjs-ui-dashboard'
+        run: cp bun.lock nextjs-ui-dashboard/bun.lock 2>/dev/null || true
+
       - name: Determine Dockerfile to use
         id: dockerfile
         run: |

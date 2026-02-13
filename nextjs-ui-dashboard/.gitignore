@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Lockfile (workspace lockfile is at repo root, subdirectory copy is for Docker builds only)
+bun.lock
+bun.lockb
+
 # Build output
 dist/
 build/
