@@ -18,9 +18,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy requirements first for better layer caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with security updates
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools jaraco.context && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir --upgrade wheel jaraco.context
 
 # Runtime stage
 FROM python:3.11.11-slim-bookworm
