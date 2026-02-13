@@ -491,7 +491,8 @@ async def lifespan(app: FastAPI):
             pass  # Expected during shutdown
         except Exception as e:
             task_name = task.get_name()
-            logger.error(f"❌ Background task '{task_name}' failed: {e}", exc_info=True)
+            # Log with full traceback to internal logs only (not exposed to clients)
+            logger.error(f"❌ Background task '{task_name}' failed: {type(e).__name__}", exc_info=False)
             # TODO: Add notification system to alert on critical task failures
 
     # Start background settings refresh task (every 5 minutes)

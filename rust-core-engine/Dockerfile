@@ -32,11 +32,12 @@ RUN touch src/main.rs && cargo build --release
 FROM debian:bookworm-slim
 
 # Install runtime dependencies (including curl for healthcheck)
-# Run apt-get upgrade to install security patches for CVEs
+# Run apt-get upgrade to install security patches for CVEs (glibc, zlib, openldap)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     ca-certificates \
     libssl3 \
     curl \
+    zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user
