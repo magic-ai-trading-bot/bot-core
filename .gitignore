@@ -123,8 +123,8 @@ celerybeat.pid
 # Coverage data
 *.profraw
 
-# Bun lock file (we use npm/package-lock.json)
-bun.lock
+# Bun binary lockfile (text lockfile bun.lock is tracked for reproducible builds)
+bun.lockb
 
 # OpenAPI generation script (temporary)
 generate_openapi.py
