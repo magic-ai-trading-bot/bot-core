@@ -1,0 +1,7 @@
+{
+  "id": "risk-monitor",
+  "name": "Risk Alert Monitor",
+  "schedule": "*/30 * * * *",
+  "mode": "independent",
+  "prompt": "Quick risk check. Run `botcore get_paper_portfolio` to check daily PnL and `botcore get_paper_trading_status` to verify engine is running. ONLY alert if: daily loss exceeds 3% of portfolio, paper trading stopped unexpectedly, or any critical issue detected. If everything is normal, respond with exactly 'RISK_OK' and nothing else - do NOT message the user. If alerting, be urgent: what triggered the alert, severity, and recommended action."
+}

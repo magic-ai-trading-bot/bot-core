@@ -51,10 +51,6 @@ echo "📝 Generating Dashboard Session Secret..."
 DASHBOARD_SESSION_SECRET=$(generate_secret 32)
 sed -i.bak "s/^DASHBOARD_SESSION_SECRET=.*/DASHBOARD_SESSION_SECRET=$DASHBOARD_SESSION_SECRET/" .env
 
-echo "📝 Generating PostgreSQL Password..."
-POSTGRES_PASSWORD=$(generate_secret 24)
-sed -i.bak "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$POSTGRES_PASSWORD/" .env
-
 echo "📝 Generating Redis Password..."
 REDIS_PASSWORD=$(generate_secret 24)
 sed -i.bak "s/^REDIS_PASSWORD=.*/REDIS_PASSWORD=$REDIS_PASSWORD/" .env

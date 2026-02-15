@@ -1,0 +1,7 @@
+{
+  "id": "system-health-check",
+  "name": "System Health Check",
+  "schedule": "0 */2 * * *",
+  "mode": "independent",
+  "prompt": "Quick system health check. Run `botcore check_system_health`. If ALL services are healthy, respond with exactly 'ALL_HEALTHY' and nothing else - do NOT send a message to the user. ONLY send a user-visible message if something is wrong: which service is unhealthy, what the error is, and suggested fix. Be urgent and specific in alerts."
+}

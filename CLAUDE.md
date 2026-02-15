@@ -856,17 +856,104 @@ python3 scripts/validate-specs.py
 
 ---
 
+### MCP Server (Model Context Protocol)
+📄 **Spec**: `specs/01-requirements/1.1-functional-requirements/FR-MCP.md`
+📂 **Code**: `mcp-server/`
+- **src/index.ts**: Express server + MCP SDK setup, Streamable HTTP transport
+- **src/tools/**: 103 tools organized by category
+  - `market-tools.ts`: get_market_prices, get_orderbook, get_trading_pairs, get_market_summary
+  - `paper-trading-tools.ts`: 28 paper trading tools (start/stop, execute, portfolio, settings)
+  - `ai-tools.ts`: get_ai_prediction, get_market_sentiment, get_ai_analysis, train_model
+  - `strategy-tools.ts`: list_strategies, get_strategy_signals, run_backtest
+  - `monitoring-tools.ts`: check_system_health, get_prometheus_metrics, get_service_logs
+  - `auth-tools.ts`: login, register, refresh_token, get_current_user
+  - `task-tools.ts`: CRUD for async tasks
+  - `self-tuning-tools.ts`: 11 tools (get/adjust parameters, GREEN/YELLOW/RED tiers, rollback, dashboard)
+  - `real-trading-tools.ts`: Real trading operations (requires explicit enable)
+- **src/services/api-client.ts**: HTTP client for Rust + Python backends
+- **src/config.ts**: Environment-based configuration
+
+🔌 **Protocol**: MCP v2024-11-05, Streamable HTTP on port 8090
+🛠️ **Tools**: 103 total (market 4, paper-trading 28, AI 4, strategies 3, monitoring 3, auth 4, tasks 4, self-tuning 11, real-trading 8, backtests 4, misc 30)
+
+🧪 **Tests**: `mcp-server/tests/` (89 tests - unit + integration + E2E)
+
+**Common Tasks**:
+- Health check: `curl http://localhost:8090/health`
+- List tools: `node mcp-server/tests/e2e-test.mjs --list`
+- Call tool: POST to `/mcp` with MCP protocol messages
+- View logs: `docker logs -f mcp-server-dev`
+
+---
+
+### OpenClaw Gateway (AI Assistant via Telegram)
+📄 **Spec**: `specs/01-requirements/1.1-functional-requirements/FR-MCP.md`
+📂 **Code**: `openclaw/`
+- **Dockerfile**: Node 22-slim with build tools for node-llama-cpp
+- **config/openclaw.json**: Dev config (no channels, no env var crashes)
+- **config/openclaw.production.json**: Production config with Telegram channel
+- **scripts/entrypoint.sh**: Waits for MCP server, registers cron jobs, starts gateway
+- **scripts/botcore-bridge.mjs**: MCP client CLI for tool calls
+
+📡 **Gateway**: WebSocket on port 18789, LAN binding with auth token
+📱 **Channels**: Telegram (production), configurable allowlist per user ID
+🤖 **Skills**: `botcore` skill connects to MCP Server for all 103 tools
+
+🔧 **Config Keys**:
+- `agents.defaults.model.primary`: AI model (e.g., `anthropic/claude-sonnet-4-5`)
+- `gateway.bind`: `loopback` | `lan` | `auto`
+- `gateway.mode`: `local` (required)
+- `gateway.auth.token`: Required for LAN binding
+- `channels.telegram.botToken`: Telegram bot token
+- `channels.telegram.dmPolicy`: `allowlist` with `allowFrom` user IDs
+
+**Common Tasks**:
+- Start dev: `docker compose --profile dev up openclaw-dev`
+- View logs: `docker logs -f openclaw-dev`
+- Test bridge CLI: `node openclaw/scripts/botcore-bridge.mjs --list`
+- Production: Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `OPENCLAW_GATEWAY_TOKEN` in `.env`
+
+---
+
+### Self-Tuning Engine
+📄 **Spec**: `specs/01-requirements/1.1-functional-requirements/FR-MCP.md`
+📂 **Code**: `mcp-server/src/tools/self-tuning-tools.ts`
+
+🎛️ **Parameters** (11 tunable):
+- `rsi_oversold`, `rsi_overbought`, `macd_signal_threshold`
+- `bollinger_std_dev`, `volume_spike_multiplier`
+- `stop_loss_pct`, `take_profit_pct`, `trailing_stop_pct`
+- `max_position_size_pct`, `max_daily_trades`, `cool_down_minutes`
+
+🚦 **Autonomy Tiers**:
+- **GREEN** (auto): stop_loss_pct, take_profit_pct, trailing_stop_pct, cool_down_minutes (safe to auto-adjust)
+- **YELLOW** (confirm): RSI, MACD, Bollinger, volume thresholds (needs user confirmation token)
+- **RED** (approve): max_position_size_pct, max_daily_trades (requires explicit approval)
+
+🔧 **Features**: Parameter bounds validation, snapshot/rollback, confirmation tokens, audit trail, tuning dashboard
+
+**Common Tasks**:
+- Get parameters: Call `self_tuning_get_parameters` via MCP
+- GREEN adjust: `self_tuning_green_adjust` (auto-applied)
+- YELLOW adjust: `self_tuning_yellow_adjust` → returns confirmation_token → `self_tuning_confirm_adjustment`
+- Rollback: `self_tuning_rollback` restores previous snapshot
+- Dashboard: `self_tuning_get_dashboard` for full status overview
+
+---
+
 ## 📚 DOCUMENTATION STRUCTURE
 
 **Two main directories** - Clean and organized:
 
 ### 1️⃣ `/docs/` - Operational Documentation (for users & developers)
-- **`features/`** - Feature-specific guides (5 docs, <500 lines each)
+- **`features/`** - Feature-specific guides (7 docs, <500 lines each)
   - `paper-trading.md` - Paper trading system
   - `authentication.md` - Auth & JWT
   - `ai-integration.md` - ML models & GPT-4
   - `trading-strategies.md` - RSI, MACD, Bollinger, Volume
   - `websocket-realtime.md` - Real-time communication
+  - `mcp-server.md` - MCP Server (103 tools, self-tuning)
+  - `openclaw-gateway.md` - OpenClaw AI Assistant (Telegram)
 - **`guides/`** - User guides & how-to documents
 - **`reports/`** - Implementation reports, phase summaries
 - **`plans/`** - Planning documents, validation guides
@@ -960,8 +1047,10 @@ npm run lint && npm run type-check && npm test
 - **Backend**: Rust 1.86+ (Actix-web, MongoDB)
 - **AI/ML**: Python 3.11+ (FastAPI, TensorFlow, PyTorch, OpenAI GPT-4)
 - **Frontend**: TypeScript, React 18, Vite, Shadcn/UI, TailwindCSS
+- **MCP Server**: TypeScript, Node 18, Express, `@modelcontextprotocol/sdk` v1.26.0, 103 tools
+- **AI Gateway**: OpenClaw (Node 22), Telegram channel, Claude Sonnet 4.5
 - **Database**: MongoDB with replica sets
-- **Real-Time**: WebSocket (Binance + Frontend)
+- **Real-Time**: WebSocket (Binance + Frontend + OpenClaw)
 
 ---
 
@@ -1005,6 +1094,26 @@ npm run lint && npm run type-check && npm test
 ### "How do I troubleshoot issues?"
 → Read `docs/TROUBLESHOOTING.md` for common issues
 → Or: Check feature-specific docs in `docs/features/`
+
+### "Where is the MCP Server?"
+→ `mcp-server/` directory, 103 tools, port 8090
+→ Health: `curl http://localhost:8090/health`
+→ Tools: `mcp-server/src/tools/` (9 tool files)
+
+### "How do I connect OpenClaw to Telegram?"
+→ Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `OPENCLAW_GATEWAY_TOKEN` in `.env`
+→ Use production config: `openclaw/config/openclaw.production.json`
+→ Start: `docker compose --profile messaging up openclaw`
+
+### "How does self-tuning work?"
+→ 3 tiers: GREEN (auto), YELLOW (confirm), RED (approve)
+→ 11 parameters with bounds validation, snapshot/rollback
+→ MCP tools: `self_tuning_*` (get_parameters, green_adjust, yellow_adjust, confirm, rollback)
+
+### "How do I call MCP tools programmatically?"
+→ CLI: `node openclaw/scripts/botcore-bridge.mjs --tool get_market_prices --args '{"symbols":["BTCUSDT"]}'`
+→ HTTP: POST to `http://localhost:8090/mcp` with MCP protocol messages
+→ Via OpenClaw: Telegram → OpenClaw → MCP Server → Rust/Python backends
 
 ---
 
@@ -1086,12 +1195,12 @@ async fn execute_trade(...) { ... }
 ## 🆘 GETTING HELP
 
 ### Quick Reference
-- **Service URLs**: Frontend (3000), Rust API (8080), Python AI (8000)
+- **Service URLs**: Frontend (3000), Rust API (8080), Python AI (8000), MCP Server (8090), OpenClaw (18789)
 - **Logs**: `./scripts/bot.sh logs --service <name>`
-- **Health**: `curl http://localhost:8080/api/health`
+- **Health**: `curl http://localhost:8080/api/health` | `curl http://localhost:8090/health`
 
 ### Documentation
-- **Features**: `docs/features/` (5 focused guides)
+- **Features**: `docs/features/` (7 focused guides)
 - **Specs**: `specs/` (75 comprehensive docs)
 - **Guides**: `docs/CONTRIBUTING.md`, `docs/TESTING_GUIDE.md`, `docs/TROUBLESHOOTING.md`
 
@@ -1103,9 +1212,18 @@ async fn execute_trade(...) { ... }
 
 ---
 
-**Last Updated**: 2025-11-23
+**Last Updated**: 2026-02-15
 **Status**: PRODUCTION-READY | WORLD-CLASS QUALITY | SPEC-DRIVEN | AGENT-FIRST
-**Version**: 4.0 (Complete Agent Catalog + Proactive Agent Suggestions)
+**Version**: 4.1 (MCP Server + OpenClaw AI Gateway)
+
+**Changes in v4.1**:
+- ✅ **MCP SERVER** - 103 tools via Model Context Protocol (Streamable HTTP, port 8090)
+- ✅ **OPENCLAW GATEWAY** - AI assistant via Telegram with Claude Sonnet 4.5
+- ✅ **SELF-TUNING ENGINE** - 3-tier autonomy (GREEN/YELLOW/RED), 11 parameters, snapshot/rollback
+- ✅ **BOTCORE BRIDGE CLI** - MCP client for programmatic tool calls
+- ✅ **CRON AUTOMATION** - 6 scheduled jobs (health, portfolio, briefing, risk, tuning, review)
+- ✅ Updated Quick Feature Location Map with MCP, OpenClaw, Self-Tuning sections
+- ✅ Updated Common Questions with MCP/OpenClaw entries
 
 **Major Changes in v4.0**:
 - ✅ **COMPLETE AGENT CATALOG** - 36+ specialized agents fully documented

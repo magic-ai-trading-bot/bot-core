@@ -1,0 +1,151 @@
+#!/usr/bin/env node
+// @spec:FR-MCP-016 - BotCore MCP Bridge CLI
+// @ref:plans/20260215-1900-openclaw-mcp-integration/phases/phase-04-openclaw-deployment.md
+//
+// CLI bridge between OpenClaw (exec tool) and BotCore MCP Server.
+// Usage: botcore <tool-name> [json-args]
+// Example: botcore get_system_health
+// Example: botcore get_tuning_dashboard
+// Example: botcore apply_green_adjustment '{"parameter":"rsi_oversold","new_value":25,"reasoning":"Bearish trend"}'
+
+const MCP_URL = process.env.MCP_URL || "http://mcp-server:8090";
+const MCP_TOKEN = process.env.MCP_AUTH_TOKEN || "";
+
+const tool = process.argv[2];
+const argsRaw = process.argv[3];
+
+if (!tool || tool === "--help" || tool === "-h") {
+  console.log(`BotCore MCP Bridge - CLI tool for interacting with the trading bot
+
+Usage: botcore <tool-name> [json-args]
+       botcore --list              List all available tools
+       botcore --help              Show this help
+
+Examples:
+  botcore get_system_health
+  botcore get_tuning_dashboard
+  botcore get_market_prices '{"symbols":["BTCUSDT","ETHUSDT"]}'
+  botcore apply_green_adjustment '{"parameter":"rsi_oversold","new_value":25,"reasoning":"Bearish market"}'
+
+Environment:
+  MCP_URL          MCP server URL (default: http://mcp-server:8090)
+  MCP_AUTH_TOKEN   Bearer token for MCP server auth`);
+  process.exit(0);
+}
+
+/** Parse SSE response to extract JSON-RPC result */
+function parseSSE(text) {
+  const dataLine = text.split("\n").find((l) => l.startsWith("data: "));
+  if (!dataLine) return null;
+  return JSON.parse(dataLine.replace("data: ", ""));
+}
+
+/** Make an MCP JSON-RPC request */
+async function mcpRequest(method, params, sessionId) {
+  const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+  if (MCP_TOKEN) headers["Authorization"] = `Bearer ${MCP_TOKEN}`;
+  if (sessionId) headers["mcp-session-id"] = sessionId;
+
+  const res = await fetch(`${MCP_URL}/mcp`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: Date.now(),
+      method,
+      params,
+    }),
+  });
+
+  const text = await res.text();
+  const sid = res.headers.get("mcp-session-id");
+  const parsed = parseSSE(text);
+
+  return { data: parsed, sessionId: sid || sessionId };
+}
+
+async function main() {
+  try {
+    // Step 1: Initialize MCP session
+    const init = await mcpRequest("initialize", {
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientInfo: { name: "botcore-bridge", version: "1.0.0" },
+    });
+
+    if (!init.sessionId) {
+      console.error("ERROR: Failed to establish MCP session");
+      process.exit(1);
+    }
+
+    // Handle --list: list all available tools
+    if (tool === "--list") {
+      const listRes = await mcpRequest("tools/list", {}, init.sessionId);
+      if (listRes.data?.result?.tools) {
+        const tools = listRes.data.result.tools;
+        console.log(`Available tools (${tools.length}):\n`);
+        for (const t of tools) {
+          console.log(`  ${t.name}`);
+          if (t.description) {
+            const desc = t.description.split("\n")[0].substring(0, 80);
+            console.log(`    ${desc}`);
+          }
+        }
+      } else {
+        console.error("ERROR: Failed to list tools");
+        console.error(JSON.stringify(listRes.data, null, 2));
+      }
+      process.exit(0);
+    }
+
+    // Step 2: Call the requested tool
+    let toolArgs = {};
+    if (argsRaw) {
+      try {
+        toolArgs = JSON.parse(argsRaw);
+      } catch {
+        console.error(`ERROR: Invalid JSON arguments: ${argsRaw}`);
+        process.exit(1);
+      }
+    }
+
+    const result = await mcpRequest(
+      "tools/call",
+      { name: tool, arguments: toolArgs },
+      init.sessionId
+    );
+
+    if (result.data?.error) {
+      console.error(`ERROR: ${result.data.error.message}`);
+      process.exit(1);
+    }
+
+    if (result.data?.result) {
+      const content = result.data.result.content;
+      if (Array.isArray(content)) {
+        for (const item of content) {
+          if (item.type === "text") {
+            // Try to pretty-print JSON, fall back to raw text
+            try {
+              const parsed = JSON.parse(item.text);
+              console.log(JSON.stringify(parsed, null, 2));
+            } catch {
+              console.log(item.text);
+            }
+          }
+        }
+      } else {
+        console.log(JSON.stringify(result.data.result, null, 2));
+      }
+    }
+  } catch (err) {
+    console.error(`ERROR: ${err.message}`);
+    if (err.cause) console.error(`Cause: ${err.cause.message || err.cause}`);
+    process.exit(1);
+  }
+}
+
+main();

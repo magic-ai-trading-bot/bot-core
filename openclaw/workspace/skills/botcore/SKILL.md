@@ -1,0 +1,295 @@
+---
+name: botcore
+description: Control, monitor, and tune the BotCore cryptocurrency trading bot via MCP bridge.
+metadata: {"openclaw":{"emoji":"🤖","requires":{"bins":["botcore"],"env":["MCP_URL","MCP_AUTH_TOKEN"]}}}
+---
+
+# BotCore Trading Bot Controller — 103 Tools
+
+Run commands via `botcore` CLI:
+
+```bash
+botcore <tool_name> '<json-arguments>'
+```
+
+Arguments optional for tools with no input. Always single-quote JSON args.
+
+---
+
+## 1. System Health & Monitoring (4 tools)
+
+```bash
+botcore check_system_health                              # All services health (Rust, Python, MongoDB, Prometheus)
+botcore get_system_metrics '{"metric":"all"}'             # CPU/memory metrics (all|memory|cpu)
+botcore get_docker_status                                 # All Docker container status
+botcore get_service_logs_summary '{"service":"all"}'      # Error/warning logs (all|rust|python)
+```
+
+## 2. Market Data (8 tools)
+
+```bash
+botcore get_market_prices                                 # Current prices all symbols
+botcore get_market_overview                               # Market overview + stats
+botcore get_candles '{"symbol":"BTCUSDT","timeframe":"1h","limit":24}'  # Candlestick data
+botcore get_chart '{"symbol":"BTCUSDT","timeframe":"4h"}' # Chart + indicators
+botcore get_multi_charts '{"symbols":["BTCUSDT","ETHUSDT"]}'  # Multiple charts
+botcore get_symbols                                       # List tracked symbols
+botcore add_symbol '{"symbol":"SOLUSDT"}'                 # Add symbol to track
+botcore remove_symbol '{"symbol":"SOLUSDT"}'              # Remove symbol
+```
+
+Timeframes: `1m`, `5m`, `15m`, `30m`, `1h`, `4h`, `1d`
+
+## 3. Paper Trading (28 tools)
+
+### Read (15 tools)
+```bash
+botcore get_paper_trading_status        # Engine status (running/stopped, P&L, daily stats)
+botcore get_paper_portfolio             # Balance, equity, margin, positions, metrics
+botcore get_paper_open_trades           # All open positions with unrealized P&L
+botcore get_paper_closed_trades         # All closed trades with realized P&L
+botcore get_paper_strategy_settings     # Strategy config (RSI, MACD, BB, Volume)
+botcore get_paper_basic_settings        # Balance, max positions, leverage, timeframe
+botcore get_paper_indicator_settings    # Indicator params (RSI period, MACD fast/slow/signal, BB)
+botcore get_paper_symbols               # Symbols being traded
+botcore get_paper_pending_orders        # Pending limit/stop orders
+botcore get_paper_signals_history       # All strategy signals history
+botcore get_paper_latest_signals        # Most recent signals
+botcore get_paper_trade_analyses        # GPT-4 analyses for ALL closed trades
+botcore get_paper_trade_analysis '{"trade_id":"trade_123"}'  # GPT-4 analysis for specific trade
+botcore get_paper_config_suggestions    # All AI config suggestions
+botcore get_paper_latest_config_suggestions  # Latest AI recommendations
+```
+
+### Write (13 tools)
+```bash
+botcore start_paper_engine              # Start trading engine
+botcore stop_paper_engine               # Stop trading engine (positions stay open)
+botcore reset_paper_account             # Reset to initial balance, close all
+botcore close_paper_trade '{"trade_id":"trade_123"}'  # Close specific position
+botcore create_paper_order '{"symbol":"BTCUSDT","side":"buy","order_type":"market"}'
+botcore cancel_paper_order '{"order_id":"order_123"}'
+botcore trigger_paper_analysis          # Trigger GPT-4 trade analysis NOW
+botcore update_paper_signal_interval '{"interval_seconds":300}'  # Signal generation interval
+botcore update_paper_basic_settings '{"settings":{"initial_balance":10000,"max_positions":5}}'
+botcore update_paper_strategy_settings '{"settings":{"rsi_enabled":true}}'
+botcore update_paper_indicator_settings '{"settings":{"rsi_period":14,"rsi_oversold":25}}'
+botcore update_paper_symbols '{"symbols":["BTCUSDT","ETHUSDT","BNBUSDT"]}'
+botcore update_paper_settings '{"settings":{"any_field":"value"}}'  # Generic catch-all
+```
+
+## 4. Real Trading (14 tools) — REAL MONEY
+
+### Read (6 tools)
+```bash
+botcore get_real_trading_status         # Engine status
+botcore get_real_portfolio              # Balance & positions
+botcore get_real_open_trades            # Open trades with P&L
+botcore get_real_closed_trades          # Closed trades history
+botcore get_real_trading_settings       # Risk params, strategy config
+botcore get_real_orders                 # All active orders
+```
+
+### Write (8 tools) — EXTREME CAUTION
+```bash
+botcore start_real_engine               # Start real trading
+botcore stop_real_engine                # Stop real trading
+botcore close_real_trade '{"trade_id":"xyz"}'  # Close real trade at market
+botcore create_real_order '{"symbol":"BTCUSDT","side":"buy","order_type":"market"}'
+botcore cancel_real_order '{"id":"order_123"}'
+botcore cancel_all_real_orders          # Cancel ALL pending orders
+botcore update_real_trading_settings '{"settings":{"stop_loss_percent":3.0}}'
+botcore update_real_position_sltp '{"symbol":"BTCUSDT","stop_loss":40000,"take_profit":50000}'
+```
+
+## 5. AI Analysis & ML (12 tools)
+
+### Rust API (6 tools)
+```bash
+botcore analyze_market '{"symbol":"BTCUSDT","timeframe":"4h"}'  # GPT-4 market analysis
+botcore get_strategy_recommendations '{"symbol":"BTCUSDT"}'     # AI strategy advice
+botcore get_market_condition '{"symbol":"BTCUSDT"}'             # Bull/bear/neutral assessment
+botcore send_ai_feedback '{"signal_id":"sig_123","feedback":"positive"}'
+botcore get_ai_info                     # AI service capabilities
+botcore get_ai_strategies               # Available AI strategies
+```
+
+### Python API (6 tools)
+```bash
+botcore get_ai_performance              # ML model accuracy metrics
+botcore get_ai_cost_statistics          # OpenAI API cost breakdown
+botcore get_ai_config_suggestions       # AI config optimization suggestions
+botcore get_ai_analysis_history         # GPT-4 analysis history
+botcore get_ai_storage_stats            # Model storage usage
+botcore clear_ai_storage                # Clear AI cache
+```
+
+## 6. AI Tasks & Chat (7 tools)
+
+```bash
+botcore trigger_config_analysis         # Trigger AI config optimization (2 min)
+botcore predict_trend '{"symbol":"BTCUSDT","timeframe":"4h"}'  # ML trend prediction
+botcore get_ai_config_suggestions_python  # Config suggestions from Python
+botcore chat_with_project '{"message":"How does the RSI strategy work?"}'
+botcore get_chat_suggestions            # Suggested questions
+botcore clear_chat_history              # Clear chat history
+botcore get_ai_debug_info               # GPT-4 debug info
+```
+
+## 7. Monitoring (4 tools)
+
+```bash
+botcore get_system_monitoring           # CPU, memory, disk, network
+botcore get_trading_metrics             # Win rate, PnL, active positions
+botcore get_connection_status           # Binance, MongoDB, WebSocket status
+botcore get_python_health               # Python AI service health
+```
+
+## 8. Live Trading (4 tools)
+
+```bash
+botcore get_trading_positions           # Current open positions with P&L
+botcore get_trading_account             # Account balance, equity, margin
+botcore get_trading_performance         # Win rate, PnL, Sharpe, max drawdown
+botcore close_trading_position '{"symbol":"BTCUSDT"}'  # Close position by symbol
+```
+
+## 9. Settings (10 tools)
+
+### API Keys (4 tools)
+```bash
+botcore get_api_keys                    # Status of configured keys (masked)
+botcore save_api_keys '{"exchange":"binance","api_key":"...","secret_key":"..."}'
+botcore test_api_keys                   # Test key connectivity
+botcore delete_api_keys                 # Delete all stored keys
+```
+
+### Notifications (6 tools)
+```bash
+botcore get_notification_preferences    # Current notification settings
+botcore update_notification_preferences '{"preferences":{"trade_notifications":true}}'
+botcore test_notification               # Send test notification
+botcore subscribe_push_notifications '{"subscription":{"endpoint":"..."}}'
+botcore unsubscribe_push_notifications
+botcore get_vapid_key                   # VAPID public key for push
+```
+
+## 10. Authentication (4 tools)
+
+```bash
+botcore login '{"email":"user@example.com","password":"..."}'
+botcore register_user '{"email":"user@example.com","password":"...","name":"Dung"}'
+botcore get_profile                     # Current user profile
+botcore refresh_token                   # Refresh JWT token
+```
+
+## 11. Self-Tuning Engine (8 tools)
+
+### Dashboard & Info
+```bash
+botcore get_tuning_dashboard            # Performance + settings + AI suggestions + positions
+botcore get_parameter_bounds            # All tunable params with ranges by tier
+botcore get_adjustment_history '{"limit":10}'  # Past parameter changes
+```
+
+### GREEN Tier (Auto-apply, notify user)
+```bash
+botcore apply_green_adjustment '{"parameter":"rsi_oversold","new_value":25,"reasoning":"Bear market"}'
+botcore apply_green_adjustment '{"parameter":"rsi_overbought","new_value":75,"reasoning":"Reduce overbought"}'
+botcore apply_green_adjustment '{"parameter":"signal_interval_minutes","new_value":10,"reasoning":"Low volatility"}'
+botcore apply_green_adjustment '{"parameter":"confidence_threshold","new_value":0.70,"reasoning":"Higher quality signals"}'
+```
+
+### YELLOW Tier (Require user confirmation)
+```bash
+# Step 1: Request (returns confirm_token)
+botcore request_yellow_adjustment '{"parameter":"stop_loss_percent","new_value":3.0,"reasoning":"Wider stop loss"}'
+# Step 2: User approves → call again with token
+botcore request_yellow_adjustment '{"parameter":"stop_loss_percent","new_value":3.0,"reasoning":"...","confirm_token":"TOKEN"}'
+```
+
+### RED Tier (Require explicit approval text)
+```bash
+# Step 1: Request (returns required approval text)
+botcore request_red_adjustment '{"parameter":"max_daily_loss_percent","new_value":8.0,"reasoning":"Increase tolerance","risk_assessment":"Higher daily loss"}'
+# Step 2: User types approval → call again
+botcore request_red_adjustment '{"parameter":"max_daily_loss_percent","new_value":8.0,"reasoning":"...","risk_assessment":"...","approval_text":"APPROVE CHANGE MAX DAILY LOSS %"}'
+```
+
+### Snapshot & Rollback
+```bash
+botcore take_parameter_snapshot         # Save current state
+botcore rollback_adjustment             # Revert to previous snapshot
+botcore rollback_adjustment '{"snapshot_id":"snap_123"}'  # Revert to specific snapshot
+```
+
+---
+
+## Tunable Parameters Reference
+
+| Parameter | Tier | Range | Default | Cooldown |
+|-----------|------|-------|---------|----------|
+| rsi_oversold | GREEN | 20-40 | 25 | 6h |
+| rsi_overbought | GREEN | 60-80 | 75 | 6h |
+| signal_interval_minutes | GREEN | 3-30 | 5 | 1h |
+| confidence_threshold | GREEN | 0.50-0.90 | 0.50 | 6h |
+| stop_loss_percent | YELLOW | 0.5-10.0 | 5.0 | 6h |
+| take_profit_percent | YELLOW | 1.0-20.0 | 10.0 | 6h |
+| position_size_percent | YELLOW | 1.0-10.0 | 2.0 | 6h |
+| max_positions | YELLOW | 1-10 | 5 | 6h |
+| leverage | YELLOW | 1-125 | 3 | 6h |
+| max_daily_loss_percent | RED | 1.0-15.0 | 3.0 | 6h |
+| engine_running | RED | true/false | false | 1h |
+
+---
+
+## Safety Rules (MUST FOLLOW)
+
+1. **NEVER enable real trading** without explicit user instruction AND the user typing "APPROVE"
+2. **Always check `get_tuning_dashboard`** before suggesting parameter changes
+3. **GREEN tier**: Auto-apply and notify user
+4. **YELLOW tier**: Present change to user, wait for confirmation token
+5. **RED tier**: Present with risk assessment, require user to type exact approval text
+6. **Cooldowns**: Respect cooldown periods. Check `get_parameter_bounds` for status
+7. **Snapshots**: Always `take_parameter_snapshot` before multiple changes
+8. **Rollback**: If performance degrades after changes, suggest `rollback_adjustment`
+9. **Transparency**: Show current values before proposing changes
+10. **Data-driven**: Base recommendations on actual performance data, not speculation
+
+---
+
+## Common Workflows
+
+### Analyze Losing Trades
+```bash
+botcore get_paper_closed_trades                    # 1. Get trade history
+botcore get_paper_trade_analysis '{"trade_id":"ID"}'  # 2. GPT-4 analysis per trade
+botcore get_candles '{"symbol":"BTCUSDT","timeframe":"1h","limit":50}'  # 3. Market data at trade time
+botcore get_paper_config_suggestions               # 4. AI recommendations
+botcore update_paper_strategy_settings '{"settings":{...}}'  # 5. Apply fixes
+```
+
+### Monitor Performance
+```bash
+botcore get_tuning_dashboard             # 1. Overview (settings + performance + suggestions)
+botcore get_paper_portfolio              # 2. Current balance & positions
+botcore get_trading_performance          # 3. Win rate, PnL, Sharpe
+botcore get_paper_latest_signals         # 4. Recent signals
+```
+
+### Optimize Parameters
+```bash
+botcore get_tuning_dashboard             # 1. Assess current state
+botcore get_parameter_bounds             # 2. Check what can be adjusted
+botcore take_parameter_snapshot          # 3. Snapshot before changes
+botcore apply_green_adjustment '{"parameter":"...","new_value":...,"reasoning":"..."}'  # 4. Apply
+```
+
+### Full System Check
+```bash
+botcore check_system_health              # 1. All services healthy?
+botcore get_connection_status            # 2. External connections OK?
+botcore get_paper_trading_status         # 3. Engine running?
+botcore get_paper_open_trades            # 4. Any open positions?
+botcore get_trading_metrics              # 5. Performance metrics
+```

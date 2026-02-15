@@ -289,11 +289,6 @@ if [ ! -z "$REDIS_PASSWORD" ]; then
     check_not_default "REDIS_PASSWORD" "your-secure-password" "changeme"
 fi
 
-check_optional "RABBITMQ_PASSWORD"
-if [ ! -z "$RABBITMQ_PASSWORD" ]; then
-    check_not_default "RABBITMQ_PASSWORD" "your-secure-password" "changeme"
-fi
-
 check_optional "MONGO_ROOT_PASSWORD"
 if [ ! -z "$MONGO_ROOT_PASSWORD" ]; then
     check_not_default "MONGO_ROOT_PASSWORD" "your-mongo-root-password" "changeme"

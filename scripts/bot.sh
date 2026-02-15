@@ -40,26 +40,19 @@ print_usage() {
     echo ""
     echo -e "${YELLOW}Options:${NC}"
     echo "  --memory-optimized  - Use memory optimized settings"
-    echo "  --with-enterprise   - Explicitly enable all enterprise features (Redis, RabbitMQ, Kong, Monitoring)"
+    echo "  --with-redis        - Include Redis cache (optional)"
     echo "  --service SERVICE   - Target specific service"
     echo "  --coverage          - Run tests with coverage report (test command only)"
     echo "  --all               - Run all test files including comprehensive tests (test command only)"
     echo ""
     echo -e "${GREEN}⭐ DEFAULT SERVICES (Always Started):${NC}"
-    echo "  ✅ Core Services: MongoDB, Rust Engine, Python AI, Frontend"
-    echo "  ✅ Redis Cache"
-    echo "  ✅ RabbitMQ + Celery Worker + Celery Beat + Flower (Async Jobs)"
-    echo "  ✅ Kong API Gateway"
-    echo "  ✅ Prometheus + Grafana (Monitoring)"
+    echo "  ✅ Core: MongoDB, Rust Engine, Python AI, Frontend, MCP Server, OpenClaw"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
-    echo "  $0 start                      # Start ALL services (full stack)"
-    echo "  $0 start --memory-optimized   # Start all services with optimized memory"
-    echo "  $0 dev                        # Start in development mode (all features)"
-    echo "  $0 test                       # Run simplified test suite (24 tests)"
-    echo "  $0 test --coverage            # Run tests with coverage report"
-    echo "  $0 test --all                 # Run all test files (138 tests)"
-    echo "  $0 logs --service celery-worker  # Show logs for Celery worker"
+    echo "  $0 start                      # Start core services (production)"
+    echo "  $0 start --memory-optimized   # Start with memory optimization"
+    echo "  $0 dev                        # Start in development mode"
+    echo "  $0 logs --service rust-core-engine  # Show logs for specific service"
     echo "  $0 status                     # Check all services status"
 }
 
@@ -132,28 +125,10 @@ start_services() {
         PROFILES="--profile prod"
     fi
     
-    # Add enterprise features if requested
-    if [[ "$WITH_ENTERPRISE" == "true" ]]; then
-        PROFILES="$PROFILES --profile redis --profile messaging --profile monitoring --profile api-gateway"
-        print_status "Including all enterprise features"
-    else
-        # Add individual features
-        if [[ "$WITH_REDIS" == "true" ]]; then
-            PROFILES="$PROFILES --profile redis"
-            print_status "Including Redis cache"
-        fi
-        if [[ "$WITH_RABBITMQ" == "true" ]]; then
-            PROFILES="$PROFILES --profile messaging"
-            print_status "Including RabbitMQ message queue"
-        fi
-        if [[ "$WITH_KONG" == "true" ]]; then
-            PROFILES="$PROFILES --profile api-gateway"
-            print_status "Including Kong API Gateway"
-        fi
-        if [[ "$WITH_MONITORING" == "true" ]]; then
-            PROFILES="$PROFILES --profile monitoring"
-            print_status "Including Prometheus & Grafana monitoring"
-        fi
+    # Add optional features
+    if [[ "$WITH_REDIS" == "true" ]]; then
+        PROFILES="$PROFILES --profile redis"
+        print_status "Including Redis cache"
     fi
     
     # Start services with selected profiles
@@ -168,14 +143,6 @@ start_services() {
     # Wait for services to be ready
     print_status "Waiting for services to be ready..."
     sleep 5
-
-    # Initialize enterprise services (RabbitMQ, Grafana, Kong)
-    if [[ "$WITH_ENTERPRISE" == "true" ]] || [[ "$WITH_RABBITMQ" == "true" ]] || [[ "$WITH_MONITORING" == "true" ]] || [[ "$WITH_KONG" == "true" ]]; then
-        if [[ -f "scripts/init-all-services.sh" ]]; then
-            print_status "Initializing enterprise services (RabbitMQ, Grafana, Kong)..."
-            bash scripts/init-all-services.sh || print_warning "Some initializations failed (services may already be configured)"
-        fi
-    fi
 
     # Auto-seed MongoDB with sample data (only on first run)
     if [[ -f "scripts/init-mongodb-seed.sh" ]]; then
@@ -258,28 +225,13 @@ show_urls() {
     echo -e "  🦀 Rust Core Engine: ${CYAN}http://localhost:8080/api/health${NC}"
     echo -e "  🐍 Python AI Service: ${CYAN}http://localhost:8000/health${NC}"
 
-    # Check if enterprise features are running
-    if docker ps --format '{{.Names}}' | grep -q "rabbitmq"; then
-        echo -e "\n${GREEN}Enterprise Features:${NC}"
-        if docker ps --format '{{.Names}}' | grep -q "rabbitmq"; then
-            echo -e "  🐰 RabbitMQ Management: ${CYAN}http://localhost:15672${NC} (mgmt/admin123)"
-        fi
-        if docker ps --format '{{.Names}}' | grep -q "kong"; then
-            echo -e "  👑 Kong Admin API: ${CYAN}http://localhost:8001${NC}"
-            echo -e "  🔀 Kong Proxy: ${CYAN}http://localhost:8100${NC}"
-            echo -e "     - Rust API: ${CYAN}http://localhost:8100/api/health${NC}"
-            echo -e "     - Python AI: ${CYAN}http://localhost:8100/ai/health${NC}"
-        fi
-        if docker ps --format '{{.Names}}' | grep -q "prometheus"; then
-            echo -e "  📈 Prometheus: ${CYAN}http://localhost:9090${NC}"
-        fi
-        if docker ps --format '{{.Names}}' | grep -q "grafana"; then
-            GRAFANA_PASS=${GRAFANA_PASSWORD:-admin123}
-            echo -e "  📊 Grafana: ${CYAN}http://localhost:3001${NC} (admin/$GRAFANA_PASS)"
-        fi
-        if docker ps --format '{{.Names}}' | grep -q "flower"; then
-            echo -e "  🌸 Flower (Celery): ${CYAN}http://localhost:5555${NC}"
-        fi
+    # Check if optional features are running
+    if docker ps --format '{{.Names}}' | grep -q "mcp-server"; then
+        echo -e "\n${GREEN}Integration Services:${NC}"
+        echo -e "  🔌 MCP Server: ${CYAN}http://localhost:8090/health${NC}"
+    fi
+    if docker ps --format '{{.Names}}' | grep -q "openclaw"; then
+        echo -e "  🤖 OpenClaw Gateway: running"
     fi
     echo ""
 }
@@ -287,38 +239,30 @@ show_urls() {
 run_tests() {
     print_status "Running test suite..."
 
-    # Check if celery-worker is running
-    if ! docker ps --format '{{.Names}}' | grep -q "celery-worker"; then
-        print_error "celery-worker container is not running"
-        print_status "Start services first with: ./scripts/bot.sh start --with-rabbitmq"
+    # Check if python-ai-service is running
+    local python_container="python-ai-service"
+    if docker ps --format '{{.Names}}' | grep -q "python-ai-service-dev"; then
+        python_container="python-ai-service-dev"
+    fi
+
+    if ! docker ps --format '{{.Names}}' | grep -q "$python_container"; then
+        print_error "$python_container container is not running"
+        print_status "Start services first with: ./scripts/bot.sh dev"
         exit 1
     fi
 
-    if [[ "$RUN_ALL_TESTS" == "true" ]]; then
-        print_status "Running ALL test files (138 tests)..."
-        if [[ "$WITH_COVERAGE" == "true" ]]; then
-            docker exec celery-worker pytest tests/ -v \
-                --cov=tasks --cov=utils --cov=celery_app \
-                --cov-report=html --cov-report=term-missing
-        else
-            docker exec celery-worker pytest tests/ -v
-        fi
+    if [[ "$WITH_COVERAGE" == "true" ]]; then
+        docker exec "$python_container" pytest tests/ -v \
+            --cov --cov-report=html --cov-report=term-missing
+        print_success "Coverage report generated at: python-ai-service/htmlcov/index.html"
     else
-        print_status "Running simplified test suite (24 tests)..."
-        if [[ "$WITH_COVERAGE" == "true" ]]; then
-            docker exec celery-worker pytest tests/test_async_tasks_simple.py -v \
-                --cov=tasks --cov=utils --cov=celery_app \
-                --cov-report=html --cov-report=term-missing
-            print_success "Coverage report generated at: python-ai-service/htmlcov/index.html"
-        else
-            docker exec celery-worker pytest tests/test_async_tasks_simple.py -v
-        fi
+        docker exec "$python_container" pytest tests/ -v
     fi
 
     if [[ $? -eq 0 ]]; then
-        print_success "All tests passed! ✅"
+        print_success "All tests passed!"
     else
-        print_error "Some tests failed! ❌"
+        print_error "Some tests failed!"
         exit 1
     fi
 }
@@ -328,11 +272,7 @@ COMMAND=""
 MEMORY_OPTIMIZED="false"
 DEV_MODE="false"
 SERVICE=""
-WITH_ENTERPRISE="false"
-WITH_REDIS="true"           # ⭐ Default: true (always start Redis)
-WITH_RABBITMQ="true"        # ⭐ Default: true (always start async jobs)
-WITH_KONG="true"            # ⭐ Default: true (always start API Gateway)
-WITH_MONITORING="true"      # ⭐ Default: true (always start monitoring)
+WITH_REDIS="false"
 WITH_COVERAGE="false"
 RUN_ALL_TESTS="false"
 
@@ -349,24 +289,8 @@ while [[ $# -gt 0 ]]; do
             MEMORY_OPTIMIZED="true"
             shift
             ;;
-        --with-enterprise)
-            WITH_ENTERPRISE="true"
-            shift
-            ;;
         --with-redis)
             WITH_REDIS="true"
-            shift
-            ;;
-        --with-rabbitmq)
-            WITH_RABBITMQ="true"
-            shift
-            ;;
-        --with-kong)
-            WITH_KONG="true"
-            shift
-            ;;
-        --with-monitoring)
-            WITH_MONITORING="true"
             shift
             ;;
         --coverage)

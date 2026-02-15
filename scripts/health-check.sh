@@ -21,7 +21,6 @@ PYTHON_PORT=${PYTHON_PORT:-8000}
 FRONTEND_PORT=${FRONTEND_PORT:-3000}
 MONGO_PORT=${MONGO_PORT:-27017}
 REDIS_PORT=${REDIS_PORT:-6379}
-RABBITMQ_PORT=${RABBITMQ_PORT:-5672}
 
 # Timeouts
 HTTP_TIMEOUT=10
@@ -324,22 +323,8 @@ print_section "5. Redis Cache (Port $REDIS_PORT) [Optional]"
 check_redis "localhost" "$REDIS_PORT"
 check_docker_container "redis"
 
-# 6. RabbitMQ (Optional)
-print_section "6. RabbitMQ (Port $RABBITMQ_PORT) [Optional]"
-
-TOTAL=$((TOTAL + 1))
-if timeout 5 bash -c "cat < /dev/null > /dev/tcp/localhost/$RABBITMQ_PORT" 2>/dev/null; then
-    log "${GREEN}✓ RabbitMQ port is open${NC}"
-    echo "HEALTHY: RabbitMQ - port open" >> "$REPORT_FILE"
-    HEALTHY=$((HEALTHY + 1))
-    check_docker_container "rabbitmq"
-else
-    log "${YELLOW}⚠ RabbitMQ is not running (optional service)${NC}"
-    echo "SKIPPED: RabbitMQ - not running" >> "$REPORT_FILE"
-fi
-
-# 7. System Resources
-print_section "7. System Resources"
+# 6. System Resources
+print_section "6. System Resources"
 
 # CPU usage
 TOTAL=$((TOTAL + 1))
