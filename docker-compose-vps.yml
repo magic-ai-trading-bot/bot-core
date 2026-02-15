@@ -183,6 +183,8 @@ services:
       dockerfile: Dockerfile
     container_name: openclaw
     restart: unless-stopped
+    ports:
+      - "18789:18789"
     environment:
       - HOME=/home/node
       - TERM=xterm-256color
@@ -225,6 +227,8 @@ services:
       dockerfile: Dockerfile
     container_name: mcp-server
     restart: unless-stopped
+    ports:
+      - "8090:8090"
     environment:
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - RUST_API_URL=http://rust-core-engine:8080
