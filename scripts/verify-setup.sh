@@ -68,24 +68,13 @@ check_dir "rust-core-engine"
 check_dir "python-ai-service"
 check_dir "nextjs-ui-dashboard"
 
-# 4. Check New Service Configs
+# 4. Check Infrastructure Configs
 echo ""
-echo "4. Checking Enterprise Feature Configurations..."
+echo "4. Checking Infrastructure Configurations..."
 check_dir "infrastructure"
-check_file "infrastructure/rabbitmq/rabbitmq.conf"
-check_file "infrastructure/rabbitmq/definitions.json"
-
-check_file "infrastructure/kong/kong.yml"
-
-check_file "infrastructure/monitoring/prometheus.yml"
-check_file "infrastructure/monitoring/alerts/alerts.yml"
-
 check_file "infrastructure/nginx/nginx.conf"
-
 check_file "infrastructure/mongodb/replica.key"
 check_file "infrastructure/mongodb/init-replica.js"
-
-# PostgreSQL removed - using MongoDB only
 
 # 5. Check Scripts
 echo ""
@@ -100,7 +89,7 @@ echo "6. Checking Environment Setup..."
 if [ -f ".env" ]; then
     echo -e "${GREEN}✓${NC} .env file exists"
     # Check for critical variables
-    required_vars=("DATABASE_URL" "REDIS_PASSWORD" "RABBITMQ_PASSWORD" "KONG_DB_PASSWORD")
+    required_vars=("DATABASE_URL" "REDIS_PASSWORD")
     for var in "${required_vars[@]}"; do
         if grep -q "^$var=" .env; then
             echo -e "${GREEN}✓${NC} $var is set"
@@ -115,7 +104,8 @@ fi
 # 7. Port Availability
 echo ""
 echo "7. Checking Port Availability..."
-ports=(3000 8080 8000 5672 15672 8001 8100 9090 3001)
+# Core service ports: Frontend (3000), Rust API (8080), Python AI (8000)
+ports=(3000 8080 8000)
 for port in "${ports[@]}"; do
     if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
         echo -e "${RED}✗${NC} Port $port is already in use"
@@ -151,11 +141,8 @@ if [ $issues -eq 0 ]; then
     echo "2. Generate secrets: ./scripts/generate-secrets.sh"
     echo "3. Start services: ./scripts/bot.sh start --memory-optimized"
     echo ""
-    echo "Optional enterprise features:"
+    echo "Optional features:"
     echo "- Redis: docker-compose --profile redis up -d"
-    echo "- RabbitMQ: docker-compose --profile messaging up -d"
-    echo "- Kong Gateway: docker-compose --profile api-gateway up -d"
-    echo "- Monitoring: docker-compose --profile monitoring up -d"
 else
     echo -e "${RED}❌ Found $issues issues. Please fix them before starting.${NC}"
 fi

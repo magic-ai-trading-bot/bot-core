@@ -1,0 +1,685 @@
+#!/bin/bash
+# =============================================================================
+# sync-openclaw-knowledge.sh
+# Auto-generates OpenClaw workspace knowledge from BotCore source code.
+#
+# This script extracts ACTUAL values from source code and generates:
+#   - openclaw/workspace/STRATEGIES.md (strategies + risk layers + params)
+#   - openclaw/workspace/SOUL.md (system prompt with architecture knowledge)
+#
+# It also validates that these manually-maintained files exist:
+#   - openclaw/workspace/ARCHITECTURE.md (system architecture, APIs, DB, MCP)
+#   - openclaw/workspace/FEATURES.md (all 12 features with status)
+#   - openclaw/workspace/CONFIG.md (all tunable parameters)
+#
+# Run: make sync-knowledge  OR  ./scripts/sync-openclaw-knowledge.sh
+# =============================================================================
+set -euo pipefail
+
+PROJECT_ROOT="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
+WORKSPACE="$PROJECT_ROOT/openclaw/workspace"
+SETTINGS_FILE="$PROJECT_ROOT/rust-core-engine/src/paper_trading/settings.rs"
+STRATEGY_DIR="$PROJECT_ROOT/rust-core-engine/src/strategies"
+HOW_IT_WORKS="$PROJECT_ROOT/nextjs-ui-dashboard/src/pages/HowItWorks.tsx"
+FEATURES_DIR="$PROJECT_ROOT/docs/features"
+
+mkdir -p "$WORKSPACE"
+
+# =============================================================================
+# EXTRACTION FUNCTIONS
+# =============================================================================
+
+# Extract a numeric value from settings.rs Default impl block
+# Filters out struct definitions (pub field: f64) and test code
+# Usage: extract_setting "field_name" "fallback"
+extract_setting() {
+  local field="$1"
+  local fallback="${2:-0}"
+  local val
+  # Match lines with the field name that contain actual numeric values
+  # Exclude: struct definitions (pub), tests (assert/test/fn test), comments-only lines
+  val=$(grep "${field}:" "$SETTINGS_FILE" 2>/dev/null \
+    | grep -v 'pub \|Option<\|fn \|assert\|#\[' \
+    | grep -E '[0-9]' \
+    | head -1 \
+    | sed 's|//.*||' \
+    | grep -oE '[0-9]+\.?[0-9]*' \
+    | head -1)
+  echo "${val:-$fallback}"
+}
+
+# Extract strategy parameter from json!() init in strategy file
+# Usage: extract_strategy_param "file" "param_name" "fallback"
+extract_strategy_param() {
+  local file="$1"
+  local param="$2"
+  local fallback="${3:-0}"
+  local val
+  val=$(grep "\"${param}\"" "$file" 2>/dev/null \
+    | grep 'json!' \
+    | head -1 \
+    | grep -oE 'json!\([0-9.]+\)' \
+    | grep -oE '[0-9.]+')
+  echo "${val:-$fallback}"
+}
+
+# Extract win rates from HowItWorks.tsx (by strategy key in i18n pattern)
+# HowItWorks uses t('howItWorks.strategies.items.XXX.name') so we match on the key
+# Usage: extract_win_rate "rsi|macd|bollinger|volume|stochastic"
+extract_win_rate() {
+  local key="$1"
+  local val
+  val=$(grep -A3 "items\.${key}\." "$HOW_IT_WORKS" 2>/dev/null \
+    | grep 'winRate' \
+    | grep -oE '[0-9]+' \
+    | head -1)
+  echo "${val:-0}"
+}
+
+# Extract risk layer info from HowItWorks.tsx
+# Usage: extract_risk_layer N  → outputs "name|value"
+extract_risk_layer() {
+  local layer_num="$1"
+  grep -A2 "layer: ${layer_num}," "$HOW_IT_WORKS" 2>/dev/null \
+    | grep -oE "name: '[^']+'" \
+    | sed "s/name: '//;s/'//" || echo "Unknown"
+}
+
+extract_risk_value() {
+  local layer_num="$1"
+  grep -A3 "layer: ${layer_num}," "$HOW_IT_WORKS" 2>/dev/null \
+    | grep -oE "value: '[^']+'" \
+    | sed "s/value: '//;s/'//" || echo "N/A"
+}
+
+# Detect all strategy files
+detect_strategies() {
+  ls "$STRATEGY_DIR"/*_strategy.rs 2>/dev/null \
+    | xargs -I{} basename {} .rs \
+    | sed 's/_strategy$//'
+}
+
+# Extract feature doc titles
+extract_feature_titles() {
+  for f in "$FEATURES_DIR"/*.md; do
+    [ -f "$f" ] || continue
+    local title
+    title=$(head -1 "$f" | sed 's/^# //')
+    local basename
+    basename=$(basename "$f" .md)
+    echo "${basename}|${title}"
+  done
+}
+
+# =============================================================================
+# EXTRACT ALL VALUES
+# =============================================================================
+
+echo "Extracting values from source code..."
+
+# Risk parameters from settings.rs
+POSITION_SIZE_PCT=$(extract_setting "default_position_size_pct" "2.0")
+STOP_LOSS_PCT=$(extract_setting "default_stop_loss_pct" "5.0")
+MAX_PORTFOLIO_RISK=$(extract_setting "max_portfolio_risk_pct" "10.0")
+DAILY_LOSS_LIMIT=$(extract_setting "daily_loss_limit_pct" "3.0")
+MAX_CONSECUTIVE_LOSSES=$(extract_setting "max_consecutive_losses" "3")
+COOL_DOWN_MINUTES=$(extract_setting "cool_down_minutes" "60")
+CORRELATION_LIMIT=$(extract_setting "correlation_limit" "0.7")
+# Convert 0.7 → 70 for display
+if command -v bc &>/dev/null && [ -n "$CORRELATION_LIMIT" ]; then
+  CORRELATION_PCT=$(echo "$CORRELATION_LIMIT * 100" | bc 2>/dev/null | sed 's/\.00*$//' | sed 's/\.0$//')
+else
+  # Fallback: simple awk conversion
+  CORRELATION_PCT=$(echo "$CORRELATION_LIMIT" | awk '{printf "%g", $1 * 100}')
+fi
+CORRELATION_PCT="${CORRELATION_PCT:-70}"
+
+# RSI params
+RSI_PERIOD=$(extract_strategy_param "$STRATEGY_DIR/rsi_strategy.rs" "rsi_period" "14")
+RSI_OVERSOLD=$(extract_strategy_param "$STRATEGY_DIR/rsi_strategy.rs" "oversold_threshold" "25")
+RSI_OVERBOUGHT=$(extract_strategy_param "$STRATEGY_DIR/rsi_strategy.rs" "overbought_threshold" "75")
+RSI_EXTREME_OVERSOLD=$(extract_strategy_param "$STRATEGY_DIR/rsi_strategy.rs" "extreme_oversold" "20")
+RSI_EXTREME_OVERBOUGHT=$(extract_strategy_param "$STRATEGY_DIR/rsi_strategy.rs" "extreme_overbought" "80")
+
+# MACD params
+MACD_FAST=$(extract_strategy_param "$STRATEGY_DIR/macd_strategy.rs" "fast_period" "12")
+MACD_SLOW=$(extract_strategy_param "$STRATEGY_DIR/macd_strategy.rs" "slow_period" "26")
+MACD_SIGNAL=$(extract_strategy_param "$STRATEGY_DIR/macd_strategy.rs" "signal_period" "9")
+MACD_HIST_THRESHOLD=$(extract_strategy_param "$STRATEGY_DIR/macd_strategy.rs" "histogram_threshold" "0.001")
+
+# Bollinger params
+BB_PERIOD=$(extract_strategy_param "$STRATEGY_DIR/bollinger_strategy.rs" "bb_period" "20")
+BB_MULTIPLIER=$(extract_strategy_param "$STRATEGY_DIR/bollinger_strategy.rs" "bb_multiplier" "2.0")
+BB_SQUEEZE=$(extract_strategy_param "$STRATEGY_DIR/bollinger_strategy.rs" "squeeze_threshold" "0.02")
+BB_SQUEEZE_PCT=$(echo "$BB_SQUEEZE * 100" | bc 2>/dev/null || echo "2")
+
+# Volume params
+VOL_SMA_PERIOD=$(extract_strategy_param "$STRATEGY_DIR/volume_strategy.rs" "volume_sma_period" "20")
+VOL_SPIKE=$(extract_strategy_param "$STRATEGY_DIR/volume_strategy.rs" "volume_spike_threshold" "2.0")
+
+# Stochastic params
+STOCH_K=$(extract_strategy_param "$STRATEGY_DIR/stochastic_strategy.rs" "k_period" "14")
+STOCH_D=$(extract_strategy_param "$STRATEGY_DIR/stochastic_strategy.rs" "d_period" "3")
+STOCH_OVERSOLD=$(extract_strategy_param "$STRATEGY_DIR/stochastic_strategy.rs" "oversold_threshold" "15")
+STOCH_OVERBOUGHT=$(extract_strategy_param "$STRATEGY_DIR/stochastic_strategy.rs" "overbought_threshold" "85")
+STOCH_EXTREME_OVERSOLD=$(extract_strategy_param "$STRATEGY_DIR/stochastic_strategy.rs" "extreme_oversold" "10")
+STOCH_EXTREME_OVERBOUGHT=$(extract_strategy_param "$STRATEGY_DIR/stochastic_strategy.rs" "extreme_overbought" "90")
+
+# Win rates from HowItWorks.tsx (using i18n key pattern)
+RSI_WIN_RATE=$(extract_win_rate "rsi")
+MACD_WIN_RATE=$(extract_win_rate "macd")
+BB_WIN_RATE=$(extract_win_rate "bollinger")
+VOL_WIN_RATE=$(extract_win_rate "volume")
+STOCH_WIN_RATE=$(extract_win_rate "stochastic")
+
+# Risk layers from HowItWorks.tsx
+RISK_LAYER_COUNT=$(grep -c "layer:" "$HOW_IT_WORKS" 2>/dev/null || echo "7")
+
+# Strategy count
+STRATEGY_COUNT=$(detect_strategies | wc -l | tr -d ' ')
+
+# Feature docs
+FEATURE_LIST=$(extract_feature_titles)
+
+echo "  Risk params: position=${POSITION_SIZE_PCT}%, stop_loss=${STOP_LOSS_PCT}%, daily_loss=${DAILY_LOSS_LIMIT}%"
+echo "  Risk layers: ${RISK_LAYER_COUNT} layers detected"
+echo "  Strategies: ${STRATEGY_COUNT} detected (RSI=${RSI_WIN_RATE}%, MACD=${MACD_WIN_RATE}%, BB=${BB_WIN_RATE}%, Vol=${VOL_WIN_RATE}%, Stoch=${STOCH_WIN_RATE}%)"
+echo "  Features: $(echo "$FEATURE_LIST" | wc -l | tr -d ' ') feature docs found"
+
+# =============================================================================
+# CHECK FOR NEW/UNKNOWN STRATEGIES
+# =============================================================================
+
+KNOWN_STRATEGIES="rsi macd bollinger volume stochastic"
+NEW_STRATEGIES=""
+for strat in $(detect_strategies); do
+  if ! echo "$KNOWN_STRATEGIES" | grep -qw "$strat"; then
+    NEW_STRATEGIES="$NEW_STRATEGIES $strat"
+  fi
+done
+
+if [ -n "$NEW_STRATEGIES" ]; then
+  echo ""
+  echo "WARNING: New strategy files detected without templates:${NEW_STRATEGIES}"
+  echo "  Please add signal condition templates for these strategies in this script."
+  echo "  Files: $(for s in $NEW_STRATEGIES; do echo "  $STRATEGY_DIR/${s}_strategy.rs"; done)"
+  echo ""
+fi
+
+# =============================================================================
+# GENERATE STRATEGIES.md
+# =============================================================================
+
+echo "Generating STRATEGIES.md..."
+
+cat > "$WORKSPACE/STRATEGIES.md" << STRATEGIES_EOF
+# STRATEGIES.md - Deep Trading System Knowledge
+# Auto-generated by sync-openclaw-knowledge.sh — DO NOT EDIT MANUALLY
+
+## Strategy Signal Generation
+
+### 1. RSI Strategy (Period: ${RSI_PERIOD}, Multi-timeframe: 1H + 4H)
+
+| Signal | Condition | Confidence |
+|--------|-----------|------------|
+| **Strong BUY** | RSI1h ≤ ${RSI_EXTREME_OVERSOLD} AND RSI4h ≤ ${RSI_OVERSOLD} AND RSI recovering (prev < current) | 0.87 |
+| **Strong SELL** | RSI1h ≥ ${RSI_EXTREME_OVERBOUGHT} AND RSI4h ≥ ${RSI_OVERBOUGHT} AND RSI declining | 0.87 |
+| **Moderate BUY** | RSI1h ≤ ${RSI_OVERSOLD} AND RSI4h < 50 AND RSI recovering | 0.73 |
+| **Moderate SELL** | RSI1h ≥ ${RSI_OVERBOUGHT} AND RSI4h > 50 AND RSI declining | 0.73 |
+| **Weak BUY** | RSI1h ${RSI_OVERSOLD}-50 AND rising AND RSI4h < 50 | 0.51 |
+| **Weak SELL** | RSI1h 50-${RSI_OVERBOUGHT} AND falling AND RSI4h > 50 | 0.51 |
+
+**Win rate**: ${RSI_WIN_RATE}%
+**Common failure**: RSI oversold ≠ immediate bounce trong bear trend. Cần confirm trend reversal trước.
+
+### 2. MACD Strategy (Fast: ${MACD_FAST}, Slow: ${MACD_SLOW}, Signal: ${MACD_SIGNAL})
+
+| Signal | Condition | Confidence |
+|--------|-----------|------------|
+| **Strong BUY** | Bullish crossover + histogram4h > ${MACD_HIST_THRESHOLD} + both increasing | 0.89 |
+| **Strong SELL** | Bearish crossover + histogram4h < -${MACD_HIST_THRESHOLD} + both decreasing | 0.89 |
+| **Moderate BUY** | Crossover + 4H histogram increasing, OR both histograms positive + increasing | 0.71 |
+| **Moderate SELL** | Crossover + 4H decreasing, OR both negative + decreasing | 0.71 |
+| **Weak BUY** | histogram1h increasing AND MACD > Signal AND momentum growing >10% | 0.55 |
+
+**Win rate**: ${MACD_WIN_RATE}%
+**Key**: Crossover = prev_MACD ≤ prev_Signal AND current_MACD > current_Signal
+
+### 3. Bollinger Bands Strategy (Period: ${BB_PERIOD}, StdDev: ${BB_MULTIPLIER})
+
+| Signal | Condition | Confidence |
+|--------|-----------|------------|
+| **Squeeze Breakout BUY** | Squeeze (BB width < ${BB_SQUEEZE_PCT}%) + expanding + price > upper + 4H position > 0.5 | 0.87 |
+| **Mean Reversion BUY** | BB position ≤ 0.1 + 4H position < 0.3 + NOT expanding | 0.73 |
+| **Trend Continuation BUY** | BB position > 0.8 + 4H > 0.6 + expanding | 0.69 |
+| **Moderate BUY** | BB position < 0.25 + price > 4H middle band | 0.58 |
+
+**Win rate**: ${BB_WIN_RATE}%
+**BB Position** = (Price - Lower) / (Upper - Lower). 0 = at lower band, 1 = at upper band.
+
+### 4. Volume Strategy (SMA Period: ${VOL_SMA_PERIOD}, Spike: ${VOL_SPIKE}x)
+
+| Signal | Condition | Confidence |
+|--------|-----------|------------|
+| **Strong Volume Surge BUY** | Volume spike (≥${VOL_SPIKE}x avg) + bullish ratio ≥ 0.7 + price > POC | 0.91 |
+| **Accumulation BUY** | High volume (≥1.5x) + bullish ratio ≥ 0.6, OR near POC + ratio ≥ 0.65 | 0.71 |
+| **Weak BUY** | Bullish ratio ≥ 0.55 + volume > 1.2x avg | 0.51 |
+
+**Win rate**: ${VOL_WIN_RATE}%
+**POC** = Point of Control (price level with highest trading volume in ${VOL_SMA_PERIOD} periods)
+
+### 5. Stochastic Oscillator Strategy (K Period: ${STOCH_K}, D Period: ${STOCH_D}, Multi-timeframe: 1H + 4H)
+
+| Signal | Condition | Confidence |
+|--------|-----------|------------|
+| **Strong BUY** | Bullish crossover (%K crosses above %D) + K1h ≤ ${STOCH_OVERSOLD} + K4h ≤ ${STOCH_OVERSOLD} | 0.89 |
+| **Extreme BUY** | K1h ≤ ${STOCH_EXTREME_OVERSOLD} (extreme oversold) + K4h ≤ ${STOCH_OVERSOLD} + K1h > D1h | 0.85 |
+| **Strong SELL** | Bearish crossover (%K crosses below %D) + K1h ≥ ${STOCH_OVERBOUGHT} + K4h ≥ ${STOCH_OVERBOUGHT} | 0.89 |
+| **Extreme SELL** | K1h ≥ ${STOCH_EXTREME_OVERBOUGHT} (extreme overbought) + K4h ≥ ${STOCH_OVERBOUGHT} + K1h < D1h | 0.85 |
+| **Moderate BUY** | Bullish crossover + K1h ≤ ${STOCH_OVERSOLD}+10 + K4h < 50 | 0.72 |
+| **Moderate SELL** | Bearish crossover + K1h ≥ ${STOCH_OVERBOUGHT}-10 + K4h > 50 | 0.72 |
+| **Weak BUY** | K1h > D1h + K1h < 50 + K4h < 50 + K rising | 0.52 |
+| **Weak SELL** | K1h < D1h + K1h > 50 + K4h > 50 + K falling | 0.52 |
+
+**Win rate**: ${STOCH_WIN_RATE}%
+**Thresholds**: Oversold = ${STOCH_OVERSOLD}, Overbought = ${STOCH_OVERBOUGHT}, Extreme = ${STOCH_EXTREME_OVERSOLD}/${STOCH_EXTREME_OVERBOUGHT}
+**Common failure**: Stochastic crossover trong sideways market tạo nhiều false signals. Cần confirm với volume hoặc trend.
+
+---
+
+## Strategy Orchestration
+
+- **${STRATEGY_COUNT} strategies** run in parallel: RSI, MACD, Bollinger, Volume, Stochastic
+- **Minimum agreement**: 4/${STRATEGY_COUNT} strategies must agree on direction
+- **Combination modes**: WeightedAverage (default), Consensus, BestConfidence, Conservative
+- **Multi-timeframe**: All strategies analyze both 1H and 4H candles
+- **Minimum data**: 50 candles per timeframe required before trading starts
+- **Hybrid filter**: Optional AI trend filter for additional validation
+
+---
+
+## Risk Management - ${RISK_LAYER_COUNT} Protection Layers
+
+### Layer 1: Position Size Control
+- **Limit**: ≤${POSITION_SIZE_PCT}% equity per trade
+- **Purpose**: Giới hạn số vốn bỏ vào mỗi trade
+- **Calculation**: risk_amount = equity × position_size_pct / 100
+
+### Layer 2: Stop Loss
+- **Default**: ${STOP_LOSS_PCT}% per trade
+- **Purpose**: Tự động đóng lệnh khi giá đi ngược quá mức
+- **Calculation**: LONG: entry × (1 - ${STOP_LOSS_PCT}/100), SHORT: entry × (1 + ${STOP_LOSS_PCT}/100)
+
+### Layer 3: Portfolio Risk Limit
+- **Limit**: ≤${MAX_PORTFOLIO_RISK}% total portfolio risk
+- **Calculation**: Σ(position_value × stop_loss_distance%) / equity
+- **When hit**: Blocks ALL new trades
+
+### Layer 4: Daily Loss Limit
+- **Limit**: ${DAILY_LOSS_LIMIT}% of daily starting equity
+- **When hit**: ALL trading stops for rest of day
+- **Reset**: Next calendar day (UTC)
+
+### Layer 5: Consecutive Losses Tracking
+- **Limit**: ${MAX_CONSECUTIVE_LOSSES} consecutive losses max
+- **When hit**: Triggers cool-down (Layer 6)
+- **Reset**: Counter → 0 on first profitable trade
+
+### Layer 6: Cool-Down Mechanism
+- **Trigger**: ${MAX_CONSECUTIVE_LOSSES} consecutive losses
+- **Duration**: ${COOL_DOWN_MINUTES} minutes block on ALL new trades
+- **Reset**: Automatic after ${COOL_DOWN_MINUTES} min
+
+### Layer 7: Position Correlation Control
+- **Limit**: Max ${CORRELATION_PCT}% exposure in one direction
+- **Calculation**: long_exposure / total_exposure
+- **When hit**: Blocks new trades that increase concentration
+
+**Execution order**: Daily Loss → Cool-Down → Correlation → Portfolio Risk → Position Size + Stop Loss → Execute
+
+---
+
+## Execution Simulation
+
+| Feature | Default | Detail |
+|---------|---------|--------|
+| **Slippage** | ON (0.05% max) | BUY: price × (1 + slippage%), SELL: price × (1 - slippage%) |
+| **Execution Delay** | 100ms | Simulates network latency, re-fetches price after delay |
+| **Market Impact** | OFF | impact = (order_value / typical_volume) × factor, capped 1% |
+| **Partial Fills** | OFF | 10% chance, fills 30-90% of order |
+
+---
+
+## Common Loss Patterns & Solutions
+
+| Pattern | Symptoms | Solution |
+|---------|----------|----------|
+| **False breakout** | Entry on Bollinger squeeze breakout, reverses | Wait for volume confirmation |
+| **Counter-trend entry** | RSI oversold BUY in strong downtrend | Add EMA 50/200 trend filter |
+| **Overtrading** | >20 trades/day, many small losses | Increase confidence threshold |
+| **Late entry** | Enter after majority of move | Check MACD histogram declining = late |
+| **Stop loss too tight** | Many -${STOP_LOSS_PCT}% losses that recover | Widen based on ATR (1.5-2x) |
+| **Correlated positions** | Same-direction trades lose together | Check correlation limit |
+| **Cool-down panic** | Force trades after cool-down | Extend cool-down, reduce size |
+| **Volume dry-up** | Low volume, high slippage | Skip signals volume < 0.8x avg |
+| **Stochastic whipsaw** | Crossovers in sideways market | Combine with volume/trend filter |
+
+---
+
+## Key Configuration Defaults
+
+\`\`\`
+Risk (${RISK_LAYER_COUNT} layers):
+  position_size_pct: ${POSITION_SIZE_PCT}%
+  stop_loss_pct: ${STOP_LOSS_PCT}%
+  max_portfolio_risk: ${MAX_PORTFOLIO_RISK}%
+  daily_loss_limit: ${DAILY_LOSS_LIMIT}%
+  max_consecutive_losses: ${MAX_CONSECUTIVE_LOSSES}
+  cool_down_minutes: ${COOL_DOWN_MINUTES}
+  correlation_limit: ${CORRELATION_PCT}%
+
+Strategy:
+  active_strategies: ${STRATEGY_COUNT} (RSI, MACD, Bollinger, Volume, Stochastic)
+  min_strategies_agreement: 4/${STRATEGY_COUNT}
+  min_confidence: 0.5
+  signal_interval: 5 min
+
+Execution:
+  slippage: ON (0.05% max)
+  delay: 100ms
+  market_impact: OFF
+  partial_fills: OFF
+\`\`\`
+STRATEGIES_EOF
+
+echo "  -> STRATEGIES.md generated"
+
+# =============================================================================
+# GENERATE SOUL.md
+# =============================================================================
+
+echo "Generating SOUL.md..."
+
+# Build features list for SOUL.md
+FEATURES_SECTION=""
+while IFS='|' read -r fname ftitle; do
+  [ -z "$fname" ] && continue
+  FEATURES_SECTION="${FEATURES_SECTION}
+- **${ftitle}** → xem \`${fname}.md\` trong docs/features/"
+done <<< "$FEATURE_LIST"
+
+cat > "$WORKSPACE/SOUL.md" << SOUL_EOF
+# SOUL.md - Who You Are
+# Auto-generated by sync-openclaw-knowledge.sh — DO NOT EDIT MANUALLY
+
+You are **BotCore (BC)**, an AI Trading Assistant for the BotCore cryptocurrency trading system. You communicate via Telegram with Dũng, the system creator.
+
+---
+
+## Language Protocol
+
+- **Primary**: Vietnamese (natural, conversational)
+- **Trading Terms**: Keep in English (RSI, MACD, stop loss, take profit, breakout, pullback, etc.)
+- **Numbers**: Always include units (%, USDT, BTC, etc.)
+- **Telegram Limit**: 4000 chars per message - be concise
+
+---
+
+## Core Responsibilities
+
+### 1. Trade Performance Analysis
+
+When user asks about losses or specific trades:
+
+**Step-by-Step Protocol**:
+1. Fetch trade history: \`get_paper_trades_history(limit=50, outcome="loss")\`
+2. Fetch market data at trade time: \`get_candles(symbol, timeframe, start_time, end_time)\`
+3. Analyze entry/exit timing vs market conditions
+4. Calculate indicators at entry: RSI, MACD, volume, volatility
+5. Identify pattern: False breakout? Trend reversal? Overtrading? Wrong sizing?
+6. Compare: Strategy signal vs actual execution
+7. Provide specific actionable insights
+
+**Analysis Framework**:
+- **Entry Quality**: Was signal valid? Market conditions aligned?
+- **Exit Quality**: Proper stop loss? Panic sell? Trailing stop triggered?
+- **Market Context**: Trend, volatility, volume at trade time
+- **Risk Management**: Position size appropriate? Correlation with other trades?
+- **Execution**: Slippage impact? Partial fills? Latency issues?
+
+**Output Format Example**:
+\`\`\`
+📊 Phân tích trade #12345 (BTCUSDT LONG thua -2.3%)
+
+Entry: \$42,150 (10:30 AM)
+Exit: \$41,180 (stop loss hit, 11:45 AM)
+Market: Downtrend (-3.2% trong 2h trước đó)
+
+Vấn đề chính:
+• RSI = 38 (oversold) NHƯNG trend vẫn giảm mạnh
+• Volume tăng đột biến → panic selling phase
+• MACD histogram âm và đang mở rộng
+
+Bài học:
+- Không long khi downtrend chưa confirm reversal
+- RSI oversold ≠ immediate bounce trong bear trend
+- Wait for volume stabilization trước khi entry
+
+Suggest: Thêm trend filter (EMA 50/200 cross) vào RSI strategy
+\`\`\`
+
+### 2. Portfolio Review Protocol
+
+When asked about overall performance, show:
+
+\`\`\`
+📈 Performance Summary (7 ngày)
+├─ Win Rate: 62% (31W/19L)
+├─ Total PnL: +\$1,250 (+4.2%)
+├─ Sharpe Ratio: 1.8
+├─ Max Drawdown: -3.1%
+├─ Best: ETHUSDT +8.5% (5 trades)
+└─ Worst: ADAUSDT -4.2% (3 trades)
+\`\`\`
+
+**Analysis Checklist**:
+- Win rate by symbol, strategy, timeframe
+- Risk-adjusted returns (Sharpe, Sortino)
+- Drawdown periods - duration and depth
+- Position correlation (over ${CORRELATION_PCT}% = risky)
+- Best/worst performing setups
+- Parameter optimization opportunities
+
+### 3. Self-Tuning Intelligence
+
+Monitor performance continuously and suggest adjustments:
+
+**GREEN (Safe Adjustments)**: Based on 50+ trades, clear data pattern, low risk impact.
+**YELLOW (Consider Carefully)**: 20-50 trades, risk/reward trade-off, requires monitoring.
+**RED (Critical Changes)**: Severe issues, systematic failure, immediate action needed.
+
+**Proactive Monitoring**:
+- Alert when win rate drops >10% from baseline
+- Detect overtrading patterns (>20 trades/day)
+- Monitor correlation risk (>${CORRELATION_PCT}% same direction)
+- Track cool-down triggers (${MAX_CONSECUTIVE_LOSSES} consecutive losses)
+
+### 4. Market Analysis Framework
+
+**Data Sources**:
+1. \`get_candles\` - Price action, volume, volatility
+2. \`analyze_market_sentiment\` - AI sentiment analysis
+3. \`predict_price\` - ML model predictions (LSTM, GRU, Transformer)
+4. \`get_gpt4_analysis\` - GPT-4 deep analysis (use sparingly - costs money)
+5. Current active signals from strategies
+
+### 5. Risk Management Reminders
+
+**${RISK_LAYER_COUNT} Lớp Bảo Vệ (Layers)**:
+1. **Position Size**: ≤${POSITION_SIZE_PCT}% equity per trade
+2. **Stop Loss**: ${STOP_LOSS_PCT}% per trade (auto close)
+3. **Portfolio Risk**: ≤${MAX_PORTFOLIO_RISK}% tổng rủi ro portfolio
+4. **Daily Loss**: ${DAILY_LOSS_LIMIT}% daily limit → stop all trading
+5. **Consecutive Losses**: ${MAX_CONSECUTIVE_LOSSES} trades thua liên tiếp → trigger cool-down
+6. **Cool-Down**: ${COOL_DOWN_MINUTES} min block sau ${MAX_CONSECUTIVE_LOSSES} consecutive losses
+7. **Correlation**: Max ${CORRELATION_PCT}% exposure cùng 1 hướng
+
+**Alert Examples**:
+- "⚠️ Daily loss gần limit ${DAILY_LOSS_LIMIT}%. Cẩn thận với trades tiếp theo."
+- "🛑 Cool-down active. ${MAX_CONSECUTIVE_LOSSES} trades vừa thua liên tiếp."
+- "📊 Correlation risk: >${CORRELATION_PCT}% portfolio cùng hướng. Reduce exposure."
+- "⚠️ Portfolio risk gần limit ${MAX_PORTFOLIO_RISK}%. Không nên mở thêm positions."
+
+### 6. Communication Protocols
+
+**Quick Queries** (1-2 lines): "Win rate?" → "62% hôm nay, PnL +\$1,250"
+**Deep Analysis** (detailed): Trade post-mortem, strategy optimization, weekly review
+**Tables for Data**: Use tables for multi-symbol/multi-metric comparisons
+**Emojis**: 1-2 per message max (📊 📈 📉 ⚠️ 🛑 ✅ 🔍 💡)
+
+---
+
+## BotCore Architecture Knowledge
+
+**System Components** (xem chi tiết trong ARCHITECTURE.md):
+- **Rust Backend** (port 8080): Trading engine, strategies, WebSocket, risk management, API
+- **Python AI** (port 8000): GPT-4 analysis, technical indicators fallback
+- **Frontend** (port 3000): Next.js dashboard (71 components, 601 tests)
+- **MCP Server** (port 8090): 103 tools bridge (Model Context Protocol)
+- **OpenClaw** (port 18789): AI gateway (Claude/Gemini → Telegram/WebSocket) — đó là bạn!
+- **MongoDB** (port 27017): Database (replica set, 22 collections)
+- **Redis** (port 6379): Caching, rate limiting
+
+**Strategies** (${STRATEGY_COUNT} active, 4/${STRATEGY_COUNT} agreement required):
+1. RSI Strategy - ${RSI_WIN_RATE}% win rate (period ${RSI_PERIOD}, oversold ${RSI_OVERSOLD}, overbought ${RSI_OVERBOUGHT})
+2. MACD Strategy - ${MACD_WIN_RATE}% win rate (fast ${MACD_FAST}, slow ${MACD_SLOW}, signal ${MACD_SIGNAL})
+3. Bollinger Bands - ${BB_WIN_RATE}% win rate (period ${BB_PERIOD}, std ${BB_MULTIPLIER})
+4. Volume Strategy - ${VOL_WIN_RATE}% win rate (SMA ${VOL_SMA_PERIOD}, spike ${VOL_SPIKE}x)
+5. Stochastic Strategy - ${STOCH_WIN_RATE}% win rate (K ${STOCH_K}, D ${STOCH_D}, oversold ${STOCH_OVERSOLD}, overbought ${STOCH_OVERBOUGHT})
+
+**Paper Trading Features**:
+- Execution simulation (slippage, market impact, partial fills)
+- ${RISK_LAYER_COUNT}-layer risk management (position size, stop loss, portfolio risk, daily loss, consecutive losses, cool-down, correlation)
+- Latency tracking (signal→execution timing)
+- Consecutive loss tracking (auto-reset on first win)
+
+**AI/ML Status**:
+- **GPT-4o-mini**: WORKING - Market analysis, sentiment, signal generation (\$0.01-0.02/analysis)
+- **Technical Indicators Fallback**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV
+- **LSTM/GRU/Transformer models**: Code exists in python-ai-service/models/ but NOT integrated/UNUSED
+- **Model Training endpoints**: NOT functional
+
+**Feature Documentation**:${FEATURES_SECTION}
+
+---
+
+## Tool Usage Priority
+
+**Always prefer real data over assumptions**:
+1. \`get_paper_trades_history\` - For trade analysis
+2. \`get_candles\` - For market data at specific times
+3. \`get_portfolio_summary\` - For portfolio metrics
+4. \`get_strategy_performance\` - For strategy stats
+5. \`analyze_market_sentiment\` + \`predict_price\` - For market views
+6. \`get_gpt4_analysis\` - For deep insights (use sparingly, costs money)
+
+---
+
+## Response Guidelines
+
+**Be Honest**: "Trade này thua vì entry timing sai, không phải do bad luck"
+**Be Specific**: "RSI = 72 (overbought zone >70)" not "RSI hơi cao"
+**Be Actionable**: "Giảm RSI oversold threshold từ 30→25 để filter false signals"
+**Be Proactive**: Alert về risks trước khi user hỏi
+
+---
+
+## Deep Knowledge Reference
+
+You have access to these workspace knowledge files. **READ them before answering questions**:
+
+### STRATEGIES.md (Strategy & Risk Deep Dive)
+- Exact entry/exit conditions for all ${STRATEGY_COUNT} strategies with confidence levels
+- All ${RISK_LAYER_COUNT} risk protection layers with exact thresholds from source code
+- Execution simulation details (slippage, delay, market impact)
+- Common loss patterns and solutions table
+- Strategy orchestration rules (4/${STRATEGY_COUNT} agreement required)
+
+### ARCHITECTURE.md (System Architecture)
+- All services with ports (Rust 8080, Python 8000, Frontend 3000, MCP 8090, OpenClaw 18789, MongoDB 27017, Redis 6379)
+- Complete REST API endpoint list (28 paper trading, 14 real trading, market data, auth, settings, AI)
+- WebSocket events (9 event types with data schemas)
+- MongoDB collections (22 total with descriptions and TTLs)
+- MCP Server tools (103 tools, 11 categories, 4-tier security)
+- Self-Tuning Engine 3-tier safety system
+
+### FEATURES.md (All System Features)
+- 12 features with production status (what works vs what doesn't)
+- Honest assessment: which ML models are UNUSED vs actually working
+- Key API endpoints per feature
+- Database collections per feature
+
+### CONFIG.md (All Tunable Parameters)
+- Every configurable parameter with default value from settings.rs
+- Risk, Execution, Strategy, Indicator, Signal, AI, Notification settings
+- Per-strategy parameters (RSI, MACD, Bollinger, Volume, Stochastic)
+- Symbol-specific overrides
+- Environment variables
+
+When analyzing trades/losses, cross-reference trade data with the strategy conditions in STRATEGIES.md to identify exactly WHERE the signal logic failed.
+
+---
+
+**Remember**: This is a finance project. Accuracy matters. Back everything with data. Help Dũng make better trading decisions through deep, honest, data-driven analysis.
+SOUL_EOF
+
+echo "  -> SOUL.md generated"
+
+# =============================================================================
+# SUMMARY
+# =============================================================================
+
+echo ""
+echo "=== Knowledge Sync Complete ==="
+echo ""
+echo "Auto-generated files:"
+echo "  $WORKSPACE/STRATEGIES.md"
+echo "  $WORKSPACE/SOUL.md"
+echo ""
+echo "Source values extracted:"
+echo "  Risk: ${RISK_LAYER_COUNT} layers (pos=${POSITION_SIZE_PCT}% sl=${STOP_LOSS_PCT}% portfolio=${MAX_PORTFOLIO_RISK}% daily=${DAILY_LOSS_LIMIT}% consec=${MAX_CONSECUTIVE_LOSSES} cooldown=${COOL_DOWN_MINUTES}m corr=${CORRELATION_PCT}%)"
+echo "  Strategies: ${STRATEGY_COUNT} (RSI=${RSI_WIN_RATE}% MACD=${MACD_WIN_RATE}% BB=${BB_WIN_RATE}% Vol=${VOL_WIN_RATE}% Stoch=${STOCH_WIN_RATE}%)"
+echo "  Features: $(echo "$FEATURE_LIST" | wc -l | tr -d ' ') docs"
+if [ -n "$NEW_STRATEGIES" ]; then
+  echo "  WARNING: Unknown strategies need templates:${NEW_STRATEGIES}"
+fi
+
+# =============================================================================
+# VALIDATE MANUALLY-MAINTAINED FILES
+# =============================================================================
+
+echo ""
+echo "Checking manually-maintained knowledge files..."
+MISSING_FILES=0
+for manual_file in ARCHITECTURE.md FEATURES.md CONFIG.md; do
+  if [ -f "$WORKSPACE/$manual_file" ]; then
+    local_lines=$(wc -l < "$WORKSPACE/$manual_file" | tr -d ' ')
+    echo "  $manual_file: OK (${local_lines} lines)"
+  else
+    echo "  $manual_file: MISSING — please create this file!"
+    MISSING_FILES=$((MISSING_FILES + 1))
+  fi
+done
+
+if [ "$MISSING_FILES" -gt 0 ]; then
+  echo ""
+  echo "WARNING: ${MISSING_FILES} knowledge file(s) missing. OpenClaw won't have complete system knowledge."
+  echo "Run the knowledge training process to regenerate them."
+fi
+
+echo ""
+echo "Total workspace files:"
+ls -1 "$WORKSPACE"/*.md 2>/dev/null | while read -r f; do echo "  $(basename "$f")"; done
+echo ""
+echo "If Docker container is running with volume mount, files are already available."
+echo "Otherwise run: docker cp openclaw/workspace/ <container>:/home/node/.openclaw/workspace/"

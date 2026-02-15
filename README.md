@@ -130,6 +130,14 @@
 - **Performance Analytics** - Detailed metrics, Sharpe ratio, max drawdown
 - **Strategy Optimizer** - Auto-optimization with parameter sweeps
 
+#### 🦞 **AI Assistant via Telegram** (NEW!)
+- **MCP Server** - 103 tools for full bot control via Model Context Protocol
+- **OpenClaw Gateway** - Claude-powered Telegram/WhatsApp assistant
+- **Self-Tuning Engine** - 3-tier autonomy (GREEN/YELLOW/RED) with guardrails
+- **Botcore Bridge CLI** - MCP client for tool calls from chat channels
+- **Cron Automation** - Morning briefings, portfolio reports, health checks, risk monitoring
+- **Audit Trail** - Tamper-evident JSONL logging, cooldowns, snapshot/rollback
+
 #### 🌐 **Enterprise Ready**
 - **Production Infrastructure** - MongoDB 7.0 replica set, nginx TLS 1.3
 - **Monitoring Stack** - Prometheus + Grafana + Loki with 50+ alerts
@@ -187,6 +195,8 @@ nano .env  # Or use your favorite editor
 | **👑 Kong Admin** | http://localhost:8001 | - | API Gateway |
 | **📈 Grafana** | http://localhost:3001 | admin/admin | Monitoring Dashboard |
 | **📊 Prometheus** | http://localhost:9090 | - | Metrics Collection |
+| **🔌 MCP Server** | http://localhost:8090/health | - | MCP Protocol (103 tools) |
+| **🦞 OpenClaw** | ws://localhost:18789 | token | AI Telegram/WhatsApp Gateway |
 
 ### 🎬 Development Mode (Hot Reload)
 
@@ -228,7 +238,17 @@ cd nextjs-ui-dashboard && npm run dev
 │  8080   ││  8000   ││  3000   ││   5672   │
 └────┬────┘└───┬─────┘└───┬─────┘└───┬──────┘
      │         │          │          │
-┌────▼─────────▼──────────▼──────────▼─────────┐
+┌────▼─────────▼──────────┤          │
+│     MCP Server (8090)   │          │
+│  103 tools · Self-Tune  │          │
+└────────────┬────────────┘          │
+             │                       │
+┌────────────▼───────────────────────┤
+│   OpenClaw Gateway (18789)         │
+│ Claude AI · Telegram · Cron Jobs   │
+└────────────────────────────────────┘
+             │
+┌────────────▼─────────────────────────────────┐
 │               Data Layer                      │
 ├──────────────────┬────────────────────────────┤
 │ MongoDB Replicas │    Redis Cache             │
@@ -381,6 +401,61 @@ Centralized API management with authentication and rate limiting.
 - Request/Response Transformation
 - Health Checks
 - API Analytics
+
+#### 6. 🔌 **MCP Server** (Port 8090) (NEW!)
+
+**TypeScript | @modelcontextprotocol/sdk | Streamable HTTP**
+
+Model Context Protocol server exposing 103 tools for full bot control.
+
+**Features:**
+- 🔧 **103 MCP Tools** across 10 categories:
+  - Monitoring (4): system health, metrics, Docker status, logs
+  - Market Data (9): prices, candles, charts, symbols
+  - Paper Trading (10): portfolio, trades, orders, positions
+  - Strategy (8): settings, signals, backtesting, optimization
+  - AI/ML (6): predictions, analysis, model management
+  - Tasks (7): async jobs, scheduler, results
+  - Auth (4): login, sessions, API keys
+  - Config (9): settings, risk, engine config
+  - Tuning (8): self-tuning engine, guardrails, audit, rollback
+  - Real Trading (4): live positions, execution (safety-gated)
+- 🎛️ **Self-Tuning Engine**:
+  - 3-tier autonomy: GREEN (auto), YELLOW (confirm), RED (approve)
+  - 11 tunable parameters with hard bounds
+  - Confirmation tokens (5-min TTL, single-use)
+  - Snapshot/rollback system
+  - Append-only audit trail
+- 🔒 **Security**: Bearer token auth, 4-tier tool classification
+
+**Tech Stack:**
+```json
+{
+  "@modelcontextprotocol/sdk": "^1.26.0",
+  "express": "^5.1.0",
+  "zod": "^3.25.0"
+}
+```
+
+#### 7. 🦞 **OpenClaw Gateway** (Port 18789) (NEW!)
+
+**Node.js 22 | OpenClaw | Claude AI**
+
+AI assistant gateway connecting Claude to BotCore via Telegram/WhatsApp.
+
+**Features:**
+- 🤖 **Claude-powered** AI assistant (Sonnet 4.5)
+- 📱 **Telegram** channel with allowlist DM policy
+- 🔧 **Botcore Bridge CLI** - MCP client for tool calls
+- ⏰ **6 Cron Jobs**: morning briefing, daily portfolio, weekly review, health check, self-tuning, risk monitor
+- 📝 **Skills System** - Custom SKILL.md injected into Claude context
+- 🛡️ **Safety Rules** - 10 hardcoded rules for trading safety
+
+**Architecture:**
+```
+User (Telegram) → OpenClaw → Claude API → exec botcore <tool>
+  → botcore-bridge.mjs → MCP Server (HTTP) → Rust/Python APIs
+```
 
 ---
 
@@ -1130,6 +1205,28 @@ bot-core/
 │   ├── package.json
 │   └── vite.config.ts
 │
+├── mcp-server/               # 🔌 MCP Server (NEW!)
+│   ├── src/
+│   │   ├── server.ts          # MCP server factory (103 tools)
+│   │   ├── tools/             # Tool implementations by category
+│   │   ├── tuning/            # Self-tuning engine (bounds, audit, snapshot)
+│   │   └── index.ts           # Express + Streamable HTTP transport
+│   ├── tests/                 # 89 tests (vitest)
+│   ├── package.json
+│   └── Dockerfile
+│
+├── openclaw/                  # 🦞 OpenClaw Gateway (NEW!)
+│   ├── config/
+│   │   ├── openclaw.json      # Dev config (no channels)
+│   │   ├── openclaw.production.json  # Prod config (Telegram)
+│   │   └── cron/              # 6 cron job definitions
+│   ├── scripts/
+│   │   ├── botcore-bridge.mjs # MCP client CLI
+│   │   └── entrypoint.sh      # Container startup
+│   ├── workspace/
+│   │   └── skills/botcore/SKILL.md  # Claude skill definition
+│   └── Dockerfile
+│
 ├── scripts/                   # 🛠️ Utility Scripts
 │   ├── bot.sh                 # Main control script
 │   ├── security-scan.sh       # Security scanning
@@ -1362,7 +1459,16 @@ in the Software without restriction...
 - ✅ Production deployment
 - ✅ Perfect 10/10 quality
 
-### 🚧 In Progress (v1.1)
+### ✅ Completed (v1.1)
+
+- ✅ MCP Server (103 tools, Streamable HTTP)
+- ✅ OpenClaw Gateway (Claude AI via Telegram)
+- ✅ Self-Tuning Engine (3-tier autonomy, guardrails, audit)
+- ✅ Botcore Bridge CLI (MCP client for chat channels)
+- ✅ Cron Automation (6 scheduled jobs)
+- ✅ Async Task Processing (Celery + RabbitMQ)
+
+### 🚧 In Progress (v1.2)
 
 - 🚧 Advanced ML models (Attention, CNN-LSTM)
 - 🚧 Sentiment analysis (Twitter, Reddit)

@@ -1,0 +1,7 @@
+{
+  "id": "daily-portfolio-report",
+  "name": "Daily Portfolio Report",
+  "schedule": "0 20 * * *",
+  "mode": "independent",
+  "prompt": "Generate daily portfolio report. Use botcore CLI to: 1) `botcore get_paper_portfolio` for balance and PnL. 2) `botcore get_paper_trades_history '{\"limit\":10}'` for today's trades. 3) `botcore get_paper_trades_open` for open positions. 4) `botcore get_paper_performance` for stats. Format as: portfolio balance, daily PnL ($, %), win rate, trade list (symbol, side, PnL), open positions table. Highlight big wins/losses. End with brief assessment."
+}

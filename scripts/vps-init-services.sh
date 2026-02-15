@@ -26,79 +26,7 @@ print_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 print_error() { echo -e "${RED}❌ $1${NC}"; }
 
 # =============================================================================
-# 1. Check and fix RabbitMQ
-# =============================================================================
-echo ""
-echo "📨 Checking RabbitMQ..."
-
-if docker ps | grep -q "rabbitmq.*healthy"; then
-    print_status "RabbitMQ is healthy"
-
-    # Check if vhost exists
-    if docker exec rabbitmq rabbitmqctl list_vhosts 2>/dev/null | grep -q "bot-core"; then
-        print_status "RabbitMQ vhost 'bot-core' exists"
-    else
-        print_warning "RabbitMQ vhost missing, creating..."
-        docker exec rabbitmq rabbitmqctl add_vhost bot-core || true
-        docker exec rabbitmq rabbitmqctl set_permissions -p bot-core admin ".*" ".*" ".*" || true
-        print_status "RabbitMQ vhost created"
-    fi
-
-    # Check if user exists
-    if docker exec rabbitmq rabbitmqctl list_users 2>/dev/null | grep -q "admin"; then
-        print_status "RabbitMQ user 'admin' exists"
-    else
-        print_warning "RabbitMQ user missing, this should be auto-created on startup"
-    fi
-else
-    print_warning "RabbitMQ not healthy, restarting..."
-    docker compose --profile messaging restart rabbitmq
-    sleep 30
-
-    if docker ps | grep -q "rabbitmq.*healthy"; then
-        print_status "RabbitMQ restarted successfully"
-    else
-        print_error "RabbitMQ still unhealthy, may need manual intervention"
-    fi
-fi
-
-# =============================================================================
-# 2. Check and fix Celery services
-# =============================================================================
-echo ""
-echo "🔄 Checking Celery services..."
-
-# Check celery-worker
-if docker ps | grep -q "celery-worker"; then
-    worker_status=$(docker inspect --format='{{.State.Health.Status}}' celery-worker 2>/dev/null || echo "unknown")
-    if [ "$worker_status" = "healthy" ]; then
-        print_status "Celery Worker is healthy"
-    else
-        print_warning "Celery Worker status: $worker_status, restarting..."
-        docker compose --profile messaging restart celery-worker
-        sleep 20
-    fi
-else
-    print_warning "Celery Worker not running, starting..."
-    docker compose --profile messaging up -d celery-worker
-    sleep 20
-fi
-
-# Check celery-beat
-if docker ps | grep -q "celery-beat"; then
-    beat_status=$(docker inspect --format='{{.State.Health.Status}}' celery-beat 2>/dev/null || echo "unknown")
-    if [ "$beat_status" = "healthy" ]; then
-        print_status "Celery Beat is healthy"
-    else
-        print_warning "Celery Beat status: $beat_status (non-critical)"
-    fi
-else
-    print_warning "Celery Beat not running, starting..."
-    docker compose --profile messaging up -d celery-beat
-fi
-
-# =============================================================================
-# 3. Check core services
+# 1. Check core services
 # =============================================================================
 echo ""
 echo "🚀 Checking core services..."
@@ -121,7 +49,7 @@ check_service_health "Python AI" "http://localhost:8000/health"
 check_service_health "Frontend" "http://localhost:3000"
 
 # =============================================================================
-# 4. Check MongoDB
+# 2. Check MongoDB
 # =============================================================================
 echo ""
 echo "🗄️ Checking MongoDB..."
@@ -137,7 +65,7 @@ else
 fi
 
 # =============================================================================
-# 5. Final status
+# 3. Final status
 # =============================================================================
 echo ""
 echo "=============================================="

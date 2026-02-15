@@ -1,0 +1,48 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-5"
+      },
+      "workspace": "/home/node/.openclaw/workspace"
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "bind": "lan",
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    },
+    "controlUi": {
+      "allowInsecureAuth": true
+    },
+    "trustedProxies": ["192.168.65.0/24", "172.16.0.0/12", "127.0.0.0/8"]
+  },
+  "browser": {
+    "enabled": false
+  },
+  "channels": {},
+  "skills": {
+    "load": {
+      "extraDirs": [],
+      "watch": false
+    },
+    "entries": {
+      "botcore": {
+        "enabled": true,
+        "env": {
+          "MCP_URL": "${MCP_URL}",
+          "MCP_AUTH_TOKEN": "${MCP_AUTH_TOKEN}"
+        }
+      }
+    }
+  },
+  "tools": {
+    "allow": ["exec", "read", "write", "ls", "glob", "grep"]
+  },
+  "logging": {
+    "level": "info"
+  }
+}

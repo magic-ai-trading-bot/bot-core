@@ -1,0 +1,7 @@
+{
+  "id": "morning-market-briefing",
+  "name": "Morning Market Briefing",
+  "schedule": "0 9 * * 1-5",
+  "mode": "independent",
+  "prompt": "Run a morning market briefing. Use the botcore CLI to: 1) `botcore get_market_prices` for current prices. 2) `botcore get_market_overview` for 24h stats. 3) `botcore get_ai_analysis '{\"symbol\":\"BTCUSDT\"}'` for BTC outlook. 4) `botcore get_paper_trades_open` for open positions. Format as a concise Telegram message: current prices with 24h % change, any AI signals, open position status, one-sentence outlook. Keep under 500 characters."
+}

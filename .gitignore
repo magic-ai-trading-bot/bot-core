@@ -128,3 +128,4 @@ bun.lockb
 
 # OpenAPI generation script (temporary)
 generate_openapi.py
+repomix-output.xml

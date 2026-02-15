@@ -1,7 +1,7 @@
 # Bot Core Monorepo Makefile
 # Common development and deployment tasks
 
-.PHONY: help setup build start stop restart clean logs test lint docker-build docker-push deploy
+.PHONY: help setup build start stop restart clean logs test lint docker-build docker-push deploy sync-knowledge
 
 # Default target
 .DEFAULT_GOAL := help
@@ -382,6 +382,15 @@ quality-report: ## Generate quality metrics report
 	@echo ""
 	@echo "Report available at: metrics/quality-report-*.json"
 	@echo "See docs/reports/QUALITY_METRICS_SUMMARY.md for detailed analysis"
+
+# OpenClaw Knowledge Sync
+sync-knowledge: ## Sync OpenClaw workspace knowledge from source code
+	@echo "Syncing OpenClaw knowledge from source code..."
+	@chmod +x scripts/sync-openclaw-knowledge.sh
+	@./scripts/sync-openclaw-knowledge.sh
+	@echo ""
+	@echo "If OpenClaw container is running, files are auto-synced via volume mount."
+	@echo "Otherwise: docker cp openclaw/workspace/ openclaw:/home/node/.openclaw/workspace/"
 
 # Development help
 dev-help: ## Show development commands
