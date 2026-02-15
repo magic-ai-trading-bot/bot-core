@@ -77,6 +77,7 @@ jobs:
 
           DEPLOY_SUCCESS=true
           DEPLOY_DIR="/root/bot-core"
+          DC="docker compose -f docker-compose-vps.yml"
           BACKUP_DIR="/root/backups"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
@@ -203,19 +204,9 @@ jobs:
           log_warn "⚠️ IMPORTANT: MongoDB and Redis will NOT be stopped to preserve data"
 
           # List of app containers to restart (NOT infrastructure)
-          APP_CONTAINERS="rust-core-engine python-ai-service nextjs-ui-dashboard"
+          APP_CONTAINERS="rust-core-engine python-ai-service nextjs-ui-dashboard mcp-server openclaw"
 
           for container in $APP_CONTAINERS; do
-            if docker ps -a | grep -q "$container"; then
-              docker stop "$container" 2>/dev/null || true
-              docker rm -f "$container" 2>/dev/null || true
-              log_info "Stopped: $container"
-            fi
-          done
-
-          # Also handle celery containers (can be restarted safely)
-          CELERY_CONTAINERS="celery-worker celery-beat flower"
-          for container in $CELERY_CONTAINERS; do
             if docker ps -a | grep -q "$container"; then
               docker stop "$container" 2>/dev/null || true
               docker rm -f "$container" 2>/dev/null || true
@@ -264,17 +255,27 @@ jobs:
           # Build one at a time and prune builder cache between builds
           # Frontend is smallest, build first
           log_info "Building nextjs-ui-dashboard..."
-          docker compose build nextjs-ui-dashboard || { log_error "Frontend build failed!"; exit 1; }
+          $DC build nextjs-ui-dashboard || { log_error "Frontend build failed!"; exit 1; }
           docker builder prune -f 2>/dev/null || true
 
           # Python has huge venv (TensorFlow+PyTorch), build next
           log_info "Building python-ai-service..."
-          docker compose build python-ai-service || { log_error "Python build failed!"; exit 1; }
+          $DC build python-ai-service || { log_error "Python build failed!"; exit 1; }
           docker builder prune -f 2>/dev/null || true
 
           # Rust is heavy compile, build last
           log_info "Building rust-core-engine..."
-          docker compose build rust-core-engine || { log_error "Rust build failed!"; exit 1; }
+          $DC build rust-core-engine || { log_error "Rust build failed!"; exit 1; }
+          docker builder prune -f 2>/dev/null || true
+
+          # MCP Server (lightweight Node.js)
+          log_info "Building mcp-server..."
+          $DC build mcp-server || log_warn "MCP Server build failed (optional)"
+          docker builder prune -f 2>/dev/null || true
+
+          # OpenClaw (lightweight Node.js)
+          log_info "Building openclaw..."
+          $DC build openclaw || log_warn "OpenClaw build failed (optional)"
           docker builder prune -f 2>/dev/null || true
 
           log_info "✅ All images built successfully"
@@ -287,7 +288,7 @@ jobs:
           # Ensure MongoDB is running (should already be running)
           if ! docker ps | grep -q "mongodb"; then
             log_warn "MongoDB not running, starting..."
-            docker compose up -d mongodb
+            $DC up -d mongodb
             sleep 15
           fi
 
@@ -306,7 +307,7 @@ jobs:
           # Ensure Redis is running
           if ! docker ps | grep -q "redis-cache"; then
             log_warn "Redis not running, starting..."
-            docker compose --profile redis up -d redis
+            $DC up -d redis
             sleep 5
           fi
 
@@ -315,43 +316,25 @@ jobs:
           # ============================================================================
           log_info "🚀 Step 10: Starting application services..."
 
-          docker compose --profile prod up -d rust-core-engine python-ai-service nextjs-ui-dashboard
+          $DC up -d rust-core-engine python-ai-service nextjs-ui-dashboard
           sleep 30
 
           # ============================================================================
-          # STEP 11: START MESSAGING SERVICES
+          # STEP 11: START MCP SERVER & OPENCLAW
           # ============================================================================
-          log_info "📨 Step 11: Starting messaging services..."
+          log_info "🤖 Step 11: Starting MCP Server & OpenClaw..."
 
-          # RabbitMQ
-          if ! docker ps | grep -q "rabbitmq"; then
-            docker compose --profile messaging up -d rabbitmq
-            sleep 20
-          fi
+          # MCP Server depends on rust-core-engine + python-ai-service (healthy)
+          $DC up -d mcp-server 2>/dev/null || log_warn "MCP Server start failed (optional)"
+          sleep 10
 
-          # Wait for RabbitMQ to be ready
-          for i in {1..5}; do
-            if docker exec rabbitmq rabbitmqctl list_vhosts 2>/dev/null | grep -q "bot-core"; then
-              log_info "✅ RabbitMQ ready"
-              break
-            fi
-            log_info "Waiting for RabbitMQ... ($i/5)"
-            sleep 5
-          done
-
-          # Celery services
-          docker compose --profile messaging up -d celery-worker celery-beat flower 2>/dev/null || true
+          # OpenClaw depends on mcp-server (healthy)
+          $DC up -d openclaw 2>/dev/null || log_warn "OpenClaw start failed (optional)"
 
           # ============================================================================
-          # STEP 12: START MONITORING (Optional)
+          # STEP 12: HEALTH CHECKS
           # ============================================================================
-          log_info "📊 Step 12: Starting monitoring services..."
-          docker compose --profile monitoring --profile api-gateway up -d 2>/dev/null || true
-
-          # ============================================================================
-          # STEP 13: HEALTH CHECKS
-          # ============================================================================
-          log_info "⏳ Step 13: Running health checks..."
+          log_info "⏳ Step 12: Running health checks..."
           sleep 30
 
           check_service() {
@@ -379,12 +362,16 @@ jobs:
           check_service "Python AI" "http://localhost:8000/health" || DEPLOY_SUCCESS=false
           check_service "Frontend" "http://localhost:3000" || DEPLOY_SUCCESS=false
 
+          # Optional services health check (don't fail deploy if these are down)
+          check_service "MCP Server" "http://localhost:8090/health" || log_warn "MCP Server not healthy (optional)"
+          check_service "OpenClaw" "http://localhost:18789/health" || log_warn "OpenClaw not healthy (optional)"
+
           # ============================================================================
-          # STEP 14: FINAL STATUS
+          # STEP 13: FINAL STATUS
           # ============================================================================
           echo ""
           log_info "📋 All running services:"
-          docker compose ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -v "Created\|Exited" || docker ps --format "table {{.Names}}\t{{.Status}}"
+          $DC ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -v "Created\|Exited" || docker ps --format "table {{.Names}}\t{{.Status}}"
 
           echo ""
           log_info "📊 Final disk usage:"
@@ -425,15 +412,18 @@ jobs:
           echo "| Rust API | http://${{ secrets.VPS_HOST }}:8080 | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "| Python AI | http://${{ secrets.VPS_HOST }}:8000 | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Enterprise Services" >> $GITHUB_STEP_SUMMARY
+          echo "### AI Assistant Services" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Port | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|------|-------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| RabbitMQ | 15672 | Message Queue |" >> $GITHUB_STEP_SUMMARY
-          echo "| Flower | 5555 | Celery Monitor |" >> $GITHUB_STEP_SUMMARY
-          echo "| Grafana | 3001 | Monitoring |" >> $GITHUB_STEP_SUMMARY
-          echo "| Prometheus | 9090 | Metrics |" >> $GITHUB_STEP_SUMMARY
-          echo "| Kong | 8100 | API Gateway |" >> $GITHUB_STEP_SUMMARY
+          echo "| MCP Server | 8090 | BotCore API Bridge |" >> $GITHUB_STEP_SUMMARY
+          echo "| OpenClaw | 18789 | AI Trading Assistant |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Infrastructure" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Port | Description |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| MongoDB | 27017 | Primary Database |" >> $GITHUB_STEP_SUMMARY
+          echo "| Redis | 6379 | Cache |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.event.workflow_run.head_sha || github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** main" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
