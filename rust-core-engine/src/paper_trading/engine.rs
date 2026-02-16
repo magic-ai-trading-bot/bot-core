@@ -1317,8 +1317,11 @@ impl PaperTradingEngine {
         let portfolio = self.portfolio.read().await;
         let open_trades = portfolio.get_open_trades();
 
-        if open_trades.is_empty() {
-            return Ok(true); // First position always OK
+        // Correlation limit only meaningful with 3+ positions
+        // With 1-2 positions, directional ratio is always 50-100% which
+        // would incorrectly block new same-direction trades
+        if open_trades.len() < 3 {
+            return Ok(true);
         }
 
         // Count positions by direction
@@ -7425,9 +7428,10 @@ mod tests {
             portfolio.open_trade_ids.push(trade.id.clone());
         }
 
+        // With < 3 positions, correlation check is skipped (not enough positions to diversify)
         let result = engine.check_position_correlation(TradeType::Long).await;
         assert!(result.is_ok());
-        assert!(!result.unwrap()); // Should NOT allow - 100% long exceeds 70% limit
+        assert!(result.unwrap()); // Should allow - fewer than 3 positions, correlation check skipped
     }
 
     #[tokio::test]
@@ -9302,17 +9306,65 @@ mod tests {
                 metadata: std::collections::HashMap::new(),
             };
 
+            // Add a 2nd long trade to reach 3 positions (threshold for correlation check)
+            let long_trade2 = PaperTrade {
+                id: "long-2".to_string(),
+                symbol: "BNBUSDT".to_string(),
+                trade_type: TradeType::Long,
+                entry_price: 500.0,
+                quantity: 600.0, // 300k value
+                leverage: 10,
+                stop_loss: Some(490.0),
+                take_profit: Some(520.0),
+                status: crate::paper_trading::trade::TradeStatus::Open,
+                open_time: Utc::now(),
+                close_time: None,
+                exit_price: None,
+                unrealized_pnl: 0.0,
+                realized_pnl: None,
+                pnl_percentage: 0.0,
+                trading_fees: 0.0,
+                funding_fees: 0.0,
+                initial_margin: 30000.0,
+                maintenance_margin: 15000.0,
+                margin_used: 30000.0,
+                margin_ratio: 0.1,
+                duration_ms: None,
+                ai_signal_id: None,
+                ai_confidence: None,
+                ai_reasoning: None,
+                strategy_name: None,
+                close_reason: None,
+                risk_score: 0.5,
+                market_regime: None,
+                entry_volatility: 0.3,
+                max_favorable_excursion: 0.0,
+                max_adverse_excursion: 0.0,
+                slippage: 0.0,
+                signal_timestamp: None,
+                execution_timestamp: Utc::now(),
+                execution_latency_ms: None,
+                highest_price_achieved: None,
+                trailing_stop_active: false,
+                metadata: std::collections::HashMap::new(),
+            };
+
             portfolio
                 .trades
                 .insert(long_trade.id.clone(), long_trade.clone());
             portfolio.open_trade_ids.push(long_trade.id.clone());
             portfolio
                 .trades
+                .insert(long_trade2.id.clone(), long_trade2.clone());
+            portfolio.open_trade_ids.push(long_trade2.id.clone());
+            portfolio
+                .trades
                 .insert(short_trade.id.clone(), short_trade.clone());
             portfolio.open_trade_ids.push(short_trade.id.clone());
         }
 
-        // Try to add another long - should be blocked (80% > 70%)
+        // 3 positions: 2 LONG (700k) + 1 SHORT (100k) = 87.5% long > 70% limit
+        // Try to add another long - should be blocked
         let result = engine.check_position_correlation(TradeType::Long).await;
         assert!(result.is_ok());
         assert!(!result.unwrap());
@@ -9327,7 +9379,7 @@ mod tests {
         settings.risk.correlation_limit = 0.7;
         engine.update_settings(settings).await.ok();
 
-        // Add 60% long exposure (within limit)
+        // Add 3 positions with 60% long exposure (within 70% limit)
         {
             let mut portfolio = engine.portfolio.write().await;
 
@@ -9336,7 +9388,7 @@ mod tests {
                 symbol: "BTCUSDT".to_string(),
                 trade_type: TradeType::Long,
                 entry_price: 50000.0,
-                quantity: 6.0, // 300k value (60%)
+                quantity: 6.0, // 300k value
                 leverage: 10,
                 stop_loss: Some(49000.0),
                 take_profit: Some(52000.0),
@@ -9378,7 +9430,7 @@ mod tests {
                 symbol: "ETHUSDT".to_string(),
                 trade_type: TradeType::Short,
                 entry_price: 3000.0,
-                quantity: 67.0, // 200k value (40%)
+                quantity: 67.0, // 200k value
                 leverage: 10,
                 stop_loss: Some(3100.0),
                 take_profit: Some(2900.0),
@@ -9415,6 +9467,49 @@ mod tests {
                 metadata: std::collections::HashMap::new(),
             };
 
+            // 3rd position: another short to make 60% long / 40% short
+            let short_trade2 = PaperTrade {
+                id: "short-3".to_string(),
+                symbol: "SOLUSDT".to_string(),
+                trade_type: TradeType::Short,
+                entry_price: 100.0,
+                quantity: 10.0, // 1k value (negligible, keeps ratio ~60%)
+                leverage: 10,
+                stop_loss: Some(110.0),
+                take_profit: Some(90.0),
+                status: crate::paper_trading::trade::TradeStatus::Open,
+                open_time: Utc::now(),
+                close_time: None,
+                exit_price: None,
+                unrealized_pnl: 0.0,
+                realized_pnl: None,
+                pnl_percentage: 0.0,
+                trading_fees: 0.0,
+                funding_fees: 0.0,
+                initial_margin: 100.0,
+                maintenance_margin: 50.0,
+                margin_used: 100.0,
+                margin_ratio: 0.1,
+                duration_ms: None,
+                ai_signal_id: None,
+                ai_confidence: None,
+                ai_reasoning: None,
+                strategy_name: None,
+                close_reason: None,
+                risk_score: 0.5,
+                market_regime: None,
+                entry_volatility: 0.3,
+                max_favorable_excursion: 0.0,
+                max_adverse_excursion: 0.0,
+                slippage: 0.0,
+                signal_timestamp: None,
+                execution_timestamp: Utc::now(),
+                execution_latency_ms: None,
+                highest_price_achieved: None,
+                trailing_stop_active: false,
+                metadata: std::collections::HashMap::new(),
+            };
+
             portfolio
                 .trades
                 .insert(long_trade.id.clone(), long_trade.clone());
@@ -9423,9 +9518,14 @@ mod tests {
                 .trades
                 .insert(short_trade.id.clone(), short_trade.clone());
             portfolio.open_trade_ids.push(short_trade.id.clone());
+            portfolio
+                .trades
+                .insert(short_trade2.id.clone(), short_trade2.clone());
+            portfolio.open_trade_ids.push(short_trade2.id.clone());
         }
 
-        // Try to add another long - should be allowed (60% < 70%)
+        // 3 positions: 300k LONG + 200k SHORT + 1k SHORT = ~60% long < 70% limit
+        // Try to add another long - should be allowed
         let result = engine.check_position_correlation(TradeType::Long).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
