@@ -74,7 +74,7 @@
 - **90+ Guides & Reports** - 60,000+ lines of comprehensive documentation
 - **256 Requirements Mapped** - 100% bidirectional traceability
 - **125+ Checklist Items** - Production deployment ready
-- **7 Grafana Dashboards** - Complete system visibility
+- **Docker Health Checks** - Complete system visibility
 
 ### ✨ Key Features
 
@@ -85,16 +85,11 @@
 - **Sentiment Analysis** - Market sentiment tracking from multiple sources
 - **GPT-4 Self-Analysis** - Autonomous model performance evaluation (43,000% ROI)
 
-#### 🔄 **Async Task Processing** (NEW!)
-- **Background ML Training** - Non-blocking model training with Celery workers
+#### 🔄 **Async Task Processing**
+- **Background ML Training** - Non-blocking model training
 - **Bulk Market Analysis** - Process thousands of symbols concurrently
 - **Strategy Backtesting** - Parameter sweeps and optimization in background
 - **Scheduled Monitoring** - Automated health checks, portfolio reports, cost analysis
-- **Message Queue Architecture**:
-  - RabbitMQ broker for reliable message delivery
-  - Redis result backend for fast status checks
-  - 4 dedicated queues: ml_training, bulk_analysis, backtesting, scheduled
-  - Flower UI for real-time task monitoring
 - **Intelligent Automation**:
   - Adaptive retraining based on performance degradation
   - Emergency strategy disabling on poor performance
@@ -140,7 +135,7 @@
 
 #### 🌐 **Enterprise Ready**
 - **Production Infrastructure** - MongoDB 7.0 replica set, nginx TLS 1.3
-- **Monitoring Stack** - Prometheus + Grafana + Loki with 50+ alerts
+- **Health Monitoring** - Docker health checks with auto-restart
 - **Automated Backups** - Hourly incremental, daily full, multi-cloud storage
 - **Disaster Recovery** - RTO: 30min, RPO: 5min (world-class)
 - **Multi-region Ready** - Docker registry, SSL/TLS, auto-scaling
@@ -190,11 +185,6 @@ nano .env  # Or use your favorite editor
 | **🦀 Rust API** | http://localhost:8080/api/health | - | Trading Engine API |
 | **🐍 Python AI** | http://localhost:8000/health | - | AI/ML Service |
 | **💾 MongoDB** | mongodb://localhost:27017 | admin/password | Database |
-| **🐰 RabbitMQ** | http://localhost:15672 | admin/rabbitmq_password | Message Queue Management |
-| **🌸 Flower UI** | http://localhost:5555 | - | Celery Task Monitoring (NEW!) |
-| **👑 Kong Admin** | http://localhost:8001 | - | API Gateway |
-| **📈 Grafana** | http://localhost:3001 | admin/admin | Monitoring Dashboard |
-| **📊 Prometheus** | http://localhost:9090 | - | Metrics Collection |
 | **🔌 MCP Server** | http://localhost:8090/health | - | MCP Protocol (103 tools) |
 | **🦞 OpenClaw** | ws://localhost:18789 | token | AI Telegram/WhatsApp Gateway |
 
@@ -218,43 +208,33 @@ cd nextjs-ui-dashboard && npm run dev
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      CloudFront CDN                         │
-│               (Global CDN, DDoS Protection)                 │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│                   Kong API Gateway                          │
-│      (Rate Limiting, Auth, API Versioning)                  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│                  Istio Service Mesh                         │
-│         (mTLS, Circuit Breaking, Load Balancing)            │
-└────┬──────────┬──────────┬──────────┬────────────────────────┘
-     │          │          │          │
-┌────▼────┐┌───▼─────┐┌───▼─────┐┌───▼──────┐
-│  Rust   ││ Python  ││ Next.js ││ RabbitMQ │
-│  Core   ││   AI    ││   UI    ││  Queue   │
-│  8080   ││  8000   ││  3000   ││   5672   │
-└────┬────┘└───┬─────┘└───┬─────┘└───┬──────┘
-     │         │          │          │
-┌────▼─────────▼──────────┤          │
-│     MCP Server (8090)   │          │
-│  103 tools · Self-Tune  │          │
-└────────────┬────────────┘          │
-             │                       │
-┌────────────▼───────────────────────┤
-│   OpenClaw Gateway (18789)         │
-│ Claude AI · Telegram · Cron Jobs   │
-└────────────────────────────────────┘
-             │
-┌────────────▼─────────────────────────────────┐
-│               Data Layer                      │
-├──────────────────┬────────────────────────────┤
-│ MongoDB Replicas │    Redis Cache             │
-│ (Primary + 3     │ (Session + Market Data)    │
-│  Secondaries)    │                            │
-└──────────────────┴────────────────────────────┘
+│                    User Interfaces                          │
+│         Dashboard (3000) · Telegram · WhatsApp              │
+└────────────┬────────────────────────┬───────────────────────┘
+             │                        │
+┌────────────▼──────────┐ ┌───────────▼───────────────────────┐
+│   Next.js Dashboard   │ │   OpenClaw Gateway (18789)        │
+│     React + Vite      │ │  Claude AI · Telegram · Cron Jobs │
+└────────────┬──────────┘ └───────────┬───────────────────────┘
+             │                        │
+             │              ┌─────────▼───────────────┐
+             │              │   MCP Server (8090)     │
+             │              │  103 tools · Self-Tune  │
+             │              └─────────┬───────────────┘
+             │                        │
+┌────────────▼────────────────────────▼───────────────────────┐
+│                   Core Services                              │
+├─────────────────────────┬────────────────────────────────────┤
+│   Rust Core Engine      │      Python AI Service             │
+│   (8080) Trading API    │      (8000) ML + GPT-4             │
+└────────────┬────────────┴──────────────┬─────────────────────┘
+             │                           │
+┌────────────▼───────────────────────────▼─────────────────────┐
+│                      Data Layer                               │
+├──────────────────────┬────────────────────────────────────────┤
+│   MongoDB 7.0        │         Redis Cache                    │
+│   (Primary DB)       │    (Session + Market Data)             │
+└──────────────────────┴────────────────────────────────────────┘
 ```
 
 ### 🔧 Service Details
@@ -302,7 +282,7 @@ rust_decimal = "1.39"    # Financial calculations
 
 #### 2. 🐍 **Python AI Service** (Port 8000)
 
-**Python 3.11+ | FastAPI | TensorFlow/PyTorch | Celery**
+**Python 3.11+ | FastAPI | TensorFlow/PyTorch**
 
 AI/ML service for market prediction, technical analysis, and async task processing.
 
@@ -312,22 +292,15 @@ AI/ML service for market prediction, technical analysis, and async task processi
 - 📊 **Technical Indicators** (TA-Lib, 40+ indicators)
 - 📈 **Market Prediction & Forecasting** - Multi-horizon predictions
 - 💬 **Sentiment Analysis** - Social media & news sentiment tracking
-- 🔄 **Async Task Processing** (NEW!):
-  - Celery workers for background jobs
-  - RabbitMQ message broker
-  - Redis result backend
-  - 4 task queues: ml_training, bulk_analysis, backtesting, scheduled
-  - Flower UI for monitoring (port 5555)
 - 🔥 **Redis Caching** - Fast data access
 - 🚀 **FastAPI** (Async) - High-performance API
 
 **Metrics:**
 - Test Coverage: 95%
-- Tests: 580+ tests (459 core + 105 async tasks + integration)
+- Tests: 580+ tests
 - Mutation Score: 76%
 - API Latency: < 2s (predictions), < 50ms (indicators)
 - Model Accuracy: 78%+ (LSTM), 72%+ (Ensemble)
-- Async Task Throughput: 1000+ tasks/hour
 
 **Tech Stack:**
 ```python
@@ -338,9 +311,7 @@ openai = "2.8.0"            # GPT-4 API
 pandas = "2.2.3"            # Data analysis
 scikit-learn = "1.7.0"      # ML algorithms
 ta = "0.11.0"               # Technical analysis
-celery = "5.4.0"            # Async task queue (NEW!)
-redis = "5.2.1"             # Result backend (NEW!)
-flower = "2.0.1"            # Task monitoring UI (NEW!)
+redis = "5.2.1"             # Cache backend
 ```
 
 #### 3. ⚛️ **Next.js Dashboard** (Port 3000)
@@ -377,32 +348,7 @@ Modern dashboard interface with real-time updates.
 }
 ```
 
-#### 4. 🐰 **RabbitMQ** (Port 5672)
-
-**Event-Driven Architecture**
-
-Message queue for async processing and service decoupling.
-
-**Queues:**
-- `trading.signals` - Trading signals from strategies
-- `ai.predictions` - AI prediction results
-- `market.data.fanout` - Market data broadcast
-- `dead.letter` - Failed message handling
-
-#### 5. 👑 **Kong API Gateway** (Port 8001)
-
-**API Management & Security**
-
-Centralized API management with authentication and rate limiting.
-
-**Features:**
-- Rate Limiting (per user/IP)
-- JWT Authentication
-- Request/Response Transformation
-- Health Checks
-- API Analytics
-
-#### 6. 🔌 **MCP Server** (Port 8090) (NEW!)
+#### 4. 🔌 **MCP Server** (Port 8090)
 
 **TypeScript | @modelcontextprotocol/sdk | Streamable HTTP**
 
@@ -437,7 +383,7 @@ Model Context Protocol server exposing 103 tools for full bot control.
 }
 ```
 
-#### 7. 🦞 **OpenClaw Gateway** (Port 18789) (NEW!)
+#### 5. 🦞 **OpenClaw Gateway** (Port 18789)
 
 **Node.js 22 | OpenClaw | Claude AI**
 
@@ -470,8 +416,8 @@ User (Telegram) → OpenClaw → Claude API → exec botcore <tool>
 # Start with memory optimization (recommended)
 ./scripts/bot.sh start --memory-optimized
 
-# Start with all enterprise features
-./scripts/bot.sh start --with-enterprise --memory-optimized
+# Start with all services (including MCP + OpenClaw)
+./scripts/bot.sh start --memory-optimized
 
 # Development mode (hot reload)
 ./scripts/bot.sh dev
@@ -500,7 +446,7 @@ User (Telegram) → OpenClaw → Claude API → exec botcore <tool>
 ./scripts/bot.sh logs --service rust-core-engine
 ./scripts/bot.sh logs --service python-ai-service
 ./scripts/bot.sh logs --service nextjs-ui-dashboard
-./scripts/bot.sh logs --service rabbitmq
+./scripts/bot.sh logs --service mcp-server
 
 # Follow logs real-time
 ./scripts/bot.sh logs --service rust-core-engine -f
@@ -613,11 +559,12 @@ MAX_POSITION_SIZE=1000            # USD
 RISK_PER_TRADE=0.02              # 2%
 
 # ========================================
-# RABBITMQ
+# MCP & OPENCLAW
 # ========================================
-RABBITMQ_URL=amqp://admin:secure-password@rabbitmq:5672
-RABBITMQ_USER=admin
-RABBITMQ_PASSWORD=secure-password
+MCP_AUTH_TOKEN=auto-generated-by-script
+OPENCLAW_GATEWAY_TOKEN=your-openclaw-token
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+TELEGRAM_USER_ID=your-telegram-user-id
 
 # ========================================
 # RESOURCE LIMITS
@@ -653,8 +600,6 @@ FRONTEND_MEMORY_LIMIT=512m        # 512MB
 ╠═══════════════════════════════════════════════════╣
 ║  Rust Core Engine:       90%   (1,952 tests)     ║
 ║  Python AI Service:      95%   (580+ tests)      ║
-║    ├─ Core ML/AI:             (459 tests)        ║
-║    └─ Async Tasks:            (105+ tests)       ║
 ║  Frontend Dashboard:     90%+  (30+ test files)  ║
 ║  Integration Tests:     100+   (cross-service)   ║
 ╚═══════════════════════════════════════════════════╝
@@ -758,7 +703,7 @@ make quality-metrics
 #### Network Security
 ```
 - Internal Docker network isolation
-- Kong API Gateway (rate limiting)
+- JWT authentication (rate limiting)
 - DDoS protection (CloudFront)
 - IP whitelisting
 - CORS configuration
@@ -838,22 +783,21 @@ kubectl get svc -n bot-core
 istioctl dashboard kiali
 ```
 
-### 📊 Monitoring Stack
+### 📊 Health Monitoring
 
 ```bash
-# Start monitoring (Prometheus + Grafana)
-docker-compose --profile monitoring up -d
+# Check all service health
+curl http://localhost:8080/api/health   # Rust Core
+curl http://localhost:8000/health       # Python AI
+curl http://localhost:3000              # Frontend
+curl http://localhost:8090/health       # MCP Server
 
-# Access dashboards
-# Prometheus: http://localhost:9090
-# Grafana: http://localhost:3001 (admin/admin)
+# Docker health status
+docker ps --format "table {{.Names}}\t{{.Status}}"
 
-# Pre-configured dashboards:
-# - System Overview
-# - API Performance
-# - Trading Metrics
-# - Database Performance
-# - Error Tracking
+# View service logs
+./scripts/bot.sh logs --service rust-core-engine
+./scripts/bot.sh logs --service mcp-server
 ```
 
 ### 🚨 Disaster Recovery
@@ -1017,7 +961,7 @@ POST /chat
 | **Storage (S3)** | $50-100 | Backups & logs |
 | **Network (Data Transfer)** | $100-300 | Bandwidth |
 | **CloudFront CDN** | $50-150 | Global distribution |
-| **Monitoring** | $50-100 | CloudWatch + Grafana |
+| **Monitoring** | $50-100 | CloudWatch |
 | **Total** | **$1,150-2,450** | Per month |
 
 ### 💡 Cost Optimization Tips
@@ -1241,7 +1185,7 @@ bot-core/
 │   │   └── docker-compose.prod.yml
 │   ├── kubernetes/            # K8s manifests
 │   ├── terraform/             # Infrastructure as Code
-│   ├── monitoring/            # Prometheus & Grafana
+│   ├── monitoring/            # Health checks & alerts
 │   └── nginx/                 # Load balancer
 │
 └── tests/                     # 🧪 Cross-service Tests
@@ -1466,7 +1410,7 @@ in the Software without restriction...
 - ✅ Self-Tuning Engine (3-tier autonomy, guardrails, audit)
 - ✅ Botcore Bridge CLI (MCP client for chat channels)
 - ✅ Cron Automation (6 scheduled jobs)
-- ✅ Async Task Processing (Celery + RabbitMQ)
+- ✅ Async Task Processing
 
 ### 🚧 In Progress (v1.2)
 
