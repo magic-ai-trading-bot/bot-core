@@ -4,7 +4,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiRequest } from "../client.js";
-import { toolSuccess, toolError, log } from "../types.js";
+import { toolSuccess, log } from "../types.js";
 
 /**
  * Register health check and system monitoring tools.
@@ -62,117 +62,11 @@ export function registerHealthTools(server: McpServer): void {
         allHealthy = false;
       }
 
-      // Check Prometheus (monitoring)
-      try {
-        const prom = await apiRequest(
-          "prometheus",
-          "/api/v1/query?query=up",
-          { skipAuth: true, timeoutMs: 5_000 }
-        );
-        results["prometheus"] = {
-          status: prom.success ? "healthy" : "unhealthy",
-          port: 9090,
-        };
-      } catch {
-        results["prometheus"] = { status: "unreachable", port: 9090 };
-      }
-
       return toolSuccess({
         overall_status: allHealthy ? "healthy" : "degraded",
         timestamp: new Date().toISOString(),
         services: results,
       });
-    }
-  );
-
-  // Tool: get_system_metrics - Get container/host metrics from Prometheus
-  server.registerTool(
-    "get_system_metrics",
-    {
-      title: "Get System Metrics",
-      description:
-        "Get CPU, memory, and container metrics for all BotCore services from Prometheus. Shows resource usage per container.",
-      inputSchema: {
-        metric: z.enum(["memory", "cpu", "all"]).describe("Which metrics to fetch").default("all"),
-      },
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-      },
-    },
-    async ({ metric }: { metric: string }) => {
-      const queries: Record<string, string> = {};
-
-      if (metric === "memory" || metric === "all") {
-        queries["container_memory_usage"] =
-          "container_memory_usage_bytes{name=~'.+'}";
-        queries["container_memory_limit"] =
-          "container_spec_memory_limit_bytes{name=~'.+'}";
-      }
-      if (metric === "cpu" || metric === "all") {
-        queries["container_cpu_usage"] =
-          "rate(container_cpu_usage_seconds_total{name=~'.+'}[5m])";
-      }
-
-      const results: Record<string, unknown> = {};
-
-      for (const [key, query] of Object.entries(queries)) {
-        try {
-          const res = await apiRequest(
-            "prometheus",
-            `/api/v1/query?query=${encodeURIComponent(query)}`,
-            { skipAuth: true, timeoutMs: 10_000 }
-          );
-          if (res.success) {
-            results[key] = res.data;
-          } else {
-            results[key] = { error: res.error };
-          }
-        } catch {
-          results[key] = { error: "prometheus_unreachable" };
-        }
-      }
-
-      return toolSuccess({
-        timestamp: new Date().toISOString(),
-        metrics: results,
-      });
-    }
-  );
-
-  // Tool: get_docker_status - Get container status overview
-  server.registerTool(
-    "get_docker_status",
-    {
-      title: "Get Docker Container Status",
-      description:
-        "Get status of all Docker containers including health, uptime, restart count. Covers all 15 services: MongoDB, Redis, RabbitMQ, Celery Worker/Beat, Flower, Kong, Prometheus, Grafana, Rust Engine, Python AI, Dashboard, MCP Server, OpenClaw.",
-      annotations: {
-        readOnlyHint: true,
-        openWorldHint: false,
-      },
-    },
-    async () => {
-      const upQuery = "up";
-      try {
-        const res = await apiRequest(
-          "prometheus",
-          `/api/v1/query?query=${encodeURIComponent(upQuery)}`,
-          { skipAuth: true, timeoutMs: 10_000 }
-        );
-
-        if (res.success) {
-          return toolSuccess({
-            timestamp: new Date().toISOString(),
-            containers: res.data,
-          });
-        }
-        return toolError(`Failed to query Prometheus: ${res.error}`);
-      } catch {
-        return toolError(
-          "Prometheus is unreachable. Cannot fetch container status."
-        );
-      }
     }
   );
 
@@ -220,5 +114,5 @@ export function registerHealthTools(server: McpServer): void {
     }
   );
 
-  log("info", "Health & monitoring tools registered (4 tools)");
+  log("info", "Health & monitoring tools registered (2 tools)");
 }

@@ -6,9 +6,8 @@ import { log, type BotCoreResponse } from "./types.js";
 
 const RUST_API_URL = process.env.RUST_API_URL || "http://localhost:8080";
 const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:8000";
-const PROMETHEUS_URL = process.env.PROMETHEUS_URL || "http://prometheus:9090";
 
-export type ServiceTarget = "rust" | "python" | "prometheus";
+export type ServiceTarget = "rust" | "python";
 
 function getBaseUrl(service: ServiceTarget): string {
   switch (service) {
@@ -16,8 +15,6 @@ function getBaseUrl(service: ServiceTarget): string {
       return RUST_API_URL;
     case "python":
       return PYTHON_API_URL;
-    case "prometheus":
-      return PROMETHEUS_URL;
   }
 }
 
@@ -45,7 +42,7 @@ export async function apiRequest<T = unknown>(
     "Content-Type": "application/json",
   };
 
-  if (!skipAuth && service !== "prometheus") {
+  if (!skipAuth) {
     const jwt = await getJwtToken();
     if (jwt) {
       headers["Authorization"] = `Bearer ${jwt}`;
