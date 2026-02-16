@@ -13,6 +13,7 @@ import { registerMonitoringTools } from "./tools/monitoring.js";
 import { registerSettingsTools } from "./tools/settings.js";
 import { registerAuthTools } from "./tools/auth-tools.js";
 import { registerTuningTools } from "./tools/tuning.js";
+import { registerNotificationTools } from "./tools/notification.js";
 import { log } from "./types.js";
 
 /**
@@ -48,6 +49,7 @@ Safety: 4-tier security (PUBLIC, AUTHENTICATED, SENSITIVE, CRITICAL). Write oper
   registerSettingsTools(server);   // 10 tools - API keys & notifications
   registerAuthTools(server);       // 4 tools - authentication
   registerTuningTools(server);     // 8 tools - self-tuning engine
+  registerNotificationTools(server); // 1 tool - Telegram notifications
 
   log("info", "MCP server created with all tools registered");
   return server;
