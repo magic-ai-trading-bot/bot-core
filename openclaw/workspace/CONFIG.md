@@ -32,7 +32,7 @@
 | `daily_loss_limit_pct` | 3.0% | Daily loss limit |
 | `max_consecutive_losses` | 3 | Triggers cool-down |
 | `cool_down_minutes` | 60 | Block duration after streak |
-| `correlation_limit` | 0.7 | Max 70% same direction |
+| `correlation_limit` | 0.7 | Max 70% same direction (only enforced with 3+ open positions; with 1-2 positions check is skipped) |
 | `min_risk_reward_ratio` | 2.0 | Min RR ratio required |
 | `dynamic_sizing` | true | Volatility-adjusted sizing |
 | `trailing_stop_enabled` | true | Trailing stop loss |
