@@ -16,7 +16,8 @@
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
     "controlUi": {
-      "allowInsecureAuth": true
+      "allowInsecureAuth": true,
+      "dangerouslyDisableDeviceAuth": true
     },
     "trustedProxies": ["192.168.65.0/24", "172.16.0.0/12", "127.0.0.0/8"]
   },
