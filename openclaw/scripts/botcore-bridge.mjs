@@ -107,8 +107,22 @@ async function main() {
       try {
         toolArgs = JSON.parse(argsRaw);
       } catch {
-        console.error(`ERROR: Invalid JSON arguments: ${argsRaw}`);
-        process.exit(1);
+        // Try to parse flag-style args: --key value --flag
+        const flagArgs = {};
+        const parts = argsRaw.split(/\s+/);
+        for (let i = 0; i < parts.length; i++) {
+          if (parts[i].startsWith("--")) {
+            const key = parts[i].replace(/^--/, "");
+            const val = parts[i + 1] && !parts[i + 1].startsWith("--") ? parts[++i] : true;
+            flagArgs[key] = isNaN(val) ? val : Number(val);
+          }
+        }
+        if (Object.keys(flagArgs).length > 0) {
+          toolArgs = flagArgs;
+        } else {
+          console.error(`ERROR: Invalid arguments: ${argsRaw}. Use JSON: '{"key":"value"}'`);
+          process.exit(1);
+        }
       }
     }
 

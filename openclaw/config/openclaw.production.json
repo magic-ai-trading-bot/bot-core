@@ -49,7 +49,7 @@
     }
   },
   "tools": {
-    "allow": ["exec", "read", "write", "ls", "glob", "grep"]
+    "allow": ["exec", "read", "write"]
   },
   "logging": {
     "level": "info"
