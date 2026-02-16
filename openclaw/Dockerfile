@@ -10,8 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install openclaw globally (node-llama-cpp needs build tools)
-RUN npm install -g openclaw@latest || \
-    npm install -g --ignore-scripts openclaw@latest
+# Pin to 2026.2.13 - v2026.2.14 has scope validation bug for LAN connections
+# See: https://github.com/openclaw/openclaw/issues/16820
+RUN npm install -g openclaw@2026.2.13 || \
+    npm install -g --ignore-scripts openclaw@2026.2.13
 
 WORKDIR /home/node
 
