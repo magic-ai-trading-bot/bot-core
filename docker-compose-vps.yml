@@ -199,9 +199,8 @@ services:
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - NODE_ENV=production
     volumes:
-      - ./openclaw/config/openclaw.json:/home/node/.openclaw/openclaw.json:ro
-      - ./openclaw/config/cron:/home/node/.openclaw/cron:ro
-      - ./openclaw/workspace:/home/node/.openclaw/workspace:ro
+      - ./openclaw/config:/home/node/.openclaw
+      - ./openclaw/workspace:/home/node/.openclaw/workspace
       - openclaw_data:/data/openclaw
     networks:
       - bot-network
@@ -209,7 +208,7 @@ services:
       mcp-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "pgrep -f openclaw > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
