@@ -2,7 +2,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "openai/gpt-4o"
+        "primary": "openai/gpt-4o-mini"
       },
       "workspace": "/home/node/.openclaw/workspace"
     }
