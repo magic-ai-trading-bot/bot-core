@@ -198,21 +198,9 @@ jobs:
           log_info "✅ All required env vars verified"
 
           # ============================================================================
-          # STEP 6: STOP ONLY APPLICATION CONTAINERS (KEEP INFRASTRUCTURE RUNNING!)
+          # STEP 6: CLEANUP LEGACY CONTAINERS
           # ============================================================================
-          log_info "🛑 Step 6: Stopping application containers ONLY..."
-          log_warn "⚠️ IMPORTANT: MongoDB and Redis will NOT be stopped to preserve data"
-
-          # List of app containers to restart (NOT infrastructure)
-          APP_CONTAINERS="rust-core-engine python-ai-service nextjs-ui-dashboard mcp-server openclaw"
-
-          for container in $APP_CONTAINERS; do
-            if docker ps -a | grep -q "$container"; then
-              docker stop "$container" 2>/dev/null || true
-              docker rm -f "$container" 2>/dev/null || true
-              log_info "Stopped: $container"
-            fi
-          done
+          log_info "🧹 Step 6: Cleaning up legacy containers..."
 
           # Remove legacy enterprise containers (no longer used)
           LEGACY_CONTAINERS="grafana prometheus kong kong-database kong-migration rabbitmq celery-worker celery-beat flower"
@@ -224,78 +212,110 @@ jobs:
             fi
           done
 
-          # ============================================================================
-          # STEP 7: CLEANUP (SAFE - NO VOLUME DELETION!)
-          # ============================================================================
-          log_info "🧹 Step 7: Safe cleanup..."
-
-          # Remove stopped containers (safe)
-          docker container prune -f 2>/dev/null || true
-
-          # Remove ALL unused images, not just dangling (frees significant space)
-          docker image prune -af 2>/dev/null || true
-
-          # Remove build cache (safe)
-          docker builder prune -af 2>/dev/null || true
-
-          # ============================================================================
-          # ⚠️ NEVER DELETE VOLUMES! ⚠️
-          # The following commands are DANGEROUS and should NEVER be run:
-          # - docker volume prune
-          # - docker volume rm
-          # - docker system prune -a --volumes
-          # - docker compose down -v
-          # ============================================================================
-
-          log_info "📊 Disk usage after cleanup:"
-          df -h / | tail -1
-
           # Clean up old backups (keep only last 3)
           ls -t "$BACKUP_DIR"/mongodb_backup_* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
           ls -t "$BACKUP_DIR"/.env.backup.* 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null || true
 
+          log_info "📊 Disk usage before build:"
+          df -h / | tail -1
+
           # ============================================================================
-          # STEP 8: BUILD NEW IMAGES (Sequential to save disk space)
+          # ⚠️ NEVER DELETE VOLUMES! ⚠️
+          # - docker volume prune / docker volume rm / docker compose down -v
           # ============================================================================
-          log_info "🔨 Step 8: Building application images (sequential to save disk)..."
+
+          # ============================================================================
+          # STEP 7: DETECT CHANGED SERVICES (skip unchanged)
+          # ============================================================================
+          log_info "🔍 Step 7: Detecting changed services..."
+
+          # Get the previous deployed commit (if any)
+          PREV_SHA=$(cat /root/.bot-core-last-deploy-sha 2>/dev/null || echo "")
+          CURR_SHA=$(git rev-parse HEAD)
+
+          CHANGED_SERVICES=""
+          if [ -z "$PREV_SHA" ] || [ "$PREV_SHA" = "$CURR_SHA" ]; then
+            # First deploy or same commit - rebuild all
+            CHANGED_SERVICES="all"
+            log_info "Full rebuild (first deploy or forced)"
+          else
+            log_info "Comparing $PREV_SHA..$CURR_SHA"
+            CHANGED_FILES=$(git diff --name-only "$PREV_SHA" "$CURR_SHA" 2>/dev/null || echo "all")
+
+            if echo "$CHANGED_FILES" | grep -q "all\|docker-compose\|\.env\|Makefile"; then
+              CHANGED_SERVICES="all"
+              log_info "Infrastructure change detected - full rebuild"
+            else
+              if echo "$CHANGED_FILES" | grep -q "^rust-core-engine/"; then
+                CHANGED_SERVICES="$CHANGED_SERVICES rust-core-engine"
+              fi
+              if echo "$CHANGED_FILES" | grep -q "^python-ai-service/"; then
+                CHANGED_SERVICES="$CHANGED_SERVICES python-ai-service"
+              fi
+              if echo "$CHANGED_FILES" | grep -q "^nextjs-ui-dashboard/"; then
+                CHANGED_SERVICES="$CHANGED_SERVICES nextjs-ui-dashboard"
+              fi
+              if echo "$CHANGED_FILES" | grep -q "^mcp-server/"; then
+                CHANGED_SERVICES="$CHANGED_SERVICES mcp-server"
+              fi
+              if echo "$CHANGED_FILES" | grep -q "^openclaw/"; then
+                CHANGED_SERVICES="$CHANGED_SERVICES openclaw"
+              fi
+            fi
+          fi
+
+          if [ -z "$CHANGED_SERVICES" ]; then
+            log_info "✅ No service changes detected - config-only update"
+            CHANGED_SERVICES="none"
+          fi
+          log_info "Services to rebuild: $CHANGED_SERVICES"
+
+          # ============================================================================
+          # STEP 8: BUILD NEW IMAGES (while old containers keep running!)
+          # ============================================================================
+          log_info "🔨 Step 8: Building images (old services stay running)..."
 
           # Copy root lockfile to frontend directory for Docker builds
           cp bun.lock nextjs-ui-dashboard/bun.lock 2>/dev/null || true
 
-          # Build one at a time and prune builder cache between builds
-          # Frontend is smallest, build first
-          log_info "Building nextjs-ui-dashboard..."
-          $DC build nextjs-ui-dashboard || { log_error "Frontend build failed!"; exit 1; }
-          docker builder prune -f 2>/dev/null || true
+          build_service() {
+            local svc=$1
+            local required=${2:-true}
+            log_info "Building $svc..."
+            if $DC build "$svc"; then
+              docker builder prune -f 2>/dev/null || true
+              log_info "✅ $svc built"
+            elif [ "$required" = "true" ]; then
+              log_error "$svc build failed!"
+              exit 1
+            else
+              log_warn "$svc build failed (optional)"
+            fi
+          }
 
-          # Python has huge venv (TensorFlow+PyTorch), build next
-          log_info "Building python-ai-service..."
-          $DC build python-ai-service || { log_error "Python build failed!"; exit 1; }
-          docker builder prune -f 2>/dev/null || true
+          if [ "$CHANGED_SERVICES" = "all" ]; then
+            build_service nextjs-ui-dashboard true
+            build_service python-ai-service true
+            build_service rust-core-engine true
+            build_service mcp-server false
+            build_service openclaw false
+          elif [ "$CHANGED_SERVICES" != "none" ]; then
+            for svc in $CHANGED_SERVICES; do
+              case "$svc" in
+                mcp-server|openclaw) build_service "$svc" false ;;
+                *) build_service "$svc" true ;;
+              esac
+            done
+          fi
 
-          # Rust is heavy compile, build last
-          log_info "Building rust-core-engine..."
-          $DC build rust-core-engine || { log_error "Rust build failed!"; exit 1; }
-          docker builder prune -f 2>/dev/null || true
-
-          # MCP Server (lightweight Node.js)
-          log_info "Building mcp-server..."
-          $DC build mcp-server || log_warn "MCP Server build failed (optional)"
-          docker builder prune -f 2>/dev/null || true
-
-          # OpenClaw (lightweight Node.js)
-          log_info "Building openclaw..."
-          $DC build openclaw || log_warn "OpenClaw build failed (optional)"
-          docker builder prune -f 2>/dev/null || true
-
-          log_info "✅ All images built successfully"
+          log_info "✅ Build complete"
 
           # ============================================================================
           # STEP 9: VERIFY INFRASTRUCTURE IS RUNNING
           # ============================================================================
           log_info "🔍 Step 9: Verifying infrastructure services..."
 
-          # Ensure MongoDB is running (should already be running)
+          # Ensure MongoDB is running
           if ! docker ps | grep -q "mongodb"; then
             log_warn "MongoDB not running, starting..."
             $DC up -d mongodb
@@ -322,32 +342,33 @@ jobs:
           fi
 
           # ============================================================================
-          # STEP 10: START APPLICATION SERVICES
+          # STEP 10: ROLLING RESTART (one service at a time, zero downtime)
           # ============================================================================
-          log_info "🚀 Step 10: Starting application services..."
+          log_info "🚀 Step 10: Rolling restart (zero-downtime)..."
 
+          # docker compose up -d only recreates containers whose image changed
+          # Old containers keep serving until new ones are healthy
           $DC up -d rust-core-engine python-ai-service nextjs-ui-dashboard
-          sleep 30
+          sleep 10
 
-          # ============================================================================
-          # STEP 11: START MCP SERVER & OPENCLAW
-          # ============================================================================
-          log_info "🤖 Step 11: Starting MCP Server & OpenClaw..."
-
-          # MCP Server depends on rust-core-engine + python-ai-service (healthy)
+          # MCP Server
           if ! $DC up -d mcp-server 2>&1; then
             log_warn "MCP Server start failed"
-            log_warn "MCP Server logs:"
             docker logs mcp-server --tail 30 2>&1 || true
           fi
-          sleep 15
+          sleep 10
 
-          # OpenClaw depends on mcp-server (healthy)
+          # OpenClaw
           if ! $DC up -d openclaw 2>&1; then
             log_warn "OpenClaw start failed"
-            log_warn "OpenClaw logs:"
             docker logs openclaw --tail 30 2>&1 || true
           fi
+
+          # Save deployed commit SHA for next diff
+          echo "$CURR_SHA" > /root/.bot-core-last-deploy-sha
+
+          # Clean up old images after successful restart
+          docker image prune -f 2>/dev/null || true
 
           # ============================================================================
           # STEP 12: HEALTH CHECKS
