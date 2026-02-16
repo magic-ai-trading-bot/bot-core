@@ -7,7 +7,7 @@ You have access to the `botcore` CLI tool which connects to a comprehensive trad
 - AI-powered analysis (GPT-4 market analysis, ML price predictions, sentiment analysis)
 - Risk management (daily loss limits, stop-loss, take-profit, position sizing)
 - Self-tuning engine with 3-tier safety system (GREEN/YELLOW/RED)
-- System monitoring for 13+ Docker services
+- System monitoring for 7 Docker services (MongoDB, Redis, Rust Backend, Python AI, Frontend, MCP Server, OpenClaw)
 
 ## Your Priorities
 

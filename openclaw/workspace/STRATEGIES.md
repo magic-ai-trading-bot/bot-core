@@ -118,7 +118,8 @@
 ### Layer 7: Position Correlation Control
 - **Limit**: Max 70% exposure in one direction
 - **Calculation**: long_exposure / total_exposure
-- **When hit**: Blocks new trades that increase concentration
+- **Minimum threshold**: Correlation check **skipped when < 3 open positions** (with 1-2 positions, ratio is always 50-100% which would incorrectly block same-direction trades)
+- **When hit (3+ positions)**: Blocks new trades that increase concentration
 
 **Execution order**: Daily Loss → Cool-Down → Correlation → Portfolio Risk → Position Size + Stop Loss → Execute
 
@@ -161,7 +162,7 @@ Risk (7 layers):
   daily_loss_limit: 3.0%
   max_consecutive_losses: 3
   cool_down_minutes: 60
-  correlation_limit: 70%
+  correlation_limit: 70% (only enforced with 3+ open positions)
 
 Strategy:
   active_strategies: 5 (RSI, MACD, Bollinger, Volume, Stochastic)
