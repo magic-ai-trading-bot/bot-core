@@ -385,7 +385,19 @@ jobs:
             log_warn "MCP Server not healthy - showing logs:"
             docker logs mcp-server --tail 20 2>&1 || true
           fi
-          if ! check_service "OpenClaw" "http://localhost:18789/health"; then
+          # OpenClaw has no HTTP health endpoint - check Docker health status
+          OPENCLAW_OK=false
+          for i in $(seq 1 10); do
+            HEALTH=$(docker inspect --format='{{.State.Health.Status}}' openclaw 2>/dev/null || echo "missing")
+            if [ "$HEALTH" = "healthy" ]; then
+              log_info "✅ OpenClaw healthy"
+              OPENCLAW_OK=true
+              break
+            fi
+            echo "⏳ OpenClaw health: $HEALTH, attempt $i/10..."
+            sleep 10
+          done
+          if [ "$OPENCLAW_OK" = "false" ]; then
             log_warn "OpenClaw not healthy - showing logs:"
             docker logs openclaw --tail 20 2>&1 || true
           fi
