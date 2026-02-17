@@ -71,18 +71,23 @@ if [ -d "$CRON_DIR" ] && [ $RETRIES -le $MAX_RETRIES ]; then
       CRON_EXPR=$(node -e "const j=require('$f'); console.log(j.schedule||'')")
       CRON_MSG=$(node -e "const j=require('$f'); console.log(j.prompt||'')")
       CRON_TIMEOUT=$(node -e "const j=require('$f'); console.log(j.timeout_seconds||180)")
+      CRON_NO_DELIVER=$(node -e "const j=require('$f'); console.log(j.no_deliver===true?'yes':'')")
 
       if [ -z "$CRON_EXPR" ] || [ -z "$CRON_MSG" ]; then
         echo "  Skipping $JOB_NAME (missing schedule or prompt)"
         continue
       fi
 
-      echo "  Registering: $JOB_NAME (${CRON_EXPR})"
+      # Use --no-deliver only for jobs that opt in (silent-when-OK jobs
+      # like risk-monitor, health-check). Report jobs (hourly-pnl, etc.)
+      # need auto-delivery so their responses reach Telegram.
+      DELIVER_FLAG=""
+      if [ "$CRON_NO_DELIVER" = "yes" ]; then
+        DELIVER_FLAG="--no-deliver"
+      fi
 
-      # Always use --no-deliver: cron prompts handle Telegram delivery
-      # via `botcore send_telegram_notification` when needed.
-      # Without --no-deliver, OpenClaw delivers raw AI responses to
-      # Telegram with "(error)" labels for short/silent responses.
+      echo "  Registering: $JOB_NAME (${CRON_EXPR})${DELIVER_FLAG:+ [no-deliver]}"
+
       openclaw --dev cron add \
         --url "$GATEWAY_URL" \
         --token "$GATEWAY_TOKEN" \
@@ -90,7 +95,7 @@ if [ -d "$CRON_DIR" ] && [ $RETRIES -le $MAX_RETRIES ]; then
         --cron "$CRON_EXPR" \
         --message "$CRON_MSG" \
         --timeout-seconds "$CRON_TIMEOUT" \
-        --no-deliver \
+        $DELIVER_FLAG \
         2>&1 | tail -1 || echo "    (failed to register $JOB_NAME)"
     fi
   done
