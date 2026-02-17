@@ -192,6 +192,63 @@ pub struct UpdateBasicSettingsRequest {
     pub max_drawdown_pct: Option<f64>,
     pub max_consecutive_losses: Option<u32>,
     pub cool_down_minutes: Option<u32>,
+    // Basic: auto_restart
+    pub auto_restart: Option<bool>,
+    // Risk: position sizing & correlation
+    pub min_margin_level: Option<f64>,
+    pub position_sizing_method: Option<String>,
+    pub min_risk_reward_ratio: Option<f64>,
+    pub correlation_limit: Option<f64>,
+    pub dynamic_sizing: Option<bool>,
+    pub volatility_lookback_hours: Option<u32>,
+    // Risk: signal reversal
+    pub enable_signal_reversal: Option<bool>,
+    pub ai_auto_enable_reversal: Option<bool>,
+    pub reversal_min_confidence: Option<f64>,
+    pub reversal_max_pnl_pct: Option<f64>,
+    pub reversal_allowed_regimes: Option<Vec<String>>,
+}
+
+/// Request to update execution settings (partial update)
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct UpdateExecutionSettingsRequest {
+    pub auto_execution: Option<bool>,
+    pub execution_delay_ms: Option<u32>,
+    pub simulate_partial_fills: Option<bool>,
+    pub partial_fill_probability: Option<f64>,
+    pub order_expiration_minutes: Option<u32>,
+    pub simulate_slippage: Option<bool>,
+    pub max_slippage_pct: Option<f64>,
+    pub simulate_market_impact: Option<bool>,
+    pub market_impact_factor: Option<f64>,
+    pub price_update_frequency_seconds: Option<u32>,
+}
+
+/// Request to update AI settings (partial update)
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct UpdateAISettingsRequest {
+    pub service_url: Option<String>,
+    pub request_timeout_seconds: Option<u32>,
+    pub signal_refresh_interval_minutes: Option<u32>,
+    pub enable_realtime_signals: Option<bool>,
+    pub enable_feedback_learning: Option<bool>,
+    pub feedback_delay_hours: Option<u32>,
+    pub enable_strategy_recommendations: Option<bool>,
+    pub track_model_performance: Option<bool>,
+    /// Confidence thresholds per market regime (e.g., {"trending": 0.65, "ranging": 0.75})
+    pub confidence_thresholds: Option<std::collections::HashMap<String, f64>>,
+}
+
+/// Request to update notification settings (partial update)
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct UpdateNotificationSettingsRequest {
+    pub enable_trade_notifications: Option<bool>,
+    pub enable_performance_notifications: Option<bool>,
+    pub enable_risk_warnings: Option<bool>,
+    pub daily_summary: Option<bool>,
+    pub weekly_report: Option<bool>,
+    pub min_pnl_notification: Option<f64>,
+    pub max_notifications_per_hour: Option<u32>,
 }
 
 /// Symbol settings for frontend configuration
@@ -419,6 +476,57 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(update_basic_settings);
 
+        // GET /api/paper-trading/execution-settings
+        let get_execution_settings_route = base_path
+            .and(warp::path("execution-settings"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_execution_settings);
+
+        // PUT /api/paper-trading/execution-settings
+        let update_execution_settings_route = base_path
+            .and(warp::path("execution-settings"))
+            .and(warp::path::end())
+            .and(warp::put())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(update_execution_settings);
+
+        // GET /api/paper-trading/ai-settings
+        let get_ai_settings_route = base_path
+            .and(warp::path("ai-settings"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_ai_settings);
+
+        // PUT /api/paper-trading/ai-settings
+        let update_ai_settings_route = base_path
+            .and(warp::path("ai-settings"))
+            .and(warp::path::end())
+            .and(warp::put())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(update_ai_settings);
+
+        // GET /api/paper-trading/notification-settings
+        let get_notification_settings_route = base_path
+            .and(warp::path("notification-settings"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_notification_settings);
+
+        // PUT /api/paper-trading/notification-settings
+        let update_notification_settings_route = base_path
+            .and(warp::path("notification-settings"))
+            .and(warp::path::end())
+            .and(warp::put())
+            .and(warp::body::json())
+            .and(with_api(api.clone()))
+            .and_then(update_notification_settings);
+
         // GET /api/paper-trading/symbols
         let get_symbols_route = base_path
             .and(warp::path("symbols"))
@@ -595,6 +703,12 @@ impl PaperTradingApi {
             .or(update_strategy_settings_route)
             .or(get_basic_settings_route)
             .or(update_basic_settings_route)
+            .or(get_execution_settings_route)
+            .or(update_execution_settings_route)
+            .or(get_ai_settings_route)
+            .or(update_ai_settings_route)
+            .or(get_notification_settings_route)
+            .or(update_notification_settings_route)
             .or(get_symbols_route)
             .or(update_symbols_route)
             .or(reset_route)
@@ -1152,7 +1266,17 @@ async fn get_basic_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
             "cool_down_minutes": settings.risk.cool_down_minutes,
             "trailing_stop_enabled": settings.risk.trailing_stop_enabled,
             "trailing_stop_pct": settings.risk.trailing_stop_pct,
-            "trailing_activation_pct": settings.risk.trailing_activation_pct
+            "trailing_activation_pct": settings.risk.trailing_activation_pct,
+            "position_sizing_method": settings.risk.position_sizing_method,
+            "min_risk_reward_ratio": settings.risk.min_risk_reward_ratio,
+            "correlation_limit": settings.risk.correlation_limit,
+            "dynamic_sizing": settings.risk.dynamic_sizing,
+            "volatility_lookback_hours": settings.risk.volatility_lookback_hours,
+            "enable_signal_reversal": settings.risk.enable_signal_reversal,
+            "ai_auto_enable_reversal": settings.risk.ai_auto_enable_reversal,
+            "reversal_min_confidence": settings.risk.reversal_min_confidence,
+            "reversal_max_pnl_pct": settings.risk.reversal_max_pnl_pct,
+            "reversal_allowed_regimes": settings.risk.reversal_allowed_regimes
         }
     });
 
@@ -1238,6 +1362,53 @@ async fn update_basic_settings(
     if let Some(cool_down_minutes) = request.cool_down_minutes {
         new_settings.risk.cool_down_minutes = cool_down_minutes;
     }
+    // Basic: auto_restart
+    if let Some(auto_restart) = request.auto_restart {
+        new_settings.basic.auto_restart = auto_restart;
+    }
+    // Risk: position sizing & correlation
+    if let Some(min_margin_level) = request.min_margin_level {
+        new_settings.risk.min_margin_level = min_margin_level;
+    }
+    if let Some(ref position_sizing_method) = request.position_sizing_method {
+        use crate::paper_trading::settings::PositionSizingMethod;
+        new_settings.risk.position_sizing_method = match position_sizing_method.as_str() {
+            "FixedPercentage" => PositionSizingMethod::FixedPercentage,
+            "RiskBased" => PositionSizingMethod::RiskBased,
+            "VolatilityAdjusted" => PositionSizingMethod::VolatilityAdjusted,
+            "ConfidenceWeighted" => PositionSizingMethod::ConfidenceWeighted,
+            "Composite" => PositionSizingMethod::Composite,
+            _ => new_settings.risk.position_sizing_method, // keep current if invalid
+        };
+    }
+    if let Some(min_risk_reward_ratio) = request.min_risk_reward_ratio {
+        new_settings.risk.min_risk_reward_ratio = min_risk_reward_ratio;
+    }
+    if let Some(correlation_limit) = request.correlation_limit {
+        new_settings.risk.correlation_limit = correlation_limit;
+    }
+    if let Some(dynamic_sizing) = request.dynamic_sizing {
+        new_settings.risk.dynamic_sizing = dynamic_sizing;
+    }
+    if let Some(volatility_lookback_hours) = request.volatility_lookback_hours {
+        new_settings.risk.volatility_lookback_hours = volatility_lookback_hours;
+    }
+    // Risk: signal reversal
+    if let Some(enable_signal_reversal) = request.enable_signal_reversal {
+        new_settings.risk.enable_signal_reversal = enable_signal_reversal;
+    }
+    if let Some(ai_auto_enable_reversal) = request.ai_auto_enable_reversal {
+        new_settings.risk.ai_auto_enable_reversal = ai_auto_enable_reversal;
+    }
+    if let Some(reversal_min_confidence) = request.reversal_min_confidence {
+        new_settings.risk.reversal_min_confidence = reversal_min_confidence;
+    }
+    if let Some(reversal_max_pnl_pct) = request.reversal_max_pnl_pct {
+        new_settings.risk.reversal_max_pnl_pct = reversal_max_pnl_pct;
+    }
+    if let Some(ref reversal_allowed_regimes) = request.reversal_allowed_regimes {
+        new_settings.risk.reversal_allowed_regimes = reversal_allowed_regimes.clone();
+    }
 
     // Update the engine settings
     match api.engine.update_settings(new_settings).await {
@@ -1253,6 +1424,273 @@ async fn update_basic_settings(
                 "Settings updated in memory. Warning: Database save failed - settings will be lost on restart."
             } else {
                 "Settings updated and saved to database successfully."
+            };
+
+            let response = serde_json::json!({
+                "message": message,
+                "updated_fields": request,
+                "database_saved": db_warning.is_none(),
+                "warning": db_warning,
+                "success": success,
+            });
+
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
+    }
+}
+
+/// Get execution settings
+async fn get_execution_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
+    let settings = api.engine.get_settings().await;
+
+    let execution_settings = serde_json::json!({
+        "execution": {
+            "auto_execution": settings.execution.auto_execution,
+            "execution_delay_ms": settings.execution.execution_delay_ms,
+            "simulate_partial_fills": settings.execution.simulate_partial_fills,
+            "partial_fill_probability": settings.execution.partial_fill_probability,
+            "order_expiration_minutes": settings.execution.order_expiration_minutes,
+            "simulate_slippage": settings.execution.simulate_slippage,
+            "max_slippage_pct": settings.execution.max_slippage_pct,
+            "simulate_market_impact": settings.execution.simulate_market_impact,
+            "market_impact_factor": settings.execution.market_impact_factor,
+            "price_update_frequency_seconds": settings.execution.price_update_frequency_seconds
+        }
+    });
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(execution_settings)),
+        StatusCode::OK,
+    ))
+}
+
+/// Update execution settings (partial update)
+async fn update_execution_settings(
+    request: UpdateExecutionSettingsRequest,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    log::info!("Updating execution settings: {request:?}");
+
+    let current_settings = api.engine.get_settings().await;
+    let mut new_settings = current_settings.clone();
+
+    if let Some(auto_execution) = request.auto_execution {
+        new_settings.execution.auto_execution = auto_execution;
+    }
+    if let Some(execution_delay_ms) = request.execution_delay_ms {
+        new_settings.execution.execution_delay_ms = execution_delay_ms;
+    }
+    if let Some(simulate_partial_fills) = request.simulate_partial_fills {
+        new_settings.execution.simulate_partial_fills = simulate_partial_fills;
+    }
+    if let Some(partial_fill_probability) = request.partial_fill_probability {
+        new_settings.execution.partial_fill_probability = partial_fill_probability;
+    }
+    if let Some(order_expiration_minutes) = request.order_expiration_minutes {
+        new_settings.execution.order_expiration_minutes = order_expiration_minutes;
+    }
+    if let Some(simulate_slippage) = request.simulate_slippage {
+        new_settings.execution.simulate_slippage = simulate_slippage;
+    }
+    if let Some(max_slippage_pct) = request.max_slippage_pct {
+        new_settings.execution.max_slippage_pct = max_slippage_pct;
+    }
+    if let Some(simulate_market_impact) = request.simulate_market_impact {
+        new_settings.execution.simulate_market_impact = simulate_market_impact;
+    }
+    if let Some(market_impact_factor) = request.market_impact_factor {
+        new_settings.execution.market_impact_factor = market_impact_factor;
+    }
+    if let Some(price_update_frequency_seconds) = request.price_update_frequency_seconds {
+        new_settings.execution.price_update_frequency_seconds = price_update_frequency_seconds;
+    }
+
+    match api.engine.update_settings(new_settings).await {
+        Ok((success, db_warning)) => {
+            let message = if db_warning.is_some() {
+                "Execution settings updated in memory. Warning: Database save failed."
+            } else {
+                "Execution settings updated and saved successfully."
+            };
+
+            let response = serde_json::json!({
+                "message": message,
+                "updated_fields": request,
+                "database_saved": db_warning.is_none(),
+                "warning": db_warning,
+                "success": success,
+            });
+
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
+    }
+}
+
+/// Get AI settings
+async fn get_ai_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
+    let settings = api.engine.get_settings().await;
+
+    let ai_settings = serde_json::json!({
+        "ai": {
+            "service_url": settings.ai.service_url,
+            "request_timeout_seconds": settings.ai.request_timeout_seconds,
+            "signal_refresh_interval_minutes": settings.ai.signal_refresh_interval_minutes,
+            "enable_realtime_signals": settings.ai.enable_realtime_signals,
+            "enable_feedback_learning": settings.ai.enable_feedback_learning,
+            "feedback_delay_hours": settings.ai.feedback_delay_hours,
+            "enable_strategy_recommendations": settings.ai.enable_strategy_recommendations,
+            "track_model_performance": settings.ai.track_model_performance,
+            "confidence_thresholds": settings.ai.confidence_thresholds
+        }
+    });
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(ai_settings)),
+        StatusCode::OK,
+    ))
+}
+
+/// Update AI settings (partial update)
+async fn update_ai_settings(
+    request: UpdateAISettingsRequest,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    log::info!("Updating AI settings: {request:?}");
+
+    let current_settings = api.engine.get_settings().await;
+    let mut new_settings = current_settings.clone();
+
+    if let Some(ref service_url) = request.service_url {
+        new_settings.ai.service_url = service_url.clone();
+    }
+    if let Some(request_timeout_seconds) = request.request_timeout_seconds {
+        new_settings.ai.request_timeout_seconds = request_timeout_seconds;
+    }
+    if let Some(signal_refresh_interval_minutes) = request.signal_refresh_interval_minutes {
+        new_settings.ai.signal_refresh_interval_minutes = signal_refresh_interval_minutes;
+    }
+    if let Some(enable_realtime_signals) = request.enable_realtime_signals {
+        new_settings.ai.enable_realtime_signals = enable_realtime_signals;
+    }
+    if let Some(enable_feedback_learning) = request.enable_feedback_learning {
+        new_settings.ai.enable_feedback_learning = enable_feedback_learning;
+    }
+    if let Some(feedback_delay_hours) = request.feedback_delay_hours {
+        new_settings.ai.feedback_delay_hours = feedback_delay_hours;
+    }
+    if let Some(enable_strategy_recommendations) = request.enable_strategy_recommendations {
+        new_settings.ai.enable_strategy_recommendations = enable_strategy_recommendations;
+    }
+    if let Some(track_model_performance) = request.track_model_performance {
+        new_settings.ai.track_model_performance = track_model_performance;
+    }
+    if let Some(ref confidence_thresholds) = request.confidence_thresholds {
+        new_settings.ai.confidence_thresholds = confidence_thresholds.clone();
+    }
+
+    match api.engine.update_settings(new_settings).await {
+        Ok((success, db_warning)) => {
+            let message = if db_warning.is_some() {
+                "AI settings updated in memory. Warning: Database save failed."
+            } else {
+                "AI settings updated and saved successfully."
+            };
+
+            let response = serde_json::json!({
+                "message": message,
+                "updated_fields": request,
+                "database_saved": db_warning.is_none(),
+                "warning": db_warning,
+                "success": success,
+            });
+
+            Ok(warp::reply::with_status(
+                warp::reply::json(&ApiResponse::success(response)),
+                StatusCode::OK,
+            ))
+        },
+        Err(e) => Ok(warp::reply::with_status(
+            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
+            StatusCode::BAD_REQUEST,
+        )),
+    }
+}
+
+/// Get notification settings
+async fn get_notification_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
+    let settings = api.engine.get_settings().await;
+
+    let notification_settings = serde_json::json!({
+        "notifications": {
+            "enable_trade_notifications": settings.notifications.enable_trade_notifications,
+            "enable_performance_notifications": settings.notifications.enable_performance_notifications,
+            "enable_risk_warnings": settings.notifications.enable_risk_warnings,
+            "daily_summary": settings.notifications.daily_summary,
+            "weekly_report": settings.notifications.weekly_report,
+            "channels": settings.notifications.channels,
+            "min_pnl_notification": settings.notifications.min_pnl_notification,
+            "max_notifications_per_hour": settings.notifications.max_notifications_per_hour
+        }
+    });
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(notification_settings)),
+        StatusCode::OK,
+    ))
+}
+
+/// Update notification settings (partial update)
+async fn update_notification_settings(
+    request: UpdateNotificationSettingsRequest,
+    api: Arc<PaperTradingApi>,
+) -> Result<impl Reply, Rejection> {
+    log::info!("Updating notification settings: {request:?}");
+
+    let current_settings = api.engine.get_settings().await;
+    let mut new_settings = current_settings.clone();
+
+    if let Some(enable_trade_notifications) = request.enable_trade_notifications {
+        new_settings.notifications.enable_trade_notifications = enable_trade_notifications;
+    }
+    if let Some(enable_performance_notifications) = request.enable_performance_notifications {
+        new_settings.notifications.enable_performance_notifications = enable_performance_notifications;
+    }
+    if let Some(enable_risk_warnings) = request.enable_risk_warnings {
+        new_settings.notifications.enable_risk_warnings = enable_risk_warnings;
+    }
+    if let Some(daily_summary) = request.daily_summary {
+        new_settings.notifications.daily_summary = daily_summary;
+    }
+    if let Some(weekly_report) = request.weekly_report {
+        new_settings.notifications.weekly_report = weekly_report;
+    }
+    if let Some(min_pnl_notification) = request.min_pnl_notification {
+        new_settings.notifications.min_pnl_notification = min_pnl_notification;
+    }
+    if let Some(max_notifications_per_hour) = request.max_notifications_per_hour {
+        new_settings.notifications.max_notifications_per_hour = max_notifications_per_hour;
+    }
+
+    match api.engine.update_settings(new_settings).await {
+        Ok((success, db_warning)) => {
+            let message = if db_warning.is_some() {
+                "Notification settings updated in memory. Warning: Database save failed."
+            } else {
+                "Notification settings updated and saved successfully."
             };
 
             let response = serde_json::json!({

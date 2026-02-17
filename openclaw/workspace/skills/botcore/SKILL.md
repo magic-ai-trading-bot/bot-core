@@ -4,7 +4,7 @@ description: Control, monitor, and tune the BotCore cryptocurrency trading bot v
 metadata: {"openclaw":{"emoji":"🤖","requires":{"bins":["botcore"],"env":["MCP_URL","MCP_AUTH_TOKEN"]}}}
 ---
 
-# BotCore Trading Bot Controller — 102 Tools
+# BotCore Trading Bot Controller — 108 Tools
 
 Run commands via `botcore` CLI:
 
@@ -60,16 +60,19 @@ botcore remove_symbol '{"symbol":"SOLUSDT"}'              # Remove symbol
 
 Timeframes: `1m`, `5m`, `15m`, `30m`, `1h`, `4h`, `1d`
 
-## 3. Paper Trading (28 tools)
+## 3. Paper Trading (34 tools)
 
-### Read (15 tools)
+### Read (18 tools)
 ```bash
 botcore get_paper_trading_status        # Engine status (running/stopped, P&L, daily stats)
 botcore get_paper_portfolio             # Balance, equity, margin, positions, metrics
 botcore get_paper_open_trades           # All open positions with unrealized P&L
 botcore get_paper_closed_trades         # All closed trades with realized P&L
 botcore get_paper_strategy_settings     # Strategy config (RSI, MACD, BB, Volume)
-botcore get_paper_basic_settings        # Balance, max positions, leverage, timeframe
+botcore get_paper_basic_settings        # Balance, max positions, leverage, risk settings
+botcore get_paper_execution_settings    # Execution: slippage, partial fills, market impact
+botcore get_paper_ai_settings           # AI: service URL, signal interval, confidence thresholds
+botcore get_paper_notification_settings # Notifications: trade/risk/performance alerts, reports
 botcore get_paper_indicator_settings    # Indicator params (RSI period, MACD fast/slow/signal, BB)
 botcore get_paper_symbols               # Symbols being traded
 botcore get_paper_pending_orders        # Pending limit/stop orders
@@ -81,7 +84,7 @@ botcore get_paper_config_suggestions    # All AI config suggestions
 botcore get_paper_latest_config_suggestions  # Latest AI recommendations
 ```
 
-### Write (13 tools)
+### Write (16 tools)
 ```bash
 botcore start_paper_engine              # Start trading engine
 botcore stop_paper_engine               # Stop trading engine (positions stay open)
@@ -92,6 +95,9 @@ botcore cancel_paper_order '{"order_id":"order_123"}'
 botcore trigger_paper_analysis          # Trigger GPT-4 trade analysis NOW
 botcore update_paper_signal_interval '{"interval_seconds":300}'  # Signal generation interval
 botcore update_paper_basic_settings '{"settings":{"initial_balance":10000,"max_positions":5}}'
+botcore update_paper_execution_settings '{"settings":{"simulate_slippage":true}}'
+botcore update_paper_ai_settings '{"settings":{"signal_refresh_interval_minutes":10}}'
+botcore update_paper_notification_settings '{"settings":{"daily_summary":true}}'
 botcore update_paper_strategy_settings '{"settings":{"rsi_enabled":true}}'
 botcore update_paper_indicator_settings '{"settings":{"rsi_period":14,"rsi_oversold":25}}'
 botcore update_paper_symbols '{"symbols":["BTCUSDT","ETHUSDT","BNBUSDT"]}'
@@ -100,24 +106,87 @@ botcore update_paper_settings '{"settings":{"any_field":"value"}}'  # Generic ca
 
 ### Settings Field Reference
 
-**`update_paper_basic_settings`** — Use for ALL basic + risk settings:
+**`update_paper_basic_settings`** — Basic + Risk settings (32 fields):
+
 | Field | Type | Description | Example |
 |-------|------|-------------|---------|
+| **Basic** | | | |
 | initial_balance | number | Starting balance | 10000 |
 | max_positions | number | Max open positions | 5 |
 | default_position_size_pct | number | Position size % | 2.0 |
 | default_leverage | number | Leverage multiplier | 3 |
+| trading_fee_rate | number | Trading fee rate | 0.0004 |
+| funding_fee_rate | number | Funding fee rate | 0.0001 |
+| slippage_pct | number | Slippage simulation % | 0.01 |
+| enabled | boolean | Enable/disable engine | true |
+| auto_restart | boolean | Auto-restart after reset | false |
+| **Risk** | | | |
+| max_risk_per_trade_pct | number | Max risk per trade % | 1.0 |
+| max_portfolio_risk_pct | number | Max portfolio risk % | 10.0 |
 | default_stop_loss_pct | number | Stop loss % | 5.0 |
 | default_take_profit_pct | number | Take profit % | 10.0 |
-| trailing_stop_enabled | boolean | Enable trailing stop | true |
-| trailing_stop_pct | number | Trailing stop distance % | 3.0 |
-| trailing_activation_pct | number | Min profit to activate trailing | 2.0 |
-| daily_loss_limit_pct | number | Daily loss limit % | 3.0 |
+| max_leverage | number | Max allowed leverage | 5 |
+| min_margin_level | number | Min margin level % | 300.0 |
 | max_drawdown_pct | number | Max drawdown % | 10.0 |
+| daily_loss_limit_pct | number | Daily loss limit % | 3.0 |
 | max_consecutive_losses | number | Losses before cooldown | 3 |
 | cool_down_minutes | number | Cooldown after losses (min) | 60 |
-| max_leverage | number | Max allowed leverage | 5 |
-| enabled | boolean | Enable/disable engine | true |
+| trailing_stop_enabled | boolean | Enable trailing stop | true |
+| trailing_stop_pct | number | Trailing stop distance % | 3.0 |
+| trailing_activation_pct | number | Min profit to activate trailing | 5.0 |
+| position_sizing_method | string | Sizing method | "RiskBased" |
+| min_risk_reward_ratio | number | Min risk/reward ratio | 2.0 |
+| correlation_limit | number | Position correlation limit | 0.7 |
+| dynamic_sizing | boolean | Dynamic sizing by volatility | true |
+| volatility_lookback_hours | number | Volatility lookback hours | 24 |
+| enable_signal_reversal | boolean | Auto-reverse on opposite signal | true |
+| ai_auto_enable_reversal | boolean | AI decides reversal | true |
+| reversal_min_confidence | number | Min confidence for reversal | 0.65 |
+| reversal_max_pnl_pct | number | Max P&L % before trailing stop | 10.0 |
+| reversal_allowed_regimes | array | Allowed regimes for reversal | ["trending","ranging"] |
+
+`position_sizing_method` values: `FixedPercentage`, `RiskBased`, `VolatilityAdjusted`, `ConfidenceWeighted`, `Composite`
+
+**`update_paper_execution_settings`** — Execution settings (10 fields):
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| auto_execution | boolean | Enable auto trade execution | true |
+| execution_delay_ms | number | Execution delay (ms) | 100 |
+| simulate_partial_fills | boolean | Enable partial fill sim | false |
+| partial_fill_probability | number | Partial fill probability | 0.1 |
+| order_expiration_minutes | number | Order expiration (min) | 60 |
+| simulate_slippage | boolean | Enable slippage sim | true |
+| max_slippage_pct | number | Max slippage % | 0.05 |
+| simulate_market_impact | boolean | Enable market impact sim | false |
+| market_impact_factor | number | Market impact factor | 0.001 |
+| price_update_frequency_seconds | number | Price update freq (sec) | 1 |
+
+**`update_paper_ai_settings`** — AI integration settings (9 fields):
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| service_url | string | Python AI service URL | "http://python-ai-service:8000" |
+| request_timeout_seconds | number | Request timeout (sec) | 30 |
+| signal_refresh_interval_minutes | number | Signal refresh interval (min) | 15 |
+| enable_realtime_signals | boolean | Enable realtime signals | true |
+| enable_feedback_learning | boolean | Enable AI feedback loop | true |
+| feedback_delay_hours | number | Feedback delay (hours) | 4 |
+| enable_strategy_recommendations | boolean | Enable AI strategy recs | true |
+| track_model_performance | boolean | Track model performance | true |
+| confidence_thresholds | object | Per-regime confidence | {"trending":0.65,"ranging":0.75} |
+
+**`update_paper_notification_settings`** — Notification settings (7 fields):
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| enable_trade_notifications | boolean | Notify on trades | true |
+| enable_performance_notifications | boolean | Notify on performance | true |
+| enable_risk_warnings | boolean | Notify on risk events | true |
+| daily_summary | boolean | Daily summary report | true |
+| weekly_report | boolean | Weekly performance report | true |
+| min_pnl_notification | number | Min P&L to notify (abs) | 10.0 |
+| max_notifications_per_hour | number | Rate limit per hour | 20 |
 
 Examples:
 ```bash
@@ -125,10 +194,18 @@ Examples:
 botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":3.0}}'
 # Enable trailing stop at 2.5%, activate at 1.5% profit
 botcore update_paper_basic_settings '{"settings":{"trailing_stop_enabled":true,"trailing_stop_pct":2.5,"trailing_activation_pct":1.5}}'
-# Set take profit to 8%
-botcore update_paper_basic_settings '{"settings":{"default_take_profit_pct":8.0}}'
-# Change leverage and position size
-botcore update_paper_basic_settings '{"settings":{"default_leverage":5,"default_position_size_pct":3.0}}'
+# Disable signal reversal
+botcore update_paper_basic_settings '{"settings":{"enable_signal_reversal":false}}'
+# Change position sizing method
+botcore update_paper_basic_settings '{"settings":{"position_sizing_method":"VolatilityAdjusted"}}'
+# Enable slippage simulation
+botcore update_paper_execution_settings '{"settings":{"simulate_slippage":true,"max_slippage_pct":0.05}}'
+# Change signal refresh interval
+botcore update_paper_ai_settings '{"settings":{"signal_refresh_interval_minutes":10}}'
+# Set per-regime confidence thresholds
+botcore update_paper_ai_settings '{"settings":{"confidence_thresholds":{"trending":0.60,"volatile":0.85}}}'
+# Disable daily summary, enable risk warnings
+botcore update_paper_notification_settings '{"settings":{"daily_summary":false,"enable_risk_warnings":true}}'
 ```
 
 **`update_paper_strategy_settings`** — Use for strategy enable/disable:

@@ -382,7 +382,12 @@ export function registerPaperTradingTools(server: McpServer): void {
     {
       title: "Update Paper Basic & Risk Settings",
       description:
-        "Update paper trading basic and risk settings. Supports: initial_balance, max_positions, default_position_size_pct, default_leverage, trading_fee_rate, slippage_pct, enabled, default_stop_loss_pct, default_take_profit_pct, trailing_stop_enabled, trailing_stop_pct, trailing_activation_pct, daily_loss_limit_pct, max_drawdown_pct, max_consecutive_losses, cool_down_minutes, max_leverage, max_risk_per_trade_pct",
+        "Update paper trading basic and risk settings. Supports ALL fields: " +
+        "Basic: initial_balance, max_positions, default_position_size_pct, default_leverage, trading_fee_rate, funding_fee_rate, slippage_pct, enabled, auto_restart. " +
+        "Risk: max_risk_per_trade_pct, max_portfolio_risk_pct, default_stop_loss_pct, default_take_profit_pct, max_leverage, min_margin_level, max_drawdown_pct, daily_loss_limit_pct, max_consecutive_losses, cool_down_minutes, " +
+        "trailing_stop_enabled, trailing_stop_pct, trailing_activation_pct, " +
+        "position_sizing_method (FixedPercentage|RiskBased|VolatilityAdjusted|ConfidenceWeighted|Composite), min_risk_reward_ratio, correlation_limit, dynamic_sizing, volatility_lookback_hours, " +
+        "enable_signal_reversal, ai_auto_enable_reversal, reversal_min_confidence, reversal_max_pnl_pct, reversal_allowed_regimes (array of strings)",
       inputSchema: {
         settings: z
           .record(z.unknown())
@@ -671,5 +676,161 @@ export function registerPaperTradingTools(server: McpServer): void {
     }
   );
 
-  log("info", "Paper trading tools registered (28 tools)");
+  // ============================================================================
+  // EXECUTION SETTINGS TOOLS
+  // ============================================================================
+
+  server.registerTool(
+    "get_paper_execution_settings",
+    {
+      title: "Get Paper Execution Settings",
+      description:
+        "Get paper trading execution settings (auto_execution, slippage simulation, partial fills, market impact, execution delay, order expiration)",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async () => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/execution-settings",
+        { timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to get execution settings");
+    }
+  );
+
+  server.registerTool(
+    "update_paper_execution_settings",
+    {
+      title: "Update Paper Execution Settings",
+      description:
+        "Update paper trading execution settings. Supports: auto_execution, execution_delay_ms, simulate_partial_fills, partial_fill_probability, order_expiration_minutes, simulate_slippage, max_slippage_pct, simulate_market_impact, market_impact_factor, price_update_frequency_seconds",
+      inputSchema: {
+        settings: z
+          .record(z.unknown())
+          .describe(
+            "Execution settings object. Examples: {simulate_slippage: true, max_slippage_pct: 0.05} or {auto_execution: false}"
+          ),
+      },
+      annotations: { readOnlyHint: false, openWorldHint: false },
+    },
+    async ({ settings }: { settings: Record<string, unknown> }) => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/execution-settings",
+        { method: "PUT", body: settings, timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to update execution settings");
+    }
+  );
+
+  // ============================================================================
+  // AI SETTINGS TOOLS
+  // ============================================================================
+
+  server.registerTool(
+    "get_paper_ai_settings",
+    {
+      title: "Get Paper AI Settings",
+      description:
+        "Get paper trading AI integration settings (service URL, timeouts, signal refresh interval, realtime signals, feedback learning, strategy recommendations, model tracking, confidence_thresholds per market regime)",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async () => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/ai-settings",
+        { timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to get AI settings");
+    }
+  );
+
+  server.registerTool(
+    "update_paper_ai_settings",
+    {
+      title: "Update Paper AI Settings",
+      description:
+        "Update paper trading AI settings. Supports: service_url, request_timeout_seconds, signal_refresh_interval_minutes, enable_realtime_signals, enable_feedback_learning, feedback_delay_hours, enable_strategy_recommendations, track_model_performance, confidence_thresholds (object: {regime: threshold}, e.g. {\"trending\": 0.65, \"ranging\": 0.75})",
+      inputSchema: {
+        settings: z
+          .record(z.unknown())
+          .describe(
+            "AI settings object. Examples: {signal_refresh_interval_minutes: 10} or {enable_feedback_learning: true, feedback_delay_hours: 2}"
+          ),
+      },
+      annotations: { readOnlyHint: false, openWorldHint: false },
+    },
+    async ({ settings }: { settings: Record<string, unknown> }) => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/ai-settings",
+        { method: "PUT", body: settings, timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to update AI settings");
+    }
+  );
+
+  // ============================================================================
+  // NOTIFICATION SETTINGS TOOLS
+  // ============================================================================
+
+  server.registerTool(
+    "get_paper_notification_settings",
+    {
+      title: "Get Paper Notification Settings",
+      description:
+        "Get paper trading notification settings (trade notifications, performance notifications, risk warnings, daily summary, weekly report, min P&L threshold, max notifications per hour)",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async () => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/notification-settings",
+        { timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to get notification settings");
+    }
+  );
+
+  server.registerTool(
+    "update_paper_notification_settings",
+    {
+      title: "Update Paper Notification Settings",
+      description:
+        "Update paper trading notification settings. Supports: enable_trade_notifications, enable_performance_notifications, enable_risk_warnings, daily_summary, weekly_report, min_pnl_notification, max_notifications_per_hour",
+      inputSchema: {
+        settings: z
+          .record(z.unknown())
+          .describe(
+            "Notification settings object. Examples: {enable_risk_warnings: true} or {daily_summary: false, max_notifications_per_hour: 10}"
+          ),
+      },
+      annotations: { readOnlyHint: false, openWorldHint: false },
+    },
+    async ({ settings }: { settings: Record<string, unknown> }) => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/notification-settings",
+        { method: "PUT", body: settings, timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to update notification settings");
+    }
+  );
+
+  log("info", "Paper trading tools registered (34 tools)");
 }
