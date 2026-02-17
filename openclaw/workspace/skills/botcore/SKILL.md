@@ -27,6 +27,12 @@ You are running inside a **Docker container**. These rules are MANDATORY:
 5. **Gateway is managed by entrypoint.sh** — Do NOT try to start/stop/restart the gateway yourself.
 6. **Available commands**: `botcore`, `node`, `curl`, `openclaw`. That is it.
 7. **Send notifications via botcore** — Use `botcore send_telegram_notification` to send messages to Telegram. You can pass plain text or JSON.
+8. **OpenClaw CLI requires special flags** — When using `openclaw` commands, you MUST include these flags:
+   ```bash
+   openclaw --dev <command> --url ws://localhost:18789 --token $OPENCLAW_GATEWAY_TOKEN
+   ```
+   Example: `openclaw --dev cron list --url ws://localhost:18789 --token $OPENCLAW_GATEWAY_TOKEN`
+   Without these flags, you will get "pairing required" errors. NEVER run bare `openclaw cron` commands.
 
 If a user asks to restart services, tell them to restart the Docker container from the host machine.
 
