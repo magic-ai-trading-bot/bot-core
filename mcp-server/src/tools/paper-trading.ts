@@ -355,12 +355,12 @@ export function registerPaperTradingTools(server: McpServer): void {
     {
       title: "Update Paper Strategy Settings",
       description:
-        "Update paper trading strategy settings (enable/disable strategies, adjust thresholds for RSI/MACD/BB/Volume)",
+        "Update paper trading strategy settings (enable/disable strategies like RSI/MACD/BB/Volume/Stochastic, adjust strategy-specific thresholds). Note: For stop loss, take profit, trailing stop, use update_paper_basic_settings instead.",
       inputSchema: {
         settings: z
           .record(z.unknown())
           .describe(
-            "Strategy settings object (e.g., {rsi_enabled: true, macd_threshold: 0.5})"
+            "Strategy settings object (e.g., {rsi_enabled: true, macd_threshold: 0.5, stochastic_enabled: true})"
           ),
       },
       annotations: { readOnlyHint: false, openWorldHint: false },
@@ -380,14 +380,14 @@ export function registerPaperTradingTools(server: McpServer): void {
   server.registerTool(
     "update_paper_basic_settings",
     {
-      title: "Update Paper Basic Settings",
+      title: "Update Paper Basic & Risk Settings",
       description:
-        "Update paper trading basic settings (initial balance, max positions, position size, leverage, timeframe)",
+        "Update paper trading basic and risk settings. Supports: initial_balance, max_positions, default_position_size_pct, default_leverage, trading_fee_rate, slippage_pct, enabled, default_stop_loss_pct, default_take_profit_pct, trailing_stop_enabled, trailing_stop_pct, trailing_activation_pct, daily_loss_limit_pct, max_drawdown_pct, max_consecutive_losses, cool_down_minutes, max_leverage, max_risk_per_trade_pct",
       inputSchema: {
         settings: z
           .record(z.unknown())
           .describe(
-            "Basic settings object (e.g., {initial_balance: 10000, max_positions: 3, leverage: 5})"
+            "Settings object. Examples: {default_stop_loss_pct: 3.0} or {trailing_stop_enabled: true, trailing_stop_pct: 2.5} or {max_positions: 3, default_leverage: 5}"
           ),
       },
       annotations: { readOnlyHint: false, openWorldHint: false },

@@ -281,6 +281,7 @@ fn test_update_basic_settings_request() {
         default_take_profit_pct: Some(7.0),
         max_leverage: Some(20),
         enabled: Some(true),
+        ..Default::default()
     };
 
     assert_eq!(request.initial_balance, Some(50000.0));

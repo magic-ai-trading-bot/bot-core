@@ -168,7 +168,7 @@ pub struct UpdateStrategySettingsRequest {
 }
 
 /// Request to update basic paper trading settings (simplified)
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct UpdateBasicSettingsRequest {
     pub initial_balance: Option<f64>,
     pub max_positions: Option<u32>,
@@ -183,6 +183,15 @@ pub struct UpdateBasicSettingsRequest {
     pub default_take_profit_pct: Option<f64>,
     pub max_leverage: Option<u8>,
     pub enabled: Option<bool>,
+    // Trailing stop settings
+    pub trailing_stop_enabled: Option<bool>,
+    pub trailing_stop_pct: Option<f64>,
+    pub trailing_activation_pct: Option<f64>,
+    // Additional risk settings
+    pub daily_loss_limit_pct: Option<f64>,
+    pub max_drawdown_pct: Option<f64>,
+    pub max_consecutive_losses: Option<u32>,
+    pub cool_down_minutes: Option<u32>,
 }
 
 /// Symbol settings for frontend configuration
@@ -1140,7 +1149,10 @@ async fn get_basic_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
             "max_drawdown_pct": settings.risk.max_drawdown_pct,
             "daily_loss_limit_pct": settings.risk.daily_loss_limit_pct,
             "max_consecutive_losses": settings.risk.max_consecutive_losses,
-            "cool_down_minutes": settings.risk.cool_down_minutes
+            "cool_down_minutes": settings.risk.cool_down_minutes,
+            "trailing_stop_enabled": settings.risk.trailing_stop_enabled,
+            "trailing_stop_pct": settings.risk.trailing_stop_pct,
+            "trailing_activation_pct": settings.risk.trailing_activation_pct
         }
     });
 
@@ -1202,6 +1214,29 @@ async fn update_basic_settings(
     }
     if let Some(max_leverage) = request.max_leverage {
         new_settings.risk.max_leverage = max_leverage;
+    }
+    // Trailing stop settings
+    if let Some(trailing_stop_enabled) = request.trailing_stop_enabled {
+        new_settings.risk.trailing_stop_enabled = trailing_stop_enabled;
+    }
+    if let Some(trailing_stop_pct) = request.trailing_stop_pct {
+        new_settings.risk.trailing_stop_pct = trailing_stop_pct;
+    }
+    if let Some(trailing_activation_pct) = request.trailing_activation_pct {
+        new_settings.risk.trailing_activation_pct = trailing_activation_pct;
+    }
+    // Additional risk settings
+    if let Some(daily_loss_limit_pct) = request.daily_loss_limit_pct {
+        new_settings.risk.daily_loss_limit_pct = daily_loss_limit_pct;
+    }
+    if let Some(max_drawdown_pct) = request.max_drawdown_pct {
+        new_settings.risk.max_drawdown_pct = max_drawdown_pct;
+    }
+    if let Some(max_consecutive_losses) = request.max_consecutive_losses {
+        new_settings.risk.max_consecutive_losses = max_consecutive_losses;
+    }
+    if let Some(cool_down_minutes) = request.cool_down_minutes {
+        new_settings.risk.cool_down_minutes = cool_down_minutes;
     }
 
     // Update the engine settings
@@ -2220,6 +2255,7 @@ mod tests {
             default_take_profit_pct: Some(6.0),
             max_leverage: Some(20),
             enabled: Some(true),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -2246,6 +2282,7 @@ mod tests {
             default_take_profit_pct: None,
             max_leverage: None,
             enabled: None,
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -2437,6 +2474,7 @@ mod tests {
             default_take_profit_pct: None,
             max_leverage: None,
             enabled: None,
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -2896,6 +2934,7 @@ mod tests {
             default_take_profit_pct: Some(6.0),
             max_leverage: Some(20),
             enabled: Some(true),
+            ..Default::default()
         };
 
         let response = request()
@@ -2928,6 +2967,7 @@ mod tests {
             default_take_profit_pct: None,
             max_leverage: None,
             enabled: None,
+            ..Default::default()
         };
 
         let response = request()
@@ -3469,6 +3509,7 @@ mod tests {
             default_take_profit_pct: Some(6.0),
             max_leverage: Some(20),
             enabled: Some(true),
+            ..Default::default()
         };
 
         if let Some(balance) = request.initial_balance {
@@ -5144,6 +5185,7 @@ mod tests {
             default_take_profit_pct: None,
             max_leverage: None,
             enabled: None,
+            ..Default::default()
         };
 
         assert_eq!(request.initial_balance, Some(15000.0));
@@ -8304,6 +8346,7 @@ mod tests {
             default_take_profit_pct: Some(7.0),
             max_leverage: Some(15),
             enabled: Some(true),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -8328,6 +8371,7 @@ mod tests {
             default_take_profit_pct: None,
             max_leverage: None,
             enabled: Some(false),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -9593,6 +9637,7 @@ mod tests {
             default_take_profit_pct: None,
             max_leverage: None,
             enabled: None,
+            ..Default::default()
         };
 
         assert!(request.initial_balance.is_some());
@@ -10141,6 +10186,7 @@ mod tests {
             default_take_profit_pct: None,
             max_leverage: None,
             enabled: None,
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -10166,6 +10212,7 @@ mod tests {
             default_take_profit_pct: Some(6.0),
             max_leverage: Some(15),
             enabled: Some(true),
+            ..Default::default()
         };
 
         assert_eq!(request.initial_balance, Some(50000.0));
@@ -10963,6 +11010,7 @@ mod tests {
             default_take_profit_pct: Some(5.5),
             max_leverage: Some(15),
             enabled: Some(true),
+            ..Default::default()
         };
 
         let filter = warp::path("paper-trading")

@@ -98,6 +98,49 @@ botcore update_paper_symbols '{"symbols":["BTCUSDT","ETHUSDT","BNBUSDT"]}'
 botcore update_paper_settings '{"settings":{"any_field":"value"}}'  # Generic catch-all
 ```
 
+### Settings Field Reference
+
+**`update_paper_basic_settings`** — Use for ALL basic + risk settings:
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| initial_balance | number | Starting balance | 10000 |
+| max_positions | number | Max open positions | 5 |
+| default_position_size_pct | number | Position size % | 2.0 |
+| default_leverage | number | Leverage multiplier | 3 |
+| default_stop_loss_pct | number | Stop loss % | 5.0 |
+| default_take_profit_pct | number | Take profit % | 10.0 |
+| trailing_stop_enabled | boolean | Enable trailing stop | true |
+| trailing_stop_pct | number | Trailing stop distance % | 3.0 |
+| trailing_activation_pct | number | Min profit to activate trailing | 2.0 |
+| daily_loss_limit_pct | number | Daily loss limit % | 3.0 |
+| max_drawdown_pct | number | Max drawdown % | 10.0 |
+| max_consecutive_losses | number | Losses before cooldown | 3 |
+| cool_down_minutes | number | Cooldown after losses (min) | 60 |
+| max_leverage | number | Max allowed leverage | 5 |
+| enabled | boolean | Enable/disable engine | true |
+
+Examples:
+```bash
+# Set stop loss to 3%
+botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":3.0}}'
+# Enable trailing stop at 2.5%, activate at 1.5% profit
+botcore update_paper_basic_settings '{"settings":{"trailing_stop_enabled":true,"trailing_stop_pct":2.5,"trailing_activation_pct":1.5}}'
+# Set take profit to 8%
+botcore update_paper_basic_settings '{"settings":{"default_take_profit_pct":8.0}}'
+# Change leverage and position size
+botcore update_paper_basic_settings '{"settings":{"default_leverage":5,"default_position_size_pct":3.0}}'
+```
+
+**`update_paper_strategy_settings`** — Use for strategy enable/disable:
+```bash
+botcore update_paper_strategy_settings '{"settings":{"rsi_enabled":true,"macd_enabled":false}}'
+```
+
+**`update_paper_indicator_settings`** — Use for indicator parameters:
+```bash
+botcore update_paper_indicator_settings '{"settings":{"rsi_period":14,"rsi_oversold":25,"macd_fast":12}}'
+```
+
 ## 4. Real Trading (14 tools) — REAL MONEY
 
 ### Read (6 tools)
