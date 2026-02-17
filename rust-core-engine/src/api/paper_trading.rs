@@ -1667,7 +1667,8 @@ async fn update_notification_settings(
         new_settings.notifications.enable_trade_notifications = enable_trade_notifications;
     }
     if let Some(enable_performance_notifications) = request.enable_performance_notifications {
-        new_settings.notifications.enable_performance_notifications = enable_performance_notifications;
+        new_settings.notifications.enable_performance_notifications =
+            enable_performance_notifications;
     }
     if let Some(enable_risk_warnings) = request.enable_risk_warnings {
         new_settings.notifications.enable_risk_warnings = enable_risk_warnings;
