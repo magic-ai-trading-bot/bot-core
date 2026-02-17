@@ -2324,6 +2324,11 @@ impl PaperTradingEngine {
         *self.is_running.read().await
     }
 
+    /// Check if engine has received price data (proxy for WebSocket connectivity)
+    pub async fn has_price_data(&self) -> bool {
+        !self.current_prices.read().await.is_empty()
+    }
+
     /// Start engine asynchronously (for API calls)
     pub async fn start_async(&self) -> Result<()> {
         {

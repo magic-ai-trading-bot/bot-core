@@ -515,16 +515,27 @@ impl ApiServer {
                 Ok::<_, Infallible>(warp::reply::json(&ApiResponse::success(metrics)))
             });
 
-        // Connection status
+        // Connection status — checks live state from the paper trading engine
+        let engine_for_conn = self.paper_trading_engine.clone();
         let monitoring_clone2 = self.monitoring.clone();
         let connection_status = warp::path("connection")
             .and(warp::get())
+            .and(warp::any().map(move || engine_for_conn.clone()))
             .and(warp::any().map(move || monitoring_clone2.clone()))
-            .and_then(|monitoring: Arc<RwLock<MonitoringService>>| async move {
-                let monitor = monitoring.read().await;
-                let status = monitor.get_connection_status().clone();
-                Ok::<_, Infallible>(warp::reply::json(&ApiResponse::success(status)))
-            });
+            .and_then(
+                |engine: Arc<PaperTradingEngine>,
+                 monitoring: Arc<RwLock<MonitoringService>>| async move {
+                    let monitor = monitoring.read().await;
+                    let base_status = monitor.get_connection_status();
+                    let status = crate::monitoring::ConnectionStatus {
+                        websocket_connected: engine.has_price_data().await,
+                        api_responsive: true,
+                        last_data_update: chrono::Utc::now().timestamp(),
+                        reconnect_count: base_status.reconnect_count,
+                    };
+                    Ok::<_, Infallible>(warp::reply::json(&ApiResponse::success(status)))
+                },
+            );
 
         warp::path("monitoring").and(system_metrics.or(trading_metrics).or(connection_status))
     }
