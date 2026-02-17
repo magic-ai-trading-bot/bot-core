@@ -1,7 +1,6 @@
 {
-  "id": "system-health-check",
-  "name": "System Health Check",
+  "name": "health-check",
   "schedule": "0 */2 * * *",
-  "mode": "independent",
-  "prompt": "Quick system health check. Run `botcore check_system_health`. If ALL services are healthy, respond with exactly 'ALL_HEALTHY' and nothing else - do NOT send any notification. ONLY if something is wrong: send an URGENT alert to Telegram using `botcore send_telegram_notification '{{\"message\":\"\\u26a0\\ufe0f HEALTH ALERT: <which service is unhealthy, error details, suggested fix>\"}}'`. Be specific and urgent in alerts."
+  "timeout_seconds": 180,
+  "prompt": "Quick system health check. Run `botcore check_system_health`. If ALL services are healthy, respond with exactly ALL_HEALTHY and nothing else - do NOT send any notification. ONLY if something is wrong: send an URGENT alert to Telegram using `botcore send_telegram_notification` with the alert details. Be specific and urgent in alerts."
 }

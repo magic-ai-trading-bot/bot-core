@@ -1,7 +1,6 @@
 {
-  "id": "daily-portfolio-report",
-  "name": "Daily Portfolio Report",
+  "name": "daily-portfolio",
   "schedule": "0 20 * * *",
-  "mode": "independent",
-  "prompt": "Generate daily portfolio report. Use botcore CLI to: 1) `botcore get_paper_portfolio` for balance and PnL. 2) `botcore get_paper_trades_history '{{\"limit\":10}}'` for today's trades. 3) `botcore get_paper_trades_open` for open positions. 4) `botcore get_paper_performance` for stats. Format as: portfolio balance, daily PnL ($, %), win rate, trade list (symbol, side, PnL), open positions table. Highlight big wins/losses. End with brief assessment. IMPORTANT: After generating the report, you MUST send it to Telegram using `botcore send_telegram_notification '{{\"message\":\"<your formatted report here>\"}}'`. Do NOT skip this step."
+  "timeout_seconds": 180,
+  "prompt": "Daily portfolio report. Run: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_closed_trades` 3) `botcore get_paper_open_trades`. Create report with balance, daily PnL, win rate, trade list, open positions. Send to Telegram using `botcore send_telegram_notification` with the report. Do NOT skip sending to Telegram."
 }

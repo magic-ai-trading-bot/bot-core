@@ -1,7 +1,6 @@
 {
-  "id": "weekly-performance-review",
-  "name": "Weekly Performance Review",
+  "name": "weekly-review",
   "schedule": "0 10 * * 1",
-  "mode": "independent",
-  "prompt": "Weekly performance review. Use botcore CLI to: 1) `botcore get_paper_performance` for overall stats. 2) `botcore get_tuning_dashboard` for tuning analysis. 3) `botcore get_adjustment_history '{{\"limit\":20}}'` for this week's changes. 4) `botcore get_paper_strategy_settings` for strategy breakdown. Create detailed report: weekly PnL, win rate, strategy comparison, adjustments made this week and impact, AI suggestions, action items for next week. For YELLOW-tier improvements, present as confirmable proposals. IMPORTANT: After generating the report, send it to Telegram using `botcore send_telegram_notification '{{\"message\":\"\\ud83d\\udcc8 Weekly Review:\\n<your detailed report>\"}}'`. Do NOT skip this step."
+  "timeout_seconds": 180,
+  "prompt": "Weekly performance review. Run: 1) `botcore get_tuning_dashboard` 2) `botcore get_paper_portfolio` 3) `botcore get_adjustment_history`. Create detailed report with weekly PnL, win rate, strategy breakdown, tuning changes, recommendations. Send to Telegram using `botcore send_telegram_notification` with the report. Do NOT skip sending to Telegram."
 }

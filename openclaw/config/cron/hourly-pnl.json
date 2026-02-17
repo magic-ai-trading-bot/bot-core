@@ -1,0 +1,6 @@
+{
+  "name": "hourly-pnl",
+  "schedule": "0 * * * *",
+  "timeout_seconds": 120,
+  "prompt": "Hourly PnL report. Run these commands: 1) botcore get_paper_portfolio 2) botcore get_paper_open_trades 3) botcore get_trading_performance. Create a short summary including: current balance, equity, hourly PnL change, number of open positions with their unrealized PnL, and win rate. CRITICAL: You MUST send the report to Telegram by running botcore send_telegram_notification with the report text. Never skip this step."
+}
