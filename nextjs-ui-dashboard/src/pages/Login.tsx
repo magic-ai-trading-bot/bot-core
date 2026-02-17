@@ -24,7 +24,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const { login, isAuthenticated, loading, error } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const colors = useThemeColors();
 
   // Redirect if already authenticated
@@ -47,9 +47,9 @@ const Login = () => {
     try {
       toast.loading(t('login.submitting'), { id: "login-loading" });
 
-      const success = await login(email, password);
+      const result = await login(email, password);
 
-      if (success) {
+      if (result.success) {
         toast.success(t('login.success'), {
           description: t('login.successMessage'),
           id: "login-loading",
@@ -57,7 +57,7 @@ const Login = () => {
         navigate("/dashboard", { replace: true });
       } else {
         toast.error(t('login.error'), {
-          description: error || t('login.errorInvalid'),
+          description: result.error || t('login.errorInvalid'),
           id: "login-loading",
         });
       }
@@ -216,60 +216,64 @@ const Login = () => {
             <div className="flex gap-2">
               <motion.button
                 type="button"
+                disabled={loading}
                 onClick={async () => {
                   setEmail('trader@botcore.com');
                   setPassword('password123');
                   try {
                     toast.loading(t('login.submitting'), { id: "login-loading" });
-                    const success = await login('trader@botcore.com', 'password123');
-                    if (success) {
+                    const result = await login('trader@botcore.com', 'password123');
+                    if (result.success) {
                       toast.success(t('login.success'), { description: t('login.successMessage'), id: "login-loading" });
                       navigate("/dashboard", { replace: true });
                     } else {
-                      toast.error(t('login.error'), { description: error || t('login.errorInvalid'), id: "login-loading" });
+                      toast.error(t('login.error'), { description: result.error || t('login.errorInvalid'), id: "login-loading" });
                     }
                   } catch (err) {
                     logger.error("Demo login error:", err);
                     toast.error(t('login.error'), { description: t('login.errorGeneric'), id: "login-loading" });
                   }
                 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={loading ? undefined : { scale: 1.02 }}
+                whileTap={loading ? undefined : { scale: 0.98 }}
                 className="flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-all"
                 style={{
                   background: `rgba(${34}, ${197}, ${94}, 0.1)`,
                   border: `1px solid rgba(${34}, ${197}, ${94}, 0.3)`,
                   color: colors.profit,
+                  opacity: loading ? 0.5 : 1,
                 }}
               >
                 {t('login.useTrader')}
               </motion.button>
               <motion.button
                 type="button"
+                disabled={loading}
                 onClick={async () => {
                   setEmail('admin@botcore.com');
                   setPassword('password123');
                   try {
                     toast.loading(t('login.submitting'), { id: "login-loading" });
-                    const success = await login('admin@botcore.com', 'password123');
-                    if (success) {
+                    const result = await login('admin@botcore.com', 'password123');
+                    if (result.success) {
                       toast.success(t('login.success'), { description: t('login.successMessage'), id: "login-loading" });
                       navigate("/dashboard", { replace: true });
                     } else {
-                      toast.error(t('login.error'), { description: error || t('login.errorInvalid'), id: "login-loading" });
+                      toast.error(t('login.error'), { description: result.error || t('login.errorInvalid'), id: "login-loading" });
                     }
                   } catch (err) {
                     logger.error("Demo login error:", err);
                     toast.error(t('login.error'), { description: t('login.errorGeneric'), id: "login-loading" });
                   }
                 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={loading ? undefined : { scale: 1.02 }}
+                whileTap={loading ? undefined : { scale: 0.98 }}
                 className="flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-all"
                 style={{
                   background: `rgba(${139}, ${92}, ${246}, 0.1)`,
                   border: `1px solid rgba(${139}, ${92}, ${246}, 0.3)`,
                   color: colors.purple,
+                  opacity: loading ? 0.5 : 1,
                 }}
               >
                 {t('login.useAdmin')}

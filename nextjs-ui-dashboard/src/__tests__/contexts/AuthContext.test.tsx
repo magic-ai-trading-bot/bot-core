@@ -91,12 +91,12 @@ describe('AuthContext', () => {
   it('logs in user successfully', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper })
 
-    let loginResult: boolean = false
+    let loginResult: { success: boolean; error?: string } = { success: false }
     await act(async () => {
       loginResult = await result.current.login('test@example.com', 'password123')
     })
 
-    expect(loginResult).toBe(true)
+    expect(loginResult.success).toBe(true)
     expect(result.current.user).toBeDefined()
     expect(result.current.isAuthenticated).toBe(true)
   })
@@ -107,12 +107,12 @@ describe('AuthContext', () => {
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 
-    let loginResult: boolean = true
+    let loginResult: { success: boolean; error?: string } = { success: true }
     await act(async () => {
       loginResult = await result.current.login('test@example.com', 'wrongpassword')
     })
 
-    expect(loginResult).toBe(false)
+    expect(loginResult.success).toBe(false)
     expect(result.current.user).toBeNull()
     expect(result.current.isAuthenticated).toBe(false)
     expect(result.current.error).toBeTruthy()
@@ -277,12 +277,12 @@ describe('AuthContext', () => {
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 
-    let loginResult: boolean = true
+    let loginResult: { success: boolean; error?: string } = { success: true }
     await act(async () => {
       loginResult = await result.current.login('test@example.com', 'password123')
     })
 
-    expect(loginResult).toBe(false)
+    expect(loginResult.success).toBe(false)
     expect(result.current.error).toBeTruthy()
     expect(result.current.isAuthenticated).toBe(false)
   })

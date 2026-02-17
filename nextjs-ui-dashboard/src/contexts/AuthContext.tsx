@@ -16,7 +16,7 @@ import {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: UserProfile | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (
     email: string,
     password: string,
@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setLoading(true);
     setError(null);
 
@@ -74,11 +74,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(response.user);
       setIsAuthenticated(true);
 
-      return true;
+      return { success: true };
     } catch (error: unknown) {
       logger.error("Login failed:", error);
-      setError(error instanceof Error ? error.message : "Login failed");
-      return false;
+      const errorMessage = error instanceof Error ? error.message : "Login failed";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }

@@ -83,6 +83,9 @@ function GlassCard({
   glowColor?: string;
   danger?: boolean;
 }) {
+  // Check if className contains flex layout classes
+  const hasFlexLayout = className.includes('flex');
+
   return (
     <motion.div
       variants={itemVariants}
@@ -103,7 +106,12 @@ function GlassCard({
         borderColor: danger ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.08)',
       }}
     >
-      <div className={noPadding ? '' : 'p-4'}>{children}</div>
+      {hasFlexLayout ? (
+        // When using flex layout, render children directly without wrapper
+        children
+      ) : (
+        <div className={noPadding ? '' : 'p-4'}>{children}</div>
+      )}
     </motion.div>
   );
 }
@@ -557,7 +565,7 @@ function OrderBook({
   };
 
   return (
-    <GlassCard noPadding danger>
+    <GlassCard noPadding danger className="h-full flex flex-col">
       <PanelHeader title={t('realTrading.orderBook.title')} icon={BarChart3} danger />
 
       <div
@@ -569,8 +577,9 @@ function OrderBook({
         <div className="text-right">{t('realTrading.orderBook.total')}</div>
       </div>
 
-      <div className="flex flex-col-reverse">
-        {asks.slice(0, 8).map((ask, i) => (
+      {/* Asks (reversed) - flex-1 to fill available space */}
+      <div className="flex flex-col-reverse flex-1 justify-end">
+        {asks.slice(0, 12).map((ask, i) => (
           <OrderRow key={`ask-${i}`} level={ask} type="ask" maxTotal={maxAskTotal} />
         ))}
       </div>
@@ -594,8 +603,9 @@ function OrderBook({
         </span>
       </motion.div>
 
-      <div>
-        {bids.slice(0, 8).map((bid, i) => (
+      {/* Bids - flex-1 to fill available space */}
+      <div className="flex-1">
+        {bids.slice(0, 12).map((bid, i) => (
           <OrderRow key={`bid-${i}`} level={bid} type="bid" maxTotal={maxBidTotal} />
         ))}
       </div>
@@ -697,7 +707,7 @@ function OrderForm({
 
   return (
     <>
-      <GlassCard noPadding danger>
+      <GlassCard noPadding danger className="h-full flex flex-col">
         <PanelHeader title={t('realTrading.orderForm.submit')} icon={Target} danger />
 
         {/* Buy/Sell Toggle */}
@@ -1955,20 +1965,22 @@ export default function RealTrading() {
         </div>
 
         {/* Right Column: Order Book + Form (full width on mobile, 40% on desktop) */}
-        {/* Mobile: no overflow for natural page scroll, Desktop: scrollable */}
-        <div className="col-span-1 lg:col-span-5 flex flex-col lg:overflow-y-auto overflow-x-hidden w-full max-w-full" style={{ backgroundColor: colors.bgPrimary }}>
+        {/* Desktop: no scroll - content should fit naturally */}
+        <div className="col-span-1 lg:col-span-5 flex flex-col overflow-hidden w-full max-w-full" style={{ backgroundColor: colors.bgPrimary }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
-            <div style={{ backgroundColor: colors.bgPrimary }}>
+            <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: colors.bgPrimary }}>
               <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} />
             </div>
 
             {/* Order Form */}
-            <div style={{ backgroundColor: colors.bgPrimary }}>
-              <OrderForm symbol={selectedSymbol} onSubmit={handleOrderSubmit} selectedPrice={selectedPrice} />
+            <div className="h-full flex flex-col min-h-0 overflow-hidden" style={{ backgroundColor: colors.bgPrimary }}>
+              <div className="flex-1 min-h-0">
+                <OrderForm symbol={selectedSymbol} onSubmit={handleOrderSubmit} selectedPrice={selectedPrice} />
+              </div>
 
               {/* Risk Warning */}
-              <div className="p-4">
+              <div className="p-4 flex-shrink-0">
                 <motion.div
                   className="p-4 rounded-xl"
                   style={{

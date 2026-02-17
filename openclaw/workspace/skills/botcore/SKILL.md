@@ -4,7 +4,7 @@ description: Control, monitor, and tune the BotCore cryptocurrency trading bot v
 metadata: {"openclaw":{"emoji":"🤖","requires":{"bins":["botcore"],"env":["MCP_URL","MCP_AUTH_TOKEN"]}}}
 ---
 
-# BotCore Trading Bot Controller — 103 Tools
+# BotCore Trading Bot Controller — 102 Tools
 
 Run commands via `botcore` CLI:
 
@@ -16,12 +16,26 @@ Arguments optional for tools with no input. Always single-quote JSON args.
 
 ---
 
-## 1. System Health & Monitoring (4 tools)
+## IMPORTANT: Environment Constraints
+
+You are running inside a **Docker container**. These rules are MANDATORY:
+
+1. **NO systemctl/service/journalctl** — There is no systemd in this container. Never use them.
+2. **NO apt/yum/apk install** — Do not install packages. Use only what is available.
+3. **NO crontab** — Cron jobs are managed by OpenClaw (`openclaw cron`), NOT Linux crontab.
+4. **NO direct config file edits** — Config is mounted read-only. Use botcore tools to change settings.
+5. **Gateway is managed by entrypoint.sh** — Do NOT try to start/stop/restart the gateway yourself.
+6. **Available commands**: `botcore`, `node`, `curl`, `openclaw`. That is it.
+7. **Send notifications via botcore** — Use `botcore send_telegram_notification` to send messages to Telegram. You can pass plain text or JSON.
+
+If a user asks to restart services, tell them to restart the Docker container from the host machine.
+
+---
+
+## 1. System Health & Monitoring (2 tools)
 
 ```bash
-botcore check_system_health                              # All services health (Rust, Python, MongoDB, Prometheus)
-botcore get_system_metrics '{"metric":"all"}'             # CPU/memory metrics (all|memory|cpu)
-botcore get_docker_status                                 # All Docker container status
+botcore check_system_health                              # All services health (Rust, Python, MongoDB)
 botcore get_service_logs_summary '{"service":"all"}'      # Error/warning logs (all|rust|python)
 ```
 
@@ -225,6 +239,19 @@ botcore rollback_adjustment '{"snapshot_id":"snap_123"}'  # Revert to specific s
 
 ---
 
+## 12. Notifications (1 tool)
+
+```bash
+botcore send_telegram_notification '{"message":"Your notification text here"}'  # Send to user Telegram
+botcore send_telegram_notification "Your plain text message here"               # Also works with plain text
+```
+
+Parse modes: `HTML` (default), `Markdown`, `MarkdownV2`
+
+**IMPORTANT**: For ALL scheduled reports, alerts, and cron job outputs, you MUST use `send_telegram_notification` to deliver results to the user on Telegram. Do NOT just print the report — always send it via this tool.
+
+---
+
 ## Tunable Parameters Reference
 
 | Parameter | Tier | Range | Default | Cooldown |
@@ -283,6 +310,13 @@ botcore get_tuning_dashboard             # 1. Assess current state
 botcore get_parameter_bounds             # 2. Check what can be adjusted
 botcore take_parameter_snapshot          # 3. Snapshot before changes
 botcore apply_green_adjustment '{"parameter":"...","new_value":...,"reasoning":"..."}'  # 4. Apply
+```
+
+### Send Report to Telegram
+```bash
+botcore get_paper_portfolio              # 1. Gather data
+botcore get_trading_performance            # 2. Get stats
+botcore send_telegram_notification '{"message":"Portfolio Report:\nBalance: $10,250\nDaily PnL: +$125 (+1.2%)\nWin Rate: 65%"}'  # 3. Send to Telegram
 ```
 
 ### Full System Check
