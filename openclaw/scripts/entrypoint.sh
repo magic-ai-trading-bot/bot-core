@@ -52,7 +52,6 @@ done
 GATEWAY_URL="ws://localhost:18789"
 GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-default-token}"
 CRON_DIR="/home/node/.openclaw/cron"
-CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 
 if [ -d "$CRON_DIR" ] && [ $RETRIES -le $MAX_RETRIES ]; then
   echo "Gateway is ready. Registering cron jobs..."
@@ -80,12 +79,10 @@ if [ -d "$CRON_DIR" ] && [ $RETRIES -le $MAX_RETRIES ]; then
 
       echo "  Registering: $JOB_NAME (${CRON_EXPR})"
 
-      # Build cron add command
-      DELIVER_FLAGS=""
-      if [ -n "$CHAT_ID" ]; then
-        DELIVER_FLAGS="--no-deliver"
-      fi
-
+      # Always use --no-deliver: cron prompts handle Telegram delivery
+      # via `botcore send_telegram_notification` when needed.
+      # Without --no-deliver, OpenClaw delivers raw AI responses to
+      # Telegram with "(error)" labels for short/silent responses.
       openclaw --dev cron add \
         --url "$GATEWAY_URL" \
         --token "$GATEWAY_TOKEN" \
@@ -93,7 +90,7 @@ if [ -d "$CRON_DIR" ] && [ $RETRIES -le $MAX_RETRIES ]; then
         --cron "$CRON_EXPR" \
         --message "$CRON_MSG" \
         --timeout-seconds "$CRON_TIMEOUT" \
-        $DELIVER_FLAGS \
+        --no-deliver \
         2>&1 | tail -1 || echo "    (failed to register $JOB_NAME)"
     fi
   done
