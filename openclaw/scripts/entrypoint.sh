@@ -33,22 +33,33 @@ echo "=== Starting OpenClaw Gateway ==="
 openclaw gateway --dev --port 18789 --bind lan --token "${OPENCLAW_GATEWAY_TOKEN:-default-token}" &
 GATEWAY_PID=$!
 
-# Wait for gateway to be ready (WebSocket listening)
+# Wait for gateway to be ready (canvas endpoint responds)
+# Gateway can take 90+ seconds on first start (model loading, plugin init)
 echo "Waiting for gateway to be ready..."
 RETRIES=0
+MAX_RETRIES=60
 until curl -sf "http://localhost:18789/__openclaw__/canvas/" > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
-  if [ $RETRIES -gt 30 ]; then
-    echo "  Gateway did not start in time, skipping cron registration"
+  if [ $RETRIES -gt $MAX_RETRIES ]; then
+    echo "  Gateway did not start in time (${MAX_RETRIES}x3s), skipping cron registration"
     break
   fi
-  sleep 2
+  sleep 3
 done
 
 # Register cron jobs AFTER gateway is running
+# Uses openclaw --dev cron add with explicit --url and --token
+GATEWAY_URL="ws://localhost:18789"
+GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-default-token}"
 CRON_DIR="/home/node/.openclaw/cron"
-if [ -d "$CRON_DIR" ] && [ $RETRIES -le 30 ]; then
-  echo "Registering cron jobs..."
+CHAT_ID="${TELEGRAM_CHAT_ID:-}"
+
+if [ -d "$CRON_DIR" ] && [ $RETRIES -le $MAX_RETRIES ]; then
+  echo "Gateway is ready. Registering cron jobs..."
+
+  # Wait a few extra seconds for the gateway to fully initialize WebSocket handlers
+  sleep 5
+
   for f in "$CRON_DIR"/*.json; do
     if [ -f "$f" ]; then
       JOB_NAME=$(basename "$f" .json)
@@ -56,8 +67,34 @@ if [ -d "$CRON_DIR" ] && [ $RETRIES -le 30 ]; then
       if [ "$JOB_NAME" = "jobs" ]; then
         continue
       fi
-      echo "  Registering: $JOB_NAME"
-      openclaw cron add --file "$f" 2>&1 || echo "    (failed to register)"
+
+      # Extract fields from JSON config using node (available in container)
+      CRON_EXPR=$(node -e "const j=require('$f'); console.log(j.schedule||'')")
+      CRON_MSG=$(node -e "const j=require('$f'); console.log(j.prompt||'')")
+      CRON_TIMEOUT=$(node -e "const j=require('$f'); console.log(j.timeout_seconds||180)")
+
+      if [ -z "$CRON_EXPR" ] || [ -z "$CRON_MSG" ]; then
+        echo "  Skipping $JOB_NAME (missing schedule or prompt)"
+        continue
+      fi
+
+      echo "  Registering: $JOB_NAME (${CRON_EXPR})"
+
+      # Build cron add command
+      DELIVER_FLAGS=""
+      if [ -n "$CHAT_ID" ]; then
+        DELIVER_FLAGS="--no-deliver"
+      fi
+
+      openclaw --dev cron add \
+        --url "$GATEWAY_URL" \
+        --token "$GATEWAY_TOKEN" \
+        --name "$JOB_NAME" \
+        --cron "$CRON_EXPR" \
+        --message "$CRON_MSG" \
+        --timeout-seconds "$CRON_TIMEOUT" \
+        $DELIVER_FLAGS \
+        2>&1 | tail -1 || echo "    (failed to register $JOB_NAME)"
     fi
   done
   echo "Cron job registration complete."

@@ -119,6 +119,9 @@ async function main() {
         }
         if (Object.keys(flagArgs).length > 0) {
           toolArgs = flagArgs;
+        } else if (tool === "send_telegram_notification") {
+          // Auto-wrap plain text as message for notification tool
+          toolArgs = { message: argsRaw };
         } else {
           console.error(`ERROR: Invalid arguments: ${argsRaw}. Use JSON: '{"key":"value"}'`);
           process.exit(1);
