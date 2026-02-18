@@ -27,6 +27,11 @@ echo "MCP server is healthy."
 mkdir -p /home/node/.openclaw/agents/main/sessions /home/node/.openclaw/credentials
 chmod 700 /home/node/.openclaw
 
+# Symlink --dev profile to default profile so cron sub-agents (which use
+# default profile ~/.openclaw/) share the same pairing data as the gateway
+# (which runs with --dev and uses ~/.openclaw-dev/).
+ln -sfn /home/node/.openclaw /home/node/.openclaw-dev
+
 echo "=== Starting OpenClaw Gateway ==="
 
 # Start gateway in background so we can register cron jobs after it's ready
