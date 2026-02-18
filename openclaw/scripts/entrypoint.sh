@@ -7,24 +7,58 @@ set -e
 echo "=== BotCore OpenClaw Gateway Starting ==="
 echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-# --- Config setup ---
-# Docker mounts ./openclaw/config → /home/node/.openclaw (read-write)
-# If a separate /config mount exists (legacy), copy it over
-if [ -f /config/openclaw.json ] && [ "/config" != "/home/node/.openclaw" ]; then
-  echo "Copying config from /config mount..."
-  cp /config/openclaw.json /home/node/.openclaw/openclaw.json
-  chmod 600 /home/node/.openclaw/openclaw.json
+# ===========================================================================
+# CONFIG SYNC: staging mounts → named volume
+# ===========================================================================
+# Docker mounts git-tracked files to /config-source and /workspace-source
+# (read-only). OpenClaw's live directory is a named volume at ~/.openclaw.
+# We copy on every container start so config updates take effect on restart,
+# but host-side git operations (pull, reset) NEVER affect the running container.
+# This prevents the recurring issue where git ops trigger OpenClaw's config
+# change detection → SIGUSR1 restart → in-memory cron jobs wiped.
+# ===========================================================================
+
+OPENCLAW_HOME="/home/node/.openclaw"
+CONFIG_SRC="/config-source"
+WORKSPACE_SRC="/workspace-source"
+
+# Ensure required directories exist in the named volume
+mkdir -p "$OPENCLAW_HOME/agents/main/sessions" \
+         "$OPENCLAW_HOME/credentials" \
+         "$OPENCLAW_HOME/cron" \
+         "$OPENCLAW_HOME/workspace"
+
+# Sync openclaw.json — use production config if NODE_ENV=production
+if [ "$NODE_ENV" = "production" ] && [ -f "$CONFIG_SRC/openclaw.production.json" ]; then
+  echo "Syncing production config to $OPENCLAW_HOME/openclaw.json"
+  cp "$CONFIG_SRC/openclaw.production.json" "$OPENCLAW_HOME/openclaw.json"
+elif [ -f "$CONFIG_SRC/openclaw.json" ]; then
+  echo "Syncing dev config to $OPENCLAW_HOME/openclaw.json"
+  cp "$CONFIG_SRC/openclaw.json" "$OPENCLAW_HOME/openclaw.json"
+fi
+chmod 600 "$OPENCLAW_HOME/openclaw.json" 2>/dev/null || true
+
+# Sync cron job definitions (always overwrite so git changes take effect on restart)
+if [ -d "$CONFIG_SRC/cron" ]; then
+  echo "Syncing cron configs..."
+  for f in "$CONFIG_SRC/cron"/*.json; do
+    [ -f "$f" ] || continue
+    cp "$f" "$OPENCLAW_HOME/cron/"
+  done
 fi
 
-# Ensure required directories exist
-mkdir -p /home/node/.openclaw/agents/main/sessions \
-         /home/node/.openclaw/credentials \
-         /home/node/.openclaw/cron
+# Sync workspace (skills, docs — always overwrite for updates)
+if [ -d "$WORKSPACE_SRC" ]; then
+  echo "Syncing workspace..."
+  cp -r "$WORKSPACE_SRC/"* "$OPENCLAW_HOME/workspace/" 2>/dev/null || true
+fi
 
 # Symlink --dev profile → default profile so cron sub-agents (which use
 # default ~/.openclaw/) share the same pairing data as the gateway
 # (which runs with --dev → uses ~/.openclaw-dev/).
-ln -sfn /home/node/.openclaw /home/node/.openclaw-dev
+ln -sfn "$OPENCLAW_HOME" /home/node/.openclaw-dev
+
+echo "Config sync complete."
 
 # --- Wait for MCP server ---
 MCP_HEALTH_URL="${MCP_URL:-http://mcp-server:8090}/health"
@@ -78,7 +112,7 @@ fi
 register_cron_jobs() {
   GATEWAY_URL="ws://localhost:18789"
   GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-default-token}"
-  CRON_DIR="/home/node/.openclaw/cron"
+  CRON_DIR="$OPENCLAW_HOME/cron"
 
   [ -d "$CRON_DIR" ] || return 0
 
@@ -91,6 +125,7 @@ register_cron_jobs() {
 
     JOB_NAME=$(basename "$f" .json)
     [ "$JOB_NAME" = "jobs" ] && continue
+    [ "$JOB_NAME" = "jobs.json" ] && continue
 
     # Extract all fields in one node call (efficient + atomic)
     JOB_DATA=$(node -e "

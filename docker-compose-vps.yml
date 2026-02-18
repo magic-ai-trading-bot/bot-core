@@ -202,9 +202,9 @@ services:
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - NODE_ENV=production
     volumes:
-      - ./openclaw/config:/home/node/.openclaw
-      - ./openclaw/workspace:/home/node/.openclaw/workspace
-      - openclaw_data:/data/openclaw
+      - ./openclaw/config:/config-source:ro
+      - ./openclaw/workspace:/workspace-source:ro
+      - openclaw_home:/home/node/.openclaw
     networks:
       - bot-network
     depends_on:
@@ -271,4 +271,4 @@ volumes:
   mongodb_data:
   mongodb_config:
   redis_data:
-  openclaw_data:
+  openclaw_home:
