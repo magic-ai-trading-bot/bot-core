@@ -434,6 +434,46 @@ jobs:
           log_info "📊 Final disk usage:"
           df -h /
 
+          # ============================================================================
+          # STEP 14: SEND TELEGRAM NOTIFICATION
+          # ============================================================================
+          log_info "📱 Step 14: Sending Telegram notification..."
+
+          TELEGRAM_BOT_TOKEN=$(grep '^TELEGRAM_BOT_TOKEN=' .env | cut -d= -f2-)
+          TELEGRAM_USER_ID=$(grep '^TELEGRAM_USER_ID=' .env | cut -d= -f2-)
+          SHORT_SHA=$(echo "$CURR_SHA" | cut -c1-7)
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s" 2>/dev/null || echo "unknown")
+
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_USER_ID" ]; then
+            if [ "$DEPLOY_SUCCESS" = true ]; then
+              NOTIF_TEXT="🚀 <b>Deploy thành công!</b>
+
+📦 <code>${SHORT_SHA}</code> — ${COMMIT_MSG}
+🔄 Services: ${CHANGED_SERVICES}
+
+✅ Rust API | ✅ Python AI | ✅ Frontend
+✅ MCP Server | ✅ OpenClaw
+
+📊 Dashboard: http://$(curl -s ifconfig.me 2>/dev/null || echo 'VPS'):3000"
+            else
+              NOTIF_TEXT="⚠️ <b>Deploy hoàn tất với lỗi</b>
+
+📦 <code>${SHORT_SHA}</code> — ${COMMIT_MSG}
+🔄 Services: ${CHANGED_SERVICES}
+
+Kiểm tra logs: <code>docker logs [service] --tail 50</code>"
+            fi
+
+            curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_USER_ID}" \
+              -d "parse_mode=HTML" \
+              --data-urlencode "text=${NOTIF_TEXT}" > /dev/null 2>&1 && \
+              log_info "✅ Telegram notification sent" || \
+              log_warn "⚠️ Telegram notification failed (non-critical)"
+          else
+            log_warn "⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_USER_ID not set, skipping notification"
+          fi
+
           echo ""
           if [ "$DEPLOY_SUCCESS" = true ]; then
             log_info "🎉 Deployment successful!"
