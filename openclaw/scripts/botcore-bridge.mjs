@@ -103,13 +103,15 @@ async function main() {
 
     // Step 2: Call the requested tool
     let toolArgs = {};
-    if (argsRaw) {
+    // Collect all args after tool name (handles shell-split multi-word text)
+    const allArgs = process.argv.slice(3).join(" ").trim();
+    if (allArgs) {
       try {
-        toolArgs = JSON.parse(argsRaw);
+        toolArgs = JSON.parse(allArgs);
       } catch {
         // Try to parse flag-style args: --key value --flag
         const flagArgs = {};
-        const parts = argsRaw.split(/\s+/);
+        const parts = allArgs.split(/\s+/);
         for (let i = 0; i < parts.length; i++) {
           if (parts[i].startsWith("--")) {
             const key = parts[i].replace(/^--/, "");
@@ -121,11 +123,20 @@ async function main() {
           toolArgs = flagArgs;
         } else if (tool === "send_telegram_notification") {
           // Auto-wrap plain text as message for notification tool
-          toolArgs = { message: argsRaw };
+          toolArgs = { message: allArgs };
         } else {
-          console.error(`ERROR: Invalid arguments: ${argsRaw}. Use JSON: '{"key":"value"}'`);
+          console.error(`ERROR: Invalid arguments: ${allArgs}. Use JSON: '{"key":"value"}'`);
           process.exit(1);
         }
+      }
+    }
+
+    // Normalize send_telegram_notification args — AI models may use
+    // different field names (text, content, body) instead of "message"
+    if (tool === "send_telegram_notification" && !toolArgs.message) {
+      const msg = toolArgs.text || toolArgs.content || toolArgs.body || "";
+      if (msg) {
+        toolArgs = { message: msg, ...(toolArgs.parse_mode && { parse_mode: toolArgs.parse_mode }) };
       }
     }
 
