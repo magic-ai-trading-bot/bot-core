@@ -4,7 +4,7 @@ description: Control, monitor, and tune the BotCore cryptocurrency trading bot v
 metadata: {"openclaw":{"emoji":"🤖","requires":{"bins":["botcore"],"env":["MCP_URL","MCP_AUTH_TOKEN"]}}}
 ---
 
-# BotCore Trading Bot Controller — 108 Tools
+# BotCore Trading Bot Controller — 109 Tools
 
 Run commands via `botcore` CLI:
 
@@ -84,12 +84,13 @@ botcore get_paper_config_suggestions    # All AI config suggestions
 botcore get_paper_latest_config_suggestions  # Latest AI recommendations
 ```
 
-### Write (16 tools)
+### Write (17 tools)
 ```bash
 botcore start_paper_engine              # Start trading engine
 botcore stop_paper_engine               # Stop trading engine (positions stay open)
 botcore reset_paper_account             # Reset to initial balance, close all
-botcore close_paper_trade '{"trade_id":"trade_123"}'  # Close specific position
+botcore close_paper_trade '{"trade_id":"trade_123"}'  # Close by trade ID
+botcore close_paper_trade_by_symbol '{"symbol":"ETHUSDT"}'  # Close by symbol (PREFERRED)
 botcore create_paper_order '{"symbol":"BTCUSDT","side":"buy","order_type":"market"}'
 botcore cancel_paper_order '{"order_id":"order_123"}'
 botcore trigger_paper_analysis          # Trigger GPT-4 trade analysis NOW
@@ -444,6 +445,22 @@ botcore get_paper_portfolio              # 1. Gather data
 botcore get_trading_performance            # 2. Get stats
 botcore send_telegram_notification '{"message":"Portfolio Report:\nBalance: $10,250\nDaily PnL: +$125 (+1.2%)\nWin Rate: 65%"}'  # 3. Send to Telegram
 ```
+
+### Close Position / Take Profit
+```bash
+botcore close_paper_trade_by_symbol '{"symbol":"ETHUSDT"}'  # Close by symbol (simplest)
+botcore close_paper_trade_by_symbol '{"symbol":"ETHUSDT","reason":"take profit at 24%"}'
+# If you need trade ID first:
+botcore get_paper_open_trades            # Find trade_id
+botcore close_paper_trade '{"trade_id":"trade_xxx_ETHUSDT"}'
+```
+
+**IMPORTANT**: When user asks to close/take profit/cut loss a position:
+1. Use `close_paper_trade_by_symbol` with the symbol — it handles everything automatically
+2. Do NOT ask the user for trade_id — just use the symbol they mention
+3. After closing, report the realized PnL to the user
+
+**NOTE on take_profit_pct**: The `default_take_profit_pct` setting is based on **price movement**, NOT position PnL. With leverage, PnL% = price_change% x leverage. Example: take_profit_pct=10%, leverage=3x → auto-closes when PnL reaches ~30%.
 
 ### Full System Check
 ```bash

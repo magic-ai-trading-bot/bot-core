@@ -351,6 +351,70 @@ export function registerPaperTradingTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "close_paper_trade_by_symbol",
+    {
+      title: "Close Paper Trade by Symbol",
+      description:
+        "Close an open paper trading position by symbol (e.g., ETHUSDT). Automatically finds the trade ID and closes it. Use this when you know the symbol but not the trade ID.",
+      inputSchema: {
+        symbol: z
+          .string()
+          .describe("The trading pair symbol to close (e.g., 'ETHUSDT', 'BTCUSDT')"),
+        reason: z
+          .string()
+          .optional()
+          .describe("Optional reason for closing (e.g., 'take profit', 'manual close')"),
+      },
+      annotations: { readOnlyHint: false, openWorldHint: false },
+    },
+    async ({ symbol, reason }: { symbol: string; reason?: string }) => {
+      // Step 1: Get open trades
+      const tradesRes = await apiRequest(
+        "rust",
+        "/api/paper-trading/trades/open",
+        { timeoutMs: 10_000 }
+      );
+      if (!tradesRes.success) {
+        return toolError(tradesRes.error || "Failed to get open trades");
+      }
+
+      // Step 2: Find trade by symbol
+      const rawData = tradesRes.data as Record<string, unknown> | unknown[];
+      const trades = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray((rawData as Record<string, unknown>)?.trades)
+          ? (rawData as Record<string, unknown>).trades as unknown[]
+          : [];
+      const upperSymbol = symbol.toUpperCase();
+      const trade = (trades as Record<string, unknown>[]).find(
+        (t) => (t.symbol as string)?.toUpperCase() === upperSymbol
+      );
+
+      if (!trade) {
+        return toolError(
+          `No open position found for ${upperSymbol}. Use get_paper_open_trades to see all open positions.`
+        );
+      }
+
+      const tradeId = (trade.id || trade.trade_id) as string;
+      if (!tradeId) {
+        return toolError(`Found position for ${upperSymbol} but could not determine trade ID.`);
+      }
+
+      // Step 3: Close the trade
+      const closeRes = await apiRequest(
+        "rust",
+        `/api/paper-trading/trades/${tradeId}/close`,
+        { method: "POST", body: { reason: reason || `Manual close ${upperSymbol}` }, timeoutMs: 10_000 }
+      );
+      const closeData = (closeRes.data ?? {}) as Record<string, unknown>;
+      return closeRes.success
+        ? toolSuccess({ ...closeData, closed_trade_id: tradeId, symbol: upperSymbol })
+        : toolError(closeRes.error || `Failed to close ${upperSymbol} trade (ID: ${tradeId})`);
+    }
+  );
+
+  server.registerTool(
     "update_paper_strategy_settings",
     {
       title: "Update Paper Strategy Settings",
