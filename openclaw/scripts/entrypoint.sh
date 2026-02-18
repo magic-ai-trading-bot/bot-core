@@ -144,10 +144,11 @@ register_cron_jobs() {
       }
     " 2>&1) || { echo "  SKIP $JOB_NAME (invalid JSON)"; FAILED=$((FAILED + 1)); continue; }
 
-    CRON_EXPR=$(echo "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.schedule)")
-    CRON_MSG=$(echo "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.prompt)")
-    CRON_TIMEOUT=$(echo "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.timeout)")
-    CRON_NO_DELIVER=$(echo "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.noDeliver?'yes':'')")
+    # Use printf '%s' (not echo) to avoid /bin/sh interpreting \n in JSON strings
+    CRON_EXPR=$(printf '%s' "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.schedule)")
+    CRON_MSG=$(printf '%s' "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.prompt)")
+    CRON_TIMEOUT=$(printf '%s' "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.timeout)")
+    CRON_NO_DELIVER=$(printf '%s' "$JOB_DATA" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.noDeliver?'yes':'')")
 
     if [ -z "$CRON_EXPR" ] || [ -z "$CRON_MSG" ]; then
       echo "  SKIP $JOB_NAME (missing schedule or prompt)"
