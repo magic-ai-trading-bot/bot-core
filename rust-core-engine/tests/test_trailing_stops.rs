@@ -46,10 +46,10 @@ fn test_no_activation_below_threshold() {
         None,
     );
 
-    // Move to +3% (below 5% threshold)
-    trade.update_trailing_stop(103.0, 3.0, 5.0);
+    // Move to +1% price (= +3% PnL with 3x leverage, below 5% PnL threshold)
+    trade.update_trailing_stop(101.0, 3.0, 5.0);
 
-    // Should NOT activate
+    // Should NOT activate (3% PnL < 5% threshold)
     assert!(!trade.trailing_stop_active);
     assert!(trade.highest_price_achieved.is_none());
     assert!(trade.stop_loss.is_none());
@@ -478,9 +478,9 @@ fn test_different_activation_thresholds() {
         None,
     );
 
-    trade2.update_trailing_stop(108.0, 3.0, 10.0); // 10% threshold
-    assert!(!trade2.trailing_stop_active); // Should NOT activate (+8% < 10%)
+    trade2.update_trailing_stop(103.0, 3.0, 10.0); // 10% PnL threshold
+    assert!(!trade2.trailing_stop_active); // Should NOT activate (3% price * 3x = 9% PnL < 10%)
 
-    trade2.update_trailing_stop(110.0, 3.0, 10.0); // 10% threshold
-    assert!(trade2.trailing_stop_active); // Should activate (+10% >= 10%)
+    trade2.update_trailing_stop(104.0, 3.0, 10.0); // 10% PnL threshold
+    assert!(trade2.trailing_stop_active); // Should activate (4% price * 3x = 12% PnL >= 10%)
 }
