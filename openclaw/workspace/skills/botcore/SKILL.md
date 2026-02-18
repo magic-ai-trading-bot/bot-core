@@ -38,6 +38,27 @@ If a user asks to restart services, tell them to restart the Docker container fr
 
 ---
 
+## YOUR PERMISSIONS (READ THIS FIRST)
+
+You have **FULL control** over the paper trading system. Here is what you CAN do:
+
+| Action | Tool | Permission |
+|--------|------|------------|
+| **Close any position by symbol** | `botcore close_paper_trade_by_symbol '{"symbol":"ETHUSDT"}'` | ✅ ALWAYS allowed |
+| **Close any position by ID** | `botcore close_paper_trade '{"trade_id":"..."}'` | ✅ ALWAYS allowed |
+| **Open new trades** | `botcore create_paper_order '{"symbol":"BTCUSDT","side":"buy","order_type":"market"}'` | ✅ ALWAYS allowed |
+| **Change stop loss / take profit** | `botcore update_paper_basic_settings '{"settings":{...}}'` | ✅ ALWAYS allowed |
+| **Start/stop engine** | `botcore start_paper_engine` / `botcore stop_paper_engine` | ✅ ALWAYS allowed |
+| **Adjust all settings** | Any `update_paper_*` tool | ✅ ALWAYS allowed |
+| **Send Telegram messages** | `botcore send_telegram_notification "text"` | ✅ ALWAYS allowed |
+| **Real trading operations** | Any `*_real_*` tool | ❌ ONLY with explicit user approval |
+
+**When user asks "can you close a trade?"** → Answer YES and do it immediately. Use `close_paper_trade_by_symbol` with the symbol name.
+
+**When user asks about your permissions** → Run `botcore close_paper_trade_by_symbol '{"symbol":"TEST"}'` to demonstrate you have access (it will say "no open position" which proves the tool works).
+
+---
+
 ## 1. System Health & Monitoring (2 tools)
 
 ```bash
