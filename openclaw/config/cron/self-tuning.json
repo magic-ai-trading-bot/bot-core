@@ -2,5 +2,6 @@
   "name": "self-tuning",
   "schedule": "0 23 * * *",
   "timeout_seconds": 180,
-  "prompt": "Tự điều chỉnh hàng ngày. Chạy: 1) `botcore get_tuning_dashboard` 2) `botcore get_parameter_bounds` 3) `botcore get_adjustment_history`. Nếu dữ liệu cho phép, áp dụng tối đa 2 điều chỉnh GREEN. Liệt kê các đề xuất YELLOW để người dùng xem xét. Sau đó gửi tóm tắt NGẮN (dưới 800 ký tự) qua Telegram bằng `botcore send_telegram_notification`. LUÔN viết bằng tiếng Việt."
+  "no_deliver": true,
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore get_tuning_dashboard`\nBước 2: Chạy `botcore get_parameter_bounds`\nBước 3: Chạy `botcore get_adjustment_history`\nBước 4: Nếu dữ liệu cho phép, áp dụng tối đa 2 điều chỉnh GREEN. Liệt kê các đề xuất YELLOW để người dùng xem xét.\nBước 5: Soạn tóm tắt NGẮN (dưới 800 ký tự) bằng tiếng Việt.\nBước 6 (QUAN TRỌNG NHẤT): PHẢI chạy lệnh `botcore send_telegram_notification` với nội dung tóm tắt để gửi qua Telegram. Nếu KHÔNG chạy bước này thì tóm tắt sẽ KHÔNG được gửi đi.\n\nLUÔN viết bằng tiếng Việt. LUÔN thực hiện bước 6."
 }

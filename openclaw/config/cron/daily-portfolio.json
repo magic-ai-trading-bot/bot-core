@@ -2,5 +2,6 @@
   "name": "daily-portfolio",
   "schedule": "0 13 * * *",
   "timeout_seconds": 180,
-  "prompt": "Báo cáo danh mục hàng ngày. Chạy: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_closed_trades` 3) `botcore get_paper_open_trades`. Tạo báo cáo bằng tiếng Việt (dưới 1500 ký tự) gồm: số dư, PnL trong ngày, tỷ lệ thắng, các lệnh đã đóng hôm nay, vị thế đang mở. Sau đó gửi qua Telegram bằng `botcore send_telegram_notification`. LUÔN viết bằng tiếng Việt."
+  "no_deliver": true,
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore get_paper_portfolio`\nBước 2: Chạy `botcore get_paper_closed_trades`\nBước 3: Chạy `botcore get_paper_open_trades`\nBước 4: Soạn báo cáo bằng tiếng Việt (dưới 1500 ký tự) gồm: số dư, PnL trong ngày, tỷ lệ thắng, các lệnh đã đóng hôm nay, vị thế đang mở.\nBước 5 (QUAN TRỌNG NHẤT): PHẢI chạy lệnh `botcore send_telegram_notification` với nội dung báo cáo để gửi qua Telegram. Nếu KHÔNG chạy bước này thì báo cáo sẽ KHÔNG được gửi đi.\n\nLUÔN viết bằng tiếng Việt. LUÔN thực hiện bước 5."
 }

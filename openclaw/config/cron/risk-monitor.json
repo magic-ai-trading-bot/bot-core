@@ -3,5 +3,5 @@
   "schedule": "*/30 * * * *",
   "timeout_seconds": 180,
   "no_deliver": true,
-  "prompt": "Chạy `botcore get_paper_portfolio` và `botcore get_paper_trading_status`. Nếu lỗ trong ngày vượt 3%, paper trading dừng bất ngờ, hoặc có vấn đề nghiêm trọng: lập tức gửi cảnh báo KHẨN CẤP qua Telegram bằng `botcore send_telegram_notification` với chi tiết. Nếu mọi thứ bình thường, chỉ nói OK. LUÔN viết bằng tiếng Việt."
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore get_paper_portfolio`\nBước 2: Chạy `botcore get_paper_trading_status`\nBước 3: Phân tích kết quả: Nếu lỗ trong ngày vượt 3%, paper trading dừng bất ngờ, hoặc có vấn đề nghiêm trọng → chạy `botcore send_telegram_notification` với cảnh báo KHẨN CẤP chi tiết. Nếu mọi thứ bình thường → không cần gửi.\n\nLUÔN viết bằng tiếng Việt."
 }

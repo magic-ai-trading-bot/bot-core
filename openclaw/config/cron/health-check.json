@@ -3,5 +3,5 @@
   "schedule": "0 */2 * * *",
   "timeout_seconds": 180,
   "no_deliver": true,
-  "prompt": "Chạy `botcore check_system_health`. Nếu tất cả dịch vụ hoạt động bình thường, chỉ nói OK. Nếu có dịch vụ nào lỗi hoặc không phản hồi, lập tức gửi cảnh báo KHẨN CẤP qua Telegram bằng `botcore send_telegram_notification` với chi tiết dịch vụ nào đang lỗi. LUÔN viết bằng tiếng Việt."
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore check_system_health`\nBước 2: Phân tích kết quả: Nếu có dịch vụ nào lỗi hoặc không phản hồi → chạy `botcore send_telegram_notification` với cảnh báo KHẨN CẤP chi tiết. Nếu tất cả bình thường → không cần gửi.\n\nLUÔN viết bằng tiếng Việt."
 }
