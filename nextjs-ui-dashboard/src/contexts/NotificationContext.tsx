@@ -193,7 +193,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       if (Notification.permission === 'granted') {
         new Notification(appNotification.title, {
           body: appNotification.message,
-          icon: '/logo.png',
+          icon: '/brand/botcore-avatar-192.png',
           tag: appNotification.id,
         });
       } else if (Notification.permission !== 'denied') {
@@ -201,7 +201,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           if (permission === 'granted') {
             new Notification(appNotification.title, {
               body: appNotification.message,
-              icon: '/logo.png',
+              icon: '/brand/botcore-avatar-192.png',
               tag: appNotification.id,
             });
           }

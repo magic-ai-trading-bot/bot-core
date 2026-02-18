@@ -48,11 +48,11 @@ describe('DashboardHeader', () => {
       expect(screen.getByText('Bot Core')).toBeInTheDocument()
     })
 
-    it('displays the app logo with SVG', () => {
+    it('displays the app logo image', () => {
       const { container } = render(<DashboardHeader />)
 
-      // BotCoreLogo uses an SVG element
-      const logo = container.querySelector('svg')
+      // BotCoreLogo uses an img element
+      const logo = container.querySelector('img[alt="BotCore"]')
       expect(logo).toBeInTheDocument()
     })
 
@@ -318,19 +318,19 @@ describe('DashboardHeader', () => {
   })
 
   describe('Logo and Branding', () => {
-    it('displays logo with SVG gradient', () => {
+    it('displays logo image with avatar', () => {
       const { container } = render(<DashboardHeader />)
 
-      // BotCoreLogo uses SVG with linearGradient
-      const logo = container.querySelector('svg')
+      // BotCoreLogo uses img element with avatar
+      const logo = container.querySelector('img[alt="BotCore"]')
       expect(logo).toBeInTheDocument()
     })
 
-    it('displays logo SVG with viewBox', () => {
+    it('displays logo image with correct source', () => {
       const { container } = render(<DashboardHeader />)
 
-      // BotCoreLogo uses SVG with viewBox="0 0 48 48"
-      const logo = container.querySelector('svg[viewBox="0 0 48 48"]')
+      // BotCoreLogo uses PNG avatar
+      const logo = container.querySelector('img[src="/brand/botcore-avatar-512.png"]')
       expect(logo).toBeTruthy()
     })
 

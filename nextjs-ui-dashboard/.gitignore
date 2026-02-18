@@ -94,7 +94,8 @@ dist
 
 # Gatsby files
 .cache/
-public
+# Track public/ static assets (Vite uses public/ for static files)
+# Only ignore generated/cached content, not source assets
 
 # Storybook build outputs
 .out

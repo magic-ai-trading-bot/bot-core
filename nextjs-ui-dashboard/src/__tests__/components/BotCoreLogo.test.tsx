@@ -18,42 +18,42 @@ describe('BotCoreLogo', () => {
     it('renders with default props', () => {
       const { container } = render(<BotCoreLogo />)
 
-      const svg = container.querySelector('svg')
-      expect(svg).toBeInTheDocument()
-      expect(svg?.getAttribute('width')).toBe('40')
-      expect(svg?.getAttribute('height')).toBe('40')
+      const img = container.querySelector('img')
+      expect(img).toBeInTheDocument()
+      expect(img?.getAttribute('width')).toBe('40')
+      expect(img?.getAttribute('height')).toBe('40')
     })
 
     it('renders with sm size', () => {
       const { container } = render(<BotCoreLogo size="sm" />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('32')
-      expect(svg?.getAttribute('height')).toBe('32')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('32')
+      expect(img?.getAttribute('height')).toBe('32')
     })
 
     it('renders with md size', () => {
       const { container } = render(<BotCoreLogo size="md" />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('40')
-      expect(svg?.getAttribute('height')).toBe('40')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('40')
+      expect(img?.getAttribute('height')).toBe('40')
     })
 
     it('renders with lg size', () => {
       const { container } = render(<BotCoreLogo size="lg" />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('48')
-      expect(svg?.getAttribute('height')).toBe('48')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('48')
+      expect(img?.getAttribute('height')).toBe('48')
     })
 
     it('renders with xl size', () => {
       const { container } = render(<BotCoreLogo size="xl" />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('64')
-      expect(svg?.getAttribute('height')).toBe('64')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('64')
+      expect(img?.getAttribute('height')).toBe('64')
     })
 
     it('renders text by default', () => {
@@ -90,85 +90,32 @@ describe('BotCoreLogo', () => {
       expect(wrapper.className).toContain('gap-3')
     })
 
-    it('renders with correct viewBox', () => {
+    it('uses correct avatar image source', () => {
       const { container } = render(<BotCoreLogo />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('viewBox')).toBe('0 0 48 48')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('src')).toBe('/brand/botcore-avatar-512.png')
     })
 
-    it('renders gradient definitions', () => {
+    it('has alt text', () => {
       const { container } = render(<BotCoreLogo />)
 
-      const defs = container.querySelector('defs')
-      expect(defs).toBeInTheDocument()
-
-      const gradientMain = container.querySelector('#logoGradientMain')
-      expect(gradientMain).toBeInTheDocument()
-
-      const gradientAccent = container.querySelector('#logoGradientAccent')
-      expect(gradientAccent).toBeInTheDocument()
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('alt')).toBe('BotCore')
     })
 
-    it('renders background rounded square', () => {
+    it('applies rounded-lg class to image', () => {
       const { container } = render(<BotCoreLogo />)
 
-      const rect = container.querySelector('rect[rx="12"]')
-      expect(rect).toBeInTheDocument()
-      expect(rect?.getAttribute('width')).toBe('44')
-      expect(rect?.getAttribute('height')).toBe('44')
-    })
-
-    it('renders uptrend chart line', () => {
-      const { container } = render(<BotCoreLogo />)
-
-      const paths = container.querySelectorAll('path')
-      const chartLine = Array.from(paths).find(p =>
-        p.getAttribute('d')?.startsWith('M8 32')
-      )
-      expect(chartLine).toBeInTheDocument()
-    })
-
-    it('renders arrow head', () => {
-      const { container } = render(<BotCoreLogo />)
-
-      const paths = container.querySelectorAll('path')
-      const arrowHead = Array.from(paths).find(p =>
-        p.getAttribute('d')?.startsWith('M34 10')
-      )
-      expect(arrowHead).toBeInTheDocument()
-    })
-
-    it('renders AI brain chip indicator circles', () => {
-      const { container } = render(<BotCoreLogo />)
-
-      const circles = container.querySelectorAll('circle[cx="30"][cy="18"]')
-      expect(circles.length).toBeGreaterThanOrEqual(2)
-    })
-
-    it('renders data points on chart', () => {
-      const { container } = render(<BotCoreLogo />)
-
-      const dataPoint1 = container.querySelector('circle[cx="16"][cy="26"]')
-      expect(dataPoint1).toBeInTheDocument()
-
-      const dataPoint2 = container.querySelector('circle[cx="22"][cy="30"]')
-      expect(dataPoint2).toBeInTheDocument()
-    })
-
-    it('renders bottom bar chart elements', () => {
-      const { container } = render(<BotCoreLogo />)
-
-      const bars = container.querySelectorAll('rect[rx="1"]')
-      // Should have at least 5 bars for the bottom chart
-      expect(bars.length).toBeGreaterThanOrEqual(5)
+      const img = container.querySelector('img')
+      expect(img?.className).toContain('rounded-lg')
     })
 
     it('applies drop shadow filter', () => {
       const { container } = render(<BotCoreLogo />)
 
-      const svg = container.querySelector('svg')
-      const style = svg?.getAttribute('style')
+      const img = container.querySelector('img')
+      const style = img?.getAttribute('style')
       expect(style).toContain('drop-shadow')
       expect(style).toContain(mockColors.cyan)
     })
@@ -224,41 +171,40 @@ describe('BotCoreLogo', () => {
     it('renders with default size', () => {
       const { container } = render(<BotCoreIcon />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('40')
-      expect(svg?.getAttribute('height')).toBe('40')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('40')
+      expect(img?.getAttribute('height')).toBe('40')
     })
 
     it('renders with custom size', () => {
       const { container } = render(<BotCoreIcon size={64} />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('64')
-      expect(svg?.getAttribute('height')).toBe('64')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('64')
+      expect(img?.getAttribute('height')).toBe('64')
     })
 
     it('renders with small size', () => {
       const { container } = render(<BotCoreIcon size={24} />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('24')
-      expect(svg?.getAttribute('height')).toBe('24')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('24')
+      expect(img?.getAttribute('height')).toBe('24')
     })
 
     it('renders with large size', () => {
       const { container } = render(<BotCoreIcon size={128} />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('width')).toBe('128')
-      expect(svg?.getAttribute('height')).toBe('128')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('width')).toBe('128')
+      expect(img?.getAttribute('height')).toBe('128')
     })
 
     it('applies custom className', () => {
       const { container } = render(<BotCoreIcon className="icon-class" />)
 
-      const svg = container.querySelector('svg')
-      // SVG className is an SVGAnimatedString, check class attribute instead
-      expect(svg?.getAttribute('class')).toContain('icon-class')
+      const img = container.querySelector('img')
+      expect(img?.className).toContain('icon-class')
     })
 
     it('does not render text', () => {
@@ -267,51 +213,32 @@ describe('BotCoreLogo', () => {
       expect(queryByText('Bot Core')).not.toBeInTheDocument()
     })
 
-    it('renders with correct viewBox', () => {
+    it('uses correct avatar image source', () => {
       const { container } = render(<BotCoreIcon />)
 
-      const svg = container.querySelector('svg')
-      expect(svg?.getAttribute('viewBox')).toBe('0 0 48 48')
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('src')).toBe('/brand/botcore-avatar-512.png')
     })
 
-    it('renders gradient definitions with different IDs', () => {
+    it('has alt text', () => {
       const { container } = render(<BotCoreIcon />)
 
-      const defs = container.querySelector('defs')
-      expect(defs).toBeInTheDocument()
-
-      const gradientMain = container.querySelector('#iconGradientMain')
-      expect(gradientMain).toBeInTheDocument()
-
-      const gradientAccent = container.querySelector('#iconGradientAccent')
-      expect(gradientAccent).toBeInTheDocument()
+      const img = container.querySelector('img')
+      expect(img?.getAttribute('alt')).toBe('BotCore')
     })
 
-    it('renders all chart elements', () => {
+    it('applies rounded-lg class', () => {
       const { container } = render(<BotCoreIcon />)
 
-      // Background rect
-      const rect = container.querySelector('rect[rx="12"]')
-      expect(rect).toBeInTheDocument()
-
-      // Paths (chart line + arrow)
-      const paths = container.querySelectorAll('path')
-      expect(paths.length).toBeGreaterThanOrEqual(2)
-
-      // Circles (AI indicator + data points)
-      const circles = container.querySelectorAll('circle')
-      expect(circles.length).toBeGreaterThanOrEqual(4)
-
-      // Bars
-      const bars = container.querySelectorAll('rect[rx="1"]')
-      expect(bars.length).toBeGreaterThanOrEqual(5)
+      const img = container.querySelector('img')
+      expect(img?.className).toContain('rounded-lg')
     })
 
     it('applies drop shadow filter', () => {
       const { container } = render(<BotCoreIcon />)
 
-      const svg = container.querySelector('svg')
-      const style = svg?.getAttribute('style')
+      const img = container.querySelector('img')
+      const style = img?.getAttribute('style')
       expect(style).toContain('drop-shadow')
       expect(style).toContain(mockColors.cyan)
     })
@@ -321,8 +248,8 @@ describe('BotCoreLogo', () => {
     it('uses theme colors for drop shadow', () => {
       const { container } = render(<BotCoreLogo />)
 
-      const svg = container.querySelector('svg')
-      const style = svg?.getAttribute('style')
+      const img = container.querySelector('img')
+      const style = img?.getAttribute('style')
       expect(style).toContain(mockColors.cyan)
     })
 
@@ -338,8 +265,8 @@ describe('BotCoreLogo', () => {
     it('BotCoreIcon uses theme colors', () => {
       const { container } = render(<BotCoreIcon />)
 
-      const svg = container.querySelector('svg')
-      const style = svg?.getAttribute('style')
+      const img = container.querySelector('img')
+      const style = img?.getAttribute('style')
       expect(style).toContain(mockColors.cyan)
     })
   })

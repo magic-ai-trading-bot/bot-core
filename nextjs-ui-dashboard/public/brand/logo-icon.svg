@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Main gradient for the core -->
+    <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0891b2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0e7490;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow gradient -->
+    <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Purple accent -->
+    <linearGradient id="accentGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Drop shadow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle (optional, for dark bg) -->
+  <circle cx="256" cy="256" r="240" fill="#0f172a" opacity="0"/>
+
+  <!-- Outer hexagon ring - representing blockchain/crypto -->
+  <path d="M256 56 L406 131 L406 281 L256 356 L106 281 L106 131 Z"
+        fill="none"
+        stroke="url(#coreGradient)"
+        stroke-width="8"
+        opacity="0.3"/>
+
+  <!-- Middle hexagon -->
+  <path d="M256 96 L376 156 L376 256 L256 316 L136 256 L136 156 Z"
+        fill="none"
+        stroke="url(#coreGradient)"
+        stroke-width="6"
+        opacity="0.5"/>
+
+  <!-- Inner core - AI brain/neural network representation -->
+  <g filter="url(#glow)">
+    <!-- Central hexagon core -->
+    <path d="M256 136 L336 181 L336 256 L256 301 L176 256 L176 181 Z"
+          fill="url(#coreGradient)"/>
+  </g>
+
+  <!-- Neural network nodes -->
+  <g fill="url(#glowGradient)">
+    <!-- Center node -->
+    <circle cx="256" cy="218" r="24" fill="white" opacity="0.95"/>
+
+    <!-- Surrounding nodes -->
+    <circle cx="206" cy="188" r="10" fill="white" opacity="0.8"/>
+    <circle cx="306" cy="188" r="10" fill="white" opacity="0.8"/>
+    <circle cx="206" cy="248" r="10" fill="white" opacity="0.8"/>
+    <circle cx="306" cy="248" r="10" fill="white" opacity="0.8"/>
+    <circle cx="256" cy="268" r="10" fill="white" opacity="0.8"/>
+    <circle cx="256" cy="168" r="10" fill="white" opacity="0.8"/>
+  </g>
+
+  <!-- Neural connections -->
+  <g stroke="white" stroke-width="2" opacity="0.6">
+    <line x1="256" y1="218" x2="206" y2="188"/>
+    <line x1="256" y1="218" x2="306" y2="188"/>
+    <line x1="256" y1="218" x2="206" y2="248"/>
+    <line x1="256" y1="218" x2="306" y2="248"/>
+    <line x1="256" y1="218" x2="256" y2="268"/>
+    <line x1="256" y1="218" x2="256" y2="168"/>
+  </g>
+
+  <!-- Trading chart element - candlestick style bars at bottom -->
+  <g transform="translate(0, 80)">
+    <!-- Uptrend bars -->
+    <rect x="166" y="280" width="20" height="50" rx="3" fill="url(#glowGradient)" opacity="0.7"/>
+    <rect x="196" y="260" width="20" height="70" rx="3" fill="url(#glowGradient)" opacity="0.8"/>
+    <rect x="226" y="240" width="20" height="90" rx="3" fill="url(#coreGradient)" opacity="0.9"/>
+    <rect x="256" y="210" width="20" height="120" rx="3" fill="url(#coreGradient)"/>
+    <rect x="286" y="230" width="20" height="100" rx="3" fill="url(#accentGradient)" opacity="0.9"/>
+    <rect x="316" y="250" width="20" height="80" rx="3" fill="url(#accentGradient)" opacity="0.8"/>
+  </g>
+
+  <!-- Pulse rings - representing real-time data -->
+  <circle cx="256" cy="218" r="60" fill="none" stroke="url(#glowGradient)" stroke-width="2" opacity="0.3"/>
+  <circle cx="256" cy="218" r="80" fill="none" stroke="url(#glowGradient)" stroke-width="1" opacity="0.2"/>
+</svg>
