@@ -1640,8 +1640,12 @@ impl PaperTradingEngine {
         };
 
         let take_profit = match new_direction {
-            TradeType::Long => entry_price * (1.0 + symbol_settings.take_profit_pct / (lev * 100.0)),
-            TradeType::Short => entry_price * (1.0 - symbol_settings.take_profit_pct / (lev * 100.0)),
+            TradeType::Long => {
+                entry_price * (1.0 + symbol_settings.take_profit_pct / (lev * 100.0))
+            },
+            TradeType::Short => {
+                entry_price * (1.0 - symbol_settings.take_profit_pct / (lev * 100.0))
+            },
         };
 
         // Calculate position size
@@ -2777,8 +2781,8 @@ impl PaperTradingEngine {
         let lev = calculated_leverage as f64;
         let stop_loss =
             entry_price * (1.0 - stop_loss_pct.unwrap_or(default_stop_loss_pct) / (lev * 100.0));
-        let take_profit =
-            entry_price * (1.0 + take_profit_pct.unwrap_or(default_take_profit_pct) / (lev * 100.0));
+        let take_profit = entry_price
+            * (1.0 + take_profit_pct.unwrap_or(default_take_profit_pct) / (lev * 100.0));
 
         // 5. Create AI signal structure for manual order
         let manual_signal = super::AITradingSignal {

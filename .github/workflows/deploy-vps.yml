@@ -445,25 +445,12 @@ jobs:
           COMMIT_MSG=$(git log -1 --pretty=format:"%s" 2>/dev/null || echo "unknown")
 
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_USER_ID" ]; then
+            VPS_IP=$(curl -s ifconfig.me 2>/dev/null || echo "VPS")
             if [ "$DEPLOY_SUCCESS" = true ]; then
-              NOTIF_TEXT="🚀 <b>Deploy thành công!</b>
-
-📦 <code>${SHORT_SHA}</code> — ${COMMIT_MSG}
-🔄 Services: ${CHANGED_SERVICES}
-
-✅ Rust API | ✅ Python AI | ✅ Frontend
-✅ MCP Server | ✅ OpenClaw
-
-📊 Dashboard: http://$(curl -s ifconfig.me 2>/dev/null || echo 'VPS'):3000"
+              printf -v NOTIF_TEXT "🚀 <b>Deploy thành công!</b>\n\n📦 <code>%s</code> — %s\n🔄 Services: %s\n\n✅ All services healthy\n📊 Dashboard: http://%s:3000" "$SHORT_SHA" "$COMMIT_MSG" "$CHANGED_SERVICES" "$VPS_IP"
             else
-              NOTIF_TEXT="⚠️ <b>Deploy hoàn tất với lỗi</b>
-
-📦 <code>${SHORT_SHA}</code> — ${COMMIT_MSG}
-🔄 Services: ${CHANGED_SERVICES}
-
-Kiểm tra logs: <code>docker logs [service] --tail 50</code>"
+              printf -v NOTIF_TEXT "⚠️ <b>Deploy hoàn tất với lỗi</b>\n\n📦 <code>%s</code> — %s\n🔄 Services: %s\n\nKiểm tra: <code>docker logs [service] --tail 50</code>" "$SHORT_SHA" "$COMMIT_MSG" "$CHANGED_SERVICES"
             fi
-
             curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${TELEGRAM_USER_ID}" \
               -d "parse_mode=HTML" \
