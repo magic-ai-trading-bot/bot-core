@@ -1,6 +1,6 @@
 {
   "name": "weekly-review",
-  "schedule": "0 10 * * 1",
+  "schedule": "0 3 * * 1",
   "timeout_seconds": 180,
-  "prompt": "Weekly performance review. Run: 1) `botcore get_tuning_dashboard` 2) `botcore get_paper_portfolio` 3) `botcore get_adjustment_history`. Create detailed report with weekly PnL, win rate, strategy breakdown, tuning changes, recommendations. Send to Telegram using `botcore send_telegram_notification` with the report. Do NOT skip sending to Telegram."
+  "prompt": "Weekly performance review. Run: 1) `botcore get_tuning_dashboard` 2) `botcore get_paper_portfolio` 3) `botcore get_adjustment_history`. Create a detailed report (under 2000 chars) with: weekly PnL, win rate, strategy breakdown, tuning changes, recommendations. Then send it to Telegram by running `botcore send_telegram_notification` with the report."
 }

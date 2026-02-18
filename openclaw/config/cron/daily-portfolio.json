@@ -1,6 +1,6 @@
 {
   "name": "daily-portfolio",
-  "schedule": "0 20 * * *",
+  "schedule": "0 13 * * *",
   "timeout_seconds": 180,
-  "prompt": "Daily portfolio report. Run: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_closed_trades` 3) `botcore get_paper_open_trades`. Create report with balance, daily PnL, win rate, trade list, open positions. Send to Telegram using `botcore send_telegram_notification` with the report. Do NOT skip sending to Telegram."
+  "prompt": "Daily portfolio report. Run: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_closed_trades` 3) `botcore get_paper_open_trades`. Create a report (under 1500 chars) with: balance, daily PnL, win rate, closed trades today, open positions. Then send it to Telegram by running `botcore send_telegram_notification` with the report text."
 }

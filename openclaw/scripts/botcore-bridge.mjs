@@ -10,9 +10,11 @@
 
 const MCP_URL = process.env.MCP_URL || "http://mcp-server:8090";
 const MCP_TOKEN = process.env.MCP_AUTH_TOKEN || "";
+const REQUEST_TIMEOUT_MS = Number(process.env.MCP_TIMEOUT_MS) || 30000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 2000;
 
 const tool = process.argv[2];
-const argsRaw = process.argv[3];
 
 if (!tool || tool === "--help" || tool === "-h") {
   console.log(`BotCore MCP Bridge - CLI tool for interacting with the trading bot
@@ -29,7 +31,8 @@ Examples:
 
 Environment:
   MCP_URL          MCP server URL (default: http://mcp-server:8090)
-  MCP_AUTH_TOKEN   Bearer token for MCP server auth`);
+  MCP_AUTH_TOKEN   Bearer token for MCP server auth
+  MCP_TIMEOUT_MS   Request timeout in ms (default: 30000)`);
   process.exit(0);
 }
 
@@ -37,11 +40,18 @@ Environment:
 function parseSSE(text) {
   const dataLine = text.split("\n").find((l) => l.startsWith("data: "));
   if (!dataLine) return null;
-  return JSON.parse(dataLine.replace("data: ", ""));
+  try {
+    return JSON.parse(dataLine.replace("data: ", ""));
+  } catch {
+    return null;
+  }
 }
 
-/** Make an MCP JSON-RPC request */
-async function mcpRequest(method, params, sessionId) {
+/** Sleep helper */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Make an MCP JSON-RPC request with timeout and retry */
+async function mcpRequest(method, params, sessionId, retries = MAX_RETRIES) {
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json, text/event-stream",
@@ -49,22 +59,97 @@ async function mcpRequest(method, params, sessionId) {
   if (MCP_TOKEN) headers["Authorization"] = `Bearer ${MCP_TOKEN}`;
   if (sessionId) headers["mcp-session-id"] = sessionId;
 
-  const res = await fetch(`${MCP_URL}/mcp`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  const text = await res.text();
-  const sid = res.headers.get("mcp-session-id");
-  const parsed = parseSSE(text);
+      const res = await fetch(`${MCP_URL}/mcp`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: Date.now(),
+          method,
+          params,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
 
-  return { data: parsed, sessionId: sid || sessionId };
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      const sid = res.headers.get("mcp-session-id");
+      const parsed = parseSSE(text);
+
+      if (!parsed && method !== "notifications/initialized") {
+        throw new Error(`Invalid MCP response (no JSON-RPC data in SSE)`);
+      }
+
+      return { data: parsed, sessionId: sid || sessionId };
+    } catch (err) {
+      const isLast = attempt >= retries;
+      const isTimeout = err.name === "AbortError";
+      const errMsg = isTimeout ? `Timeout after ${REQUEST_TIMEOUT_MS}ms` : err.message;
+
+      if (isLast) {
+        throw new Error(`MCP ${method} failed after ${attempt + 1} attempt(s): ${errMsg}`);
+      }
+      const delay = RETRY_DELAY_MS * (attempt + 1);
+      console.error(`WARN: ${method} attempt ${attempt + 1} failed (${errMsg}), retrying in ${delay}ms...`);
+      await sleep(delay);
+    }
+  }
+}
+
+/** Parse tool arguments from CLI */
+function parseToolArgs(tool) {
+  const allArgs = process.argv.slice(3).join(" ").trim();
+  if (!allArgs) return {};
+
+  // Try JSON first
+  try {
+    return JSON.parse(allArgs);
+  } catch {
+    // noop
+  }
+
+  // Try flag-style: --key value --flag
+  const flagArgs = {};
+  const parts = allArgs.split(/\s+/);
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].startsWith("--")) {
+      const key = parts[i].replace(/^--/, "");
+      const val =
+        parts[i + 1] && !parts[i + 1].startsWith("--") ? parts[++i] : true;
+      flagArgs[key] = isNaN(val) ? val : Number(val);
+    }
+  }
+  if (Object.keys(flagArgs).length > 0) return flagArgs;
+
+  // For send_telegram_notification, auto-wrap plain text
+  if (tool === "send_telegram_notification") {
+    return { message: allArgs };
+  }
+
+  console.error(
+    `ERROR: Invalid arguments: ${allArgs}. Use JSON: '{"key":"value"}'`
+  );
+  process.exit(1);
+}
+
+/** Normalize notification args (AI may use text/content/body instead of message) */
+function normalizeNotificationArgs(tool, args) {
+  if (tool !== "send_telegram_notification" || args.message) return args;
+  const msg = args.text || args.content || args.body || "";
+  if (!msg) return args;
+  return {
+    message: msg,
+    ...(args.parse_mode && { parse_mode: args.parse_mode }),
+  };
 }
 
 async function main() {
@@ -76,8 +161,13 @@ async function main() {
       clientInfo: { name: "botcore-bridge", version: "1.0.0" },
     });
 
+    if (init.data?.error) {
+      console.error(`ERROR: MCP init error: ${init.data.error.message}`);
+      process.exit(1);
+    }
+
     if (!init.sessionId) {
-      console.error("ERROR: Failed to establish MCP session");
+      console.error("ERROR: Failed to establish MCP session (no session ID)");
       process.exit(1);
     }
 
@@ -96,50 +186,16 @@ async function main() {
         }
       } else {
         console.error("ERROR: Failed to list tools");
-        console.error(JSON.stringify(listRes.data, null, 2));
+        if (listRes.data) console.error(JSON.stringify(listRes.data, null, 2));
       }
       process.exit(0);
     }
 
-    // Step 2: Call the requested tool
-    let toolArgs = {};
-    // Collect all args after tool name (handles shell-split multi-word text)
-    const allArgs = process.argv.slice(3).join(" ").trim();
-    if (allArgs) {
-      try {
-        toolArgs = JSON.parse(allArgs);
-      } catch {
-        // Try to parse flag-style args: --key value --flag
-        const flagArgs = {};
-        const parts = allArgs.split(/\s+/);
-        for (let i = 0; i < parts.length; i++) {
-          if (parts[i].startsWith("--")) {
-            const key = parts[i].replace(/^--/, "");
-            const val = parts[i + 1] && !parts[i + 1].startsWith("--") ? parts[++i] : true;
-            flagArgs[key] = isNaN(val) ? val : Number(val);
-          }
-        }
-        if (Object.keys(flagArgs).length > 0) {
-          toolArgs = flagArgs;
-        } else if (tool === "send_telegram_notification") {
-          // Auto-wrap plain text as message for notification tool
-          toolArgs = { message: allArgs };
-        } else {
-          console.error(`ERROR: Invalid arguments: ${allArgs}. Use JSON: '{"key":"value"}'`);
-          process.exit(1);
-        }
-      }
-    }
+    // Step 2: Parse and normalize arguments
+    let toolArgs = parseToolArgs(tool);
+    toolArgs = normalizeNotificationArgs(tool, toolArgs);
 
-    // Normalize send_telegram_notification args — AI models may use
-    // different field names (text, content, body) instead of "message"
-    if (tool === "send_telegram_notification" && !toolArgs.message) {
-      const msg = toolArgs.text || toolArgs.content || toolArgs.body || "";
-      if (msg) {
-        toolArgs = { message: msg, ...(toolArgs.parse_mode && { parse_mode: toolArgs.parse_mode }) };
-      }
-    }
-
+    // Step 3: Call the requested tool
     const result = await mcpRequest(
       "tools/call",
       { name: tool, arguments: toolArgs },

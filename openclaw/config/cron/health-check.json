@@ -3,5 +3,5 @@
   "schedule": "0 */2 * * *",
   "timeout_seconds": 180,
   "no_deliver": true,
-  "prompt": "Quick system health check. Run `botcore check_system_health`. If ALL services are healthy, respond with exactly ALL_HEALTHY and nothing else - do NOT send any notification. ONLY if something is wrong: send an URGENT alert to Telegram using `botcore send_telegram_notification` with the alert details. Be specific and urgent in alerts."
+  "prompt": "Run `botcore check_system_health`. If ALL services are healthy, do nothing — just say OK. If ANY service is unhealthy or erroring, immediately run `botcore send_telegram_notification` with an URGENT alert including which services are down and error details."
 }

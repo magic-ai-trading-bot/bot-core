@@ -1,6 +1,6 @@
 {
   "name": "self-tuning",
-  "schedule": "0 6 * * *",
+  "schedule": "0 23 * * *",
   "timeout_seconds": 180,
-  "prompt": "Daily self-tuning analysis. Use botcore CLI to: 1) `botcore get_tuning_dashboard` 2) `botcore get_parameter_bounds` 3) `botcore get_adjustment_history`. Based on data, apply max 2 GREEN adjustments if strongly supported. Present YELLOW suggestions for user confirmation. After analysis, send summary to Telegram using `botcore send_telegram_notification` with the report. Do NOT skip sending to Telegram."
+  "prompt": "Daily self-tuning. Run: 1) `botcore get_tuning_dashboard` 2) `botcore get_parameter_bounds` 3) `botcore get_adjustment_history`. If data supports it, apply up to 2 GREEN adjustments. List any YELLOW suggestions for user review. Then send a SHORT summary (under 800 chars) to Telegram by running `botcore send_telegram_notification` with the summary."
 }

@@ -1,6 +1,6 @@
 {
   "name": "morning-briefing",
-  "schedule": "0 9 * * 1-5",
+  "schedule": "0 2 * * 1-5",
   "timeout_seconds": 180,
-  "prompt": "Morning market briefing. Run: 1) `botcore get_market_prices` 2) `botcore get_market_overview` 3) `botcore get_paper_open_trades`. Create concise briefing with prices, 24h changes, open positions. Keep under 1000 chars. Send to Telegram using `botcore send_telegram_notification` with the briefing. Do NOT skip sending to Telegram."
+  "prompt": "Morning market briefing. Run: 1) `botcore get_market_prices` 2) `botcore get_market_overview` 3) `botcore get_paper_open_trades`. Create a SHORT briefing (under 800 chars) with: top coin prices, 24h changes, open positions. Then send it to Telegram by running `botcore send_telegram_notification` with the briefing text."
 }

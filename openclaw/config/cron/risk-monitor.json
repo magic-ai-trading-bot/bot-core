@@ -3,5 +3,5 @@
   "schedule": "*/30 * * * *",
   "timeout_seconds": 180,
   "no_deliver": true,
-  "prompt": "Quick risk check. Run `botcore get_paper_portfolio` to check daily PnL and `botcore get_paper_trading_status` to verify engine is running. ONLY alert if: daily loss exceeds 3% of portfolio, paper trading stopped unexpectedly, or any critical issue detected. If everything is normal, respond with exactly RISK_OK and nothing else - do NOT send any notification. If alerting, send URGENT notification to Telegram using `botcore send_telegram_notification` with the alert message. Be urgent and specific."
+  "prompt": "Run `botcore get_paper_portfolio` and `botcore get_paper_trading_status`. If daily loss exceeds 3%, paper trading stopped unexpectedly, or any critical issue: immediately run `botcore send_telegram_notification` with URGENT alert details. If everything is normal, do nothing — just say OK."
 }

@@ -188,6 +188,7 @@ services:
     environment:
       - HOME=/home/node
       - TERM=xterm-256color
+      - TZ=Asia/Ho_Chi_Minh
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -210,11 +211,11 @@ services:
       mcp-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f openclaw > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:18789/__openclaw__/canvas/ > /dev/null || pgrep -f openclaw > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 120s
     deploy:
       resources:
         limits:
