@@ -358,7 +358,14 @@ jobs:
           fi
           sleep 10
 
-          # OpenClaw
+          # OpenClaw — config/workspace are bind mounts (not baked into image),
+          # so image hash may not change even when SKILL.md or openclaw.json updates.
+          # Force restart to trigger entrypoint.sh config sync from /config-source.
+          if echo "$CHANGED_SERVICES" | grep -q "openclaw"; then
+            log_info "OpenClaw config/workspace changed, forcing restart..."
+            $DC restart openclaw 2>&1 || true
+            sleep 5
+          fi
           if ! $DC up -d openclaw 2>&1; then
             log_warn "OpenClaw start failed"
             docker logs openclaw --tail 30 2>&1 || true
