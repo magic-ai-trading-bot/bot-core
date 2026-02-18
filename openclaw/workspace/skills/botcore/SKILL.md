@@ -124,8 +124,8 @@ botcore update_paper_settings '{"settings":{"any_field":"value"}}'  # Generic ca
 | **Risk** | | | |
 | max_risk_per_trade_pct | number | Max risk per trade % | 1.0 |
 | max_portfolio_risk_pct | number | Max portfolio risk % | 10.0 |
-| default_stop_loss_pct | number | Stop loss % | 5.0 |
-| default_take_profit_pct | number | Take profit % | 10.0 |
+| default_stop_loss_pct | number | Stop loss % (PnL-based) | 5.0 |
+| default_take_profit_pct | number | Take profit % (PnL-based) | 10.0 |
 | max_leverage | number | Max allowed leverage | 5 |
 | min_margin_level | number | Min margin level % | 300.0 |
 | max_drawdown_pct | number | Max drawdown % | 10.0 |
@@ -133,8 +133,8 @@ botcore update_paper_settings '{"settings":{"any_field":"value"}}'  # Generic ca
 | max_consecutive_losses | number | Losses before cooldown | 3 |
 | cool_down_minutes | number | Cooldown after losses (min) | 60 |
 | trailing_stop_enabled | boolean | Enable trailing stop | true |
-| trailing_stop_pct | number | Trailing stop distance % | 3.0 |
-| trailing_activation_pct | number | Min profit to activate trailing | 5.0 |
+| trailing_stop_pct | number | Trailing stop distance % (price-based) | 3.0 |
+| trailing_activation_pct | number | PnL % to activate trailing stop | 5.0 |
 | position_sizing_method | string | Sizing method | "RiskBased" |
 | min_risk_reward_ratio | number | Min risk/reward ratio | 2.0 |
 | correlation_limit | number | Position correlation limit | 0.7 |
@@ -412,6 +412,51 @@ Parse modes: `HTML` (default), `Markdown`, `MarkdownV2`
 
 ---
 
+## Autonomous Risk Management (FULL AUTHORITY)
+
+You have **full authority** to proactively manage risk and take profit for paper trading. You do NOT need to ask the user before:
+
+1. **Closing positions** — If a position hits your calculated target or risk threshold, close it immediately using `close_paper_trade_by_symbol`
+2. **Adjusting TP/SL** — Change `default_take_profit_pct` and `default_stop_loss_pct` based on market conditions
+3. **Managing trailing stops** — Enable/disable and adjust `trailing_stop_pct` and `trailing_activation_pct`
+4. **Position sizing** — Adjust `default_position_size_pct` and `default_leverage` based on volatility
+
+### Proactive Decision Framework
+
+When monitoring positions, YOU decide:
+- **When to take profit**: If PnL is strong and momentum fading, close the position. Don't wait for the auto-TP
+- **When to cut losses early**: If the trade thesis is invalidated, close before SL triggers
+- **When to tighten stops**: In high volatility, reduce `trailing_stop_pct` to lock in more gains
+- **When to widen stops**: In low volatility trends, increase `default_stop_loss_pct` to avoid premature exits
+
+### Recommended Settings by Market Condition
+
+| Condition | TP % | SL % | Trailing Activation | Trailing Distance | Leverage |
+|-----------|------|------|--------------------|--------------------|----------|
+| Strong trend | 15-20 | 7-10 | 5 | 2-3 | 3-5 |
+| Ranging/choppy | 5-8 | 3-5 | 3 | 1.5-2 | 1-2 |
+| High volatility | 10-15 | 5-8 | 5 | 3-5 | 1-2 |
+| Low volatility | 8-12 | 3-5 | 3 | 1-2 | 3-5 |
+
+### Example: Proactive Profit Taking
+```bash
+# 1. Check open positions
+botcore get_paper_open_trades
+# 2. If ETHUSDT is at +12% PnL and momentum weakening:
+botcore close_paper_trade_by_symbol '{"symbol":"ETHUSDT","reason":"Proactive TP: +12% PnL, momentum fading"}'
+# 3. Report to user
+botcore send_telegram_notification '{"message":"✅ Closed ETHUSDT at +12% PnL. Reason: momentum fading on 4h chart."}'
+```
+
+### Example: Adjusting Risk for Market Conditions
+```bash
+# High volatility detected → tighten stops, reduce leverage
+botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":5,"default_take_profit_pct":10,"default_leverage":2,"trailing_stop_pct":2}}'
+botcore send_telegram_notification '{"message":"⚠️ High volatility detected. Tightened SL to 5%, reduced leverage to 2x."}'
+```
+
+---
+
 ## Common Workflows
 
 ### Analyze Losing Trades
@@ -460,7 +505,11 @@ botcore close_paper_trade '{"trade_id":"trade_xxx_ETHUSDT"}'
 2. Do NOT ask the user for trade_id — just use the symbol they mention
 3. After closing, report the realized PnL to the user
 
-**NOTE on take_profit_pct**: The `default_take_profit_pct` setting is based on **price movement**, NOT position PnL. With leverage, PnL% = price_change% x leverage. Example: take_profit_pct=10%, leverage=3x → auto-closes when PnL reaches ~30%.
+**NOTE on TP/SL percentages**: `default_take_profit_pct` and `default_stop_loss_pct` are **PnL-based** (not price-based). The engine automatically adjusts for leverage internally:
+- `take_profit_pct=10%` with 3x leverage → closes when PnL reaches +10% (price moves ~3.3%)
+- `stop_loss_pct=5%` with 3x leverage → closes when PnL reaches -5% (price moves ~1.7%)
+- `trailing_activation_pct=5%` → trailing stop activates when PnL reaches +5%
+- `trailing_stop_pct=3%` → trails 3% below peak PRICE (price-based, not PnL)
 
 ### Full System Check
 ```bash

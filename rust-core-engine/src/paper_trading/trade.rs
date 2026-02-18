@@ -349,14 +349,17 @@ impl PaperTrade {
             return;
         }
 
-        // Calculate profit percentage
+        // Calculate profit percentage (price-based)
         let profit_pct = match self.trade_type {
             TradeType::Long => ((current_price - self.entry_price) / self.entry_price) * 100.0,
             TradeType::Short => ((self.entry_price - current_price) / self.entry_price) * 100.0,
         };
 
-        // Check if profit threshold met to activate trailing
-        if !self.trailing_stop_active && profit_pct >= activation_pct {
+        // PnL-based activation: activation_pct is PnL%, so multiply price change by leverage
+        let pnl_pct = profit_pct * self.leverage as f64;
+
+        // Check if PnL threshold met to activate trailing
+        if !self.trailing_stop_active && pnl_pct >= activation_pct {
             self.trailing_stop_active = true;
             self.highest_price_achieved = Some(current_price);
             tracing::info!(

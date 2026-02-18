@@ -770,18 +770,19 @@ impl PaperTradingEngine {
                 signal.entry_price
             });
 
-        // @spec:FR-RISK-002 - Fixed Percentage Stop Loss (SIMPLIFIED)
-        // REMOVED ATR: Always use fixed percentage from settings for predictability
-        // ATR was causing 46%+ stop loss instead of 5% for volatile assets like BTC
-        // Fixed percentage ensures 100% respect for user settings
+        // @spec:FR-RISK-002 - Fixed Percentage Stop Loss (PnL-BASED)
+        // stop_loss_pct and take_profit_pct are PnL-based (not price-based).
+        // With leverage, price_change = pnl_pct / leverage.
+        // E.g., 5% SL with 3x leverage = 1.67% price move triggers stop.
+        let lev = leverage as f64;
         let stop_loss = signal
             .suggested_stop_loss
             .unwrap_or_else(|| match signal.signal_type {
                 crate::strategies::TradingSignal::Long => {
-                    entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0)
+                    entry_price * (1.0 - symbol_settings.stop_loss_pct / (lev * 100.0))
                 },
                 crate::strategies::TradingSignal::Short => {
-                    entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0)
+                    entry_price * (1.0 + symbol_settings.stop_loss_pct / (lev * 100.0))
                 },
                 _ => entry_price,
             });
@@ -789,10 +790,10 @@ impl PaperTradingEngine {
         let take_profit = signal.suggested_take_profit.unwrap_or_else(|| {
             match signal.signal_type {
                 crate::strategies::TradingSignal::Long => {
-                    entry_price * (1.0 + symbol_settings.take_profit_pct / 100.0)
+                    entry_price * (1.0 + symbol_settings.take_profit_pct / (lev * 100.0))
                 },
                 crate::strategies::TradingSignal::Short => {
-                    entry_price * (1.0 - symbol_settings.take_profit_pct / 100.0)
+                    entry_price * (1.0 - symbol_settings.take_profit_pct / (lev * 100.0))
                 },
                 _ => entry_price, // Neutral signal
             }
@@ -1631,15 +1632,16 @@ impl PaperTradingEngine {
             .copied()
             .unwrap_or(new_signal.entry_price);
 
-        // Calculate stop loss and take profit
+        // Calculate stop loss and take profit (PnL-based: pct / leverage)
+        let lev = leverage as f64;
         let stop_loss = match new_direction {
-            TradeType::Long => entry_price * (1.0 - symbol_settings.stop_loss_pct / 100.0),
-            TradeType::Short => entry_price * (1.0 + symbol_settings.stop_loss_pct / 100.0),
+            TradeType::Long => entry_price * (1.0 - symbol_settings.stop_loss_pct / (lev * 100.0)),
+            TradeType::Short => entry_price * (1.0 + symbol_settings.stop_loss_pct / (lev * 100.0)),
         };
 
         let take_profit = match new_direction {
-            TradeType::Long => entry_price * (1.0 + symbol_settings.take_profit_pct / 100.0),
-            TradeType::Short => entry_price * (1.0 - symbol_settings.take_profit_pct / 100.0),
+            TradeType::Long => entry_price * (1.0 + symbol_settings.take_profit_pct / (lev * 100.0)),
+            TradeType::Short => entry_price * (1.0 - symbol_settings.take_profit_pct / (lev * 100.0)),
         };
 
         // Calculate position size
@@ -2770,12 +2772,13 @@ impl PaperTradingEngine {
         let default_take_profit_pct = settings.risk.default_take_profit_pct;
         drop(settings);
 
-        // 4. Calculate leverage, stop loss, and take profit
+        // 4. Calculate leverage, stop loss, and take profit (PnL-based: pct / leverage)
         let calculated_leverage = leverage.unwrap_or(default_leverage);
+        let lev = calculated_leverage as f64;
         let stop_loss =
-            entry_price * (1.0 - stop_loss_pct.unwrap_or(default_stop_loss_pct) / 100.0);
+            entry_price * (1.0 - stop_loss_pct.unwrap_or(default_stop_loss_pct) / (lev * 100.0));
         let take_profit =
-            entry_price * (1.0 + take_profit_pct.unwrap_or(default_take_profit_pct) / 100.0);
+            entry_price * (1.0 + take_profit_pct.unwrap_or(default_take_profit_pct) / (lev * 100.0));
 
         // 5. Create AI signal structure for manual order
         let manual_signal = super::AITradingSignal {
