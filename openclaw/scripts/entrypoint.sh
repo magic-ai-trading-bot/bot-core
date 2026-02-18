@@ -74,17 +74,15 @@ if [ $RETRIES -le $MAX_RETRIES ]; then
   GATEWAY_READY=true
 fi
 
-# --- Register cron jobs ---
-GATEWAY_URL="ws://localhost:18789"
-GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-default-token}"
-CRON_DIR="/home/node/.openclaw/cron"
+# --- Cron registration function ---
+register_cron_jobs() {
+  GATEWAY_URL="ws://localhost:18789"
+  GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-default-token}"
+  CRON_DIR="/home/node/.openclaw/cron"
 
-if [ "$GATEWAY_READY" = "true" ] && [ -d "$CRON_DIR" ]; then
-  echo "Gateway is ready. Registering cron jobs..."
+  [ -d "$CRON_DIR" ] || return 0
 
-  # Extra wait for WebSocket handlers to fully initialize
-  sleep 5
-
+  echo "Registering cron jobs..."
   REGISTERED=0
   FAILED=0
 
@@ -92,8 +90,6 @@ if [ "$GATEWAY_READY" = "true" ] && [ -d "$CRON_DIR" ]; then
     [ -f "$f" ] || continue
 
     JOB_NAME=$(basename "$f" .json)
-
-    # Skip registry file
     [ "$JOB_NAME" = "jobs" ] && continue
 
     # Extract all fields in one node call (efficient + atomic)
@@ -124,8 +120,6 @@ if [ "$GATEWAY_READY" = "true" ] && [ -d "$CRON_DIR" ]; then
       continue
     fi
 
-    # --no-deliver for silent jobs (health-check, risk-monitor)
-    # Report jobs (hourly-pnl, daily-portfolio, etc.) use auto-delivery
     DELIVER_FLAG=""
     if [ "$CRON_NO_DELIVER" = "yes" ]; then
       DELIVER_FLAG="--no-deliver"
@@ -152,6 +146,39 @@ if [ "$GATEWAY_READY" = "true" ] && [ -d "$CRON_DIR" ]; then
   echo "Cron registration complete: $REGISTERED registered, $FAILED failed."
   if [ $FAILED -gt 0 ]; then
     echo "WARNING: Some cron jobs failed to register. Check logs above."
+  fi
+}
+
+# --- Register cron jobs ---
+if [ "$GATEWAY_READY" = "true" ]; then
+  echo "Gateway is ready."
+
+  # Wait for WebSocket handlers + potential config-triggered restart.
+  # OpenClaw may auto-modify openclaw.json (e.g. adding plugins section),
+  # which triggers a SIGUSR1 self-restart that wipes in-memory cron jobs.
+  # We wait 15s after startup to let any config migration happen first.
+  echo "Waiting 15s for config stabilization..."
+  sleep 15
+
+  # Verify gateway is still responsive after potential restart
+  if curl -sf "http://localhost:18789/__openclaw__/canvas/" > /dev/null 2>&1; then
+    register_cron_jobs
+  else
+    echo "Gateway restarted during stabilization, waiting for it to come back..."
+    RESTAB=0
+    until curl -sf "http://localhost:18789/__openclaw__/canvas/" > /dev/null 2>&1; do
+      RESTAB=$((RESTAB + 1))
+      if [ $RESTAB -gt 60 ]; then
+        echo "ERROR: Gateway did not recover after restart. Cron NOT registered."
+        break
+      fi
+      sleep 3
+    done
+    if [ $RESTAB -le 60 ]; then
+      echo "Gateway recovered. Waiting 5s for full init..."
+      sleep 5
+      register_cron_jobs
+    fi
   fi
 fi
 

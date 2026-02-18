@@ -1,4 +1,10 @@
 {
+  "logging": {
+    "level": "info"
+  },
+  "browser": {
+    "enabled": false
+  },
   "agents": {
     "defaults": {
       "model": {
@@ -7,23 +13,27 @@
       "workspace": "/home/node/.openclaw/workspace"
     }
   },
+  "tools": {
+    "allow": ["exec", "read", "write"]
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "channels": {},
   "gateway": {
     "port": 18789,
-    "bind": "lan",
     "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "allowInsecureAuth": true
+    },
     "auth": {
       "mode": "token",
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
-    "controlUi": {
-      "allowInsecureAuth": true
-    },
     "trustedProxies": ["192.168.65.0/24", "172.16.0.0/12", "127.0.0.0/8"]
   },
-  "browser": {
-    "enabled": false
-  },
-  "channels": {},
   "skills": {
     "load": {
       "extraDirs": [],
@@ -39,10 +49,11 @@
       }
     }
   },
-  "tools": {
-    "allow": ["exec", "read", "write"]
-  },
-  "logging": {
-    "level": "info"
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
   }
 }
