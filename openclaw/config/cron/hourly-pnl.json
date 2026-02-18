@@ -2,5 +2,5 @@
   "name": "hourly-pnl",
   "schedule": "0 * * * *",
   "timeout_seconds": 180,
-  "prompt": "Hourly PnL report. Run these 3 commands: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_open_trades` 3) `botcore get_trading_performance`. Create a SHORT summary (under 800 chars) with: balance, equity, hourly PnL, open positions count, win rate. Then send it to Telegram by running `botcore send_telegram_notification` with the summary text."
+  "prompt": "Báo cáo PnL hàng giờ. Chạy 3 lệnh: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_open_trades` 3) `botcore get_trading_performance`. Tạo báo cáo NGẮN GỌN bằng tiếng Việt (dưới 800 ký tự) gồm: số dư, equity, PnL giờ qua, số vị thế đang mở, tỷ lệ thắng. Sau đó gửi qua Telegram bằng lệnh `botcore send_telegram_notification` với nội dung báo cáo. LUÔN viết bằng tiếng Việt."
 }

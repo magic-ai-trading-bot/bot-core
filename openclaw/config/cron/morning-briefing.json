@@ -2,5 +2,5 @@
   "name": "morning-briefing",
   "schedule": "0 2 * * 1-5",
   "timeout_seconds": 180,
-  "prompt": "Morning market briefing. Run: 1) `botcore get_market_prices` 2) `botcore get_market_overview` 3) `botcore get_paper_open_trades`. Create a SHORT briefing (under 800 chars) with: top coin prices, 24h changes, open positions. Then send it to Telegram by running `botcore send_telegram_notification` with the briefing text."
+  "prompt": "Bản tin sáng. Chạy: 1) `botcore get_market_prices` 2) `botcore get_market_overview` 3) `botcore get_paper_open_trades`. Tạo bản tin NGẮN GỌN bằng tiếng Việt (dưới 800 ký tự) gồm: giá các coin chính, biến động 24h, vị thế đang mở. Sau đó gửi qua Telegram bằng `botcore send_telegram_notification`. LUÔN viết bằng tiếng Việt."
 }

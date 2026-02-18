@@ -3,5 +3,5 @@
   "schedule": "0 */2 * * *",
   "timeout_seconds": 180,
   "no_deliver": true,
-  "prompt": "Run `botcore check_system_health`. If ALL services are healthy, do nothing — just say OK. If ANY service is unhealthy or erroring, immediately run `botcore send_telegram_notification` with an URGENT alert including which services are down and error details."
+  "prompt": "Chạy `botcore check_system_health`. Nếu tất cả dịch vụ hoạt động bình thường, chỉ nói OK. Nếu có dịch vụ nào lỗi hoặc không phản hồi, lập tức gửi cảnh báo KHẨN CẤP qua Telegram bằng `botcore send_telegram_notification` với chi tiết dịch vụ nào đang lỗi. LUÔN viết bằng tiếng Việt."
 }

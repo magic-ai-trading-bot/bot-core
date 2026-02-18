@@ -2,5 +2,5 @@
   "name": "weekly-review",
   "schedule": "0 3 * * 1",
   "timeout_seconds": 180,
-  "prompt": "Weekly performance review. Run: 1) `botcore get_tuning_dashboard` 2) `botcore get_paper_portfolio` 3) `botcore get_adjustment_history`. Create a detailed report (under 2000 chars) with: weekly PnL, win rate, strategy breakdown, tuning changes, recommendations. Then send it to Telegram by running `botcore send_telegram_notification` with the report."
+  "prompt": "Đánh giá hiệu suất tuần. Chạy: 1) `botcore get_tuning_dashboard` 2) `botcore get_paper_portfolio` 3) `botcore get_adjustment_history`. Tạo báo cáo chi tiết bằng tiếng Việt (dưới 2000 ký tự) gồm: PnL tuần, tỷ lệ thắng, phân tích chiến lược, các thay đổi tham số, đề xuất cải thiện. Sau đó gửi qua Telegram bằng `botcore send_telegram_notification`. LUÔN viết bằng tiếng Việt."
 }

@@ -2,5 +2,5 @@
   "name": "daily-portfolio",
   "schedule": "0 13 * * *",
   "timeout_seconds": 180,
-  "prompt": "Daily portfolio report. Run: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_closed_trades` 3) `botcore get_paper_open_trades`. Create a report (under 1500 chars) with: balance, daily PnL, win rate, closed trades today, open positions. Then send it to Telegram by running `botcore send_telegram_notification` with the report text."
+  "prompt": "Báo cáo danh mục hàng ngày. Chạy: 1) `botcore get_paper_portfolio` 2) `botcore get_paper_closed_trades` 3) `botcore get_paper_open_trades`. Tạo báo cáo bằng tiếng Việt (dưới 1500 ký tự) gồm: số dư, PnL trong ngày, tỷ lệ thắng, các lệnh đã đóng hôm nay, vị thế đang mở. Sau đó gửi qua Telegram bằng `botcore send_telegram_notification`. LUÔN viết bằng tiếng Việt."
 }
