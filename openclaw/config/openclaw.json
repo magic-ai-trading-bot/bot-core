@@ -8,7 +8,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "openai/gpt-4o"
+        "primary": "openai/gpt-4.1"
       },
       "workspace": "/home/node/.openclaw/workspace"
     }
