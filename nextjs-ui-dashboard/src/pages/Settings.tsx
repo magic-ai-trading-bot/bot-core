@@ -259,28 +259,26 @@ const Settings = () => {
 
         if (symbols.length > 0) {
 
-          // Then fetch symbol settings to get enabled status
-          const settingsResponse = await fetch(`${API_BASE}/api/paper-trading/symbol-settings`);
+          // Then fetch per-symbol settings to get enabled status, leverage, etc.
+          const settingsResponse = await fetch(`${API_BASE}/api/paper-trading/symbols`);
           const settingsData = await settingsResponse.json();
 
-          // Map symbols to trading pairs with settings
-          // Handle multiple settingsData formats
-          const settingsList = settingsData.data || settingsData.settings || (Array.isArray(settingsData) ? settingsData : []);
+          // API returns: { data: { "BTCUSDT": { enabled, leverage, ... }, ... } }
+          const settingsMap = settingsData.data || settingsData || {};
 
           const pairs: TradingPair[] = symbols.map(symbol => {
-            // Format symbol for display (BTCUSDT -> BTC/USDT)
             const displaySymbol = symbol.replace(/USDT$/, '/USDT');
 
-            // Find settings for this symbol
-            const symbolSettings = Array.isArray(settingsList)
-              ? settingsList.find((s: { symbol: string }) => s.symbol === symbol)
+            // settingsMap is a dict keyed by symbol name
+            const symbolSettings = typeof settingsMap === 'object' && !Array.isArray(settingsMap)
+              ? settingsMap[symbol]
               : null;
 
             return {
               symbol: displaySymbol,
-              enabled: symbolSettings?.enabled ?? true, // Default enabled
+              enabled: symbolSettings?.enabled ?? true,
               leverage: symbolSettings?.leverage ?? 3,
-              positionSize: symbolSettings?.position_size_pct ?? 25,
+              positionSize: symbolSettings?.position_size_pct ?? 2,
             };
           });
 
