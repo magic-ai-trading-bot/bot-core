@@ -13,6 +13,7 @@ import {
   PieChart,
   Brain,
   BarChart3,
+  History,
   Settings,
   HelpCircle,
   type LucideIcon,
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { labelKey: 'nav.portfolio', icon: PieChart, path: '/portfolio' },
   { labelKey: 'nav.signals', icon: Brain, path: '/signals' },
   { labelKey: 'nav.tradeAnalyses', icon: BarChart3, path: '/trade-analyses' },
+  { labelKey: 'nav.tradeHistory', icon: History, path: '/trade-history' },
   { labelKey: 'nav.howItWorks', icon: HelpCircle, path: '/how-it-works' },
   { labelKey: 'nav.settings', icon: Settings, path: '/settings' },
 ];

@@ -28,6 +28,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const PaperTrading = lazy(() => import("./pages/PaperTrading"));
 const RealTrading = lazy(() => import("./pages/RealTrading"));
 const TradeAnalyses = lazy(() => import("./pages/TradeAnalyses"));
+const TradeHistory = lazy(() => import("./pages/TradeHistory"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
 const AISignals = lazy(() => import("./pages/AISignals"));
@@ -159,6 +160,16 @@ const App = () => (
                     <ProtectedRoute>
                       <MainLayout>
                         <TradeAnalyses />
+                      </MainLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/trade-history"
+                  element={
+                    <ProtectedRoute>
+                      <MainLayout>
+                        <TradeHistory />
                       </MainLayout>
                     </ProtectedRoute>
                   }
