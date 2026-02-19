@@ -50,6 +50,18 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
     cooldownMs: SIX_HOURS,
   },
 
+  data_resolution: {
+    name: "Data Resolution / Timeframe",
+    tier: "GREEN",
+    type: "enum",
+    enumValues: ["1m", "3m", "5m", "15m", "30m", "1h", "4h", "1d"],
+    apiEndpoint: "/api/paper-trading/basic-settings",
+    apiField: "data_resolution",
+    description: "Timeframe for trading signal analysis and kline data (e.g., 15m, 1h, 4h)",
+    defaultValue: "15m",
+    cooldownMs: ONE_HOUR,
+  },
+
   // ── YELLOW: Require confirmation ──
   stop_loss_percent: {
     name: "Stop Loss %",
@@ -99,6 +111,26 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
     apiField: "leverage",
     description: "Trading leverage multiplier",
     defaultValue: 10,
+    cooldownMs: SIX_HOURS,
+  },
+  min_required_indicators: {
+    name: "Min Required Indicators",
+    tier: "YELLOW",
+    min: 2, max: 5, step: 1, type: "number",
+    apiEndpoint: "/api/paper-trading/basic-settings",
+    apiField: "min_required_indicators",
+    description: "Minimum indicators that must agree per timeframe before trading (MACD, RSI, Bollinger, Stochastic, Volume). 2=aggressive, 4=balanced, 5=conservative",
+    defaultValue: 4,
+    cooldownMs: SIX_HOURS,
+  },
+  min_required_timeframes: {
+    name: "Min Required Timeframes",
+    tier: "YELLOW",
+    min: 1, max: 4, step: 1, type: "number",
+    apiEndpoint: "/api/paper-trading/basic-settings",
+    apiField: "min_required_timeframes",
+    description: "Minimum timeframes that must agree before trading (15M, 30M, 1H, 4H). 1=aggressive, 3=balanced, 4=conservative",
+    defaultValue: 3,
     cooldownMs: SIX_HOURS,
   },
 

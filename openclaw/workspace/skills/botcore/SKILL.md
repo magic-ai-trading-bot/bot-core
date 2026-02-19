@@ -508,17 +508,20 @@ For ALL scheduled reports, alerts, and cron job outputs: use `send_telegram_noti
 ## Tunable Parameters Reference
 
 GREEN tier (auto-apply):
-- `rsi_oversold`: range 20-40, default 25, cooldown 6h
-- `rsi_overbought`: range 60-80, default 75, cooldown 6h
+- `rsi_oversold`: range 20-40, default 30, cooldown 6h
+- `rsi_overbought`: range 60-80, default 70, cooldown 6h
 - `signal_interval_minutes`: range 3-30, default 5, cooldown 1h
-- `confidence_threshold`: range 0.50-0.90, default 0.50, cooldown 6h
+- `confidence_threshold`: range 0.50-0.90, default 0.65, cooldown 6h
+- `data_resolution`: enum [1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d], default 15m, cooldown 1h
 
 YELLOW tier (user confirmation):
-- `stop_loss_percent`: range 0.5-10.0, default 5.0, cooldown 6h
-- `take_profit_percent`: range 1.0-20.0, default 10.0, cooldown 6h
-- `position_size_percent`: range 1.0-10.0, default 2.0, cooldown 6h
-- `max_positions`: range 1-10, default 5, cooldown 6h
-- `leverage`: range 1-125, default 3, cooldown 6h
+- `stop_loss_percent`: range 0.5-5.0, default 2.0, cooldown 6h
+- `take_profit_percent`: range 1.0-10.0, default 4.0, cooldown 6h
+- `position_size_percent`: range 1.0-10.0, default 5.0, cooldown 6h
+- `max_positions`: range 1-8, default 4, cooldown 6h
+- `leverage`: range 1-20, default 10, cooldown 6h
+- `min_required_indicators`: range 2-5, default 4, cooldown 6h — min indicators that must agree (MACD, RSI, Bollinger, Stochastic, Volume)
+- `min_required_timeframes`: range 1-4, default 3, cooldown 6h — min timeframes that must agree (15M, 30M, 1H, 4H)
 
 RED tier (explicit approval):
 - `max_daily_loss_percent`: range 1.0-15.0, default 3.0, cooldown 6h

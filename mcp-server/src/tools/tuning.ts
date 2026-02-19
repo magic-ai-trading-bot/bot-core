@@ -97,13 +97,13 @@ export function registerTuningTools(server: McpServer): void {
       description:
         "Auto-apply a GREEN tier parameter adjustment. The change is applied immediately and the user is notified. Only works for GREEN tier parameters (RSI thresholds, signal interval, confidence). Validates bounds and cooldown.",
       inputSchema: {
-        parameter: z.string().describe("Parameter key (e.g., 'rsi_oversold', 'signal_interval_minutes')"),
-        new_value: z.number().describe("New value to set (must be within allowed bounds)"),
+        parameter: z.string().describe("Parameter key (e.g., 'rsi_oversold', 'signal_interval_minutes', 'data_resolution')"),
+        new_value: z.union([z.number(), z.string()]).describe("New value to set (number or string for enum parameters)"),
         reasoning: z.string().describe("Explanation of why this adjustment is being made"),
       },
       annotations: { readOnlyHint: false, openWorldHint: false },
     },
-    async ({ parameter, new_value, reasoning }: { parameter: string; new_value: number; reasoning: string }) => {
+    async ({ parameter, new_value, reasoning }: { parameter: string; new_value: number | string; reasoning: string }) => {
       const bound = PARAMETER_BOUNDS[parameter];
       if (!bound) return toolError(`Unknown parameter: ${parameter}`);
       if (bound.tier !== "GREEN") return toolError(`${parameter} is ${bound.tier} tier, not GREEN. Use request_yellow_adjustment or request_red_adjustment.`);
@@ -125,7 +125,7 @@ export function registerTuningTools(server: McpServer): void {
 
       // Apply via BotCore API
       const body = parameter === "signal_interval_minutes"
-        ? { interval_seconds: effectiveValue * 60 }
+        ? { interval_seconds: (effectiveValue as number) * 60 }
         : { [bound.apiField]: effectiveValue };
 
       const method = bound.apiEndpoint.includes("signal-interval") ? "PUT" : "PUT";

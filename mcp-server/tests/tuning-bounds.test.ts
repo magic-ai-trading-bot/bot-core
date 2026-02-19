@@ -121,11 +121,11 @@ describe("getParametersByTier", () => {
     expect(Array.isArray(grouped.RED)).toBe(true);
 
     // Verify counts (from bounds.ts)
-    // GREEN: rsi_oversold, rsi_overbought, signal_interval_minutes, confidence_threshold (4)
-    expect(grouped.GREEN.length).toBe(4);
+    // GREEN: rsi_oversold, rsi_overbought, signal_interval_minutes, confidence_threshold, data_resolution (5)
+    expect(grouped.GREEN.length).toBe(5);
 
-    // YELLOW: stop_loss_percent, take_profit_percent, position_size_percent, max_positions, leverage (5)
-    expect(grouped.YELLOW.length).toBe(5);
+    // YELLOW: stop_loss_percent, take_profit_percent, position_size_percent, max_positions, leverage, min_required_indicators, min_required_timeframes (7)
+    expect(grouped.YELLOW.length).toBe(7);
 
     // RED: max_daily_loss_percent, engine_running (2)
     expect(grouped.RED.length).toBe(2);

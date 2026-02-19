@@ -207,6 +207,11 @@ pub struct UpdateBasicSettingsRequest {
     pub reversal_min_confidence: Option<f64>,
     pub reversal_max_pnl_pct: Option<f64>,
     pub reversal_allowed_regimes: Option<Vec<String>>,
+    // Signal generation settings (exposed for MCP self-tuning)
+    pub min_required_indicators: Option<u32>,
+    pub min_required_timeframes: Option<u32>,
+    // Strategy engine settings (exposed for MCP self-tuning)
+    pub data_resolution: Option<String>,
 }
 
 /// Request to update execution settings (partial update)
@@ -1277,6 +1282,13 @@ async fn get_basic_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
             "reversal_min_confidence": settings.risk.reversal_min_confidence,
             "reversal_max_pnl_pct": settings.risk.reversal_max_pnl_pct,
             "reversal_allowed_regimes": settings.risk.reversal_allowed_regimes
+        },
+        "signal": {
+            "min_required_indicators": settings.signal.min_required_indicators,
+            "min_required_timeframes": settings.signal.min_required_timeframes
+        },
+        "strategy": {
+            "data_resolution": settings.strategy.backtesting.data_resolution
         }
     });
 
@@ -1408,6 +1420,17 @@ async fn update_basic_settings(
     }
     if let Some(ref reversal_allowed_regimes) = request.reversal_allowed_regimes {
         new_settings.risk.reversal_allowed_regimes = reversal_allowed_regimes.clone();
+    }
+    // Signal generation settings
+    if let Some(min_required_indicators) = request.min_required_indicators {
+        new_settings.signal.min_required_indicators = min_required_indicators;
+    }
+    if let Some(min_required_timeframes) = request.min_required_timeframes {
+        new_settings.signal.min_required_timeframes = min_required_timeframes;
+    }
+    // Strategy engine settings
+    if let Some(ref data_resolution) = request.data_resolution {
+        new_settings.strategy.backtesting.data_resolution = data_resolution.clone();
     }
 
     // Update the engine settings
