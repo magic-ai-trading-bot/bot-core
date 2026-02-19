@@ -1002,6 +1002,7 @@ interface RecentTradesProps {
 
 const RecentTrades = ({ trades = [], isLoading, colors }: RecentTradesProps) => {
   const { t } = useTranslation('dashboard');
+  const navigate = useNavigate();
   const formatTime = (timestamp: string) => {
     const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
     if (diff < 60) return t('aiSignals.minutesAgo', { minutes: diff });
