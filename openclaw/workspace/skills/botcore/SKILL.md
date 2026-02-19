@@ -467,18 +467,17 @@ botcore apply_green_adjustment '{"parameter":"signal_interval_minutes","new_valu
 botcore apply_green_adjustment '{"parameter":"confidence_threshold","new_value":0.70,"reasoning":"Higher quality signals"}'
 botcore apply_green_adjustment '{"parameter":"stop_loss_percent","new_value":3.0,"reasoning":"Wider SL to avoid premature exits"}'
 botcore apply_green_adjustment '{"parameter":"take_profit_percent","new_value":6.0,"reasoning":"Higher TP for trending market"}'
-botcore apply_green_adjustment '{"parameter":"leverage","new_value":5,"reasoning":"Reduce leverage in high volatility"}'
-botcore apply_green_adjustment '{"parameter":"position_size_percent","new_value":3.0,"reasoning":"Smaller positions in uncertain market"}'
-botcore apply_green_adjustment '{"parameter":"max_positions","new_value":3,"reasoning":"Fewer positions for focused management"}'
 botcore apply_green_adjustment '{"parameter":"min_required_indicators","new_value":3,"reasoning":"Relax indicator agreement for more signals"}'
 botcore apply_green_adjustment '{"parameter":"min_required_timeframes","new_value":2,"reasoning":"Fewer timeframes needed"}'
 ```
 
-You have FULL AUTONOMY to adjust SL, TP, leverage, position size, and all other GREEN params.
+You have FULL AUTONOMY to adjust SL, TP, indicators, timeframes, and signal params.
 When you see trades being stopped out too early → increase stop_loss_percent.
 When win rate is low → increase min_required_indicators or confidence_threshold.
 When you see opportunities being missed → decrease min_required_timeframes.
 ALWAYS use `apply_green_adjustment` with a clear reasoning so changes are logged.
+
+For leverage, position size, max_positions → use `request_yellow_adjustment` (needs user confirm).
 
 ### RED Tier (Require explicit approval text)
 ```bash
@@ -520,11 +519,13 @@ GREEN tier (auto-apply — you can adjust all of these freely):
 - `data_resolution`: enum [1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d], default 15m, cooldown 1h
 - `stop_loss_percent`: range 0.5-5.0, default 2.0, cooldown 6h
 - `take_profit_percent`: range 1.0-10.0, default 4.0, cooldown 6h
+- `min_required_indicators`: range 2-5, default 4, cooldown 6h — min indicators that must agree (MACD, RSI, Bollinger, Stochastic, Volume)
+- `min_required_timeframes`: range 1-4, default 3, cooldown 6h — min timeframes that must agree (15M, 30M, 1H, 4H)
+
+YELLOW tier (user confirmation — capital risk params):
 - `position_size_percent`: range 1.0-10.0, default 5.0, cooldown 6h
 - `max_positions`: range 1-8, default 4, cooldown 6h
 - `leverage`: range 1-20, default 10, cooldown 6h
-- `min_required_indicators`: range 2-5, default 4, cooldown 6h — min indicators that must agree (MACD, RSI, Bollinger, Stochastic, Volume)
-- `min_required_timeframes`: range 1-4, default 3, cooldown 6h — min timeframes that must agree (15M, 30M, 1H, 4H)
 
 RED tier (explicit approval):
 - `max_daily_loss_percent`: range 1.0-15.0, default 3.0, cooldown 6h
@@ -537,8 +538,9 @@ RED tier (explicit approval):
 Paper trading is unrestricted. You can close, open, modify any paper trade at any time. No approval needed.
 
 Self-tuning rules:
-1. GREEN tier (ALL params except 2): auto-apply via `apply_green_adjustment` and notify user
-2. RED tier (max_daily_loss_percent, engine_running): require explicit approval text
+1. GREEN tier (SL, TP, indicators, timeframes, signals): auto-apply via `apply_green_adjustment` and notify user
+2. YELLOW tier (leverage, position_size, max_positions): require user confirmation
+3. RED tier (max_daily_loss_percent, engine_running): require explicit approval text
 3. Respect cooldown periods via `get_parameter_bounds`
 4. Always `take_parameter_snapshot` before multiple changes
 5. If performance degrades after changes, use `rollback_adjustment`

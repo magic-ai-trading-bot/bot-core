@@ -83,9 +83,10 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
     defaultValue: 4.0,
     cooldownMs: SIX_HOURS,
   },
+  // ── YELLOW: Require confirmation (capital risk params) ──
   position_size_percent: {
     name: "Position Size %",
-    tier: "GREEN",
+    tier: "YELLOW",
     min: 1.0, max: 10.0, step: 0.5, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "position_size_percent",
@@ -95,7 +96,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   max_positions: {
     name: "Max Concurrent Positions",
-    tier: "GREEN",
+    tier: "YELLOW",
     min: 1, max: 8, step: 1, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "max_positions",
@@ -105,7 +106,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   leverage: {
     name: "Leverage",
-    tier: "GREEN",
+    tier: "YELLOW",
     min: 1, max: 20, step: 1, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "leverage",
