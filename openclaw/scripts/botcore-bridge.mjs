@@ -114,7 +114,14 @@ function parseToolArgs(tool) {
   try {
     return JSON.parse(allArgs);
   } catch {
-    // noop
+    // JSON parse failed — maybe literal newlines in string values.
+    // Try escaping unescaped newlines inside JSON string values.
+    try {
+      const fixed = allArgs.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
+      return JSON.parse(fixed);
+    } catch {
+      // noop
+    }
   }
 
   // Try flag-style: --key value --flag
