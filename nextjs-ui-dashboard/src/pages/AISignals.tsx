@@ -105,10 +105,29 @@ const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
 // UTILITY FUNCTIONS
 // ============================================================================
 
-function formatTimeAgo(timestamp: string): string {
+function parseBsonDate(value: unknown): Date {
+  // Handle MongoDB BSON date: {"$date": {"$numberLong": "1234567890"}} or {"$date": "iso-string"}
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>;
+    if (obj.$date) {
+      if (typeof obj.$date === 'string') return new Date(obj.$date);
+      if (typeof obj.$date === 'object' && obj.$date !== null) {
+        const inner = obj.$date as Record<string, unknown>;
+        if (inner.$numberLong) return new Date(Number(inner.$numberLong));
+      }
+      return new Date(obj.$date as string);
+    }
+  }
+  // Plain ISO string or epoch number
+  if (typeof value === 'number') return new Date(value);
+  return new Date(value as string);
+}
+
+function formatTimeAgo(timestamp: unknown): string {
   const now = new Date();
-  const date = new Date(timestamp);
+  const date = parseBsonDate(timestamp);
   const diffMs = now.getTime() - date.getTime();
+  if (isNaN(diffMs)) return "N/A";
   const diffMins = Math.floor(diffMs / 60000);
 
   if (diffMins < 1) return "Just now";
@@ -773,22 +792,23 @@ const AISignals = () => {
         confidence: number;
         reasoning?: string;
         entry_price?: number;
-        timestamp?: string;
-        created_at?: string;
+        timestamp?: unknown;
+        created_at?: unknown;
         outcome?: string;
         trend_direction?: string;
         trend_strength?: number;
       }) => {
         const signalType = (s.signal_type || "neutral").toLowerCase() as "long" | "short" | "neutral";
+        const ts = parseBsonDate(s.timestamp || s.created_at || new Date().toISOString());
         return {
-          id: s.signal_id || `cached-${s.symbol}-${s.timestamp || s.created_at}`,
+          id: s.signal_id || `cached-${s.symbol}-${ts.toISOString()}`,
           symbol: s.symbol,
           signal: signalType,
           confidence: s.confidence,
           probability: s.confidence,
           reasoning: s.reasoning,
           entry_price: s.entry_price,
-          timestamp: s.timestamp || s.created_at || new Date().toISOString(),
+          timestamp: ts.toISOString(),
           model_type: "gpt-4" as const,
           timeframe: "1H",
           outcome: (s.outcome as "win" | "loss" | "pending") || "pending",
