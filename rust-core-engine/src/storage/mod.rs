@@ -1644,7 +1644,10 @@ pub struct PaperTradingRecord {
     pub funding_fees: f64,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub open_time: DateTime<Utc>,
-    #[serde(default, with = "bson::serde_helpers::chrono_datetime_as_bson_datetime_optional")]
+    #[serde(
+        default,
+        with = "bson::serde_helpers::chrono_datetime_as_bson_datetime_optional"
+    )]
     pub close_time: Option<DateTime<Utc>>,
     pub ai_signal_id: Option<String>,
     pub ai_confidence: Option<f64>,
@@ -1706,7 +1709,10 @@ pub struct AISignalRecord {
     pub exit_price: Option<f64>, // Price when trade closed
     #[serde(default)]
     pub close_reason: Option<String>, // TakeProfit, StopLoss, Manual, etc.
-    #[serde(default, with = "bson::serde_helpers::chrono_datetime_as_bson_datetime_optional")]
+    #[serde(
+        default,
+        with = "bson::serde_helpers::chrono_datetime_as_bson_datetime_optional"
+    )]
     pub closed_at: Option<DateTime<Utc>>, // When trade was closed
 }
 
