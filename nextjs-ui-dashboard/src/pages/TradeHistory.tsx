@@ -14,7 +14,6 @@ import { motion } from "framer-motion";
 import {
   History,
   TrendingUp,
-  TrendingDown,
   Trophy,
   BarChart2,
   ArrowUpRight,
