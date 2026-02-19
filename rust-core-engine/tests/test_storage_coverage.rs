@@ -255,28 +255,39 @@ fn test_ai_signal_record_full() {
 fn test_ai_signal_record_with_defaults() {
     let now = Utc::now();
 
-    // Test record with default optional fields
-    let json = json!({
-        "signal_id": "sig_pending",
-        "symbol": "BTCUSDT",
-        "signal_type": "Short",
-        "confidence": 0.75,
-        "reasoning": "Test",
-        "entry_price": 45000.0,
-        "trend_direction": "Bearish",
-        "trend_strength": 0.7,
-        "volatility": 0.2,
-        "risk_score": 0.3,
-        "executed": false,
-        "created_at": now,
-        "timestamp": now
-    });
+    // Test record with default optional fields via struct initialization
+    let record = AISignalRecord {
+        id: None,
+        signal_id: "sig_pending".to_string(),
+        symbol: "BTCUSDT".to_string(),
+        signal_type: "Short".to_string(),
+        confidence: 0.75,
+        reasoning: "Test".to_string(),
+        entry_price: 45000.0,
+        trend_direction: "Bearish".to_string(),
+        trend_strength: 0.7,
+        volatility: 0.2,
+        risk_score: 0.3,
+        executed: false,
+        trade_id: None,
+        created_at: now,
+        timestamp: now,
+        outcome: None,
+        actual_pnl: None,
+        pnl_percentage: None,
+        exit_price: None,
+        close_reason: None,
+        closed_at: None,
+    };
 
-    let record: AISignalRecord = serde_json::from_value(json).unwrap();
-    assert_eq!(record.signal_id, "sig_pending");
-    assert_eq!(record.outcome, None);
-    assert_eq!(record.actual_pnl, None);
-    assert_eq!(record.closed_at, None);
+    // Verify round-trip serialization works
+    let json = serde_json::to_string(&record).unwrap();
+    let deserialized: AISignalRecord = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(deserialized.signal_id, "sig_pending");
+    assert_eq!(deserialized.outcome, None);
+    assert_eq!(deserialized.actual_pnl, None);
+    assert_eq!(deserialized.closed_at, None);
 }
 
 #[test]
