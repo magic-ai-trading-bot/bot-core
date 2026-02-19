@@ -133,9 +133,10 @@ export function registerPaperTradingTools(server: McpServer): void {
   server.registerTool(
     "get_paper_symbols",
     {
-      title: "Get Paper Trading Symbols",
+      title: "Get Paper Trading Symbol Settings",
       description:
-        "Get list of symbols currently being traded in paper trading mode",
+        "Get per-symbol settings (leverage, stop_loss_pct, take_profit_pct, position_size_pct, max_positions, enabled). " +
+        "IMPORTANT: These per-symbol values OVERRIDE global defaults from basic-settings. Always check these to know the ACTUAL settings used for each symbol.",
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -476,19 +477,31 @@ export function registerPaperTradingTools(server: McpServer): void {
   server.registerTool(
     "update_paper_symbols",
     {
-      title: "Update Paper Trading Symbols",
+      title: "Update Paper Trading Symbol Settings",
       description:
-        "Update the list of symbols to trade in paper trading mode (e.g., add/remove BTCUSDT, ETHUSDT)",
+        "Update per-symbol trading settings (leverage, stop_loss_pct, take_profit_pct, position_size_pct, max_positions, enabled). " +
+        "IMPORTANT: Per-symbol settings OVERRIDE global defaults. " +
+        "If you change global stop_loss via basic-settings or green-adjustment, you MUST also update per-symbol stop_loss_pct here. " +
+        "Values: stop_loss_pct and take_profit_pct are PnL-based (not price). With 10x leverage, stop_loss_pct=15 means 1.5% price move.",
       inputSchema: {
         symbols: z
-          .array(z.string())
+          .record(
+            z.object({
+              enabled: z.boolean().describe("Whether trading is enabled for this symbol"),
+              leverage: z.number().optional().describe("Leverage for this symbol (e.g., 10)"),
+              position_size_pct: z.number().optional().describe("Position size as % of equity (e.g., 5.0)"),
+              stop_loss_pct: z.number().optional().describe("Stop loss PnL% (e.g., 15.0 = 1.5% price with 10x leverage)"),
+              take_profit_pct: z.number().optional().describe("Take profit PnL% (e.g., 20.0 = 2.0% price with 10x leverage)"),
+              max_positions: z.number().optional().describe("Max concurrent positions for this symbol"),
+            })
+          )
           .describe(
-            "Array of trading symbols (e.g., ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'])"
+            'Map of symbol → config. Example: {"BTCUSDT": {"enabled": true, "leverage": 10, "stop_loss_pct": 15.0, "take_profit_pct": 20.0, "position_size_pct": 5.0, "max_positions": 1}}'
           ),
       },
       annotations: { readOnlyHint: false, openWorldHint: false },
     },
-    async ({ symbols }: { symbols: string[] }) => {
+    async ({ symbols }: { symbols: Record<string, { enabled: boolean; leverage?: number; position_size_pct?: number; stop_loss_pct?: number; take_profit_pct?: number; max_positions?: number }> }) => {
       const res = await apiRequest("rust", "/api/paper-trading/symbols", {
         method: "PUT",
         body: { symbols },
@@ -496,7 +509,7 @@ export function registerPaperTradingTools(server: McpServer): void {
       });
       return res.success
         ? toolSuccess(res.data)
-        : toolError(res.error || "Failed to update symbols");
+        : toolError(res.error || "Failed to update symbol settings");
     }
   );
 

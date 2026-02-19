@@ -27,6 +27,22 @@ The engine field `default_stop_loss_pct` and `default_take_profit_pct` are **PnL
 ✅ ALWAYS: query `get_paper_basic_settings` for leverage → multiply price% × leverage → set that value.
 ✅ ALWAYS report: "SL = X% PnL (= Y% giá với leverage Zx = ~$N/lệnh)"
 
+### ⚠️ Per-Symbol Settings OVERRIDE Global Defaults!
+
+Engine uses **per-symbol** `stop_loss_pct`, `take_profit_pct`, `leverage` when set — global `default_stop_loss_pct` is IGNORED.
+- `get_paper_symbols` → shows ACTUAL per-symbol settings (the values engine uses)
+- `get_paper_basic_settings` → shows global DEFAULTS (only used if no per-symbol override)
+- `update_paper_symbols` → updates per-symbol settings (leverage, SL, TP, position_size, etc.)
+
+**When changing SL/TP**: MUST update BOTH global AND per-symbol:
+1. `update_paper_basic_settings` → change global default
+2. `update_paper_symbols` → change each symbol's override
+
+**Example**: Set SL=15% PnL for all symbols:
+```
+botcore update_paper_symbols '{"symbols":{"BTCUSDT":{"enabled":true,"leverage":10,"stop_loss_pct":15.0,"take_profit_pct":20.0,"position_size_pct":5.0,"max_positions":1},...}}'
+```
+
 ---
 
 ## Core Responsibilities
