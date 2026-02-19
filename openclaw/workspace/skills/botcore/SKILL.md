@@ -140,20 +140,29 @@ $ profit_or_loss = capital_per_trade × pnl% / 100
 3. Calculate: $ loss = capital × SL% / 100
 4. Verify the price_move makes sense for crypto (should survive 0.5-1% normal noise)
 
-**Example calculation flow:**
+**Example calculation flow (ALWAYS use actual values from get_paper_basic_settings):**
 ```
-Settings: capital=$200/trade, leverage=10x
-→ exposure = $200 × 10 = $2,000
+# Step 1: Query actual settings
+botcore get_paper_basic_settings
+# → Read: leverage, position_size_pct, initial_balance
 
-If I set SL = 10%:
+# Step 2: Calculate
+capital_per_trade = initial_balance × position_size_pct / 100
+exposure = capital_per_trade × leverage
+
+If I set SL = 10% and leverage = 10x:
 → price_move = 10% / 10 = 1%
-→ $ loss = $200 × 10% = $20
-→ Crypto moves 0.5-1% normally → 1% tolerance is OK ✅
+→ $ loss = capital_per_trade × 10% / 100
+→ 1% price tolerance is reasonable for crypto ✅
 
-If I set SL = 2%:
+If I set SL = 2% and leverage = 10x:
 → price_move = 2% / 10 = 0.2%
-→ $ loss = $200 × 2% = $4
+→ $ loss = capital_per_trade × 2% / 100
 → 0.2% tolerance → NOISE WILL TRIGGER THIS ❌
+
+If I set SL = 10% and leverage = 3x:
+→ price_move = 10% / 3 = 3.3%
+→ Very wide, safe for volatile markets ✅
 ```
 
 **Different leverage = different price tolerance for same SL%:**
@@ -501,8 +510,8 @@ botcore apply_green_adjustment '{"parameter":"rsi_oversold","new_value":25,"reas
 botcore apply_green_adjustment '{"parameter":"rsi_overbought","new_value":75,"reasoning":"Reduce overbought"}'
 botcore apply_green_adjustment '{"parameter":"signal_interval_minutes","new_value":10,"reasoning":"Low volatility"}'
 botcore apply_green_adjustment '{"parameter":"confidence_threshold","new_value":0.70,"reasoning":"Higher quality signals"}'
-botcore apply_green_adjustment '{"parameter":"stop_loss_percent","new_value":12.0,"reasoning":"Current leverage=10x → 12%/10=1.2% price tolerance, avoids noise"}'
-botcore apply_green_adjustment '{"parameter":"take_profit_percent","new_value":25.0,"reasoning":"Current leverage=10x → 25%/10=2.5% price target, good R:R ratio"}'
+botcore apply_green_adjustment '{"parameter":"stop_loss_percent","new_value":12.0,"reasoning":"Leverage [X]x → 12%/[X]=[Y]% price tolerance, avoids noise"}'
+botcore apply_green_adjustment '{"parameter":"take_profit_percent","new_value":25.0,"reasoning":"Leverage [X]x → 25%/[X]=[Y]% price target, good R:R ratio"}'
 botcore apply_green_adjustment '{"parameter":"min_required_indicators","new_value":3,"reasoning":"Relax indicator agreement for more signals"}'
 botcore apply_green_adjustment '{"parameter":"min_required_timeframes","new_value":2,"reasoning":"Fewer timeframes needed"}'
 ```
@@ -615,7 +624,7 @@ Target price tolerances (the SL/TP PnL% depends on leverage):
 - Low volatility: price SL 0.8-1.2%, price TP 1.5-2.5%, trailing distance 0.8-1.5%
 
 To convert to PnL% setting: multiply price% by current leverage.
-Example: want 1.5% price SL, leverage=10x → set stop_loss_percent=15.
+Example: want 1.5% price SL, leverage=Xx → set stop_loss_percent = 1.5 × X. (e.g., leverage=10x → 15, leverage=5x → 7.5)
 
 ### Example: Proactive Profit Taking
 ```bash
@@ -629,9 +638,12 @@ botcore send_telegram_notification '{"message":"Closed ETHUSDT at +12% PnL. Reas
 
 ### Example: Adjusting Risk for Market Conditions
 ```bash
-# High volatility detected → tighten stops, reduce leverage
-botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":5,"default_take_profit_pct":10,"default_leverage":2,"trailing_stop_pct":2}}'
-botcore send_telegram_notification '{"message":"High volatility detected. Tightened SL to 5%, reduced leverage to 2x."}'
+# High volatility detected → FIRST query current settings
+botcore get_paper_basic_settings
+# Then adjust based on actual values (NEVER hardcode leverage/SL/TP numbers — calculate from current state)
+# Example: if current leverage=10x and you want 2% price tolerance → SL = 2% × 10 = 20%
+botcore apply_green_adjustment '{"parameter":"stop_loss_percent","new_value":20.0,"reasoning":"Leverage 10x → 20%/10=2% price tolerance for high volatility"}'
+botcore send_telegram_notification '{"message":"High volatility detected. Adjusted SL to 20% PnL (=2% price with current leverage)."}'
 ```
 
 ---

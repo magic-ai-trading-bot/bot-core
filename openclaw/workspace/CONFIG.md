@@ -1,5 +1,9 @@
 # CONFIG.md - All Tunable Parameters
 # Source: rust-core-engine/src/paper_trading/settings.rs — the single source of truth
+#
+# ⚠️ WARNING: These are INITIAL DEFAULTS from Rust code, NOT current live values!
+# ALWAYS run `botcore get_paper_basic_settings` to get ACTUAL current values.
+# Live values may have been changed by self-tuning or manual adjustments.
 
 ## Quick Reference — Most Important Settings
 
