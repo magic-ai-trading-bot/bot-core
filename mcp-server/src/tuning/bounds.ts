@@ -64,23 +64,23 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
 
   // ── GREEN: Previously YELLOW, promoted to auto-adjust ──
   stop_loss_percent: {
-    name: "Stop Loss %",
+    name: "Stop Loss % (PnL-based)",
     tier: "GREEN",
-    min: 0.5, max: 5.0, step: 0.5, type: "number",
+    min: 1.0, max: 20.0, step: 0.5, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "stop_loss_percent",
-    description: "Percentage below entry price to trigger stop loss",
-    defaultValue: 2.0,
+    description: "PnL percentage to trigger stop loss. With leverage 10x: SL=10% means price moves 1% → loss=$20 on $200. SL=20% means price moves 2% → loss=$40.",
+    defaultValue: 10.0,
     cooldownMs: SIX_HOURS,
   },
   take_profit_percent: {
-    name: "Take Profit %",
+    name: "Take Profit % (PnL-based)",
     tier: "GREEN",
-    min: 1.0, max: 10.0, step: 0.5, type: "number",
+    min: 2.0, max: 40.0, step: 1.0, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "take_profit_percent",
-    description: "Percentage above entry price to trigger take profit",
-    defaultValue: 4.0,
+    description: "PnL percentage to trigger take profit. With leverage 10x: TP=20% means price moves 2% → profit=$40 on $200. TP=30% means price moves 3% → profit=$60.",
+    defaultValue: 20.0,
     cooldownMs: SIX_HOURS,
   },
   // ── YELLOW: Require confirmation (capital risk params) ──
