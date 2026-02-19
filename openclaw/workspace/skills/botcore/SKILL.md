@@ -128,30 +128,48 @@ GOOD:
 
 The engine uses **PnL-based** take profit and stop loss. This is the MOST COMMON source of confusion.
 
-**Formula**: `price_change_needed = pnl_pct / leverage`
+**Formulas (memorize these):**
+```
+price_move% = pnl% / leverage
+$ profit_or_loss = capital_per_trade × pnl% / 100
+```
 
-**Concrete example with $200 capital, leverage 10x ($2,000 exposure):**
+**BEFORE setting or discussing SL/TP, you MUST:**
+1. Run `botcore get_paper_basic_settings` to get current `leverage` and `position_size_pct`
+2. Calculate: price_move = SL% / leverage
+3. Calculate: $ loss = capital × SL% / 100
+4. Verify the price_move makes sense for crypto (should survive 0.5-1% normal noise)
 
-| Setting | PnL % | Price moves | $ Profit/Loss |
-|---------|-------|-------------|---------------|
-| SL = 2% | -2% | -0.2% | -$4 |
-| SL = 5% | -5% | -0.5% | -$10 |
-| **SL = 10%** | **-10%** | **-1.0%** | **-$20** |
-| SL = 15% | -15% | -1.5% | -$30 |
-| SL = 20% | -20% | -2.0% | -$40 |
-| TP = 10% | +10% | +1.0% | +$20 |
-| **TP = 20%** | **+20%** | **+2.0%** | **+$40** |
-| TP = 30% | +30% | +3.0% | +$60 |
+**Example calculation flow:**
+```
+Settings: capital=$200/trade, leverage=10x
+→ exposure = $200 × 10 = $2,000
 
-**CRITICAL**: Crypto thường dao động 0.5-1% trong vài phút. Với leverage 10x:
-- SL = 2% chỉ chịu được 0.2% price → BỊ QUÉT NGAY bởi noise
-- SL = 5% chỉ chịu được 0.5% price → VẪN QUÁ TIGHT
-- SL = 10% chịu được 1% price → HỢP LÝ cho crypto
-- SL = 15% chịu được 1.5% price → AN TOÀN
+If I set SL = 10%:
+→ price_move = 10% / 10 = 1%
+→ $ loss = $200 × 10% = $20
+→ Crypto moves 0.5-1% normally → 1% tolerance is OK ✅
 
-**Default khuyến nghị**: SL = 10% PnL (= 1% price), TP = 20% PnL (= 2% price)
+If I set SL = 2%:
+→ price_move = 2% / 10 = 0.2%
+→ $ loss = $200 × 2% = $4
+→ 0.2% tolerance → NOISE WILL TRIGGER THIS ❌
+```
 
-KHÔNG BAO GIỜ nhầm lẫn PnL% với price%. Khi nói "SL 2%", LUÔN tính xem price phải đi bao nhiêu % (= 2%/leverage) và $ lỗ thực tế (= capital × SL%).
+**Different leverage = different price tolerance for same SL%:**
+```
+SL = 10% with leverage  3x → price needs to move 3.3% → very safe
+SL = 10% with leverage 10x → price needs to move 1.0% → reasonable
+SL = 10% with leverage 20x → price needs to move 0.5% → tight!
+```
+
+**Rule of thumb**: After calculating price_move%, check:
+- price_move < 0.5% → SL TOO TIGHT, increase it
+- price_move 0.5-1.0% → borderline, ok for low-volatility periods
+- price_move 1.0-2.0% → GOOD for most crypto conditions
+- price_move > 3.0% → very wide, ok for high-volatility or low leverage
+
+ALWAYS show your calculation when adjusting or discussing SL/TP. Never just say "SL 10%" without stating what price% and $ that means with the current leverage.
 
 ### Trailing stop
 
@@ -276,8 +294,8 @@ Basic fields:
 Risk fields:
 - `max_risk_per_trade_pct` (number) — Max risk per trade %. Example: 1.0
 - `max_portfolio_risk_pct` (number) — Max portfolio risk %. Example: 10.0
-- `default_stop_loss_pct` (number) — Stop loss PnL %. Example: 10.0 (with 10x leverage = 1% price move = $20 loss on $200)
-- `default_take_profit_pct` (number) — Take profit PnL %. Example: 20.0 (with 10x leverage = 2% price move = $40 profit on $200)
+- `default_stop_loss_pct` (number) — Stop loss PnL %. ALWAYS calculate: price_move = this / leverage. Example: 10.0
+- `default_take_profit_pct` (number) — Take profit PnL %. ALWAYS calculate: price_move = this / leverage. Example: 20.0
 - `max_leverage` (number) — Max allowed leverage. Example: 5
 - `min_margin_level` (number) — Min margin level %. Example: 300.0
 - `max_drawdown_pct` (number) — Max drawdown %. Example: 10.0
@@ -342,11 +360,12 @@ botcore update_paper_indicator_settings '{"settings":{"rsi_period":14,"rsi_overs
 
 ### Settings Update Examples
 ```bash
-# Set stop loss to 10% PnL (= 1% price with 10x leverage = $20 loss on $200)
+# Set stop loss — ALWAYS check leverage first!
+# Example: leverage=10x, want 1% price tolerance → SL = 1% × 10 = 10%
 botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":10.0}}'
-# Set take profit to 20% PnL (= 2% price with 10x leverage = $40 profit on $200)
-botcore update_paper_basic_settings '{"settings":{"default_take_profit_pct":20.0}}'
-# Enable trailing stop: activate at 10% PnL, trail 2.5% below peak price
+# Example: leverage=5x, want 1.5% price tolerance → SL = 1.5% × 5 = 7.5%
+botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":7.5}}'
+# Enable trailing stop: activate at PnL%, trail % below peak price
 botcore update_paper_basic_settings '{"settings":{"trailing_stop_enabled":true,"trailing_stop_pct":2.5,"trailing_activation_pct":10.0}}'
 # Disable signal reversal
 botcore update_paper_basic_settings '{"settings":{"enable_signal_reversal":false}}'
@@ -482,8 +501,8 @@ botcore apply_green_adjustment '{"parameter":"rsi_oversold","new_value":25,"reas
 botcore apply_green_adjustment '{"parameter":"rsi_overbought","new_value":75,"reasoning":"Reduce overbought"}'
 botcore apply_green_adjustment '{"parameter":"signal_interval_minutes","new_value":10,"reasoning":"Low volatility"}'
 botcore apply_green_adjustment '{"parameter":"confidence_threshold","new_value":0.70,"reasoning":"Higher quality signals"}'
-botcore apply_green_adjustment '{"parameter":"stop_loss_percent","new_value":12.0,"reasoning":"Wider SL: 12% PnL = 1.2% price with 10x = $24 loss, avoids noise"}'
-botcore apply_green_adjustment '{"parameter":"take_profit_percent","new_value":25.0,"reasoning":"Higher TP for trending: 25% PnL = 2.5% price with 10x = $50 profit"}'
+botcore apply_green_adjustment '{"parameter":"stop_loss_percent","new_value":12.0,"reasoning":"Current leverage=10x → 12%/10=1.2% price tolerance, avoids noise"}'
+botcore apply_green_adjustment '{"parameter":"take_profit_percent","new_value":25.0,"reasoning":"Current leverage=10x → 25%/10=2.5% price target, good R:R ratio"}'
 botcore apply_green_adjustment '{"parameter":"min_required_indicators","new_value":3,"reasoning":"Relax indicator agreement for more signals"}'
 botcore apply_green_adjustment '{"parameter":"min_required_timeframes","new_value":2,"reasoning":"Fewer timeframes needed"}'
 ```
@@ -534,8 +553,8 @@ GREEN tier (auto-apply — you can adjust all of these freely):
 - `signal_interval_minutes`: range 3-30, default 5, cooldown 1h
 - `confidence_threshold`: range 0.50-0.90, default 0.65, cooldown 6h
 - `data_resolution`: enum [1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d], default 15m, cooldown 1h
-- `stop_loss_percent`: range 1.0-20.0, default 10.0, cooldown 6h — PnL-based! With 10x leverage: 10%=1% price=$20 loss on $200
-- `take_profit_percent`: range 2.0-40.0, default 20.0, cooldown 6h — PnL-based! With 10x leverage: 20%=2% price=$40 profit on $200
+- `stop_loss_percent`: range 1.0-20.0, default 10.0, cooldown 6h — PnL-based! price_move = this / leverage. ALWAYS query leverage first.
+- `take_profit_percent`: range 2.0-40.0, default 20.0, cooldown 6h — PnL-based! price_move = this / leverage. ALWAYS query leverage first.
 - `min_required_indicators`: range 2-5, default 4, cooldown 6h — min indicators that must agree (MACD, RSI, Bollinger, Stochastic, Volume)
 - `min_required_timeframes`: range 1-4, default 3, cooldown 6h — min timeframes that must agree (15M, 30M, 1H, 4H)
 
@@ -585,14 +604,18 @@ When monitoring positions, you decide:
 - When to tighten stops: in high volatility, reduce trailing_stop_pct to lock in gains
 - When to widen stops: in low volatility trends, increase stop_loss_pct to avoid premature exits
 
-Recommended settings by market condition (PnL-based, assuming leverage 10x):
+Recommended approach by market condition:
 
-Strong trend: TP 25-35%, SL 10-15%, trailing activation 15%, trailing distance 2-3%, leverage 5-10x
-Ranging/choppy: TP 10-15%, SL 5-8%, trailing activation 8%, trailing distance 1.5-2%, leverage 3-5x
-High volatility: TP 20-30%, SL 12-18%, trailing activation 12%, trailing distance 3-5%, leverage 3-5x
-Low volatility: TP 15-20%, SL 8-12%, trailing activation 10%, trailing distance 1-2%, leverage 5-10x
+ALWAYS check current leverage first (`get_paper_basic_settings`), then calculate price_move = SL% / leverage.
 
-Remember: these are PnL%. With 10x leverage, SL=10% means price moves just 1%. With 5x, SL=10% means price moves 2%.
+Target price tolerances (the SL/TP PnL% depends on leverage):
+- Strong trend: price SL 1.5-2.5%, price TP 3-5%, trailing distance 2-3%
+- Ranging/choppy: price SL 1-1.5%, price TP 1.5-2.5%, trailing distance 1-1.5%
+- High volatility: price SL 2-3%, price TP 3-5%, trailing distance 2-4%
+- Low volatility: price SL 0.8-1.2%, price TP 1.5-2.5%, trailing distance 0.8-1.5%
+
+To convert to PnL% setting: multiply price% by current leverage.
+Example: want 1.5% price SL, leverage=10x → set stop_loss_percent=15.
 
 ### Example: Proactive Profit Taking
 ```bash
