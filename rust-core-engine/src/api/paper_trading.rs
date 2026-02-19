@@ -20,7 +20,7 @@ pub struct UpdateSettingsRequest {
 /// Request to manually close a trade
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CloseTradeRequest {
-    pub trade_id: String,
+    pub trade_id: Option<String>,
     pub reason: Option<String>,
 }
 
@@ -2335,7 +2335,7 @@ mod tests {
         }"#;
 
         let request: CloseTradeRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(request.trade_id, "trade_123");
+        assert_eq!(request.trade_id, Some("trade_123".to_string()));
         assert_eq!(request.reason, Some("Manual close".to_string()));
     }
 
@@ -2346,14 +2346,14 @@ mod tests {
         }"#;
 
         let request: CloseTradeRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(request.trade_id, "trade_456");
+        assert_eq!(request.trade_id, Some("trade_456".to_string()));
         assert!(request.reason.is_none());
     }
 
     #[test]
     fn test_close_trade_request_serialization() {
         let request = CloseTradeRequest {
-            trade_id: "trade_789".to_string(),
+            trade_id: Some("trade_789".to_string()),
             reason: Some("Stop loss hit".to_string()),
         };
 
@@ -3164,7 +3164,7 @@ mod tests {
         let filter = api.routes();
 
         let request_body = CloseTradeRequest {
-            trade_id: "test_trade_123".to_string(),
+            trade_id: Some("test_trade_123".to_string()),
             reason: Some("Test close".to_string()),
         };
 
@@ -3188,7 +3188,7 @@ mod tests {
         let filter = api.routes();
 
         let request_body = CloseTradeRequest {
-            trade_id: "test_trade_456".to_string(),
+            trade_id: Some("test_trade_456".to_string()),
             reason: Some("Manual stop loss".to_string()),
         };
 
@@ -3211,7 +3211,7 @@ mod tests {
         let filter = api.routes();
 
         let request_body = CloseTradeRequest {
-            trade_id: "test_trade_789".to_string(),
+            trade_id: Some("test_trade_789".to_string()),
             reason: None,
         };
 
@@ -3708,7 +3708,7 @@ mod tests {
         let filter = api.routes();
 
         let request_body = CloseTradeRequest {
-            trade_id: "".to_string(),
+            trade_id: Some("".to_string()),
             reason: None,
         };
 
@@ -3842,7 +3842,7 @@ mod tests {
     #[test]
     fn test_close_trade_request_serialization_roundtrip() {
         let original = CloseTradeRequest {
-            trade_id: "trade_123".to_string(),
+            trade_id: Some("trade_123".to_string()),
             reason: Some("Stop loss triggered".to_string()),
         };
 
@@ -5752,11 +5752,11 @@ mod tests {
     #[test]
     fn test_close_trade_request_minimal() {
         let request = CloseTradeRequest {
-            trade_id: "minimal".to_string(),
+            trade_id: Some("minimal".to_string()),
             reason: None,
         };
 
-        assert_eq!(request.trade_id, "minimal");
+        assert_eq!(request.trade_id, Some("minimal".to_string()));
         assert!(request.reason.is_none());
     }
 
@@ -5834,7 +5834,7 @@ mod tests {
         let routes = api.routes();
 
         let req_body = CloseTradeRequest {
-            trade_id: "test_123".to_string(),
+            trade_id: Some("test_123".to_string()),
             reason: Some("Manual close".to_string()),
         };
 
@@ -5859,7 +5859,7 @@ mod tests {
         let routes = api.routes();
 
         let req_body = CloseTradeRequest {
-            trade_id: "test_456".to_string(),
+            trade_id: Some("test_456".to_string()),
             reason: None,
         };
 
@@ -7072,7 +7072,7 @@ mod tests {
         for trade_id in test_ids {
             let path = format!("/paper-trading/trades/{}/close", trade_id);
             let req_body = CloseTradeRequest {
-                trade_id: trade_id.to_string(),
+                trade_id: Some(trade_id.to_string()),
                 reason: None,
             };
 
@@ -7114,7 +7114,7 @@ mod tests {
     #[test]
     fn test_all_request_structs_implement_serialize() {
         let close_req = CloseTradeRequest {
-            trade_id: "test".to_string(),
+            trade_id: Some("test".to_string()),
             reason: None,
         };
         serde_json::to_string(&close_req).unwrap();
@@ -9767,7 +9767,7 @@ mod tests {
     #[test]
     fn test_cov8_close_trade_request_serialization() {
         let request = CloseTradeRequest {
-            trade_id: "test_123".to_string(),
+            trade_id: Some("test_123".to_string()),
             reason: Some("Manual close".to_string()),
         };
 
@@ -9777,7 +9777,7 @@ mod tests {
         let deserialized: Result<CloseTradeRequest, _> = serde_json::from_str(&json.unwrap());
         assert!(deserialized.is_ok());
         let req = deserialized.unwrap();
-        assert_eq!(req.trade_id, "test_123");
+        assert_eq!(req.trade_id, Some("test_123".to_string()));
         assert_eq!(req.reason, Some("Manual close".to_string()));
     }
 
@@ -10013,11 +10013,11 @@ mod tests {
     #[test]
     fn test_cov9_close_trade_request_no_reason() {
         let request = CloseTradeRequest {
-            trade_id: "abc123".to_string(),
+            trade_id: Some("abc123".to_string()),
             reason: None,
         };
 
-        assert_eq!(request.trade_id, "abc123");
+        assert_eq!(request.trade_id, Some("abc123".to_string()));
         assert!(request.reason.is_none());
     }
 
@@ -10087,11 +10087,11 @@ mod tests {
     #[test]
     fn test_cov10_close_trade_request_with_reason() {
         let request = CloseTradeRequest {
-            trade_id: "trade_xyz".to_string(),
+            trade_id: Some("trade_xyz".to_string()),
             reason: Some("Stop loss triggered".to_string()),
         };
 
-        assert_eq!(request.trade_id, "trade_xyz");
+        assert_eq!(request.trade_id, Some("trade_xyz".to_string()));
         assert!(request.reason.is_some());
         assert_eq!(request.reason.unwrap(), "Stop loss triggered");
     }
@@ -10206,7 +10206,7 @@ mod tests {
             message: "Order placed successfully".to_string(),
         };
 
-        assert_eq!(response.trade_id, "trade-001");
+        assert_eq!(&response.trade_id, "trade-001");
         assert_eq!(response.leverage, 5);
         assert_eq!(response.stop_loss, Some(3100.0));
     }
@@ -11011,7 +11011,7 @@ mod tests {
     #[test]
     fn test_boost_close_trade_request_with_long_reason() {
         let request = CloseTradeRequest {
-            trade_id: "trade-long-id-12345".to_string(),
+            trade_id: Some("trade-long-id-12345".to_string()),
             reason: Some("Manual close due to market uncertainty and external factors".to_string()),
         };
 
@@ -11404,7 +11404,7 @@ mod tests {
     async fn test_handler_close_trade_with_body() {
         let api = create_test_api().await;
         let close_req = CloseTradeRequest {
-            trade_id: "test-trade-123".to_string(),
+            trade_id: Some("test-trade-123".to_string()),
             reason: Some("Manual close for testing".to_string()),
         };
 

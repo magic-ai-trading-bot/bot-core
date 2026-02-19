@@ -110,14 +110,14 @@ fn test_create_order_response_structure() {
 #[test]
 fn test_close_trade_request() {
     let request = CloseTradeRequest {
-        trade_id: "trade_456".to_string(),
+        trade_id: Some("trade_456".to_string()),
         reason: Some("Manual close by user".to_string()),
     };
 
     let json = serde_json::to_string(&request).unwrap();
     let deserialized: CloseTradeRequest = serde_json::from_str(&json).unwrap();
 
-    assert_eq!(deserialized.trade_id, "trade_456");
+    assert_eq!(deserialized.trade_id, Some("trade_456".to_string()));
     assert_eq!(
         deserialized.reason,
         Some("Manual close by user".to_string())
