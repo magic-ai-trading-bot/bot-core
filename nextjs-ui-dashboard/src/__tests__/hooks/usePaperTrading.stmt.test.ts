@@ -130,7 +130,7 @@ describe('usePaperTrading - Statement Coverage', () => {
         });
       }
 
-      if (url.includes('/orders/pending')) {
+      if (url.includes('/pending-orders')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({

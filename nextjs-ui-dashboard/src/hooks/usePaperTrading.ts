@@ -357,7 +357,7 @@ export const usePaperTrading = () => {
   // @spec:FR-PAPER-003 - Fetch Pending Stop-Limit Orders
   const fetchPendingOrders = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/paper-trading/orders/pending`);
+      const response = await fetch(`${API_BASE}/api/paper-trading/pending-orders`);
       const data: RustPaperTradingResponse<PendingOrder[]> = await response.json();
 
       if (data.success && data.data) {
