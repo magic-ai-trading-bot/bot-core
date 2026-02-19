@@ -129,7 +129,7 @@ export function RecentTradesWidget({ trades = [], isLoading = false }: RecentTra
                         <>
                           <span className="text-xs text-gray-500">•</span>
                           <span className="text-xs text-gray-500">
-                            {formatTimestamp(trade.exit_time || trade.entry_time)}
+                            {formatTimestamp(trade.close_time || trade.open_time)}
                           </span>
                         </>
                       )}

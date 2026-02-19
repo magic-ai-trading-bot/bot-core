@@ -582,8 +582,8 @@ interface Trade {
   entry_price: number;
   exit_price?: number;
   pnl?: number;
-  entry_time: string;
-  exit_time?: string;
+  open_time: string;
+  close_time?: string;
   status: 'open' | 'closed';
 }
 
@@ -612,15 +612,15 @@ const generateChartDataFromTrades = (
   const cutoffTime = now - rangeMs;
   const initialBalance = 10000;
 
-  // Filter trades within the time range and sort by exit_time
+  // Filter trades within the time range and sort by close_time
   const filteredTrades = trades
     .filter((trade) => {
-      const exitTime = trade.exit_time ? new Date(trade.exit_time).getTime() : 0;
+      const exitTime = trade.close_time ? new Date(trade.close_time).getTime() : 0;
       return exitTime >= cutoffTime && trade.status === 'closed';
     })
     .sort((a, b) => {
-      const timeA = a.exit_time ? new Date(a.exit_time).getTime() : 0;
-      const timeB = b.exit_time ? new Date(b.exit_time).getTime() : 0;
+      const timeA = a.close_time ? new Date(a.close_time).getTime() : 0;
+      const timeB = b.close_time ? new Date(b.close_time).getTime() : 0;
       return timeA - timeB;
     });
 
@@ -644,7 +644,7 @@ const generateChartDataFromTrades = (
   // Sum all PnL from trades before the cutoff time
   const tradesBeforeCutoff = trades
     .filter((trade) => {
-      const exitTime = trade.exit_time ? new Date(trade.exit_time).getTime() : 0;
+      const exitTime = trade.close_time ? new Date(trade.close_time).getTime() : 0;
       return exitTime < cutoffTime && trade.status === 'closed';
     });
 
@@ -660,7 +660,7 @@ const generateChartDataFromTrades = (
 
   // Add data points for each trade
   filteredTrades.forEach((trade) => {
-    const exitTime = trade.exit_time ? new Date(trade.exit_time).getTime() : now;
+    const exitTime = trade.close_time ? new Date(trade.close_time).getTime() : now;
     runningBalance += trade.pnl || 0;
     dataPoints.push({
       timestamp: exitTime,
@@ -1108,7 +1108,7 @@ const RecentTrades = ({ trades = [], isLoading, colors }: RecentTradesProps) => 
                     </div>
                     <div className="text-xs mt-1" style={{ color: colors.textMuted }}>
                       {trade.quantity} @ ${trade.entry_price.toFixed(2)}
-                      {!isOpen && ` . ${formatTime(trade.exit_time || trade.entry_time)}`}
+                      {!isOpen && ` . ${formatTime(trade.close_time || trade.open_time)}`}
                     </div>
                   </div>
                 </div>

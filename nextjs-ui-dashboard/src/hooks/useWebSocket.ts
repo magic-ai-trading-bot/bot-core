@@ -281,8 +281,8 @@ export const useWebSocket = (): WebSocketHook => {
       entry_price: tradeData.price,
       exit_price: tradeData.side === "SELL" ? tradeData.price : undefined,
       pnl: tradeData.pnl,
-      entry_time: new Date(tradeData.timestamp).toISOString(),
-      exit_time:
+      open_time: new Date(tradeData.timestamp).toISOString(),
+      close_time:
         tradeData.side === "SELL"
           ? new Date(tradeData.timestamp).toISOString()
           : undefined,

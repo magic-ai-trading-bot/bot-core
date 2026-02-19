@@ -14,8 +14,8 @@ interface TradeRowProps {
     id: string;
     side: string;
     symbol: string;
-    entry_time: number;
-    exit_time?: number;
+    open_time: string;
+    close_time?: string;
     leverage: number;
     realized_pnl: number;
     realized_pnl_percent: number;
@@ -48,7 +48,7 @@ const TradeRow = memo(({ trade }: TradeRowProps) => {
           <div>
             <div className="font-semibold">{trade.symbol}</div>
             <div className="text-xs text-muted-foreground">
-              {formatTimestamp(trade.exit_time || trade.entry_time, 'datetime', 'vi-VN')}
+              {formatTimestamp(trade.close_time || trade.open_time, 'datetime', 'vi-VN')}
             </div>
           </div>
           <Badge variant="outline" className="text-xs">

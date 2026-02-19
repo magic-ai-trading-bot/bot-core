@@ -237,7 +237,7 @@ export function Profile() {
       earned.push({
         icon: Trophy,
         label: t('profile.achievements.firstTrade'),
-        date: firstTrade.exit_time || firstTrade.entry_time,
+        date: firstTrade.close_time || firstTrade.open_time,
         color: colors.amber,
         unlocked: true,
       });
@@ -316,7 +316,7 @@ export function Profile() {
     const recentTrades = closedTrades.slice(0, 5).map((trade) => {
       const pnl = trade.pnl || 0;
       const isProfitable = pnl >= 0;
-      const timeAgo = getTimeAgo(trade.exit_time || trade.entry_time);
+      const timeAgo = getTimeAgo(trade.close_time || trade.open_time);
       const sideLabel = trade.side === 'BUY' ? t('profile.activity.long') : t('profile.activity.short');
 
       return {

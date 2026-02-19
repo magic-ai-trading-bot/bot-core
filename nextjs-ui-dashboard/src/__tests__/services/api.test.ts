@@ -254,8 +254,8 @@ describe('API Service Tests', () => {
           entry_price: 50000,
           exit_price: 51000,
           pnl: 1500,
-          entry_time: '2024-01-01T00:00:00Z',
-          exit_time: '2024-01-01T01:00:00Z',
+          open_time: '2024-01-01T00:00:00Z',
+          close_time: '2024-01-01T01:00:00Z',
           status: 'closed',
         },
       ]

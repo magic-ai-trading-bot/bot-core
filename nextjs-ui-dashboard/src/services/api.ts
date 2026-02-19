@@ -47,8 +47,8 @@ export interface TradeHistory {
   entry_price: number;
   exit_price?: number;
   pnl?: number;
-  entry_time: string;
-  exit_time?: string;
+  open_time: string;
+  close_time?: string;
   status: "open" | "closed";
 }
 

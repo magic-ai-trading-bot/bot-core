@@ -193,7 +193,7 @@ describe('Dashboard - Enhanced Coverage', () => {
         side: 'BUY' as const,
         quantity: 0.5,
         entry_price: 50000,
-        entry_time: new Date().toISOString(),
+        open_time: new Date().toISOString(),
         status: 'open' as const,
       }
 
@@ -218,8 +218,8 @@ describe('Dashboard - Enhanced Coverage', () => {
         entry_price: 3000,
         exit_price: 3100,
         pnl: 100,
-        entry_time: new Date(Date.now() - 7200000).toISOString(),
-        exit_time: new Date(Date.now() - 3600000).toISOString(),
+        open_time: new Date(Date.now() - 7200000).toISOString(),
+        close_time: new Date(Date.now() - 3600000).toISOString(),
         status: 'closed' as const,
       }
 
@@ -244,8 +244,8 @@ describe('Dashboard - Enhanced Coverage', () => {
         entry_price: 400,
         exit_price: 380,
         pnl: -100,
-        entry_time: new Date(Date.now() - 3600000).toISOString(),
-        exit_time: new Date(Date.now() - 1800000).toISOString(),
+        open_time: new Date(Date.now() - 3600000).toISOString(),
+        close_time: new Date(Date.now() - 1800000).toISOString(),
         status: 'closed' as const,
       }
 
@@ -422,8 +422,8 @@ describe('Dashboard - Enhanced Coverage', () => {
         entry_price: 50000,
         exit_price: 51000,
         pnl: 100,
-        entry_time: new Date(Date.now() - 7200000).toISOString(),
-        exit_time: new Date(Date.now() - 3600000).toISOString(),
+        open_time: new Date(Date.now() - 7200000).toISOString(),
+        close_time: new Date(Date.now() - 3600000).toISOString(),
         status: 'closed' as const,
       }
 
@@ -522,8 +522,8 @@ describe('Dashboard - Enhanced Coverage', () => {
         entry_price: 50000,
         exit_price: 51000,
         pnl: 100,
-        entry_time: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        exit_time: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        open_time: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        close_time: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
         status: 'closed' as const,
       }
 
@@ -547,8 +547,8 @@ describe('Dashboard - Enhanced Coverage', () => {
         entry_price: 3000,
         exit_price: 3050,
         pnl: 50,
-        entry_time: new Date(Date.now() - 3600000).toISOString(),
-        exit_time: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
+        open_time: new Date(Date.now() - 3600000).toISOString(),
+        close_time: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
         status: 'closed' as const,
       }
 
@@ -575,8 +575,8 @@ describe('Dashboard - Enhanced Coverage', () => {
           entry_price: 50000,
           exit_price: 51000,
           pnl: 100,
-          entry_time: new Date(Date.now() - 604800000).toISOString(),
-          exit_time: new Date(Date.now() - 518400000).toISOString(),
+          open_time: new Date(Date.now() - 604800000).toISOString(),
+          close_time: new Date(Date.now() - 518400000).toISOString(),
           status: 'closed' as const,
         },
       ]

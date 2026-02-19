@@ -31,7 +31,7 @@ const mockUsePaperTrading = {
       entry_price: 50000,
       pnl: 200,
       status: 'closed',
-      exit_time: new Date(Date.now() - 3600000).toISOString(),
+      close_time: new Date(Date.now() - 3600000).toISOString(),
     },
     // Trade 2: Recent, for sort coverage
     {
@@ -41,7 +41,7 @@ const mockUsePaperTrading = {
       entry_price: 3000,
       pnl: -50,
       status: 'closed',
-      exit_time: new Date(Date.now() - 7200000).toISOString(),
+      close_time: new Date(Date.now() - 7200000).toISOString(),
     },
     // Trade 3: Before 24h cutoff, for forEach coverage (line 652)
     {
@@ -51,7 +51,7 @@ const mockUsePaperTrading = {
       entry_price: 300,
       pnl: 100,
       status: 'closed',
-      exit_time: new Date(Date.now() - 2 * 86400000).toISOString(),
+      close_time: new Date(Date.now() - 2 * 86400000).toISOString(),
     },
   ],
   aiSignals: [],
@@ -299,8 +299,8 @@ describe('Dashboard Statement Coverage', () => {
   })
 
   describe('Lines 622-624: trade sort callback', () => {
-    it('should sort trades by exit_time', async () => {
-      // The mock data already has trades with exit_time
+    it('should sort trades by close_time', async () => {
+      // The mock data already has trades with close_time
       // Rendering the component should exercise the sort
       const { container } = render(<Dashboard />)
 
