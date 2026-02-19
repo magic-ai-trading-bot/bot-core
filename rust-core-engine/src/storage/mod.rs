@@ -1642,11 +1642,14 @@ pub struct PaperTradingRecord {
     pub pnl_percentage: f64,
     pub trading_fees: f64,
     pub funding_fees: f64,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub open_time: DateTime<Utc>,
+    #[serde(default, with = "bson::serde_helpers::chrono_datetime_as_bson_datetime_optional")]
     pub close_time: Option<DateTime<Utc>>,
     pub ai_signal_id: Option<String>,
     pub ai_confidence: Option<f64>,
     pub close_reason: Option<String>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
 }
 
@@ -1654,6 +1657,7 @@ pub struct PaperTradingRecord {
 pub struct PortfolioHistoryRecord {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<mongodb::bson::oid::ObjectId>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub timestamp: DateTime<Utc>,
     pub current_balance: f64,
     pub equity: f64,
@@ -1667,6 +1671,7 @@ pub struct PortfolioHistoryRecord {
     pub max_drawdown: f64,
     pub max_drawdown_percentage: f64,
     pub open_positions: u32,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
 }
 
@@ -1686,7 +1691,9 @@ pub struct AISignalRecord {
     pub risk_score: f64,
     pub executed: bool,
     pub trade_id: Option<String>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub timestamp: DateTime<Utc>,
     // Outcome tracking fields - updated when trade closes
     #[serde(default)]
@@ -1699,7 +1706,7 @@ pub struct AISignalRecord {
     pub exit_price: Option<f64>, // Price when trade closed
     #[serde(default)]
     pub close_reason: Option<String>, // TakeProfit, StopLoss, Manual, etc.
-    #[serde(default)]
+    #[serde(default, with = "bson::serde_helpers::chrono_datetime_as_bson_datetime_optional")]
     pub closed_at: Option<DateTime<Utc>>, // When trade was closed
 }
 
@@ -1707,6 +1714,7 @@ pub struct AISignalRecord {
 pub struct PerformanceMetricsRecord {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<mongodb::bson::oid::ObjectId>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub date: DateTime<Utc>,
     pub total_trades: u32,
     pub winning_trades: u32,
@@ -1722,6 +1730,7 @@ pub struct PerformanceMetricsRecord {
     pub max_drawdown_percentage: f64,
     pub total_pnl: f64,
     pub daily_pnl: f64,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
 }
 
@@ -1731,7 +1740,9 @@ pub struct PaperTradingSettingsRecord {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<mongodb::bson::oid::ObjectId>,
     pub settings_data: mongodb::bson::Document,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub created_at: DateTime<Utc>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub updated_at: DateTime<Utc>,
 }
 
