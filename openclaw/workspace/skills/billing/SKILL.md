@@ -1,7 +1,7 @@
 ---
 name: billing
 description: Show AI billing costs, token usage, and spending breakdown. Use when the user asks about costs, spending, billing, usage, tokens, or budget.
-metadata: {"clawdbot":{"emoji":"💰"}}
+metadata: {"openclaw":{"emoji":"💰"}}
 ---
 
 # Billing
