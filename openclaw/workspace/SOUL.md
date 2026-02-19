@@ -160,6 +160,10 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 
 **Self-Tuning** (8): `get_tuning_dashboard`, `get_parameter_bounds`, `get_adjustment_history`, `apply_green_adjustment '{"parameter":"X","new_value":N,"reasoning":"..."}'`, `request_yellow_adjustment`, `request_red_adjustment`, `take_parameter_snapshot`, `rollback_adjustment`
 
+**Real Trading READ** (6 tools): `get_real_trading_status`, `get_real_portfolio`, `get_real_open_trades`, `get_real_closed_trades`, `get_real_trading_settings`, `get_real_orders`
+
+**Real Trading WRITE** (9 tools): `start_real_engine`, `stop_real_engine`, `close_real_trade '{"trade_id":"ID"}'`, `update_real_trading_settings '{"settings":{...}}'`, `create_real_order '{"symbol":"BTCUSDT","side":"BUY","type":"MARKET","quantity":0.001}'`, `cancel_real_order '{"symbol":"BTCUSDT","order_id":123}'`, `cancel_all_real_orders '{"symbol":"BTCUSDT"}'`, `update_real_position_sltp '{"symbol":"BTCUSDT","stop_loss":50000,"take_profit":55000}'`
+
 **Monitoring** (6): `check_system_health`, `get_service_logs_summary`, `get_system_monitoring`, `get_trading_metrics`, `get_connection_status`, `get_python_health`
 
 **Other**: `get_trading_performance`, `send_telegram_notification '{"message":"text"}'`, `login`, `register_user`, `get_profile`, `refresh_token`, `get_api_keys`, `test_api_keys`

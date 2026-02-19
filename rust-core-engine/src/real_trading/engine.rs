@@ -246,6 +246,9 @@ pub struct RealTradingEngine {
     // ============ Synchronization ============
     /// Execution lock for order operations
     execution_lock: Arc<Mutex<()>>,
+
+    /// Whether to use Futures endpoints (derived from config.trading_type)
+    use_futures: bool,
 }
 
 impl RealTradingEngine {
@@ -262,11 +265,17 @@ impl RealTradingEngine {
 
         let (event_tx, _) = broadcast::channel(1000);
 
-        // Create UserDataStreamManager
-        let user_data_stream = UserDataStreamManager::new(binance_client.clone());
+        // Create UserDataStreamManager (Futures or Spot based on config)
+        let user_data_stream = if config.is_futures() {
+            UserDataStreamManager::new_futures(binance_client.clone())
+        } else {
+            UserDataStreamManager::new(binance_client.clone())
+        };
 
         // Create real trading risk manager
         let real_risk_manager = RealTradingRiskManager::new(config.clone());
+
+        let use_futures = config.is_futures();
 
         Ok(Self {
             positions: Arc::new(DashMap::new()),
@@ -283,6 +292,7 @@ impl RealTradingEngine {
             daily_metrics: Arc::new(RwLock::new(DailyMetrics::new())),
             reconciliation_metrics: Arc::new(RwLock::new(ReconciliationMetrics::default())),
             execution_lock: Arc::new(Mutex::new(())),
+            use_futures,
         })
     }
 
@@ -1040,8 +1050,17 @@ impl RealTradingEngine {
 
     // ============ Balance Management ============
 
-    /// Refresh balances from exchange
+    /// Refresh balances from exchange (Futures or Spot)
     pub async fn refresh_balances(&self) -> Result<()> {
+        if self.use_futures {
+            self.refresh_futures_balances().await
+        } else {
+            self.refresh_spot_balances().await
+        }
+    }
+
+    /// Refresh balances from Spot account (/api/v3/account)
+    async fn refresh_spot_balances(&self) -> Result<()> {
         match self.binance_client.get_account_info().await {
             Ok(account) => {
                 let mut balances = self.balances.write().await;
@@ -1064,12 +1083,61 @@ impl RealTradingEngine {
                     }
                 }
 
-                debug!("Refreshed {} balances", balances.len());
+                debug!("Refreshed {} spot balances", balances.len());
                 Ok(())
             },
             Err(e) => {
-                error!("Failed to refresh balances: {}", e);
-                Err(anyhow!("Balance refresh failed: {}", e))
+                error!("Failed to refresh spot balances: {}", e);
+                Err(anyhow!("Spot balance refresh failed: {}", e))
+            },
+        }
+    }
+
+    /// Refresh balances from Futures account (/fapi/v2/account)
+    async fn refresh_futures_balances(&self) -> Result<()> {
+        match self.binance_client.get_futures_account().await {
+            Ok(account) => {
+                let mut balances = self.balances.write().await;
+                balances.clear();
+
+                // Futures account has "assets" array with different field names
+                if let Some(assets) = account.get("assets").and_then(|a| a.as_array()) {
+                    for asset_obj in assets {
+                        let asset_name = asset_obj
+                            .get("asset")
+                            .and_then(|a| a.as_str())
+                            .unwrap_or_default();
+                        let wallet_balance = asset_obj
+                            .get("walletBalance")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| s.parse::<f64>().ok())
+                            .unwrap_or(0.0);
+                        let available_balance = asset_obj
+                            .get("availableBalance")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| s.parse::<f64>().ok())
+                            .unwrap_or(0.0);
+
+                        if wallet_balance > 0.0 || available_balance > 0.0 {
+                            let locked = wallet_balance - available_balance;
+                            balances.insert(
+                                asset_name.to_string(),
+                                Balance {
+                                    asset: asset_name.to_string(),
+                                    free: available_balance,
+                                    locked: locked.max(0.0),
+                                },
+                            );
+                        }
+                    }
+                }
+
+                debug!("Refreshed {} futures balances", balances.len());
+                Ok(())
+            },
+            Err(e) => {
+                error!("Failed to refresh futures balances: {}", e);
+                Err(anyhow!("Futures balance refresh failed: {}", e))
             },
         }
     }

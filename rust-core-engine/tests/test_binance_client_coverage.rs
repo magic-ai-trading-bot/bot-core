@@ -793,7 +793,7 @@ fn test_user_data_stream_manager_with_custom_config() {
         channel_buffer_size: 50,
     };
 
-    let manager = UserDataStreamManager::with_config(client, custom_config);
+    let manager = UserDataStreamManager::with_config(client, custom_config, false);
 
     // Should be able to subscribe multiple times
     let _rx1 = manager.subscribe();

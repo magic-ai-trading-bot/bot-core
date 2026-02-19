@@ -71,16 +71,23 @@ pub struct UserDataStreamManager {
     event_tx: broadcast::Sender<UserDataStreamEvent>,
     is_running: Arc<RwLock<bool>>,
     shutdown_tx: Option<mpsc::Sender<()>>,
+    /// Whether to use Futures endpoints (/fapi/) instead of Spot (/userDataStream)
+    use_futures: bool,
 }
 
 impl UserDataStreamManager {
-    /// Create a new UserDataStreamManager
+    /// Create a new UserDataStreamManager (Spot mode)
     pub fn new(client: BinanceClient) -> Self {
-        Self::with_config(client, UserDataStreamConfig::default())
+        Self::with_config(client, UserDataStreamConfig::default(), false)
+    }
+
+    /// Create a new UserDataStreamManager for Futures mode
+    pub fn new_futures(client: BinanceClient) -> Self {
+        Self::with_config(client, UserDataStreamConfig::default(), true)
     }
 
     /// Create a new UserDataStreamManager with custom config
-    pub fn with_config(client: BinanceClient, config: UserDataStreamConfig) -> Self {
+    pub fn with_config(client: BinanceClient, config: UserDataStreamConfig, use_futures: bool) -> Self {
         let (event_tx, _) = broadcast::channel(config.channel_buffer_size);
 
         Self {
@@ -90,6 +97,7 @@ impl UserDataStreamManager {
             event_tx,
             is_running: Arc::new(RwLock::new(false)),
             shutdown_tx: None,
+            use_futures,
         }
     }
 
@@ -109,8 +117,12 @@ impl UserDataStreamManager {
             }
         }
 
-        // Create listen key
-        let stream_handle = self.client.create_user_data_stream().await?;
+        // Create listen key (Futures or Spot)
+        let stream_handle = if self.use_futures {
+            self.client.create_futures_user_data_stream().await?
+        } else {
+            self.client.create_user_data_stream().await?
+        };
         info!(
             "Created user data stream with listen key: {}...",
             &stream_handle.listen_key[..8]
@@ -138,9 +150,10 @@ impl UserDataStreamManager {
         let handle = self.handle.clone();
         let event_tx = self.event_tx.clone();
         let is_running = self.is_running.clone();
+        let use_futures = self.use_futures;
 
         tokio::spawn(async move {
-            Self::run_connection_loop(client, config, handle, event_tx, is_running, shutdown_rx)
+            Self::run_connection_loop(client, config, handle, event_tx, is_running, shutdown_rx, use_futures)
                 .await;
         });
 
@@ -167,7 +180,12 @@ impl UserDataStreamManager {
         };
 
         if let Some(listen_key) = listen_key {
-            if let Err(e) = self.client.close_listen_key(&listen_key).await {
+            let result = if self.use_futures {
+                self.client.close_futures_listen_key(&listen_key).await
+            } else {
+                self.client.close_listen_key(&listen_key).await
+            };
+            if let Err(e) = result {
                 warn!("Failed to close listen key: {}", e);
             }
         }
@@ -201,6 +219,7 @@ impl UserDataStreamManager {
         event_tx: broadcast::Sender<UserDataStreamEvent>,
         is_running: Arc<RwLock<bool>>,
         mut shutdown_rx: mpsc::Receiver<()>,
+        use_futures: bool,
     ) {
         let mut reconnect_attempts = 0;
 
@@ -281,7 +300,12 @@ impl UserDataStreamManager {
                                 };
 
                                 if let Some(listen_key) = listen_key {
-                                    match client.keepalive_listen_key(&listen_key).await {
+                                    let keepalive_result = if use_futures {
+                                        client.keepalive_futures_listen_key(&listen_key).await
+                                    } else {
+                                        client.keepalive_listen_key(&listen_key).await
+                                    };
+                                    match keepalive_result {
                                         Ok(_) => {
                                             debug!("Listen key keepalive sent");
                                             // Update last keepalive time
@@ -339,7 +363,12 @@ impl UserDataStreamManager {
             };
 
             if needs_new_key {
-                match client.create_user_data_stream().await {
+                let new_stream = if use_futures {
+                    client.create_futures_user_data_stream().await
+                } else {
+                    client.create_user_data_stream().await
+                };
+                match new_stream {
                     Ok(new_handle) => {
                         info!("Created new listen key");
                         let mut h = handle.write().await;
@@ -634,7 +663,7 @@ mod tests {
             channel_buffer_size: 200,
         };
 
-        let manager = UserDataStreamManager::with_config(client, custom_config);
+        let manager = UserDataStreamManager::with_config(client, custom_config, false);
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         let is_running = rt.block_on(async { manager.is_running().await });
@@ -1323,7 +1352,7 @@ mod tests {
             channel_buffer_size: 200,
         };
 
-        let manager = UserDataStreamManager::with_config(client, custom_config);
+        let manager = UserDataStreamManager::with_config(client, custom_config, false);
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         let is_running = rt.block_on(async { manager.is_running().await });
@@ -1678,7 +1707,7 @@ mod tests {
             channel_buffer_size: 50,
         };
 
-        let manager = UserDataStreamManager::with_config(client, stream_config);
+        let manager = UserDataStreamManager::with_config(client, stream_config, false);
         assert!(!manager.is_running().await);
     }
 

@@ -782,6 +782,55 @@ impl BinanceClient {
     pub fn is_testnet(&self) -> bool {
         self.config.testnet
     }
+
+    // ========================================================================
+    // FUTURES USER DATA STREAM METHODS
+    // @spec:FR-REAL-007
+    // ========================================================================
+
+    /// Create a listen key for Futures user data stream
+    pub async fn create_futures_listen_key(&self) -> Result<ListenKeyResponse> {
+        self.make_request(Method::POST, "/fapi/v1/listenKey", None, false)
+            .await
+    }
+
+    /// Keepalive a Futures listen key (should be called every 30 minutes)
+    pub async fn keepalive_futures_listen_key(&self, listen_key: &str) -> Result<()> {
+        let mut params = HashMap::new();
+        params.insert("listenKey".to_string(), listen_key.to_string());
+
+        let _: serde_json::Value = self
+            .make_request(Method::PUT, "/fapi/v1/listenKey", Some(params), false)
+            .await?;
+        Ok(())
+    }
+
+    /// Close/delete a Futures listen key
+    pub async fn close_futures_listen_key(&self, listen_key: &str) -> Result<()> {
+        let mut params = HashMap::new();
+        params.insert("listenKey".to_string(), listen_key.to_string());
+
+        let _: serde_json::Value = self
+            .make_request(Method::DELETE, "/fapi/v1/listenKey", Some(params), false)
+            .await?;
+        Ok(())
+    }
+
+    /// Get the WebSocket URL for Futures user data stream
+    pub fn get_futures_user_data_stream_url(&self, listen_key: &str) -> String {
+        format!(
+            "{}/ws/{}",
+            self.config.futures_ws_url.trim_end_matches("/ws"),
+            listen_key
+        )
+    }
+
+    /// Create a Futures user data stream handle
+    pub async fn create_futures_user_data_stream(&self) -> Result<UserDataStreamHandle> {
+        let response = self.create_futures_listen_key().await?;
+        let ws_url = self.get_futures_user_data_stream_url(&response.listen_key);
+        Ok(UserDataStreamHandle::new(response.listen_key, ws_url))
+    }
 }
 
 #[cfg(test)]

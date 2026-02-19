@@ -87,6 +87,8 @@ margin_type = "CROSSED"        # CROSSED or ISOLATED
 [real_trading]
 # Use testnet (REQUIRED for safe testing)
 use_testnet = true
+# Trading type: "spot" or "futures" (USDT-M)
+trading_type = "futures"
 
 # Risk management
 max_position_size_usdt = 1000.0

@@ -1,0 +1,7 @@
+{
+  "name": "loss-analysis",
+  "schedule": "*/10 * * * *",
+  "timeout_seconds": 300,
+  "no_deliver": true,
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\n1. Chạy `botcore get_paper_closed_trades` để lấy danh sách lệnh đã đóng\n2. Chạy `botcore get_paper_trade_analyses` để xem lệnh nào ĐÃ được phân tích\n3. So sánh: tìm lệnh THUA (pnl < 0) mà CHƯA có trade analysis\n4. Với mỗi lệnh thua chưa phân tích: chạy `botcore trigger_paper_analysis` để GPT-4 phân tích nguyên nhân\n5. Sau khi phân tích xong: chạy `botcore send_telegram_notification` báo cáo kết quả phân tích bằng tiếng Việt, bao gồm: symbol, PnL, lý do thua, bài học rút ra\n\nNếu không có lệnh thua mới cần phân tích → KHÔNG gửi thông báo, kết thúc.\n\nLUÔN viết bằng tiếng Việt."
+}

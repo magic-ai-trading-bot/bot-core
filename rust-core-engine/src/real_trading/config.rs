@@ -80,6 +80,9 @@ pub struct RealTradingConfig {
     /// Use testnet instead of mainnet
     pub use_testnet: bool,
 
+    /// Trading type: "spot" or "futures" (USDT-M)
+    pub trading_type: String,
+
     /// Symbols allowed for trading (empty = all)
     pub allowed_symbols: Vec<String>,
 
@@ -136,6 +139,7 @@ impl Default for RealTradingConfig {
 
             // Trading mode - default to testnet for safety
             use_testnet: true,
+            trading_type: "futures".to_string(),
             allowed_symbols: vec![],
             max_leverage: 1,
 
@@ -209,6 +213,11 @@ impl RealTradingConfig {
         } else {
             Err(errors)
         }
+    }
+
+    /// Check if trading type is futures
+    pub fn is_futures(&self) -> bool {
+        self.trading_type.to_lowercase() == "futures"
     }
 
     /// Check if a symbol is allowed for trading
