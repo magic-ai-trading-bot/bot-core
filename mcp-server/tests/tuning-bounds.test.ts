@@ -121,11 +121,11 @@ describe("getParametersByTier", () => {
     expect(Array.isArray(grouped.RED)).toBe(true);
 
     // Verify counts (from bounds.ts)
-    // GREEN: rsi_oversold, rsi_overbought, signal_interval_minutes, confidence_threshold, data_resolution (5)
-    expect(grouped.GREEN.length).toBe(5);
+    // GREEN: all tunable params except RED (12 total)
+    expect(grouped.GREEN.length).toBe(12);
 
-    // YELLOW: stop_loss_percent, take_profit_percent, position_size_percent, max_positions, leverage, min_required_indicators, min_required_timeframes (7)
-    expect(grouped.YELLOW.length).toBe(7);
+    // YELLOW: none (all promoted to GREEN for autonomous tuning)
+    expect(grouped.YELLOW.length).toBe(0);
 
     // RED: max_daily_loss_percent, engine_running (2)
     expect(grouped.RED.length).toBe(2);
@@ -134,10 +134,8 @@ describe("getParametersByTier", () => {
     const greenNames = grouped.GREEN.map(p => p.name);
     expect(greenNames).toContain("RSI Oversold Threshold");
     expect(greenNames).toContain("Signal Confidence Threshold");
-
-    const yellowNames = grouped.YELLOW.map(p => p.name);
-    expect(yellowNames).toContain("Stop Loss %");
-    expect(yellowNames).toContain("Leverage");
+    expect(greenNames).toContain("Stop Loss %");
+    expect(greenNames).toContain("Leverage");
 
     const redNames = grouped.RED.map(p => p.name);
     expect(redNames).toContain("Max Daily Loss %");

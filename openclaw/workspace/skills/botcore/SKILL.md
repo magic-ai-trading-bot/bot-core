@@ -459,21 +459,26 @@ botcore get_parameter_bounds            # All tunable params with ranges by tier
 botcore get_adjustment_history '{"limit":10}'  # Past parameter changes
 ```
 
-### GREEN Tier (Auto-apply, notify user)
+### GREEN Tier (Auto-apply, notify user) — ALL tunable params except RED
 ```bash
 botcore apply_green_adjustment '{"parameter":"rsi_oversold","new_value":25,"reasoning":"Bear market"}'
 botcore apply_green_adjustment '{"parameter":"rsi_overbought","new_value":75,"reasoning":"Reduce overbought"}'
 botcore apply_green_adjustment '{"parameter":"signal_interval_minutes","new_value":10,"reasoning":"Low volatility"}'
 botcore apply_green_adjustment '{"parameter":"confidence_threshold","new_value":0.70,"reasoning":"Higher quality signals"}'
+botcore apply_green_adjustment '{"parameter":"stop_loss_percent","new_value":3.0,"reasoning":"Wider SL to avoid premature exits"}'
+botcore apply_green_adjustment '{"parameter":"take_profit_percent","new_value":6.0,"reasoning":"Higher TP for trending market"}'
+botcore apply_green_adjustment '{"parameter":"leverage","new_value":5,"reasoning":"Reduce leverage in high volatility"}'
+botcore apply_green_adjustment '{"parameter":"position_size_percent","new_value":3.0,"reasoning":"Smaller positions in uncertain market"}'
+botcore apply_green_adjustment '{"parameter":"max_positions","new_value":3,"reasoning":"Fewer positions for focused management"}'
+botcore apply_green_adjustment '{"parameter":"min_required_indicators","new_value":3,"reasoning":"Relax indicator agreement for more signals"}'
+botcore apply_green_adjustment '{"parameter":"min_required_timeframes","new_value":2,"reasoning":"Fewer timeframes needed"}'
 ```
 
-### YELLOW Tier (Require user confirmation)
-```bash
-# Step 1: Request (returns confirm_token)
-botcore request_yellow_adjustment '{"parameter":"stop_loss_percent","new_value":3.0,"reasoning":"Wider stop loss"}'
-# Step 2: User approves → call again with token
-botcore request_yellow_adjustment '{"parameter":"stop_loss_percent","new_value":3.0,"reasoning":"...","confirm_token":"TOKEN"}'
-```
+You have FULL AUTONOMY to adjust SL, TP, leverage, position size, and all other GREEN params.
+When you see trades being stopped out too early → increase stop_loss_percent.
+When win rate is low → increase min_required_indicators or confidence_threshold.
+When you see opportunities being missed → decrease min_required_timeframes.
+ALWAYS use `apply_green_adjustment` with a clear reasoning so changes are logged.
 
 ### RED Tier (Require explicit approval text)
 ```bash
@@ -507,14 +512,12 @@ For ALL scheduled reports, alerts, and cron job outputs: use `send_telegram_noti
 
 ## Tunable Parameters Reference
 
-GREEN tier (auto-apply):
+GREEN tier (auto-apply — you can adjust all of these freely):
 - `rsi_oversold`: range 20-40, default 30, cooldown 6h
 - `rsi_overbought`: range 60-80, default 70, cooldown 6h
 - `signal_interval_minutes`: range 3-30, default 5, cooldown 1h
 - `confidence_threshold`: range 0.50-0.90, default 0.65, cooldown 6h
 - `data_resolution`: enum [1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d], default 15m, cooldown 1h
-
-YELLOW tier (user confirmation):
 - `stop_loss_percent`: range 0.5-5.0, default 2.0, cooldown 6h
 - `take_profit_percent`: range 1.0-10.0, default 4.0, cooldown 6h
 - `position_size_percent`: range 1.0-10.0, default 5.0, cooldown 6h
@@ -533,15 +536,17 @@ RED tier (explicit approval):
 
 Paper trading is unrestricted. You can close, open, modify any paper trade at any time. No approval needed.
 
+Self-tuning rules:
+1. GREEN tier (ALL params except 2): auto-apply via `apply_green_adjustment` and notify user
+2. RED tier (max_daily_loss_percent, engine_running): require explicit approval text
+3. Respect cooldown periods via `get_parameter_bounds`
+4. Always `take_parameter_snapshot` before multiple changes
+5. If performance degrades after changes, use `rollback_adjustment`
+6. PROACTIVELY tune params when you notice issues (e.g. SL too tight → increase it)
+
 Real trading is restricted. Rules for real trading (tools with `_real_` in the name):
 1. Require explicit user instruction AND the user typing "APPROVE"
 2. Check `get_tuning_dashboard` before suggesting parameter changes
-3. GREEN tier: auto-apply and notify user
-4. YELLOW tier: present change, wait for confirmation token
-5. RED tier: present with risk assessment, require exact approval text
-6. Respect cooldown periods via `get_parameter_bounds`
-7. Always `take_parameter_snapshot` before multiple changes
-8. If performance degrades, suggest `rollback_adjustment`
 
 ---
 

@@ -62,10 +62,10 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
     cooldownMs: ONE_HOUR,
   },
 
-  // ── YELLOW: Require confirmation ──
+  // ── GREEN: Previously YELLOW, promoted to auto-adjust ──
   stop_loss_percent: {
     name: "Stop Loss %",
-    tier: "YELLOW",
+    tier: "GREEN",
     min: 0.5, max: 5.0, step: 0.5, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "stop_loss_percent",
@@ -75,7 +75,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   take_profit_percent: {
     name: "Take Profit %",
-    tier: "YELLOW",
+    tier: "GREEN",
     min: 1.0, max: 10.0, step: 0.5, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "take_profit_percent",
@@ -85,7 +85,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   position_size_percent: {
     name: "Position Size %",
-    tier: "YELLOW",
+    tier: "GREEN",
     min: 1.0, max: 10.0, step: 0.5, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "position_size_percent",
@@ -95,7 +95,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   max_positions: {
     name: "Max Concurrent Positions",
-    tier: "YELLOW",
+    tier: "GREEN",
     min: 1, max: 8, step: 1, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "max_positions",
@@ -105,7 +105,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   leverage: {
     name: "Leverage",
-    tier: "YELLOW",
+    tier: "GREEN",
     min: 1, max: 20, step: 1, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "leverage",
@@ -115,7 +115,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   min_required_indicators: {
     name: "Min Required Indicators",
-    tier: "YELLOW",
+    tier: "GREEN",
     min: 2, max: 5, step: 1, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "min_required_indicators",
@@ -125,7 +125,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
   },
   min_required_timeframes: {
     name: "Min Required Timeframes",
-    tier: "YELLOW",
+    tier: "GREEN",
     min: 1, max: 4, step: 1, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "min_required_timeframes",
