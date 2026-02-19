@@ -126,19 +126,40 @@ GOOD:
 
 ### TP/SL are PnL-based (not price-based) — CRITICAL: READ THIS
 
-The engine uses **PnL-based** take profit and stop loss. This is the MOST COMMON source of confusion.
+⚠️⚠️⚠️ **THE #1 MISTAKE**: The API field `default_stop_loss_pct` is **PnL percentage, NOT price percentage**.
 
-**Formulas (memorize these):**
+**What this means:**
+- `default_stop_loss_pct = 1.5` means the engine closes when PnL = -1.5% → with 10x leverage that's only 0.15% price move = ~$3 loss on $200
+- `default_stop_loss_pct = 15` means the engine closes when PnL = -15% → with 10x leverage that's 1.5% price move = ~$30 loss on $200
+
+**❌ WRONG (common mistake):**
 ```
-price_move% = pnl% / leverage
-$ profit_or_loss = capital_per_trade × pnl% / 100
+User wants SL at 1.5% price move
+Bot sets: default_stop_loss_pct = 1.5  ← WRONG! This is only 0.15% price with 10x leverage!
+Result: Trade gets killed by $3 noise
+```
+
+**✅ CORRECT:**
+```
+User wants SL at 1.5% price move, leverage = 10x
+Bot calculates: pnl% = price% × leverage = 1.5% × 10 = 15%
+Bot sets: default_stop_loss_pct = 15  ← CORRECT! 15% PnL = 1.5% price with 10x
+Result: Trade survives normal noise, closes at $30 loss
+```
+
+**Conversion formulas:**
+```
+To SET SL/TP: pnl% = desired_price_move% × leverage
+To EXPLAIN SL/TP: price_move% = pnl% / leverage
+$ loss = capital_per_trade × pnl% / 100
 ```
 
 **BEFORE setting or discussing SL/TP, you MUST:**
 1. Run `botcore get_paper_basic_settings` to get current `leverage` and `position_size_pct`
-2. Calculate: price_move = SL% / leverage
-3. Calculate: $ loss = capital × SL% / 100
+2. Convert: if thinking in price% → multiply by leverage to get pnl%
+3. Calculate: $ loss = capital × pnl% / 100
 4. Verify the price_move makes sense for crypto (should survive 0.5-1% normal noise)
+5. **DOUBLE-CHECK**: The number you put in `default_stop_loss_pct` should be LARGER than the price% you want (because pnl% = price% × leverage)
 
 **Example calculation flow (ALWAYS use actual values from get_paper_basic_settings):**
 ```
@@ -303,8 +324,8 @@ Basic fields:
 Risk fields:
 - `max_risk_per_trade_pct` (number) — Max risk per trade %. Example: 1.0
 - `max_portfolio_risk_pct` (number) — Max portfolio risk %. Example: 10.0
-- `default_stop_loss_pct` (number) — Stop loss PnL %. ALWAYS calculate: price_move = this / leverage. Example: 10.0
-- `default_take_profit_pct` (number) — Take profit PnL %. ALWAYS calculate: price_move = this / leverage. Example: 20.0
+- `default_stop_loss_pct` (number) — ⚠️ PnL %, NOT price %. To get X% price SL: set this = X × leverage. Example: want 1.5% price SL with 10x leverage → set 15.0
+- `default_take_profit_pct` (number) — ⚠️ PnL %, NOT price %. To get X% price TP: set this = X × leverage. Example: want 4% price TP with 10x leverage → set 40.0
 - `max_leverage` (number) — Max allowed leverage. Example: 5
 - `min_margin_level` (number) — Min margin level %. Example: 300.0
 - `max_drawdown_pct` (number) — Max drawdown %. Example: 10.0
@@ -369,11 +390,12 @@ botcore update_paper_indicator_settings '{"settings":{"rsi_period":14,"rsi_overs
 
 ### Settings Update Examples
 ```bash
-# Set stop loss — ALWAYS check leverage first!
-# Example: leverage=10x, want 1% price tolerance → SL = 1% × 10 = 10%
-botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":10.0}}'
-# Example: leverage=5x, want 1.5% price tolerance → SL = 1.5% × 5 = 7.5%
+# ⚠️ STOP LOSS VALUE = PnL%, NOT price%. Multiply price% × leverage!
+# Example: leverage=10x, want 1.5% price SL → pnl = 1.5 × 10 = 15 → set 15.0
+botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":15.0}}'
+# Example: leverage=5x, want 1.5% price SL → pnl = 1.5 × 5 = 7.5 → set 7.5
 botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":7.5}}'
+# ❌ NEVER set default_stop_loss_pct = 1.5 thinking it's 1.5% price! With 10x that's only 0.15% price!
 # Enable trailing stop: activate at PnL%, trail % below peak price
 botcore update_paper_basic_settings '{"settings":{"trailing_stop_enabled":true,"trailing_stop_pct":2.5,"trailing_activation_pct":10.0}}'
 # Disable signal reversal
