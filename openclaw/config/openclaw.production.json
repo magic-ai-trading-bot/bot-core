@@ -55,6 +55,9 @@
           "MCP_URL": "${MCP_URL}",
           "MCP_AUTH_TOKEN": "${MCP_AUTH_TOKEN}"
         }
+      },
+      "billing": {
+        "enabled": true
       }
     }
   },
