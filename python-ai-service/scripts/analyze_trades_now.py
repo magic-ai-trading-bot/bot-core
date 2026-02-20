@@ -15,7 +15,10 @@ from utils.data_storage import DataStorage
 def main():
     # Initialize
     storage = DataStorage()
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = OpenAI(
+        api_key=os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("AI_BASE_URL", "https://api.x.ai/v1"),
+    )
     RUST_API_URL = os.getenv("RUST_API_URL", "http://rust-core-engine:8080")
 
     # Get closed trades
@@ -70,7 +73,7 @@ Please provide analysis in JSON format:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=os.getenv("AI_MODEL", "grok-4-1-fast"),
                 messages=[
                     {
                         "role": "system",

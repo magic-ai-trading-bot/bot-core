@@ -15,7 +15,9 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-change-me-inter-service-token}
       - PYTHON_API_KEY=${PYTHON_API_KEY:-change-me-python-api-key}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.x.ai/v1}
+      - AI_MODEL=${AI_MODEL:-grok-4-1-fast}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - RUST_API_URL=http://rust-core-engine:8080
     volumes:
@@ -59,7 +61,9 @@ services:
       - LOG_LEVEL=DEBUG
       - FLASK_ENV=development
       - ENABLE_HOT_RELOAD=true
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.x.ai/v1}
+      - AI_MODEL=${AI_MODEL:-grok-4-1-fast}
       - DATABASE_URL=${DATABASE_URL}
       - RUST_API_URL=http://rust-core-engine:8080
     volumes:
@@ -468,6 +472,7 @@ services:
       - HOME=/home/node
       - TERM=xterm-256color
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY:-}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_USER_ID=${TELEGRAM_USER_ID}
@@ -505,6 +510,7 @@ services:
       - HOME=/home/node
       - TERM=xterm-256color
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY:-}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-botcore-dev-gateway-token}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_USER_ID=${TELEGRAM_USER_ID}

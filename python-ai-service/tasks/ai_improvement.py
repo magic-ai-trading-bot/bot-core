@@ -20,8 +20,10 @@ from utils.logger import get_logger
 
 logger = get_logger("AIImprovementTasks")
 
-# OpenAI configuration - v1.0+ uses client-based API
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# AI configuration - supports xAI Grok (OpenAI-compatible API)
+AI_API_KEY = os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.x.ai/v1")
+AI_MODEL = os.getenv("AI_MODEL", "grok-4-1-fast")
 
 # Service URLs
 RUST_API_URL = os.getenv("RUST_API_URL", "http://localhost:8080")
@@ -93,13 +95,13 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
 
     try:
         # Check if OpenAI API key is configured (check dynamically for test compatibility)
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = AI_API_KEY
         if not api_key:
-            logger.warning("⚠️ OPENAI_API_KEY not configured - skipping GPT-4 analysis")
+            logger.warning("⚠️ AI API key not configured - skipping GPT-4 analysis")
             # Return a default analysis result for tests instead of raising exception
             return {
                 "status": "skipped",
-                "reason": "OPENAI_API_KEY not configured",
+                "reason": "AI API key not configured (XAI_API_KEY or OPENAI_API_KEY)",
                 "analysis": {
                     "recommendation": "wait",
                     "confidence": 0,
@@ -110,7 +112,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
             }
 
         # Create OpenAI client (v1.0+ syntax)
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=api_key, base_url=AI_BASE_URL)
 
         # STEP 1: Fetch last 7 days performance data
         logger.info("📊 Fetching 7-day performance data...")
@@ -190,7 +192,7 @@ def gpt4_self_analysis(self, force_analysis: bool = False) -> Dict[str, Any]:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=AI_MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -367,16 +369,16 @@ def adaptive_retrain(
 
     try:
         # Check OpenAI API key
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = AI_API_KEY
         if not api_key:
-            logger.warning("⚠️ OPENAI_API_KEY not configured - skipping")
+            logger.warning("⚠️ AI API key not configured - skipping")
             return {
                 "status": "skipped",
-                "reason": "OPENAI_API_KEY not configured",
+                "reason": "AI API key not configured (XAI_API_KEY or OPENAI_API_KEY)",
             }
 
         # Create OpenAI client
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=api_key, base_url=AI_BASE_URL)
 
         # STEP 1: Fetch current indicator settings
         logger.info("📊 Fetching current indicator settings...")
@@ -544,7 +546,7 @@ You are a CONSERVATIVE trading bot configuration optimizer. Your PRIMARY goal is
         logger.info("🤖 Calling GPT-4 for config analysis...")
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=AI_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -793,17 +795,17 @@ def analyze_trade(
             }
 
         # Check OpenAI API key
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = AI_API_KEY
         if not api_key:
-            logger.warning("⚠️ OPENAI_API_KEY not configured - skipping trade analysis")
+            logger.warning("⚠️ AI API key not configured - skipping trade analysis")
             return {
                 "status": "skipped",
-                "reason": "OPENAI_API_KEY not configured",
+                "reason": "AI API key not configured (XAI_API_KEY or OPENAI_API_KEY)",
                 "trade_id": trade_id,
             }
 
         # Create OpenAI client
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=api_key, base_url=AI_BASE_URL)
 
         # Determine if winning or losing
         pnl = trade_data.get("pnl_usdt") or trade_data.get("profit_usdt", 0)
@@ -890,7 +892,7 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
         # Call GPT-4
         logger.info(f"🤖 Calling GPT-4 to analyze trade {trade_id}...")
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=AI_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -1313,13 +1315,13 @@ def _run_config_analysis_direct(
 
     try:
         # Check OpenAI API key
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = AI_API_KEY
         if not api_key:
-            logger.warning("⚠️ OPENAI_API_KEY not configured - skipping")
-            return {"status": "skipped", "reason": "OPENAI_API_KEY not configured"}
+            logger.warning("⚠️ AI API key not configured - skipping")
+            return {"status": "skipped", "reason": "AI API key not configured (XAI_API_KEY or OPENAI_API_KEY)"}
 
         # Create OpenAI client
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=api_key, base_url=AI_BASE_URL)
 
         # STEP 1: Fetch current indicator settings
         logger.info("📊 Fetching current indicator settings...")
@@ -1440,7 +1442,7 @@ You are a CONSERVATIVE trading bot configuration optimizer.
         # Call GPT-4
         logger.info("🤖 Calling GPT-4 for config analysis...")
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=AI_MODEL,
             messages=[
                 {
                     "role": "system",

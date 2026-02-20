@@ -53,7 +53,11 @@ from settings_manager import refresh_settings_periodically, settings_manager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global OpenAI client, WebSocket connections, and MongoDB storage
+# AI Provider Configuration (supports xAI Grok, OpenAI, etc.)
+AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.x.ai/v1")
+AI_MODEL = os.getenv("AI_MODEL", "grok-4-1-fast")
+
+# Global AI client, WebSocket connections, and MongoDB storage
 # Thread safety: These are only written during startup/shutdown in lifespan
 # Read-only access during request handling is safe
 # Type annotations help mypy understand optional types
@@ -62,7 +66,7 @@ websocket_connections: Set[WebSocket] = set()
 mongodb_client: Optional[AsyncIOMotorClient] = None
 mongodb_db: Optional[Any] = None
 
-# Rate limiting for OpenAI API
+# Rate limiting for AI API
 # Thread safety: Access to these variables is protected by asyncio.Lock
 # for proper async/await compatibility
 _rate_limit_lock = asyncio.Lock()
@@ -70,9 +74,9 @@ last_openai_request_time = None
 # OPENAI_REQUEST_DELAY is imported from app.core.config (reads from env var)
 OPENAI_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
 
-# Cost monitoring (GPT-5-mini pricing as of Nov 2024)
-GPT4O_MINI_INPUT_COST_PER_1M = 0.150  # $0.150 per 1M input tokens
-GPT4O_MINI_OUTPUT_COST_PER_1M = 0.600  # $0.600 per 1M output tokens
+# Cost monitoring (xAI Grok 4.1 Fast pricing)
+AI_INPUT_COST_PER_1M = 0.200  # $0.200 per 1M input tokens
+AI_OUTPUT_COST_PER_1M = 0.500  # $0.500 per 1M output tokens
 total_input_tokens = 0
 total_output_tokens = 0
 total_requests_count = 0
@@ -418,9 +422,9 @@ async def lifespan(app: FastAPI):
         mongodb_client = None
         mongodb_db = None
 
-    # Initialize OpenAI client with API keys from environment
-    # Support multiple backup keys separated by commas
-    api_key_string = os.getenv("OPENAI_API_KEY", "")
+    # Initialize AI client with API keys from environment
+    # Support xAI (XAI_API_KEY) with fallback to OpenAI (OPENAI_API_KEY)
+    api_key_string = os.getenv("XAI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
     backup_keys_string = os.getenv("OPENAI_BACKUP_API_KEYS", "")
 
     api_keys = []
@@ -437,7 +441,7 @@ async def lifespan(app: FastAPI):
     valid_api_keys = [key for key in api_keys if key and not key.startswith("your-")]
 
     if not valid_api_keys:
-        logger.error("❌ No valid OpenAI API keys found!")
+        logger.error("❌ No valid AI API keys found!")
         api_key = None
     else:
         api_key = valid_api_keys[0]  # Use the first valid key
@@ -445,28 +449,29 @@ async def lifespan(app: FastAPI):
         if len(valid_api_keys) > 1:
             logger.info("🔄 Backup keys available for auto-fallback on rate limits")
 
-    logger.info(f"🔑 OpenAI API key configured: {bool(api_key)}")
+    logger.info(f"🔑 AI API key configured: {bool(api_key)}")
+    logger.info(f"🌐 AI Base URL: {AI_BASE_URL}")
+    logger.info(f"🤖 AI Model: {AI_MODEL}")
 
     if not api_key or api_key.startswith("your-"):
-        logger.error("❌ OpenAI API key not configured!")
+        logger.error("❌ AI API key not configured!")
         openai_client = None
     else:
-        logger.info("🔄 Initializing OpenAI client...")
+        logger.info(f"🔄 Initializing AI client ({AI_BASE_URL})...")
 
-        # Use direct HTTP client to bypass OpenAI SDK conflicts
+        # Use direct HTTP client (OpenAI-compatible API)
         try:
-            openai_client = DirectOpenAIClient(valid_api_keys)  # Pass all valid keys
-            logger.info("✅ Direct OpenAI HTTP client initialized successfully")
+            openai_client = DirectOpenAIClient(valid_api_keys)
+            logger.info(f"✅ AI HTTP client initialized ({AI_MODEL} via {AI_BASE_URL})")
             logger.info(f"🔑 Total API keys configured: {len(valid_api_keys)}")
-            logger.info("🔄 Using direct HTTP calls to OpenAI API with auto-fallback")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize direct OpenAI client: {e}")
+            logger.error(f"❌ Failed to initialize AI client: {e}")
             openai_client = None
 
     if openai_client is not None:
-        logger.info("✅ OpenAI GPT-4 client ready for analysis")
+        logger.info(f"✅ AI client ready ({AI_MODEL})")
     else:
-        logger.warning("❌ GPT-4 unavailable - will use fallback technical analysis")
+        logger.warning("❌ AI unavailable - will use fallback technical analysis")
 
     # @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Initialize settings from Rust API
     # Fetch indicator/signal settings from Rust API with fallback to config.yaml
@@ -552,8 +557,8 @@ else:
 
 # Create FastAPI app
 app = FastAPI(
-    title="GPT-4 Cryptocurrency AI Trading Service",
-    description="Advanced AI-powered trading signal generation using OpenAI GPT-4",
+    title="Grok AI Cryptocurrency Trading Service",
+    description="Advanced AI-powered trading signal generation using xAI Grok",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -781,9 +786,9 @@ class AIServiceInfo(BaseModel):
 
     model_config = {"protected_namespaces": ()}
 
-    service_name: str = Field(default="GPT-4o Trading AI")
-    version: str = Field(default="2.0.0")
-    model_version: str = Field(default="gpt-4o-mini")
+    service_name: str = Field(default="Grok Trading AI")
+    version: str = Field(default="3.0.0")
+    model_version: str = Field(default="grok-4-1-fast")
     supported_timeframes: List[str] = Field(
         default_factory=lambda: ["1m", "5m", "15m", "1h", "4h", "1d"]
     )
@@ -1203,12 +1208,12 @@ class TechnicalAnalyzer:
 
 
 class DirectOpenAIClient:
-    """Direct HTTP client for OpenAI API with auto-fallback support."""
+    """Direct HTTP client for AI API (xAI Grok / OpenAI compatible) with auto-fallback support."""
 
-    def __init__(self, api_keys: list):
+    def __init__(self, api_keys: list, base_url: str = None):
         self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
         self.current_key_index = 0
-        self.base_url = "https://api.openai.com/v1"
+        self.base_url = base_url or AI_BASE_URL
         # Track which keys are rate limited
         self.rate_limited_keys: Set[int] = set()
 
@@ -1290,23 +1295,12 @@ class DirectOpenAIClient:
                 "Content-Type": "application/json",
             }
 
-            # gpt-4o-mini and o1 models have different API requirements:
-            # - Use max_completion_tokens instead of max_tokens
-            # - Don't support temperature parameter (only default=1)
-            if "gpt-5" in model or "o1" in model:
-                payload = {
-                    "model": model,
-                    "messages": messages,
-                    "max_completion_tokens": max_tokens,
-                    # Note: temperature not supported for these models
-                }
-            else:
-                payload = {
-                    "model": model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                }
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
 
             try:
                 logger.info(f"🔑 Using API key (attempt {attempt + 1}/{max_attempts})")
@@ -1507,7 +1501,7 @@ class GPTTradingAnalyzer:
             # Call GPT-4 (optimized max_tokens for cost saving)
             logger.info("🔄 Calling GPT-4 API...")
             response = await self.client.chat_completions_create(
-                model="gpt-4o-mini",
+                model=AI_MODEL,
                 messages=[
                     {"role": "system", "content": self._get_system_prompt()},
                     {"role": "user", "content": prompt},
@@ -1528,10 +1522,10 @@ class GPTTradingAnalyzer:
                 total_tokens = usage.get("total_tokens", 0)
 
                 # Calculate cost
-                input_cost = (input_tokens / 1_000_000) * GPT4O_MINI_INPUT_COST_PER_1M
+                input_cost = (input_tokens / 1_000_000) * AI_INPUT_COST_PER_1M
                 output_cost = (
                     output_tokens / 1_000_000
-                ) * GPT4O_MINI_OUTPUT_COST_PER_1M
+                ) * AI_OUTPUT_COST_PER_1M
                 request_cost = input_cost + output_cost
 
                 # Update global counters
@@ -2543,10 +2537,10 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "service": "GPT-4o Trading AI",
-        "version": "2.0.0",
+        "service": "Grok Trading AI",
+        "version": "3.0.0",
         "gpt4_available": openai_client is not None,
-        "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
+        "api_key_configured": bool(os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")),
         "mongodb_connected": mongodb_status,
         "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
         "supported_symbols": current_symbols,
@@ -2571,7 +2565,7 @@ async def debug_gpt4(request: Request):
         # Test simple API call
         logger.info("🧪 Testing GPT-5-mini API connection...")
         response = await openai_client.chat_completions_create(
-            model="gpt-4o-mini",
+            model=AI_MODEL,
             messages=[
                 {"role": "user", "content": "Respond with just the word 'SUCCESS'"}
             ],
@@ -2581,7 +2575,7 @@ async def debug_gpt4(request: Request):
 
         result["status"] = "success"
         result["test_response"] = response["choices"][0]["message"]["content"]
-        result["model_used"] = "gpt-4o-mini"
+        result["model_used"] = AI_MODEL
         logger.info("✅ GPT-5-mini test successful")
 
     except Exception as e:
@@ -2721,7 +2715,7 @@ async def analyze_trading_signals(
                         "signal": stored_response.signal.lower(),
                         "confidence": stored_response.confidence,
                         "timestamp": stored_response.timestamp,
-                        "model_type": "GPT-4-Stored",
+                        "model_type": "AI-Stored",
                         "timeframe": "1h",
                         "reasoning": stored_response.reasoning,
                         "strategy_scores": stored_response.strategy_scores,
@@ -2758,7 +2752,7 @@ async def analyze_trading_signals(
                 "signal": response.signal.lower(),
                 "confidence": response.confidence,
                 "timestamp": response.timestamp,
-                "model_type": "GPT-4",
+                "model_type": "Grok-AI",
                 "timeframe": "1h",  # Default timeframe for WebSocket compatibility
                 "reasoning": response.reasoning,
                 "strategy_scores": response.strategy_scores,
@@ -2920,7 +2914,7 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
                 return TrendPredictionResponse(
                     trend=result["trend"],
                     confidence=result["confidence"],
-                    model="GPT-5-mini",
+                    model=AI_MODEL,
                     timestamp=int(datetime.now(timezone.utc).timestamp()),
                 )
             except Exception as e:
@@ -3066,7 +3060,7 @@ OUTPUT FORMAT (JSON only, no markdown):
 
     # Call GPT-4
     response = await openai_client.chat_completions_create(
-        model="gpt-4o-mini",
+        model=AI_MODEL,
         messages=[
             {
                 "role": "system",
@@ -3240,13 +3234,13 @@ async def get_cost_statistics(request: Request):
             "estimated_monthly_cost_vnd": round(estimated_cost_per_month * 23000, 0),
         },
         "configuration": {
-            "model": "gpt-4o-mini",
+            "model": AI_MODEL,
             "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
             "symbols_tracked": len(current_symbols),
             "cache_duration_minutes": 15,  # Updated cache duration
             "max_tokens": 1200,  # Optimized max tokens
-            "input_cost_per_1m_tokens": GPT4O_MINI_INPUT_COST_PER_1M,
-            "output_cost_per_1m_tokens": GPT4O_MINI_OUTPUT_COST_PER_1M,
+            "input_cost_per_1m_tokens": AI_INPUT_COST_PER_1M,
+            "output_cost_per_1m_tokens": AI_OUTPUT_COST_PER_1M,
         },
         "optimization_status": {
             "cache_optimized": True,
@@ -3560,14 +3554,14 @@ async def clear_chat_history():
 async def root():
     """Root endpoint with service information."""
     return {
-        "service": "GPT-4 Cryptocurrency AI Trading Service",
-        "version": "2.0.0",
+        "service": "Grok AI Cryptocurrency Trading Service",
+        "version": "3.0.0",
         "description": (
-            "Advanced AI-powered trading signal generation using OpenAI GPT-4 "
+            "Advanced AI-powered trading signal generation using xAI Grok "
             "with MongoDB storage and real-time WebSocket broadcasting"
         ),
         "endpoints": {
-            "analyze": "POST /ai/analyze - Generate trading signals with GPT-4 (stored in MongoDB)",
+            "analyze": "POST /ai/analyze - Generate trading signals with AI (stored in MongoDB)",
             "strategy_recommendations": "POST /ai/strategy-recommendations - Get strategy recommendations",
             "market_condition": "POST /ai/market-condition - Analyze market conditions",
             "feedback": "POST /ai/feedback - Send performance feedback",

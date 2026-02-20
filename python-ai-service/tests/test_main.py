@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 from main import (
+    AI_MODEL,
     AIAnalysisRequest,
     AIStrategyContext,
     CandleData,
@@ -37,7 +38,7 @@ class TestHealthEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-        assert data["service"] == "GPT-4o Trading AI"
+        assert data["service"] == "Grok Trading AI"
         assert data["gpt4_available"] is True
         # MongoDB connection status can be True or False in test environment
         assert "mongodb_connected" in data
@@ -314,7 +315,7 @@ class TestRootEndpoint:
         response = await client.get("/")
         assert response.status_code == 200
         data = response.json()
-        assert data["service"] == "GPT-4 Cryptocurrency AI Trading Service"
+        assert data["service"] == "Grok AI Cryptocurrency Trading Service"
         assert "endpoints" in data
         assert data["features"]["gpt4_enabled"] is True
 
@@ -1193,7 +1194,7 @@ class TestAdditionalEndpoints:
         response = await client.get("/ai/info")
         assert response.status_code == 200
         data = response.json()
-        assert data["service_name"] == "GPT-4o Trading AI"
+        assert data["service_name"] == "Grok Trading AI"
         assert "supported_timeframes" in data
 
     @pytest.mark.asyncio
@@ -2601,7 +2602,7 @@ class TestCostStatisticsEndpoint:
                             assert "estimated_monthly_cost_usd" in data["projections"]
 
                             # Check configuration
-                            assert data["configuration"]["model"] == "gpt-4o-mini"
+                            assert data["configuration"]["model"] == AI_MODEL
                             assert data["configuration"]["symbols_tracked"] == 4
 
                             # Check optimization status

@@ -8,7 +8,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "openai/gpt-4.1"
+        "primary": "xai/grok-4-1-fast"
       },
       "workspace": "/home/node/.openclaw/workspace"
     }
