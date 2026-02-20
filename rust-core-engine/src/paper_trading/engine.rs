@@ -2931,7 +2931,7 @@ impl PaperTradingEngine {
         Ok(())
     }
 
-    /// Reset portfolio
+    /// Reset portfolio (clears in-memory state AND MongoDB data)
     pub async fn reset_portfolio(&self) -> Result<()> {
         let settings = self.settings.read().await;
         let initial_balance = settings.basic.initial_balance;
@@ -2939,6 +2939,14 @@ impl PaperTradingEngine {
 
         let mut portfolio = self.portfolio.write().await;
         *portfolio = PaperPortfolio::new(initial_balance);
+
+        // Clear MongoDB collections so old trades don't reappear on restart
+        if let Err(e) = self.storage.delete_all_paper_trades().await {
+            warn!("Failed to delete paper trades from DB: {}", e);
+        }
+        if let Err(e) = self.storage.delete_all_portfolio_history().await {
+            warn!("Failed to delete portfolio history from DB: {}", e);
+        }
 
         // Broadcast reset event
         let _ = self.event_broadcaster.send(PaperTradingEvent {

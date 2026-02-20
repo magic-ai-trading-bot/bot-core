@@ -859,6 +859,26 @@ impl Storage {
         Ok(history)
     }
 
+    /// Delete all paper trades from database (used by portfolio reset)
+    pub async fn delete_all_paper_trades(&self) -> Result<u64> {
+        let result = self.paper_trades()?.delete_many(doc! {}).await?;
+        info!(
+            "🗑️ Deleted {} paper trades from database",
+            result.deleted_count
+        );
+        Ok(result.deleted_count)
+    }
+
+    /// Delete all portfolio history from database (used by portfolio reset)
+    pub async fn delete_all_portfolio_history(&self) -> Result<u64> {
+        let result = self.portfolio_history()?.delete_many(doc! {}).await?;
+        info!(
+            "🗑️ Deleted {} portfolio history records from database",
+            result.deleted_count
+        );
+        Ok(result.deleted_count)
+    }
+
     /// Get AI signals history from database
     pub async fn get_ai_signals_history(
         &self,
