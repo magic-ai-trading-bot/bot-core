@@ -23,7 +23,7 @@ logger = get_logger("AIImprovementTasks")
 # AI configuration - supports xAI Grok (OpenAI-compatible API)
 AI_API_KEY = os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
 AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.x.ai/v1")
-AI_MODEL = os.getenv("AI_MODEL", "grok-4-1-fast")
+AI_MODEL = os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning")
 
 # Service URLs
 RUST_API_URL = os.getenv("RUST_API_URL", "http://localhost:8080")

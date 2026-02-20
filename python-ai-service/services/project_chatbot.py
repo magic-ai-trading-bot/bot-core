@@ -337,7 +337,7 @@ CÂU HỎI CỦA USER:
         if self.openai_client:
             try:
                 response = await self.openai_client.chat_completions_create(
-                    model=os.getenv("AI_MODEL", "grok-4-1-fast"),
+                    model=os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning"),
                     messages=messages,
                     max_tokens=1000,
                     temperature=0.7,

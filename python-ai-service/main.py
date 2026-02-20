@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 # AI Provider Configuration (supports xAI Grok, OpenAI, etc.)
 AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.x.ai/v1")
-AI_MODEL = os.getenv("AI_MODEL", "grok-4-1-fast")
+AI_MODEL = os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning")
 
 # Global AI client, WebSocket connections, and MongoDB storage
 # Thread safety: These are only written during startup/shutdown in lifespan
@@ -788,7 +788,7 @@ class AIServiceInfo(BaseModel):
 
     service_name: str = Field(default="Grok Trading AI")
     version: str = Field(default="3.0.0")
-    model_version: str = Field(default="grok-4-1-fast")
+    model_version: str = Field(default="grok-4-1-fast-non-reasoning")
     supported_timeframes: List[str] = Field(
         default_factory=lambda: ["1m", "5m", "15m", "1h", "4h", "1d"]
     )

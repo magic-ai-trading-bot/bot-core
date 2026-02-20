@@ -73,7 +73,7 @@ Please provide analysis in JSON format:
 
         try:
             response = client.chat.completions.create(
-                model=os.getenv("AI_MODEL", "grok-4-1-fast"),
+                model=os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning"),
                 messages=[
                     {
                         "role": "system",

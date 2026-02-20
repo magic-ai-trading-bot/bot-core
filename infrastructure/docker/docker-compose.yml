@@ -17,7 +17,7 @@ services:
       - PYTHON_API_KEY=${PYTHON_API_KEY:-change-me-python-api-key}
       - XAI_API_KEY=${XAI_API_KEY:-}
       - AI_BASE_URL=${AI_BASE_URL:-https://api.x.ai/v1}
-      - AI_MODEL=${AI_MODEL:-grok-4-1-fast}
+      - AI_MODEL=${AI_MODEL:-grok-4-1-fast-non-reasoning}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
       - RUST_API_URL=http://rust-core-engine:8080
     volumes:
@@ -63,7 +63,7 @@ services:
       - ENABLE_HOT_RELOAD=true
       - XAI_API_KEY=${XAI_API_KEY:-}
       - AI_BASE_URL=${AI_BASE_URL:-https://api.x.ai/v1}
-      - AI_MODEL=${AI_MODEL:-grok-4-1-fast}
+      - AI_MODEL=${AI_MODEL:-grok-4-1-fast-non-reasoning}
       - DATABASE_URL=${DATABASE_URL}
       - RUST_API_URL=http://rust-core-engine:8080
     volumes:
