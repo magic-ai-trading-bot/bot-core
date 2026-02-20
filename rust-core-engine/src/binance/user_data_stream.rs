@@ -87,7 +87,11 @@ impl UserDataStreamManager {
     }
 
     /// Create a new UserDataStreamManager with custom config
-    pub fn with_config(client: BinanceClient, config: UserDataStreamConfig, use_futures: bool) -> Self {
+    pub fn with_config(
+        client: BinanceClient,
+        config: UserDataStreamConfig,
+        use_futures: bool,
+    ) -> Self {
         let (event_tx, _) = broadcast::channel(config.channel_buffer_size);
 
         Self {
@@ -153,8 +157,16 @@ impl UserDataStreamManager {
         let use_futures = self.use_futures;
 
         tokio::spawn(async move {
-            Self::run_connection_loop(client, config, handle, event_tx, is_running, shutdown_rx, use_futures)
-                .await;
+            Self::run_connection_loop(
+                client,
+                config,
+                handle,
+                event_tx,
+                is_running,
+                shutdown_rx,
+                use_futures,
+            )
+            .await;
         });
 
         Ok(())

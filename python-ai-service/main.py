@@ -1523,9 +1523,7 @@ class GPTTradingAnalyzer:
 
                 # Calculate cost
                 input_cost = (input_tokens / 1_000_000) * AI_INPUT_COST_PER_1M
-                output_cost = (
-                    output_tokens / 1_000_000
-                ) * AI_OUTPUT_COST_PER_1M
+                output_cost = (output_tokens / 1_000_000) * AI_OUTPUT_COST_PER_1M
                 request_cost = input_cost + output_cost
 
                 # Update global counters
@@ -2540,7 +2538,9 @@ async def health_check():
         "service": "Grok Trading AI",
         "version": "3.0.0",
         "gpt4_available": openai_client is not None,
-        "api_key_configured": bool(os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")),
+        "api_key_configured": bool(
+            os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+        ),
         "mongodb_connected": mongodb_status,
         "analysis_interval_minutes": ANALYSIS_INTERVAL_MINUTES,
         "supported_symbols": current_symbols,

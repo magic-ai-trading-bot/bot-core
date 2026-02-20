@@ -209,26 +209,15 @@ class TestGPT4SelfAnalysis:
         with pytest.raises(Exception):
             gpt4_self_analysis()
 
+    @patch("tasks.ai_improvement.AI_API_KEY", None)
     def test_gpt4_analysis_no_api_key(self):
         """Test GPT-4 analysis skips when API key is missing"""
-        import os
-
         from tasks.ai_improvement import gpt4_self_analysis
 
-        # Temporarily remove API key
-        old_key = os.environ.get("OPENAI_API_KEY")
-        if "OPENAI_API_KEY" in os.environ:
-            del os.environ["OPENAI_API_KEY"]
-
-        try:
-            result = gpt4_self_analysis()
-            # Should return skipped status instead of raising exception
-            assert result["status"] == "skipped"
-            assert result["reason"] == "OPENAI_API_KEY not configured"
-        finally:
-            # Restore API key
-            if old_key:
-                os.environ["OPENAI_API_KEY"] = old_key
+        result = gpt4_self_analysis()
+        # Should return skipped status instead of raising exception
+        assert result["status"] == "skipped"
+        assert "AI API key not configured" in result["reason"]
 
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test_key"})
     @patch("tasks.ai_improvement.adaptive_retrain")

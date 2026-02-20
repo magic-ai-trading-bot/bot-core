@@ -1318,7 +1318,10 @@ def _run_config_analysis_direct(
         api_key = AI_API_KEY
         if not api_key:
             logger.warning("⚠️ AI API key not configured - skipping")
-            return {"status": "skipped", "reason": "AI API key not configured (XAI_API_KEY or OPENAI_API_KEY)"}
+            return {
+                "status": "skipped",
+                "reason": "AI API key not configured (XAI_API_KEY or OPENAI_API_KEY)",
+            }
 
         # Create OpenAI client
         client = OpenAI(api_key=api_key, base_url=AI_BASE_URL)
