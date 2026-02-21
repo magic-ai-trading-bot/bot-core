@@ -1,0 +1,7 @@
+{
+  "name": "trade-guardian",
+  "schedule": "0 * * * *",
+  "timeout_seconds": 300,
+  "no_deliver": true,
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore get_paper_portfolio`\nBước 2: Chạy `botcore get_paper_open_trades`\nBước 3: Chạy `botcore get_paper_closed_trades`\nBước 4: Chạy `botcore get_paper_basic_settings`\n\nBước 5 — PHÂN TÍCH VÀ HÀNH ĐỘNG:\n\na) Lệnh đã đóng (1 giờ gần nhất):\n   - Hit SL quá nhanh (< 30 phút) → SL quá tight → `botcore apply_green_adjustment` tăng stop_loss_percent\n   - 2+ lệnh liên tiếp thua → phân tích nguyên nhân\n   ⚠️ stop_loss_percent là PnL%, KHÔNG phải price%. Công thức: price_move = pnl / leverage. VD: 10x leverage, muốn SL 1.5% giá → set 15\n\nb) Lệnh đang mở:\n   - Thị trường ĐẢO CHIỀU RÕ RÀNG → `botcore close_paper_trade_by_symbol`. KHÔNG close chỉ vì lỗ nhẹ.\n   - Lệnh lãi > 5% → cân nhắc tighten trailing stop\n\nc) Daily loss > 2% → tăng confidence_threshold\n\nd) Win rate < 40% (10 lệnh gần nhất) → tăng confidence_threshold hoặc min_required_indicators\n\nBước 6: Nếu đã hành động → PHẢI chạy `botcore send_telegram_notification` báo cáo. Nếu bình thường → không gửi.\n\nNGUYÊN TẮC: Engine có SL/TP tự động. Ưu tiên CHỈNH SETTING hơn close trade. Chỉ close khi đảo chiều đột ngột.\n\nLUÔN viết bằng tiếng Việt."
+}
