@@ -293,7 +293,7 @@ impl PaperTradingEngine {
 
                 for symbol in &symbols {
                     // Fetch fresh klines for key timeframes and update cache
-                    for timeframe in &["15m", "1h"] {
+                    for timeframe in &["5m", "15m"] {
                         let cache_key = format!("{}_{}", symbol, timeframe);
 
                         // Fetch latest 5 candles from Binance to detect new closes
@@ -546,7 +546,7 @@ impl PaperTradingEngine {
 
         let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
 
-        for timeframe in &["15m", "30m", "1h", "4h"] {
+        for timeframe in &["5m", "15m", "1h"] {
             let cache_key = format!("{}_{}", symbol, timeframe);
             if let Some(klines) = cache.get(&cache_key) {
                 let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
@@ -556,10 +556,10 @@ impl PaperTradingEngine {
             }
         }
 
-        // Need at least 1h data for strategies to work
-        if !timeframe_data.contains_key("1h") {
+        // Need at least 5m data for strategies to work
+        if !timeframe_data.contains_key("5m") {
             debug!(
-                "Insufficient data for strategy analysis on {}: missing 1h timeframe",
+                "Insufficient data for strategy analysis on {}: missing 5m timeframe",
                 symbol
             );
             return None;
@@ -1240,9 +1240,9 @@ impl PaperTradingEngine {
         const MIN_CANDLES_REQUIRED: usize = 50;
 
         // @spec:FR-STRATEGIES-007 - Multi-Timeframe Analysis
-        // CRITICAL: All strategies require BOTH 1h and 4h timeframes
+        // CRITICAL: All strategies require BOTH 5m and 15m timeframes
         // Must check both timeframes have sufficient data
-        const REQUIRED_TIMEFRAMES: &[&str] = &["1h", "4h"];
+        const REQUIRED_TIMEFRAMES: &[&str] = &["5m", "15m"];
 
         // STEP 1: Check cache for ALL required timeframes
         {
@@ -1341,9 +1341,9 @@ impl PaperTradingEngine {
 
         // @spec:FR-STRATEGIES-007 - Multi-Timeframe Analysis
         // CRITICAL: Load ALL timeframes required by strategies
-        // RSI, MACD, Bollinger, Stochastic all require 1h + 4h
-        // Also load 15m and 30m for more accurate analysis
-        const REQUIRED_TIMEFRAMES: &[&str] = &["15m", "30m", "1h", "4h"];
+        // RSI, MACD, Bollinger, Stochastic all require 5m + 15m
+        // Also load 1h for AI bias analysis
+        const REQUIRED_TIMEFRAMES: &[&str] = &["5m", "15m", "1h"];
         const MIN_CANDLES: u32 = 50;
         let mut total_loaded = 0;
         let mut failed = 0;
@@ -7476,8 +7476,8 @@ mod tests {
                 };
                 60
             ]; // 60 candles
-            cache.insert("BTCUSDT_1h".to_string(), klines.clone());
-            cache.insert("BTCUSDT_4h".to_string(), klines);
+            cache.insert("BTCUSDT_5m".to_string(), klines.clone());
+            cache.insert("BTCUSDT_15m".to_string(), klines);
         }
 
         let result = engine.check_warmup_period("BTCUSDT", "15m").await;
@@ -7509,7 +7509,7 @@ mod tests {
                 };
                 10
             ]; // Only 10 candles
-            cache.insert("BTCUSDT_1h".to_string(), klines);
+            cache.insert("BTCUSDT_5m".to_string(), klines);
         }
 
         let result = engine.check_warmup_period("BTCUSDT", "15m").await;
@@ -10000,10 +10000,10 @@ mod tests {
     async fn test_cov4_check_warmup_period_with_cached_data() {
         let engine = create_test_paper_engine().await;
 
-        // Pre-load cache with 50 klines for BOTH required timeframes (1h and 4h)
+        // Pre-load cache with 50 klines for BOTH required timeframes (5m and 15m)
         {
             let mut cache = engine.historical_data_cache.write().await;
-            for tf in &["1h", "4h"] {
+            for tf in &["5m", "15m"] {
                 let klines: Vec<crate::binance::types::Kline> = (0..50)
                     .map(|i| crate::binance::types::Kline {
                         open_time: 1000000 + i * 60000,
@@ -10033,7 +10033,7 @@ mod tests {
     async fn test_cov4_check_warmup_period_insufficient_data() {
         let engine = create_test_paper_engine().await;
 
-        // Pre-load cache with only 20 klines (insufficient)
+        // Pre-load cache with only 20 klines (insufficient) using correct key format
         {
             let mut cache = engine.historical_data_cache.write().await;
             let klines: Vec<crate::binance::types::Kline> = (0..20)
@@ -10052,7 +10052,8 @@ mod tests {
                     ignore: "0".to_string(),
                 })
                 .collect();
-            cache.insert("ETHUSDT".to_string(), klines);
+            // Use correct cache key format: symbol_timeframe
+            cache.insert("ETHUSDT_5m".to_string(), klines);
         }
 
         let result = engine.check_warmup_period("ETHUSDT", "15m").await;

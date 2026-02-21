@@ -650,8 +650,8 @@ mod tests {
 
     fn create_test_input() -> StrategyInput {
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("1h".to_string(), create_test_candles(50));
-        timeframe_data.insert("4h".to_string(), create_test_candles(50));
+        timeframe_data.insert("5m".to_string(), create_test_candles(50));
+        timeframe_data.insert("15m".to_string(), create_test_candles(50));
 
         StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -1588,7 +1588,7 @@ mod tests {
     fn test_cov8_strategy_type_validate_data() {
         let strategy = StrategyType::Rsi(RsiStrategy::new());
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("1h".to_string(), create_test_candles(10));
+        timeframe_data.insert("5m".to_string(), create_test_candles(10));
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),

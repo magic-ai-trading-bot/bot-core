@@ -81,14 +81,14 @@ impl Strategy for MacdStrategy {
     }
 
     fn required_timeframes(&self) -> Vec<&'static str> {
-        vec!["1h", "4h"]
+        vec!["5m", "15m"]
     }
 
     async fn analyze(&self, data: &StrategyInput) -> Result<StrategyOutput, StrategyError> {
         self.validate_data(data)?;
 
-        let primary_timeframe = "1h";
-        let confirmation_timeframe = "4h";
+        let primary_timeframe = "5m";
+        let confirmation_timeframe = "15m";
 
         let primary_candles = data.timeframe_data.get(primary_timeframe).ok_or_else(|| {
             StrategyError::InsufficientData(format!("Missing {primary_timeframe} data"))
@@ -390,8 +390,8 @@ mod tests {
 
     fn create_test_input(prices_1h: Vec<f64>, prices_4h: Vec<f64>) -> StrategyInput {
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("1h".to_string(), create_test_candles(prices_1h));
-        timeframe_data.insert("4h".to_string(), create_test_candles(prices_4h));
+        timeframe_data.insert("5m".to_string(), create_test_candles(prices_1h));
+        timeframe_data.insert("15m".to_string(), create_test_candles(prices_4h));
 
         StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -476,8 +476,8 @@ mod tests {
         let timeframes = strategy.required_timeframes();
 
         assert_eq!(timeframes.len(), 2);
-        assert!(timeframes.contains(&"1h"));
-        assert!(timeframes.contains(&"4h"));
+        assert!(timeframes.contains(&"5m"));
+        assert!(timeframes.contains(&"15m"));
     }
 
     #[tokio::test]
@@ -1000,7 +1000,7 @@ mod tests {
     async fn test_macd_strategy_missing_1h_timeframe() {
         let strategy = MacdStrategy::new();
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("4h".to_string(), create_test_candles(vec![100.0; 50]));
+        timeframe_data.insert("15m".to_string(), create_test_candles(vec![100.0; 50]));
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -1022,7 +1022,7 @@ mod tests {
     async fn test_macd_strategy_missing_4h_timeframe() {
         let strategy = MacdStrategy::new();
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("1h".to_string(), create_test_candles(vec![100.0; 50]));
+        timeframe_data.insert("5m".to_string(), create_test_candles(vec![100.0; 50]));
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -1061,7 +1061,7 @@ mod tests {
     async fn test_macd_strategy_validate_data_missing_timeframe() {
         let strategy = MacdStrategy::new();
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("1h".to_string(), create_test_candles(vec![100.0; 50]));
+        timeframe_data.insert("5m".to_string(), create_test_candles(vec![100.0; 50]));
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -1074,7 +1074,7 @@ mod tests {
         let result = strategy.validate_data(&input);
         assert!(result.is_err());
         if let Err(StrategyError::InsufficientData(msg)) = result {
-            assert!(msg.contains("4h"));
+            assert!(msg.contains("15m"));
         }
     }
 
@@ -1088,7 +1088,7 @@ mod tests {
         assert!(result.is_ok());
 
         let output = result.unwrap();
-        assert_eq!(output.timeframe, "1h");
+        assert_eq!(output.timeframe, "5m");
         assert_eq!(output.timestamp, 1234567890);
         assert!(!output.reasoning.is_empty());
         assert!(output.confidence >= 0.0 && output.confidence <= 1.0);

@@ -70,13 +70,13 @@ impl Strategy for VolumeStrategy {
     }
 
     fn required_timeframes(&self) -> Vec<&'static str> {
-        vec!["1h"]
+        vec!["5m"]
     }
 
     async fn analyze(&self, data: &StrategyInput) -> Result<StrategyOutput, StrategyError> {
         self.validate_data(data)?;
 
-        let primary_timeframe = "1h";
+        let primary_timeframe = "5m";
         let candles = data.timeframe_data.get(primary_timeframe).ok_or_else(|| {
             StrategyError::InsufficientData(format!("Missing {primary_timeframe} data"))
         })?;
@@ -341,7 +341,7 @@ mod tests {
     fn create_test_input_with_volume(prices: Vec<f64>, volumes: Vec<f64>) -> StrategyInput {
         let mut timeframe_data = HashMap::new();
         timeframe_data.insert(
-            "1h".to_string(),
+            "5m".to_string(),
             create_test_candles_with_volume(prices, volumes),
         );
 
@@ -448,7 +448,7 @@ mod tests {
         let timeframes = strategy.required_timeframes();
 
         assert_eq!(timeframes.len(), 1);
-        assert!(timeframes.contains(&"1h"));
+        assert!(timeframes.contains(&"5m"));
     }
 
     #[tokio::test]
@@ -725,7 +725,7 @@ mod tests {
         assert!(result.is_err());
 
         if let Err(StrategyError::InsufficientData(msg)) = result {
-            assert!(msg.contains("1h"));
+            assert!(msg.contains("5m"));
         }
     }
 
@@ -1164,7 +1164,7 @@ mod tests {
         assert!(result.is_ok());
 
         let output = result.unwrap();
-        assert_eq!(output.timeframe, "1h");
+        assert_eq!(output.timeframe, "5m");
         assert_eq!(output.timestamp, 1234567890);
         assert!(output.confidence >= 0.0 && output.confidence <= 1.0);
         assert!(!output.reasoning.is_empty());
@@ -1237,7 +1237,8 @@ mod tests {
     async fn test_volume_strategy_validate_data_missing_timeframe() {
         let strategy = VolumeStrategy::new();
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("5m".to_string(), vec![]);
+        // Insert wrong key so "5m" is missing → triggers DataValidation error
+        timeframe_data.insert("1h".to_string(), vec![]);
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),

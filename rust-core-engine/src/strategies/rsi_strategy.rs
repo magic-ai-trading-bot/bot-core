@@ -94,14 +94,14 @@ impl Strategy for RsiStrategy {
     }
 
     fn required_timeframes(&self) -> Vec<&'static str> {
-        vec!["1h", "4h"]
+        vec!["5m", "15m"]
     }
 
     async fn analyze(&self, data: &StrategyInput) -> Result<StrategyOutput, StrategyError> {
         self.validate_data(data)?;
 
-        let primary_timeframe = "1h";
-        let confirmation_timeframe = "4h";
+        let primary_timeframe = "5m";
+        let confirmation_timeframe = "15m";
 
         let primary_candles = data.timeframe_data.get(primary_timeframe).ok_or_else(|| {
             StrategyError::InsufficientData(format!("Missing {primary_timeframe} data"))
@@ -324,8 +324,8 @@ mod tests {
 
     fn create_test_input(prices_1h: Vec<f64>, prices_4h: Vec<f64>) -> StrategyInput {
         let mut timeframe_data = HashMap::new();
-        timeframe_data.insert("1h".to_string(), create_test_candles(prices_1h));
-        timeframe_data.insert("4h".to_string(), create_test_candles(prices_4h));
+        timeframe_data.insert("5m".to_string(), create_test_candles(prices_1h));
+        timeframe_data.insert("15m".to_string(), create_test_candles(prices_4h));
 
         StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -428,8 +428,8 @@ mod tests {
         let timeframes = strategy.required_timeframes();
 
         assert_eq!(timeframes.len(), 2);
-        assert!(timeframes.contains(&"1h"));
-        assert!(timeframes.contains(&"4h"));
+        assert!(timeframes.contains(&"5m"));
+        assert!(timeframes.contains(&"15m"));
     }
 
     #[tokio::test]
@@ -457,7 +457,7 @@ mod tests {
         let strategy = RsiStrategy::new();
         let mut timeframe_data = HashMap::new();
         let prices: Vec<f64> = (0..30).map(|i| 100.0 + (i as f64)).collect();
-        timeframe_data.insert("1h".to_string(), create_test_candles(prices));
+        timeframe_data.insert("5m".to_string(), create_test_candles(prices));
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -825,11 +825,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_rsi_strategy_analyze_missing_1h_data() {
+    async fn test_rsi_strategy_analyze_missing_5m_data() {
         let strategy = RsiStrategy::new();
         let mut timeframe_data = HashMap::new();
         let prices: Vec<f64> = (0..30).map(|i| 100.0 + (i as f64)).collect();
-        timeframe_data.insert("4h".to_string(), create_test_candles(prices));
+        timeframe_data.insert("15m".to_string(), create_test_candles(prices));
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -843,18 +843,18 @@ mod tests {
         assert!(result.is_err());
         match result {
             Err(StrategyError::InsufficientData(msg)) => {
-                assert!(msg.contains("1h"));
+                assert!(msg.contains("5m"));
             },
             _ => panic!("Expected InsufficientData error"),
         }
     }
 
     #[tokio::test]
-    async fn test_rsi_strategy_analyze_missing_4h_data() {
+    async fn test_rsi_strategy_analyze_missing_15m_data() {
         let strategy = RsiStrategy::new();
         let mut timeframe_data = HashMap::new();
         let prices: Vec<f64> = (0..30).map(|i| 100.0 + (i as f64)).collect();
-        timeframe_data.insert("1h".to_string(), create_test_candles(prices));
+        timeframe_data.insert("5m".to_string(), create_test_candles(prices));
 
         let input = StrategyInput {
             symbol: "BTCUSDT".to_string(),
@@ -868,7 +868,7 @@ mod tests {
         assert!(result.is_err());
         match result {
             Err(StrategyError::InsufficientData(msg)) => {
-                assert!(msg.contains("4h"));
+                assert!(msg.contains("15m"));
             },
             _ => panic!("Expected InsufficientData error"),
         }
@@ -898,7 +898,7 @@ mod tests {
         assert!(result.is_ok());
 
         let output = result.unwrap();
-        assert_eq!(output.timeframe, "1h");
+        assert_eq!(output.timeframe, "5m");
     }
 
     #[test]
