@@ -59,6 +59,14 @@ if [ -d "$CONFIG_SRC/cron" ]; then
   done
 fi
 
+# Clean stale session lock files from previous container runs
+# (locks are not released when container is killed mid-session)
+STALE_LOCKS=$(find "$OPENCLAW_HOME/agents" -name "*.lock" -type f 2>/dev/null | wc -l)
+if [ "$STALE_LOCKS" -gt 0 ]; then
+  echo "Removing $STALE_LOCKS stale session lock file(s)..."
+  find "$OPENCLAW_HOME/agents" -name "*.lock" -type f -delete
+fi
+
 # Sync workspace (skills, docs — always overwrite for updates)
 if [ -d "$WORKSPACE_SRC" ]; then
   echo "Syncing workspace..."
