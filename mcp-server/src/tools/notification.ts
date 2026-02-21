@@ -56,9 +56,16 @@ export function registerNotificationTools(server: McpServer): void {
       }
 
       try {
+        // Clean up message: AI often sends literal \n instead of real newlines
+        // and uses **bold** (Markdown) while parse_mode is HTML
+        let cleanedMessage = message
+          .replace(/\\n/g, "\n") // literal \n → real newline
+          .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") // **bold** → <b>bold</b>
+          .replace(/`([^`]+)`/g, "<code>$1</code>"); // `code` → <code>code</code>
+
         const result = await sendTelegramMessage(
           chatId,
-          message,
+          cleanedMessage,
           parse_mode || "HTML"
         );
         if (result.ok) {
