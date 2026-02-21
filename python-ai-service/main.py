@@ -322,7 +322,11 @@ async def push_market_bias_to_rust(symbol: str, analysis_result) -> None:
         import httpx
 
         # Convert signal to direction bias
-        signal_str = analysis_result.signal.lower() if isinstance(analysis_result.signal, str) else str(analysis_result.signal).lower()
+        signal_str = (
+            analysis_result.signal.lower()
+            if isinstance(analysis_result.signal, str)
+            else str(analysis_result.signal).lower()
+        )
         if signal_str in ("long", "buy", "bullish"):
             direction_bias = 1.0
         elif signal_str in ("short", "sell", "bearish"):
@@ -333,20 +337,28 @@ async def push_market_bias_to_rust(symbol: str, analysis_result) -> None:
         bias_data = {
             "symbol": symbol,
             "direction_bias": direction_bias,
-            "bias_strength": analysis_result.market_analysis.trend_strength if hasattr(analysis_result, 'market_analysis') and hasattr(analysis_result.market_analysis, 'trend_strength') else abs(direction_bias) * analysis_result.confidence,
+            "bias_strength": (
+                analysis_result.market_analysis.trend_strength
+                if hasattr(analysis_result, "market_analysis")
+                and hasattr(analysis_result.market_analysis, "trend_strength")
+                else abs(direction_bias) * analysis_result.confidence
+            ),
             "bias_confidence": analysis_result.confidence,
             "ttl_seconds": 600,
         }
 
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.post(
-                f"{RUST_API_URL}/api/ai/market-bias",
-                json=bias_data
+                f"{RUST_API_URL}/api/ai/market-bias", json=bias_data
             )
             if response.status_code == 200:
-                logger.info(f"📡 Pushed market bias to Rust: {symbol} dir={direction_bias:.1f} conf={analysis_result.confidence:.2f}")
+                logger.info(
+                    f"📡 Pushed market bias to Rust: {symbol} dir={direction_bias:.1f} conf={analysis_result.confidence:.2f}"
+                )
             else:
-                logger.warning(f"⚠️ Failed to push market bias for {symbol}: HTTP {response.status_code}")
+                logger.warning(
+                    f"⚠️ Failed to push market bias for {symbol}: HTTP {response.status_code}"
+                )
     except Exception as e:
         logger.warning(f"⚠️ Failed to push market bias for {symbol}: {e}")
 

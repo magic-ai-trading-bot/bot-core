@@ -297,12 +297,16 @@ impl PaperTradingEngine {
                         let cache_key = format!("{}_{}", symbol, timeframe);
 
                         // Fetch latest 5 candles from Binance to detect new closes
-                        let klines = match engine.binance_client.get_klines(symbol, timeframe, Some(5)).await {
+                        let klines = match engine
+                            .binance_client
+                            .get_klines(symbol, timeframe, Some(5))
+                            .await
+                        {
                             Ok(k) => k,
                             Err(e) => {
                                 debug!("Failed to fetch {} {} klines: {}", symbol, timeframe, e);
                                 continue;
-                            }
+                            },
                         };
 
                         if klines.is_empty() {
@@ -329,7 +333,11 @@ impl PaperTradingEngine {
                         // Check if newest closed candle is new
                         // The second-to-last kline is the most recently CLOSED candle
                         // (last one is typically still open)
-                        let closed_kline = if klines.len() >= 2 { &klines[klines.len() - 2] } else { continue };
+                        let closed_kline = if klines.len() >= 2 {
+                            &klines[klines.len() - 2]
+                        } else {
+                            continue;
+                        };
                         let last_close_time = closed_kline.close_time;
                         let prev_time = last_processed.get(&cache_key).copied().unwrap_or(0);
 
@@ -339,11 +347,17 @@ impl PaperTradingEngine {
 
                             // Skip the very first detection (initialization)
                             if prev_time == 0 {
-                                debug!("Strategy loop init: {} {} close_time={}", symbol, timeframe, last_close_time);
+                                debug!(
+                                    "Strategy loop init: {} {} close_time={}",
+                                    symbol, timeframe, last_close_time
+                                );
                                 continue;
                             }
 
-                            info!("🕯️ New {} candle closed for {}, running strategy analysis...", timeframe, symbol);
+                            info!(
+                                "🕯️ New {} candle closed for {}, running strategy analysis...",
+                                timeframe, symbol
+                            );
 
                             // Build strategy input from cached data
                             if let Some(input) = engine.build_strategy_input(symbol).await {
@@ -388,20 +402,27 @@ impl PaperTradingEngine {
                                         let bias_aligned = {
                                             let bias = engine.ai_market_bias.read().await;
                                             if let Some(market_bias) = bias.get(symbol) {
-                                                if !market_bias.is_stale() && market_bias.bias_confidence > 0.7 {
+                                                if !market_bias.is_stale()
+                                                    && market_bias.bias_confidence > 0.7
+                                                {
                                                     let signal_dir = match signal {
                                                         TradingSignal::Long => 1.0,
                                                         TradingSignal::Short => -1.0,
                                                         TradingSignal::Neutral => 0.0,
                                                     };
-                                                    if signal_dir * market_bias.direction_bias < -0.5 {
+                                                    if signal_dir * market_bias.direction_bias
+                                                        < -0.5
+                                                    {
                                                         info!(
                                                             "🚫 AI bias conflict: {} strategy={:?} bias={:.1}, skipping",
                                                             symbol, signal, market_bias.direction_bias
                                                         );
                                                         false
                                                     } else {
-                                                        info!("✅ AI bias aligned for {} {:?}", symbol, signal);
+                                                        info!(
+                                                            "✅ AI bias aligned for {} {:?}",
+                                                            symbol, signal
+                                                        );
                                                         true
                                                     }
                                                 } else {
@@ -426,7 +447,10 @@ impl PaperTradingEngine {
                                         // Get current price for signal
                                         let current_price = {
                                             let prices = engine.current_prices.read().await;
-                                            prices.get(symbol).copied().unwrap_or(input.current_price)
+                                            prices
+                                                .get(symbol)
+                                                .copied()
+                                                .unwrap_or(input.current_price)
                                         };
 
                                         // Convert to AITradingSignal and execute
@@ -450,7 +474,10 @@ impl PaperTradingEngine {
                                                 volatility: 0.0,
                                                 support_levels: vec![],
                                                 resistance_levels: vec![],
-                                                volume_analysis: format!("Strategy consensus: {}", combined_signal.reasoning),
+                                                volume_analysis: format!(
+                                                    "Strategy consensus: {}",
+                                                    combined_signal.reasoning
+                                                ),
                                                 risk_score: 1.0 - confidence,
                                             },
                                             timestamp: Utc::now(),
@@ -491,7 +518,10 @@ impl PaperTradingEngine {
                                                 }
                                             },
                                             Err(e) => {
-                                                error!("Failed to process strategy signal for {}: {}", symbol, e);
+                                                error!(
+                                                    "Failed to process strategy signal for {}: {}",
+                                                    symbol, e
+                                                );
                                             },
                                         }
                                     },
@@ -528,7 +558,10 @@ impl PaperTradingEngine {
 
         // Need at least 1h data for strategies to work
         if !timeframe_data.contains_key("1h") {
-            debug!("Insufficient data for strategy analysis on {}: missing 1h timeframe", symbol);
+            debug!(
+                "Insufficient data for strategy analysis on {}: missing 1h timeframe",
+                symbol
+            );
             return None;
         }
 
@@ -538,21 +571,17 @@ impl PaperTradingEngine {
         };
 
         if current_price <= 0.0 {
-            debug!("No current price for {}, skipping strategy analysis", symbol);
+            debug!(
+                "No current price for {}, skipping strategy analysis",
+                symbol
+            );
             return None;
         }
 
         // Calculate 24h volume from 1h candles (last 24 candles)
         let volume_24h = timeframe_data
             .get("1h")
-            .map(|candles| {
-                candles
-                    .iter()
-                    .rev()
-                    .take(24)
-                    .map(|c| c.volume)
-                    .sum::<f64>()
-            })
+            .map(|candles| candles.iter().rev().take(24).map(|c| c.volume).sum::<f64>())
             .unwrap_or(0.0);
 
         Some(crate::strategies::StrategyInput {
@@ -3307,7 +3336,10 @@ impl PaperTradingEngine {
                                     volatility: 0.0,
                                     support_levels: vec![],
                                     resistance_levels: vec![],
-                                    volume_analysis: format!("Manual analysis: {}", combined_signal.reasoning),
+                                    volume_analysis: format!(
+                                        "Manual analysis: {}",
+                                        combined_signal.reasoning
+                                    ),
                                     risk_score: 1.0 - confidence,
                                 },
                                 timestamp: Utc::now(),
