@@ -38,10 +38,10 @@ fn create_test_candles(count: usize, base_price: f64) -> Vec<CandleData> {
 /// Create strategy input with multiple timeframes
 fn create_multi_timeframe_input(symbol: &str) -> StrategyInput {
     let mut timeframe_data = HashMap::new();
+    timeframe_data.insert("5m".to_string(), create_test_candles(50, 50000.0));
     timeframe_data.insert("15m".to_string(), create_test_candles(50, 50000.0));
     timeframe_data.insert("30m".to_string(), create_test_candles(50, 50000.0));
     timeframe_data.insert("1h".to_string(), create_test_candles(50, 50000.0));
-    timeframe_data.insert("4h".to_string(), create_test_candles(50, 50000.0));
 
     StrategyInput {
         symbol: symbol.to_string(),
@@ -428,12 +428,12 @@ mod multi_timeframe_tests {
             "30m timeframe should be loaded"
         );
         assert!(
-            input.timeframe_data.contains_key("1h"),
-            "1h timeframe should be loaded"
+            input.timeframe_data.contains_key("5m"),
+            "5m timeframe should be loaded"
         );
         assert!(
-            input.timeframe_data.contains_key("4h"),
-            "4h timeframe should be loaded"
+            input.timeframe_data.contains_key("15m"),
+            "15m timeframe should be loaded"
         );
         assert_eq!(
             input.timeframe_data.len(),
@@ -446,7 +446,7 @@ mod multi_timeframe_tests {
     #[test]
     fn test_cache_key_format() {
         let symbol = "BTCUSDT";
-        let timeframes = ["15m", "30m", "1h", "4h"];
+        let timeframes = ["5m", "15m", "30m", "1h"];
 
         for tf in &timeframes {
             let cache_key = format!("{}_{}", symbol, tf);
@@ -462,7 +462,7 @@ mod multi_timeframe_tests {
     #[test]
     fn test_warmup_period_required_timeframes() {
         const MIN_CANDLES_REQUIRED: usize = 50;
-        let required_timeframes = ["1h", "4h"];
+        let required_timeframes = ["5m", "15m"];
 
         for tf in &required_timeframes {
             let candles = create_test_candles(MIN_CANDLES_REQUIRED, 50000.0);
@@ -533,7 +533,7 @@ mod multi_timeframe_tests {
         let input = create_multi_timeframe_input("BTCUSDT");
 
         // CRITICAL: All strategies require BOTH 1h and 4h timeframes (FR-STRATEGIES-007)
-        const REQUIRED_TIMEFRAMES: &[&str] = &["1h", "4h"];
+        const REQUIRED_TIMEFRAMES: &[&str] = &["5m", "15m"];
 
         for tf in REQUIRED_TIMEFRAMES {
             assert!(

@@ -180,15 +180,33 @@ impl Strategy for BollingerStrategy {
         );
 
         let mut metadata = std::collections::HashMap::new();
-        metadata.insert("bb_upper_1h".to_string(), json!(upper_1h));
-        metadata.insert("bb_middle_1h".to_string(), json!(middle_1h));
-        metadata.insert("bb_lower_1h".to_string(), json!(lower_1h));
-        metadata.insert("bb_position_1h".to_string(), json!(bb_position_1h));
-        metadata.insert("bb_position_4h".to_string(), json!(bb_position_4h));
-        metadata.insert("bb_width_1h".to_string(), json!(bb_width_1h));
-        metadata.insert("bb_width_4h".to_string(), json!(bb_width_4h));
-        metadata.insert("is_squeeze_1h".to_string(), json!(is_squeeze_1h));
-        metadata.insert("is_squeeze_4h".to_string(), json!(is_squeeze_4h));
+        metadata.insert(format!("bb_upper_{}", primary_timeframe), json!(upper_1h));
+        metadata.insert(format!("bb_middle_{}", primary_timeframe), json!(middle_1h));
+        metadata.insert(format!("bb_lower_{}", primary_timeframe), json!(lower_1h));
+        metadata.insert(
+            format!("bb_position_{}", primary_timeframe),
+            json!(bb_position_1h),
+        );
+        metadata.insert(
+            format!("bb_position_{}", confirmation_timeframe),
+            json!(bb_position_4h),
+        );
+        metadata.insert(
+            format!("bb_width_{}", primary_timeframe),
+            json!(bb_width_1h),
+        );
+        metadata.insert(
+            format!("bb_width_{}", confirmation_timeframe),
+            json!(bb_width_4h),
+        );
+        metadata.insert(
+            format!("is_squeeze_{}", primary_timeframe),
+            json!(is_squeeze_1h),
+        );
+        metadata.insert(
+            format!("is_squeeze_{}", confirmation_timeframe),
+            json!(is_squeeze_4h),
+        );
         metadata.insert("bb_expanding".to_string(), json!(bb_expanding_1h));
 
         Ok(StrategyOutput {
@@ -534,12 +552,12 @@ mod tests {
         assert!(result.is_ok());
 
         let output = result.unwrap();
-        assert!(output.metadata.contains_key("bb_upper_1h"));
-        assert!(output.metadata.contains_key("bb_middle_1h"));
-        assert!(output.metadata.contains_key("bb_lower_1h"));
-        assert!(output.metadata.contains_key("bb_position_1h"));
-        assert!(output.metadata.contains_key("bb_width_1h"));
-        assert!(output.metadata.contains_key("is_squeeze_1h"));
+        assert!(output.metadata.contains_key("bb_upper_5m"));
+        assert!(output.metadata.contains_key("bb_middle_5m"));
+        assert!(output.metadata.contains_key("bb_lower_5m"));
+        assert!(output.metadata.contains_key("bb_position_5m"));
+        assert!(output.metadata.contains_key("bb_width_5m"));
+        assert!(output.metadata.contains_key("is_squeeze_5m"));
     }
 
     #[test]
@@ -714,7 +732,7 @@ mod tests {
 
         assert!(result.is_ok());
         let output = result.unwrap();
-        assert!(output.metadata.contains_key("is_squeeze_1h"));
+        assert!(output.metadata.contains_key("is_squeeze_5m"));
     }
 
     #[tokio::test]

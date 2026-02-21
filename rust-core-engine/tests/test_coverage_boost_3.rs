@@ -49,8 +49,8 @@ fn create_test_input(
     current_price: f64,
 ) -> StrategyInput {
     let mut timeframe_data = HashMap::new();
-    timeframe_data.insert("1h".to_string(), create_test_candles(prices_1h));
-    timeframe_data.insert("4h".to_string(), create_test_candles(prices_4h));
+    timeframe_data.insert("5m".to_string(), create_test_candles(prices_1h));
+    timeframe_data.insert("15m".to_string(), create_test_candles(prices_4h));
 
     StrategyInput {
         symbol: "BTCUSDT".to_string(),
@@ -64,12 +64,12 @@ fn create_test_input(
 // ========== BOLLINGER STRATEGY COV3 TESTS ==========
 
 #[tokio::test]
-async fn test_cov3_bollinger_missing_1h_data() {
+async fn test_cov3_bollinger_missing_5m_data() {
     let strategy = BollingerStrategy::new();
 
     let mut timeframe_data = HashMap::new();
-    // Only 4h data, missing 1h
-    timeframe_data.insert("4h".to_string(), create_test_candles(vec![100.0; 30]));
+    // Only 15m data, missing 5m
+    timeframe_data.insert("15m".to_string(), create_test_candles(vec![100.0; 30]));
 
     let input = StrategyInput {
         symbol: "BTCUSDT".to_string(),
@@ -82,17 +82,17 @@ async fn test_cov3_bollinger_missing_1h_data() {
     let result = strategy.analyze(&input).await;
     assert!(result.is_err());
     if let Err(e) = result {
-        assert!(format!("{:?}", e).contains("Missing 1h"));
+        assert!(format!("{:?}", e).contains("Missing 5m"));
     }
 }
 
 #[tokio::test]
-async fn test_cov3_bollinger_missing_4h_data() {
+async fn test_cov3_bollinger_missing_15m_data() {
     let strategy = BollingerStrategy::new();
 
     let mut timeframe_data = HashMap::new();
-    // Only 1h data, missing 4h
-    timeframe_data.insert("1h".to_string(), create_test_candles(vec![100.0; 30]));
+    // Only 5m data, missing 15m
+    timeframe_data.insert("5m".to_string(), create_test_candles(vec![100.0; 30]));
 
     let input = StrategyInput {
         symbol: "BTCUSDT".to_string(),
@@ -132,7 +132,7 @@ async fn test_cov3_bollinger_price_above_upper_band_no_squeeze() {
 
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.metadata.contains_key("bb_upper_1h"));
+    assert!(output.metadata.contains_key("bb_upper_5m"));
 }
 
 #[tokio::test]
@@ -162,11 +162,11 @@ async fn test_cov3_bollinger_with_config_updates() {
 // ========== STOCHASTIC STRATEGY COV3 TESTS ==========
 
 #[tokio::test]
-async fn test_cov3_stochastic_missing_1h_data() {
+async fn test_cov3_stochastic_missing_5m_data() {
     let strategy = StochasticStrategy::new();
 
     let mut timeframe_data = HashMap::new();
-    timeframe_data.insert("4h".to_string(), create_test_candles(vec![100.0; 30]));
+    timeframe_data.insert("15m".to_string(), create_test_candles(vec![100.0; 30]));
 
     let input = StrategyInput {
         symbol: "ETHUSDT".to_string(),
@@ -181,11 +181,11 @@ async fn test_cov3_stochastic_missing_1h_data() {
 }
 
 #[tokio::test]
-async fn test_cov3_stochastic_missing_4h_data() {
+async fn test_cov3_stochastic_missing_15m_data() {
     let strategy = StochasticStrategy::new();
 
     let mut timeframe_data = HashMap::new();
-    timeframe_data.insert("1h".to_string(), create_test_candles(vec![100.0; 30]));
+    timeframe_data.insert("5m".to_string(), create_test_candles(vec![100.0; 30]));
 
     let input = StrategyInput {
         symbol: "ETHUSDT".to_string(),
@@ -206,8 +206,8 @@ async fn test_cov3_stochastic_insufficient_candles() {
     // Need at least k_period + d_period + 5 = 14 + 3 + 5 = 22 candles
     let prices = vec![100.0; 15];
     let mut timeframe_data = HashMap::new();
-    timeframe_data.insert("1h".to_string(), create_test_candles(prices.clone()));
-    timeframe_data.insert("4h".to_string(), create_test_candles(prices));
+    timeframe_data.insert("5m".to_string(), create_test_candles(prices.clone()));
+    timeframe_data.insert("15m".to_string(), create_test_candles(prices));
 
     let input = StrategyInput {
         symbol: "BTCUSDT".to_string(),
@@ -647,7 +647,7 @@ async fn test_cov3_bollinger_with_single_price_variation() {
 
     assert!(result.is_ok());
     if let Ok(output) = result {
-        assert!(output.metadata.contains_key("is_squeeze_1h"));
+        assert!(output.metadata.contains_key("is_squeeze_5m"));
     }
 }
 
@@ -665,8 +665,8 @@ async fn test_cov3_stochastic_with_oscillating_prices() {
         .collect();
 
     let mut timeframe_data = HashMap::new();
-    timeframe_data.insert("1h".to_string(), create_test_candles(prices.clone()));
-    timeframe_data.insert("4h".to_string(), create_test_candles(prices));
+    timeframe_data.insert("5m".to_string(), create_test_candles(prices.clone()));
+    timeframe_data.insert("15m".to_string(), create_test_candles(prices));
 
     let input = StrategyInput {
         symbol: "BTCUSDT".to_string(),

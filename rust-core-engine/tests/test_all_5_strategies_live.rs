@@ -47,7 +47,7 @@ async fn test_all_5_strategies_with_real_binance_data() {
     let client = BinanceClient::new(config).expect("Failed to create Binance client");
 
     let symbol = "BTCUSDT";
-    let intervals = vec!["1h", "4h"];
+    let intervals = vec!["5m", "15m"];
 
     let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
 
@@ -72,14 +72,14 @@ async fn test_all_5_strategies_with_real_binance_data() {
 
     // Get current price (use last close price from 1h)
     let current_price = timeframe_data
-        .get("1h")
+        .get("5m")
         .and_then(|candles| candles.last())
         .map(|candle| candle.close)
         .unwrap_or(50000.0);
 
     // Calculate 24h volume
     let volume_24h: f64 = timeframe_data
-        .get("1h")
+        .get("5m")
         .map(|candles| candles.iter().rev().take(24).map(|c| c.volume).sum())
         .unwrap_or(1000000.0);
 
