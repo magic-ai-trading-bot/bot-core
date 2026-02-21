@@ -1,6 +1,6 @@
 {
   "name": "hourly-pnl",
-  "schedule": "0 * * * *",
+  "schedule": "0 */4 * * *",
   "timeout_seconds": 180,
   "no_deliver": true,
   "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore get_paper_portfolio`\nBước 2: Chạy `botcore get_paper_open_trades`\nBước 3: Soạn báo cáo NGẮN GỌN bằng tiếng Việt (dưới 800 ký tự) gồm: số dư, equity, PnL giờ qua, số vị thế đang mở.\nBước 4 (QUAN TRỌNG NHẤT): PHẢI chạy lệnh `botcore send_telegram_notification` với nội dung báo cáo để gửi qua Telegram. Nếu KHÔNG chạy bước này thì báo cáo sẽ KHÔNG được gửi đi.\n\nLUÔN viết bằng tiếng Việt. LUÔN thực hiện bước 4."
