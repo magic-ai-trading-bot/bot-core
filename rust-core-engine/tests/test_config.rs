@@ -51,7 +51,7 @@ mod config_tests {
         assert!(config.market_data.symbols.contains(&"BTCUSDT".to_string()));
         assert!(config.market_data.symbols.contains(&"ETHUSDT".to_string()));
         assert_eq!(config.market_data.kline_limit, 500);
-        assert_eq!(config.market_data.update_interval_ms, 1000);
+        assert_eq!(config.market_data.update_interval_ms, 120000);
         assert_eq!(config.market_data.reconnect_interval_ms, 5000);
         assert_eq!(config.market_data.max_reconnect_attempts, 10);
         assert_eq!(config.market_data.cache_size, 1000);
