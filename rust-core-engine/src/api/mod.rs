@@ -852,25 +852,30 @@ impl ApiServer {
             .and(warp::post())
             .and(warp::body::json())
             .and(warp::any().map(move || paper_trading_bias.clone()))
-            .and_then(|request: MarketBiasRequest, paper_trading: Arc<PaperTradingEngine>| async move {
-                match paper_trading.update_ai_market_bias(
-                    request.symbol.clone(),
-                    request.direction_bias,
-                    request.bias_strength,
-                    request.bias_confidence,
-                    request.ttl_seconds,
-                ).await {
-                    Ok(_) => Ok::<_, warp::Rejection>(warp::reply::json(
-                        &ApiResponse::success(serde_json::json!({
-                            "symbol": request.symbol,
-                            "status": "updated"
-                        })),
-                    )),
-                    Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
-                        &ApiResponse::<()>::error(e.to_string()),
-                    )),
-                }
-            });
+            .and_then(
+                |request: MarketBiasRequest, paper_trading: Arc<PaperTradingEngine>| async move {
+                    match paper_trading
+                        .update_ai_market_bias(
+                            request.symbol.clone(),
+                            request.direction_bias,
+                            request.bias_strength,
+                            request.bias_confidence,
+                            request.ttl_seconds,
+                        )
+                        .await
+                    {
+                        Ok(_) => Ok::<_, warp::Rejection>(warp::reply::json(
+                            &ApiResponse::success(serde_json::json!({
+                                "symbol": request.symbol,
+                                "status": "updated"
+                            })),
+                        )),
+                        Err(e) => Ok::<_, warp::Rejection>(warp::reply::json(
+                            &ApiResponse::<()>::error(e.to_string()),
+                        )),
+                    }
+                },
+            );
 
         warp::path("ai").and(
             ai_analyze
