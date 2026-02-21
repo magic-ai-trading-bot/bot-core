@@ -192,11 +192,9 @@ impl Default for Config {
                     "5m".to_string(),
                     "15m".to_string(),
                     "1h".to_string(),
-                    "4h".to_string(),
-                    "1d".to_string(),
                 ],
                 kline_limit: 500,
-                update_interval_ms: 1000,
+                update_interval_ms: 120000,
                 reconnect_interval_ms: 5000,
                 max_reconnect_attempts: 10,
                 cache_size: 1000,
@@ -805,7 +803,7 @@ mod tests {
         let config = Config::default();
         assert_eq!(config.market_data.symbols.len(), 2);
         assert!(config.market_data.symbols.contains(&"BTCUSDT".to_string()));
-        assert_eq!(config.market_data.timeframes.len(), 6);
+        assert_eq!(config.market_data.timeframes.len(), 4);
         assert_eq!(config.market_data.kline_limit, 500);
     }
 

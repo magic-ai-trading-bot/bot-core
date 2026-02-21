@@ -583,7 +583,7 @@ impl MarketDataProcessor {
         timeframe: &str,
     ) -> Result<()> {
         let klines = client
-            .get_futures_klines(symbol, timeframe, Some(100))
+            .get_futures_klines(symbol, timeframe, Some(5))
             .await?;
 
         // Only add the latest few candles to avoid overwriting historical data

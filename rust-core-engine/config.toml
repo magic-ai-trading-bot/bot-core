@@ -34,16 +34,19 @@ futures_ws_url = "wss://stream.binancefuture.com/ws"
 # Cryptocurrency symbols to monitor (expanded for user request)
 symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
 
-# Timeframes to track simultaneously (collect data for multiple timeframes)
-# UI allows selecting which timeframe to use for trading signals
-timeframes = ["1m", "3m", "5m", "15m", "30m", "1h", "4h", "1d"]
+# Timeframes to track simultaneously
+# Strategies use 5m (primary) + 15m (confirmation), keep 1h for AI trend analysis
+# Removed 3m, 30m, 4h, 1d to reduce Binance API calls and avoid rate limiting
+timeframes = ["1m", "5m", "15m", "1h"]
 
 # Number of historical candles to fetch per timeframe
-# Increased to 300 to support EMA 200 and better trend detection
-kline_limit = 300
+# 500 supports EMA 200 and better trend detection
+kline_limit = 500
 
-# How often to update data (milliseconds) - Ultra fast for trading
-update_interval_ms = 100
+# How often to refresh data from REST API (milliseconds)
+# WebSocket handles real-time updates; this is a backup for data integrity
+# 120s = every 2 minutes (was 100ms which caused massive rate limiting)
+update_interval_ms = 120000
 
 # WebSocket reconnection settings (faster reconnect)
 reconnect_interval_ms = 500
