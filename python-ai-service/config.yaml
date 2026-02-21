@@ -44,7 +44,7 @@ data:
 
 ai_cache:
   enabled: true
-  duration_minutes: 2 # Cache AI analysis for 2 minutes (reduced from 15 for fresh trading signals)
+  duration_minutes: 15 # AI is now secondary bias filter; Rust strategies are primary (every 30s)
   max_entries: 100 # Maximum number of cache entries
 
 # @deprecated - Use Rust API endpoint instead:
