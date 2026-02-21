@@ -316,6 +316,41 @@ async def get_latest_analysis(symbol: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+async def push_market_bias_to_rust(symbol: str, analysis_result) -> None:
+    """Push AI market bias to Rust core engine for zero-latency signal filtering."""
+    try:
+        import httpx
+
+        # Convert signal to direction bias
+        signal_str = analysis_result.signal.lower() if isinstance(analysis_result.signal, str) else str(analysis_result.signal).lower()
+        if signal_str in ("long", "buy", "bullish"):
+            direction_bias = 1.0
+        elif signal_str in ("short", "sell", "bearish"):
+            direction_bias = -1.0
+        else:
+            direction_bias = 0.0
+
+        bias_data = {
+            "symbol": symbol,
+            "direction_bias": direction_bias,
+            "bias_strength": analysis_result.market_analysis.trend_strength if hasattr(analysis_result, 'market_analysis') and hasattr(analysis_result.market_analysis, 'trend_strength') else abs(direction_bias) * analysis_result.confidence,
+            "bias_confidence": analysis_result.confidence,
+            "ttl_seconds": 600,
+        }
+
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.post(
+                f"{RUST_API_URL}/api/ai/market-bias",
+                json=bias_data
+            )
+            if response.status_code == 200:
+                logger.info(f"📡 Pushed market bias to Rust: {symbol} dir={direction_bias:.1f} conf={analysis_result.confidence:.2f}")
+            else:
+                logger.warning(f"⚠️ Failed to push market bias for {symbol}: HTTP {response.status_code}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to push market bias for {symbol}: {e}")
+
+
 async def periodic_analysis_runner():
     """Background task that runs AI analysis every 5 minutes."""
     logger.info("🔄 Starting periodic analysis runner")
@@ -342,6 +377,9 @@ async def periodic_analysis_runner():
 
                     # Store result in MongoDB
                     await store_analysis_result(symbol, analysis_result.model_dump())
+
+                    # Push market bias to Rust for zero-latency signal filtering
+                    await push_market_bias_to_rust(symbol, analysis_result)
 
                     # Broadcast via WebSocket
                     await ws_manager.broadcast_signal(

@@ -11,7 +11,9 @@ use uuid::Uuid;
 
 use crate::ai::AIService;
 use crate::binance::BinanceClient;
+use crate::market_data::cache::CandleData;
 use crate::storage::Storage;
+use crate::strategies::strategy_engine::StrategyEngine;
 use crate::strategies::TradingSignal;
 
 use super::{
@@ -22,7 +24,9 @@ use super::{
     settings::PaperTradingSettings,
     strategy_optimizer::StrategyOptimizer,
     trade::{CloseReason, PaperTrade, TradeType},
+    AIMarketBias,
     AITradingSignal,
+    MarketAnalysisData,
     OrderStatus,
     OrderType,
     PaperTradingEvent,
@@ -76,6 +80,17 @@ pub struct PaperTradingEngine {
     /// Pending stop-limit orders waiting for stop price to be triggered
     /// These orders are checked on every price update and executed when triggered
     pending_stop_limit_orders: Arc<RwLock<Vec<StopLimitOrder>>>,
+
+    /// Strategy engine for realtime signal generation from WebSocket kline events
+    strategy_engine: Arc<StrategyEngine>,
+
+    /// Pre-computed AI market bias (updated by Python AI service, read with zero latency)
+    /// Key: symbol (e.g., "BTCUSDT"), Value: AIMarketBias
+    ai_market_bias: Arc<RwLock<HashMap<String, AIMarketBias>>>,
+
+    /// Signal deduplication map to prevent duplicate trades
+    /// Key: "symbol_direction", Value: timestamp of last signal
+    recent_signals: Arc<RwLock<HashMap<String, i64>>>,
 }
 
 /// Pending trade for execution
@@ -145,6 +160,9 @@ impl PaperTradingEngine {
             trade_execution_lock: Arc::new(Mutex::new(())),
             historical_data_cache: Arc::new(RwLock::new(HashMap::new())),
             pending_stop_limit_orders: Arc::new(RwLock::new(Vec::new())),
+            strategy_engine: Arc::new(StrategyEngine::new()),
+            ai_market_bias: Arc::new(RwLock::new(HashMap::new())),
+            recent_signals: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
@@ -176,7 +194,7 @@ impl PaperTradingEngine {
 
         // Start background tasks
         let price_update_handle = self.start_price_updates();
-        let signal_processing_handle = self.start_signal_processing();
+        let signal_processing_handle = self.start_strategy_signal_loop();
         let trade_monitoring_handle = self.start_trade_monitoring();
         let performance_tracking_handle = self.start_performance_tracking();
         let optimization_handle = self.start_optimization_loop();
@@ -249,26 +267,271 @@ impl PaperTradingEngine {
         })
     }
 
-    /// Start AI signal processing loop
-    fn start_signal_processing(&self) -> tokio::task::JoinHandle<Result<()>> {
+    /// Start realtime strategy signal loop driven by kline close events
+    /// Replaces the old polling-based signal processing with event-driven approach
+    /// Uses cached historical data + new closed candles to run Rust strategies in microseconds
+    fn start_strategy_signal_loop(&self) -> tokio::task::JoinHandle<Result<()>> {
         let engine = self.clone();
 
         tokio::spawn(async move {
-            let settings = engine.settings.read().await;
-            let signal_interval = settings.ai.signal_refresh_interval_minutes;
-            drop(settings);
+            // Check every 10 seconds for new closed candles in the historical cache
+            // The price_updates loop already fetches klines, so we piggyback on that data
+            let mut check_interval = interval(Duration::from_secs(10));
 
-            let mut interval = interval(Duration::from_secs(signal_interval as u64 * 60));
+            // Track which candle close_time we last processed per symbol+timeframe
+            let mut last_processed: HashMap<String, i64> = HashMap::new();
+
+            info!("🚀 Strategy signal loop started (event-driven, checking every 10s)");
 
             while *engine.is_running.read().await {
-                interval.tick().await;
+                check_interval.tick().await;
 
-                if let Err(e) = engine.process_ai_signals().await {
-                    error!("Failed to process AI signals: {}", e);
+                let settings = engine.settings.read().await;
+                let symbols: Vec<String> = settings.symbols.keys().cloned().collect();
+                let min_confidence = settings.strategy.min_ai_confidence;
+                drop(settings);
+
+                for symbol in &symbols {
+                    // Check each timeframe for new closed candles
+                    for timeframe in &["15m", "30m", "1h", "4h"] {
+                        let cache_key = format!("{}_{}", symbol, timeframe);
+                        let cache = engine.historical_data_cache.read().await;
+
+                        if let Some(klines) = cache.get(&cache_key) {
+                            if let Some(last_kline) = klines.last() {
+                                let last_close_time = last_kline.close_time;
+                                let prev_time = last_processed.get(&cache_key).copied().unwrap_or(0);
+
+                                if last_close_time > prev_time {
+                                    // New candle closed! Update tracking
+                                    last_processed.insert(cache_key.clone(), last_close_time);
+
+                                    // Only trigger full analysis on 15m or 1h close (avoid spam)
+                                    if *timeframe == "15m" || *timeframe == "1h" {
+                                        drop(cache);
+
+                                        // Build strategy input from cached data
+                                        if let Some(input) = engine.build_strategy_input(symbol).await {
+                                            match engine.strategy_engine.analyze_market(&input).await {
+                                                Ok(combined_signal) => {
+                                                    let signal = combined_signal.final_signal;
+                                                    let confidence = combined_signal.combined_confidence;
+
+                                                    info!(
+                                                        "📊 Strategy signal: {} {:?} confidence {:.2} (trigger: {} close)",
+                                                        symbol, signal, confidence, timeframe
+                                                    );
+
+                                                    // Skip neutral signals
+                                                    if signal == TradingSignal::Neutral {
+                                                        continue;
+                                                    }
+
+                                                    // Skip low confidence
+                                                    if confidence < min_confidence {
+                                                        debug!(
+                                                            "Strategy signal confidence {:.2} below threshold {:.2} for {}",
+                                                            confidence, min_confidence, symbol
+                                                        );
+                                                        continue;
+                                                    }
+
+                                                    // Dedup check: skip if same signal within 60s
+                                                    let dedup_key = format!("{}_{:?}", symbol, signal);
+                                                    let now = Utc::now().timestamp();
+                                                    {
+                                                        let recent = engine.recent_signals.read().await;
+                                                        if let Some(last_time) = recent.get(&dedup_key) {
+                                                            if now - last_time < 60 {
+                                                                debug!("Dedup: skipping duplicate {} {:?} signal (within 60s)", symbol, signal);
+                                                                continue;
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // AI bias check
+                                                    let bias_aligned = {
+                                                        let bias = engine.ai_market_bias.read().await;
+                                                        if let Some(market_bias) = bias.get(symbol) {
+                                                            if !market_bias.is_stale() && market_bias.bias_confidence > 0.7 {
+                                                                let signal_dir = match signal {
+                                                                    TradingSignal::Long => 1.0,
+                                                                    TradingSignal::Short => -1.0,
+                                                                    TradingSignal::Neutral => 0.0,
+                                                                };
+                                                                if signal_dir * market_bias.direction_bias < -0.5 {
+                                                                    info!(
+                                                                        "🚫 AI bias conflict: {} strategy={:?} bias={:.1}, skipping",
+                                                                        symbol, signal, market_bias.direction_bias
+                                                                    );
+                                                                    false
+                                                                } else {
+                                                                    info!("✅ AI bias aligned for {} {:?}", symbol, signal);
+                                                                    true
+                                                                }
+                                                            } else {
+                                                                // Stale or low confidence bias, allow signal
+                                                                true
+                                                            }
+                                                        } else {
+                                                            // No bias data, allow signal
+                                                            true
+                                                        }
+                                                    };
+
+                                                    if !bias_aligned {
+                                                        continue;
+                                                    }
+
+                                                    // Record signal for dedup
+                                                    {
+                                                        let mut recent = engine.recent_signals.write().await;
+                                                        recent.insert(dedup_key, now);
+                                                        // Clean old entries
+                                                        recent.retain(|_, ts| now - *ts < 120);
+                                                    }
+
+                                                    // Get current price for signal
+                                                    let current_price = {
+                                                        let prices = engine.current_prices.read().await;
+                                                        prices.get(symbol).copied().unwrap_or(input.current_price)
+                                                    };
+
+                                                    // Convert to AITradingSignal and execute
+                                                    let ai_signal = AITradingSignal {
+                                                        id: Uuid::new_v4().to_string(),
+                                                        symbol: symbol.clone(),
+                                                        signal_type: signal,
+                                                        confidence,
+                                                        reasoning: combined_signal.reasoning.clone(),
+                                                        entry_price: current_price,
+                                                        suggested_stop_loss: None,
+                                                        suggested_take_profit: None,
+                                                        suggested_leverage: None,
+                                                        market_analysis: MarketAnalysisData {
+                                                            trend_direction: match signal {
+                                                                TradingSignal::Long => "Bullish".to_string(),
+                                                                TradingSignal::Short => "Bearish".to_string(),
+                                                                TradingSignal::Neutral => "Neutral".to_string(),
+                                                            },
+                                                            trend_strength: confidence,
+                                                            volatility: 0.0,
+                                                            support_levels: vec![],
+                                                            resistance_levels: vec![],
+                                                            volume_analysis: format!("Strategy consensus: {}", combined_signal.reasoning),
+                                                            risk_score: 1.0 - confidence,
+                                                        },
+                                                        timestamp: Utc::now(),
+                                                    };
+
+                                                    // Broadcast strategy signal via WebSocket
+                                                    let _ = engine.event_broadcaster.send(PaperTradingEvent {
+                                                        event_type: "StrategySignalGenerated".to_string(),
+                                                        data: serde_json::json!({
+                                                            "symbol": symbol,
+                                                            "signal": format!("{:?}", signal).to_lowercase(),
+                                                            "confidence": confidence,
+                                                            "reasoning": combined_signal.reasoning,
+                                                            "source": "rust_strategies",
+                                                            "trigger_timeframe": timeframe,
+                                                            "strategies": combined_signal.strategy_signals.iter()
+                                                                .map(|s| serde_json::json!({
+                                                                    "name": s.strategy_name,
+                                                                    "signal": format!("{:?}", s.signal),
+                                                                    "confidence": s.confidence,
+                                                                }))
+                                                                .collect::<Vec<_>>(),
+                                                        }),
+                                                        timestamp: Utc::now(),
+                                                    });
+
+                                                    // Execute the trade
+                                                    match engine.process_trading_signal(ai_signal).await {
+                                                        Ok(result) => {
+                                                            if result.success {
+                                                                info!("🎯 Trade executed from strategy signal: {} {:?}", symbol, signal);
+                                                            } else {
+                                                                debug!(
+                                                                    "Strategy signal not executed for {}: {}",
+                                                                    symbol,
+                                                                    result.error_message.unwrap_or_default()
+                                                                );
+                                                            }
+                                                        },
+                                                        Err(e) => {
+                                                            error!("Failed to process strategy signal for {}: {}", symbol, e);
+                                                        },
+                                                    }
+                                                },
+                                                Err(e) => {
+                                                    debug!("Strategy analysis skipped for {}: {}", symbol, e);
+                                                },
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
+            info!("Strategy signal loop stopped");
             Ok(())
+        })
+    }
+
+    /// Build StrategyInput from cached historical data for a symbol
+    async fn build_strategy_input(&self, symbol: &str) -> Option<crate::strategies::StrategyInput> {
+        let cache = self.historical_data_cache.read().await;
+
+        let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
+
+        for timeframe in &["15m", "30m", "1h", "4h"] {
+            let cache_key = format!("{}_{}", symbol, timeframe);
+            if let Some(klines) = cache.get(&cache_key) {
+                let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
+                if !candles.is_empty() {
+                    timeframe_data.insert(timeframe.to_string(), candles);
+                }
+            }
+        }
+
+        // Need at least 1h data for strategies to work
+        if !timeframe_data.contains_key("1h") {
+            debug!("Insufficient data for strategy analysis on {}: missing 1h timeframe", symbol);
+            return None;
+        }
+
+        let current_price = {
+            let prices = self.current_prices.read().await;
+            prices.get(symbol).copied().unwrap_or(0.0)
+        };
+
+        if current_price <= 0.0 {
+            debug!("No current price for {}, skipping strategy analysis", symbol);
+            return None;
+        }
+
+        // Calculate 24h volume from 1h candles (last 24 candles)
+        let volume_24h = timeframe_data
+            .get("1h")
+            .map(|candles| {
+                candles
+                    .iter()
+                    .rev()
+                    .take(24)
+                    .map(|c| c.volume)
+                    .sum::<f64>()
+            })
+            .unwrap_or(0.0);
+
+        Some(crate::strategies::StrategyInput {
+            symbol: symbol.to_string(),
+            timeframe_data,
+            current_price,
+            volume_24h,
+            timestamp: Utc::now().timestamp(),
         })
     }
 
@@ -477,112 +740,6 @@ impl PaperTradingEngine {
         }
 
         Ok(())
-    }
-
-    /// Process AI signals and generate trade decisions
-    async fn process_ai_signals(&self) -> Result<()> {
-        let settings = self.settings.read().await;
-        let symbols: Vec<String> = settings.symbols.keys().cloned().collect();
-        let min_confidence = settings.strategy.min_ai_confidence;
-        drop(settings);
-
-        for symbol in symbols {
-            match self.get_ai_signal_for_symbol(&symbol).await {
-                Ok(signal) => {
-                    // Save AI signal to database
-                    let executed = signal.confidence >= min_confidence;
-                    let trade_id = if executed {
-                        // This will be set after trade execution
-                        None
-                    } else {
-                        None
-                    };
-
-                    if let Err(e) = self
-                        .storage
-                        .save_ai_signal(&signal, executed, trade_id)
-                        .await
-                    {
-                        error!("Failed to save AI signal to database: {}", e);
-                    }
-
-                    // Broadcast AI signal via WebSocket regardless of confidence
-                    let _ = self.event_broadcaster.send(PaperTradingEvent {
-                        event_type: "AISignalReceived".to_string(),
-                        data: serde_json::json!({
-                            "symbol": signal.symbol,
-                            "signal": format!("{:?}", signal.signal_type).to_lowercase(),
-                            "confidence": signal.confidence,
-                            "timestamp": signal.timestamp,
-                            "reasoning": signal.reasoning,
-                            "entry_price": signal.entry_price,
-                            "trend_direction": signal.market_analysis.trend_direction
-                        }),
-                        timestamp: Utc::now(),
-                    });
-
-                    if signal.confidence >= min_confidence {
-                        match self.process_trading_signal(signal.clone()).await {
-                            Ok(result) => {
-                                if result.success {
-                                    // Update AI signal record with trade ID
-                                    if let Some(trade_id) = result.trade_id {
-                                        // Update the signal record to mark as executed with trade ID
-                                        info!(
-                                            "Trade executed for signal {}: {}",
-                                            signal.id, trade_id
-                                        );
-                                    }
-                                }
-                            },
-                            Err(e) => {
-                                error!("Failed to process trading signal for {}: {}", symbol, e);
-                            },
-                        }
-                    } else {
-                        debug!(
-                            "Signal confidence {} below threshold {} for {}",
-                            signal.confidence, min_confidence, symbol
-                        );
-                    }
-                },
-                Err(e) => {
-                    // In paper trading mode, this is expected - we skip automatic signal generation
-                    // and wait for signals from the frontend via API/WebSocket
-                    debug!(
-                        "Skipped automatic AI signal for {} (expected in paper trading): {}",
-                        symbol, e
-                    );
-                },
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Get AI signal for a specific symbol
-    ///
-    /// Note: In paper trading mode, this method is intentionally disabled to avoid calling Binance API.
-    /// Paper trading should rely on AI signals generated by the frontend and sent via API/WebSocket.
-    /// The frontend generates mock data and calls the AI service, then sends signals to this engine.
-    async fn get_ai_signal_for_symbol(&self, symbol: &str) -> Result<AITradingSignal> {
-        // @spec:FR-TRADING-015 - Paper Trading Simulation
-        // Paper trading should NOT call Binance API (even testnet).
-        // It should only react to signals from the frontend.
-
-        debug!(
-            "Skipping automated AI signal generation for {} in paper trading mode. \
-            Paper trading waits for frontend signals via API/WebSocket.",
-            symbol
-        );
-
-        // Return error to skip this symbol in the automatic processing loop.
-        // This is expected behavior - the loop will continue to the next symbol.
-        Err(anyhow::anyhow!(
-            "Paper trading mode: skipping automatic signal generation for {}. \
-            Use frontend AI analysis or manual API calls instead.",
-            symbol
-        ))
     }
 
     /// Process a trading signal and potentially execute a trade
@@ -2356,7 +2513,7 @@ impl PaperTradingEngine {
         let engine = self.clone();
         tokio::spawn(async move {
             let price_update_handle = engine.start_price_updates();
-            let signal_processing_handle = engine.start_signal_processing();
+            let signal_processing_handle = engine.start_strategy_signal_loop();
             let trade_monitoring_handle = engine.start_trade_monitoring();
             let performance_tracking_handle = engine.start_performance_tracking();
             let optimization_handle = engine.start_optimization_loop();
@@ -3070,25 +3227,77 @@ impl PaperTradingEngine {
         Ok(())
     }
 
-    /// Trigger manual AI analysis and trade execution
+    /// Trigger manual strategy analysis and trade execution
     pub async fn trigger_manual_analysis(&self) -> Result<()> {
         if !*self.is_running.read().await {
             return Err(anyhow::anyhow!("Engine is not running"));
         }
 
-        info!("🔧 Manual AI analysis triggered");
+        info!("🔧 Manual strategy analysis triggered");
 
-        // Force process AI signals immediately
-        match self.process_ai_signals().await {
-            Ok(_) => {
-                info!("✅ Manual AI analysis completed successfully");
-                Ok(())
-            },
-            Err(e) => {
-                error!("❌ Manual AI analysis failed: {}", e);
-                Err(e)
-            },
+        let settings = self.settings.read().await;
+        let symbols: Vec<String> = settings.symbols.keys().cloned().collect();
+        let min_confidence = settings.strategy.min_ai_confidence;
+        drop(settings);
+
+        for symbol in &symbols {
+            if let Some(input) = self.build_strategy_input(symbol).await {
+                match self.strategy_engine.analyze_market(&input).await {
+                    Ok(combined_signal) => {
+                        let signal = combined_signal.final_signal;
+                        let confidence = combined_signal.combined_confidence;
+
+                        info!(
+                            "📊 Manual analysis: {} {:?} confidence {:.2}",
+                            symbol, signal, confidence
+                        );
+
+                        if signal != TradingSignal::Neutral && confidence >= min_confidence {
+                            let current_price = {
+                                let prices = self.current_prices.read().await;
+                                prices.get(symbol).copied().unwrap_or(input.current_price)
+                            };
+
+                            let ai_signal = AITradingSignal {
+                                id: Uuid::new_v4().to_string(),
+                                symbol: symbol.clone(),
+                                signal_type: signal,
+                                confidence,
+                                reasoning: combined_signal.reasoning.clone(),
+                                entry_price: current_price,
+                                suggested_stop_loss: None,
+                                suggested_take_profit: None,
+                                suggested_leverage: None,
+                                market_analysis: MarketAnalysisData {
+                                    trend_direction: match signal {
+                                        TradingSignal::Long => "Bullish".to_string(),
+                                        TradingSignal::Short => "Bearish".to_string(),
+                                        TradingSignal::Neutral => "Neutral".to_string(),
+                                    },
+                                    trend_strength: confidence,
+                                    volatility: 0.0,
+                                    support_levels: vec![],
+                                    resistance_levels: vec![],
+                                    volume_analysis: format!("Manual analysis: {}", combined_signal.reasoning),
+                                    risk_score: 1.0 - confidence,
+                                },
+                                timestamp: Utc::now(),
+                            };
+
+                            if let Err(e) = self.process_trading_signal(ai_signal).await {
+                                error!("Failed to process manual signal for {}: {}", symbol, e);
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        debug!("Strategy analysis skipped for {}: {}", symbol, e);
+                    },
+                }
+            }
         }
+
+        info!("✅ Manual strategy analysis completed");
+        Ok(())
     }
 
     /// Process an external AI signal (from frontend or API)
@@ -3210,6 +3419,62 @@ impl PaperTradingEngine {
             );
             Ok(())
         }
+    }
+
+    // ============================================================================
+    // AI MARKET BIAS MANAGEMENT
+    // ============================================================================
+
+    /// Update AI market bias for a symbol (called by Python AI service)
+    pub async fn update_ai_market_bias(
+        &self,
+        symbol: String,
+        direction_bias: f64,
+        bias_strength: f64,
+        bias_confidence: f64,
+        ttl_seconds: Option<u32>,
+    ) -> Result<()> {
+        let bias = AIMarketBias {
+            direction_bias,
+            bias_strength,
+            bias_confidence,
+            last_updated: Utc::now(),
+            ttl_seconds: ttl_seconds.unwrap_or(600),
+        };
+
+        info!(
+            "📡 AI market bias updated: {} direction={:.1} strength={:.2} confidence={:.2}",
+            symbol, direction_bias, bias_strength, bias_confidence
+        );
+
+        let mut biases = self.ai_market_bias.write().await;
+        biases.insert(symbol.clone(), bias);
+
+        // Broadcast bias update via WebSocket
+        let _ = self.event_broadcaster.send(PaperTradingEvent {
+            event_type: "MarketBiasUpdated".to_string(),
+            data: serde_json::json!({
+                "symbol": symbol,
+                "direction_bias": direction_bias,
+                "bias_strength": bias_strength,
+                "bias_confidence": bias_confidence,
+            }),
+            timestamp: Utc::now(),
+        });
+
+        Ok(())
+    }
+
+    /// Get current AI market bias for a symbol
+    pub async fn get_ai_market_bias(&self, symbol: &str) -> Option<AIMarketBias> {
+        let biases = self.ai_market_bias.read().await;
+        biases.get(symbol).cloned()
+    }
+
+    /// Get all AI market biases
+    pub async fn get_all_ai_market_biases(&self) -> HashMap<String, AIMarketBias> {
+        let biases = self.ai_market_bias.read().await;
+        biases.clone()
     }
 
     // ============================================================================
@@ -5623,7 +5888,7 @@ mod tests {
 
         let _ = engine.trigger_manual_analysis().await;
 
-        // trigger_manual_analysis doesn't broadcast specific event, just calls process_ai_signals
+        // trigger_manual_analysis doesn't broadcast specific event, just runs strategy analysis
         let event = tokio::time::timeout(Duration::from_millis(100), receiver.recv()).await;
         // Event may or may not be received
         assert!(event.is_ok() || event.is_err());
@@ -6217,60 +6482,45 @@ mod tests {
         assert!(true); // Always pass - the main goal is no panic
     }
 
-    // Tests for process_ai_signals (lines 483-560)
+    // Tests for trigger_manual_analysis (strategy-based)
     #[tokio::test]
-    async fn test_cov2_process_ai_signals_saves_signal_to_database() {
+    async fn test_cov2_trigger_manual_analysis_when_not_running() {
         let engine = create_test_paper_engine().await;
+        // Engine is not running, should return error
+        let result = engine.trigger_manual_analysis().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cov2_trigger_manual_analysis_runs_strategies() {
+        let engine = create_test_paper_engine().await;
+        {
+            let mut running = engine.is_running.write().await;
+            *running = true;
+        }
 
         engine
             .add_symbol_to_settings("BTCUSDT".to_string())
             .await
             .ok();
 
-        // Process signals (will attempt to save)
-        let result = engine.process_ai_signals().await;
+        // Manual analysis should complete without panic
+        let result = engine.trigger_manual_analysis().await;
         assert!(result.is_ok());
+
+        // Stop engine
+        {
+            let mut running = engine.is_running.write().await;
+            *running = false;
+        }
     }
 
     #[tokio::test]
-    async fn test_cov2_process_ai_signals_broadcasts_low_confidence_signal() {
-        let storage = create_mock_storage().await;
-        let mut settings = create_test_settings();
-        settings.strategy.min_ai_confidence = 0.8; // High threshold
-
-        let binance_client = create_mock_binance_client();
-        let ai_service = create_mock_ai_service();
-        let (broadcaster, mut receiver) = broadcast::channel(100);
-
-        let engine =
-            PaperTradingEngine::new(settings, binance_client, ai_service, storage, broadcaster)
-                .await
-                .unwrap();
-
-        engine
-            .add_symbol_to_settings("BTCUSDT".to_string())
-            .await
-            .ok();
-
-        // Process signals - they will be below threshold
-        let _ = engine.process_ai_signals().await;
-
-        // Should still broadcast low confidence signals
-        let _ = tokio::time::timeout(Duration::from_millis(100), receiver.recv()).await;
-    }
-
-    #[tokio::test]
-    async fn test_cov2_process_ai_signals_handles_signal_processing_failure() {
+    async fn test_cov2_build_strategy_input_no_cache() {
         let engine = create_test_paper_engine().await;
-
-        engine
-            .add_symbol_to_settings("BTCUSDT".to_string())
-            .await
-            .ok();
-
-        // Process signals - will attempt and may fail
-        let result = engine.process_ai_signals().await;
-        assert!(result.is_ok()); // Should handle individual failures gracefully
+        // No cache data, should return None
+        let input = engine.build_strategy_input("BTCUSDT").await;
+        assert!(input.is_none());
     }
 
     // Tests for process_trading_signal - risk checks (lines 624-684)

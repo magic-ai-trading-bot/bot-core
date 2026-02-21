@@ -175,6 +175,33 @@ pub struct StopLimitOrder {
     pub error_message: Option<String>,
 }
 
+/// AI market bias for pre-computed directional filter
+/// Updated by Python AI service via POST /api/ai/market-bias
+/// Read by strategy signal loop with zero latency (Arc<RwLock>)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIMarketBias {
+    /// Direction bias: 1.0 (bullish), -1.0 (bearish), 0.0 (neutral)
+    pub direction_bias: f64,
+    /// Strength of the bias (0.0-1.0)
+    pub bias_strength: f64,
+    /// Confidence in the bias (0.0-1.0)
+    pub bias_confidence: f64,
+    /// When this bias was last updated
+    pub last_updated: DateTime<Utc>,
+    /// Time-to-live in seconds (default 600 = 10 minutes)
+    pub ttl_seconds: u32,
+}
+
+impl AIMarketBias {
+    /// Check if this bias has expired
+    pub fn is_stale(&self) -> bool {
+        let elapsed = Utc::now()
+            .signed_duration_since(self.last_updated)
+            .num_seconds();
+        elapsed > self.ttl_seconds as i64
+    }
+}
+
 /// Portfolio performance summary
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceSummary {
@@ -605,5 +632,43 @@ mod tests {
         assert!(params.price.is_none());
         assert!(params.stop_price.is_none());
         assert!(params.leverage.is_none());
+    }
+
+    #[test]
+    fn test_ai_market_bias_not_stale() {
+        let bias = AIMarketBias {
+            direction_bias: 1.0,
+            bias_strength: 0.8,
+            bias_confidence: 0.9,
+            last_updated: Utc::now(),
+            ttl_seconds: 600,
+        };
+        assert!(!bias.is_stale());
+    }
+
+    #[test]
+    fn test_ai_market_bias_stale() {
+        let bias = AIMarketBias {
+            direction_bias: -1.0,
+            bias_strength: 0.7,
+            bias_confidence: 0.85,
+            last_updated: Utc::now() - chrono::Duration::seconds(700),
+            ttl_seconds: 600,
+        };
+        assert!(bias.is_stale());
+    }
+
+    #[test]
+    fn test_ai_market_bias_clone() {
+        let bias = AIMarketBias {
+            direction_bias: 0.5,
+            bias_strength: 0.6,
+            bias_confidence: 0.7,
+            last_updated: Utc::now(),
+            ttl_seconds: 300,
+        };
+        let cloned = bias.clone();
+        assert_eq!(bias.direction_bias, cloned.direction_bias);
+        assert_eq!(bias.ttl_seconds, cloned.ttl_seconds);
     }
 }

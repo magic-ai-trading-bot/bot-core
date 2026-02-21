@@ -602,8 +602,8 @@ impl MarketDataProcessor {
         let storage = self.storage.clone();
 
         tokio::spawn(async move {
-            // Run analysis every 5 minutes
-            let mut interval = interval(Duration::from_secs(5 * 60));
+            // Run analysis every 15 minutes (dashboard data only, not trade-related)
+            let mut interval = interval(Duration::from_secs(15 * 60));
 
             loop {
                 interval.tick().await;
