@@ -6608,9 +6608,8 @@ mod tests {
                     ignore: "0".to_string(),
                 })
                 .collect();
-            cache.insert("BTCUSDT_15m".to_string(), klines.clone());
-            cache.insert("BTCUSDT_1h".to_string(), klines.clone());
-            cache.insert("BTCUSDT_4h".to_string(), klines);
+            cache.insert("BTCUSDT_5m".to_string(), klines.clone());
+            cache.insert("BTCUSDT_15m".to_string(), klines);
         }
 
         // Set daily loss limit
@@ -6687,9 +6686,8 @@ mod tests {
                     ignore: "0".to_string(),
                 })
                 .collect();
-            cache.insert("BTCUSDT_15m".to_string(), klines.clone());
-            cache.insert("BTCUSDT_1h".to_string(), klines.clone());
-            cache.insert("BTCUSDT_4h".to_string(), klines);
+            cache.insert("BTCUSDT_5m".to_string(), klines.clone());
+            cache.insert("BTCUSDT_15m".to_string(), klines);
         }
 
         // Set cooldown
@@ -6758,9 +6756,8 @@ mod tests {
                     ignore: "0".to_string(),
                 })
                 .collect();
-            cache.insert("BTCUSDT_15m".to_string(), klines.clone());
-            cache.insert("BTCUSDT_1h".to_string(), klines.clone());
-            cache.insert("BTCUSDT_4h".to_string(), klines);
+            cache.insert("BTCUSDT_5m".to_string(), klines.clone());
+            cache.insert("BTCUSDT_15m".to_string(), klines);
         }
 
         let signal = AITradingSignal {
@@ -6923,9 +6920,8 @@ mod tests {
                     ignore: "0".to_string(),
                 })
                 .collect();
-            cache.insert("BTCUSDT_15m".to_string(), klines.clone());
-            cache.insert("BTCUSDT_1h".to_string(), klines.clone());
-            cache.insert("BTCUSDT_4h".to_string(), klines);
+            cache.insert("BTCUSDT_5m".to_string(), klines.clone());
+            cache.insert("BTCUSDT_15m".to_string(), klines);
         }
 
         // Add symbol but disable it
