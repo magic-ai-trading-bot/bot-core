@@ -41,6 +41,18 @@ chmod 600 "$OPENCLAW_HOME/openclaw.json" 2>/dev/null || true
 # Sync cron job definitions (always overwrite so git changes take effect on restart)
 if [ -d "$CONFIG_SRC/cron" ]; then
   echo "Syncing cron configs..."
+  # Remove stale cron files that no longer exist in source
+  for f in "$OPENCLAW_HOME/cron"/*.json; do
+    [ -f "$f" ] || continue
+    basename_f=$(basename "$f")
+    [ "$basename_f" = "jobs.json" ] && continue
+    [ "$basename_f" = "jobs.json.bak" ] && continue
+    if [ ! -f "$CONFIG_SRC/cron/$basename_f" ]; then
+      echo "  Removing stale cron config: $basename_f"
+      rm -f "$f"
+    fi
+  done
+  # Copy current configs
   for f in "$CONFIG_SRC/cron"/*.json; do
     [ -f "$f" ] || continue
     cp "$f" "$OPENCLAW_HOME/cron/"
