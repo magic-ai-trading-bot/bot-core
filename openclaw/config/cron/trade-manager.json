@@ -1,0 +1,7 @@
+{
+  "name": "trade-manager",
+  "schedule": "*/10 * * * *",
+  "timeout_seconds": 180,
+  "no_deliver": true,
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore get_paper_open_trades`\n\nNếu KHÔNG có lệnh đang mở → DỪNG, không làm gì.\n\nBước 2: Chạy `botcore get_market_prices`\n\nBước 3: Với MỖI lệnh đang mở, phân tích:\n\na) Lãi > 8% PnL → Cân nhắc chốt lời sớm:\n   - Nếu giá đang đi ngang hoặc bắt đầu đảo chiều → `botcore close_paper_trade_by_symbol` với reason \"take profit at X%\"\n   - Nếu giá vẫn đang chạy đúng hướng → GIỮA, để trailing stop xử lý\n\nb) Lỗ > 10% PnL VÀ giá đang tiếp tục đi ngược → close sớm:\n   - `botcore close_paper_trade_by_symbol` với reason \"early stop loss - trend reversal\"\n   - KHÔNG close chỉ vì lỗ nhẹ (< 10%) — SL engine tự xử lý\n\nc) Lệnh mở > 2 giờ VÀ PnL gần 0% (±2%) → close:\n   - Thị trường sideways, vốn bị kẹt → giải phóng\n   - `botcore close_paper_trade_by_symbol` với reason \"stale trade - sideways market\"\n\nBước 4: Nếu đã close bất kỳ lệnh nào → `botcore send_telegram_notification` báo cáo ngắn gọn.\n\nNGUYÊN TẮC:\n- Engine có SL/TP/Trailing Stop tự động → KHÔNG thay thế\n- Chỉ can thiệp khi: lãi lớn cần chốt, lỗ rõ ràng đảo chiều, hoặc vốn bị kẹt\n- KHÔNG close lệnh chỉ vì lỗ nhẹ — để SL tự xử lý\n\nLUÔN viết bằng tiếng Việt."
+}
