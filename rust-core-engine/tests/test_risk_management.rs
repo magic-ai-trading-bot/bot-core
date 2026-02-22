@@ -187,8 +187,8 @@ mod signal_combination_tests {
         let config = StrategyEngineConfig::default();
 
         assert_eq!(
-            config.min_strategies_agreement, 4,
-            "Default should require 4/5 strategies (80%)"
+            config.min_strategies_agreement, 3,
+            "Default should require 3/5 strategies (60%)"
         );
         assert_eq!(
             config.enabled_strategies.len(),

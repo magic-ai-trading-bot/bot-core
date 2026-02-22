@@ -276,6 +276,34 @@ impl RsiStrategy {
             );
         }
 
+        // Bullish momentum — RSI rising above 55 on both timeframes (trend-following)
+        if rsi_1h > 55.0
+            && rsi_1h < overbought
+            && prev_rsi_1h < rsi_1h
+            && rsi_4h > 50.0
+            && rsi_4h < overbought
+        {
+            return (
+                TradingSignal::Long,
+                0.60,
+                "Bullish momentum: RSI rising above 55 on both timeframes".to_string(),
+            );
+        }
+
+        // Bearish momentum — RSI falling below 45 on both timeframes (trend-following)
+        if rsi_1h < 45.0
+            && rsi_1h > oversold
+            && prev_rsi_1h > rsi_1h
+            && rsi_4h < 50.0
+            && rsi_4h > oversold
+        {
+            return (
+                TradingSignal::Short,
+                0.60,
+                "Bearish momentum: RSI falling below 45 on both timeframes".to_string(),
+            );
+        }
+
         // Neutral/consolidation
         let confidence = if (rsi_1h - 50.0).abs() < 10.0 && (rsi_4h - 50.0).abs() < 15.0 {
             0.65

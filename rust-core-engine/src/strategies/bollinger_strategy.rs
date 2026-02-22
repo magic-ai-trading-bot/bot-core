@@ -307,25 +307,25 @@ impl BollingerStrategy {
             );
         }
 
-        // Trend continuation signals
-        if bb_position_1h > 0.8 && bb_position_4h > 0.6 && bb_expanding_1h {
+        // Trend continuation signals (relaxed for 5m/15m responsiveness)
+        if bb_position_1h > 0.65 && bb_position_4h > 0.55 && bb_expanding_1h {
             return (
                 TradingSignal::Long,
-                0.69,
+                0.65,
                 "Strong uptrend with Bollinger Bands expansion".to_string(),
             );
         }
 
-        if bb_position_1h < 0.2 && bb_position_4h < 0.4 && bb_expanding_1h {
+        if bb_position_1h < 0.35 && bb_position_4h < 0.45 && bb_expanding_1h {
             return (
                 TradingSignal::Short,
-                0.69,
+                0.65,
                 "Strong downtrend with Bollinger Bands expansion".to_string(),
             );
         }
 
         // Moderate signals based on position
-        if bb_position_1h < 0.25 && current_price > middle_4h {
+        if bb_position_1h < 0.35 && current_price > middle_4h {
             return (
                 TradingSignal::Long,
                 0.58,
@@ -333,7 +333,7 @@ impl BollingerStrategy {
             );
         }
 
-        if bb_position_1h > 0.75 && current_price < middle_4h {
+        if bb_position_1h > 0.65 && current_price < middle_4h {
             return (
                 TradingSignal::Short,
                 0.58,
@@ -824,8 +824,8 @@ mod tests {
             108.0, // current_price
             110.0, 100.0, 90.0, // 1h
             108.0, 100.0, 92.0,  // 4h
-            0.85,  // bb_position_1h
-            0.65,  // bb_position_4h
+            0.85,  // bb_position_1h (> 0.65)
+            0.65,  // bb_position_4h (> 0.55)
             0.20,  // bb_width_1h
             0.16,  // bb_width_4h
             false, // is_squeeze_1h
@@ -835,7 +835,7 @@ mod tests {
         );
 
         assert_eq!(signal, TradingSignal::Long);
-        assert_eq!(confidence, 0.69);
+        assert_eq!(confidence, 0.65);
     }
 
     #[test]
@@ -845,8 +845,8 @@ mod tests {
             91.0, // current_price
             110.0, 100.0, 90.0, // 1h
             108.0, 100.0, 92.0,  // 4h
-            0.15,  // bb_position_1h
-            0.35,  // bb_position_4h
+            0.15,  // bb_position_1h (< 0.35)
+            0.35,  // bb_position_4h (< 0.45)
             0.20,  // bb_width_1h
             0.16,  // bb_width_4h
             false, // is_squeeze_1h
@@ -856,7 +856,7 @@ mod tests {
         );
 
         assert_eq!(signal, TradingSignal::Short);
-        assert_eq!(confidence, 0.69);
+        assert_eq!(confidence, 0.65);
     }
 
     #[test]

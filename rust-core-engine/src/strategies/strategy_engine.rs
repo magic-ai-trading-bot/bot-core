@@ -94,8 +94,8 @@ pub struct StrategyEngineConfig {
     pub signal_combination_mode: SignalCombinationMode,
     pub max_history_size: usize,
     /// @spec:FR-STRATEGIES-006 - Minimum strategies that must agree before placing order
-    /// Default: 4 (requires ≥4/5 strategies to agree for maximum safety)
-    /// @ref:docs/features/how-it-works.md - Step 3: "Yêu cầu: ≥4/5 chiến lược đồng ý"
+    /// Default: 3 (requires ≥3/5 strategies to agree for 60% majority)
+    /// Balanced: strict enough for safety, loose enough for 5m/15m responsiveness
     pub min_strategies_agreement: usize,
 }
 
@@ -424,8 +424,8 @@ impl StrategyEngine {
         let total_count = results.len();
 
         // @spec:FR-STRATEGIES-006 - Signal Combination with configurable threshold
-        // Default requires ≥4/5 strategies (80%) to agree for maximum financial safety
-        // This is STRICTER than typical >50% majority consensus
+        // Default requires ≥3/5 strategies (60%) to agree
+        // Balanced for 5m/15m responsiveness while maintaining safety
         let min_required = self.config.min_strategies_agreement;
 
         // Require at least min_required strategies to have run successfully
@@ -433,8 +433,8 @@ impl StrategyEngine {
         let final_signal = if total_count < min_required {
             TradingSignal::Neutral
         } else {
-            // @spec:FR-STRATEGIES-006 - ≥4/5 strategies must agree (not just >50%)
-            // This ensures high confidence before placing any order
+            // @spec:FR-STRATEGIES-006 - ≥3/5 strategies must agree (60% majority)
+            // Balanced threshold for 5m/15m momentum signals
             if long_count >= min_required {
                 TradingSignal::Long
             } else if short_count >= min_required {
@@ -464,16 +464,21 @@ impl StrategyEngine {
             0.5
         };
 
-        let combined_confidence = avg_confidence * consensus_strength;
+        // For directional signals, apply mild penalty (not full multiplication)
+        // Maps consensus_strength [0.6, 1.0] to factor [0.88, 1.0]
+        // This prevents 3/5 consensus from killing confidence (0.6 × 0.6 = 0.36 → too low)
+        let confidence_factor = 0.7 + 0.3 * consensus_strength;
+        let combined_confidence = avg_confidence * confidence_factor;
 
         let reasoning = format!(
-            "Consensus (≥{}/{}): {}L/{}S/{}N (strength: {:.1}%)",
+            "Consensus (≥{}/{}): {}L/{}S/{}N (strength: {:.1}%, factor: {:.2})",
             min_required,
             total_count,
             long_count,
             short_count,
             neutral_count,
-            consensus_strength * 100.0
+            consensus_strength * 100.0,
+            confidence_factor
         );
 
         (final_signal, combined_confidence, reasoning)
@@ -605,14 +610,14 @@ impl Default for StrategyEngineConfig {
                 "Stochastic Strategy".to_string(),
             ],
             min_confidence_threshold: 0.65,
-            // @spec:FR-STRATEGIES-006 - Signal Combination requires ≥4/5 strategies agreement
-            // @ref:docs/features/how-it-works.md - Step 3: "Yêu cầu: ≥4/5 chiến lược đồng ý"
-            // CRITICAL: Stricter requirement for financial safety
+            // @spec:FR-STRATEGIES-006 - Signal Combination requires ≥3/5 strategies agreement (60% majority)
+            // @ref:docs/features/how-it-works.md
+            // Balanced: strict enough for safety, loose enough for 5m/15m responsiveness
             signal_combination_mode: SignalCombinationMode::Consensus,
             max_history_size: 1000,
-            // @spec:FR-STRATEGIES-006 - Minimum 4 strategies must agree (4/5 = 80%)
-            // This is stricter than typical >50% majority to ensure trading safety
-            min_strategies_agreement: 4,
+            // @spec:FR-STRATEGIES-006 - Minimum 3 strategies must agree (3/5 = 60%)
+            // Balanced for 5m/15m: 3 independent indicators confirming is still safe
+            min_strategies_agreement: 3,
         }
     }
 }
@@ -1612,9 +1617,9 @@ mod tests {
     }
 
     #[test]
-    fn test_cov8_combine_consensus_insufficient_strategies() {
+    fn test_cov8_combine_consensus_3_long_strategies() {
         let engine = StrategyEngine::new();
-        // Only 3 strategies, but min_strategies_agreement = 4
+        // 3 strategies all Long, min_strategies_agreement = 3 → should return Long
         let results = vec![
             StrategySignalResult {
                 strategy_name: "S1".to_string(),
@@ -1636,6 +1641,36 @@ mod tests {
                 strategy_name: "S3".to_string(),
                 signal: TradingSignal::Long,
                 confidence: 0.7,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+        ];
+
+        let (signal, confidence, _) = engine.combine_consensus(&results);
+
+        // 3/3 Long meets min_strategies_agreement = 3 → Long signal
+        assert_eq!(signal, TradingSignal::Long);
+        assert!(confidence > 0.0);
+    }
+
+    #[test]
+    fn test_cov8_combine_consensus_insufficient_strategies() {
+        let engine = StrategyEngine::new();
+        // Only 2 strategies, but min_strategies_agreement = 3
+        let results = vec![
+            StrategySignalResult {
+                strategy_name: "S1".to_string(),
+                signal: TradingSignal::Long,
+                confidence: 0.8,
+                reasoning: "".to_string(),
+                weight: 1.0,
+                metadata: HashMap::new(),
+            },
+            StrategySignalResult {
+                strategy_name: "S2".to_string(),
+                signal: TradingSignal::Long,
+                confidence: 0.75,
                 reasoning: "".to_string(),
                 weight: 1.0,
                 metadata: HashMap::new(),
