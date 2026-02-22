@@ -254,8 +254,31 @@ The engine checks each open position against its TP/SL on every price update:
 2. If PnL >= take_profit_pct → auto-close with profit
 3. If PnL <= -stop_loss_pct → auto-close with loss
 4. If trailing is active and price drops below trailing stop → auto-close
+5. If liquidation risk detected → auto-close with margin call
+
+**All auto-closures are persisted to MongoDB immediately.** The engine:
+- Saves closed trade status + exit price + PnL to database
+- Updates AI signal outcome (win/loss tracking)
+- Saves portfolio snapshot
+- Tracks consecutive losses for cool-down mechanism
+
+This means: after a container restart, closed trades STAY closed in the database. You do NOT need to manually re-close trades that were auto-closed by SL/TP. Trust the engine — it handles persistence correctly.
 
 A position that shows +8% PnL with TP set to 10% has NOT reached the threshold yet. It will close at +10% PnL.
+
+### Choppy market detection (built-in)
+
+The engine automatically detects choppy/ranging markets and blocks trading:
+- Tracks signal direction (Long/Short) per symbol over a 15-minute window
+- Counts direction flips (Long→Short or Short→Long)
+- If 4+ direction flips in 15 minutes → market is choppy → engine skips ALL signals for that symbol
+- Window auto-cleans entries older than 15 minutes
+
+**What this means for you:**
+- If a symbol shows frequent signal flips, the engine will NOT enter trades — this is intentional
+- You do NOT need to manually block trading during choppy markets
+- If you see "Choppy market detected" in logs, it means the engine is protecting capital
+- This filter runs BEFORE signal confirmation (2 consecutive signals), so choppy signals never reach confirmation stage
 
 ---
 

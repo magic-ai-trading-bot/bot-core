@@ -91,6 +91,10 @@ pub struct PaperTradingEngine {
     /// Signal confirmation map: requires 2 consecutive signals same direction
     /// Key: "symbol_direction", Value: (first_seen_timestamp, signal_count)
     recent_signals: Arc<RwLock<HashMap<String, (i64, u32)>>>,
+
+    /// Choppy market detection: tracks direction flips per symbol
+    /// Key: symbol, Value: Vec<(timestamp, signal_direction)> — last N signals within window
+    signal_flip_tracker: Arc<RwLock<HashMap<String, Vec<(i64, TradingSignal)>>>>,
 }
 
 /// Pending trade for execution
@@ -163,6 +167,7 @@ impl PaperTradingEngine {
             strategy_engine: Arc::new(StrategyEngine::new()),
             ai_market_bias: Arc::new(RwLock::new(HashMap::new())),
             recent_signals: Arc::new(RwLock::new(HashMap::new())),
+            signal_flip_tracker: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
@@ -383,6 +388,39 @@ impl PaperTradingEngine {
                                                 confidence, min_confidence, symbol
                                             );
                                             continue;
+                                        }
+
+                                        // Choppy market detection: block if too many direction flips in 15min
+                                        {
+                                            let mut tracker =
+                                                engine.signal_flip_tracker.write().await;
+                                            let now_ts = Utc::now().timestamp();
+                                            let symbol_key = symbol.to_string();
+
+                                            let flips = tracker
+                                                .entry(symbol_key.clone())
+                                                .or_insert_with(Vec::new);
+
+                                            // Cleanup entries older than 15 minutes
+                                            flips.retain(|(ts, _)| now_ts - ts < 900);
+
+                                            // Count direction changes
+                                            let flip_count = flips
+                                                .windows(2)
+                                                .filter(|w| w[0].1 != w[1].1)
+                                                .count();
+
+                                            // Record current signal
+                                            flips.push((now_ts, signal));
+
+                                            // If 4+ direction flips in 15 minutes → choppy market
+                                            if flip_count >= 4 {
+                                                info!(
+                                                    "🌊 Choppy market detected for {}: {} direction flips in 15min, skipping {:?}",
+                                                    symbol, flip_count, signal
+                                                );
+                                                continue;
+                                            }
                                         }
 
                                         // Signal confirmation: require 2 consecutive signals same direction
@@ -2311,21 +2349,58 @@ impl PaperTradingEngine {
     }
 
     /// Monitor open trades for stop loss/take profit
+    /// Uses engine-level close_trade() to persist closures to MongoDB
     async fn monitor_open_trades(&self) -> Result<()> {
-        let mut portfolio = self.portfolio.write().await;
-        let closed_trades = portfolio.check_automatic_closures();
-        drop(portfolio);
+        // Step 1: Detect which trades need closing (read-only)
+        let trades_to_close = {
+            let portfolio = self.portfolio.read().await;
+            let mut to_close: Vec<(String, CloseReason)> = Vec::new();
 
-        for trade_id in closed_trades {
-            // Broadcast trade closure event
-            let _ = self.event_broadcaster.send(PaperTradingEvent {
-                event_type: "trade_closed".to_string(),
-                data: serde_json::json!({
-                    "trade_id": trade_id,
-                    "reason": "automatic",
-                }),
-                timestamp: Utc::now(),
-            });
+            for trade_id in &portfolio.open_trade_ids {
+                if let Some(trade) = portfolio.trades.get(trade_id) {
+                    if let Some(current_price) = portfolio.current_prices.get(&trade.symbol) {
+                        if trade.should_stop_loss(*current_price) {
+                            info!(
+                                "🚨 SL DETECTED: {} ({} {:?}) price=${:.2} sl=${:.2}",
+                                trade_id,
+                                trade.symbol,
+                                trade.trade_type,
+                                current_price,
+                                trade.stop_loss.unwrap_or(0.0)
+                            );
+                            to_close.push((trade_id.clone(), CloseReason::StopLoss));
+                        } else if trade.should_take_profit(*current_price) {
+                            info!(
+                                "✅ TP DETECTED: {} ({} {:?}) price=${:.2} tp=${:.2}",
+                                trade_id,
+                                trade.symbol,
+                                trade.trade_type,
+                                current_price,
+                                trade.take_profit.unwrap_or(0.0)
+                            );
+                            to_close.push((trade_id.clone(), CloseReason::TakeProfit));
+                        } else if trade.is_at_liquidation_risk(*current_price) {
+                            warn!(
+                                "⚠️ LIQUIDATION DETECTED: {} ({} {:?})",
+                                trade_id, trade.symbol, trade.trade_type
+                            );
+                            to_close.push((trade_id.clone(), CloseReason::MarginCall));
+                        }
+                    }
+                }
+            }
+            to_close
+        }; // Drop read lock
+
+        // Step 2: Close via engine-level close_trade() → persists to MongoDB
+        for (trade_id, close_reason) in trades_to_close {
+            info!(
+                "🔒 Auto-closing trade {} due to {:?}",
+                trade_id, close_reason
+            );
+            if let Err(e) = self.close_trade(&trade_id, close_reason).await {
+                error!("❌ Failed to auto-close trade {}: {}", trade_id, e);
+            }
         }
 
         Ok(())

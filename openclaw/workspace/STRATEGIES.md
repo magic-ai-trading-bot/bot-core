@@ -81,6 +81,25 @@
 - **Minimum data**: 50 candles per timeframe required before trading starts
 - **Hybrid filter**: Optional AI trend filter for additional validation
 
+### Signal Pipeline (order of checks)
+
+1. **Neutral filter**: Skip neutral signals
+2. **Confidence filter**: Skip if confidence < min_confidence (0.60)
+3. **Choppy market filter**: Skip if 4+ direction flips in 15 minutes for the symbol
+4. **Signal confirmation**: Require 2 consecutive same-direction signals within 10 minutes (60s dedup)
+5. **AI bias check**: Skip if signal conflicts with AI market bias (direction_bias × signal < -0.5)
+6. **Trade execution**: Pass through risk management layers → execute trade
+
+### Choppy Market Detection
+
+Prevents trading in ranging/whipsaw markets:
+- Tracks all non-neutral signals per symbol with timestamps
+- Counts direction changes (Long→Short or Short→Long) in 15-min window
+- If ≥4 flips → market is choppy → block ALL signals for that symbol
+- Example: `[Long, Long, Short, Long, Short, Long]` = 4 flips → BLOCKED
+- Window auto-cleans entries >15 minutes old
+- Common trigger: ETH flipping Long↔Short every 5-10 minutes
+
 ---
 
 ## Risk Management - 7 Protection Layers
@@ -149,6 +168,7 @@
 | **Cool-down panic** | Force trades after cool-down | Extend cool-down, reduce size |
 | **Volume dry-up** | Low volume, high slippage | Skip signals volume < 0.8x avg |
 | **Stochastic whipsaw** | Crossovers in sideways market | Combine with volume/trend filter |
+| **Choppy market** | Signal flips Long↔Short every 5-10 min | Engine auto-blocks at 4+ flips/15min (built-in) |
 
 ---
 
@@ -167,7 +187,9 @@ Risk (7 layers):
 Strategy:
   active_strategies: 5 (RSI, MACD, Bollinger, Volume, Stochastic)
   min_strategies_agreement: 4/5
-  min_confidence: 0.5
+  min_confidence: 0.60
+  signal_confirmation: 2 consecutive same-direction signals within 10min
+  choppy_market_threshold: 4 direction flips in 15min → block trading
   signal_interval: 5 min
 
 Execution:
