@@ -3,16 +3,16 @@
 
 ## Strategy Signal Generation
 
-### 1. RSI Strategy (Period: 14, Multi-timeframe: 1H + 4H)
+### 1. RSI Strategy (Period: 14, Multi-timeframe: 5M + 15M)
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Strong BUY** | RSI1h ≤ 20.0 AND RSI4h ≤ 25.0 AND RSI recovering (prev < current) | 0.87 |
-| **Strong SELL** | RSI1h ≥ 80.0 AND RSI4h ≥ 75.0 AND RSI declining | 0.87 |
-| **Moderate BUY** | RSI1h ≤ 25.0 AND RSI4h < 50 AND RSI recovering | 0.73 |
-| **Moderate SELL** | RSI1h ≥ 75.0 AND RSI4h > 50 AND RSI declining | 0.73 |
-| **Weak BUY** | RSI1h 25.0-50 AND rising AND RSI4h < 50 | 0.51 |
-| **Weak SELL** | RSI1h 50-75.0 AND falling AND RSI4h > 50 | 0.51 |
+| **Strong BUY** | RSI5m ≤ 20.0 AND RSI15m ≤ 25.0 AND RSI recovering (prev < current) | 0.87 |
+| **Strong SELL** | RSI5m ≥ 80.0 AND RSI15m ≥ 75.0 AND RSI declining | 0.87 |
+| **Moderate BUY** | RSI5m ≤ 25.0 AND RSI15m < 50 AND RSI recovering | 0.73 |
+| **Moderate SELL** | RSI5m ≥ 75.0 AND RSI15m > 50 AND RSI declining | 0.73 |
+| **Weak BUY** | RSI5m 25.0-50 AND rising AND RSI15m < 50 | 0.51 |
+| **Weak SELL** | RSI5m 50-75.0 AND falling AND RSI15m > 50 | 0.51 |
 
 **Win rate**: 65%
 **Common failure**: RSI oversold ≠ immediate bounce trong bear trend. Cần confirm trend reversal trước.
@@ -21,11 +21,11 @@
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Strong BUY** | Bullish crossover + histogram4h > 0.001 + both increasing | 0.89 |
-| **Strong SELL** | Bearish crossover + histogram4h < -0.001 + both decreasing | 0.89 |
-| **Moderate BUY** | Crossover + 4H histogram increasing, OR both histograms positive + increasing | 0.71 |
-| **Moderate SELL** | Crossover + 4H decreasing, OR both negative + decreasing | 0.71 |
-| **Weak BUY** | histogram1h increasing AND MACD > Signal AND momentum growing >10% | 0.55 |
+| **Strong BUY** | Bullish crossover + histogram15m > 0.001 + both increasing | 0.89 |
+| **Strong SELL** | Bearish crossover + histogram15m < -0.001 + both decreasing | 0.89 |
+| **Moderate BUY** | Crossover + 15M histogram increasing, OR both histograms positive + increasing | 0.71 |
+| **Moderate SELL** | Crossover + 15M decreasing, OR both negative + decreasing | 0.71 |
+| **Weak BUY** | histogram5m increasing AND MACD > Signal AND momentum growing >10% | 0.55 |
 
 **Win rate**: 61%
 **Key**: Crossover = prev_MACD ≤ prev_Signal AND current_MACD > current_Signal
@@ -34,10 +34,10 @@
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Squeeze Breakout BUY** | Squeeze (BB width < 2.00%) + expanding + price > upper + 4H position > 0.5 | 0.87 |
-| **Mean Reversion BUY** | BB position ≤ 0.1 + 4H position < 0.3 + NOT expanding | 0.73 |
-| **Trend Continuation BUY** | BB position > 0.8 + 4H > 0.6 + expanding | 0.69 |
-| **Moderate BUY** | BB position < 0.25 + price > 4H middle band | 0.58 |
+| **Squeeze Breakout BUY** | Squeeze (BB width < 2.00%) + expanding + price > upper + 15M position > 0.5 | 0.87 |
+| **Mean Reversion BUY** | BB position ≤ 0.1 + 15M position < 0.3 + NOT expanding | 0.73 |
+| **Trend Continuation BUY** | BB position > 0.8 + 15M > 0.6 + expanding | 0.69 |
+| **Moderate BUY** | BB position < 0.25 + price > 15M middle band | 0.58 |
 
 **Win rate**: 63%
 **BB Position** = (Price - Lower) / (Upper - Lower). 0 = at lower band, 1 = at upper band.
@@ -53,18 +53,18 @@
 **Win rate**: 58%
 **POC** = Point of Control (price level with highest trading volume in 20 periods)
 
-### 5. Stochastic Oscillator Strategy (K Period: 14, D Period: 3, Multi-timeframe: 1H + 4H)
+### 5. Stochastic Oscillator Strategy (K Period: 14, D Period: 3, Multi-timeframe: 5M + 15M)
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Strong BUY** | Bullish crossover (%K crosses above %D) + K1h ≤ 15.0 + K4h ≤ 15.0 | 0.89 |
-| **Extreme BUY** | K1h ≤ 10.0 (extreme oversold) + K4h ≤ 15.0 + K1h > D1h | 0.85 |
-| **Strong SELL** | Bearish crossover (%K crosses below %D) + K1h ≥ 85.0 + K4h ≥ 85.0 | 0.89 |
-| **Extreme SELL** | K1h ≥ 90.0 (extreme overbought) + K4h ≥ 85.0 + K1h < D1h | 0.85 |
-| **Moderate BUY** | Bullish crossover + K1h ≤ 15.0+10 + K4h < 50 | 0.72 |
-| **Moderate SELL** | Bearish crossover + K1h ≥ 85.0-10 + K4h > 50 | 0.72 |
-| **Weak BUY** | K1h > D1h + K1h < 50 + K4h < 50 + K rising | 0.52 |
-| **Weak SELL** | K1h < D1h + K1h > 50 + K4h > 50 + K falling | 0.52 |
+| **Strong BUY** | Bullish crossover (%K crosses above %D) + K5m ≤ 15.0 + K15m ≤ 15.0 | 0.89 |
+| **Extreme BUY** | K5m ≤ 10.0 (extreme oversold) + K15m ≤ 15.0 + K5m > D5m | 0.85 |
+| **Strong SELL** | Bearish crossover (%K crosses below %D) + K5m ≥ 85.0 + K15m ≥ 85.0 | 0.89 |
+| **Extreme SELL** | K5m ≥ 90.0 (extreme overbought) + K15m ≥ 85.0 + K5m < D5m | 0.85 |
+| **Moderate BUY** | Bullish crossover + K5m ≤ 15.0+10 + K15m < 50 | 0.72 |
+| **Moderate SELL** | Bearish crossover + K5m ≥ 85.0-10 + K15m > 50 | 0.72 |
+| **Weak BUY** | K5m > D5m + K5m < 50 + K15m < 50 + K rising | 0.52 |
+| **Weak SELL** | K5m < D5m + K5m > 50 + K15m > 50 + K falling | 0.52 |
 
 **Win rate**: 64%
 **Thresholds**: Oversold = 15.0, Overbought = 85.0, Extreme = 10.0/90.0
@@ -77,7 +77,7 @@
 - **5 strategies** run in parallel: RSI, MACD, Bollinger, Volume, Stochastic
 - **Minimum agreement**: 4/5 strategies must agree on direction
 - **Combination modes**: WeightedAverage (default), Consensus, BestConfidence, Conservative
-- **Multi-timeframe**: All strategies analyze both 1H and 4H candles
+- **Multi-timeframe**: Signal loop uses 5M + 15M candles, strategy input includes 1H for volume context
 - **Minimum data**: 50 candles per timeframe required before trading starts
 - **Hybrid filter**: Optional AI trend filter for additional validation
 

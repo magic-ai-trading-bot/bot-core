@@ -130,7 +130,7 @@ export const PARAMETER_BOUNDS: Record<string, ParameterBound> = {
     min: 1, max: 4, step: 1, type: "number",
     apiEndpoint: "/api/paper-trading/basic-settings",
     apiField: "min_required_timeframes",
-    description: "Minimum timeframes that must agree before trading (15M, 30M, 1H, 4H). 1=aggressive, 3=balanced, 4=conservative",
+    description: "Minimum timeframes that must agree before trading (5M, 15M, 1H, 4H). 1=aggressive, 3=balanced, 4=conservative",
     defaultValue: 3,
     cooldownMs: SIX_HOURS,
   },

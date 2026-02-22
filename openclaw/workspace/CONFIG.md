@@ -19,7 +19,7 @@
 | `max_consecutive_losses` | 3 | - | PUT /basic-settings |
 | `cool_down_minutes` | 60 | - | PUT /basic-settings |
 | `correlation_limit` | 0.7 (70%) | - | PUT /basic-settings |
-| `min_ai_confidence` | 0.5 | 0-1 | PUT /strategy-settings |
+| `min_ai_confidence` | 0.6 | 0-1 | PUT /strategy-settings |
 | `signal_refresh_interval` | 15 min | > 0 | PUT /signal-interval |
 
 ## Risk Settings (Full)
@@ -65,7 +65,7 @@
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `min_ai_confidence` | 0.5 | Min confidence to trade |
+| `min_ai_confidence` | 0.6 | Min confidence to trade |
 | `combination_method` | AIEnsemble | How strategies combine signals |
 | `signal_timeout_minutes` | 30 | Cancel old signals |
 | `enable_market_regime_detection` | true | Detect trending/ranging/volatile |
@@ -115,7 +115,7 @@
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `trend_threshold_percent` | 0.8% | Price movement threshold |
-| `min_required_timeframes` | 3 of 4 | Timeframes must agree (15M, 30M, 1H, 4H) |
+| `min_required_timeframes` | 3 of 4 | Timeframes must agree (5M, 15M, 1H, 4H) |
 | `min_required_indicators` | 4 of 5 | Indicators must agree per timeframe |
 | `confidence_base` | 0.5 | Base confidence |
 | `confidence_per_timeframe` | 0.08 | Added per agreeing timeframe |
@@ -156,7 +156,7 @@ API: `GET|PUT /api/paper-trading/symbols`
 |----------|---------|-------------|
 | `BINANCE_TESTNET` | true | Use testnet (KEEP TRUE for safety!) |
 | `TRADING_ENABLED` | false | Enable trading (KEEP FALSE unless sure!) |
-| `OPENAI_API_KEY` | - | GPT-4 API key |
+| `XAI_API_KEY` | - | xAI Grok API key (fallback: OPENAI_API_KEY) |
 | `DATABASE_URL` | mongodb://... | MongoDB connection |
 | `BINANCE_API_KEY` | - | Binance API key |
 | `BINANCE_SECRET_KEY` | - | Binance secret |

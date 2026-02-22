@@ -83,7 +83,7 @@ Use `get_paper_portfolio` + `get_trading_performance` for real data. Show win ra
 
 ### 4. Market Analysis
 
-Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses GPT-4 (costs money, use wisely).
+Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses xAI Grok (costs money, use wisely).
 
 ### 5. Risk Management Reminders
 
@@ -104,7 +104,7 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 
 **System Components** (xem chi tiết trong ARCHITECTURE.md):
 - **Rust Backend** (port 8080): Trading engine, strategies, WebSocket, risk management, API
-- **Python AI** (port 8000): GPT-4 analysis, technical indicators fallback
+- **Python AI** (port 8000): xAI Grok analysis, technical indicators fallback
 - **Frontend** (port 3000): Next.js dashboard (71 components, 601 tests)
 - **MCP Server** (port 8090): 103 tools bridge (Model Context Protocol)
 - **OpenClaw** (port 18789): AI gateway (Claude/Gemini → Telegram/WebSocket) — đó là bạn!
@@ -125,7 +125,7 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 - Consecutive loss tracking (auto-reset on first win)
 
 **AI/ML Status**:
-- **GPT-4o-mini**: WORKING - Market analysis, sentiment, signal generation ($0.01-0.02/analysis)
+- **xAI Grok 4.1 Fast**: WORKING - Market analysis, sentiment, signal generation (cheaper than GPT-4)
 - **Technical Indicators Fallback**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV
 - **LSTM/GRU/Transformer models**: Code exists in python-ai-service/models/ but NOT integrated/UNUSED
 - **Model Training endpoints**: NOT functional
@@ -156,7 +156,7 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 
 **Market Data** (8): `get_market_prices`, `get_market_overview`, `get_candles '{"symbol":"X","timeframe":"1h","limit":24}'`, `get_chart`, `get_multi_charts`, `get_symbols`, `add_symbol`, `remove_symbol`
 
-**AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (GPT-4, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
+**AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (xAI Grok, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
 
 **Self-Tuning** (8): `get_tuning_dashboard`, `get_parameter_bounds`, `get_adjustment_history`, `apply_green_adjustment '{"parameter":"X","new_value":N,"reasoning":"..."}'`, `request_yellow_adjustment`, `request_red_adjustment`, `take_parameter_snapshot`, `rollback_adjustment`
 

@@ -343,8 +343,8 @@ botcore get_paper_symbols               # Symbols being traded
 botcore get_paper_pending_orders        # Pending limit/stop orders
 botcore get_paper_signals_history       # All strategy signals history
 botcore get_paper_latest_signals        # Most recent signals
-botcore get_paper_trade_analyses        # GPT-4 analyses for ALL closed trades
-botcore get_paper_trade_analysis '{"trade_id":"trade_123"}'  # GPT-4 analysis for specific trade
+botcore get_paper_trade_analyses        # AI analyses for ALL closed trades
+botcore get_paper_trade_analysis '{"trade_id":"trade_123"}'  # AI analysis for specific trade
 botcore get_paper_config_suggestions    # All AI config suggestions
 botcore get_paper_latest_config_suggestions  # Latest AI recommendations
 ```
@@ -358,7 +358,7 @@ botcore close_paper_trade '{"trade_id":"trade_123"}'  # Close by trade ID
 botcore close_paper_trade_by_symbol '{"symbol":"ETHUSDT"}'  # Close by symbol (PREFERRED)
 botcore create_paper_order '{"symbol":"BTCUSDT","side":"buy","order_type":"market"}'
 botcore cancel_paper_order '{"order_id":"order_123"}'
-botcore trigger_paper_analysis          # Trigger GPT-4 trade analysis NOW
+botcore trigger_paper_analysis          # Trigger AI trade analysis NOW
 botcore update_paper_signal_interval '{"interval_seconds":300}'  # Signal generation interval
 botcore update_paper_basic_settings '{"settings":{"initial_balance":10000,"max_positions":5}}'
 botcore update_paper_execution_settings '{"settings":{"simulate_slippage":true}}'
@@ -504,7 +504,7 @@ botcore update_real_position_sltp '{"symbol":"BTCUSDT","stop_loss":40000,"take_p
 
 ### Rust API (6 tools)
 ```bash
-botcore analyze_market '{"symbol":"BTCUSDT","timeframe":"4h"}'  # GPT-4 market analysis
+botcore analyze_market '{"symbol":"BTCUSDT","timeframe":"4h"}'  # AI market analysis
 botcore get_strategy_recommendations '{"symbol":"BTCUSDT"}'     # AI strategy advice
 botcore get_market_condition '{"symbol":"BTCUSDT"}'             # Bull/bear/neutral assessment
 botcore send_ai_feedback '{"signal_id":"sig_123","feedback":"positive"}'
@@ -517,7 +517,7 @@ botcore get_ai_strategies               # Available AI strategies
 botcore get_ai_performance              # ML model accuracy metrics
 botcore get_ai_cost_statistics          # OpenAI API cost breakdown
 botcore get_ai_config_suggestions       # AI config optimization suggestions
-botcore get_ai_analysis_history         # GPT-4 analysis history
+botcore get_ai_analysis_history         # AI analysis history
 botcore get_ai_storage_stats            # Model storage usage
 botcore clear_ai_storage                # Clear AI cache
 ```
@@ -531,7 +531,7 @@ botcore get_ai_config_suggestions_python  # Config suggestions from Python
 botcore chat_with_project '{"message":"How does the RSI strategy work?"}'
 botcore get_chat_suggestions            # Suggested questions
 botcore clear_chat_history              # Clear chat history
-botcore get_ai_debug_info               # GPT-4 debug info
+botcore get_ai_debug_info               # AI debug info
 ```
 
 ## 7. Monitoring (4 tools)
@@ -654,7 +654,7 @@ GREEN tier (auto-apply — you can adjust all of these freely):
 - `stop_loss_percent`: range 1.0-20.0, default 10.0, cooldown 6h — PnL-based! price_move = this / leverage. ALWAYS query leverage first.
 - `take_profit_percent`: range 2.0-40.0, default 20.0, cooldown 6h — PnL-based! price_move = this / leverage. ALWAYS query leverage first.
 - `min_required_indicators`: range 2-5, default 4, cooldown 6h — min indicators that must agree (MACD, RSI, Bollinger, Stochastic, Volume)
-- `min_required_timeframes`: range 1-4, default 3, cooldown 6h — min timeframes that must agree (15M, 30M, 1H, 4H)
+- `min_required_timeframes`: range 1-4, default 3, cooldown 6h — min timeframes that must agree (5M, 15M, 1H, 4H)
 
 YELLOW tier (user confirmation — capital risk params):
 - `position_size_percent`: range 1.0-10.0, default 5.0, cooldown 6h
@@ -750,7 +750,7 @@ botcore get_paper_open_trades           # 2. Get open positions with PnL
 ### Analyze Losing Trades
 ```bash
 botcore get_paper_closed_trades                    # 1. Get trade history
-botcore get_paper_trade_analysis '{"trade_id":"ID"}'  # 2. GPT-4 analysis per trade
+botcore get_paper_trade_analysis '{"trade_id":"ID"}'  # 2. AI analysis per trade
 botcore get_candles '{"symbol":"BTCUSDT","timeframe":"1h","limit":50}'  # 3. Market data
 botcore get_paper_config_suggestions               # 4. AI recommendations
 botcore update_paper_strategy_settings '{"settings":{...}}'  # 5. Apply fixes

@@ -26,19 +26,21 @@ Simulates realistic trading without real money. Includes:
 | Stochastic | 64% | %K crosses %D at 15/85 |
 
 - **Orchestration**: 4/5 strategies must agree
-- **Multi-timeframe**: All analyze 1H + 4H candles
+- **Multi-timeframe**: Signal loop uses 5M + 15M candles, 1H for volume context
 - **Minimum data**: 50 candles required before trading
 - Full signal conditions: See STRATEGIES.md
 
-## 3. AI Integration ✅ Production (GPT-4 only)
+## 3. AI Integration ✅ Production (xAI Grok)
 **Code**: `python-ai-service/main.py`
 
 **WORKING:**
-- **GPT-4o-mini** for market analysis ($0.01-0.02 per analysis)
-- Multi-timeframe analysis (15m, 30m, 1h, 4h)
+- **xAI Grok 4.1 Fast** (`grok-4-1-fast-non-reasoning`) for market analysis
+- Multi-timeframe analysis (5m, 15m, 1h)
 - Signal generation (Long/Short/Neutral + confidence score)
 - Rate limiting with auto-fallback to technical indicators
 - Technical indicators fallback (RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV)
+- AI bias as secondary filter (Rust strategies are primary signal source)
+- Signal refresh interval: 15 minutes
 
 **⚠️ NOT WORKING (code exists but UNUSED):**
 - LSTM model (`models/lstm_model.py`) — not integrated
@@ -47,8 +49,9 @@ Simulates realistic trading without real money. Includes:
 - Model training endpoints — not functional
 
 **Key API**: `POST /api/ai/analyze` (main endpoint)
-**Accuracy**: ~65% directional (GPT-4), varies for fallback indicators
-**Cost**: $0.01-0.02 per GPT-4 analysis
+**Accuracy**: ~65% directional, varies for fallback indicators
+**Cost**: Significantly lower than GPT-4 (xAI pricing)
+**Env**: `XAI_API_KEY` (primary), fallback to `OPENAI_API_KEY`
 
 ## 4. Authentication & Security ✅ Production
 **Code**: `rust-core-engine/src/auth/`
@@ -100,8 +103,8 @@ AI decides when to enable/disable signal reversal based on:
 **Code**: `mcp-server/src/tuning/`
 
 11 tunable parameters with 3-tier safety:
-- **GREEN** (auto): RSI thresholds, signal interval, confidence threshold
-- **YELLOW** (confirm): Stop loss, take profit, position size, leverage, max positions
+- **GREEN** (auto): RSI thresholds, signal interval, confidence threshold, stop loss, take profit, min indicators, min timeframes
+- **YELLOW** (confirm): Position size, leverage, max positions
 - **RED** (approve): Max daily loss, engine on/off
 
 Full audit trail, snapshot/restore, cooldown between changes.
