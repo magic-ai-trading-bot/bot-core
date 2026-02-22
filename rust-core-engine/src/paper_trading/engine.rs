@@ -35,6 +35,9 @@ use super::{
     TradeExecutionResult,
 };
 
+/// Signal history for choppy market detection: Vec of (timestamp, direction) per symbol
+type SignalFlipTracker = HashMap<String, Vec<(i64, TradingSignal)>>;
+
 /// Main paper trading engine
 #[derive(Clone)]
 pub struct PaperTradingEngine {
@@ -94,7 +97,7 @@ pub struct PaperTradingEngine {
 
     /// Choppy market detection: tracks direction flips per symbol
     /// Key: symbol, Value: Vec<(timestamp, signal_direction)> — last N signals within window
-    signal_flip_tracker: Arc<RwLock<HashMap<String, Vec<(i64, TradingSignal)>>>>,
+    signal_flip_tracker: Arc<RwLock<SignalFlipTracker>>,
 }
 
 /// Pending trade for execution
