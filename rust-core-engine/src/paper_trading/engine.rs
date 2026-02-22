@@ -88,9 +88,9 @@ pub struct PaperTradingEngine {
     /// Key: symbol (e.g., "BTCUSDT"), Value: AIMarketBias
     ai_market_bias: Arc<RwLock<HashMap<String, AIMarketBias>>>,
 
-    /// Signal deduplication map to prevent duplicate trades
-    /// Key: "symbol_direction", Value: timestamp of last signal
-    recent_signals: Arc<RwLock<HashMap<String, i64>>>,
+    /// Signal confirmation map: requires 2 consecutive signals same direction
+    /// Key: "symbol_direction", Value: (first_seen_timestamp, signal_count)
+    recent_signals: Arc<RwLock<HashMap<String, (i64, u32)>>>,
 }
 
 /// Pending trade for execution
@@ -385,18 +385,34 @@ impl PaperTradingEngine {
                                             continue;
                                         }
 
-                                        // Dedup check: skip if same signal within 60s
+                                        // Signal confirmation: require 2 consecutive signals same direction
+                                        // within 10 minutes before executing trade
                                         let dedup_key = format!("{}_{:?}", symbol, signal);
-                                        let now = Utc::now().timestamp();
-                                        {
-                                            let recent = engine.recent_signals.read().await;
-                                            if let Some(last_time) = recent.get(&dedup_key) {
-                                                if now - last_time < 60 {
-                                                    debug!("Dedup: skipping duplicate {} {:?} signal (within 60s)", symbol, signal);
-                                                    continue;
-                                                }
+                                        let opposite_key = format!(
+                                            "{}_{:?}",
+                                            symbol,
+                                            match signal {
+                                                TradingSignal::Long => TradingSignal::Short,
+                                                TradingSignal::Short => TradingSignal::Long,
+                                                _ => TradingSignal::Neutral,
                                             }
-                                        }
+                                        );
+                                        let now = Utc::now().timestamp();
+
+                                        let confirmed = {
+                                            let recent = engine.recent_signals.read().await;
+                                            if let Some((first_seen, count)) =
+                                                recent.get(&dedup_key)
+                                            {
+                                                // Confirmed if: seen before, within 10min window,
+                                                // count >= 1, and not within 60s dedup
+                                                now - first_seen < 600
+                                                    && *count >= 1
+                                                    && now - first_seen >= 60
+                                            } else {
+                                                false
+                                            }
+                                        };
 
                                         // AI bias check
                                         let bias_aligned = {
@@ -437,12 +453,43 @@ impl PaperTradingEngine {
                                             continue;
                                         }
 
-                                        // Record signal for dedup
+                                        // Update confirmation tracking
                                         {
                                             let mut recent = engine.recent_signals.write().await;
-                                            recent.insert(dedup_key, now);
-                                            recent.retain(|_, ts| now - *ts < 120);
+                                            // Direction changed → clear opposite
+                                            recent.remove(&opposite_key);
+
+                                            if let Some((first_seen, count)) =
+                                                recent.get_mut(&dedup_key)
+                                            {
+                                                if now - *first_seen >= 600 {
+                                                    // Stale → reset
+                                                    *first_seen = now;
+                                                    *count = 1;
+                                                } else if now - *first_seen >= 60 {
+                                                    // New candle, same direction → increment
+                                                    *count += 1;
+                                                }
+                                                // Within 60s → dedup, don't increment
+                                            } else {
+                                                recent.insert(dedup_key.clone(), (now, 1));
+                                            }
+                                            // Cleanup stale entries
+                                            recent.retain(|_, (ts, _)| now - *ts < 600);
                                         }
+
+                                        if !confirmed {
+                                            debug!(
+                                                "⏳ Signal confirmation pending: {} {:?} confidence {:.2} (need 2 consecutive)",
+                                                symbol, signal, confidence
+                                            );
+                                            continue;
+                                        }
+
+                                        info!(
+                                            "✅ Signal confirmed: {} {:?} confidence {:.2} (2+ consecutive signals)",
+                                            symbol, signal, confidence
+                                        );
 
                                         // Get current price for signal
                                         let current_price = {

@@ -546,7 +546,7 @@ impl Default for StrategySettings {
 
         Self {
             enabled_strategies,
-            min_ai_confidence: 0.5, // Lowered for testnet to get more trading activity
+            min_ai_confidence: 0.6, // Raised from 0.5 to filter low-quality signals
             combination_method: StrategyCombinationMethod::AIEnsemble,
             enable_optimization: true,
             optimization_period_days: 30,
@@ -897,7 +897,7 @@ mod tests {
     fn test_default_strategy_settings() {
         let settings = StrategySettings::default();
 
-        assert_eq!(settings.min_ai_confidence, 0.5); // FIXED: Lowered from 0.7 for testnet activity
+        assert_eq!(settings.min_ai_confidence, 0.6); // Raised from 0.5 to filter low-quality signals
         assert!(settings.enable_optimization);
         assert_eq!(settings.optimization_period_days, 30);
         assert_eq!(settings.min_trades_for_optimization, 50);
@@ -1353,7 +1353,7 @@ mod tests {
         assert!(settings.basic.enabled);
         assert_eq!(settings.basic.initial_balance, 10000.0);
         assert_eq!(settings.risk.max_leverage, 5); // FIXED: Down from 50x
-        assert_eq!(settings.strategy.min_ai_confidence, 0.5); // FIXED: Down from 0.7
+        assert_eq!(settings.strategy.min_ai_confidence, 0.6); // Raised from 0.5 to filter low-quality signals
         assert!(settings.ai.enable_realtime_signals);
         assert!(settings.execution.auto_execution);
         assert!(settings.notifications.enable_trade_notifications);
