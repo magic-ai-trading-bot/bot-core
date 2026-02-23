@@ -20,7 +20,7 @@
       "aiAnalysis": {
         "title": "AI驱动分析",
         "description": "先进的机器学习模型实时分析市场模式、情绪和技术指标。",
-        "highlights": ["LSTM和Transformer模型", "GPT-4市场分析", "情绪检测"]
+        "highlights": ["LSTM和Transformer模型", "AI市场分析", "情绪检测"]
       },
       "tradingBot": {
         "title": "自动交易机器人",
@@ -286,7 +286,7 @@
         "description": "我们的机器学习模型分析模式并生成带有置信度评分的交易信号。",
         "details": [
           "LSTM神经网络预测",
-          "GPT-4市场分析",
+          "AI市场分析",
           "多模型集成投票",
           "置信度加权信号"
         ]

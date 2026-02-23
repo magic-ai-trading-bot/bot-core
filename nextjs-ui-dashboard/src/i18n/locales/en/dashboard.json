@@ -240,7 +240,7 @@
     }
   },
   "tradeAnalyses": {
-    "title": "GPT-4 Trade Analyses",
+    "title": "AI Trade Analyses",
     "subtitle": "AI-powered analysis of your trades to help you understand what went wrong and improve your strategy.",
     "refresh": "Refresh",
     "stats": {
@@ -262,10 +262,10 @@
       "noAnalyses": "No trade analyses yet",
       "analysesDesc": "Complete some trades to see AI-powered analysis",
       "noSuggestions": "No config suggestions yet",
-      "suggestionsDesc": "GPT-4 will suggest optimizations after analyzing your trades"
+      "suggestionsDesc": "AI will suggest optimizations after analyzing your trades"
     },
     "suggestion": {
-      "latest": "Latest GPT-4 Config Suggestion",
+      "latest": "Latest AI Config Suggestion",
       "rootCause": "Root Cause",
       "applied": "Auto-applied changes"
     },

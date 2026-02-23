@@ -20,7 +20,7 @@
       "aiAnalysis": {
         "title": "AI-Powered Analysis",
         "description": "Advanced machine learning models analyze market patterns, sentiment, and technical indicators in real-time to identify profitable trading opportunities.",
-        "highlights": ["LSTM & Transformer Models", "GPT-4 Market Analysis", "Sentiment Detection"]
+        "highlights": ["LSTM & Transformer Models", "AI Market Analysis", "Sentiment Detection"]
       },
       "tradingBot": {
         "title": "Automated Trading Bot",
@@ -546,7 +546,7 @@
         "description": "Our machine learning models analyze patterns and generate trading signals with confidence scores.",
         "details": [
           "LSTM neural network predictions",
-          "GPT-4 market analysis",
+          "AI market analysis",
           "Multi-model ensemble voting",
           "Confidence-weighted signals"
         ]

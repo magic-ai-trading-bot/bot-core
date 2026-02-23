@@ -240,7 +240,7 @@
     }
   },
   "tradeAnalyses": {
-    "title": "Phân tích giao dịch GPT-4",
+    "title": "Phân tích giao dịch AI",
     "subtitle": "Phân tích AI giúp bạn hiểu những gì đã sai và cải thiện chiến lược.",
     "refresh": "Làm mới",
     "stats": {
@@ -262,10 +262,10 @@
       "noAnalyses": "Chưa có phân tích",
       "analysesDesc": "Hoàn thành một số giao dịch để xem phân tích AI",
       "noSuggestions": "Chưa có đề xuất cấu hình",
-      "suggestionsDesc": "GPT-4 sẽ đề xuất tối ưu sau khi phân tích giao dịch của bạn"
+      "suggestionsDesc": "AI sẽ đề xuất tối ưu sau khi phân tích giao dịch của bạn"
     },
     "suggestion": {
-      "latest": "Đề xuất GPT-4 mới nhất",
+      "latest": "Đề xuất AI mới nhất",
       "rootCause": "Nguyên nhân gốc",
       "applied": "Thay đổi đã áp dụng"
     },

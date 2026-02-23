@@ -25,7 +25,7 @@ const tourSteps: TourStep[] = [
   {
     title: "AI Signals 🤖",
     description:
-      "Get intelligent trading signals powered by advanced AI models (LSTM, GRU, Transformer, GPT-4). Each signal includes confidence scores and explanations.",
+      "Get intelligent trading signals powered by advanced AI models (LSTM, GRU, Transformer). Each signal includes confidence scores and explanations.",
     target: "[data-tour='ai-signals']",
   },
   {

@@ -365,13 +365,13 @@
         },
         {
           "id": "enable_gpt4_analysis",
-          "name": "Bật Phân Tích GPT-4",
+          "name": "Bật Phân Tích AI",
           "type": "toggle",
           "default": true,
-          "description": "Sử dụng GPT-4 để phân tích tin tức và sentiment",
-          "help": "GPT-4 phân tích tin tức thị trường và đưa ra nhận định",
+          "description": "Sử dụng AI để phân tích tin tức và sentiment",
+          "help": "AI phân tích tin tức thị trường và đưa ra nhận định",
           "states": {
-            "on": "Phân tích tin tức với GPT-4",
+            "on": "Phân tích tin tức với AI",
             "off": "Không phân tích tin tức"
           }
         }

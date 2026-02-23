@@ -20,7 +20,7 @@
       "aiAnalysis": {
         "title": "Analyse alimentée par l'IA",
         "description": "Des modèles d'apprentissage automatique avancés analysent les modèles de marché, le sentiment et les indicateurs techniques en temps réel.",
-        "highlights": ["Modèles LSTM & Transformer", "Analyse de marché GPT-4", "Détection de sentiment"]
+        "highlights": ["Modèles LSTM & Transformer", "Analyse de marché AI", "Détection de sentiment"]
       },
       "tradingBot": {
         "title": "Bot de trading automatisé",
@@ -308,7 +308,7 @@
         "description": "Nos modèles ML analysent les patterns et génèrent des signaux de trading avec des scores de confiance.",
         "details": [
           "Prédictions réseau neural LSTM",
-          "Analyse de marché GPT-4",
+          "Analyse de marché AI",
           "Vote ensemble multi-modèles",
           "Signaux pondérés par confiance"
         ]

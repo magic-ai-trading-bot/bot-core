@@ -20,7 +20,7 @@
       "aiAnalysis": {
         "title": "Phân tích AI",
         "description": "Các mô hình học máy tiên tiến phân tích xu hướng thị trường, tâm lý và chỉ báo kỹ thuật theo thời gian thực để xác định cơ hội giao dịch sinh lời.",
-        "highlights": ["Mô hình LSTM & Transformer", "Phân tích GPT-4", "Phát hiện tâm lý"]
+        "highlights": ["Mô hình LSTM & Transformer", "Phân tích AI", "Phát hiện tâm lý"]
       },
       "tradingBot": {
         "title": "Bot giao dịch tự động",
@@ -546,7 +546,7 @@
         "description": "Các mô hình học máy phân tích mẫu hình và tạo tín hiệu giao dịch với điểm độ tin cậy.",
         "details": [
           "Dự đoán mạng neural LSTM",
-          "Phân tích thị trường GPT-4",
+          "Phân tích thị trường AI",
           "Biểu quyết ensemble đa mô hình",
           "Tín hiệu có trọng số độ tin cậy"
         ]

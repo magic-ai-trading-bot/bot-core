@@ -313,7 +313,7 @@
     }
   },
   "tradeAnalyses": {
-    "title": "Analyses de Trading GPT-4",
+    "title": "Analyses de Trading AI",
     "subtitle": "L'analyse IA vous aide à comprendre ce qui s'est mal passé et à améliorer votre stratégie",
     "refresh": "Actualiser",
     "stats": {
@@ -335,10 +335,10 @@
       "noAnalyses": "Pas encore d'analyses",
       "analysesDesc": "Complétez quelques transactions pour voir l'analyse IA",
       "noSuggestions": "Pas encore de suggestions de config",
-      "suggestionsDesc": "GPT-4 suggérera des optimisations après avoir analysé vos transactions"
+      "suggestionsDesc": "L'IA suggérera des optimisations après avoir analysé vos transactions"
     },
     "suggestion": {
-      "latest": "Dernière suggestion GPT-4",
+      "latest": "Dernière suggestion AI",
       "rootCause": "Cause racine",
       "applied": "Modifications appliquées"
     },

@@ -20,7 +20,7 @@
       "aiAnalysis": {
         "title": "AI駆動分析",
         "description": "高度な機械学習モデルがリアルタイムで市場パターン、センチメント、テクニカル指標を分析します。",
-        "highlights": ["LSTM & Transformerモデル", "GPT-4市場分析", "センチメント検出"]
+        "highlights": ["LSTM & Transformerモデル", "AI市場分析", "センチメント検出"]
       },
       "tradingBot": {
         "title": "自動取引ボット",
@@ -286,7 +286,7 @@
         "description": "機械学習モデルがパターンを分析し、信頼度スコア付きの取引シグナルを生成します。",
         "details": [
           "LSTMニューラルネットワーク予測",
-          "GPT-4市場分析",
+          "AI市場分析",
           "マルチモデルアンサンブル投票",
           "信頼度加重シグナル"
         ]

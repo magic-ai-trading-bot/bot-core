@@ -37,7 +37,7 @@ export function TradingChartPanel({
           </Badge>
         </CardTitle>
         <div className="text-sm text-muted-foreground">
-          GPT-4 Trading AI v2.0.0 • Model: gpt-3.5-turbo
+          AI Trading v2.0.0
           <span className="ml-2">• WebSocket real-time signals</span>
         </div>
       </CardHeader>

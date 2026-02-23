@@ -313,7 +313,7 @@
     }
   },
   "tradeAnalyses": {
-    "title": "GPT-4交易分析",
+    "title": "AI交易分析",
     "subtitle": "AI分析帮助您了解问题所在并改进策略",
     "refresh": "刷新",
     "stats": {
@@ -335,10 +335,10 @@
       "noAnalyses": "暂无分析",
       "analysesDesc": "完成一些交易后查看AI分析",
       "noSuggestions": "暂无配置建议",
-      "suggestionsDesc": "GPT-4将在分析您的交易后提供优化建议"
+      "suggestionsDesc": "AI将在分析您的交易后提供优化建议"
     },
     "suggestion": {
-      "latest": "最新GPT-4建议",
+      "latest": "最新AI建议",
       "rootCause": "根本原因",
       "applied": "已应用的更改"
     },

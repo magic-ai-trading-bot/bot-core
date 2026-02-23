@@ -313,7 +313,7 @@
     }
   },
   "tradeAnalyses": {
-    "title": "GPT-4取引分析",
+    "title": "AI取引分析",
     "subtitle": "AI分析で何が間違っていたかを理解し、戦略を改善",
     "refresh": "更新",
     "stats": {
@@ -335,10 +335,10 @@
       "noAnalyses": "分析がありません",
       "analysesDesc": "AI分析を見るには取引を完了してください",
       "noSuggestions": "設定提案がありません",
-      "suggestionsDesc": "GPT-4が取引を分析した後、最適化を提案します"
+      "suggestionsDesc": "AIが取引を分析した後、最適化を提案します"
     },
     "suggestion": {
-      "latest": "最新のGPT-4提案",
+      "latest": "最新のAI提案",
       "rootCause": "根本原因",
       "applied": "適用された変更"
     },

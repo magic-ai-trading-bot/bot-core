@@ -499,7 +499,7 @@ export default function TradeAnalyses() {
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.textPrimary }}>
                       <GlowIcon icon={History} color={colors.cyan} />
-                      GPT-4 Trade Analyses
+                      AI Trade Analyses
                     </h3>
                     <PremiumButton
                       variant={showOnlyLosing ? "danger" : "secondary"}
@@ -786,7 +786,7 @@ export default function TradeAnalyses() {
               <div className="p-6 pb-2">
                 <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.textPrimary }}>
                   <GlowIcon icon={Settings2} color={colors.purple} />
-                  GPT-4 Config Improvement Suggestions
+                  AI Config Improvement Suggestions
                 </h3>
               </div>
               <div className="p-6 pt-2">
