@@ -124,6 +124,14 @@ impl AIService {
     ) -> Result<crate::ai::client::SupportedStrategiesResponse> {
         self.client.get_supported_strategies().await
     }
+
+    /// Request AI analysis for a closed trade
+    pub async fn request_trade_analysis(
+        &self,
+        request: &crate::ai::client::TradeAnalysisRequest,
+    ) -> Result<()> {
+        self.client.request_trade_analysis(request).await
+    }
 }
 
 impl Default for AIServiceConfig {

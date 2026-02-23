@@ -2828,6 +2828,39 @@ impl PaperTradingEngine {
                 },
             }
 
+            // Trigger AI analysis for losing trades (fire-and-forget)
+            // @spec:FR-AI-013 - Auto-Analyze Losing Trades via xAI Grok
+            if trade_pnl < 0.0 {
+                let analysis_request = crate::ai::client::TradeAnalysisRequest {
+                    trade_id: trade.id.clone(),
+                    symbol: trade.symbol.clone(),
+                    side: trade.trade_type.as_str().to_string(),
+                    entry_price: trade.entry_price,
+                    exit_price: trade.exit_price.unwrap_or(0.0),
+                    quantity: trade.quantity,
+                    leverage: trade.leverage,
+                    pnl_usdt: trade.realized_pnl.unwrap_or(0.0),
+                    pnl_percentage: trade.pnl_percentage,
+                    duration_seconds: trade.duration_ms.map(|ms| ms / 1000),
+                    close_reason: trade.close_reason.as_ref().map(|r| format!("{:?}", r)),
+                    open_time: Some(trade.open_time.to_rfc3339()),
+                    close_time: trade.close_time.map(|t| t.to_rfc3339()),
+                    strategy_name: trade.strategy_name.clone(),
+                    ai_confidence: trade.ai_confidence,
+                    ai_reasoning: trade.ai_reasoning.clone(),
+                };
+                let ai_service = self.ai_service.clone();
+                tokio::spawn(async move {
+                    match ai_service.request_trade_analysis(&analysis_request).await {
+                        Ok(_) => info!(
+                            "Trade analysis requested for losing trade {}",
+                            analysis_request.trade_id
+                        ),
+                        Err(e) => warn!("Failed to request trade analysis: {}", e),
+                    }
+                });
+            }
+
             // Update AI signal outcome if trade was triggered by an AI signal
             // @spec:FR-AI-012 - Signal Outcome Tracking
             if let Some(ref signal_id) = trade.ai_signal_id {

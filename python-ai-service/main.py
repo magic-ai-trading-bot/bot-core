@@ -3513,6 +3513,228 @@ async def get_gpt4_analysis_history(request: Request, days: int = 30, limit: int
         }
 
 
+# === TRADE ANALYSIS ENDPOINT ===
+
+
+class TradeAnalysisRequest(BaseModel):
+    """Request model for analyzing a closed trade via xAI Grok."""
+
+    trade_id: str
+    symbol: str
+    side: str  # "Long" or "Short"
+    entry_price: float
+    exit_price: float
+    quantity: float
+    leverage: int = 1
+    pnl_usdt: float
+    pnl_percentage: float
+    duration_seconds: Optional[int] = None
+    close_reason: Optional[str] = None
+    open_time: Optional[str] = None
+    close_time: Optional[str] = None
+    strategy_name: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    ai_reasoning: Optional[str] = None
+
+
+async def perform_trade_analysis(trade_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Standalone trade analysis function using xAI Grok.
+    Extracted from Celery task for direct HTTP endpoint use.
+
+    Args:
+        trade_data: Trade data dict with keys matching TradeAnalysisRequest fields
+
+    Returns:
+        Analysis result dict
+    """
+    from utils.data_storage import storage as sync_storage
+
+    trade_id = trade_data.get("trade_id", "unknown")
+    logger.info(f"Analyzing trade {trade_id}...")
+
+    # Check if already analyzed (cache hit)
+    existing = sync_storage.get_trade_analysis(trade_id)
+    if existing:
+        logger.info(f"Trade {trade_id} already analyzed, returning cached result")
+        return {
+            "status": "cached",
+            "trade_id": trade_id,
+            "analysis": existing.get("analysis"),
+        }
+
+    # Check AI API key
+    api_key = os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        logger.warning("AI API key not configured - skipping trade analysis")
+        return {
+            "status": "skipped",
+            "reason": "AI API key not configured (XAI_API_KEY or OPENAI_API_KEY)",
+            "trade_id": trade_id,
+        }
+
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key, base_url=AI_BASE_URL)
+
+    # Determine if winning or losing
+    pnl = trade_data.get("pnl_usdt", 0)
+    pnl_pct = trade_data.get("pnl_percentage", 0)
+    is_winning = pnl > 0
+
+    # Fetch current market conditions
+    symbol = trade_data.get("symbol", "BTCUSDT")
+    market_data = {}
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=5) as http_client:
+            response = await http_client.get(
+                "https://api.binance.com/api/v3/ticker/24hr",
+                params={"symbol": symbol},
+            )
+            if response.status_code == 200:
+                market_data = response.json()
+    except Exception as e:
+        logger.warning(f"Failed to fetch market data for {symbol}: {e}")
+
+    # Build analysis prompt
+    trade_type = "WINNING" if is_winning else "LOSING"
+
+    prompt = f"""
+You are a professional trading analyst. Analyze this {trade_type} trade and provide actionable insights.
+
+## TRADE DETAILS:
+- Trade ID: {trade_id}
+- Symbol: {trade_data.get("symbol")}
+- Side: {trade_data.get("side")} (Long/Short)
+- Entry Price: ${trade_data.get("entry_price", 0):.4f}
+- Exit Price: ${trade_data.get("exit_price", 0):.4f}
+- Quantity: {trade_data.get("quantity", 0)}
+- Leverage: {trade_data.get("leverage", 1)}x
+- PnL: ${pnl:.2f} ({pnl_pct:.2f}%)
+- Duration: {trade_data.get("duration_seconds", 0)} seconds
+- Close Reason: {trade_data.get("close_reason", "unknown")}
+- Open Time: {trade_data.get("open_time", "N/A")}
+- Close Time: {trade_data.get("close_time", "N/A")}
+- Strategy: {trade_data.get("strategy_name", "N/A")}
+- AI Confidence: {trade_data.get("ai_confidence", "N/A")}
+
+## CURRENT MARKET CONDITIONS:
+- 24h Price Change: {market_data.get("priceChangePercent", "N/A")}%
+- 24h Volume: {market_data.get("volume", "N/A")}
+- Current Price: ${market_data.get("lastPrice", "N/A")}
+
+## YOUR ANALYSIS TASKS:
+1. **Entry Analysis**: Was the entry timing good? Were signals valid?
+2. **Exit Analysis**: Was the exit optimal? Too early? Too late?
+3. **What Went {"Right" if is_winning else "Wrong"}**: Key factors that led to this {"profit" if is_winning else "loss"}
+4. **Lessons Learned**: What can be improved for future trades?
+5. **Actionable Recommendations**: Specific parameter changes if needed
+
+## OUTPUT FORMAT (MUST BE VALID JSON):
+{{
+  "trade_verdict": "{trade_type}",
+  "entry_analysis": {{
+    "quality": "good" | "acceptable" | "poor",
+    "reasoning": "Why entry was good/bad",
+    "signals_valid": true/false
+  }},
+  "exit_analysis": {{
+    "quality": "optimal" | "acceptable" | "suboptimal",
+    "reasoning": "Why exit was good/bad",
+    "better_exit_point": "Description of better exit if applicable"
+  }},
+  "key_factors": ["factor1", "factor2", "factor3"],
+  "lessons_learned": ["lesson1", "lesson2"],
+  "recommendations": {{
+    "config_changes": {{"param": "suggested_value", ...}} or null,
+    "strategy_improvements": ["improvement1", "improvement2"],
+    "risk_management": "Any risk management advice"
+  }},
+  "confidence": 0.0-1.0,
+  "summary": "One paragraph summary of the analysis"
+}}
+"""
+
+    # Call xAI Grok
+    logger.info(f"Calling xAI Grok to analyze trade {trade_id}...")
+    response = client.chat.completions.create(
+        model=AI_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a professional trading analyst. Provide detailed, actionable analysis of trades. Always respond with valid JSON.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.3,
+        max_completion_tokens=1500,
+    )
+
+    gpt4_response = response.choices[0].message.content
+
+    # Strip markdown code blocks if present
+    if gpt4_response.startswith("```"):
+        lines = gpt4_response.split("\n")
+        lines = [l for l in lines if not l.strip().startswith("```")]
+        gpt4_response = "\n".join(lines)
+
+    # Parse JSON response
+    analysis = json.loads(gpt4_response)
+
+    logger.info(f"xAI Trade Analysis Complete for {trade_id}:")
+    logger.info(f"  Verdict: {analysis.get('trade_verdict', 'N/A')}")
+    logger.info(
+        f"  Entry Quality: {analysis.get('entry_analysis', {}).get('quality', 'N/A')}"
+    )
+    logger.info(
+        f"  Exit Quality: {analysis.get('exit_analysis', {}).get('quality', 'N/A')}"
+    )
+    logger.info(f"  Summary: {analysis.get('summary', 'N/A')[:100]}...")
+
+    # Store analysis in MongoDB
+    sync_storage.store_trade_analysis(trade_id, trade_data, analysis)
+
+    return {
+        "status": "success",
+        "trade_id": trade_id,
+        "is_winning": is_winning,
+        "pnl_usdt": pnl,
+        "analysis": analysis,
+    }
+
+
+@app.post("/ai/analyze-trade")
+async def analyze_trade_endpoint(
+    request: Request, trade_request: TradeAnalysisRequest
+):
+    """
+    Analyze a closed trade using xAI Grok AI.
+    Called automatically by Rust engine when a losing trade is closed.
+    Runs analysis in background and returns immediately.
+    """
+    trade_data = trade_request.model_dump()
+
+    # Run analysis in background so endpoint returns immediately
+    async def _run_analysis():
+        try:
+            await perform_trade_analysis(trade_data)
+        except Exception as e:
+            logger.error(f"Background trade analysis failed for {trade_data.get('trade_id')}: {e}")
+
+    asyncio.create_task(_run_analysis())
+
+    return {
+        "status": "accepted",
+        "trade_id": trade_request.trade_id,
+        "message": "Trade analysis queued",
+    }
+
+
 # === PROJECT CHATBOT ENDPOINTS ===
 
 # Global chatbot instance (initialized lazily)

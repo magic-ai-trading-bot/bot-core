@@ -408,6 +408,64 @@ impl AIClient {
 
         Ok(performance)
     }
+
+    /// Request AI analysis for a closed trade (fire-and-forget from Rust side)
+    pub async fn request_trade_analysis(&self, request: &TradeAnalysisRequest) -> Result<()> {
+        let base_url = &self.base_url;
+        let url = format!("{base_url}/ai/analyze-trade");
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(request)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Failed to send trade analysis request: {e}"))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(anyhow!(
+                "Trade analysis request failed with status {}: {}",
+                status,
+                error_text
+            ));
+        }
+
+        Ok(())
+    }
+}
+
+/// Request data for trade analysis (sent to Python AI service)
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct TradeAnalysisRequest {
+    pub trade_id: String,
+    pub symbol: String,
+    pub side: String,
+    pub entry_price: f64,
+    pub exit_price: f64,
+    pub quantity: f64,
+    pub leverage: u8,
+    pub pnl_usdt: f64,
+    pub pnl_percentage: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_seconds: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub close_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub close_time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strategy_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ai_confidence: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ai_reasoning: Option<String>,
 }
 
 /// AI service information
