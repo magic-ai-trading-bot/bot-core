@@ -577,6 +577,7 @@ impl PaperTrade {
             duration_ms: self.duration_ms,
             open_time: self.open_time,
             close_time: self.close_time,
+            close_reason: self.close_reason.clone(),
         }
     }
 }
@@ -599,6 +600,7 @@ pub struct TradeSummary {
     pub duration_ms: Option<i64>,
     pub open_time: DateTime<Utc>,
     pub close_time: Option<DateTime<Utc>>,
+    pub close_reason: Option<CloseReason>,
 }
 
 impl TradeType {
