@@ -11,6 +11,7 @@ This test file covers all uncovered endpoints and functions in main.py:
 - Performance feedback endpoints
 """
 
+import os
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -745,3 +746,201 @@ class TestAllEndpointsReachable:
         # Most POST endpoints tested in other classes
         # This ensures at least basic reachability
         pass
+
+
+@pytest.mark.asyncio
+class TestAnalyzeTradeEndpoint:
+    """Test POST /ai/analyze-trade endpoint and perform_trade_analysis function."""
+
+    async def test_analyze_trade_endpoint_returns_accepted(self, client):
+        """Test that the endpoint returns 200 with status=accepted immediately."""
+        payload = {
+            "trade_id": "test-trade-001",
+            "symbol": "BTCUSDT",
+            "side": "Long",
+            "entry_price": 50000.0,
+            "exit_price": 49500.0,
+            "quantity": 0.01,
+            "leverage": 10,
+            "pnl_usdt": -5.0,
+            "pnl_percentage": -1.0,
+            "duration_seconds": 3600,
+            "close_reason": "StopLoss",
+        }
+        response = await client.post("/ai/analyze-trade", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "accepted"
+        assert data["trade_id"] == "test-trade-001"
+
+    async def test_analyze_trade_endpoint_minimal_fields(self, client):
+        """Test with only required fields."""
+        payload = {
+            "trade_id": "test-trade-002",
+            "symbol": "ETHUSDT",
+            "side": "Short",
+            "entry_price": 3000.0,
+            "exit_price": 3100.0,
+            "quantity": 0.1,
+            "pnl_usdt": -10.0,
+            "pnl_percentage": -3.33,
+        }
+        response = await client.post("/ai/analyze-trade", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "accepted"
+
+    async def test_analyze_trade_endpoint_missing_required_field(self, client):
+        """Test that missing required fields return 422."""
+        payload = {
+            "trade_id": "test-trade-003",
+            "symbol": "BTCUSDT",
+            # Missing side, entry_price, exit_price, quantity, pnl_usdt, pnl_percentage
+        }
+        response = await client.post("/ai/analyze-trade", json=payload)
+        assert response.status_code == 422
+
+    async def test_perform_trade_analysis_cached(self):
+        """Test perform_trade_analysis returns cached result if already analyzed."""
+        from main import perform_trade_analysis
+
+        mock_existing = {
+            "trade_id": "cached-001",
+            "analysis": {"summary": "Already analyzed"},
+        }
+
+        with patch(
+            "main.sync_storage.get_trade_analysis", return_value=mock_existing
+        ) as mock_get:
+            # Need to patch at module level since perform_trade_analysis imports inside
+            with patch("utils.data_storage.storage") as mock_storage:
+                mock_storage.get_trade_analysis.return_value = mock_existing
+                result = await perform_trade_analysis(
+                    {"trade_id": "cached-001", "symbol": "BTCUSDT"}
+                )
+
+        assert result["status"] == "cached"
+        assert result["trade_id"] == "cached-001"
+
+    async def test_perform_trade_analysis_no_api_key(self):
+        """Test perform_trade_analysis skips when no API key is configured."""
+        from main import perform_trade_analysis
+
+        with patch("utils.data_storage.storage") as mock_storage:
+            mock_storage.get_trade_analysis.return_value = None
+            with patch.dict(os.environ, {}, clear=True):
+                # Remove API keys
+                os.environ.pop("XAI_API_KEY", None)
+                os.environ.pop("OPENAI_API_KEY", None)
+                result = await perform_trade_analysis(
+                    {
+                        "trade_id": "nokey-001",
+                        "symbol": "BTCUSDT",
+                        "pnl_usdt": -5.0,
+                        "pnl_percentage": -1.0,
+                    }
+                )
+
+        assert result["status"] == "skipped"
+        assert "API key" in result["reason"]
+
+    async def test_perform_trade_analysis_success(self):
+        """Test perform_trade_analysis full success path with mocked xAI call."""
+        from main import perform_trade_analysis
+
+        mock_analysis_json = '{"trade_verdict": "LOSING", "entry_analysis": {"quality": "poor", "reasoning": "Bad timing", "signals_valid": false}, "exit_analysis": {"quality": "acceptable", "reasoning": "OK", "better_exit_point": "N/A"}, "key_factors": ["bad entry"], "lessons_learned": ["wait for confirmation"], "recommendations": {"config_changes": null, "strategy_improvements": ["tighter SL"], "risk_management": "Reduce size"}, "confidence": 0.8, "summary": "Trade lost due to poor entry timing."}'
+
+        mock_completion = MagicMock()
+        mock_completion.choices = [
+            MagicMock(message=MagicMock(content=mock_analysis_json))
+        ]
+
+        with patch("utils.data_storage.storage") as mock_storage:
+            mock_storage.get_trade_analysis.return_value = None
+            mock_storage.store_trade_analysis.return_value = "inserted_id"
+            with patch.dict(os.environ, {"XAI_API_KEY": "test-key-123"}, clear=False):
+                with patch("main.OpenAI") as mock_openai_cls:
+                    mock_client = MagicMock()
+                    mock_client.chat.completions.create.return_value = mock_completion
+                    mock_openai_cls.return_value = mock_client
+
+                    result = await perform_trade_analysis(
+                        {
+                            "trade_id": "success-001",
+                            "symbol": "BTCUSDT",
+                            "side": "Long",
+                            "entry_price": 50000.0,
+                            "exit_price": 49500.0,
+                            "quantity": 0.01,
+                            "leverage": 10,
+                            "pnl_usdt": -5.0,
+                            "pnl_percentage": -1.0,
+                            "duration_seconds": 3600,
+                            "close_reason": "StopLoss",
+                        }
+                    )
+
+        assert result["status"] == "success"
+        assert result["trade_id"] == "success-001"
+        assert result["is_winning"] is False
+        assert result["analysis"]["trade_verdict"] == "LOSING"
+
+    async def test_perform_trade_analysis_with_code_block_response(self):
+        """Test that markdown code blocks in xAI response are stripped."""
+        from main import perform_trade_analysis
+
+        # xAI sometimes wraps JSON in ```json ... ```
+        mock_json = '{"trade_verdict": "LOSING", "summary": "test", "confidence": 0.5, "entry_analysis": {"quality": "poor", "reasoning": "test", "signals_valid": false}, "exit_analysis": {"quality": "acceptable", "reasoning": "test", "better_exit_point": "N/A"}, "key_factors": [], "lessons_learned": [], "recommendations": {"config_changes": null, "strategy_improvements": [], "risk_management": "N/A"}}'
+        wrapped_response = f"```json\n{mock_json}\n```"
+
+        mock_completion = MagicMock()
+        mock_completion.choices = [
+            MagicMock(message=MagicMock(content=wrapped_response))
+        ]
+
+        with patch("utils.data_storage.storage") as mock_storage:
+            mock_storage.get_trade_analysis.return_value = None
+            mock_storage.store_trade_analysis.return_value = "id"
+            with patch.dict(os.environ, {"XAI_API_KEY": "test-key"}, clear=False):
+                with patch("main.OpenAI") as mock_openai_cls:
+                    mock_client = MagicMock()
+                    mock_client.chat.completions.create.return_value = mock_completion
+                    mock_openai_cls.return_value = mock_client
+
+                    result = await perform_trade_analysis(
+                        {
+                            "trade_id": "codeblock-001",
+                            "symbol": "BTCUSDT",
+                            "pnl_usdt": -2.0,
+                            "pnl_percentage": -0.5,
+                        }
+                    )
+
+        assert result["status"] == "success"
+        assert result["analysis"]["trade_verdict"] == "LOSING"
+
+    async def test_analyze_trade_endpoint_with_all_optional_fields(self, client):
+        """Test endpoint with all optional fields populated."""
+        payload = {
+            "trade_id": "full-001",
+            "symbol": "BTCUSDT",
+            "side": "Long",
+            "entry_price": 50000.0,
+            "exit_price": 49000.0,
+            "quantity": 0.05,
+            "leverage": 20,
+            "pnl_usdt": -50.0,
+            "pnl_percentage": -5.0,
+            "duration_seconds": 7200,
+            "close_reason": "StopLoss",
+            "open_time": "2026-02-23T10:00:00Z",
+            "close_time": "2026-02-23T12:00:00Z",
+            "strategy_name": "RSI Strategy",
+            "ai_confidence": 0.75,
+            "ai_reasoning": "Strong bearish momentum detected",
+        }
+        response = await client.post("/ai/analyze-trade", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "accepted"
+        assert data["trade_id"] == "full-001"
