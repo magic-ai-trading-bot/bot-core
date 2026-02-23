@@ -3709,9 +3709,7 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
 
 
 @app.post("/ai/analyze-trade")
-async def analyze_trade_endpoint(
-    request: Request, trade_request: TradeAnalysisRequest
-):
+async def analyze_trade_endpoint(request: Request, trade_request: TradeAnalysisRequest):
     """
     Analyze a closed trade using xAI Grok AI.
     Called automatically by Rust engine when a losing trade is closed.
@@ -3724,7 +3722,9 @@ async def analyze_trade_endpoint(
         try:
             await perform_trade_analysis(trade_data)
         except Exception as e:
-            logger.error(f"Background trade analysis failed for {trade_data.get('trade_id')}: {e}")
+            logger.error(
+                f"Background trade analysis failed for {trade_data.get('trade_id')}: {e}"
+            )
 
     asyncio.create_task(_run_analysis())
 
