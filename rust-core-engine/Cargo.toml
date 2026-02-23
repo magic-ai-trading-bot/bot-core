@@ -35,7 +35,7 @@ structopt = "0.3"
 jsonwebtoken = { version = "10.3", default-features = false, features = ["use_pem", "rust_crypto"] }
 base64 = "0.22.1"
 ring = "0.17"
-toml = "0.9"
+toml = "1.0"
 bcrypt = "0.17"
 validator = { version = "0.20", features = ["derive"] }
 async-trait = "0.1"
