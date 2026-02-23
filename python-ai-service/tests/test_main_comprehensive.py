@@ -809,15 +809,11 @@ class TestAnalyzeTradeEndpoint:
             "analysis": {"summary": "Already analyzed"},
         }
 
-        with patch(
-            "main.sync_storage.get_trade_analysis", return_value=mock_existing
-        ) as mock_get:
-            # Need to patch at module level since perform_trade_analysis imports inside
-            with patch("utils.data_storage.storage") as mock_storage:
-                mock_storage.get_trade_analysis.return_value = mock_existing
-                result = await perform_trade_analysis(
-                    {"trade_id": "cached-001", "symbol": "BTCUSDT"}
-                )
+        with patch("utils.data_storage.storage") as mock_storage:
+            mock_storage.get_trade_analysis.return_value = mock_existing
+            result = await perform_trade_analysis(
+                {"trade_id": "cached-001", "symbol": "BTCUSDT"}
+            )
 
         assert result["status"] == "cached"
         assert result["trade_id"] == "cached-001"
@@ -828,10 +824,11 @@ class TestAnalyzeTradeEndpoint:
 
         with patch("utils.data_storage.storage") as mock_storage:
             mock_storage.get_trade_analysis.return_value = None
-            with patch.dict(os.environ, {}, clear=True):
-                # Remove API keys
-                os.environ.pop("XAI_API_KEY", None)
-                os.environ.pop("OPENAI_API_KEY", None)
+            with patch.dict(
+                os.environ,
+                {"XAI_API_KEY": "", "OPENAI_API_KEY": ""},
+                clear=False,
+            ):
                 result = await perform_trade_analysis(
                     {
                         "trade_id": "nokey-001",
@@ -859,7 +856,7 @@ class TestAnalyzeTradeEndpoint:
             mock_storage.get_trade_analysis.return_value = None
             mock_storage.store_trade_analysis.return_value = "inserted_id"
             with patch.dict(os.environ, {"XAI_API_KEY": "test-key-123"}, clear=False):
-                with patch("main.OpenAI") as mock_openai_cls:
+                with patch("openai.OpenAI") as mock_openai_cls:
                     mock_client = MagicMock()
                     mock_client.chat.completions.create.return_value = mock_completion
                     mock_openai_cls.return_value = mock_client
@@ -902,7 +899,7 @@ class TestAnalyzeTradeEndpoint:
             mock_storage.get_trade_analysis.return_value = None
             mock_storage.store_trade_analysis.return_value = "id"
             with patch.dict(os.environ, {"XAI_API_KEY": "test-key"}, clear=False):
-                with patch("main.OpenAI") as mock_openai_cls:
+                with patch("openai.OpenAI") as mock_openai_cls:
                     mock_client = MagicMock()
                     mock_client.chat.completions.create.return_value = mock_completion
                     mock_openai_cls.return_value = mock_client
