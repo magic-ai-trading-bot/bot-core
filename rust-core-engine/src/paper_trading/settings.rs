@@ -246,6 +246,11 @@ pub struct RiskSettings {
 
     /// Allowed market regimes for reversal (e.g., ["trending"])
     pub reversal_allowed_regimes: Vec<String>,
+
+    /// Short-only mode: block all Long signals (useful in bearish markets)
+    /// When true, only Short signals are executed. OpenClaw or user can toggle.
+    #[serde(default)]
+    pub short_only_mode: bool,
 }
 
 /// Strategy configuration
@@ -535,6 +540,7 @@ impl Default for RiskSettings {
                 "ranging".to_string(),
                 "volatile".to_string(),
             ], // Allow reversal in ALL market conditions
+            short_only_mode: false, // Disabled by default, enable in bearish markets
         }
     }
 }
@@ -1159,6 +1165,7 @@ mod tests {
             reversal_min_confidence: 0.75,
             reversal_max_pnl_pct: 10.0,
             reversal_allowed_regimes: vec!["trending".to_string()],
+            short_only_mode: false,
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -1722,6 +1729,7 @@ mod tests {
             reversal_min_confidence: 0.75,
             reversal_max_pnl_pct: 10.0,
             reversal_allowed_regimes: vec!["trending".to_string()],
+            short_only_mode: false,
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -2104,6 +2112,7 @@ mod tests {
             reversal_min_confidence: 0.75,
             reversal_max_pnl_pct: 10.0,
             reversal_allowed_regimes: vec!["trending".to_string()],
+            short_only_mode: false,
         };
 
         assert_eq!(settings.max_risk_per_trade_pct, 1.5);

@@ -393,6 +393,19 @@ impl PaperTradingEngine {
                                             continue;
                                         }
 
+                                        // Short-only mode: block Long signals in bearish markets
+                                        // @spec:FR-RISK-014 - Market regime filter
+                                        if signal == TradingSignal::Long {
+                                            let settings = engine.settings.read().await;
+                                            if settings.risk.short_only_mode {
+                                                info!(
+                                                    "🚫 Long signal blocked: short_only_mode enabled for {} (bearish market)",
+                                                    symbol
+                                                );
+                                                continue;
+                                            }
+                                        }
+
                                         // Choppy market detection: block if too many direction flips in 15min
                                         {
                                             let mut tracker =
@@ -467,18 +480,25 @@ impl PaperTradingEngine {
                                                         TradingSignal::Short => -1.0,
                                                         TradingSignal::Neutral => 0.0,
                                                     };
+                                                    // Stricter threshold for Longs: block if bias even mildly bearish (-0.3)
+                                                    // Shorts use standard threshold (-0.5)
+                                                    let conflict_threshold = if matches!(signal, TradingSignal::Long) {
+                                                        -0.3
+                                                    } else {
+                                                        -0.5
+                                                    };
                                                     if signal_dir * market_bias.direction_bias
-                                                        < -0.5
+                                                        < conflict_threshold
                                                     {
                                                         info!(
-                                                            "🚫 AI bias conflict: {} strategy={:?} bias={:.1}, skipping",
-                                                            symbol, signal, market_bias.direction_bias
+                                                            "🚫 AI bias conflict: {} strategy={:?} bias={:.2}, threshold={:.1}, skipping",
+                                                            symbol, signal, market_bias.direction_bias, conflict_threshold
                                                         );
                                                         false
                                                     } else {
                                                         info!(
-                                                            "✅ AI bias aligned for {} {:?}",
-                                                            symbol, signal
+                                                            "✅ AI bias aligned for {} {:?} (bias={:.2})",
+                                                            symbol, signal, market_bias.direction_bias
                                                         );
                                                         true
                                                     }
