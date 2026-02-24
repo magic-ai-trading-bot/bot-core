@@ -540,7 +540,7 @@ impl Default for RiskSettings {
                 "ranging".to_string(),
                 "volatile".to_string(),
             ], // Allow reversal in ALL market conditions
-            short_only_mode: false, // Disabled by default, enable in bearish markets
+            short_only_mode: false,        // Disabled by default, enable in bearish markets
         }
     }
 }

@@ -482,11 +482,12 @@ impl PaperTradingEngine {
                                                     };
                                                     // Stricter threshold for Longs: block if bias even mildly bearish (-0.3)
                                                     // Shorts use standard threshold (-0.5)
-                                                    let conflict_threshold = if matches!(signal, TradingSignal::Long) {
-                                                        -0.3
-                                                    } else {
-                                                        -0.5
-                                                    };
+                                                    let conflict_threshold =
+                                                        if matches!(signal, TradingSignal::Long) {
+                                                            -0.3
+                                                        } else {
+                                                            -0.5
+                                                        };
                                                     if signal_dir * market_bias.direction_bias
                                                         < conflict_threshold
                                                     {
