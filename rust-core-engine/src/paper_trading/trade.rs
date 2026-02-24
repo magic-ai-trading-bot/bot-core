@@ -574,10 +574,14 @@ impl PaperTrade {
                 Some(self.unrealized_pnl)
             },
             pnl_percentage: self.pnl_percentage,
+            trading_fees: self.trading_fees,
+            funding_fees: self.funding_fees,
             duration_ms: self.duration_ms,
             open_time: self.open_time,
             close_time: self.close_time,
             close_reason: self.close_reason.clone(),
+            ai_signal_id: self.ai_signal_id.clone(),
+            ai_confidence: self.ai_confidence,
         }
     }
 }
@@ -597,10 +601,14 @@ pub struct TradeSummary {
     pub take_profit: Option<f64>,
     pub pnl: Option<f64>,
     pub pnl_percentage: f64,
+    pub trading_fees: f64,
+    pub funding_fees: f64,
     pub duration_ms: Option<i64>,
     pub open_time: DateTime<Utc>,
     pub close_time: Option<DateTime<Utc>>,
     pub close_reason: Option<CloseReason>,
+    pub ai_signal_id: Option<String>,
+    pub ai_confidence: Option<f64>,
 }
 
 impl TradeType {
