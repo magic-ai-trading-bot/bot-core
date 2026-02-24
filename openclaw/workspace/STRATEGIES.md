@@ -180,7 +180,11 @@ Prevents trading in ranging/whipsaw markets:
 ```
 Risk (7 layers + market regime):
   position_size_pct: 2.0%
-  stop_loss_pct: 5.0% PnL (= 0.5% price @10x leverage)
+  stop_loss_pct: PER-SYMBOL (ATR-adjusted, 2026-02-24):
+    BTCUSDT: 8% PnL (= 0.8% price @10x, 1.5x ATR)
+    ETHUSDT: 8% PnL (= 0.8% price @10x, 1.2x ATR)
+    BNBUSDT: 5% PnL (= 0.5% price @10x, 0.85x ATR)
+    SOLUSDT: 5% PnL (= 0.5% price @10x, 0.86x ATR)
   take_profit_pct: 20.0% PnL (= 2.0% price @10x leverage)
   max_portfolio_risk: 10.0%
   daily_loss_limit: 3.0%

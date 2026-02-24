@@ -90,13 +90,27 @@ When a trade closes with negative PnL:
 
 | Setting | Value | Note |
 |---------|-------|------|
-| **SL** | 5% PnL all symbols | Was 18%, never triggered. Now 5% = 0.5% price @10x |
-| **TP** | 20% PnL all symbols | RR 4:1 |
-| **Leverage** | 10x all symbols | Keep as-is (leverage amplifies correct entries) |
+| **SL BTC/ETH** | 8% PnL (=0.8% price @10x) | Vol-adjusted: 1.2-1.5x ATR. Tránh stop out false pullback |
+| **SL BNB/SOL** | 5% PnL (=0.5% price @10x) | Vol thấp hơn, 0.85x ATR đủ tight |
+| **TP** | 20% PnL all symbols | RR 2.5:1 (BTC/ETH) to 4:1 (BNB/SOL) |
+| **Leverage** | 10x all symbols | Keep as-is |
 | **short_only_mode** | true | Block all Longs (bearish market) |
 | **confidence_threshold** | 0.75 | Tuned by self-tuning from 0.6 |
 | **min_required_timeframes** | 4/4 | Tuned from 2 |
 | **min_required_indicators** | 4/5 | Tuned from default |
+
+### Per-Symbol SL Rationale (ATR-based, 2026-02-24)
+
+SL phải > ATR 1h để tránh noise stop out. Tính: `SL_price% = SL_pnl% / leverage`
+
+| Symbol | ATR 1h % | SL Price% | SL vs ATR | Risk/Reward |
+|--------|----------|-----------|-----------|-------------|
+| BTC | ~0.55% | 0.8% | 1.5x ATR | 2.5:1 |
+| ETH | ~0.66% | 0.8% | 1.2x ATR | 2.5:1 |
+| BNB | ~0.59% | 0.5% | 0.85x ATR | 4:1 |
+| SOL | ~0.58% | 0.5% | 0.86x ATR | 4:1 |
+
+**Khi volatility thay đổi**: Dùng `get_candles` check ATR → adjust SL nếu ATR tăng >20% so với baseline.
 
 ---
 
