@@ -2481,17 +2481,17 @@ impl PaperTradingEngine {
             },
         };
 
-        // Filter open trades
-        let open_trades: Vec<_> = all_trades.iter().filter(|t| t.status == "Open").collect();
-
-        if open_trades.is_empty() {
-            info!("📊 No open positions to restore");
+        if all_trades.is_empty() {
+            info!("📊 No trades in database, starting fresh");
             return Ok(());
         }
 
+        // Count open/closed trades
+        let open_count = all_trades.iter().filter(|t| t.status == "Open").count();
+        let closed_count = all_trades.len() - open_count;
         info!(
-            "🔄 Restoring {} open positions from database",
-            open_trades.len()
+            "🔄 Restoring portfolio: {} open, {} closed trades from database",
+            open_count, closed_count
         );
 
         // Load latest portfolio snapshot
@@ -2504,7 +2504,7 @@ impl PaperTradingEngine {
                     );
                     Some(latest.clone())
                 } else {
-                    info!("📝 No portfolio snapshot found, using defaults");
+                    info!("📝 No portfolio snapshot found, will reconstruct from trades");
                     None
                 }
             },
@@ -2518,31 +2518,39 @@ impl PaperTradingEngine {
         {
             let mut portfolio = self.portfolio.write().await;
 
-            // Restore balance from snapshot if available
-            if let Some(snapshot) = latest_snapshot {
-                portfolio.cash_balance = snapshot.current_balance;
-                portfolio.equity = snapshot.equity;
-                portfolio.margin_used = snapshot.margin_used;
-                portfolio.free_margin = snapshot.free_margin;
-                portfolio.metrics.total_pnl = snapshot.total_pnl;
-                portfolio.metrics.total_pnl_percentage = snapshot.total_pnl_percentage;
-                portfolio.metrics.total_trades = snapshot.total_trades as u64;
-                portfolio.metrics.win_rate = snapshot.win_rate;
-                portfolio.metrics.profit_factor = snapshot.profit_factor;
-                portfolio.metrics.max_drawdown = snapshot.max_drawdown;
-                portfolio.metrics.max_drawdown_percentage = snapshot.max_drawdown_percentage;
+            // Restore balance from snapshot if available and not stale (total_trades > 0)
+            let snapshot_restored = if let Some(ref snapshot) = latest_snapshot {
+                if snapshot.total_trades > 0 || snapshot.total_pnl != 0.0 {
+                    portfolio.cash_balance = snapshot.current_balance;
+                    portfolio.equity = snapshot.equity;
+                    portfolio.margin_used = snapshot.margin_used;
+                    portfolio.free_margin = snapshot.free_margin;
+                    portfolio.metrics.total_pnl = snapshot.total_pnl;
+                    portfolio.metrics.total_pnl_percentage = snapshot.total_pnl_percentage;
+                    portfolio.metrics.total_trades = snapshot.total_trades as u64;
+                    portfolio.metrics.win_rate = snapshot.win_rate;
+                    portfolio.metrics.profit_factor = snapshot.profit_factor;
+                    portfolio.metrics.max_drawdown = snapshot.max_drawdown;
+                    portfolio.metrics.max_drawdown_percentage = snapshot.max_drawdown_percentage;
 
-                info!(
-                    "✅ Restored portfolio metrics: balance={:.2}, pnl={:.2} ({:.2}%), trades={}",
-                    snapshot.current_balance,
-                    snapshot.total_pnl,
-                    snapshot.total_pnl_percentage,
-                    snapshot.total_trades
-                );
-            }
+                    info!(
+                        "✅ Restored portfolio metrics: balance={:.2}, pnl={:.2} ({:.2}%), trades={}",
+                        snapshot.current_balance,
+                        snapshot.total_pnl,
+                        snapshot.total_pnl_percentage,
+                        snapshot.total_trades
+                    );
+                    true
+                } else {
+                    info!("⚠️ Portfolio snapshot looks stale (0 trades, 0 PnL), will reconstruct from trades");
+                    false
+                }
+            } else {
+                false
+            };
 
             // Restore all trades (open and closed)
-            for trade_record in all_trades {
+            for trade_record in &all_trades {
                 let trade_type = match trade_record.trade_type.as_str() {
                     "Long" => super::trade::TradeType::Long,
                     "Short" => super::trade::TradeType::Short,
@@ -2645,6 +2653,69 @@ impl PaperTradingEngine {
                 } else {
                     portfolio.closed_trade_ids.push(paper_trade.id.clone());
                 }
+            }
+
+            // Reconstruct metrics from trades if snapshot was stale or missing
+            if !snapshot_restored && !all_trades.is_empty() {
+                let closed_trades: Vec<_> =
+                    all_trades.iter().filter(|t| t.status == "Closed").collect();
+                let total_trades = closed_trades.len() as u64;
+                let winning_trades = closed_trades
+                    .iter()
+                    .filter(|t| t.pnl.unwrap_or(0.0) > 0.0)
+                    .count() as u64;
+                let total_pnl: f64 = closed_trades.iter().map(|t| t.pnl.unwrap_or(0.0)).sum();
+                let total_fees: f64 = closed_trades
+                    .iter()
+                    .map(|t| t.trading_fees + t.funding_fees)
+                    .sum();
+                let initial_balance = portfolio.initial_balance;
+                let current_balance = initial_balance + total_pnl - total_fees;
+
+                portfolio.cash_balance = current_balance;
+                portfolio.equity = current_balance;
+                portfolio.free_margin = current_balance;
+                portfolio.metrics.total_trades = total_trades;
+                portfolio.metrics.total_pnl = total_pnl;
+                portfolio.metrics.total_pnl_percentage = if initial_balance > 0.0 {
+                    (total_pnl / initial_balance) * 100.0
+                } else {
+                    0.0
+                };
+                portfolio.metrics.win_rate = if total_trades > 0 {
+                    (winning_trades as f64 / total_trades as f64) * 100.0
+                } else {
+                    0.0
+                };
+
+                // Calculate profit factor
+                let gross_profit: f64 = closed_trades
+                    .iter()
+                    .filter(|t| t.pnl.unwrap_or(0.0) > 0.0)
+                    .map(|t| t.pnl.unwrap_or(0.0))
+                    .sum();
+                let gross_loss: f64 = closed_trades
+                    .iter()
+                    .filter(|t| t.pnl.unwrap_or(0.0) < 0.0)
+                    .map(|t| t.pnl.unwrap_or(0.0).abs())
+                    .sum();
+                portfolio.metrics.profit_factor = if gross_loss > 0.0 {
+                    gross_profit / gross_loss
+                } else if gross_profit > 0.0 {
+                    f64::INFINITY
+                } else {
+                    0.0
+                };
+
+                info!(
+                    "🔧 Reconstructed portfolio from {} trades: balance={:.2}, pnl={:.2} ({:.2}%), win_rate={:.1}%, profit_factor={:.2}",
+                    total_trades,
+                    current_balance,
+                    total_pnl,
+                    portfolio.metrics.total_pnl_percentage,
+                    portfolio.metrics.win_rate,
+                    portfolio.metrics.profit_factor,
+                );
             }
 
             info!(
