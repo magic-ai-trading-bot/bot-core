@@ -45,6 +45,54 @@ botcore update_paper_symbols '{"symbols":{"BTCUSDT":{"enabled":true,"leverage":1
 
 ---
 
+## ⚠️ NEW: Short-Only Mode & Market Regime Filter (2024-02-24)
+
+### short_only_mode (RiskSettings)
+
+Engine has a `short_only_mode` boolean in risk settings. When `true`:
+- **ALL Long signals are blocked** at the signal loop level (before any other checks)
+- Only Short signals pass through to execution
+- Log: `"🚫 Long signal blocked: short_only_mode enabled for {symbol} (bearish market)"`
+
+**Current status**: `short_only_mode = true` (enabled 2026-02-24)
+**Reason**: Data analysis of 36 trades showed Short 81% WR vs Long 33% WR. Market is bearish.
+
+**How to toggle**:
+- DB: Update `paper_trading_settings.settings_json` → `risk.short_only_mode = true/false`
+- Self-tuning: Can use `apply_green_adjustment` with parameter `short_only_mode`
+- After DB change: restart `rust-core-engine` to reload settings
+
+**When to disable**: When market turns bullish (direction_bias > 0.3 consistently, Long WR improves above 50%)
+
+### Stricter AI Bias Filter for Longs
+
+- **Long signals**: blocked when AI bias even mildly bearish (threshold: -0.3)
+- **Short signals**: standard threshold (-0.5)
+- This means Longs need stronger bullish confirmation than Shorts need bearish confirmation
+
+### Auto-Analyze Losing Trades (xAI Grok)
+
+When a trade closes with negative PnL:
+1. Rust engine fires async HTTP POST to `python-ai-service /ai/analyze-trade`
+2. Python calls xAI Grok for analysis (entry quality, exit quality, recommendations)
+3. Analysis stored in MongoDB `trade_analyses` collection
+4. View on dashboard "Phân tích giao dịch AI" page
+5. Use `get_paper_trade_analyses` to list, `get_paper_trade_analysis '{"trade_id":"ID"}'` to read
+
+### Current Settings Summary (2026-02-24)
+
+| Setting | Value | Note |
+|---------|-------|------|
+| **SL** | 5% PnL all symbols | Was 18%, never triggered. Now 5% = 0.5% price @10x |
+| **TP** | 20% PnL all symbols | RR 4:1 |
+| **Leverage** | 10x all symbols | Keep as-is (leverage amplifies correct entries) |
+| **short_only_mode** | true | Block all Longs (bearish market) |
+| **confidence_threshold** | 0.75 | Tuned by self-tuning from 0.6 |
+| **min_required_timeframes** | 4/4 | Tuned from 2 |
+| **min_required_indicators** | 4/5 | Tuned from default |
+
+---
+
 ## Core Responsibilities
 
 ### 1. Trade Performance Analysis

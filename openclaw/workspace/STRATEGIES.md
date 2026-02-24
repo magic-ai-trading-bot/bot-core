@@ -85,10 +85,13 @@
 
 1. **Neutral filter**: Skip neutral signals
 2. **Confidence filter**: Skip if confidence < min_confidence (0.60)
-3. **Choppy market filter**: Skip if 4+ direction flips in 15 minutes for the symbol
-4. **Signal confirmation**: Require 2 consecutive same-direction signals within 10 minutes (60s dedup)
-5. **AI bias check**: Skip if signal conflicts with AI market bias (direction_bias × signal < -0.5)
-6. **Trade execution**: Pass through risk management layers → execute trade
+3. **Short-only mode filter** *(NEW 2026-02-24)*: If `risk.short_only_mode = true` → block ALL Long signals
+4. **Choppy market filter**: Skip if 4+ direction flips in 15 minutes for the symbol
+5. **Signal confirmation**: Require 2 consecutive same-direction signals within 10 minutes (60s dedup)
+6. **AI bias check**: Stricter for Longs (threshold -0.3) vs Shorts (threshold -0.5). Skip if `signal_dir × direction_bias < threshold`
+7. **Trade execution**: Pass through risk management layers → execute trade
+
+**Note on step 6**: Long signals blocked when bias even mildly bearish (> -0.3). Short signals only blocked when bias mildly bullish (< 0.5). This asymmetry protects against losing Long trades in bearish markets.
 
 ### Choppy Market Detection
 
@@ -175,26 +178,39 @@ Prevents trading in ranging/whipsaw markets:
 ## Key Configuration Defaults
 
 ```
-Risk (7 layers):
+Risk (7 layers + market regime):
   position_size_pct: 2.0%
-  stop_loss_pct: 5.0%
+  stop_loss_pct: 5.0% PnL (= 0.5% price @10x leverage)
+  take_profit_pct: 20.0% PnL (= 2.0% price @10x leverage)
   max_portfolio_risk: 10.0%
   daily_loss_limit: 3.0%
   max_consecutive_losses: 3
   cool_down_minutes: 60
   correlation_limit: 70% (only enforced with 3+ open positions)
+  short_only_mode: true (NEW - blocks ALL Long signals in bearish markets)
 
 Strategy:
   active_strategies: 5 (RSI, MACD, Bollinger, Volume, Stochastic)
   min_strategies_agreement: 4/5
   min_confidence: 0.60
+  confidence_threshold: 0.75 (tuned by self-tuning)
+  min_required_timeframes: 4/4 (tuned by self-tuning)
+  min_required_indicators: 4/5 (tuned by self-tuning)
   signal_confirmation: 2 consecutive same-direction signals within 10min
   choppy_market_threshold: 4 direction flips in 15min → block trading
   signal_interval: 5 min
+
+AI Bias Filter:
+  long_conflict_threshold: -0.3 (stricter - blocks Longs in mildly bearish)
+  short_conflict_threshold: -0.5 (standard)
 
 Execution:
   slippage: ON (0.05% max)
   delay: 100ms
   market_impact: OFF
   partial_fills: OFF
+
+Auto-Analysis (NEW):
+  losing_trade_analysis: ON (xAI Grok analyzes all losing trades automatically)
+  collection: trade_analyses (MongoDB)
 ```
