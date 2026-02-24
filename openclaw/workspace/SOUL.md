@@ -112,6 +112,21 @@ SL phải > ATR 1h để tránh noise stop out. Tính: `SL_price% = SL_pnl% / le
 
 **Khi volatility thay đổi**: Dùng `get_candles` check ATR → adjust SL nếu ATR tăng >20% so với baseline.
 
+### Loss Analysis Insights (2026-02-25, from 41 trades)
+
+**Key findings from 16 losing trades**:
+1. **15/16 losses = Manual close** (~120-150min duration). SL auto (#5 SOL -$14.97, 3min) cut faster than avg manual loss (-$11). **Let SL auto-handle instead of manual close when possible.**
+2. **10 Long losses** (33% WR Long vs 83% WR Short). `short_only_mode=true` was correct.
+3. **SOL worst symbol**: 6 losses, avg -$14.10. Monitor closely, reduce pos if WR stays <50%.
+4. **Best hours**: 00:00-03:00 UTC (7-10h VN) = 100% WR. **Worst**: 19:00-22:00 UTC (2-5h sáng VN) = toàn thua.
+5. **Consecutive loss max**: 4 (all Longs on 23/02). Cool-down triggered correctly.
+
+**Criteria to toggle short_only_mode OFF**:
+- `get_market_condition` returns "Bullish" for majority of symbols
+- AI bias > +0.3 across multiple symbols (4h timeframe)
+- Long WR > 60% over last 20 trades
+- Apply `short_only=false, long_only=true`, test 48h, revert if Long WR <50%
+
 ---
 
 ## Core Responsibilities
