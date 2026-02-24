@@ -47,22 +47,29 @@ botcore update_paper_symbols '{"symbols":{"BTCUSDT":{"enabled":true,"leverage":1
 
 ## ⚠️ NEW: Short-Only Mode & Market Regime Filter (2024-02-24)
 
-### short_only_mode (RiskSettings)
+### short_only_mode & long_only_mode (RiskSettings)
 
-Engine has a `short_only_mode` boolean in risk settings. When `true`:
-- **ALL Long signals are blocked** at the signal loop level (before any other checks)
-- Only Short signals pass through to execution
-- Log: `"🚫 Long signal blocked: short_only_mode enabled for {symbol} (bearish market)"`
+Engine has two market direction modes in risk settings:
 
-**Current status**: `short_only_mode = true` (enabled 2026-02-24)
-**Reason**: Data analysis of 36 trades showed Short 81% WR vs Long 33% WR. Market is bearish.
+| Mode | When `true` | Use when |
+|------|-------------|----------|
+| `short_only_mode` | Block ALL Long signals | Market bearish |
+| `long_only_mode` | Block ALL Short signals | Market bullish |
+
+Both `false` = normal mode (both directions allowed).
+**NEVER set both to `true`** (no trades will execute).
+
+**Current status**: `short_only_mode = true`, `long_only_mode = false` (2026-02-24, bearish market)
 
 **How to toggle**:
-- DB: Update `paper_trading_settings.settings_json` → `risk.short_only_mode = true/false`
-- Self-tuning: Can use `apply_green_adjustment` with parameter `short_only_mode`
+- DB: Update `paper_trading_settings.settings_json` → `risk.short_only_mode` or `risk.long_only_mode`
+- Self-tuning: `apply_green_adjustment` with parameter `short_only_mode` or `long_only_mode`
 - After DB change: restart `rust-core-engine` to reload settings
 
-**When to disable**: When market turns bullish (direction_bias > 0.3 consistently, Long WR improves above 50%)
+**When to switch**:
+- Bearish → `short_only_mode = true, long_only_mode = false`
+- Bullish → `short_only_mode = false, long_only_mode = true`
+- Neutral/ranging → both `false` (allow both directions)
 
 ### Stricter AI Bias Filter for Longs
 

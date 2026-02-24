@@ -393,13 +393,24 @@ impl PaperTradingEngine {
                                             continue;
                                         }
 
-                                        // Short-only mode: block Long signals in bearish markets
+                                        // Market direction mode: block signals based on market regime
                                         // @spec:FR-RISK-014 - Market regime filter
-                                        if signal == TradingSignal::Long {
+                                        {
                                             let settings = engine.settings.read().await;
-                                            if settings.risk.short_only_mode {
+                                            if signal == TradingSignal::Long
+                                                && settings.risk.short_only_mode
+                                            {
                                                 info!(
                                                     "🚫 Long signal blocked: short_only_mode enabled for {} (bearish market)",
+                                                    symbol
+                                                );
+                                                continue;
+                                            }
+                                            if signal == TradingSignal::Short
+                                                && settings.risk.long_only_mode
+                                            {
+                                                info!(
+                                                    "🚫 Short signal blocked: long_only_mode enabled for {} (bullish market)",
                                                     symbol
                                                 );
                                                 continue;

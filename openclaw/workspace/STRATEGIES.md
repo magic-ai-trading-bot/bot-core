@@ -85,7 +85,7 @@
 
 1. **Neutral filter**: Skip neutral signals
 2. **Confidence filter**: Skip if confidence < min_confidence (0.60)
-3. **Short-only mode filter** *(NEW 2026-02-24)*: If `risk.short_only_mode = true` → block ALL Long signals
+3. **Market direction filter** *(NEW 2026-02-24)*: `short_only_mode = true` → block Longs; `long_only_mode = true` → block Shorts
 4. **Choppy market filter**: Skip if 4+ direction flips in 15 minutes for the symbol
 5. **Signal confirmation**: Require 2 consecutive same-direction signals within 10 minutes (60s dedup)
 6. **AI bias check**: Stricter for Longs (threshold -0.3) vs Shorts (threshold -0.5). Skip if `signal_dir × direction_bias < threshold`
@@ -187,7 +187,8 @@ Risk (7 layers + market regime):
   max_consecutive_losses: 3
   cool_down_minutes: 60
   correlation_limit: 70% (only enforced with 3+ open positions)
-  short_only_mode: true (NEW - blocks ALL Long signals in bearish markets)
+  short_only_mode: true (blocks ALL Long signals in bearish markets)
+  long_only_mode: false (blocks ALL Short signals in bullish markets)
 
 Strategy:
   active_strategies: 5 (RSI, MACD, Bollinger, Volume, Stochastic)
