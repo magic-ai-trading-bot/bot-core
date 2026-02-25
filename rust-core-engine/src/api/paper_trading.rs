@@ -212,6 +212,9 @@ pub struct UpdateBasicSettingsRequest {
     pub min_required_timeframes: Option<u32>,
     // Strategy engine settings (exposed for MCP self-tuning)
     pub data_resolution: Option<String>,
+    // Market regime mode settings
+    pub short_only_mode: Option<bool>,
+    pub long_only_mode: Option<bool>,
 }
 
 /// Request to update execution settings (partial update)
@@ -1281,7 +1284,9 @@ async fn get_basic_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
             "ai_auto_enable_reversal": settings.risk.ai_auto_enable_reversal,
             "reversal_min_confidence": settings.risk.reversal_min_confidence,
             "reversal_max_pnl_pct": settings.risk.reversal_max_pnl_pct,
-            "reversal_allowed_regimes": settings.risk.reversal_allowed_regimes
+            "reversal_allowed_regimes": settings.risk.reversal_allowed_regimes,
+            "short_only_mode": settings.risk.short_only_mode,
+            "long_only_mode": settings.risk.long_only_mode
         },
         "signal": {
             "min_required_indicators": settings.signal.min_required_indicators,
@@ -1431,6 +1436,31 @@ async fn update_basic_settings(
     // Strategy engine settings
     if let Some(ref data_resolution) = request.data_resolution {
         new_settings.strategy.backtesting.data_resolution = data_resolution.clone();
+    }
+    // Market regime mode settings
+    if let Some(short_only_mode) = request.short_only_mode {
+        new_settings.risk.short_only_mode = short_only_mode;
+        log::info!(
+            "🔄 short_only_mode set to {} ({})",
+            short_only_mode,
+            if short_only_mode {
+                "blocking all Long signals"
+            } else {
+                "allowing Long signals"
+            }
+        );
+    }
+    if let Some(long_only_mode) = request.long_only_mode {
+        new_settings.risk.long_only_mode = long_only_mode;
+        log::info!(
+            "🔄 long_only_mode set to {} ({})",
+            long_only_mode,
+            if long_only_mode {
+                "blocking all Short signals"
+            } else {
+                "allowing Short signals"
+            }
+        );
     }
 
     // Update the engine settings

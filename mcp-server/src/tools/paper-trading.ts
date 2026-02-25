@@ -452,7 +452,9 @@ export function registerPaperTradingTools(server: McpServer): void {
         "Risk: max_risk_per_trade_pct, max_portfolio_risk_pct, default_stop_loss_pct, default_take_profit_pct, max_leverage, min_margin_level, max_drawdown_pct, daily_loss_limit_pct, max_consecutive_losses, cool_down_minutes, " +
         "trailing_stop_enabled, trailing_stop_pct, trailing_activation_pct, " +
         "position_sizing_method (FixedPercentage|RiskBased|VolatilityAdjusted|ConfidenceWeighted|Composite), min_risk_reward_ratio, correlation_limit, dynamic_sizing, volatility_lookback_hours, " +
-        "enable_signal_reversal, ai_auto_enable_reversal, reversal_min_confidence, reversal_max_pnl_pct, reversal_allowed_regimes (array of strings)",
+        "enable_signal_reversal, ai_auto_enable_reversal, reversal_min_confidence, reversal_max_pnl_pct, reversal_allowed_regimes (array of strings). " +
+        "MARKET REGIME: short_only_mode (true=block ALL Long signals, bearish market), long_only_mode (true=block ALL Short signals, bullish market). " +
+        "IMPORTANT: These modes are PERSISTED to DB and survive restarts. Toggle based on market conditions.",
       inputSchema: {
         settings: z
           .record(z.unknown())
