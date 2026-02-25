@@ -94,7 +94,8 @@ When a trade closes with negative PnL:
 | **SL BNB/SOL** | 5% PnL (=0.5% price @10x) | Vol thấp hơn, 0.85x ATR đủ tight |
 | **TP** | 20% PnL all symbols | RR 2.5:1 (BTC/ETH) to 4:1 (BNB/SOL) |
 | **Leverage** | 10x all symbols | Keep as-is |
-| **short_only_mode** | true | Block all Longs (bearish market) |
+| **short_only_mode** | false | Was true (bearish). Toggle via `update_paper_basic_settings` |
+| **long_only_mode** | true | Block all Shorts (bullish market, 2026-02-25) |
 | **confidence_threshold** | 0.75 | Tuned by self-tuning from 0.6 |
 | **min_required_timeframes** | 4/4 | Tuned from 2 |
 | **min_required_indicators** | 4/5 | Tuned from default |
