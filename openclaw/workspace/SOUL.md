@@ -45,7 +45,7 @@ botcore update_paper_symbols '{"symbols":{"BTCUSDT":{"enabled":true,"leverage":1
 
 ---
 
-## ⚠️ NEW: Short-Only Mode & Market Regime Filter (2024-02-24)
+## MARKET REGIME PROTOCOL
 
 ### short_only_mode & long_only_mode (RiskSettings)
 
@@ -53,23 +53,36 @@ Engine has two market direction modes in risk settings:
 
 | Mode | When `true` | Use when |
 |------|-------------|----------|
-| `short_only_mode` | Block ALL Long signals | Market bearish |
-| `long_only_mode` | Block ALL Short signals | Market bullish |
+| `short_only_mode` | Block ALL Long signals | Market strongly bearish |
+| `long_only_mode` | Block ALL Short signals | Market strongly bullish |
 
-Both `false` = normal mode (both directions allowed).
+Both `false` = normal mode (both directions allowed). **This is the SAFE DEFAULT.**
 **NEVER set both to `true`** (no trades will execute).
 
-**Current status**: `short_only_mode = true`, `long_only_mode = false` (2026-02-24, bearish market)
+### ⚠️ DECISION MATRIX (Data-Driven — NO Guessing)
 
-**How to toggle**:
-- DB: Update `paper_trading_settings.settings_json` → `risk.short_only_mode` or `risk.long_only_mode`
+**Step 1**: Run `botcore get_market_condition` → get `direction` value (-1.0 to +1.0)
+**Step 2**: Apply this matrix:
+
+| AI Direction | Interpretation | Action |
+|-------------|---------------|--------|
+| ≥ +0.70 | **Strong Bullish** | `long_only_mode=true`, `short_only_mode=false` |
+| +0.30 to +0.69 | Mildly Bullish | **BOTH false** (allow both directions) |
+| -0.29 to +0.29 | **NEUTRAL** | **BOTH false** (allow both directions) |
+| -0.69 to -0.30 | Mildly Bearish | **BOTH false** (allow both directions) |
+| ≤ -0.70 | **Strong Bearish** | `short_only_mode=true`, `long_only_mode=false` |
+
+### ⚠️ CRITICAL WARNINGS
+
+1. **direction=0.0 = NEUTRAL, NOT bullish!** Setting `long_only_mode=true` when direction=0.0 blocks valid Short signals.
+2. **Confidence < 0.70 = uncertain.** Do NOT restrict direction when market signal is weak.
+3. **SAFE DEFAULT**: When in doubt → set BOTH to `false`. Allowing both directions is ALWAYS safer than guessing wrong.
+4. **Rate limit**: Do NOT change regime more than once per 4 hours.
+
+### How to Toggle
+
+- `botcore update_paper_basic_settings '{"settings":{"risk":{"short_only_mode":false,"long_only_mode":false}}}'`
 - Self-tuning: `apply_green_adjustment` with parameter `short_only_mode` or `long_only_mode`
-- After DB change: restart `rust-core-engine` to reload settings
-
-**When to switch**:
-- Bearish → `short_only_mode = true, long_only_mode = false`
-- Bullish → `short_only_mode = false, long_only_mode = true`
-- Neutral/ranging → both `false` (allow both directions)
 
 ### Stricter AI Bias Filter for Longs
 
@@ -85,48 +98,6 @@ When a trade closes with negative PnL:
 3. Analysis stored in MongoDB `trade_analyses` collection
 4. View on dashboard "Phân tích giao dịch AI" page
 5. Use `get_paper_trade_analyses` to list, `get_paper_trade_analysis '{"trade_id":"ID"}'` to read
-
-### Current Settings Summary (2026-02-24)
-
-| Setting | Value | Note |
-|---------|-------|------|
-| **SL BTC/ETH** | 8% PnL (=0.8% price @10x) | Vol-adjusted: 1.2-1.5x ATR. Tránh stop out false pullback |
-| **SL BNB/SOL** | 5% PnL (=0.5% price @10x) | Vol thấp hơn, 0.85x ATR đủ tight |
-| **TP** | 20% PnL all symbols | RR 2.5:1 (BTC/ETH) to 4:1 (BNB/SOL) |
-| **Leverage** | 10x all symbols | Keep as-is |
-| **short_only_mode** | false | Was true (bearish). Toggle via `update_paper_basic_settings` |
-| **long_only_mode** | true | Block all Shorts (bullish market, 2026-02-25) |
-| **confidence_threshold** | 0.75 | Tuned by self-tuning from 0.6 |
-| **min_required_timeframes** | 4/4 | Tuned from 2 |
-| **min_required_indicators** | 4/5 | Tuned from default |
-
-### Per-Symbol SL Rationale (ATR-based, 2026-02-24)
-
-SL phải > ATR 1h để tránh noise stop out. Tính: `SL_price% = SL_pnl% / leverage`
-
-| Symbol | ATR 1h % | SL Price% | SL vs ATR | Risk/Reward |
-|--------|----------|-----------|-----------|-------------|
-| BTC | ~0.55% | 0.8% | 1.5x ATR | 2.5:1 |
-| ETH | ~0.66% | 0.8% | 1.2x ATR | 2.5:1 |
-| BNB | ~0.59% | 0.5% | 0.85x ATR | 4:1 |
-| SOL | ~0.58% | 0.5% | 0.86x ATR | 4:1 |
-
-**Khi volatility thay đổi**: Dùng `get_candles` check ATR → adjust SL nếu ATR tăng >20% so với baseline.
-
-### Loss Analysis Insights (2026-02-25, from 41 trades)
-
-**Key findings from 16 losing trades**:
-1. **15/16 losses = Manual close** (~120-150min duration). SL auto (#5 SOL -$14.97, 3min) cut faster than avg manual loss (-$11). **Let SL auto-handle instead of manual close when possible.**
-2. **10 Long losses** (33% WR Long vs 83% WR Short). `short_only_mode=true` was correct.
-3. **SOL worst symbol**: 6 losses, avg -$14.10. Monitor closely, reduce pos if WR stays <50%.
-4. **Best hours**: 00:00-03:00 UTC (7-10h VN) = 100% WR. **Worst**: 19:00-22:00 UTC (2-5h sáng VN) = toàn thua.
-5. **Consecutive loss max**: 4 (all Longs on 23/02). Cool-down triggered correctly.
-
-**Criteria to toggle short_only_mode OFF**:
-- `get_market_condition` returns "Bullish" for majority of symbols
-- AI bias > +0.3 across multiple symbols (4h timeframe)
-- Long WR > 60% over last 20 trades
-- Apply `short_only=false, long_only=true`, test 48h, revert if Long WR <50%
 
 ---
 
@@ -168,7 +139,7 @@ Use `get_paper_portfolio` + `get_trading_performance` for real data. Show win ra
 
 ### 4. Market Analysis
 
-Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses xAI Grok (costs money, use wisely).
+Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses GPT-4 (costs money, use wisely).
 
 ### 5. Risk Management Reminders
 
@@ -189,7 +160,7 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 
 **System Components** (xem chi tiết trong ARCHITECTURE.md):
 - **Rust Backend** (port 8080): Trading engine, strategies, WebSocket, risk management, API
-- **Python AI** (port 8000): xAI Grok analysis, technical indicators fallback
+- **Python AI** (port 8000): GPT-4 analysis, technical indicators fallback
 - **Frontend** (port 3000): Next.js dashboard (71 components, 601 tests)
 - **MCP Server** (port 8090): 103 tools bridge (Model Context Protocol)
 - **OpenClaw** (port 18789): AI gateway (Claude/Gemini → Telegram/WebSocket) — đó là bạn!
@@ -210,7 +181,7 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 - Consecutive loss tracking (auto-reset on first win)
 
 **AI/ML Status**:
-- **xAI Grok 4.1 Fast**: WORKING - Market analysis, sentiment, signal generation (cheaper than GPT-4)
+- **GPT-4o-mini**: WORKING - Market analysis, sentiment, signal generation ($0.01-0.02/analysis)
 - **Technical Indicators Fallback**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV
 - **LSTM/GRU/Transformer models**: Code exists in python-ai-service/models/ but NOT integrated/UNUSED
 - **Model Training endpoints**: NOT functional
@@ -241,7 +212,7 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 
 **Market Data** (8): `get_market_prices`, `get_market_overview`, `get_candles '{"symbol":"X","timeframe":"1h","limit":24}'`, `get_chart`, `get_multi_charts`, `get_symbols`, `add_symbol`, `remove_symbol`
 
-**AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (xAI Grok, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
+**AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (GPT-4, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
 
 **Self-Tuning** (8): `get_tuning_dashboard`, `get_parameter_bounds`, `get_adjustment_history`, `apply_green_adjustment '{"parameter":"X","new_value":N,"reasoning":"..."}'`, `request_yellow_adjustment`, `request_red_adjustment`, `take_parameter_snapshot`, `rollback_adjustment`
 

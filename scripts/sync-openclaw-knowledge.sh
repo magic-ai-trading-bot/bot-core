@@ -457,6 +457,62 @@ botcore update_paper_symbols '{"symbols":{"BTCUSDT":{"enabled":true,"leverage":1
 
 ---
 
+## MARKET REGIME PROTOCOL
+
+### short_only_mode & long_only_mode (RiskSettings)
+
+Engine has two market direction modes in risk settings:
+
+| Mode | When \`true\` | Use when |
+|------|-------------|----------|
+| \`short_only_mode\` | Block ALL Long signals | Market strongly bearish |
+| \`long_only_mode\` | Block ALL Short signals | Market strongly bullish |
+
+Both \`false\` = normal mode (both directions allowed). **This is the SAFE DEFAULT.**
+**NEVER set both to \`true\`** (no trades will execute).
+
+### ⚠️ DECISION MATRIX (Data-Driven — NO Guessing)
+
+**Step 1**: Run \`botcore get_market_condition\` → get \`direction\` value (-1.0 to +1.0)
+**Step 2**: Apply this matrix:
+
+| AI Direction | Interpretation | Action |
+|-------------|---------------|--------|
+| ≥ +0.70 | **Strong Bullish** | \`long_only_mode=true\`, \`short_only_mode=false\` |
+| +0.30 to +0.69 | Mildly Bullish | **BOTH false** (allow both directions) |
+| -0.29 to +0.29 | **NEUTRAL** | **BOTH false** (allow both directions) |
+| -0.69 to -0.30 | Mildly Bearish | **BOTH false** (allow both directions) |
+| ≤ -0.70 | **Strong Bearish** | \`short_only_mode=true\`, \`long_only_mode=false\` |
+
+### ⚠️ CRITICAL WARNINGS
+
+1. **direction=0.0 = NEUTRAL, NOT bullish!** Setting \`long_only_mode=true\` when direction=0.0 blocks valid Short signals.
+2. **Confidence < 0.70 = uncertain.** Do NOT restrict direction when market signal is weak.
+3. **SAFE DEFAULT**: When in doubt → set BOTH to \`false\`. Allowing both directions is ALWAYS safer than guessing wrong.
+4. **Rate limit**: Do NOT change regime more than once per 4 hours.
+
+### How to Toggle
+
+- \`botcore update_paper_basic_settings '{"settings":{"risk":{"short_only_mode":false,"long_only_mode":false}}}'\`
+- Self-tuning: \`apply_green_adjustment\` with parameter \`short_only_mode\` or \`long_only_mode\`
+
+### Stricter AI Bias Filter for Longs
+
+- **Long signals**: blocked when AI bias even mildly bearish (threshold: -0.3)
+- **Short signals**: standard threshold (-0.5)
+- This means Longs need stronger bullish confirmation than Shorts need bearish confirmation
+
+### Auto-Analyze Losing Trades (xAI Grok)
+
+When a trade closes with negative PnL:
+1. Rust engine fires async HTTP POST to \`python-ai-service /ai/analyze-trade\`
+2. Python calls xAI Grok for analysis (entry quality, exit quality, recommendations)
+3. Analysis stored in MongoDB \`trade_analyses\` collection
+4. View on dashboard "Phân tích giao dịch AI" page
+5. Use \`get_paper_trade_analyses\` to list, \`get_paper_trade_analysis '{"trade_id":"ID"}'\` to read
+
+---
+
 ## Core Responsibilities
 
 ### 1. Trade Performance Analysis
