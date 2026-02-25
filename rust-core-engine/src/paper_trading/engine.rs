@@ -189,7 +189,9 @@ impl PaperTradingEngine {
     /// Must be called before start() — uses O(1) cache reads instead of REST polling
     pub fn set_market_data_cache(&mut self, cache: MarketDataCache) {
         self.market_data_cache = Some(cache);
-        info!("✅ Market data cache connected to PaperTradingEngine (WebSocket prices → O(1) lookup)");
+        info!(
+            "✅ Market data cache connected to PaperTradingEngine (WebSocket prices → O(1) lookup)"
+        );
     }
 
     /// Start the paper trading engine

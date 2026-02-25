@@ -174,8 +174,7 @@ async fn main() -> Result<()> {
 
     // Connect WebSocket price cache to PaperTradingEngine
     // This replaces REST polling (~480 calls/min → 0) with O(1) cache reads
-    paper_trading_engine_inner
-        .set_market_data_cache(market_data_processor.get_cache().clone());
+    paper_trading_engine_inner.set_market_data_cache(market_data_processor.get_cache().clone());
 
     let paper_trading_engine = std::sync::Arc::new(paper_trading_engine_inner);
 
