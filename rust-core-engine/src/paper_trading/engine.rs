@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::ai::AIService;
 use crate::binance::BinanceClient;
-use crate::market_data::cache::CandleData;
+use crate::market_data::cache::{CandleData, MarketDataCache};
 use crate::storage::Storage;
 use crate::strategies::strategy_engine::StrategyEngine;
 use crate::strategies::TradingSignal;
@@ -98,6 +98,15 @@ pub struct PaperTradingEngine {
     /// Choppy market detection: tracks direction flips per symbol
     /// Key: symbol, Value: Vec<(timestamp, signal_direction)> — last N signals within window
     signal_flip_tracker: Arc<RwLock<SignalFlipTracker>>,
+
+    /// @spec:FR-MARKET-DATA-004 - Market data cache for real-time WebSocket prices
+    /// Uses O(1) DashMap lookup instead of REST API polling to avoid Binance 403 rate limits
+    /// None in tests (falls back to REST API)
+    market_data_cache: Option<MarketDataCache>,
+
+    /// Cached funding rates (updated every 15 minutes, not every price tick)
+    /// Key: symbol (e.g., "BTCUSDT"), Value: funding rate
+    funding_rates: Arc<RwLock<HashMap<String, f64>>>,
 }
 
 /// Pending trade for execution
@@ -171,7 +180,16 @@ impl PaperTradingEngine {
             ai_market_bias: Arc::new(RwLock::new(HashMap::new())),
             recent_signals: Arc::new(RwLock::new(HashMap::new())),
             signal_flip_tracker: Arc::new(RwLock::new(HashMap::new())),
+            market_data_cache: None,
+            funding_rates: Arc::new(RwLock::new(HashMap::new())),
         })
+    }
+
+    /// Set the market data cache for real-time WebSocket price lookups
+    /// Must be called before start() — uses O(1) cache reads instead of REST polling
+    pub fn set_market_data_cache(&mut self, cache: MarketDataCache) {
+        self.market_data_cache = Some(cache);
+        info!("✅ Market data cache connected to PaperTradingEngine (WebSocket prices → O(1) lookup)");
     }
 
     /// Start the paper trading engine
@@ -202,6 +220,7 @@ impl PaperTradingEngine {
 
         // Start background tasks
         let price_update_handle = self.start_price_updates();
+        let funding_rate_handle = self.start_funding_rate_updates();
         let signal_processing_handle = self.start_strategy_signal_loop();
         let trade_monitoring_handle = self.start_trade_monitoring();
         let performance_tracking_handle = self.start_performance_tracking();
@@ -215,11 +234,15 @@ impl PaperTradingEngine {
             timestamp: Utc::now(),
         });
 
-        info!("Paper Trading Engine started successfully");
+        info!(
+            "Paper Trading Engine started successfully (cache={}, price_interval=5s, funding_rate_interval=15m)",
+            if self.market_data_cache.is_some() { "WebSocket" } else { "REST-fallback" }
+        );
 
         // Wait for all background tasks
         let (
             _price_result,
+            _funding_result,
             _signal_result,
             _trade_result,
             _perf_result,
@@ -227,6 +250,7 @@ impl PaperTradingEngine {
             _metrics_result,
         ) = tokio::try_join!(
             price_update_handle,
+            funding_rate_handle,
             signal_processing_handle,
             trade_monitoring_handle,
             performance_tracking_handle,
@@ -256,18 +280,62 @@ impl PaperTradingEngine {
         Ok(())
     }
 
-    /// Start price update loop
+    /// Start price update loop (reads from WebSocket cache, no REST polling)
     fn start_price_updates(&self) -> tokio::task::JoinHandle<Result<()>> {
         let engine = self.clone();
 
         tokio::spawn(async move {
-            let mut interval = interval(Duration::from_secs(1)); // Update every second
+            // 5s interval is plenty — prices come from WebSocket cache in real-time
+            // Previously 1s with REST polling caused 480 calls/min → Binance 403
+            let mut interval = interval(Duration::from_secs(5));
 
             while *engine.is_running.read().await {
                 interval.tick().await;
 
                 if let Err(e) = engine.update_market_prices().await {
                     error!("Failed to update market prices: {}", e);
+                }
+            }
+
+            Ok(())
+        })
+    }
+
+    /// Start funding rate update loop (low frequency — every 15 minutes)
+    /// Funding rates only change every 8 hours on Binance, so 15min is more than enough.
+    /// Separating this from price updates avoids unnecessary REST calls per price tick.
+    fn start_funding_rate_updates(&self) -> tokio::task::JoinHandle<Result<()>> {
+        let engine = self.clone();
+
+        tokio::spawn(async move {
+            // Fetch immediately on startup, then every 15 minutes
+            let mut rate_interval = interval(Duration::from_secs(900));
+
+            while *engine.is_running.read().await {
+                rate_interval.tick().await;
+
+                let settings = engine.settings.read().await;
+                let symbols: Vec<String> = settings.symbols.keys().cloned().collect();
+                drop(settings);
+
+                let mut rates = HashMap::new();
+                for symbol in &symbols {
+                    match engine.binance_client.get_funding_rate(symbol).await {
+                        Ok(funding_info) => {
+                            if let Ok(rate) = funding_info.funding_rate.parse::<f64>() {
+                                rates.insert(symbol.clone(), rate);
+                            }
+                        },
+                        Err(_) => {
+                            rates.insert(symbol.clone(), 0.0);
+                        },
+                    }
+                }
+
+                if !rates.is_empty() {
+                    let mut cached = engine.funding_rates.write().await;
+                    *cached = rates;
+                    debug!("💰 Funding rates updated ({} symbols)", cached.len());
                 }
             }
 
@@ -809,59 +877,73 @@ impl PaperTradingEngine {
         })
     }
 
-    /// Update market prices from Binance
+    /// Update market prices — uses WebSocket cache (O(1)) with REST API fallback
+    /// This eliminates ~480 REST calls/min that caused Binance 403 rate limiting
     async fn update_market_prices(&self) -> Result<()> {
         let settings = self.settings.read().await;
         let symbols: Vec<String> = settings.symbols.keys().cloned().collect();
         drop(settings);
 
         let mut new_prices = HashMap::new();
-        let mut funding_rates = HashMap::new();
 
-        // Get current prices for all symbols
-        for symbol in &symbols {
-            match self.binance_client.get_symbol_price(symbol).await {
-                Ok(price_info) => match price_info.price.parse::<f64>() {
-                    Ok(price) if price > 0.0 => {
-                        debug!(
-                            "📊 Price update: {} = ${:.2} (source: Binance API)",
-                            symbol, price
-                        );
+        // Try cache first (real-time WebSocket data, O(1) lookup via DashMap)
+        if let Some(ref cache) = self.market_data_cache {
+            for symbol in &symbols {
+                if let Some(price) = cache.get_latest_price(symbol) {
+                    if price > 0.0 {
                         new_prices.insert(symbol.clone(), price);
-                    },
-                    Ok(price) => {
-                        warn!("⚠️ Invalid price {} for {}, skipping update", price, symbol);
-                    },
-                    Err(e) => {
-                        warn!(
-                            "⚠️ Failed to parse price '{}' for {}: {}",
-                            price_info.price, symbol, e
-                        );
-                    },
-                },
-                Err(e) => {
-                    warn!("⚠️ Failed to get price for {}: {}", symbol, e);
-                },
-            }
-
-            // Get funding rate for futures
-            match self.binance_client.get_funding_rate(symbol).await {
-                Ok(funding_info) => {
-                    if let Ok(rate) = funding_info.funding_rate.parse::<f64>() {
-                        funding_rates.insert(symbol.clone(), rate);
                     }
-                },
-                Err(_) => {
-                    // Funding rate not available, use default
-                    funding_rates.insert(symbol.clone(), 0.0);
-                },
+                }
             }
         }
+
+        // Fallback to REST API only for symbols not in cache
+        // (e.g., when WebSocket hasn't received data yet, or in tests without cache)
+        let missing_symbols: Vec<&String> = symbols
+            .iter()
+            .filter(|s| !new_prices.contains_key(*s))
+            .collect();
+
+        if !missing_symbols.is_empty() {
+            debug!(
+                "📡 Fetching {} symbols via REST API (not in cache): {:?}",
+                missing_symbols.len(),
+                missing_symbols
+            );
+            for symbol in &missing_symbols {
+                match self.binance_client.get_symbol_price(symbol).await {
+                    Ok(price_info) => match price_info.price.parse::<f64>() {
+                        Ok(price) if price > 0.0 => {
+                            new_prices.insert((*symbol).clone(), price);
+                        },
+                        Ok(price) => {
+                            warn!("⚠️ Invalid price {} for {}, skipping", price, symbol);
+                        },
+                        Err(e) => {
+                            warn!("⚠️ Failed to parse price for {}: {}", symbol, e);
+                        },
+                    },
+                    Err(e) => {
+                        warn!("⚠️ Failed to get price for {}: {}", symbol, e);
+                    },
+                }
+            }
+        }
+
+        // Read cached funding rates (updated by separate low-frequency loop)
+        let cached_funding_rates = {
+            let rates = self.funding_rates.read().await;
+            if rates.is_empty() {
+                None
+            } else {
+                Some(rates.clone())
+            }
+        };
 
         // Update portfolio with new prices
         {
             let mut portfolio = self.portfolio.write().await;
-            portfolio.update_prices(new_prices.clone(), Some(funding_rates));
+            portfolio.update_prices(new_prices.clone(), cached_funding_rates);
 
             // Update trailing stops for open trades if enabled
             // @spec:FR-RISK-007 - Trailing Stop Loss for Long Positions
@@ -898,7 +980,7 @@ impl PaperTradingEngine {
 
         // Log price updates for monitoring
         debug!(
-            "💰 Market prices updated: BTCUSDT=${:.2}, ETHUSDT=${:.2}, BNBUSDT=${:.2}, SOLUSDT=${:.2}",
+            "💰 Prices updated (cache): BTCUSDT=${:.2}, ETHUSDT=${:.2}, BNBUSDT=${:.2}, SOLUSDT=${:.2}",
             new_prices.get("BTCUSDT").unwrap_or(&0.0),
             new_prices.get("ETHUSDT").unwrap_or(&0.0),
             new_prices.get("BNBUSDT").unwrap_or(&0.0),

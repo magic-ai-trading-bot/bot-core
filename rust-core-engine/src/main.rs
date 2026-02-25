@@ -163,16 +163,21 @@ async fn main() -> Result<()> {
         cache_ttl_seconds: 300,
     });
 
-    let paper_trading_engine = std::sync::Arc::new(
-        PaperTradingEngine::new(
-            paper_trading_settings,
-            binance_client,
-            ai_service,
-            storage.clone(),
-            paper_trading_event_sender,
-        )
-        .await?,
-    );
+    let mut paper_trading_engine_inner = PaperTradingEngine::new(
+        paper_trading_settings,
+        binance_client,
+        ai_service,
+        storage.clone(),
+        paper_trading_event_sender,
+    )
+    .await?;
+
+    // Connect WebSocket price cache to PaperTradingEngine
+    // This replaces REST polling (~480 calls/min → 0) with O(1) cache reads
+    paper_trading_engine_inner
+        .set_market_data_cache(market_data_processor.get_cache().clone());
+
+    let paper_trading_engine = std::sync::Arc::new(paper_trading_engine_inner);
 
     // Initialize Real Trading Engine if configured
     let real_trading_engine = if let Some(ref real_trading_config) = config.real_trading {
