@@ -296,6 +296,26 @@ cat > "$WORKSPACE/STRATEGIES.md" << STRATEGIES_EOF
 - **Minimum data**: 50 candles per timeframe required before trading starts
 - **Hybrid filter**: Optional AI trend filter for additional validation
 
+### Signal Pipeline (order of checks)
+
+1. **Neutral filter**: Skip neutral signals
+2. **Confidence filter**: Skip if confidence < min_confidence (0.60)
+3. **Market direction filter**: \`short_only_mode\` → block Longs; \`long_only_mode\` → block Shorts (DYNAMIC — check via \`get_paper_basic_settings\`)
+4. **Choppy market filter**: Skip if 4+ direction flips in 15 minutes for the symbol
+5. **Signal confirmation**: Require 2 consecutive same-direction signals within 10 minutes (60s dedup)
+6. **AI bias check**: Stricter for Longs (threshold -0.3) vs Shorts (threshold -0.5). Skip if \`signal_dir × direction_bias < threshold\`
+7. **Trade execution**: Pass through risk management layers → execute trade
+
+**Note on step 6**: Long signals blocked when bias even mildly bearish (> -0.3). Short signals only blocked when bias mildly bullish (< 0.5). This asymmetry protects against losing Long trades in bearish markets.
+
+### Choppy Market Detection
+
+Prevents trading in ranging/whipsaw markets:
+- Tracks all non-neutral signals per symbol with timestamps
+- Counts direction changes (Long→Short or Short→Long) in 15-min window
+- If ≥4 flips → market is choppy → block ALL signals for that symbol
+- Window auto-cleans entries >15 minutes old
+
 ---
 
 ## Risk Management - ${RISK_LAYER_COUNT} Protection Layers
@@ -378,6 +398,8 @@ Risk (${RISK_LAYER_COUNT} layers):
   max_consecutive_losses: ${MAX_CONSECUTIVE_LOSSES}
   cool_down_minutes: ${COOL_DOWN_MINUTES}
   correlation_limit: ${CORRELATION_PCT}% (only enforced with 3+ open positions)
+  short_only_mode: DYNAMIC (check via get_paper_basic_settings — see SOUL.md MARKET REGIME PROTOCOL)
+  long_only_mode: DYNAMIC (check via get_paper_basic_settings — see SOUL.md MARKET REGIME PROTOCOL)
 
 Strategy:
   active_strategies: ${STRATEGY_COUNT} (RSI, MACD, Bollinger, Volume, Stochastic)
