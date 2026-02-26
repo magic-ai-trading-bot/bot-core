@@ -21,6 +21,16 @@ from main import (
     GPTTradingAnalyzer,
     TechnicalAnalyzer,
     WebSocketManager,
+    _build_characteristics,
+    _calculate_confidence,
+    _calculate_direction_score,
+    _clamp,
+    _combine_timeframe_directions,
+    _determine_market_phase,
+    _direction_to_condition,
+    _get_macd_series,
+    _recommend_strategies,
+    _sign_scale,
     fetch_real_market_data,
     get_latest_analysis,
     store_analysis_result,
@@ -1872,6 +1882,236 @@ class TestMarketConditionEndpoint:
         assert (
             data1["confidence"] != 0.6 or data2["confidence"] != 0.6
         ), "Confidence should not always be 0.6"
+
+
+@pytest.mark.unit
+class TestMarketConditionHelpers:
+    """Unit tests for market condition analysis helper functions."""
+
+    def test_clamp_within_range(self):
+        assert _clamp(0.5, 0.0, 1.0) == 0.5
+
+    def test_clamp_below_min(self):
+        assert _clamp(-2.0, -1.0, 1.0) == -1.0
+
+    def test_clamp_above_max(self):
+        assert _clamp(2.0, -1.0, 1.0) == 1.0
+
+    def test_sign_scale_positive(self):
+        assert _sign_scale(0.02, 0.01) == 1.0  # clamped
+
+    def test_sign_scale_negative(self):
+        assert _sign_scale(-0.005, 0.01) == -0.5
+
+    def test_sign_scale_zero_threshold(self):
+        assert _sign_scale(1.0, 0.0) == 0.0
+
+    def test_direction_to_condition_strong_bullish(self):
+        assert _direction_to_condition(0.6) == "Strong Bullish"
+
+    def test_direction_to_condition_mildly_bullish(self):
+        assert _direction_to_condition(0.3) == "Mildly Bullish"
+
+    def test_direction_to_condition_neutral(self):
+        assert _direction_to_condition(0.0) == "Neutral"
+
+    def test_direction_to_condition_mildly_bearish(self):
+        assert _direction_to_condition(-0.3) == "Mildly Bearish"
+
+    def test_direction_to_condition_strong_bearish(self):
+        assert _direction_to_condition(-0.6) == "Strong Bearish"
+
+    def test_recommend_strategies_strong_trend(self):
+        result = _recommend_strategies(0.7, 0.8)
+        assert "MACD Strategy" in result
+
+    def test_recommend_strategies_sideways(self):
+        result = _recommend_strategies(0.1, 0.5)
+        assert "Bollinger Bands" in result
+
+    def test_recommend_strategies_moderate(self):
+        result = _recommend_strategies(0.4, 0.4)
+        assert "RSI Strategy" in result
+
+    def test_determine_market_phase_strong_trend(self):
+        tf = {"1d": {"indicators": {"adx": 35.0}, "direction": 0.6}}
+        assert _determine_market_phase(tf, 0.6) == "Strong Trend"
+
+    def test_determine_market_phase_ranging(self):
+        tf = {"1h": {"indicators": {"adx": 15.0}, "direction": 0.1}}
+        assert _determine_market_phase(tf, 0.1) == "Ranging/Consolidation"
+
+    def test_determine_market_phase_trending(self):
+        tf = {"4h": {"indicators": {"adx": 28.0}, "direction": 0.4}}
+        assert _determine_market_phase(tf, 0.4) == "Trending"
+
+    def test_determine_market_phase_transitioning(self):
+        tf = {"4h": {"indicators": {"adx": 22.0}, "direction": 0.1}}
+        assert _determine_market_phase(tf, 0.1) == "Transitioning"
+
+    def test_build_characteristics_bullish(self):
+        tf = {
+            "1h": {"indicators": {"volume_ratio": 2.0, "adx": 35.0}, "direction": 0.5}
+        }
+        chars = _build_characteristics(tf, 0.5)
+        assert any("Bullish" in c for c in chars)
+
+    def test_build_characteristics_bearish(self):
+        tf = {
+            "1h": {"indicators": {"volume_ratio": 0.5, "adx": 15.0}, "direction": -0.5}
+        }
+        chars = _build_characteristics(tf, -0.5)
+        assert any("Bearish" in c for c in chars)
+
+    def test_build_characteristics_sideways(self):
+        tf = {
+            "1h": {"indicators": {"volume_ratio": 1.0, "adx": 25.0}, "direction": 0.1}
+        }
+        chars = _build_characteristics(tf, 0.1)
+        assert any("Mixed" in c or "sideways" in c for c in chars)
+
+    def test_combine_timeframe_directions_single_tf(self):
+        tf = {"1h": {"direction": 0.5}}
+        result = _combine_timeframe_directions(tf)
+        assert -1.0 <= result <= 1.0
+        assert result > 0
+
+    def test_combine_timeframe_directions_multi_tf(self):
+        tf = {
+            "1d": {"direction": 0.8},
+            "4h": {"direction": 0.6},
+            "1h": {"direction": 0.4},
+        }
+        result = _combine_timeframe_directions(tf)
+        assert result > 0.5  # weighted avg should be bullish
+
+    def test_combine_timeframe_directions_empty(self):
+        assert _combine_timeframe_directions({}) == 0.0
+
+    def test_calculate_confidence_empty(self):
+        assert _calculate_confidence({}) == 0.2
+
+    def test_calculate_confidence_all_agree(self):
+        tf = {
+            "1d": {
+                "direction": 0.7,
+                "current_price": 50000,
+                "indicators": {
+                    "ema_50": 48000,
+                    "macd_histogram": 100,
+                    "rsi": 65,
+                    "volume_ratio": 1.5,
+                    "stochastic_k": 70,
+                    "stochastic_d": 60,
+                    "adx": 35,
+                },
+            },
+            "4h": {
+                "direction": 0.6,
+                "current_price": 50000,
+                "indicators": {
+                    "ema_50": 48000,
+                    "macd_histogram": 80,
+                    "rsi": 60,
+                    "volume_ratio": 1.3,
+                    "stochastic_k": 65,
+                    "stochastic_d": 55,
+                    "adx": 30,
+                },
+            },
+        }
+        confidence = _calculate_confidence(tf)
+        assert confidence > 0.5
+
+    def test_calculate_confidence_disagree(self):
+        tf = {
+            "1d": {
+                "direction": 0.5,
+                "current_price": 50000,
+                "indicators": {
+                    "ema_50": 48000,
+                    "macd_histogram": 100,
+                    "rsi": 65,
+                    "volume_ratio": 1.5,
+                    "stochastic_k": 70,
+                    "stochastic_d": 60,
+                    "adx": 25,
+                },
+            },
+            "4h": {
+                "direction": -0.4,
+                "current_price": 50000,
+                "indicators": {
+                    "ema_50": 52000,
+                    "macd_histogram": -50,
+                    "rsi": 40,
+                    "volume_ratio": 0.8,
+                    "stochastic_k": 30,
+                    "stochastic_d": 40,
+                    "adx": 20,
+                },
+            },
+        }
+        confidence = _calculate_confidence(tf)
+        assert confidence < 0.8  # disagreement = lower confidence
+
+    def test_get_macd_series_with_data(self):
+        """Test MACD series calculation."""
+        dates = pd.date_range("2024-01-01", periods=50, freq="h")
+        df = pd.DataFrame(
+            {"close": [40000 + i * 50 for i in range(50)]},
+            index=dates,
+        )
+        result = _get_macd_series(df)
+        assert "histogram_current" in result
+        assert "histogram_prev" in result
+        assert isinstance(result["histogram_current"], float)
+
+    def test_get_macd_series_empty_df(self):
+        """Test MACD series with very short data."""
+        df = pd.DataFrame({"close": [100.0]}, index=[pd.Timestamp("2024-01-01")])
+        result = _get_macd_series(df)
+        assert result["histogram_current"] == 0.0 or isinstance(
+            result["histogram_current"], float
+        )
+
+    def test_calculate_direction_score_uptrend(self):
+        """Test direction score with clear uptrend data."""
+        dates = pd.date_range("2024-01-01", periods=60, freq="h")
+        prices = [40000 + i * 100 for i in range(60)]
+        df = pd.DataFrame(
+            {
+                "open": [p - 30 for p in prices],
+                "high": [p + 50 for p in prices],
+                "low": [p - 50 for p in prices],
+                "close": prices,
+                "volume": [1000.0] * 60,
+            },
+            index=dates,
+        )
+        indicators = TechnicalAnalyzer.calculate_indicators(df)
+        macd_series = _get_macd_series(df)
+        score = _calculate_direction_score(df, indicators, macd_series)
+        assert score > 0, f"Uptrend should produce positive score, got {score}"
+
+    def test_calculate_direction_score_downtrend(self):
+        """Test direction score with clear downtrend data."""
+        dates = pd.date_range("2024-01-01", periods=60, freq="h")
+        prices = [50000 - i * 100 for i in range(60)]
+        df = pd.DataFrame(
+            {
+                "open": [p + 30 for p in prices],
+                "high": [p + 50 for p in prices],
+                "low": [p - 50 for p in prices],
+                "close": prices,
+                "volume": [1000.0] * 60,
+            },
+            index=dates,
+        )
+        indicators = TechnicalAnalyzer.calculate_indicators(df)
+        macd_series = _get_macd_series(df)
+        score = _calculate_direction_score(df, indicators, macd_series)
+        assert score < 0, f"Downtrend should produce negative score, got {score}"
 
 
 @pytest.mark.unit
