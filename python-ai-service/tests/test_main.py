@@ -1733,7 +1733,9 @@ class TestMarketConditionEndpoint:
         data = response.json()
         assert "condition_type" in data
         assert "direction" in data
-        assert data["direction"] > 0, f"Uptrend should have positive direction, got {data['direction']}"
+        assert (
+            data["direction"] > 0
+        ), f"Uptrend should have positive direction, got {data['direction']}"
         assert -1.0 <= data["direction"] <= 1.0
         assert "timeframe_analysis" in data
 
@@ -1770,7 +1772,9 @@ class TestMarketConditionEndpoint:
         data = response.json()
         assert "condition_type" in data
         assert "direction" in data
-        assert data["direction"] < 0, f"Downtrend should have negative direction, got {data['direction']}"
+        assert (
+            data["direction"] < 0
+        ), f"Downtrend should have negative direction, got {data['direction']}"
         assert -1.0 <= data["direction"] <= 1.0
 
     @pytest.mark.asyncio
@@ -1805,7 +1809,9 @@ class TestMarketConditionEndpoint:
         data = response.json()
         assert "direction" in data
         # Sideways should produce direction close to 0
-        assert abs(data["direction"]) < 0.5, f"Sideways should have near-zero direction, got {data['direction']}"
+        assert (
+            abs(data["direction"]) < 0.5
+        ), f"Sideways should have near-zero direction, got {data['direction']}"
 
     @pytest.mark.asyncio
     async def test_market_condition_confidence_varies(self, client):
@@ -1827,10 +1833,13 @@ class TestMarketConditionEndpoint:
                 }
             )
 
-        resp1 = await client.post("/ai/market-condition", json={
-            "symbol": "BTCUSDT",
-            "timeframe_data": {"1h": candles_up},
-        })
+        resp1 = await client.post(
+            "/ai/market-condition",
+            json={
+                "symbol": "BTCUSDT",
+                "timeframe_data": {"1h": candles_up},
+            },
+        )
         data1 = resp1.json()
 
         # Sideways - should have different confidence
@@ -1850,15 +1859,19 @@ class TestMarketConditionEndpoint:
                 }
             )
 
-        resp2 = await client.post("/ai/market-condition", json={
-            "symbol": "BTCUSDT",
-            "timeframe_data": {"1h": candles_side},
-        })
+        resp2 = await client.post(
+            "/ai/market-condition",
+            json={
+                "symbol": "BTCUSDT",
+                "timeframe_data": {"1h": candles_side},
+            },
+        )
         data2 = resp2.json()
 
         # Confidence should NOT be the same hardcoded value
-        assert data1["confidence"] != 0.6 or data2["confidence"] != 0.6, \
-            "Confidence should not always be 0.6"
+        assert (
+            data1["confidence"] != 0.6 or data2["confidence"] != 0.6
+        ), "Confidence should not always be 0.6"
 
 
 @pytest.mark.unit

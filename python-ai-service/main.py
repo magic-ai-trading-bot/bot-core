@@ -779,13 +779,21 @@ class MarketConditionAnalysis(BaseModel):
 
     condition_type: str = Field(..., description="Market condition type")
     confidence: float = Field(..., ge=0, le=1, description="Confidence in assessment")
-    direction: float = Field(default=0.0, description="Direction score: -1.0 (bearish) to +1.0 (bullish)")
-    trend_strength: float = Field(default=0.0, ge=0, le=1, description="Trend strength from ADX (0-1)")
+    direction: float = Field(
+        default=0.0, description="Direction score: -1.0 (bearish) to +1.0 (bullish)"
+    )
+    trend_strength: float = Field(
+        default=0.0, ge=0, le=1, description="Trend strength from ADX (0-1)"
+    )
     characteristics: List[str] = Field(default_factory=list)
     recommended_strategies: List[str] = Field(default_factory=list)
     market_phase: str = Field(..., description="Current market phase")
-    timeframe_analysis: Dict[str, Any] = Field(default_factory=dict, description="Per-timeframe breakdown")
-    indicators_summary: Dict[str, Any] = Field(default_factory=dict, description="Key indicator values")
+    timeframe_analysis: Dict[str, Any] = Field(
+        default_factory=dict, description="Per-timeframe breakdown"
+    )
+    indicators_summary: Dict[str, Any] = Field(
+        default_factory=dict, description="Key indicator values"
+    )
 
 
 class MarketConditionRequest(BaseModel):
@@ -793,7 +801,8 @@ class MarketConditionRequest(BaseModel):
 
     symbol: str = Field(..., description="Trading symbol")
     timeframe_data: Dict[str, List[CandleData]] = Field(
-        default_factory=dict, description="Multi-timeframe data (optional, will fetch from DB if empty)"
+        default_factory=dict,
+        description="Multi-timeframe data (optional, will fetch from DB if empty)",
     )
     current_price: float = Field(default=0.0, ge=0, description="Current price")
     volume_24h: float = Field(default=0.0, ge=0, description="24h volume")
@@ -2867,16 +2876,27 @@ def _get_macd_series(df: pd.DataFrame) -> Dict[str, float]:
         macd_signal = ta.trend.macd_signal(df["close"])
         histogram = macd_line - macd_signal
         return {
-            "histogram_current": float(histogram.iloc[-1]) if len(histogram) >= 1 else 0.0,
+            "histogram_current": (
+                float(histogram.iloc[-1]) if len(histogram) >= 1 else 0.0
+            ),
             "histogram_prev": float(histogram.iloc[-2]) if len(histogram) >= 2 else 0.0,
             "macd_current": float(macd_line.iloc[-1]) if len(macd_line) >= 1 else 0.0,
-            "signal_current": float(macd_signal.iloc[-1]) if len(macd_signal) >= 1 else 0.0,
+            "signal_current": (
+                float(macd_signal.iloc[-1]) if len(macd_signal) >= 1 else 0.0
+            ),
         }
     except Exception:
-        return {"histogram_current": 0.0, "histogram_prev": 0.0, "macd_current": 0.0, "signal_current": 0.0}
+        return {
+            "histogram_current": 0.0,
+            "histogram_prev": 0.0,
+            "macd_current": 0.0,
+            "signal_current": 0.0,
+        }
 
 
-def _calculate_direction_score(df: pd.DataFrame, indicators: Dict[str, Any], macd_series: Dict[str, float]) -> float:
+def _calculate_direction_score(
+    df: pd.DataFrame, indicators: Dict[str, Any], macd_series: Dict[str, float]
+) -> float:
     """Calculate direction score for a single timeframe from -1.0 to +1.0."""
     current_price = float(df["close"].iloc[-1])
 
@@ -2896,7 +2916,8 @@ def _calculate_direction_score(df: pd.DataFrame, indicators: Dict[str, Any], mac
         0.4 * _sign_scale(price_vs_ema50, 0.01)
         + 0.3 * _sign_scale(price_vs_ema200, 0.02)
         + 0.3 * _sign_scale(ema_cross, 0.01),
-        -1.0, 1.0,
+        -1.0,
+        1.0,
     )
 
     # --- MACD (20%) ---
@@ -2929,23 +2950,26 @@ def _calculate_direction_score(df: pd.DataFrame, indicators: Dict[str, Any], mac
 
     # --- Price Action (15%) ---
     if len(df) >= 20:
-        mom_20 = (current_price / float(df["close"].iloc[-20]) - 1)
+        mom_20 = current_price / float(df["close"].iloc[-20]) - 1
     else:
         mom_20 = 0.0
     if len(df) >= 10:
-        mom_10 = (current_price / float(df["close"].iloc[-10]) - 1)
+        mom_10 = current_price / float(df["close"].iloc[-10]) - 1
     else:
         mom_10 = 0.0
     price_score = _clamp(
         0.5 * _sign_scale(mom_10, 0.03) + 0.5 * _sign_scale(mom_20, 0.05),
-        -1.0, 1.0,
+        -1.0,
+        1.0,
     )
 
     # --- Volume (10%) ---
     volume_ratio = float(indicators.get("volume_ratio", 1.0))
     # Volume confirms direction: high volume + price up = bullish confirmation
     if len(df) >= 2:
-        price_dir = 1.0 if float(df["close"].iloc[-1]) > float(df["close"].iloc[-2]) else -1.0
+        price_dir = (
+            1.0 if float(df["close"].iloc[-1]) > float(df["close"].iloc[-2]) else -1.0
+        )
     else:
         price_dir = 0.0
     vol_factor = min(volume_ratio, 3.0) / 3.0  # Normalize to 0-1
@@ -3043,7 +3067,9 @@ def _calculate_confidence(tf_results: Dict[str, Dict[str, Any]]) -> float:
         cross_tf = 0.6
 
     # 3. ADX boost (stronger trend = higher confidence)
-    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    adx_values = [
+        data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()
+    ]
     avg_adx = sum(adx_values) / len(adx_values) if adx_values else 25.0
     adx_factor = min(avg_adx, 50.0) / 50.0
 
@@ -3067,16 +3093,22 @@ def _direction_to_condition(direction: float) -> str:
 
 def _avg_adx_to_strength(tf_results: Dict[str, Dict[str, Any]]) -> float:
     """Convert average ADX across timeframes to trend strength 0-1."""
-    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    adx_values = [
+        data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()
+    ]
     if not adx_values:
         return 0.0
     avg_adx = sum(adx_values) / len(adx_values)
     return _clamp(avg_adx / 50.0, 0.0, 1.0)
 
 
-def _determine_market_phase(tf_results: Dict[str, Dict[str, Any]], direction: float) -> str:
+def _determine_market_phase(
+    tf_results: Dict[str, Dict[str, Any]], direction: float
+) -> str:
     """Determine market phase from ADX and direction."""
-    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    adx_values = [
+        data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()
+    ]
     avg_adx = sum(adx_values) / len(adx_values) if adx_values else 25.0
 
     if avg_adx > 30 and abs(direction) > 0.5:
@@ -3089,7 +3121,9 @@ def _determine_market_phase(tf_results: Dict[str, Dict[str, Any]], direction: fl
         return "Transitioning"
 
 
-def _build_characteristics(tf_results: Dict[str, Dict[str, Any]], direction: float) -> List[str]:
+def _build_characteristics(
+    tf_results: Dict[str, Dict[str, Any]], direction: float
+) -> List[str]:
     """Build human-readable characteristics list."""
     chars = []
     if direction > 0.3:
@@ -3100,7 +3134,10 @@ def _build_characteristics(tf_results: Dict[str, Dict[str, Any]], direction: flo
         chars.append("Mixed signals / sideways action")
 
     # Check volume
-    vol_ratios = [data.get("indicators", {}).get("volume_ratio", 1.0) for data in tf_results.values()]
+    vol_ratios = [
+        data.get("indicators", {}).get("volume_ratio", 1.0)
+        for data in tf_results.values()
+    ]
     avg_vol = sum(vol_ratios) / len(vol_ratios) if vol_ratios else 1.0
     if avg_vol > 1.5:
         chars.append("High volume confirming move")
@@ -3108,7 +3145,9 @@ def _build_characteristics(tf_results: Dict[str, Dict[str, Any]], direction: flo
         chars.append("Low volume - weak conviction")
 
     # Check ADX
-    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    adx_values = [
+        data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()
+    ]
     avg_adx = sum(adx_values) / len(adx_values) if adx_values else 25.0
     if avg_adx > 30:
         chars.append("Strong trend (ADX > 30)")
@@ -3141,28 +3180,30 @@ async def _fetch_candles_from_db(symbol: str) -> Dict[str, pd.DataFrame]:
     for tf, limit in timeframes.items():
         try:
             cursor = (
-                candles_collection.find(
-                    {"symbol": symbol, "timeframe": tf}, {"_id": 0}
-                )
+                candles_collection.find({"symbol": symbol, "timeframe": tf}, {"_id": 0})
                 .sort("open_time", ASCENDING)
                 .limit(limit)
             )
             candles = await cursor.to_list(length=limit)
 
             if len(candles) < 20:
-                logger.debug(f"Insufficient {tf} data for {symbol}: {len(candles)} candles (need 20+)")
+                logger.debug(
+                    f"Insufficient {tf} data for {symbol}: {len(candles)} candles (need 20+)"
+                )
                 continue
 
             data = []
             for c in candles:
-                data.append({
-                    "timestamp": pd.to_datetime(c.get("open_time", 0), unit="ms"),
-                    "open": float(c.get("open", 0)),
-                    "high": float(c.get("high", 0)),
-                    "low": float(c.get("low", 0)),
-                    "close": float(c.get("close", 0)),
-                    "volume": float(c.get("volume", 0)),
-                })
+                data.append(
+                    {
+                        "timestamp": pd.to_datetime(c.get("open_time", 0), unit="ms"),
+                        "open": float(c.get("open", 0)),
+                        "high": float(c.get("high", 0)),
+                        "low": float(c.get("low", 0)),
+                        "close": float(c.get("close", 0)),
+                        "volume": float(c.get("volume", 0)),
+                    }
+                )
 
             df = pd.DataFrame(data)
             df.set_index("timestamp", inplace=True)
