@@ -62,11 +62,12 @@ Both `false` = normal mode (both directions allowed). **This is the SAFE DEFAULT
 ### ⚠️ DECISION MATRIX (Data-Driven — NO Guessing)
 
 **Step 1**: Run `botcore get_market_condition '{"symbol":"BTCUSDT"}'` → response contains:
-- `direction`: float (-1.0 to +1.0) — multi-indicator weighted score
+- `direction`: float (-1.0 to +1.0) — multi-indicator weighted score (EMA/MACD/RSI/ADX/Stoch/Volume across 3 timeframes)
 - `confidence`: float (0.0 to 1.0) — indicator agreement + cross-timeframe consistency
 - `trend_strength`: float (0.0 to 1.0) — ADX-based trend strength
 - `condition_type`: "Strong Bullish" / "Mildly Bullish" / "Neutral" / "Mildly Bearish" / "Strong Bearish"
-- `timeframe_analysis`: per-timeframe direction breakdown (1h, 4h, 1d)
+- `timeframe_analysis`: per-timeframe direction breakdown (1h: 100 candles, 4h: 100 candles, 1d: 250 candles with EMA200)
+- `indicators_summary`: key indicator values from primary timeframe (RSI, MACD, ADX, volume ratio)
 
 **Step 2**: Check confidence ≥ 0.70 first. If confidence < 0.70 → set BOTH false (uncertain signal).
 **Step 3**: If confidence ≥ 0.70, apply this matrix:

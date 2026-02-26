@@ -3174,7 +3174,7 @@ async def _fetch_candles_from_db(symbol: str) -> Dict[str, pd.DataFrame]:
         return {}
 
     candles_collection = mongodb_db.market_data
-    timeframes = {"1h": 100, "4h": 100, "1d": 100}
+    timeframes = {"1h": 100, "4h": 100, "1d": 250}
     dataframes = {}
 
     for tf, limit in timeframes.items():
