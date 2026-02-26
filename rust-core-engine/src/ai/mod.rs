@@ -237,18 +237,30 @@ pub struct StrategyRecommendationRequest {
 pub struct MarketConditionAnalysis {
     pub condition_type: String,
     pub confidence: f64,
+    #[serde(default)]
+    pub direction: f64,
+    #[serde(default)]
+    pub trend_strength: f64,
     pub characteristics: Vec<String>,
     pub recommended_strategies: Vec<String>,
     pub market_phase: String,
+    #[serde(default)]
+    pub timeframe_analysis: HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub indicators_summary: HashMap<String, serde_json::Value>,
 }
 
 /// Market condition request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketConditionRequest {
     pub symbol: String,
+    #[serde(default)]
     pub timeframe_data: HashMap<String, Vec<crate::market_data::cache::CandleData>>,
+    #[serde(default)]
     pub current_price: f64,
+    #[serde(default)]
     pub volume_24h: f64,
+    #[serde(default)]
     pub timestamp: i64,
 }
 
@@ -508,9 +520,13 @@ mod tests {
         let analysis = MarketConditionAnalysis {
             condition_type: "trending".to_string(),
             confidence: 0.88,
+            direction: 0.65,
+            trend_strength: 0.72,
             characteristics: vec!["strong_momentum".to_string(), "high_volume".to_string()],
             recommended_strategies: vec!["trend_following".to_string()],
             market_phase: "accumulation".to_string(),
+            timeframe_analysis: HashMap::new(),
+            indicators_summary: HashMap::new(),
         };
 
         let json = serde_json::to_string(&analysis).unwrap();

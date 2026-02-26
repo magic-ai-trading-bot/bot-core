@@ -495,8 +495,15 @@ Both \`false\` = normal mode (both directions allowed). **This is the SAFE DEFAU
 
 ### ⚠️ DECISION MATRIX (Data-Driven — NO Guessing)
 
-**Step 1**: Run \`botcore get_market_condition\` → get \`direction\` value (-1.0 to +1.0)
-**Step 2**: Apply this matrix:
+**Step 1**: Run \`botcore get_market_condition '{"symbol":"BTCUSDT"}'\` → response contains:
+- \`direction\`: float (-1.0 to +1.0) — multi-indicator weighted score
+- \`confidence\`: float (0.0 to 1.0) — indicator agreement + cross-timeframe consistency
+- \`trend_strength\`: float (0.0 to 1.0) — ADX-based trend strength
+- \`condition_type\`: "Strong Bullish" / "Mildly Bullish" / "Neutral" / "Mildly Bearish" / "Strong Bearish"
+- \`timeframe_analysis\`: per-timeframe direction breakdown (1h, 4h, 1d)
+
+**Step 2**: Check confidence ≥ 0.70 first. If confidence < 0.70 → set BOTH false (uncertain signal).
+**Step 3**: If confidence ≥ 0.70, apply this matrix:
 
 | AI Direction | Interpretation | Action |
 |-------------|---------------|--------|

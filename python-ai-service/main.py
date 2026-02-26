@@ -779,9 +779,13 @@ class MarketConditionAnalysis(BaseModel):
 
     condition_type: str = Field(..., description="Market condition type")
     confidence: float = Field(..., ge=0, le=1, description="Confidence in assessment")
+    direction: float = Field(default=0.0, description="Direction score: -1.0 (bearish) to +1.0 (bullish)")
+    trend_strength: float = Field(default=0.0, ge=0, le=1, description="Trend strength from ADX (0-1)")
     characteristics: List[str] = Field(default_factory=list)
     recommended_strategies: List[str] = Field(default_factory=list)
     market_phase: str = Field(..., description="Current market phase")
+    timeframe_analysis: Dict[str, Any] = Field(default_factory=dict, description="Per-timeframe breakdown")
+    indicators_summary: Dict[str, Any] = Field(default_factory=dict, description="Key indicator values")
 
 
 class MarketConditionRequest(BaseModel):
@@ -789,11 +793,11 @@ class MarketConditionRequest(BaseModel):
 
     symbol: str = Field(..., description="Trading symbol")
     timeframe_data: Dict[str, List[CandleData]] = Field(
-        ..., description="Multi-timeframe data"
+        default_factory=dict, description="Multi-timeframe data (optional, will fetch from DB if empty)"
     )
-    current_price: float = Field(..., gt=0, description="Current price")
-    volume_24h: float = Field(..., ge=0, description="24h volume")
-    timestamp: int = Field(..., description="Request timestamp")
+    current_price: float = Field(default=0.0, ge=0, description="Current price")
+    volume_24h: float = Field(default=0.0, ge=0, description="24h volume")
+    timestamp: int = Field(default=0, description="Request timestamp")
 
 
 class PerformanceFeedback(BaseModel):
@@ -2843,38 +2847,446 @@ async def get_strategy_recommendations(
     return sorted(recommendations, key=lambda x: x.suitability_score, reverse=True)
 
 
+def _clamp(value: float, min_val: float, max_val: float) -> float:
+    """Clamp a value between min and max."""
+    return max(min_val, min(max_val, value))
+
+
+def _sign_scale(value: float, threshold: float) -> float:
+    """Scale a value based on threshold: maps to roughly -1.0 to +1.0."""
+    if threshold <= 0:
+        return 0.0
+    scaled = value / threshold
+    return _clamp(scaled, -1.0, 1.0)
+
+
+def _get_macd_series(df: pd.DataFrame) -> Dict[str, float]:
+    """Get MACD series data including previous histogram value."""
+    try:
+        macd_line = ta.trend.macd(df["close"])
+        macd_signal = ta.trend.macd_signal(df["close"])
+        histogram = macd_line - macd_signal
+        return {
+            "histogram_current": float(histogram.iloc[-1]) if len(histogram) >= 1 else 0.0,
+            "histogram_prev": float(histogram.iloc[-2]) if len(histogram) >= 2 else 0.0,
+            "macd_current": float(macd_line.iloc[-1]) if len(macd_line) >= 1 else 0.0,
+            "signal_current": float(macd_signal.iloc[-1]) if len(macd_signal) >= 1 else 0.0,
+        }
+    except Exception:
+        return {"histogram_current": 0.0, "histogram_prev": 0.0, "macd_current": 0.0, "signal_current": 0.0}
+
+
+def _calculate_direction_score(df: pd.DataFrame, indicators: Dict[str, Any], macd_series: Dict[str, float]) -> float:
+    """Calculate direction score for a single timeframe from -1.0 to +1.0."""
+    current_price = float(df["close"].iloc[-1])
+
+    # --- EMA Trend (25%) ---
+    ema_50 = float(indicators.get("ema_50", current_price))
+    # Calculate EMA 200 if enough data, otherwise use EMA 50 as fallback
+    if len(df) >= 200:
+        ema_200 = float(ta.trend.ema_indicator(df["close"], window=200).iloc[-1])
+    else:
+        ema_200 = ema_50  # Fallback: treat EMA200 same as EMA50
+
+    price_vs_ema50 = (current_price - ema_50) / ema_50 if ema_50 > 0 else 0.0
+    price_vs_ema200 = (current_price - ema_200) / ema_200 if ema_200 > 0 else 0.0
+    ema_cross = (ema_50 - ema_200) / ema_200 if ema_200 > 0 else 0.0
+
+    ema_score = _clamp(
+        0.4 * _sign_scale(price_vs_ema50, 0.01)
+        + 0.3 * _sign_scale(price_vs_ema200, 0.02)
+        + 0.3 * _sign_scale(ema_cross, 0.01),
+        -1.0, 1.0,
+    )
+
+    # --- MACD (20%) ---
+    hist = macd_series["histogram_current"]
+    hist_prev = macd_series["histogram_prev"]
+
+    if hist > 0 and hist > hist_prev:
+        macd_score = 0.9
+    elif hist > 0 and hist <= hist_prev:
+        macd_score = 0.3
+    elif hist < 0 and hist > hist_prev:
+        macd_score = -0.3
+    elif hist < 0 and hist <= hist_prev:
+        macd_score = -0.9
+    else:
+        macd_score = 0.0
+
+    # --- RSI Momentum (15%) ---
+    rsi = float(indicators.get("rsi", 50.0))
+    if rsi > 70:
+        rsi_score = 0.3
+    elif rsi > 55:
+        rsi_score = 0.7
+    elif rsi > 45:
+        rsi_score = 0.0
+    elif rsi > 30:
+        rsi_score = -0.7
+    else:
+        rsi_score = -0.3
+
+    # --- Price Action (15%) ---
+    if len(df) >= 20:
+        mom_20 = (current_price / float(df["close"].iloc[-20]) - 1)
+    else:
+        mom_20 = 0.0
+    if len(df) >= 10:
+        mom_10 = (current_price / float(df["close"].iloc[-10]) - 1)
+    else:
+        mom_10 = 0.0
+    price_score = _clamp(
+        0.5 * _sign_scale(mom_10, 0.03) + 0.5 * _sign_scale(mom_20, 0.05),
+        -1.0, 1.0,
+    )
+
+    # --- Volume (10%) ---
+    volume_ratio = float(indicators.get("volume_ratio", 1.0))
+    # Volume confirms direction: high volume + price up = bullish confirmation
+    if len(df) >= 2:
+        price_dir = 1.0 if float(df["close"].iloc[-1]) > float(df["close"].iloc[-2]) else -1.0
+    else:
+        price_dir = 0.0
+    vol_factor = min(volume_ratio, 3.0) / 3.0  # Normalize to 0-1
+    volume_score = _clamp(price_dir * vol_factor, -1.0, 1.0)
+
+    # --- ADX/Stochastic (15%) ---
+    stoch_k = float(indicators.get("stochastic_k", 50.0))
+    stoch_d = float(indicators.get("stochastic_d", 50.0))
+    adx = float(indicators.get("adx", 25.0))
+
+    # Stochastic direction
+    if stoch_k > stoch_d:
+        stoch_score = _clamp((stoch_k - stoch_d) / 20.0, 0.0, 1.0)
+    else:
+        stoch_score = _clamp((stoch_k - stoch_d) / 20.0, -1.0, 0.0)
+
+    # ADX amplifies the stochastic signal (strong trend = more weight)
+    adx_factor = min(adx, 50.0) / 50.0  # Normalize to 0-1
+    stoch_adx_score = _clamp(stoch_score * (0.5 + 0.5 * adx_factor), -1.0, 1.0)
+
+    # --- Weighted combination ---
+    direction = (
+        0.25 * ema_score
+        + 0.20 * macd_score
+        + 0.15 * rsi_score
+        + 0.15 * price_score
+        + 0.10 * volume_score
+        + 0.15 * stoch_adx_score
+    )
+
+    return _clamp(direction, -1.0, 1.0)
+
+
+def _combine_timeframe_directions(tf_results: Dict[str, Dict[str, Any]]) -> float:
+    """Combine direction scores across timeframes with weighting."""
+    weights = {"1d": 0.45, "4h": 0.35, "1h": 0.20}
+    total_weight = 0.0
+    weighted_direction = 0.0
+
+    for tf, data in tf_results.items():
+        w = weights.get(tf, 0.15)
+        weighted_direction += w * data["direction"]
+        total_weight += w
+
+    if total_weight > 0:
+        return _clamp(weighted_direction / total_weight, -1.0, 1.0)
+    return 0.0
+
+
+def _calculate_confidence(tf_results: Dict[str, Dict[str, Any]]) -> float:
+    """Calculate real confidence from indicator agreement and cross-timeframe consistency."""
+    if not tf_results:
+        return 0.2
+
+    # 1. Indicator agreement within each timeframe
+    tf_agreements = []
+    for tf, data in tf_results.items():
+        indicators = data.get("indicators", {})
+        scores = []
+
+        # Reconstruct component signs from indicators
+        ema_50 = indicators.get("ema_50", 0)
+        current_price = data.get("current_price", ema_50)
+        if ema_50 > 0 and current_price > 0:
+            scores.append(1.0 if current_price > ema_50 else -1.0)
+
+        macd_hist = indicators.get("macd_histogram", 0)
+        scores.append(1.0 if macd_hist > 0 else -1.0)
+
+        rsi = indicators.get("rsi", 50)
+        scores.append(1.0 if rsi > 50 else -1.0)
+
+        volume_ratio = indicators.get("volume_ratio", 1.0)
+        scores.append(1.0 if volume_ratio > 1.0 else -1.0)
+
+        stoch_k = indicators.get("stochastic_k", 50)
+        stoch_d = indicators.get("stochastic_d", 50)
+        scores.append(1.0 if stoch_k > stoch_d else -1.0)
+
+        if scores:
+            pos = sum(1 for s in scores if s > 0)
+            neg = sum(1 for s in scores if s < 0)
+            agreement = max(pos, neg) / len(scores)
+            tf_agreements.append(agreement)
+
+    base_agreement = sum(tf_agreements) / len(tf_agreements) if tf_agreements else 0.5
+
+    # 2. Cross-timeframe agreement
+    directions = [data["direction"] for data in tf_results.values()]
+    if len(directions) >= 2:
+        all_positive = all(d > 0 for d in directions)
+        all_negative = all(d < 0 for d in directions)
+        cross_tf = 1.0 if (all_positive or all_negative) else 0.4
+    else:
+        cross_tf = 0.6
+
+    # 3. ADX boost (stronger trend = higher confidence)
+    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    avg_adx = sum(adx_values) / len(adx_values) if adx_values else 25.0
+    adx_factor = min(avg_adx, 50.0) / 50.0
+
+    confidence = base_agreement * 0.6 + cross_tf * 0.3 + adx_factor * 0.1
+    return _clamp(confidence, 0.1, 0.95)
+
+
+def _direction_to_condition(direction: float) -> str:
+    """Map direction score to condition type string."""
+    if direction >= 0.50:
+        return "Strong Bullish"
+    elif direction >= 0.20:
+        return "Mildly Bullish"
+    elif direction >= -0.19:
+        return "Neutral"
+    elif direction >= -0.49:
+        return "Mildly Bearish"
+    else:
+        return "Strong Bearish"
+
+
+def _avg_adx_to_strength(tf_results: Dict[str, Dict[str, Any]]) -> float:
+    """Convert average ADX across timeframes to trend strength 0-1."""
+    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    if not adx_values:
+        return 0.0
+    avg_adx = sum(adx_values) / len(adx_values)
+    return _clamp(avg_adx / 50.0, 0.0, 1.0)
+
+
+def _determine_market_phase(tf_results: Dict[str, Dict[str, Any]], direction: float) -> str:
+    """Determine market phase from ADX and direction."""
+    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    avg_adx = sum(adx_values) / len(adx_values) if adx_values else 25.0
+
+    if avg_adx > 30 and abs(direction) > 0.5:
+        return "Strong Trend"
+    elif avg_adx > 25 and abs(direction) > 0.3:
+        return "Trending"
+    elif avg_adx < 20:
+        return "Ranging/Consolidation"
+    else:
+        return "Transitioning"
+
+
+def _build_characteristics(tf_results: Dict[str, Dict[str, Any]], direction: float) -> List[str]:
+    """Build human-readable characteristics list."""
+    chars = []
+    if direction > 0.3:
+        chars.append("Bullish momentum across timeframes")
+    elif direction < -0.3:
+        chars.append("Bearish pressure across timeframes")
+    else:
+        chars.append("Mixed signals / sideways action")
+
+    # Check volume
+    vol_ratios = [data.get("indicators", {}).get("volume_ratio", 1.0) for data in tf_results.values()]
+    avg_vol = sum(vol_ratios) / len(vol_ratios) if vol_ratios else 1.0
+    if avg_vol > 1.5:
+        chars.append("High volume confirming move")
+    elif avg_vol < 0.7:
+        chars.append("Low volume - weak conviction")
+
+    # Check ADX
+    adx_values = [data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()]
+    avg_adx = sum(adx_values) / len(adx_values) if adx_values else 25.0
+    if avg_adx > 30:
+        chars.append("Strong trend (ADX > 30)")
+    elif avg_adx < 20:
+        chars.append("Weak trend (ADX < 20)")
+
+    return chars
+
+
+def _recommend_strategies(direction: float, confidence: float) -> List[str]:
+    """Recommend strategies based on direction and confidence."""
+    if abs(direction) > 0.5 and confidence > 0.6:
+        return ["MACD Strategy", "EMA Crossover", "Trend Following"]
+    elif abs(direction) < 0.2:
+        return ["Bollinger Bands", "RSI Strategy", "Mean Reversion"]
+    else:
+        return ["RSI Strategy", "MACD Strategy", "Stochastic Strategy"]
+
+
+async def _fetch_candles_from_db(symbol: str) -> Dict[str, pd.DataFrame]:
+    """Fetch candle data from MongoDB for multiple timeframes."""
+    if mongodb_db is None:
+        logger.warning("MongoDB not available for market condition analysis")
+        return {}
+
+    candles_collection = mongodb_db.market_data
+    timeframes = {"1h": 100, "4h": 100, "1d": 100}
+    dataframes = {}
+
+    for tf, limit in timeframes.items():
+        try:
+            cursor = (
+                candles_collection.find(
+                    {"symbol": symbol, "timeframe": tf}, {"_id": 0}
+                )
+                .sort("open_time", ASCENDING)
+                .limit(limit)
+            )
+            candles = await cursor.to_list(length=limit)
+
+            if len(candles) < 20:
+                logger.debug(f"Insufficient {tf} data for {symbol}: {len(candles)} candles (need 20+)")
+                continue
+
+            data = []
+            for c in candles:
+                data.append({
+                    "timestamp": pd.to_datetime(c.get("open_time", 0), unit="ms"),
+                    "open": float(c.get("open", 0)),
+                    "high": float(c.get("high", 0)),
+                    "low": float(c.get("low", 0)),
+                    "close": float(c.get("close", 0)),
+                    "volume": float(c.get("volume", 0)),
+                })
+
+            df = pd.DataFrame(data)
+            df.set_index("timestamp", inplace=True)
+            df.sort_index(inplace=True)
+            dataframes[tf] = df
+            logger.debug(f"Fetched {len(df)} {tf} candles for {symbol} from DB")
+
+        except Exception as e:
+            logger.warning(f"Error fetching {tf} candles for {symbol}: {e}")
+            continue
+
+    return dataframes
+
+
 @app.post("/ai/market-condition", response_model=MarketConditionAnalysis)
 @limiter.limit("300/minute")  # Rate limit: 300 requests per minute (5 per second)
 async def analyze_market_condition(
     request: MarketConditionRequest, http_request: Request
 ):
-    """Analyze market condition."""
+    """Analyze market condition using multi-indicator direction analysis."""
     logger.info(f"🔍 Market condition analysis for {request.symbol}")
 
-    # Simple market condition analysis
-    dataframes = TechnicalAnalyzer.candles_to_dataframe(request.timeframe_data)
+    # 1. Get candle data: use provided or fetch from MongoDB
+    if request.timeframe_data:
+        dataframes = TechnicalAnalyzer.candles_to_dataframe(request.timeframe_data)
+    else:
+        dataframes = await _fetch_candles_from_db(request.symbol)
 
-    condition_type = "Sideways"
-    confidence = 0.6
-    characteristics = ["Normal volatility", "Balanced volume"]
+    if not dataframes:
+        logger.warning(f"No data available for {request.symbol} market condition")
+        return MarketConditionAnalysis(
+            condition_type="Neutral",
+            confidence=0.2,
+            direction=0.0,
+            trend_strength=0.0,
+            characteristics=["Insufficient data for analysis"],
+            recommended_strategies=["RSI Strategy", "MACD Strategy"],
+            market_phase="Unknown",
+        )
 
-    if "1h" in dataframes and len(dataframes["1h"]) >= 20:
-        df = dataframes["1h"]
-        price_change = ((df["close"].iloc[-1] / df["close"].iloc[-20]) - 1) * 100
+    # 2. Calculate indicators + direction per timeframe
+    tf_results = {}
+    for tf, df in dataframes.items():
+        if len(df) < 20:
+            continue
+        try:
+            indicators = TechnicalAnalyzer.calculate_indicators(df)
+            macd_series = _get_macd_series(df)
+            direction = _calculate_direction_score(df, indicators, macd_series)
+            tf_results[tf] = {
+                "direction": direction,
+                "indicators": indicators,
+                "macd_series": macd_series,
+                "current_price": float(df["close"].iloc[-1]),
+            }
+        except Exception as e:
+            logger.warning(f"Error analyzing {tf} for {request.symbol}: {e}")
+            continue
 
-        if price_change > 5:
-            condition_type = "Trending Up"
-            characteristics = ["Strong uptrend", "High momentum"]
-        elif price_change < -5:
-            condition_type = "Trending Down"
-            characteristics = ["Strong downtrend", "High selling pressure"]
+    if not tf_results:
+        logger.warning(f"Could not analyze any timeframe for {request.symbol}")
+        return MarketConditionAnalysis(
+            condition_type="Neutral",
+            confidence=0.2,
+            direction=0.0,
+            trend_strength=0.0,
+            characteristics=["Analysis failed for all timeframes"],
+            recommended_strategies=["RSI Strategy", "MACD Strategy"],
+            market_phase="Unknown",
+        )
+
+    # 3. Combine across timeframes
+    final_direction = _combine_timeframe_directions(tf_results)
+
+    # 4. Calculate real confidence
+    confidence = _calculate_confidence(tf_results)
+
+    # 5. Build response
+    condition_type = _direction_to_condition(final_direction)
+    trend_strength = _avg_adx_to_strength(tf_results)
+    market_phase = _determine_market_phase(tf_results, final_direction)
+    characteristics = _build_characteristics(tf_results, final_direction)
+    recommended_strategies = _recommend_strategies(final_direction, confidence)
+
+    # Build timeframe analysis breakdown
+    timeframe_analysis = {}
+    for tf, data in tf_results.items():
+        timeframe_analysis[tf] = {
+            "direction": round(data["direction"], 4),
+            "rsi": round(data["indicators"].get("rsi", 50.0), 2),
+            "macd_histogram": round(data["indicators"].get("macd_histogram", 0.0), 4),
+            "adx": round(data["indicators"].get("adx", 25.0), 2),
+            "ema_50": round(data["indicators"].get("ema_50", 0.0), 2),
+            "stoch_k": round(data["indicators"].get("stochastic_k", 50.0), 2),
+        }
+
+    # Build indicators summary
+    primary_tf = "4h" if "4h" in tf_results else list(tf_results.keys())[0]
+    primary_indicators = tf_results[primary_tf]["indicators"]
+    indicators_summary = {
+        "primary_timeframe": primary_tf,
+        "rsi": round(primary_indicators.get("rsi", 50.0), 2),
+        "macd_histogram": round(primary_indicators.get("macd_histogram", 0.0), 4),
+        "adx": round(primary_indicators.get("adx", 25.0), 2),
+        "volume_ratio": round(primary_indicators.get("volume_ratio", 1.0), 2),
+        "stochastic_k": round(primary_indicators.get("stochastic_k", 50.0), 2),
+    }
+
+    logger.info(
+        f"✅ Market condition for {request.symbol}: {condition_type} "
+        f"(direction={final_direction:.3f}, confidence={confidence:.3f}, "
+        f"trend_strength={trend_strength:.3f}, timeframes={list(tf_results.keys())})"
+    )
 
     return MarketConditionAnalysis(
         condition_type=condition_type,
-        confidence=confidence,
+        confidence=round(confidence, 4),
+        direction=round(final_direction, 4),
+        trend_strength=round(trend_strength, 4),
         characteristics=characteristics,
-        recommended_strategies=["RSI Strategy", "MACD Strategy"],
-        market_phase="Active Trading",
+        recommended_strategies=recommended_strategies,
+        market_phase=market_phase,
+        timeframe_analysis=timeframe_analysis,
+        indicators_summary=indicators_summary,
     )
 
 

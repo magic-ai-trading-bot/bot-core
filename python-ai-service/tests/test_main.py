@@ -182,6 +182,21 @@ class TestMarketCondition:
         assert "condition_type" in data
         assert "market_phase" in data
         assert "confidence" in data
+        assert "direction" in data
+        assert -1.0 <= data["direction"] <= 1.0
+        assert "trend_strength" in data
+        assert 0.0 <= data["trend_strength"] <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_market_condition_with_only_symbol(self, client):
+        """Test market condition with only symbol (no timeframe data) returns safe defaults."""
+        request_data = {"symbol": "BTCUSDT"}
+
+        response = await client.post("/ai/market-condition", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["direction"] == 0.0
+        assert data["confidence"] <= 0.2
 
 
 @pytest.mark.unit
@@ -1687,8 +1702,8 @@ class TestMarketConditionEndpoint:
 
     @pytest.mark.asyncio
     async def test_market_condition_trending_up(self, client, sample_candle_data):
-        """Test market condition with uptrend."""
-        # Create uptrending candles (reversed order, oldest to newest)
+        """Test market condition with uptrend produces positive direction."""
+        # Create uptrending candles (oldest to newest)
         candles = []
         base_price = 40000
         for i in range(25, 0, -1):  # Reverse iteration
@@ -1716,14 +1731,16 @@ class TestMarketConditionEndpoint:
         response = await client.post("/ai/market-condition", json=request_data)
         assert response.status_code == 200
         data = response.json()
-        # Check that condition is classified
         assert "condition_type" in data
-        assert data["condition_type"] in ["Trending Up", "Trending Down", "Sideways"]
+        assert "direction" in data
+        assert data["direction"] > 0, f"Uptrend should have positive direction, got {data['direction']}"
+        assert -1.0 <= data["direction"] <= 1.0
+        assert "timeframe_analysis" in data
 
     @pytest.mark.asyncio
     async def test_market_condition_trending_down(self, client, sample_candle_data):
-        """Test market condition with downtrend."""
-        # Create downtrending candles (reversed order, oldest to newest)
+        """Test market condition with downtrend produces negative direction."""
+        # Create downtrending candles (oldest to newest)
         candles = []
         base_price = 50000
         for i in range(25, 0, -1):  # Reverse iteration
@@ -1751,9 +1768,97 @@ class TestMarketConditionEndpoint:
         response = await client.post("/ai/market-condition", json=request_data)
         assert response.status_code == 200
         data = response.json()
-        # Check that condition is classified
         assert "condition_type" in data
-        assert data["condition_type"] in ["Trending Up", "Trending Down", "Sideways"]
+        assert "direction" in data
+        assert data["direction"] < 0, f"Downtrend should have negative direction, got {data['direction']}"
+        assert -1.0 <= data["direction"] <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_market_condition_sideways(self, client):
+        """Test market condition with sideways candles produces near-zero direction."""
+        # Create sideways candles oscillating around 45000
+        candles = []
+        base_price = 45000
+        for i in range(25, 0, -1):
+            # Oscillate: +100, -100, +100, -100...
+            offset = 100 if (25 - i) % 2 == 0 else -100
+            price = base_price + offset
+            candles.append(
+                {
+                    "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+                    - (i * 3600000),
+                    "open": price - 50,
+                    "high": price + 50,
+                    "low": price - 50,
+                    "close": price,
+                    "volume": 1000.0,
+                }
+            )
+
+        request_data = {
+            "symbol": "BTCUSDT",
+            "timeframe_data": {"1h": candles},
+        }
+
+        response = await client.post("/ai/market-condition", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert "direction" in data
+        # Sideways should produce direction close to 0
+        assert abs(data["direction"]) < 0.5, f"Sideways should have near-zero direction, got {data['direction']}"
+
+    @pytest.mark.asyncio
+    async def test_market_condition_confidence_varies(self, client):
+        """Test that confidence is NOT hardcoded to 0.6."""
+        # Strong uptrend - should have higher confidence
+        candles_up = []
+        base_price = 40000
+        for i in range(25, 0, -1):
+            price = base_price + ((25 - i) * 300)
+            candles_up.append(
+                {
+                    "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+                    - (i * 3600000),
+                    "open": price,
+                    "high": price + 150,
+                    "low": price - 30,
+                    "close": price + 100,
+                    "volume": 2000.0,
+                }
+            )
+
+        resp1 = await client.post("/ai/market-condition", json={
+            "symbol": "BTCUSDT",
+            "timeframe_data": {"1h": candles_up},
+        })
+        data1 = resp1.json()
+
+        # Sideways - should have different confidence
+        candles_side = []
+        for i in range(25, 0, -1):
+            offset = 50 if (25 - i) % 2 == 0 else -50
+            price = 45000 + offset
+            candles_side.append(
+                {
+                    "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
+                    - (i * 3600000),
+                    "open": price,
+                    "high": price + 50,
+                    "low": price - 50,
+                    "close": price,
+                    "volume": 1000.0,
+                }
+            )
+
+        resp2 = await client.post("/ai/market-condition", json={
+            "symbol": "BTCUSDT",
+            "timeframe_data": {"1h": candles_side},
+        })
+        data2 = resp2.json()
+
+        # Confidence should NOT be the same hardcoded value
+        assert data1["confidence"] != 0.6 or data2["confidence"] != 0.6, \
+            "Confidence should not always be 0.6"
 
 
 @pytest.mark.unit
