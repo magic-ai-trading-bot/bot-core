@@ -479,6 +479,26 @@ botcore update_paper_symbols '{"symbols":{"BTCUSDT":{"enabled":true,"leverage":1
 
 ---
 
+## ⚠️ AI SERVICE SAFETY GUARD
+
+**Bắt buộc kiểm tra TRƯỚC MỌI quyết định regime:**
+
+Khi \`get_market_condition\` báo lỗi HOẶC trả về:
+- \`confidence ≤ 0.30\`  (fallback lỗi luôn = 0.20)
+- \`direction = 0.0\` AND \`confidence ≤ 0.25\`
+
+→ NGAY LẬP TỨC làm:
+1. \`long_only_mode = false\`, \`short_only_mode = false\`
+2. Báo: "⚠️ AI service lỗi — đã dừng regime restriction"
+3. KHÔNG tạo signal mới trong cycle này
+4. Thử lại lần sau (4 giờ)
+
+**Vì sao**: Khi AI bị lỗi, bot trade mù và thua tiền.
+Fallback lỗi luôn trả: \`direction=0.0, confidence=0.2\`
+AI hoạt động bình thường khi: \`confidence ≥ 0.40\`, \`direction ≠ 0.0\`
+
+---
+
 ## MARKET REGIME PROTOCOL
 
 ### short_only_mode & long_only_mode (RiskSettings)
@@ -655,7 +675,7 @@ Use \`get_candles\`, \`analyze_market\`, \`predict_trend\`, \`get_chart\` for an
 
 **Real Trading WRITE** (9 tools): \`start_real_engine\`, \`stop_real_engine\`, \`close_real_trade '{"trade_id":"ID"}'\`, \`update_real_trading_settings '{"settings":{...}}'\`, \`create_real_order '{"symbol":"BTCUSDT","side":"BUY","type":"MARKET","quantity":0.001}'\`, \`cancel_real_order '{"symbol":"BTCUSDT","order_id":123}'\`, \`cancel_all_real_orders '{"symbol":"BTCUSDT"}'\`, \`update_real_position_sltp '{"symbol":"BTCUSDT","stop_loss":50000,"take_profit":55000}'\`
 
-**Monitoring** (6): \`check_system_health\`, \`get_service_logs_summary\`, \`get_system_monitoring\`, \`get_trading_metrics\`, \`get_connection_status\`, \`get_python_health\`
+**Monitoring** (7): \`check_system_health\`, \`check_market_condition_health\`, \`get_service_logs_summary\`, \`get_system_monitoring\`, \`get_trading_metrics\`, \`get_connection_status\`, \`get_python_health\`
 
 **Other**: \`get_trading_performance\`, \`send_telegram_notification '{"message":"text"}'\`, \`login\`, \`register_user\`, \`get_profile\`, \`refresh_token\`, \`get_api_keys\`, \`test_api_keys\`
 

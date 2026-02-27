@@ -3528,3 +3528,93 @@ class TestDirectOpenAIClientErrorHandling:
                 )
             except Exception:
                 pass  # Expected to fail on rate limit
+
+
+@pytest.mark.unit
+class TestDeepHealthMarketCondition:
+    """Test deep health check for AI market condition pipeline."""
+
+    def _make_mock_candles(self, count: int, close_price: float = 67500.0):
+        """Helper to create mock candle documents with correct MongoDB field names."""
+        candles = []
+        for i in range(count):
+            price = close_price + (i * 10)
+            candles.append(
+                {
+                    "open_time": 1770134400000 + (i * 3600000),
+                    "open_price": price,
+                    "high_price": price + 200.0,
+                    "low_price": price - 100.0,
+                    "close_price": close_price if close_price == 0.0 else price + 100.0,
+                    "volume": 100.0,
+                }
+            )
+        return candles
+
+    def _make_mock_collection(self, candles):
+        """Helper to create a mock MongoDB collection that returns given candles."""
+        mock_cursor = MagicMock()
+        mock_cursor.to_list = AsyncMock(return_value=candles)
+        mock_collection = MagicMock()
+        mock_collection.find.return_value.sort.return_value.limit.return_value = (
+            mock_cursor
+        )
+        return mock_collection
+
+    @pytest.mark.asyncio
+    async def test_deep_health_success(self, client):
+        """Test successful deep health check with 30 valid candles."""
+        mock_candles = self._make_mock_candles(30)
+        mock_collection = self._make_mock_collection(mock_candles)
+
+        with patch("main.mongodb_db") as mock_db:
+            mock_db.market_data = mock_collection
+            response = await client.get("/ai/health/market-condition")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["pipeline"] == "ok"
+        assert data["candles_fetched"] == 30
+        assert "test_direction" in data
+        assert isinstance(data["test_direction"], float)
+        assert "timestamp" in data
+
+    @pytest.mark.asyncio
+    async def test_deep_health_mongodb_down(self, client):
+        """Test deep health returns 503 when MongoDB is not connected."""
+        with patch("main.mongodb_db", None):
+            response = await client.get("/ai/health/market-condition")
+
+        assert response.status_code == 503
+        data = response.json()
+        assert "MongoDB not connected" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_deep_health_insufficient_candles(self, client):
+        """Test deep health returns 503 when fewer than 20 candles are available."""
+        mock_candles = self._make_mock_candles(5)
+        mock_collection = self._make_mock_collection(mock_candles)
+
+        with patch("main.mongodb_db") as mock_db:
+            mock_db.market_data = mock_collection
+            response = await client.get("/ai/health/market-condition")
+
+        assert response.status_code == 503
+        data = response.json()
+        assert "Insufficient candle data" in data["detail"]
+        assert "5 candles" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_deep_health_zero_close_price(self, client):
+        """Test deep health returns 503 when candles have zero close price."""
+        mock_candles = self._make_mock_candles(25, close_price=0.0)
+        mock_collection = self._make_mock_collection(mock_candles)
+
+        with patch("main.mongodb_db") as mock_db:
+            mock_db.market_data = mock_collection
+            response = await client.get("/ai/health/market-condition")
+
+        assert response.status_code == 503
+        data = response.json()
+        assert "zero close price" in data["detail"]

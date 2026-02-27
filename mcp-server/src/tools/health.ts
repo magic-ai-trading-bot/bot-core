@@ -114,5 +114,42 @@ export function registerHealthTools(server: McpServer): void {
     }
   );
 
-  log("info", "Health & monitoring tools registered (2 tools)");
+  // Tool: check_market_condition_health - Deep health check for AI pipeline
+  server.registerTool(
+    "check_market_condition_health",
+    {
+      title: "Check Market Condition Health",
+      description:
+        "Deep health check for the AI market condition pipeline. Tests MongoDB candle fetch + indicator calculation. Returns 'healthy' or error details with action_required.",
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+      },
+    },
+    async () => {
+      try {
+        const res = await apiRequest("python", "/ai/health/market-condition", {
+          skipAuth: true,
+          timeoutMs: 15_000,
+        });
+        if (res.success) {
+          return toolSuccess({ healthy: true, ...res.data });
+        } else {
+          return toolSuccess({
+            healthy: false,
+            error: res.error || "Pipeline check failed",
+            action_required: "Stop paper engine — investigate AI service",
+          });
+        }
+      } catch {
+        return toolSuccess({
+          healthy: false,
+          error: "Cannot reach Python AI service",
+          action_required: "Python AI service may be down — stop paper engine",
+        });
+      }
+    }
+  );
+
+  log("info", "Health & monitoring tools registered (3 tools)");
 }

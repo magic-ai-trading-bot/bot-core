@@ -1,7 +1,7 @@
 {
   "name": "health-check",
-  "schedule": "0 */2 * * *",
+  "schedule": "*/30 * * * *",
   "timeout_seconds": 180,
   "no_deliver": true,
-  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore check_system_health`\nBước 2: Phân tích kết quả: Nếu có dịch vụ nào lỗi hoặc không phản hồi → chạy `botcore send_telegram_notification` với cảnh báo KHẨN CẤP chi tiết. Nếu tất cả bình thường → không cần gửi.\n\nLUÔN viết bằng tiếng Việt."
+  "prompt": "BẮT BUỘC thực hiện ĐÚNG các bước sau:\n\nBước 1: Chạy `botcore check_system_health`\nBước 2: Chạy `botcore check_market_condition_health`\nBước 3: Phân tích kết quả:\n- Nếu check_system_health có dịch vụ lỗi → chạy `botcore send_telegram_notification` với cảnh báo KHẨN CẤP chi tiết về dịch vụ bị lỗi.\n- Nếu check_market_condition_health trả `healthy=false` → chạy `botcore stop_paper_engine` NGAY LẬP TỨC, sau đó chạy `botcore send_telegram_notification` với nội dung: \"🚨 AI pipeline BROKEN - đã dừng trading. Lý do: [error]. Cần kiểm tra python-ai-service.\"\n- Nếu tất cả bình thường → log \"✅ AI pipeline OK\" nhưng KHÔNG gửi Telegram.\n\nLUÔN viết bằng tiếng Việt."
 }

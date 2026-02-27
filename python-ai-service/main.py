@@ -2610,6 +2610,84 @@ async def health_check():
     }
 
 
+@app.get("/ai/health/market-condition")
+async def deep_health_market_condition():
+    """
+    Deep health check for the AI market condition pipeline.
+
+    Trả 503 nếu BẤT KỲ bước nào fail:
+    - MongoDB connectivity + candle fetch
+    - DataFrame creation (field name correctness)
+    - TechnicalAnalyzer.calculate_indicators()
+    - _get_macd_series() + _calculate_direction_score()
+    """
+    try:
+        if mongodb_db is None:
+            raise HTTPException(status_code=503, detail="MongoDB not connected")
+
+        candles_collection = mongodb_db.market_data
+        cursor = (
+            candles_collection.find(
+                {"symbol": "BTCUSDT", "timeframe": "1h"}, {"_id": 0}
+            )
+            .sort("open_time", ASCENDING)
+            .limit(50)
+        )
+        candles = await asyncio.wait_for(cursor.to_list(length=50), timeout=5.0)
+
+        if len(candles) < 20:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Insufficient candle data: {len(candles)} candles (need 20+)",
+            )
+
+        data = []
+        for c in candles:
+            close = float(c.get("close_price", c.get("close", 0)))
+            if close == 0:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Candle data has zero close price — wrong field names",
+                )
+            data.append(
+                {
+                    "timestamp": pd.to_datetime(c.get("open_time", 0), unit="ms"),
+                    "open": float(c.get("open_price", c.get("open", 0))),
+                    "high": float(c.get("high_price", c.get("high", 0))),
+                    "low": float(c.get("low_price", c.get("low", 0))),
+                    "close": close,
+                    "volume": float(c.get("volume", 0)),
+                }
+            )
+
+        df = pd.DataFrame(data)
+        df.set_index("timestamp", inplace=True)
+        df.sort_index(inplace=True)
+
+        indicators = TechnicalAnalyzer.calculate_indicators(df)
+        macd_series = _get_macd_series(df)
+        direction = _calculate_direction_score(df, indicators, macd_series)
+
+        return {
+            "status": "healthy",
+            "pipeline": "ok",
+            "test_direction": round(direction, 4),
+            "candles_fetched": len(candles),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    except HTTPException:
+        raise
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=503, detail="MongoDB timeout — candle fetch took >5s"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=503, detail=f"Market condition pipeline error: {str(e)}"
+        )
+
+
 @app.get("/debug/gpt4")
 @limiter.limit("60/minute")  # Rate limit: 60 requests per minute for debug endpoint
 async def debug_gpt4(request: Request):
