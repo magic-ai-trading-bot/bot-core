@@ -10,7 +10,9 @@ from typing import List
 # Read from environment variable with fallback to 2 seconds
 # xAI Grok has high rate limits
 # Delay between requests in seconds
-GROK_REQUEST_DELAY = int(os.getenv("GROK_REQUEST_DELAY", os.getenv("OPENAI_REQUEST_DELAY", "2")))
+GROK_REQUEST_DELAY = int(
+    os.getenv("GROK_REQUEST_DELAY", os.getenv("OPENAI_REQUEST_DELAY", "2"))
+)
 
 # === Cost Monitoring (Grok pricing) ===
 GROK_INPUT_COST_PER_1M = 0.300  # $0.300 per 1M input tokens
@@ -55,14 +57,15 @@ def get_ai_api_keys() -> List[str]:
 
     # Try fallback keys
     for i in range(1, 6):  # Support up to 5 fallback keys
-        fallback_key = os.getenv(f"XAI_API_KEY_FALLBACK_{i}") or os.getenv(f"OPENAI_API_KEY_FALLBACK_{i}")
+        fallback_key = os.getenv(f"XAI_API_KEY_FALLBACK_{i}") or os.getenv(
+            f"OPENAI_API_KEY_FALLBACK_{i}"
+        )
         if fallback_key:
             keys.append(fallback_key)
 
     if not keys:
         raise ValueError(
-            "At least one AI API key is required. "
-            "Set XAI_API_KEY in your .env file."
+            "At least one AI API key is required. " "Set XAI_API_KEY in your .env file."
         )
 
     return keys

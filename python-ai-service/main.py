@@ -4130,11 +4130,24 @@ async def perform_trade_analysis(trade_data: Dict[str, Any]) -> Dict[str, Any]:
         def __init__(self, key, base_url):
             self._key = key
             self._base_url = base_url
-        async def chat_completions_create(self, model, messages, temperature=0.0, max_tokens=1200):
+
+        async def chat_completions_create(
+            self, model, messages, temperature=0.0, max_tokens=1200
+        ):
             async with _httpx.AsyncClient(timeout=60.0) as c:
-                r = await c.post(f"{self._base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json"},
-                    json={"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens})
+                r = await c.post(
+                    f"{self._base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self._key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    },
+                )
                 r.raise_for_status()
                 return r.json()
 
