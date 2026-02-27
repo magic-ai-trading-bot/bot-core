@@ -53,16 +53,21 @@ impl From<&CandleData> for CandleDataForAnalysis {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalysisResponse {
+    #[serde(default)]
     pub symbol: String,
+    #[serde(default)]
     pub timeframe: String,
+    #[serde(default)]
     pub timestamp: i64,
     pub signal: TradingSignal,
     pub confidence: f64,
+    #[serde(default)]
     pub indicators: HashMap<String, f64>,
+    #[serde(default)]
     pub analysis_details: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub enum TradingSignal {
     #[serde(rename = "BUY")]
     Buy,
@@ -74,6 +79,24 @@ pub enum TradingSignal {
     StrongBuy,
     #[serde(rename = "STRONG_SELL")]
     StrongSell,
+}
+
+impl<'de> serde::Deserialize<'de> for TradingSignal {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.to_uppercase().as_str() {
+            "BUY" | "LONG" | "STRONG_BUY" | "STRONGBUY" | "BULL" | "BULLISH" => {
+                Ok(TradingSignal::Buy)
+            }
+            "SELL" | "SHORT" | "STRONG_SELL" | "STRONGSELL" | "BEAR" | "BEARISH" => {
+                Ok(TradingSignal::Sell)
+            }
+            _ => Ok(TradingSignal::Hold), // "HOLD", "NEUTRAL", "SIDEWAYS", etc.
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
