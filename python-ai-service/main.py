@@ -3195,10 +3195,10 @@ async def _fetch_candles_from_db(symbol: str) -> Dict[str, pd.DataFrame]:
                 data.append(
                     {
                         "timestamp": pd.to_datetime(c.get("open_time", 0), unit="ms"),
-                        "open": float(c.get("open", 0)),
-                        "high": float(c.get("high", 0)),
-                        "low": float(c.get("low", 0)),
-                        "close": float(c.get("close", 0)),
+                        "open": float(c.get("open_price", c.get("open", 0))),
+                        "high": float(c.get("high_price", c.get("high", 0))),
+                        "low": float(c.get("low_price", c.get("low", 0))),
+                        "close": float(c.get("close_price", c.get("close", 0))),
                         "volume": float(c.get("volume", 0)),
                     }
                 )
