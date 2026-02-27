@@ -805,7 +805,7 @@ mod tests {
         let config = Config::default();
         assert_eq!(config.market_data.symbols.len(), 2);
         assert!(config.market_data.symbols.contains(&"BTCUSDT".to_string()));
-        assert_eq!(config.market_data.timeframes.len(), 4);
+        assert_eq!(config.market_data.timeframes.len(), 6);
         assert_eq!(config.market_data.kline_limit, 500);
     }
 
