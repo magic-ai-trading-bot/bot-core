@@ -1247,7 +1247,7 @@ class TestErrorHandling:
             )
             mock_analyzer.return_value = mock_instance
 
-            with patch("main.gpt_analyzer", mock_instance):
+            with patch("main.grok_analyzer", mock_instance):
                 response = await client.post(
                     "/ai/analyze", json=sample_ai_analysis_request
                 )

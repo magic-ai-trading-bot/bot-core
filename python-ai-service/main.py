@@ -2561,7 +2561,7 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
 
 
 # Global analyzer instance
-gpt_analyzer = None
+grok_analyzer = None
 
 # === API ENDPOINTS ===
 
@@ -2768,9 +2768,9 @@ async def analyze_trading_signals(
     analysis_request: AIAnalysisRequest, request: Request
 ):
     """Analyze trading signals using Grok AI with MongoDB storage."""
-    global gpt_analyzer
+    global grok_analyzer
 
-    if not gpt_analyzer:
+    if not grok_analyzer:
         grok_analyzer = GrokTradingAnalyzer(grok_client)
         logger.info(
             f"🤖 Grok analyzer created with client: {'Available' if grok_client else 'None'}"
