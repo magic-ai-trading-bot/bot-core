@@ -3538,7 +3538,20 @@ async def _predict_trend_gpt4(
     indicators_by_tf = {}
 
     for tf, candles in candles_by_tf.items():
-        df = pd.DataFrame(candles)
+        # Normalize MongoDB field names (close_price -> close, etc.)
+        normalized = []
+        for c in candles:
+            normalized.append(
+                {
+                    "open_time": c.get("open_time", 0),
+                    "open": float(c.get("open_price", c.get("open", 0))),
+                    "high": float(c.get("high_price", c.get("high", 0))),
+                    "low": float(c.get("low_price", c.get("low", 0))),
+                    "close": float(c.get("close_price", c.get("close", 0))),
+                    "volume": float(c.get("volume", 0)),
+                }
+            )
+        df = pd.DataFrame(normalized)
         df = df.sort_values("open_time")
 
         # Calculate key indicators
@@ -3704,7 +3717,20 @@ def _predict_trend_technical(
     tf = primary_tf if primary_tf in candles_by_tf else list(candles_by_tf.keys())[0]
     candles = candles_by_tf[tf]
 
-    df = pd.DataFrame(candles)
+    # Normalize MongoDB field names (close_price -> close, etc.)
+    normalized = []
+    for c in candles:
+        normalized.append(
+            {
+                "open_time": c.get("open_time", 0),
+                "open": float(c.get("open_price", c.get("open", 0))),
+                "high": float(c.get("high_price", c.get("high", 0))),
+                "low": float(c.get("low_price", c.get("low", 0))),
+                "close": float(c.get("close_price", c.get("close", 0))),
+                "volume": float(c.get("volume", 0)),
+            }
+        )
+    df = pd.DataFrame(normalized)
     df = df.sort_values("open_time")
 
     if len(df) < 200:

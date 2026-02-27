@@ -15,7 +15,7 @@ mod tests;
 
 use crate::market_data::cache::CandleData;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
 // Re-export key types
@@ -67,11 +67,22 @@ pub struct StrategyOutput {
 }
 
 /// Trading signal types
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
 pub enum TradingSignal {
     Long,
     Short,
     Neutral,
+}
+
+impl<'de> Deserialize<'de> for TradingSignal {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        match s.to_uppercase().as_str() {
+            "LONG" | "BUY" | "BULLISH" => Ok(TradingSignal::Long),
+            "SHORT" | "SELL" | "BEARISH" => Ok(TradingSignal::Short),
+            _ => Ok(TradingSignal::Neutral),
+        }
+    }
 }
 
 /// Strategy configuration

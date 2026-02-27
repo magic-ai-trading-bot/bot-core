@@ -185,9 +185,11 @@ pub struct AISignalResponse {
     pub signal: TradingSignal,
     pub confidence: f64,
     pub reasoning: String,
+    #[serde(default)]
     pub strategy_scores: HashMap<String, f64>,
     pub market_analysis: AIMarketAnalysis,
     pub risk_assessment: AIRiskAssessment,
+    #[serde(default)]
     pub timestamp: i64,
 }
 
