@@ -2833,22 +2833,20 @@ async def analyze_trading_signals(
 @app.post("/ai/strategy-recommendations", response_model=List[StrategyRecommendation])
 @limiter.limit("300/minute")  # Rate limit: 300 requests per minute (5 per second)
 async def get_strategy_recommendations(
-    request: StrategyRecommendationRequest, http_request: Request
+    body: StrategyRecommendationRequest, request: Request
 ):
     """Get AI strategy recommendations."""
-    logger.info(f"📊 Strategy recommendations for {request.symbol}")
+    logger.info(f"📊 Strategy recommendations for {body.symbol}")
 
     # Simple recommendations based on available strategies
     recommendations = []
-    for strategy in request.available_strategies:
-        score = (
-            0.7 + (hash(strategy + request.symbol) % 30) / 100
-        )  # Pseudo-random score
+    for strategy in body.available_strategies:
+        score = 0.7 + (hash(strategy + body.symbol) % 30) / 100  # Pseudo-random score
         recommendations.append(
             StrategyRecommendation(
                 strategy_name=strategy,
                 suitability_score=min(score, 0.95),
-                reasoning=f"{strategy} shows good potential for {request.symbol} based on current market conditions",
+                reasoning=f"{strategy} shows good potential for {body.symbol} based on current market conditions",
                 recommended_config={"enabled": True, "weight": score},
             )
         )
@@ -3220,20 +3218,18 @@ async def _fetch_candles_from_db(symbol: str) -> Dict[str, pd.DataFrame]:
 
 @app.post("/ai/market-condition", response_model=MarketConditionAnalysis)
 @limiter.limit("300/minute")  # Rate limit: 300 requests per minute (5 per second)
-async def analyze_market_condition(
-    request: MarketConditionRequest, http_request: Request
-):
+async def analyze_market_condition(body: MarketConditionRequest, request: Request):
     """Analyze market condition using multi-indicator direction analysis."""
-    logger.info(f"🔍 Market condition analysis for {request.symbol}")
+    logger.info(f"🔍 Market condition analysis for {body.symbol}")
 
     # 1. Get candle data: use provided or fetch from MongoDB
-    if request.timeframe_data:
-        dataframes = TechnicalAnalyzer.candles_to_dataframe(request.timeframe_data)
+    if body.timeframe_data:
+        dataframes = TechnicalAnalyzer.candles_to_dataframe(body.timeframe_data)
     else:
-        dataframes = await _fetch_candles_from_db(request.symbol)
+        dataframes = await _fetch_candles_from_db(body.symbol)
 
     if not dataframes:
-        logger.warning(f"No data available for {request.symbol} market condition")
+        logger.warning(f"No data available for {body.symbol} market condition")
         return MarketConditionAnalysis(
             condition_type="Neutral",
             confidence=0.2,
@@ -3260,11 +3256,11 @@ async def analyze_market_condition(
                 "current_price": float(df["close"].iloc[-1]),
             }
         except Exception as e:
-            logger.warning(f"Error analyzing {tf} for {request.symbol}: {e}")
+            logger.warning(f"Error analyzing {tf} for {body.symbol}: {e}")
             continue
 
     if not tf_results:
-        logger.warning(f"Could not analyze any timeframe for {request.symbol}")
+        logger.warning(f"Could not analyze any timeframe for {body.symbol}")
         return MarketConditionAnalysis(
             condition_type="Neutral",
             confidence=0.2,
@@ -3313,7 +3309,7 @@ async def analyze_market_condition(
     }
 
     logger.info(
-        f"✅ Market condition for {request.symbol}: {condition_type} "
+        f"✅ Market condition for {body.symbol}: {condition_type} "
         f"(direction={final_direction:.3f}, confidence={confidence:.3f}, "
         f"trend_strength={trend_strength:.3f}, timeframes={list(tf_results.keys())})"
     )
@@ -3353,7 +3349,7 @@ async def send_performance_feedback(feedback: PerformanceFeedback, request: Requ
 @limiter.limit(
     "600/minute"
 )  # Rate limit: 600 requests per minute (10 per second) - main prediction endpoint
-async def predict_trend(request: TrendPredictionRequest, http_request: Request):
+async def predict_trend(body: TrendPredictionRequest, request: Request):
     """
     Predict trend direction using GPT-4 powered multi-timeframe analysis.
 
@@ -3366,7 +3362,7 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
     Falls back to technical analysis if GPT-4 unavailable.
     """
     logger.info(
-        f"🔮 GPT-4 trend prediction request for {request.symbol} on {request.timeframe}"
+        f"🔮 GPT-4 trend prediction request for {body.symbol} on {body.timeframe}"
     )
 
     try:
@@ -3380,14 +3376,14 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
         timeframes = {
             "1d": 250,  # Daily for major trend
             "4h": 250,  # 4H for intermediate trend
-            request.timeframe: 250,  # Requested timeframe
+            body.timeframe: 250,  # Requested timeframe
         }
 
         candles_by_tf = {}
         for tf, limit in timeframes.items():
             cursor = (
                 candles_collection.find(
-                    {"symbol": request.symbol, "timeframe": tf}, {"_id": 0}
+                    {"symbol": body.symbol, "timeframe": tf}, {"_id": 0}
                 )
                 .sort("open_time", ASCENDING)
                 .limit(limit)
@@ -3398,7 +3394,7 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
                 candles_by_tf[tf] = candles
 
         if len(candles_by_tf) == 0:
-            logger.warning(f"⚠️ Insufficient data for {request.symbol}")
+            logger.warning(f"⚠️ Insufficient data for {body.symbol}")
             return TrendPredictionResponse(
                 trend="Neutral",
                 confidence=0.3,
@@ -3409,9 +3405,9 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
         # Try GPT-4 analysis first
         if openai_client is not None:
             try:
-                result = await _predict_trend_gpt4(request.symbol, candles_by_tf)
+                result = await _predict_trend_gpt4(body.symbol, candles_by_tf)
                 logger.info(
-                    f"✅ GPT-4 trend prediction for {request.symbol}: {result['trend']} "
+                    f"✅ GPT-4 trend prediction for {body.symbol}: {result['trend']} "
                     f"(confidence: {result['confidence']:.2f})"
                 )
                 return TrendPredictionResponse(
@@ -3426,11 +3422,9 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
                 )
 
         # Fallback to technical analysis
-        result = _predict_trend_technical(
-            request.symbol, candles_by_tf, request.timeframe
-        )
+        result = _predict_trend_technical(body.symbol, candles_by_tf, body.timeframe)
         logger.info(
-            f"✅ Technical trend prediction for {request.symbol}: {result['trend']} "
+            f"✅ Technical trend prediction for {body.symbol}: {result['trend']} "
             f"(confidence: {result['confidence']:.2f})"
         )
 
@@ -3442,7 +3436,7 @@ async def predict_trend(request: TrendPredictionRequest, http_request: Request):
         )
 
     except Exception as e:
-        logger.error(f"❌ Error predicting trend for {request.symbol}: {e}")
+        logger.error(f"❌ Error predicting trend for {body.symbol}: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to predict trend. Check server logs for details.",
