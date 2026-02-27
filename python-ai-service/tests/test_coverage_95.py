@@ -3,7 +3,7 @@ Test file to boost coverage from 91% to 95%+.
 
 Focuses on uncovered lines in main.py:
 - Lifespan management (startup/shutdown)
-- DirectOpenAIClient rate limiting logic
+- GrokClient rate limiting logic
 - GPT-4 trend prediction endpoint
 - Background tasks (periodic analysis)
 - Error paths and edge cases
@@ -75,7 +75,7 @@ class TestLifespanManagement:
                 try:
                     async with main.lifespan(app):
                         # OpenAI client should be None
-                        assert main.openai_client is None
+                        assert main.grok_client is None
                 except Exception:
                     pass
 
@@ -100,7 +100,7 @@ class TestLifespanManagement:
                 try:
                     async with main.lifespan(app):
                         # OpenAI client should be None for invalid key
-                        assert main.openai_client is None
+                        assert main.grok_client is None
                 except Exception:
                     pass
 
@@ -122,16 +122,16 @@ class TestLifespanManagement:
                 mock_client.get_default_database = MagicMock(return_value=AsyncMock())
                 mock_mongo_client.return_value = mock_client
 
-                with patch("main.DirectOpenAIClient") as mock_openai_class:
-                    mock_openai_class.return_value = AsyncMock()
+                with patch("main.GrokClient") as mock_grok_class:
+                    mock_grok_class.return_value = AsyncMock()
 
                     app = FastAPI()
                     try:
                         async with main.lifespan(app):
-                            # Verify DirectOpenAIClient was called with all valid keys
-                            assert mock_openai_class.called
+                            # Verify GrokClient was called with all valid keys
+                            assert mock_grok_class.called
                             # Should have 3 keys (1 primary + 2 backup)
-                            call_args = mock_openai_class.call_args[0][0]
+                            call_args = mock_grok_class.call_args[0][0]
                             assert len(call_args) == 3
                     except Exception:
                         pass
@@ -154,8 +154,8 @@ class TestLifespanManagement:
                 mock_client.get_default_database = MagicMock(return_value=mock_db)
                 mock_mongo_client.return_value = mock_client
 
-                with patch("main.DirectOpenAIClient") as mock_openai_class:
-                    mock_openai_class.return_value = AsyncMock()
+                with patch("main.GrokClient") as mock_grok_class:
+                    mock_grok_class.return_value = AsyncMock()
 
                     with patch("main.settings_manager.initialize") as mock_init:
                         mock_init.return_value = False  # Settings init fails
@@ -186,8 +186,8 @@ class TestLifespanManagement:
                 mock_client.get_default_database = MagicMock(return_value=mock_db)
                 mock_mongo_client.return_value = mock_client
 
-                with patch("main.DirectOpenAIClient") as mock_openai_class:
-                    mock_openai_class.return_value = AsyncMock()
+                with patch("main.GrokClient") as mock_grok_class:
+                    mock_grok_class.return_value = AsyncMock()
 
                     with patch("main.settings_manager.initialize") as mock_init:
                         mock_init.return_value = True
@@ -217,17 +217,17 @@ class TestLifespanManagement:
 
 
 @pytest.mark.unit
-class TestDirectOpenAIClientRateLimiting:
-    """Test DirectOpenAIClient rate limiting logic."""
+class TestGrokClientRateLimiting:
+    """Test GrokClient rate limiting logic."""
 
     @pytest.mark.asyncio
     async def test_rate_limit_with_reset_time(self):
-        """Test rate limiting when OPENAI_RATE_LIMIT_RESET_TIME is set."""
-        client = main.DirectOpenAIClient(["sk-test-key-1", "sk-test-key-2"])
+        """Test rate limiting when GROK_RATE_LIMIT_RESET_TIME is set."""
+        client = main.GrokClient(["sk-test-key-1", "sk-test-key-2"])
 
         # Set rate limit reset time in the future
         future_time = datetime.now() + timedelta(seconds=30)
-        with patch("main.OPENAI_RATE_LIMIT_RESET_TIME", future_time):
+        with patch("main.GROK_RATE_LIMIT_RESET_TIME", future_time):
             with patch("main._rate_limit_lock", asyncio.Lock()):
                 with patch("httpx.AsyncClient.post") as mock_post:
                     # First key should be skipped due to rate limit
@@ -254,11 +254,11 @@ class TestDirectOpenAIClientRateLimiting:
     @pytest.mark.asyncio
     async def test_rate_limit_expired(self):
         """Test rate limiting when reset time has expired."""
-        client = main.DirectOpenAIClient(["sk-test-key"])
+        client = main.GrokClient(["sk-test-key"])
 
         # Set rate limit reset time in the past
         past_time = datetime.now() - timedelta(seconds=10)
-        with patch("main.OPENAI_RATE_LIMIT_RESET_TIME", past_time):
+        with patch("main.GROK_RATE_LIMIT_RESET_TIME", past_time):
             with patch("main._rate_limit_lock", asyncio.Lock()):
                 with patch("httpx.AsyncClient.post") as mock_post:
                     mock_post.return_value = AsyncMock(
@@ -279,10 +279,10 @@ class TestDirectOpenAIClientRateLimiting:
     @pytest.mark.asyncio
     async def test_request_delay_rate_limiting(self):
         """Test minimum delay between requests."""
-        client = main.DirectOpenAIClient(["sk-test-key"])
+        client = main.GrokClient(["sk-test-key"])
 
         # Set last request time very recently
-        with patch("main.last_openai_request_time", datetime.now()):
+        with patch("main.last_grok_request_time", datetime.now()):
             with patch("main._rate_limit_lock", asyncio.Lock()):
                 with patch("asyncio.sleep") as mock_sleep:
                     with patch("httpx.AsyncClient.post") as mock_post:
@@ -305,7 +305,7 @@ class TestDirectOpenAIClientRateLimiting:
     @pytest.mark.asyncio
     async def test_gpt5_model_uses_max_completion_tokens(self):
         """Test that gpt-5 models use max_completion_tokens parameter."""
-        client = main.DirectOpenAIClient(["sk-test-key"])
+        client = main.GrokClient(["sk-test-key"])
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
@@ -335,7 +335,7 @@ class TestDirectOpenAIClientRateLimiting:
     @pytest.mark.asyncio
     async def test_o1_model_uses_max_completion_tokens(self):
         """Test that o1 models use max_completion_tokens parameter."""
-        client = main.DirectOpenAIClient(["sk-test-key"])
+        client = main.GrokClient(["sk-test-key"])
 
         with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
@@ -371,7 +371,7 @@ class TestGPT4TrendPrediction:
     async def test_predict_trend_gpt4_function_with_data(self):
         """Test _predict_trend_gpt4 function directly."""
         # Save original state
-        original_client = main.openai_client
+        original_client = main.grok_client
         original_input_tokens = main.total_input_tokens
         original_output_tokens = main.total_output_tokens
         original_requests = main.total_requests_count
@@ -406,8 +406,8 @@ class TestGPT4TrendPrediction:
             }
 
             # Mock OpenAI client
-            mock_openai = AsyncMock()
-            mock_openai.chat_completions_create = AsyncMock(
+            mock_grok = AsyncMock()
+            mock_grok.chat_completions_create = AsyncMock(
                 return_value={
                     "choices": [
                         {
@@ -432,7 +432,7 @@ class TestGPT4TrendPrediction:
             )
 
             # Set mock client
-            main.openai_client = mock_openai
+            main.grok_client = mock_grok
 
             result = await main._predict_trend_gpt4("BTCUSDT", candles_by_tf)
 
@@ -442,7 +442,7 @@ class TestGPT4TrendPrediction:
 
         finally:
             # Restore original state
-            main.openai_client = original_client
+            main.grok_client = original_client
             main.total_input_tokens = original_input_tokens
             main.total_output_tokens = original_output_tokens
             main.total_requests_count = original_requests
@@ -452,7 +452,7 @@ class TestGPT4TrendPrediction:
     async def test_predict_trend_gpt4_with_markdown_response(self):
         """Test _predict_trend_gpt4 handles markdown code blocks in response."""
         # Save original state
-        original_client = main.openai_client
+        original_client = main.grok_client
         original_input_tokens = main.total_input_tokens
         original_output_tokens = main.total_output_tokens
         original_requests = main.total_requests_count
@@ -480,8 +480,8 @@ class TestGPT4TrendPrediction:
             candles_by_tf = {"1d": sample_candles}
 
             # Mock OpenAI with markdown wrapped JSON
-            mock_openai = AsyncMock()
-            mock_openai.chat_completions_create = AsyncMock(
+            mock_grok = AsyncMock()
+            mock_grok.chat_completions_create = AsyncMock(
                 return_value={
                     "choices": [
                         {
@@ -495,7 +495,7 @@ class TestGPT4TrendPrediction:
             )
 
             # Set mock client
-            main.openai_client = mock_openai
+            main.grok_client = mock_grok
 
             result = await main._predict_trend_gpt4("BTCUSDT", candles_by_tf)
 
@@ -504,7 +504,7 @@ class TestGPT4TrendPrediction:
 
         finally:
             # Restore original state
-            main.openai_client = original_client
+            main.grok_client = original_client
             main.total_input_tokens = original_input_tokens
             main.total_output_tokens = original_output_tokens
             main.total_requests_count = original_requests
@@ -537,7 +537,7 @@ class TestPeriodicAnalysisTask:
         with patch("main.fetch_real_market_data") as mock_fetch:
             mock_fetch.return_value = mock_market_data
 
-            with patch("main.GPTTradingAnalyzer") as mock_analyzer_class:
+            with patch("main.GrokTradingAnalyzer") as mock_analyzer_class:
                 mock_analyzer = AsyncMock()
                 mock_result = MagicMock()
                 mock_result.signal = "Long"
@@ -700,8 +700,8 @@ class TestEdgeCasesAndErrorPaths:
 
 
 @pytest.mark.unit
-class TestGPTTradingAnalyzerTokenTracking:
-    """Test GPTTradingAnalyzer token usage tracking (lines 1522-1540)."""
+class TestGrokTradingAnalyzerTokenTracking:
+    """Test GrokTradingAnalyzer token usage tracking."""
 
     @pytest.mark.asyncio
     async def test_token_usage_and_cost_tracking(self):
@@ -742,8 +742,8 @@ class TestGPTTradingAnalyzerTokenTracking:
         )
 
         # Mock OpenAI client with usage info
-        mock_openai = AsyncMock()
-        mock_openai.chat_completions_create = AsyncMock(
+        mock_grok = AsyncMock()
+        mock_grok.chat_completions_create = AsyncMock(
             return_value={
                 "choices": [
                     {
@@ -767,7 +767,7 @@ class TestGPTTradingAnalyzerTokenTracking:
             }
         )
 
-        analyzer = main.GPTTradingAnalyzer(mock_openai)
+        analyzer = main.GrokTradingAnalyzer(mock_grok)
         result = await analyzer.analyze_trading_signals(request)
 
         # Verify token counters were updated
@@ -814,8 +814,8 @@ class TestGPTTradingAnalyzerTokenTracking:
         )
 
         # Mock OpenAI without usage info
-        mock_openai = AsyncMock()
-        mock_openai.chat_completions_create = AsyncMock(
+        mock_grok = AsyncMock()
+        mock_grok.chat_completions_create = AsyncMock(
             return_value={
                 "choices": [
                     {"message": {"content": '{"signal": "Long", "confidence": 0.75}'}}
@@ -824,7 +824,7 @@ class TestGPTTradingAnalyzerTokenTracking:
             }
         )
 
-        analyzer = main.GPTTradingAnalyzer(mock_openai)
+        analyzer = main.GrokTradingAnalyzer(mock_grok)
         result = await analyzer.analyze_trading_signals(request)
 
         # Counters should remain at 0 when usage info missing

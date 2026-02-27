@@ -15,7 +15,7 @@ class AppState:
 
     def __init__(self):
         # OpenAI client
-        self.openai_client: Optional[Any] = None
+        self.grok_client: Optional[Any] = None
 
         # WebSocket connections
         self.websocket_connections: Set[WebSocket] = set()
@@ -25,7 +25,7 @@ class AppState:
         self.mongodb_db: Optional[Any] = None
 
         # Rate limiting
-        self.last_openai_request_time: Optional[datetime] = None
+        self.last_grok_request_time: Optional[datetime] = None
         self.openai_rate_limit_reset_time: Optional[datetime] = None
 
         # Cost tracking metrics

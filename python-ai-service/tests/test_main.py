@@ -17,8 +17,8 @@ from main import (
     AIAnalysisRequest,
     AIStrategyContext,
     CandleData,
-    DirectOpenAIClient,
-    GPTTradingAnalyzer,
+    GrokClient,
+    GrokTradingAnalyzer,
     TechnicalAnalyzer,
     WebSocketManager,
     _build_characteristics,
@@ -70,10 +70,10 @@ class TestAIAnalysisEndpoint:
 
     @pytest.mark.asyncio
     async def test_analyze_success(
-        self, client, sample_ai_analysis_request, mock_openai_client
+        self, client, sample_ai_analysis_request, mock_grok_client
     ):
         """Test successful AI analysis."""
-        with patch("main.openai_client", mock_openai_client):
+        with patch("main.grok_client", mock_grok_client):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
             assert response.status_code == 200
             data = response.json()
@@ -614,45 +614,45 @@ class TestWebSocketManager:
 
 
 @pytest.mark.unit
-class TestDirectOpenAIClient:
-    """Test DirectOpenAIClient class."""
+class TestGrokClient:
+    """Test GrokClient class."""
 
     def test_init_single_key(self):
         """Test initialization with single API key."""
-        client = DirectOpenAIClient("test-key")
+        client = GrokClient("test-key")
         assert len(client.api_keys) == 1
         assert client.api_keys[0] == "test-key"
 
     def test_init_multiple_keys(self):
         """Test initialization with multiple API keys."""
         keys = ["key1", "key2", "key3"]
-        client = DirectOpenAIClient(keys)
+        client = GrokClient(keys)
         assert len(client.api_keys) == 3
 
     def test_get_current_api_key(self):
         """Test getting current API key."""
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
         key, index = client.get_current_api_key()
         assert key == "key1"
         assert index == 0
 
     def test_get_current_api_key_cycling(self):
         """Test API key cycling."""
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
         client.current_key_index = 1
         key, index = client.get_current_api_key()
         assert key == "key2"
 
     def test_get_current_api_key_rate_limited(self):
         """Test getting API key when some are rate limited."""
-        client = DirectOpenAIClient(["key1", "key2", "key3"])
+        client = GrokClient(["key1", "key2", "key3"])
         client.rate_limited_keys.add(0)  # key1 is rate limited
         key, index = client.get_current_api_key()
         assert key in ["key2", "key3"]
 
     def test_get_current_api_key_all_rate_limited(self):
         """Test when all keys are rate limited."""
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
         client.rate_limited_keys.add(0)
         client.rate_limited_keys.add(1)
 
@@ -666,11 +666,11 @@ class TestDirectOpenAIClient:
         """Test successful chat completion."""
         import httpx
 
-        client = DirectOpenAIClient(["test-key"])
+        client = GrokClient(["test-key"])
 
         mock_response = {"choices": [{"message": {"content": "Test response"}}]}
 
-        with patch("main.last_openai_request_time", None):
+        with patch("main.last_grok_request_time", None):
             with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
                 mock_client_instance.post = AsyncMock(
@@ -692,7 +692,7 @@ class TestDirectOpenAIClient:
     async def test_chat_completions_create_rate_limit(self):
         """Test rate limit handling."""
         # Simply test that rate limited keys are tracked
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
 
         # Manually add a key to rate limited set
         client.rate_limited_keys.add(0)
@@ -707,9 +707,9 @@ class TestDirectOpenAIClient:
         """Test when all keys fail."""
         import httpx
 
-        client = DirectOpenAIClient(["key1"])
+        client = GrokClient(["key1"])
 
-        with patch("main.last_openai_request_time", None):
+        with patch("main.last_grok_request_time", None):
             with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
                 mock_client_instance.post = AsyncMock(
@@ -725,13 +725,13 @@ class TestDirectOpenAIClient:
 
 
 @pytest.mark.unit
-class TestGPTTradingAnalyzer:
-    """Test GPTTradingAnalyzer class."""
+class TestGrokTradingAnalyzer:
+    """Test GrokTradingAnalyzer class."""
 
     @pytest.mark.asyncio
-    async def test_analyze_trading_signals_with_gpt(self, mock_openai_client):
+    async def test_analyze_trading_signals_with_gpt(self, mock_grok_client):
         """Test analyze_trading_signals with GPT client."""
-        analyzer = GPTTradingAnalyzer(mock_openai_client)
+        analyzer = GrokTradingAnalyzer(mock_grok_client)
 
         candles = [
             CandleData(
@@ -768,7 +768,7 @@ class TestGPTTradingAnalyzer:
     @pytest.mark.asyncio
     async def test_analyze_trading_signals_fallback(self):
         """Test analyze_trading_signals with fallback."""
-        analyzer = GPTTradingAnalyzer(None)  # No GPT client
+        analyzer = GrokTradingAnalyzer(None)  # No GPT client
 
         candles = [
             CandleData(
@@ -808,7 +808,7 @@ class TestGPTTradingAnalyzer:
         The new fallback analysis requires at least 3 timeframes to agree before generating
         a Long or Short signal. With only 1 timeframe data, result is Neutral.
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         # Create candles
         base_time = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -873,7 +873,7 @@ class TestGPTTradingAnalyzer:
 
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis with min_required_timeframes=3
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         # Create candles
         base_time = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -934,7 +934,7 @@ class TestGPTTradingAnalyzer:
 
     def test_parse_gpt_response_json(self):
         """Test parsing valid JSON GPT response."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         response = json.dumps(
             {
@@ -965,7 +965,7 @@ class TestGPTTradingAnalyzer:
 
     def test_parse_gpt_response_fallback(self):
         """Test parsing non-JSON GPT response."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         response = "STRONG BUY signal based on technical analysis"
         result = analyzer._parse_gpt_response(response)
@@ -975,7 +975,7 @@ class TestGPTTradingAnalyzer:
 
     def test_fallback_parse_buy(self):
         """Test fallback parsing for buy signals."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         result = analyzer._fallback_parse("BUY this asset")
         assert result["signal"] == "Long"
@@ -983,7 +983,7 @@ class TestGPTTradingAnalyzer:
 
     def test_fallback_parse_sell(self):
         """Test fallback parsing for sell signals."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         result = analyzer._fallback_parse("SELL immediately")
         assert result["signal"] == "Short"
@@ -991,7 +991,7 @@ class TestGPTTradingAnalyzer:
 
     def test_default_response(self):
         """Test default response."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         result = analyzer._default_response()
         assert result["signal"] == "Neutral"
@@ -1179,9 +1179,9 @@ class TestAdditionalEndpoints:
     """Test additional API endpoints."""
 
     @pytest.mark.asyncio
-    async def test_debug_gpt4_success(self, client, mock_openai_client):
+    async def test_debug_gpt4_success(self, client, mock_grok_client):
         """Test debug GPT-4 endpoint with success."""
-        with patch("main.openai_client", mock_openai_client):
+        with patch("main.grok_client", mock_grok_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -1191,7 +1191,7 @@ class TestAdditionalEndpoints:
     @pytest.mark.asyncio
     async def test_debug_gpt4_no_client(self, client):
         """Test debug GPT-4 when client is not initialized."""
-        with patch("main.openai_client", None):
+        with patch("main.grok_client", None):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -1206,7 +1206,7 @@ class TestAdditionalEndpoints:
             side_effect=Exception("401 Unauthorized")
         )
 
-        with patch("main.openai_client", mock_client):
+        with patch("main.grok_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -1240,7 +1240,7 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_analyze_with_exception(self, client, sample_ai_analysis_request):
         """Test analysis endpoint when analyzer raises exception."""
-        with patch("main.GPTTradingAnalyzer") as mock_analyzer:
+        with patch("main.GrokTradingAnalyzer") as mock_analyzer:
             mock_instance = AsyncMock()
             mock_instance.analyze_trading_signals = AsyncMock(
                 side_effect=Exception("Analysis failed")
@@ -1312,7 +1312,7 @@ class TestMoreGPTAnalyzerMethods:
 
     def test_get_system_prompt(self):
         """Test getting system prompt."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
         prompt = analyzer._get_system_prompt()
         assert len(prompt) > 0
         assert "crypto" in prompt.lower()  # Changed from "cryptocurrency" to "crypto"
@@ -1320,7 +1320,7 @@ class TestMoreGPTAnalyzerMethods:
 
     def test_prepare_market_context(self):
         """Test preparing market context."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -1355,7 +1355,7 @@ class TestMoreGPTAnalyzerMethods:
 
     def test_create_analysis_prompt(self):
         """Test creating analysis prompt."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
         market_context = "Test context"
         strategy_context = AIStrategyContext(
             selected_strategies=["RSI Strategy", "MACD Strategy"],
@@ -1373,7 +1373,7 @@ class TestMoreGPTAnalyzerMethods:
 
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis shows indicator breakdown
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -1421,7 +1421,7 @@ class TestMoreGPTAnalyzerMethods:
 
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis shows indicator breakdown
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -1471,7 +1471,7 @@ class TestMoreGPTAnalyzerMethods:
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis requires 4/5 indicators per TF
         With only 2 bullish indicators (BB + RSI), each timeframe will be NEUTRAL.
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -1525,7 +1525,7 @@ class TestMoreGPTAnalyzerMethods:
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis shows summary
         When no indicators are provided, timeframes show "insufficient data".
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -1571,8 +1571,8 @@ class TestMoreGPTAnalyzerMethods:
 
 
 @pytest.mark.unit
-class TestDirectOpenAIClientAdvanced:
-    """Test advanced DirectOpenAIClient scenarios."""
+class TestGrokClientAdvanced:
+    """Test advanced GrokClient scenarios."""
 
     @pytest.mark.asyncio
     async def test_chat_completions_with_rate_limiting_delay(self):
@@ -1581,13 +1581,13 @@ class TestDirectOpenAIClientAdvanced:
 
         import httpx
 
-        client = DirectOpenAIClient(["test-key"])
+        client = GrokClient(["test-key"])
 
         mock_response = {"choices": [{"message": {"content": "Test"}}]}
 
         # Set a recent request time to trigger delay
         with patch(
-            "main.last_openai_request_time", datetime.now() - timedelta(seconds=5)
+            "main.last_grok_request_time", datetime.now() - timedelta(seconds=5)
         ):
             with patch("main.OPENAI_REQUEST_DELAY", 10):
                 with patch("httpx.AsyncClient") as mock_httpx:
@@ -1616,7 +1616,7 @@ class TestDirectOpenAIClientAdvanced:
         """Test HTTP 401 error handling."""
         import httpx
 
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
 
         error_401 = httpx.HTTPStatusError(
             "401 Unauthorized", request=Mock(), response=Mock(status_code=401)
@@ -1624,7 +1624,7 @@ class TestDirectOpenAIClientAdvanced:
 
         mock_success = {"choices": [{"message": {"content": "success"}}]}
 
-        with patch("main.last_openai_request_time", None):
+        with patch("main.last_grok_request_time", None):
             with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
                 # First key fails with 401, second succeeds
@@ -1650,7 +1650,7 @@ class TestDirectOpenAIClientAdvanced:
         """Test HTTP 403 quota exceeded handling."""
         import httpx
 
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
 
         error_403 = httpx.HTTPStatusError(
             "403 Quota Exceeded", request=Mock(), response=Mock(status_code=403)
@@ -1658,7 +1658,7 @@ class TestDirectOpenAIClientAdvanced:
 
         mock_success = {"choices": [{"message": {"content": "success"}}]}
 
-        with patch("main.last_openai_request_time", None):
+        with patch("main.last_grok_request_time", None):
             with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
                 mock_client_instance.post = AsyncMock(
@@ -2115,8 +2115,8 @@ class TestMarketConditionHelpers:
 
 
 @pytest.mark.unit
-class TestDirectOpenAIClientErrorPaths:
-    """Test DirectOpenAIClient error paths for better coverage."""
+class TestGrokClientErrorPaths:
+    """Test GrokClient error paths for better coverage."""
 
     @pytest.mark.asyncio
     async def test_chat_completions_with_expired_rate_limit(self):
@@ -2125,14 +2125,14 @@ class TestDirectOpenAIClientErrorPaths:
 
         import httpx
 
-        client = DirectOpenAIClient(["test-key"])
+        client = GrokClient(["test-key"])
 
         mock_response = {"choices": [{"message": {"content": "Test"}}]}
 
         # Mock that rate limit period is in the past (expired)
         past_time = datetime.now() - timedelta(minutes=5)
-        with patch("main.OPENAI_RATE_LIMIT_RESET_TIME", past_time):
-            with patch("main.last_openai_request_time", None):
+        with patch("main.GROK_RATE_LIMIT_RESET_TIME", past_time):
+            with patch("main.last_grok_request_time", None):
                 with patch("httpx.AsyncClient") as mock_httpx:
                     mock_client_instance = AsyncMock()
                     mock_client_instance.post = AsyncMock(
@@ -2157,13 +2157,13 @@ class TestDirectOpenAIClientErrorPaths:
         """Test HTTP error other than 401, 403, 429."""
         import httpx
 
-        client = DirectOpenAIClient(["key1"])
+        client = GrokClient(["key1"])
 
         error_500 = httpx.HTTPStatusError(
             "500 Server Error", request=Mock(), response=Mock(status_code=500)
         )
 
-        with patch("main.last_openai_request_time", None):
+        with patch("main.last_grok_request_time", None):
             with patch("httpx.AsyncClient") as mock_httpx:
                 mock_client_instance = AsyncMock()
                 mock_client_instance.post = AsyncMock(side_effect=error_500)
@@ -2181,9 +2181,9 @@ class TestGPTAnalyzerErrorPaths:
     """Test GPT analyzer error paths."""
 
     @pytest.mark.asyncio
-    async def test_gpt_analysis_with_api_errors(self, mock_openai_client):
+    async def test_gpt_analysis_with_api_errors(self, mock_grok_client):
         """Test GPT analysis with various API error types."""
-        analyzer = GPTTradingAnalyzer(mock_openai_client)
+        analyzer = GrokTradingAnalyzer(mock_grok_client)
 
         candles = [
             CandleData(
@@ -2207,28 +2207,28 @@ class TestGPTAnalyzerErrorPaths:
         )
 
         # Test with 401 error
-        mock_openai_client.chat_completions_create = AsyncMock(
+        mock_grok_client.chat_completions_create = AsyncMock(
             side_effect=Exception("401 Unauthorized")
         )
         result = await analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]  # Should fall back
 
         # Test with 429 error
-        mock_openai_client.chat_completions_create = AsyncMock(
+        mock_grok_client.chat_completions_create = AsyncMock(
             side_effect=Exception("429 Rate Limit")
         )
         result = await analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]  # Should fall back
 
         # Test with quota error
-        mock_openai_client.chat_completions_create = AsyncMock(
+        mock_grok_client.chat_completions_create = AsyncMock(
             side_effect=Exception("quota exceeded")
         )
         result = await analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]  # Should fall back
 
         # Test with timeout error
-        mock_openai_client.chat_completions_create = AsyncMock(
+        mock_grok_client.chat_completions_create = AsyncMock(
             side_effect=Exception("timeout occurred")
         )
         result = await analyzer.analyze_trading_signals(request)
@@ -2236,7 +2236,7 @@ class TestGPTAnalyzerErrorPaths:
 
     def test_parse_gpt_response_no_json(self):
         """Test parsing GPT response with no JSON match."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         # Response with no JSON structure
         response = "This is just plain text with no JSON"
@@ -2248,7 +2248,7 @@ class TestGPTAnalyzerErrorPaths:
 
     def test_parse_gpt_response_with_exception(self):
         """Test parsing GPT response that raises exception."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         # Use a mock to force an exception during parsing
         with patch("json.loads", side_effect=Exception("JSON parse error")):
@@ -2262,7 +2262,7 @@ class TestGPTAnalyzerErrorPaths:
 
     def test_fallback_parse_strong_short(self):
         """Test fallback parsing for strong short signal."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         result = analyzer._fallback_parse("STRONG SELL now")
         assert result["signal"] == "Short"
@@ -2281,7 +2281,7 @@ class TestAdditionalCoverage:
             side_effect=Exception("quota exceeded")
         )
 
-        with patch("main.openai_client", mock_client):
+        with patch("main.grok_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -2296,7 +2296,7 @@ class TestAdditionalCoverage:
             side_effect=Exception("timeout occurred")
         )
 
-        with patch("main.openai_client", mock_client):
+        with patch("main.grok_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -2450,13 +2450,13 @@ class TestMarketContextEdgeCases:
 
 
 @pytest.mark.unit
-class TestDirectOpenAIClientRateLimiting:
+class TestGrokClientRateLimiting:
     """Test DirectOpenAI rate limiting edge cases."""
 
     @pytest.mark.asyncio
     async def test_chat_completions_429_response_handling(self):
         """Test 429 response causes key index to increment."""
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
 
         # Verify behavior: when we get 429, the key index should increment
         initial_index = client.current_key_index
@@ -2472,7 +2472,7 @@ class TestDirectOpenAIClientRateLimiting:
     @pytest.mark.asyncio
     async def test_rate_limit_tracking(self):
         """Test that rate limited keys are tracked."""
-        client = DirectOpenAIClient(["key1", "key2", "key3"])
+        client = GrokClient(["key1", "key2", "key3"])
 
         # Add some keys to rate limited set
         client.rate_limited_keys.add(0)
@@ -2485,7 +2485,7 @@ class TestDirectOpenAIClientRateLimiting:
     @pytest.mark.asyncio
     async def test_all_keys_rate_limited_reset(self):
         """Test that when all keys are rate limited, set is cleared."""
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
 
         # Mark all keys as rate limited
         client.rate_limited_keys.add(0)
@@ -2503,7 +2503,7 @@ class TestRateLimitLogic:
 
     def test_rate_limit_key_tracking(self):
         """Test that rate-limited keys are properly tracked."""
-        client = DirectOpenAIClient(["key1", "key2", "key3"])
+        client = GrokClient(["key1", "key2", "key3"])
 
         # Simulate rate limiting keys
         client.rate_limited_keys.add(0)
@@ -2516,7 +2516,7 @@ class TestRateLimitLogic:
 
     def test_rate_limit_reset_all_keys(self):
         """Test reset when all keys are rate-limited."""
-        client = DirectOpenAIClient(["key1", "key2"])
+        client = GrokClient(["key1", "key2"])
 
         # Mark all as rate-limited
         client.rate_limited_keys.add(0)
@@ -2534,7 +2534,7 @@ class TestGPTAnalyzerFallbackStrategies:
 
     def test_fallback_analysis_neutral_rsi(self):
         """Test fallback with neutral RSI (between 30-70)."""
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -2565,7 +2565,7 @@ class TestGPTAnalyzerFallbackStrategies:
 
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis requires 3/4 timeframes
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -2615,7 +2615,7 @@ class TestGPTAnalyzerFallbackStrategies:
 
         @spec:FR-SETTINGS-002 - Volume ratio < 1.2 doesn't confirm trend
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -2664,7 +2664,7 @@ class TestGPTAnalyzerFallbackStrategies:
 
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis requires 4/5 indicators per TF
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -2715,7 +2715,7 @@ class TestGPTAnalyzerFallbackStrategies:
 
         @spec:FR-SETTINGS-002 - Multi-timeframe analysis without indicators shows summary
         """
-        analyzer = GPTTradingAnalyzer(None)
+        analyzer = GrokTradingAnalyzer(None)
 
         candles = [
             CandleData(
@@ -2800,7 +2800,7 @@ class TestAnalysisEndpointEdgeCases:
 
     @pytest.mark.asyncio
     async def test_analyze_broadcasts_fresh_signal(
-        self, client, sample_ai_analysis_request, mock_openai_client
+        self, client, sample_ai_analysis_request, mock_grok_client
     ):
         """Test that fresh analysis broadcasts via WebSocket."""
         from main import ws_manager
@@ -2809,7 +2809,7 @@ class TestAnalysisEndpointEdgeCases:
         mock_ws = AsyncMock()
         ws_manager.active_connections.add(mock_ws)
 
-        with patch("main.openai_client", mock_openai_client):
+        with patch("main.grok_client", mock_grok_client):
             with patch("main.get_latest_analysis", AsyncMock(return_value=None)):
                 with patch("main.store_analysis_result", AsyncMock()):
                     response = await client.post(
@@ -2916,7 +2916,7 @@ class TestDebugEndpointEdgeCases:
             side_effect=Exception("429 Rate Limit")
         )
 
-        with patch("main.openai_client", mock_client):
+        with patch("main.grok_client", mock_client):
             response = await client.get("/debug/gpt4")
             assert response.status_code == 200
             data = response.json()
@@ -3031,7 +3031,7 @@ class TestPeriodicAnalysisRunner:
         """Test one cycle of periodic analysis."""
         from main import fetch_real_market_data, periodic_analysis_runner
 
-        # Mock the global openai_client and mongodb_db
+        # Mock the global grok_client and mongodb_db
         mock_gpt_client = AsyncMock()
         mock_gpt_client.chat_completions_create = AsyncMock(
             return_value={
@@ -3074,7 +3074,7 @@ class TestPeriodicAnalysisRunner:
         # Create a task that will run one iteration then stop
         task = None
         try:
-            with patch("main.openai_client", mock_gpt_client):
+            with patch("main.grok_client", mock_gpt_client):
                 with patch("main.mongodb_db", None):  # Disable storage for test
                     with patch(
                         "main.ANALYSIS_INTERVAL_MINUTES", 0.001
@@ -3114,7 +3114,7 @@ class TestPeriodicAnalysisRunner:
 
         task = None
         try:
-            with patch("main.openai_client", mock_gpt_client):
+            with patch("main.grok_client", mock_gpt_client):
                 with patch("main.ANALYSIS_INTERVAL_MINUTES", 0.001):
                     task = asyncio.create_task(periodic_analysis_runner())
 
@@ -3188,7 +3188,7 @@ class TestAnalysisStorageErrorHandling:
 
         with patch("main.FALLBACK_ANALYSIS_SYMBOLS", ["BTCUSDT"]):  # Just one symbol
             with patch("main.ANALYSIS_INTERVAL_MINUTES", 0.001):  # Very short interval
-                with patch("main.openai_client", mock_gpt_client):
+                with patch("main.grok_client", mock_gpt_client):
                     with patch("main.mongodb_db", None):
                         task = None
                         try:
@@ -3479,17 +3479,17 @@ class TestWebSocketManagerBroadcast:
 
 
 @pytest.mark.unit
-class TestDirectOpenAIClientErrorHandling:
-    """Test DirectOpenAIClient error handling."""
+class TestGrokClientErrorHandling:
+    """Test GrokClient error handling."""
 
     @pytest.mark.asyncio
-    async def test_direct_openai_client_timeout(self):
-        """Test DirectOpenAIClient handles timeout."""
+    async def test_grok_client_timeout(self):
+        """Test GrokClient handles timeout."""
         import httpx
 
-        from main import DirectOpenAIClient
+        from main import GrokClient
 
-        client = DirectOpenAIClient(["test-key"])
+        client = GrokClient(["test-key"])
 
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.post = AsyncMock(
@@ -3504,11 +3504,11 @@ class TestDirectOpenAIClientErrorHandling:
                 pass
 
     @pytest.mark.asyncio
-    async def test_direct_openai_client_rate_limit(self):
-        """Test DirectOpenAIClient handles rate limiting."""
-        from main import DirectOpenAIClient
+    async def test_grok_client_rate_limit(self):
+        """Test GrokClient handles rate limiting."""
+        from main import GrokClient
 
-        client = DirectOpenAIClient(["test-key"])
+        client = GrokClient(["test-key"])
 
         mock_response = MagicMock()
         mock_response.status_code = 429

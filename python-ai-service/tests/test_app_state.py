@@ -17,11 +17,11 @@ class TestAppState:
         state = AppState()
 
         # Check initialization
-        assert state.openai_client is None
+        assert state.grok_client is None
         assert len(state.websocket_connections) == 0
         assert state.mongodb_client is None
         assert state.mongodb_db is None
-        assert state.last_openai_request_time is None
+        assert state.last_grok_request_time is None
         assert state.openai_rate_limit_reset_time is None
 
         # Check metrics initialization

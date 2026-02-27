@@ -202,8 +202,8 @@ class DocumentIndex:
 class ProjectChatbot:
     """RAG-based chatbot for answering questions about the BotCore project."""
 
-    def __init__(self, openai_client=None):
-        self.openai_client = openai_client
+    def __init__(self, grok_client=None):
+        self.grok_client = grok_client
         self.index = DocumentIndex()
         self.conversation_history: List[Dict[str, str]] = []
         self._indexed = False
@@ -334,9 +334,9 @@ CÂU HỎI CỦA USER:
         messages.append({"role": "user", "content": user_content})
 
         # Call GPT if available
-        if self.openai_client:
+        if self.grok_client:
             try:
-                response = await self.openai_client.chat_completions_create(
+                response = await self.grok_client.chat_completions_create(
                     model=os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning"),
                     messages=messages,
                     max_tokens=1000,
@@ -516,14 +516,14 @@ Hoặc liên hệ support để được hỗ trợ trực tiếp!"""
 _chatbot_instance: Optional[ProjectChatbot] = None
 
 
-async def get_chatbot(openai_client=None) -> ProjectChatbot:
+async def get_chatbot(grok_client=None) -> ProjectChatbot:
     """Get or create chatbot instance."""
     global _chatbot_instance
 
     if _chatbot_instance is None:
-        _chatbot_instance = ProjectChatbot(openai_client)
+        _chatbot_instance = ProjectChatbot(grok_client)
         await _chatbot_instance.initialize()
-    elif openai_client and _chatbot_instance.openai_client is None:
-        _chatbot_instance.openai_client = openai_client
+    elif grok_client and _chatbot_instance.grok_client is None:
+        _chatbot_instance.grok_client = grok_client
 
     return _chatbot_instance

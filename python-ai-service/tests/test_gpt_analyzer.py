@@ -1,5 +1,5 @@
 """
-Test GPTTradingAnalyzer class functionality.
+Test GrokTradingAnalyzer class functionality.
 """
 
 import json
@@ -17,11 +17,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 @pytest.fixture
-def gpt_analyzer(mock_openai_client):
-    """Create GPTTradingAnalyzer instance with mock client."""
-    from main import GPTTradingAnalyzer
+def grok_analyzer(mock_grok_client):
+    """Create GrokTradingAnalyzer instance with mock client."""
+    from main import GrokTradingAnalyzer
 
-    return GPTTradingAnalyzer(mock_openai_client)
+    return GrokTradingAnalyzer(mock_grok_client)
 
 
 @pytest.fixture
@@ -33,19 +33,19 @@ def mock_httpx_client():
 
 
 @pytest.mark.unit
-class TestGPTTradingAnalyzer:
-    """Test GPTTradingAnalyzer methods."""
+class TestGrokTradingAnalyzer:
+    """Test GrokTradingAnalyzer methods."""
 
     @pytest.mark.asyncio
     async def test_analyze_trading_signals_success(
-        self, gpt_analyzer, sample_ai_analysis_request
+        self, grok_analyzer, sample_ai_analysis_request
     ):
         """Test successful signal analysis."""
         from main import AIAnalysisRequest
 
         request = AIAnalysisRequest(**sample_ai_analysis_request)
 
-        result = await gpt_analyzer.analyze_trading_signals(request)
+        result = await grok_analyzer.analyze_trading_signals(request)
 
         assert result.signal == "Long"
         assert result.confidence == 0.75
@@ -56,7 +56,7 @@ class TestGPTTradingAnalyzer:
 
     @pytest.mark.asyncio
     async def test_analyze_with_api_error(
-        self, gpt_analyzer, sample_ai_analysis_request, mock_openai_client
+        self, grok_analyzer, sample_ai_analysis_request, mock_grok_client
     ):
         """Test handling of API errors with fallback to technical analysis."""
         from main import AIAnalysisRequest
@@ -64,17 +64,17 @@ class TestGPTTradingAnalyzer:
         request = AIAnalysisRequest(**sample_ai_analysis_request)
 
         # Mock API error
-        mock_openai_client.chat_completions_create.side_effect = Exception("API Error")
+        mock_grok_client.chat_completions_create.side_effect = Exception("API Error")
 
         # Should fall back to technical analysis instead of raising
-        result = await gpt_analyzer.analyze_trading_signals(request)
+        result = await grok_analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]
         assert result.confidence >= 0
         assert "Technical analysis" in result.reasoning
 
     @pytest.mark.asyncio
     async def test_analyze_with_invalid_json_response(
-        self, gpt_analyzer, sample_ai_analysis_request, mock_openai_client
+        self, grok_analyzer, sample_ai_analysis_request, mock_grok_client
     ):
         """Test handling of invalid JSON in response."""
         from main import AIAnalysisRequest
@@ -82,12 +82,12 @@ class TestGPTTradingAnalyzer:
         request = AIAnalysisRequest(**sample_ai_analysis_request)
 
         # Mock invalid JSON response
-        mock_openai_client.chat.completions.create.return_value = MagicMock(
+        mock_grok_client.chat.completions.create.return_value = MagicMock(
             choices=[MagicMock(message=MagicMock(content="Invalid JSON"))]
         )
 
         # Should handle gracefully
-        result = await gpt_analyzer.analyze_trading_signals(request)
+        result = await grok_analyzer.analyze_trading_signals(request)
         assert result.signal in ["Long", "Short", "Neutral"]
 
     @pytest.mark.asyncio
@@ -115,23 +115,23 @@ class TestGPTTradingAnalyzer:
             mock_httpx_client.post.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_rate_limiting(self, gpt_analyzer, sample_ai_analysis_request):
+    async def test_rate_limiting(self, grok_analyzer, sample_ai_analysis_request):
         """Test rate limiting behavior."""
         import main
         from main import (
-            OPENAI_REQUEST_DELAY,
+            GROK_REQUEST_DELAY,
             AIAnalysisRequest,
-            last_openai_request_time,
+            last_grok_request_time,
         )
 
         request = AIAnalysisRequest(**sample_ai_analysis_request)
 
         # Set last request time to recent
-        main.last_openai_request_time = datetime.now()
+        main.last_grok_request_time = datetime.now()
 
         # Should add delay
         start_time = datetime.now()
-        await gpt_analyzer.analyze_trading_signals(request)
+        await grok_analyzer.analyze_trading_signals(request)
         elapsed = (datetime.now() - start_time).total_seconds()
 
         # Check that some delay was applied (may not be full delay due to mocking)
@@ -144,9 +144,9 @@ class TestStrategyRecommendations:
 
     @pytest.mark.asyncio
     @pytest.mark.skip(
-        reason="get_strategy_recommendations method not implemented on GPTTradingAnalyzer"
+        reason="get_strategy_recommendations method not implemented on GrokTradingAnalyzer"
     )
-    async def test_get_strategy_recommendations(self, gpt_analyzer):
+    async def test_get_strategy_recommendations(self, grok_analyzer):
         """Test getting strategy recommendations."""
         from main import StrategyRecommendationRequest
 
@@ -188,11 +188,11 @@ class TestStrategyRecommendations:
             },
         }
 
-        gpt_analyzer.client.chat.completions.create.return_value = MagicMock(
+        grok_analyzer.client.chat.completions.create.return_value = MagicMock(
             choices=[MagicMock(message=MagicMock(content=json.dumps(mock_response)))]
         )
 
-        result = await gpt_analyzer.get_strategy_recommendations(request)
+        result = await grok_analyzer.get_strategy_recommendations(request)
 
         assert "recommended_strategies" in result
         assert len(result["recommended_strategies"]) > 0
@@ -205,9 +205,9 @@ class TestMarketConditionAnalysis:
 
     @pytest.mark.asyncio
     @pytest.mark.skip(
-        reason="analyze_market_condition method not implemented on GPTTradingAnalyzer"
+        reason="analyze_market_condition method not implemented on GrokTradingAnalyzer"
     )
-    async def test_analyze_market_condition(self, gpt_analyzer):
+    async def test_analyze_market_condition(self, grok_analyzer):
         """Test market condition analysis."""
         from main import MarketConditionRequest
 
@@ -240,11 +240,11 @@ class TestMarketConditionAnalysis:
             "risk_factors": ["Approaching overbought conditions"],
         }
 
-        gpt_analyzer.client.chat.completions.create.return_value = MagicMock(
+        grok_analyzer.client.chat.completions.create.return_value = MagicMock(
             choices=[MagicMock(message=MagicMock(content=json.dumps(mock_response)))]
         )
 
-        result = await gpt_analyzer.analyze_market_condition(request)
+        result = await grok_analyzer.analyze_market_condition(request)
 
         assert result["overall_market"] == "bullish"
         assert result["market_phase"] == "accumulation"

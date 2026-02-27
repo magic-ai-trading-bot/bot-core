@@ -31,7 +31,7 @@ def event_loop():
 
 
 @pytest.fixture
-def mock_openai_client():
+def mock_grok_client():
     """Mock OpenAI client."""
     mock = AsyncMock()
 
@@ -106,7 +106,7 @@ def mock_mongodb():
 
 
 @pytest.fixture
-def app(mock_openai_client, mock_mongodb):
+def app(mock_grok_client, mock_mongodb):
     """
     Create FastAPI test app with mocked dependencies.
 
@@ -118,16 +118,16 @@ def app(mock_openai_client, mock_mongodb):
     mongo_client, mongo_db = mock_mongodb
 
     # Store original values
-    original_openai = getattr(main, "openai_client", None)
+    original_grok = getattr(main, "grok_client", None)
     original_mongo_client = getattr(main, "mongodb_client", None)
     original_mongo_db = getattr(main, "mongodb_db", None)
-    original_analyzer = getattr(main, "gpt_analyzer", None)
+    original_analyzer = getattr(main, "grok_analyzer", None)
 
     # Patch the global variables in main module
-    main.openai_client = mock_openai_client
+    main.grok_client = mock_grok_client
     main.mongodb_client = mongo_client
     main.mongodb_db = mongo_db
-    main.gpt_analyzer = None  # Reset analyzer
+    main.grok_analyzer = None  # Reset analyzer
 
     # Mock WebSocket manager's active_connections (fresh set)
     if hasattr(main, "ws_manager"):
@@ -136,10 +136,10 @@ def app(mock_openai_client, mock_mongodb):
     yield main.app
 
     # Cleanup - restore original values to avoid interference
-    main.openai_client = original_openai
+    main.grok_client = original_grok
     main.mongodb_client = original_mongo_client
     main.mongodb_db = original_mongo_db
-    main.gpt_analyzer = original_analyzer
+    main.grok_analyzer = original_analyzer
 
 
 @pytest_asyncio.fixture

@@ -12,9 +12,9 @@ from app.core.config import (
     ALLOWED_ORIGINS,
     ANALYSIS_INTERVAL_MINUTES,
     ANALYSIS_SYMBOLS,
-    GPT4O_MINI_INPUT_COST_PER_1M,
-    GPT4O_MINI_OUTPUT_COST_PER_1M,
-    OPENAI_REQUEST_DELAY,
+    GROK_INPUT_COST_PER_1M,
+    GROK_OUTPUT_COST_PER_1M,
+    GROK_REQUEST_DELAY,
     get_mongodb_url,
     get_openai_api_keys,
 )
@@ -24,16 +24,16 @@ class TestConfigConstants:
     """Test configuration constants."""
 
     def test_openai_request_delay_is_positive(self):
-        """Test OPENAI_REQUEST_DELAY is positive."""
-        assert OPENAI_REQUEST_DELAY > 0
-        assert isinstance(OPENAI_REQUEST_DELAY, int)
+        """Test GROK_REQUEST_DELAY is positive."""
+        assert GROK_REQUEST_DELAY > 0
+        assert isinstance(GROK_REQUEST_DELAY, int)
 
     def test_gpt4o_mini_costs_are_positive(self):
         """Test GPT-4o-mini cost constants are positive."""
-        assert GPT4O_MINI_INPUT_COST_PER_1M > 0
-        assert GPT4O_MINI_OUTPUT_COST_PER_1M > 0
-        assert isinstance(GPT4O_MINI_INPUT_COST_PER_1M, float)
-        assert isinstance(GPT4O_MINI_OUTPUT_COST_PER_1M, float)
+        assert GROK_INPUT_COST_PER_1M > 0
+        assert GROK_OUTPUT_COST_PER_1M > 0
+        assert isinstance(GROK_INPUT_COST_PER_1M, float)
+        assert isinstance(GROK_OUTPUT_COST_PER_1M, float)
 
     def test_ai_analysis_collection_is_string(self):
         """Test AI_ANALYSIS_COLLECTION is a string."""

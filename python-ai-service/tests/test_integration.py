@@ -22,11 +22,11 @@ class TestFullAnalysisFlow:
 
     @pytest.mark.asyncio
     async def test_complete_analysis_flow(
-        self, client, sample_ai_analysis_request, mock_openai_client, mock_mongodb
+        self, client, sample_ai_analysis_request, mock_grok_client, mock_mongodb
     ):
         """Test full flow: receive request -> analyze -> store -> return."""
         # Setup mocks - use AsyncMock for async method
-        mock_openai_client.chat_completions_create = AsyncMock(
+        mock_grok_client.chat_completions_create = AsyncMock(
             return_value={
                 "choices": [
                     {
@@ -39,7 +39,7 @@ class TestFullAnalysisFlow:
         )
 
         with (
-            patch("main.openai_client", mock_openai_client),
+            patch("main.grok_client", mock_grok_client),
             patch("main.mongodb_db", mock_mongodb[1]),
             patch("main.store_analysis_result", AsyncMock()) as mock_store,
         ):
@@ -58,12 +58,12 @@ class TestFullAnalysisFlow:
 
     @pytest.mark.asyncio
     @pytest.mark.skip(reason="fetch_binance_candles function not implemented")
-    async def test_periodic_analysis_task(self, mock_openai_client, mock_mongodb):
+    async def test_periodic_analysis_task(self, mock_grok_client, mock_mongodb):
         """Test periodic analysis task execution."""
         from main import ANALYSIS_SYMBOLS, periodic_analysis_runner
 
         # Mock successful analyses
-        mock_openai_client.chat.completions.create.return_value = MagicMock(
+        mock_grok_client.chat.completions.create.return_value = MagicMock(
             choices=[
                 MagicMock(
                     message=MagicMock(
@@ -92,7 +92,7 @@ class TestFullAnalysisFlow:
         ]
 
         with (
-            patch("main.openai_client", mock_openai_client),
+            patch("main.grok_client", mock_grok_client),
             patch("main.mongodb_db", mock_mongodb[1]),
             patch("main.fetch_binance_candles", AsyncMock(return_value=mock_candles)),
             patch("main.store_analysis_result", AsyncMock()) as mock_store,
@@ -233,7 +233,7 @@ class TestWebSocketBroadcasting:
     @pytest.mark.skip(
         reason="Flaky - TestClient WebSocket has fixture pollution when run with full suite"
     )
-    async def test_analysis_broadcast_to_clients(self, test_client, mock_openai_client):
+    async def test_analysis_broadcast_to_clients(self, test_client, mock_grok_client):
         """Test that analysis results are broadcast to WebSocket clients."""
         from main import ws_manager
 
@@ -272,7 +272,7 @@ class TestErrorHandlingAndRecovery:
         self, client, sample_ai_analysis_request
     ):
         """Test handling when all OpenAI API keys fail - should fall back to technical analysis."""
-        with patch("main.openai_client", None):
+        with patch("main.grok_client", None):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
             # System gracefully degrades to technical analysis instead of failing
             assert response.status_code == 200

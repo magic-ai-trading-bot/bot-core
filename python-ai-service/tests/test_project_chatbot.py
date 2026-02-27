@@ -205,7 +205,7 @@ class TestProjectChatbot:
         from services.project_chatbot import ProjectChatbot
 
         chatbot = ProjectChatbot()
-        assert chatbot.openai_client is None
+        assert chatbot.grok_client is None
         assert chatbot._indexed is False
         assert chatbot.conversation_history == []
 
@@ -214,9 +214,9 @@ class TestProjectChatbot:
         from services.project_chatbot import ProjectChatbot
 
         mock_client = MagicMock()
-        chatbot = ProjectChatbot(openai_client=mock_client)
+        chatbot = ProjectChatbot(grok_client=mock_client)
 
-        assert chatbot.openai_client is mock_client
+        assert chatbot.grok_client is mock_client
 
     @pytest.mark.asyncio
     async def test_initialize_already_indexed(self):
@@ -302,7 +302,7 @@ class TestProjectChatbot:
         mock_init.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_chat_with_openai_client_success(self):
+    async def test_chat_with_grok_client_success(self):
         """Test chat with successful OpenAI response."""
         from services.project_chatbot import ProjectChatbot
 
@@ -314,7 +314,7 @@ class TestProjectChatbot:
             }
         )
 
-        chatbot = ProjectChatbot(openai_client=mock_client)
+        chatbot = ProjectChatbot(grok_client=mock_client)
         chatbot._indexed = True
 
         result = await chatbot.chat("test question")
@@ -334,7 +334,7 @@ class TestProjectChatbot:
             side_effect=Exception("API Error")
         )
 
-        chatbot = ProjectChatbot(openai_client=mock_client)
+        chatbot = ProjectChatbot(grok_client=mock_client)
         chatbot._indexed = True
 
         result = await chatbot.chat("test question")
@@ -343,7 +343,7 @@ class TestProjectChatbot:
         assert result["type"] == "fallback"
 
     @pytest.mark.asyncio
-    async def test_chat_no_openai_client_uses_fallback(self):
+    async def test_chat_no_grok_client_uses_fallback(self):
         """Test chat uses fallback when no OpenAI client."""
         from services.project_chatbot import ProjectChatbot
 
@@ -368,7 +368,7 @@ class TestProjectChatbot:
             }
         )
 
-        chatbot = ProjectChatbot(openai_client=mock_client)
+        chatbot = ProjectChatbot(grok_client=mock_client)
         chatbot._indexed = True
 
         # Add many messages to history
@@ -532,7 +532,7 @@ class TestGetChatbot:
 
         # Create instance
         mock_instance = MagicMock()
-        mock_instance.openai_client = MagicMock()
+        mock_instance.grok_client = MagicMock()
         project_chatbot._chatbot_instance = mock_instance
 
         result = await project_chatbot.get_chatbot(None)
@@ -549,13 +549,13 @@ class TestGetChatbot:
 
         # Create instance without client
         mock_instance = MagicMock()
-        mock_instance.openai_client = None
+        mock_instance.grok_client = None
         project_chatbot._chatbot_instance = mock_instance
 
         new_client = MagicMock()
         result = await project_chatbot.get_chatbot(new_client)
 
-        assert result.openai_client is new_client
+        assert result.grok_client is new_client
 
         # Cleanup
         project_chatbot._chatbot_instance = None

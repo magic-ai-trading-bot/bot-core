@@ -8,13 +8,13 @@ from typing import List
 
 # === API Configuration ===
 # Read from environment variable with fallback to 2 seconds
-# GPT-4o-mini has high rate limits (500 RPM for Tier 1, 5000 RPM for Tier 2+)
-# So we can safely reduce delay between requests
-OPENAI_REQUEST_DELAY = int(os.getenv("OPENAI_REQUEST_DELAY", "2"))
+# xAI Grok has high rate limits
+# Delay between requests in seconds
+GROK_REQUEST_DELAY = int(os.getenv("GROK_REQUEST_DELAY", os.getenv("OPENAI_REQUEST_DELAY", "2")))
 
-# === Cost Monitoring (GPT-4o-mini pricing as of Nov 2024) ===
-GPT4O_MINI_INPUT_COST_PER_1M = 0.150  # $0.150 per 1M input tokens
-GPT4O_MINI_OUTPUT_COST_PER_1M = 0.600  # $0.600 per 1M output tokens
+# === Cost Monitoring (Grok pricing) ===
+GROK_INPUT_COST_PER_1M = 0.300  # $0.300 per 1M input tokens
+GROK_OUTPUT_COST_PER_1M = 0.500  # $0.500 per 1M output tokens
 
 # === MongoDB Configuration ===
 AI_ANALYSIS_COLLECTION = "ai_analysis_results"
@@ -44,25 +44,25 @@ def get_mongodb_url() -> str:
     return mongodb_url
 
 
-def get_openai_api_keys() -> List[str]:
-    """Get OpenAI API keys from environment variables."""
+def get_ai_api_keys() -> List[str]:
+    """Get AI (xAI/Grok) API keys from environment variables."""
     keys = []
 
     # Try primary key
-    primary_key = os.getenv("OPENAI_API_KEY")
+    primary_key = os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
     if primary_key:
         keys.append(primary_key)
 
     # Try fallback keys
     for i in range(1, 6):  # Support up to 5 fallback keys
-        fallback_key = os.getenv(f"OPENAI_API_KEY_FALLBACK_{i}")
+        fallback_key = os.getenv(f"XAI_API_KEY_FALLBACK_{i}") or os.getenv(f"OPENAI_API_KEY_FALLBACK_{i}")
         if fallback_key:
             keys.append(fallback_key)
 
     if not keys:
         raise ValueError(
-            "At least one OpenAI API key is required. "
-            "Set OPENAI_API_KEY in your .env file."
+            "At least one AI API key is required. "
+            "Set XAI_API_KEY in your .env file."
         )
 
     return keys

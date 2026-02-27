@@ -22,12 +22,12 @@ class TestFullAnalysisPipeline:
 
     @pytest.mark.asyncio
     async def test_end_to_end_analysis_flow(
-        self, client, sample_ai_analysis_request, mock_openai_client
+        self, client, sample_ai_analysis_request, mock_grok_client
     ):
         """Test complete flow: request → indicators → ML → AI → response"""
 
         # Setup OpenAI mock
-        mock_openai_client.chat_completions_create = AsyncMock(
+        mock_grok_client.chat_completions_create = AsyncMock(
             return_value={
                 "choices": [
                     {
@@ -39,7 +39,7 @@ class TestFullAnalysisPipeline:
             }
         )
 
-        with patch("main.openai_client", mock_openai_client):
+        with patch("main.grok_client", mock_grok_client):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
 
             assert response.status_code == 200
@@ -367,7 +367,7 @@ class TestErrorHandling:
     ):
         """Test fallback when OpenAI API fails"""
 
-        with patch("main.openai_client", None):
+        with patch("main.grok_client", None):
             response = await client.post("/ai/analyze", json=sample_ai_analysis_request)
 
             # Should fallback to technical analysis

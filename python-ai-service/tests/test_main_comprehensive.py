@@ -509,7 +509,7 @@ class TestPeriodicAnalysisErrorBranches:
 
         from main import periodic_analysis_runner
 
-        with patch("main.GPTTradingAnalyzer") as mock_analyzer:
+        with patch("main.GrokTradingAnalyzer") as mock_analyzer:
             mock_analyzer.return_value.analyze_trading_signals.side_effect = Exception(
                 "Analysis error"
             )
@@ -698,7 +698,7 @@ class TestGPTAnalyzerInitialization:
         # Reset analyzer
         import main
 
-        main.gpt_analyzer = None
+        main.grok_analyzer = None
 
         response = await client.post("/ai/analyze", json=payload)
         assert response.status_code in [200, 500, 422]

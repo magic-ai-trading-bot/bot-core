@@ -54,7 +54,7 @@ class TestPeriodicAnalysisRunner:
             with patch("main.fetch_real_market_data") as mock_fetch:
                 mock_fetch.return_value = mock_request
 
-                with patch("main.GPTTradingAnalyzer") as mock_analyzer_class:
+                with patch("main.GrokTradingAnalyzer") as mock_analyzer_class:
                     mock_analyzer = AsyncMock()
                     mock_result = MagicMock()
                     mock_result.signal = "Long"
@@ -140,7 +140,7 @@ class TestGPT4TrendPrediction:
         candles_by_tf = {"1d": sample_candles}
 
         # Save and reset global counters
-        original_client = main.openai_client
+        original_client = main.grok_client
         original_input_tokens = main.total_input_tokens
         original_output_tokens = main.total_output_tokens
         original_requests = main.total_requests_count
@@ -177,7 +177,7 @@ class TestGPT4TrendPrediction:
                 }
             )
 
-            main.openai_client = mock_openai
+            main.grok_client = mock_openai
 
             result = await main._predict_trend_gpt4("BTCUSDT", candles_by_tf)
 
@@ -189,7 +189,7 @@ class TestGPT4TrendPrediction:
             assert main.total_cost_usd > 0
 
         finally:
-            main.openai_client = original_client
+            main.grok_client = original_client
             main.total_input_tokens = original_input_tokens
             main.total_output_tokens = original_output_tokens
             main.total_requests_count = original_requests

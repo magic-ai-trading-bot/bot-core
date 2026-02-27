@@ -27,7 +27,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.core.config import OPENAI_REQUEST_DELAY
+from app.core.config import GROK_REQUEST_DELAY
 
 # Load configuration
 from config_loader import AI_CACHE_DURATION_MINUTES, AI_CACHE_ENABLED
@@ -61,7 +61,7 @@ AI_MODEL = os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning")
 # Thread safety: These are only written during startup/shutdown in lifespan
 # Read-only access during request handling is safe
 # Type annotations help mypy understand optional types
-openai_client: Optional[Any] = None
+grok_client: Optional[Any] = None
 websocket_connections: Set[WebSocket] = set()
 mongodb_client: Optional[AsyncIOMotorClient] = None
 mongodb_db: Optional[Any] = None
@@ -70,9 +70,9 @@ mongodb_db: Optional[Any] = None
 # Thread safety: Access to these variables is protected by asyncio.Lock
 # for proper async/await compatibility
 _rate_limit_lock = asyncio.Lock()
-last_openai_request_time = None
-# OPENAI_REQUEST_DELAY is imported from app.core.config (reads from env var)
-OPENAI_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
+last_grok_request_time = None
+# GROK_REQUEST_DELAY is imported from app.core.config (reads from env var)
+GROK_RATE_LIMIT_RESET_TIME = None  # Track when rate limit resets
 
 # Cost monitoring (xAI Grok 4.1 Fast pricing)
 AI_INPUT_COST_PER_1M = 0.200  # $0.200 per 1M input tokens
@@ -382,7 +382,7 @@ async def periodic_analysis_runner():
                     analysis_request = await fetch_real_market_data(symbol)
 
                     # Run AI analysis
-                    analyzer = GPTTradingAnalyzer(openai_client)
+                    analyzer = GrokTradingAnalyzer(grok_client)
                     analysis_result = await analyzer.analyze_trading_signals(
                         analysis_request
                     )
@@ -434,7 +434,7 @@ async def periodic_analysis_runner():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    global openai_client, mongodb_client, mongodb_db
+    global grok_client, mongodb_client, mongodb_db
 
     # Startup
     logger.info("🚀 Starting Grok AI Trading Service")
@@ -505,20 +505,20 @@ async def lifespan(app: FastAPI):
 
     if not api_key or api_key.startswith("your-"):
         logger.error("❌ AI API key not configured!")
-        openai_client = None
+        grok_client = None
     else:
         logger.info(f"🔄 Initializing AI client ({AI_BASE_URL})...")
 
         # Use direct HTTP client (xAI/Grok-compatible API)
         try:
-            openai_client = DirectOpenAIClient(valid_api_keys)
+            grok_client = GrokClient(valid_api_keys)
             logger.info(f"✅ AI HTTP client initialized ({AI_MODEL} via {AI_BASE_URL})")
             logger.info(f"🔑 Total API keys configured: {len(valid_api_keys)}")
         except Exception as e:
             logger.error(f"❌ Failed to initialize AI client: {e}")
-            openai_client = None
+            grok_client = None
 
-    if openai_client is not None:
+    if grok_client is not None:
         logger.info(f"✅ AI client ready ({AI_MODEL})")
     else:
         logger.warning("❌ AI unavailable - will use fallback technical analysis")
@@ -1270,7 +1270,7 @@ class TechnicalAnalyzer:
 # === HTTP-BASED GROK CLIENT ===
 
 
-class DirectOpenAIClient:
+class GrokClient:
     """Direct HTTP client for AI API (xAI Grok / OpenAI compatible) with auto-fallback support."""
 
     def __init__(self, api_keys: list, base_url: str = None):
@@ -1307,7 +1307,7 @@ class DirectOpenAIClient:
         max_tokens: int = 1200,  # Default reduced from 2000 to 1200
     ) -> Dict[str, Any]:
         """Direct HTTP call to OpenAI chat completions API with auto-fallback on rate limits."""
-        global last_openai_request_time, OPENAI_RATE_LIMIT_RESET_TIME
+        global last_grok_request_time, GROK_RATE_LIMIT_RESET_TIME
         import httpx
 
         # Try each available API key until success or all are exhausted
@@ -1318,10 +1318,10 @@ class DirectOpenAIClient:
 
             # Check if we're still in a rate limit period (async-safe)
             async with _rate_limit_lock:
-                if OPENAI_RATE_LIMIT_RESET_TIME:
-                    if datetime.now() < OPENAI_RATE_LIMIT_RESET_TIME:
+                if GROK_RATE_LIMIT_RESET_TIME:
+                    if datetime.now() < GROK_RATE_LIMIT_RESET_TIME:
                         remaining_time = (
-                            OPENAI_RATE_LIMIT_RESET_TIME - datetime.now()
+                            GROK_RATE_LIMIT_RESET_TIME - datetime.now()
                         ).total_seconds()
                         logger.warning(
                             f"⏰ API key in rate limit "
@@ -1332,18 +1332,18 @@ class DirectOpenAIClient:
                         continue
                     else:
                         # Rate limit period expired, reset it
-                        OPENAI_RATE_LIMIT_RESET_TIME = None
+                        GROK_RATE_LIMIT_RESET_TIME = None
                         self.rate_limited_keys.discard(key_index)
                         logger.info(f"✅ API key rate limit expired")
 
             # Rate limiting: ensure minimum delay between requests
             # (checked outside lock to allow sleep without blocking)
-            if last_openai_request_time:
+            if last_grok_request_time:
                 time_since_last = (
-                    datetime.now() - last_openai_request_time
+                    datetime.now() - last_grok_request_time
                 ).total_seconds()
-                if time_since_last < OPENAI_REQUEST_DELAY:
-                    delay = OPENAI_REQUEST_DELAY - time_since_last
+                if time_since_last < GROK_REQUEST_DELAY:
+                    delay = GROK_REQUEST_DELAY - time_since_last
                     logger.info(
                         f"⏳ Rate limiting: waiting {delay:.1f}s " f"before request"
                     )
@@ -1351,7 +1351,7 @@ class DirectOpenAIClient:
 
             # Update last request time (async-safe)
             async with _rate_limit_lock:
-                last_openai_request_time = datetime.now()
+                last_grok_request_time = datetime.now()
 
             headers = {
                 "Authorization": f"Bearer {current_key}",
@@ -1383,13 +1383,13 @@ class DirectOpenAIClient:
                             reset_time = datetime.now() + timedelta(
                                 seconds=int(retry_after)
                             )
-                            OPENAI_RATE_LIMIT_RESET_TIME = reset_time
+                            GROK_RATE_LIMIT_RESET_TIME = reset_time
                             logger.warning(
                                 f"⏰ API key rate limited until {reset_time}"
                             )
                         else:
                             # Default to 1 hour if no retry-after header
-                            OPENAI_RATE_LIMIT_RESET_TIME = datetime.now() + timedelta(
+                            GROK_RATE_LIMIT_RESET_TIME = datetime.now() + timedelta(
                                 hours=1
                             )
                             logger.warning(f"⏰ API key rate limited for 1 hour")
@@ -1434,7 +1434,7 @@ class DirectOpenAIClient:
 # === GROK AI ANALYZER ===
 
 
-class GPTTradingAnalyzer:
+class GrokTradingAnalyzer:
     """Grok (xAI) powered trading analysis."""
 
     def __init__(self, client):
@@ -2600,7 +2600,7 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "Grok Trading AI",
         "version": "3.0.0",
-        "grok_available": openai_client is not None,
+        "grok_available": grok_client is not None,
         "api_key_configured": bool(
             os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
         ),
@@ -2693,11 +2693,11 @@ async def deep_health_market_condition():
 async def debug_gpt4(request: Request):
     """Debug Grok connectivity."""
     result: Dict[str, Any] = {
-        "client_initialized": openai_client is not None,
+        "client_initialized": grok_client is not None,
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
     }
 
-    if openai_client is None:
+    if grok_client is None:
         result["error"] = "Grok client not initialized"
         result["status"] = "failed"
         return result
@@ -2705,7 +2705,7 @@ async def debug_gpt4(request: Request):
     try:
         # Test simple API call
         logger.info("🧪 Testing GPT-5-mini API connection...")
-        response = await openai_client.chat_completions_create(
+        response = await grok_client.chat_completions_create(
             model=AI_MODEL,
             messages=[
                 {"role": "user", "content": "Respond with just the word 'SUCCESS'"}
@@ -2771,9 +2771,9 @@ async def analyze_trading_signals(
     global gpt_analyzer
 
     if not gpt_analyzer:
-        gpt_analyzer = GPTTradingAnalyzer(openai_client)
+        grok_analyzer = GrokTradingAnalyzer(grok_client)
         logger.info(
-            f"🤖 Grok analyzer created with client: {'Available' if openai_client else 'None'}"
+            f"🤖 Grok analyzer created with client: {'Available' if grok_client else 'None'}"
         )
 
     logger.info(f"🤖 Grok analysis request for {analysis_request.symbol}")
@@ -2783,7 +2783,7 @@ async def analyze_trading_signals(
     )
 
     # Check Grok availability
-    if openai_client is None:
+    if grok_client is None:
         logger.warning("⚠️ Grok client is None - will use fallback analysis")
     else:
         logger.info("✅ Grok client available - attempting AI analysis")
@@ -2869,7 +2869,7 @@ async def analyze_trading_signals(
         logger.info(
             f"🔥 No recent analysis found. Calling Grok for {analysis_request.symbol}"
         )
-        response = await gpt_analyzer.analyze_trading_signals(analysis_request)
+        response = await grok_analyzer.analyze_trading_signals(analysis_request)
         logger.info(
             f"✅ Grok signal: {response.signal} (confidence: {response.confidence:.2f})"
         )
@@ -3481,7 +3481,7 @@ async def predict_trend(body: TrendPredictionRequest, request: Request):
             )
 
         # Try Grok analysis first
-        if openai_client is not None:
+        if grok_client is not None:
             try:
                 result = await _predict_trend_gpt4(body.symbol, candles_by_tf)
                 logger.info(
@@ -3647,7 +3647,7 @@ OUTPUT FORMAT (JSON only, no markdown):
 }}"""
 
     # Call Grok
-    response = await openai_client.chat_completions_create(
+    response = await grok_client.chat_completions_create(
         model=AI_MODEL,
         messages=[
             {
@@ -4124,9 +4124,21 @@ async def perform_trade_analysis(trade_data: Dict[str, Any]) -> Dict[str, Any]:
             "trade_id": trade_id,
         }
 
-    from openai import OpenAI
+    import httpx as _httpx
 
-    client = OpenAI(api_key=api_key, base_url=AI_BASE_URL)
+    class _SimpleGrokClient:
+        def __init__(self, key, base_url):
+            self._key = key
+            self._base_url = base_url
+        async def chat_completions_create(self, model, messages, temperature=0.0, max_tokens=1200):
+            async with _httpx.AsyncClient(timeout=60.0) as c:
+                r = await c.post(f"{self._base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json"},
+                    json={"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens})
+                r.raise_for_status()
+                return r.json()
+
+    client = _SimpleGrokClient(api_key, AI_BASE_URL)
 
     # Determine if winning or losing
     pnl = trade_data.get("pnl_usdt", 0)
@@ -4314,9 +4326,9 @@ async def chat_with_project(request: ProjectChatRequest):
     try:
         # Get or create chatbot instance with OpenAI client
         if _project_chatbot is None:
-            _project_chatbot = await get_chatbot(openai_client)
-        elif openai_client and _project_chatbot.openai_client is None:
-            _project_chatbot.openai_client = openai_client
+            _project_chatbot = await get_chatbot(grok_client)
+        elif grok_client and _project_chatbot.grok_client is None:
+            _project_chatbot.grok_client = grok_client
 
         # Process the message
         result = await _project_chatbot.chat(
@@ -4352,7 +4364,7 @@ async def get_chat_suggestions():
     global _project_chatbot
 
     if _project_chatbot is None:
-        _project_chatbot = await get_chatbot(openai_client)
+        _project_chatbot = await get_chatbot(grok_client)
 
     return {
         "suggestions": _project_chatbot.get_suggested_questions(),
@@ -4399,7 +4411,7 @@ async def root():
         },
         "documentation": "/docs",
         "features": {
-            "grok_enabled": openai_client is not None,
+            "grok_enabled": grok_client is not None,
             "mongodb_storage": mongodb_client is not None,
             "websocket_broadcasting": True,
             "periodic_analysis": True,

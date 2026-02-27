@@ -25,7 +25,7 @@ class TestProjectChatbotEndpoints:
                 "tokens_used": {"prompt": 100, "completion": 50},
             }
         )
-        mock_chatbot.openai_client = MagicMock()
+        mock_chatbot.grok_client = MagicMock()
 
         with patch("main._project_chatbot", mock_chatbot):
             response = await client.post(
@@ -53,7 +53,7 @@ class TestProjectChatbotEndpoints:
                 "tokens_used": {},
             }
         )
-        mock_chatbot.openai_client = MagicMock()
+        mock_chatbot.grok_client = MagicMock()
 
         with (
             patch("main._project_chatbot", None),
@@ -70,7 +70,7 @@ class TestProjectChatbotEndpoints:
         """Test POST /api/chat/project when chatbot raises exception."""
         mock_chatbot = AsyncMock()
         mock_chatbot.chat = AsyncMock(side_effect=Exception("Chat error"))
-        mock_chatbot.openai_client = MagicMock()
+        mock_chatbot.grok_client = MagicMock()
 
         with patch("main._project_chatbot", mock_chatbot):
             response = await client.post(
@@ -366,14 +366,14 @@ class TestTechnicalTrendPrediction:
 
 @pytest.mark.asyncio
 class TestChatbotOpenAIClientUpdate:
-    """Test chatbot openai_client update when client is available (line 3485-3486)."""
+    """Test chatbot grok_client update when client is available."""
 
-    async def test_chat_updates_openai_client(self, client):
-        """Test that chatbot gets openai_client if it was None."""
+    async def test_chat_updates_grok_client(self, client):
+        """Test that chatbot gets grok_client if it was None."""
         import main
 
         mock_chatbot = AsyncMock()
-        mock_chatbot.openai_client = None  # chatbot has no client
+        mock_chatbot.grok_client = None  # chatbot has no client
         mock_chatbot.chat = AsyncMock(
             return_value={
                 "success": True,
@@ -385,8 +385,8 @@ class TestChatbotOpenAIClientUpdate:
             }
         )
 
-        original_openai = main.openai_client
-        main.openai_client = MagicMock()  # main has a client
+        original_grok = main.grok_client
+        main.grok_client = MagicMock()  # main has a client
 
         try:
             with patch("main._project_chatbot", mock_chatbot):
@@ -396,9 +396,9 @@ class TestChatbotOpenAIClientUpdate:
                 )
                 assert response.status_code == 200
                 # Chatbot should have been updated with the openai client
-                assert mock_chatbot.openai_client is not None
+                assert mock_chatbot.grok_client is not None
         finally:
-            main.openai_client = original_openai
+            main.grok_client = original_grok
 
 
 if __name__ == "__main__":
