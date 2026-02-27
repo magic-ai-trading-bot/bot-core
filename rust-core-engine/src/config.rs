@@ -192,6 +192,8 @@ impl Default for Config {
                     "5m".to_string(),
                     "15m".to_string(),
                     "1h".to_string(),
+                    "4h".to_string(),
+                    "1d".to_string(),
                 ],
                 kline_limit: 500,
                 update_interval_ms: 120000,
