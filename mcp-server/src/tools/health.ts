@@ -133,7 +133,7 @@ export function registerHealthTools(server: McpServer): void {
           timeoutMs: 15_000,
         });
         if (res.success) {
-          return toolSuccess({ healthy: true, ...res.data });
+          return toolSuccess({ healthy: true, ...(res.data as Record<string, unknown>) });
         } else {
           return toolSuccess({
             healthy: false,
