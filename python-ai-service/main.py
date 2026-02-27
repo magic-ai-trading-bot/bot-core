@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-AI Trading Service with GPT-4 Integration + Real-time WebSocket
-Advanced trading signal generation using OpenAI GPT-4 for cryptocurrency markets.
+AI Trading Service with Grok (xAI) Integration + Real-time WebSocket
+Advanced trading signal generation using xAI Grok for cryptocurrency markets.
 Compatible with Rust AI client endpoints with WebSocket broadcasting.
 """
 
@@ -437,7 +437,7 @@ async def lifespan(app: FastAPI):
     global openai_client, mongodb_client, mongodb_db
 
     # Startup
-    logger.info("🚀 Starting GPT-4 AI Trading Service")
+    logger.info("🚀 Starting Grok AI Trading Service")
     logger.info(f"Python version: {sys.version}")
     logger.info(f"FastAPI version: {fastapi.__version__}")
 
@@ -473,7 +473,7 @@ async def lifespan(app: FastAPI):
         mongodb_db = None
 
     # Initialize AI client with API keys from environment
-    # Support xAI (XAI_API_KEY) with fallback to OpenAI (OPENAI_API_KEY)
+    # Support xAI (XAI_API_KEY) with fallback to OpenAI-compatible (OPENAI_API_KEY)
     api_key_string = os.getenv("XAI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
     backup_keys_string = os.getenv("OPENAI_BACKUP_API_KEYS", "")
 
@@ -509,7 +509,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.info(f"🔄 Initializing AI client ({AI_BASE_URL})...")
 
-        # Use direct HTTP client (OpenAI-compatible API)
+        # Use direct HTTP client (xAI/Grok-compatible API)
         try:
             openai_client = DirectOpenAIClient(valid_api_keys)
             logger.info(f"✅ AI HTTP client initialized ({AI_MODEL} via {AI_BASE_URL})")
@@ -1267,7 +1267,7 @@ class TechnicalAnalyzer:
         return dataframes
 
 
-# === HTTP-BASED GPT-4 CLIENT ===
+# === HTTP-BASED GROK CLIENT ===
 
 
 class DirectOpenAIClient:
@@ -1431,11 +1431,11 @@ class DirectOpenAIClient:
         raise Exception("All API keys exhausted or rate limited")
 
 
-# === GPT-4 AI ANALYZER ===
+# === GROK AI ANALYZER ===
 
 
 class GPTTradingAnalyzer:
-    """GPT-4 powered trading analysis."""
+    """Grok (xAI) powered trading analysis."""
 
     def __init__(self, client):
         self.client = client
@@ -1443,7 +1443,7 @@ class GPTTradingAnalyzer:
     async def analyze_trading_signals(
         self, request: AIAnalysisRequest
     ) -> AISignalResponse:
-        """Analyze trading signals using GPT-4 or fallback technical analysis."""
+        """Analyze trading signals using Grok or fallback technical analysis."""
         try:
             # Convert to DataFrames and calculate indicators
             dataframes = TechnicalAnalyzer.candles_to_dataframe(request.timeframe_data)
@@ -1540,9 +1540,9 @@ class GPTTradingAnalyzer:
         indicators_1h: Dict,
         indicators_4h: Dict,
     ) -> Dict[str, Any]:
-        """GPT-4 powered analysis with multi-timeframe support (15m, 30m, 1h, 4h)."""
+        """Grok powered analysis with multi-timeframe support (15m, 30m, 1h, 4h)."""
         try:
-            logger.info(f"🤖 Starting GPT-4 analysis for {request.symbol}")
+            logger.info(f"🤖 Starting Grok analysis for {request.symbol}")
 
             # Prepare market context with ALL timeframes
             market_context = self._prepare_market_context(
@@ -1552,7 +1552,7 @@ class GPTTradingAnalyzer:
                 f"📊 Market context prepared: {len(market_context)} characters"
             )
 
-            # Create GPT-4 prompt
+            # Create Grok prompt
             prompt = self._create_analysis_prompt(
                 market_context, request.strategy_context
             )
@@ -1561,8 +1561,8 @@ class GPTTradingAnalyzer:
                 f"🎯 Selected strategies: {request.strategy_context.selected_strategies}"
             )
 
-            # Call GPT-4 (optimized max_tokens for cost saving)
-            logger.info("🔄 Calling GPT-4 API...")
+            # Call Grok API (optimized max_tokens for cost saving)
+            logger.info("🔄 Calling Grok API...")
             response = await self.client.chat_completions_create(
                 model=AI_MODEL,
                 messages=[
@@ -1573,9 +1573,9 @@ class GPTTradingAnalyzer:
                 max_tokens=1200,  # Reduced from 2000 to 1200 for cost optimization
             )
 
-            logger.info("✅ GPT-4 API call successful")
+            logger.info("✅ Grok API call successful")
             response_content = response["choices"][0]["message"]["content"]
-            logger.debug(f"📤 GPT-4 response: {response_content[:200]}...")
+            logger.debug(f"📤 Grok response: {response_content[:200]}...")
 
             # Track token usage and cost
             usage = response.get("usage", {})
@@ -1601,14 +1601,14 @@ class GPTTradingAnalyzer:
                     f"Total today: ${total_cost_usd:.3f} ({total_requests_count} requests)"
                 )
 
-            # Parse GPT-4 response
+            # Parse Grok response
             parsed_result = self._parse_gpt_response(response_content)
             strategy_scores = parsed_result.get("strategy_scores", {})
             gpt_confidence = parsed_result.get("confidence", 0.5)
             gpt_signal = parsed_result.get("signal", "Neutral")
 
             # POST-PROCESS: Recalculate confidence based on timeframe agreement
-            # GPT-4 often returns 0.5 as default, so we calculate proper confidence ourselves
+            # Grok often returns 0.5 as default, so we calculate proper confidence ourselves
             recalculated_confidence = self._recalculate_confidence(
                 gpt_signal,
                 request,
@@ -1626,7 +1626,7 @@ class GPTTradingAnalyzer:
                 )
 
             logger.info(
-                f"🎯 GPT-4 analysis complete: signal={parsed_result.get('signal')}, "
+                f"🎯 Grok analysis complete: signal={parsed_result.get('signal')}, "
                 f"confidence={parsed_result.get('confidence')} (GPT original: {gpt_confidence})"
             )
             logger.info(f"📊 Strategy scores: {strategy_scores}")
@@ -1634,19 +1634,19 @@ class GPTTradingAnalyzer:
             return parsed_result
 
         except Exception as e:
-            logger.error(f"❌ GPT-4 analysis failed: {e}")
+            logger.error(f"❌ Grok analysis failed: {e}")
             logger.error(f"Error type: {type(e).__name__}")
 
             if "401" in str(e):
-                logger.error("🔑 GPT-4 API authentication failed")
+                logger.error("🔑 Grok API authentication failed")
             elif "429" in str(e):
-                logger.error("⏱️ GPT-4 rate limit exceeded")
+                logger.error("⏱️ Grok rate limit exceeded")
             elif "quota" in str(e).lower():
-                logger.error("💰 GPT-4 quota exceeded")
+                logger.error("💰 Grok quota exceeded")
             elif "timeout" in str(e).lower():
-                logger.error("⏰ GPT-4 API timeout")
+                logger.error("⏰ Grok API timeout")
             else:
-                logger.error(f"🌐 GPT-4 API error: {str(e)}")
+                logger.error(f"🌐 Grok API error: {str(e)}")
 
             # Fall back to technical analysis
             logger.warning("🔄 Falling back to technical analysis...")
@@ -1660,7 +1660,7 @@ class GPTTradingAnalyzer:
         """
         Classify a timeframe as BULLISH, BEARISH, or NEUTRAL.
 
-        Uses unified logic matching GPT-4 prompt (5 INDICATORS SCORING):
+        Uses unified logic matching Grok prompt (5 INDICATORS SCORING):
         - MACD: histogram > 0 = +1 bullish, < 0 = +1 bearish
         - RSI: > 55 = +1 bullish, < 45 = +1 bearish
         - BB: position < 0.3 = +1 bullish (near lower), > 0.7 = +1 bearish (near upper)
@@ -1765,7 +1765,7 @@ class GPTTradingAnalyzer:
         """
         Recalculate confidence using WEIGHTED timeframe voting.
 
-        GPT-4 often returns 0.5 as default confidence. This method calculates
+        Grok often returns 0.5 as default confidence. This method calculates
         proper confidence using WEIGHTED voting (same as fallback analysis):
         - 4H has 2.0 weight (main trend - most important)
         - 1H has 1.5 weight
@@ -1882,9 +1882,9 @@ class GPTTradingAnalyzer:
         indicators_4h: Dict,
     ) -> Dict[str, Any]:
         """
-        Fallback technical analysis when GPT-4 is not available.
+        Fallback technical analysis when Grok is not available.
 
-        Uses UNIFIED LOGIC matching GPT-4 prompt exactly (5 INDICATORS SCORING):
+        Uses UNIFIED LOGIC matching Grok prompt exactly (5 INDICATORS SCORING):
         - Each timeframe classified using 5 indicators: MACD, RSI, BB, Stochastic, Volume
         - Timeframe is BULLISH if SIGNAL_MIN_INDICATORS+ indicators are bullish
         - Timeframe is BEARISH if SIGNAL_MIN_INDICATORS+ indicators are bearish
@@ -1896,7 +1896,7 @@ class GPTTradingAnalyzer:
         - min_required_timeframes: minimum timeframes to agree (default 3)
         """
         symbol = request.symbol
-        reasoning = "Technical analysis (GPT-4 unavailable): "
+        reasoning = "Technical analysis (Grok unavailable): "
         timeframe_results = []
 
         # @spec:FR-SETTINGS-002 - Get dynamic settings from Rust API
@@ -2086,7 +2086,7 @@ class GPTTradingAnalyzer:
         Calculate strategy scores based on actual indicator values.
 
         Averages scores across all available timeframes for more accurate assessment.
-        Uses the same scoring logic as GPT-4 prompt for consistency.
+        Uses the same scoring logic as Grok prompt for consistency.
 
         Returns scores in range [0.3, 1.0] for all 5 strategies.
         """
@@ -2181,14 +2181,14 @@ class GPTTradingAnalyzer:
         return strategy_scores
 
     def _get_system_prompt(self) -> str:
-        """Get system prompt for GPT-4 with multi-timeframe awareness.
+        """Get system prompt for Grok with multi-timeframe awareness.
 
         @spec:FR-SETTINGS-002 - Uses dynamic settings from Rust API
         Config values fetched from Rust API (fallback to config.yaml):
         - min_required_indicators: minimum indicators per timeframe (default 4/5)
         - min_required_timeframes: minimum timeframes needed to agree
         """
-        # @spec:FR-SETTINGS-002 - Get settings from Rust API for GPT-4 prompt
+        # @spec:FR-SETTINGS-002 - Get settings from Rust API for Grok prompt
         min_indicators = get_signal_min_indicators()
         min_timeframes = get_signal_min_timeframes()
         confidence_base = get_signal_confidence_base()
@@ -2247,7 +2247,7 @@ class GPTTradingAnalyzer:
         indicators_1h: Dict,
         indicators_4h: Dict,
     ) -> str:
-        """Prepare market context for GPT-4 with multi-timeframe analysis (15m, 30m, 1h, 4h).
+        """Prepare market context for Grok with multi-timeframe analysis (15m, 30m, 1h, 4h).
 
         IMPORTANT: 15m and 30m are included to detect short-term trend changes that may conflict
         with longer timeframes. This prevents giving LONG signal when short-term shows downtrend.
@@ -2298,7 +2298,7 @@ class GPTTradingAnalyzer:
     def _create_analysis_prompt(
         self, market_context: str, strategy_context: AIStrategyContext
     ) -> str:
-        """Create analysis prompt for GPT-4 (optimized for cost)."""
+        """Create analysis prompt for Grok (optimized for cost)."""
         strategies = (
             ", ".join(strategy_context.selected_strategies)
             if strategy_context.selected_strategies
@@ -2310,7 +2310,7 @@ class GPTTradingAnalyzer:
         )
 
     def _parse_gpt_response(self, response_text: str) -> Dict[str, Any]:
-        """Parse GPT-4 JSON response."""
+        """Parse Grok JSON response."""
         try:
             # Find JSON in response
             import re
@@ -2600,7 +2600,7 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "Grok Trading AI",
         "version": "3.0.0",
-        "gpt4_available": openai_client is not None,
+        "grok_available": openai_client is not None,
         "api_key_configured": bool(
             os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
         ),
@@ -2691,14 +2691,14 @@ async def deep_health_market_condition():
 @app.get("/debug/gpt4")
 @limiter.limit("60/minute")  # Rate limit: 60 requests per minute for debug endpoint
 async def debug_gpt4(request: Request):
-    """Debug GPT-4 connectivity."""
+    """Debug Grok connectivity."""
     result: Dict[str, Any] = {
         "client_initialized": openai_client is not None,
         "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
     }
 
     if openai_client is None:
-        result["error"] = "OpenAI client not initialized"
+        result["error"] = "Grok client not initialized"
         result["status"] = "failed"
         return result
 
@@ -2721,9 +2721,9 @@ async def debug_gpt4(request: Request):
 
     except Exception as e:
         result["status"] = "failed"
-        result["error"] = "GPT-4 test failed. Check server logs for details."
+        result["error"] = "Grok test failed. Check server logs for details."
         result["error_type"] = type(e).__name__
-        logger.error(f"❌ GPT-4 test failed: {e}")
+        logger.error(f"❌ Grok test failed: {e}")
 
         if "401" in str(e):
             result["diagnosis"] = "API key authentication failed"
@@ -2756,7 +2756,7 @@ async def websocket_endpoint(websocket: WebSocket):
         ws_manager.disconnect(websocket)
 
 
-# @spec:FR-AI-005 - GPT-4 Signal Analysis
+# @spec:FR-AI-005 - Grok Signal Analysis
 # @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md
 # @ref:specs/02-design/2.3-api/API-PYTHON-AI.md
 # @test:TC-AI-010, TC-AI-011, TC-AI-012
@@ -2767,26 +2767,26 @@ async def websocket_endpoint(websocket: WebSocket):
 async def analyze_trading_signals(
     analysis_request: AIAnalysisRequest, request: Request
 ):
-    """Analyze trading signals using GPT-4 AI with MongoDB storage."""
+    """Analyze trading signals using Grok AI with MongoDB storage."""
     global gpt_analyzer
 
     if not gpt_analyzer:
         gpt_analyzer = GPTTradingAnalyzer(openai_client)
         logger.info(
-            f"🤖 GPT analyzer created with client: {'Available' if openai_client else 'None'}"
+            f"🤖 Grok analyzer created with client: {'Available' if openai_client else 'None'}"
         )
 
-    logger.info(f"🤖 GPT-4 analysis request for {analysis_request.symbol}")
+    logger.info(f"🤖 Grok analysis request for {analysis_request.symbol}")
     logger.debug(
         f"📋 Request details: strategies={analysis_request.strategy_context.selected_strategies}, "
         f"timeframes={list(analysis_request.timeframe_data.keys())}"
     )
 
-    # Check GPT-4 availability
+    # Check Grok availability
     if openai_client is None:
-        logger.warning("⚠️ GPT-4 client is None - will use fallback analysis")
+        logger.warning("⚠️ Grok client is None - will use fallback analysis")
     else:
-        logger.info("✅ GPT-4 client available - attempting AI analysis")
+        logger.info("✅ Grok client available - attempting AI analysis")
 
     try:
         # Check MongoDB for latest analysis
@@ -2867,11 +2867,11 @@ async def analyze_trading_signals(
 
         # No recent analysis found, perform fresh AI analysis
         logger.info(
-            f"🔥 No recent analysis found. Calling OpenAI GPT-4 for {analysis_request.symbol}"
+            f"🔥 No recent analysis found. Calling Grok for {analysis_request.symbol}"
         )
         response = await gpt_analyzer.analyze_trading_signals(analysis_request)
         logger.info(
-            f"✅ GPT-4 signal: {response.signal} (confidence: {response.confidence:.2f})"
+            f"✅ Grok signal: {response.signal} (confidence: {response.confidence:.2f})"
         )
 
         # Store the fresh analysis in MongoDB
@@ -3429,18 +3429,18 @@ async def send_performance_feedback(feedback: PerformanceFeedback, request: Requ
 )  # Rate limit: 600 requests per minute (10 per second) - main prediction endpoint
 async def predict_trend(body: TrendPredictionRequest, request: Request):
     """
-    Predict trend direction using GPT-4 powered multi-timeframe analysis.
+    Predict trend direction using Grok powered multi-timeframe analysis.
 
-    This endpoint uses GPT-4 to analyze market data across multiple timeframes:
+    This endpoint uses Grok to analyze market data across multiple timeframes:
     - Daily (1d): Major trend direction
     - 4H: Intermediate trend
     - Requested timeframe: Short-term signals
 
-    GPT-4 considers: EMA200, momentum, RSI, MACD, volume, and price action.
-    Falls back to technical analysis if GPT-4 unavailable.
+    Grok considers: EMA200, momentum, RSI, MACD, volume, and price action.
+    Falls back to technical analysis if Grok unavailable.
     """
     logger.info(
-        f"🔮 GPT-4 trend prediction request for {body.symbol} on {body.timeframe}"
+        f"🔮 Grok trend prediction request for {body.symbol} on {body.timeframe}"
     )
 
     try:
@@ -3480,12 +3480,12 @@ async def predict_trend(body: TrendPredictionRequest, request: Request):
                 timestamp=int(datetime.now(timezone.utc).timestamp()),
             )
 
-        # Try GPT-4 analysis first
+        # Try Grok analysis first
         if openai_client is not None:
             try:
                 result = await _predict_trend_gpt4(body.symbol, candles_by_tf)
                 logger.info(
-                    f"✅ GPT-4 trend prediction for {body.symbol}: {result['trend']} "
+                    f"✅ Grok trend prediction for {body.symbol}: {result['trend']} "
                     f"(confidence: {result['confidence']:.2f})"
                 )
                 return TrendPredictionResponse(
@@ -3496,7 +3496,7 @@ async def predict_trend(body: TrendPredictionRequest, request: Request):
                 )
             except Exception as e:
                 logger.warning(
-                    f"⚠️ GPT-4 analysis failed, falling back to technical: {e}"
+                    f"⚠️ Grok analysis failed, falling back to technical: {e}"
                 )
 
         # Fallback to technical analysis
@@ -3525,7 +3525,7 @@ async def _predict_trend_gpt4(
     symbol: str, candles_by_tf: Dict[str, List]
 ) -> Dict[str, Any]:
     """
-    Use GPT-4 to predict trend direction based on multi-timeframe analysis.
+    Use Grok to predict trend direction based on multi-timeframe analysis.
 
     Args:
         symbol: Trading symbol (e.g., BTCUSDT)
@@ -3614,7 +3614,7 @@ async def _predict_trend_gpt4(
             "last_5_closes": [float(x) for x in df["close"].tail(5).tolist()],
         }
 
-    # Build GPT-4 prompt
+    # Build Grok prompt
     prompt = f"""Analyze the multi-timeframe trend for {symbol}:
 
 DAILY (1d) TIMEFRAME:
@@ -3646,7 +3646,7 @@ OUTPUT FORMAT (JSON only, no markdown):
   }}
 }}"""
 
-    # Call GPT-4
+    # Call Grok
     response = await openai_client.chat_completions_create(
         model=AI_MODEL,
         messages=[
@@ -3693,7 +3693,7 @@ OUTPUT FORMAT (JSON only, no markdown):
 
 
 def _format_tf_data(tf_name: str, indicators: Dict) -> str:
-    """Format timeframe data for GPT-4 prompt."""
+    """Format timeframe data for Grok prompt."""
     if not indicators:
         return f"{tf_name}: No data available"
 
@@ -3710,7 +3710,7 @@ def _predict_trend_technical(
     symbol: str, candles_by_tf: Dict[str, List], primary_tf: str
 ) -> Dict[str, Any]:
     """
-    Fallback technical analysis when GPT-4 is unavailable.
+    Fallback technical analysis when Grok is unavailable.
     Uses simple EMA200 + momentum logic.
     """
     # Use primary timeframe or fallback to first available
@@ -3793,7 +3793,7 @@ async def get_model_performance(request: Request):
 @app.get("/ai/cost/statistics")
 @limiter.limit("60/minute")  # Rate limit: 60 requests per minute
 async def get_cost_statistics(request: Request):
-    """Get GPT-4 API cost statistics."""
+    """Get Grok API cost statistics."""
     # Note: Reading global variables (no 'global' keyword needed for read-only access)
 
     # Fetch current symbols dynamically
@@ -3927,19 +3927,19 @@ async def clear_storage(request: Request):
 
 
 @app.post("/ai/config-analysis/trigger")
-@limiter.limit("10/minute")  # Rate limit: 10 requests per minute (expensive GPT-4 call)
+@limiter.limit("10/minute")  # Rate limit: 10 requests per minute (Grok API call)
 async def trigger_config_analysis(request: Request):
     """
-    Trigger GPT-4 config analysis DIRECTLY (bypass Celery/Redis).
+    Trigger Grok config analysis DIRECTLY (bypass Celery/Redis).
 
-    This endpoint runs GPT-4 to analyze current trading config and suggest improvements.
+    This endpoint runs Grok to analyze current trading config and suggest improvements.
     Use this when:
     - Redis/Celery is unavailable
     - You want to manually trigger config analysis
     - Testing config optimization
 
     Returns:
-        Config improvement suggestions from GPT-4
+        Config improvement suggestions from Grok
     """
     try:
         from tasks.ai_improvement import _run_config_analysis_direct
@@ -3988,7 +3988,7 @@ async def get_config_suggestions(request: Request, days: int = 30, limit: int = 
     """
     Get config improvement suggestions history.
 
-    This endpoint returns past GPT-4 config analysis results stored in MongoDB.
+    This endpoint returns past Grok config analysis results stored in MongoDB.
 
     Args:
         days: Number of days to look back (default: 30)
@@ -4027,16 +4027,16 @@ async def get_config_suggestions(request: Request, days: int = 30, limit: int = 
 @limiter.limit("60/minute")  # Rate limit: 60 requests per minute
 async def get_gpt4_analysis_history(request: Request, days: int = 30, limit: int = 20):
     """
-    Get GPT-4 self-analysis history.
+    Get Grok self-analysis history.
 
-    This endpoint returns past GPT-4 self-analysis results (retrain recommendations).
+    This endpoint returns past Grok self-analysis results (retrain recommendations).
 
     Args:
         days: Number of days to look back (default: 30)
         limit: Maximum number of records (default: 20)
 
     Returns:
-        List of GPT-4 analysis results with timestamps
+        List of Grok analysis results with timestamps
     """
     try:
         from utils.data_storage import storage
@@ -4056,7 +4056,7 @@ async def get_gpt4_analysis_history(request: Request, days: int = 30, limit: int
         }
 
     except Exception as e:
-        logger.error(f"Failed to get GPT-4 analysis history: {e}")
+        logger.error(f"Failed to get Grok analysis history: {e}")
         return {
             "success": False,
             "error": "Failed to get analysis history. Check server logs for details.",
@@ -4298,7 +4298,7 @@ async def chat_with_project(request: ProjectChatRequest):
     Chat with the project documentation using RAG (Retrieval Augmented Generation).
 
     This endpoint allows users to ask questions about the BotCore project.
-    It uses GPT-4 with context from indexed project documentation (specs, docs, READMEs).
+    It uses Grok with context from indexed project documentation (specs, docs, READMEs).
 
     - **message**: The question to ask about the project
     - **include_history**: Whether to include conversation history for context
@@ -4390,7 +4390,7 @@ async def root():
             "feedback": "POST /ai/feedback - Send performance feedback",
             "health": "GET /health - Health check with MongoDB status",
             "storage_stats": "GET /ai/storage/stats - View storage statistics",
-            "cost_stats": "GET /ai/cost/statistics - View GPT-4 API cost statistics",
+            "cost_stats": "GET /ai/cost/statistics - View Grok API cost statistics",
             "clear_storage": "POST /ai/storage/clear - Clear analysis storage",
             "websocket": "WS /ws - Real-time AI signal broadcasting",
             "project_chat": "POST /api/chat/project - RAG chatbot for project questions",
@@ -4399,7 +4399,7 @@ async def root():
         },
         "documentation": "/docs",
         "features": {
-            "gpt4_enabled": openai_client is not None,
+            "grok_enabled": openai_client is not None,
             "mongodb_storage": mongodb_client is not None,
             "websocket_broadcasting": True,
             "periodic_analysis": True,
@@ -4413,6 +4413,6 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
 
-    logger.info("🚀 Starting GPT-4 AI Trading Service...")
+    logger.info("🚀 Starting Grok AI Trading Service...")
 
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, log_level="info")
