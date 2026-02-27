@@ -90,10 +90,10 @@ impl<'de> serde::Deserialize<'de> for TradingSignal {
         match s.to_uppercase().as_str() {
             "BUY" | "LONG" | "STRONG_BUY" | "STRONGBUY" | "BULL" | "BULLISH" => {
                 Ok(TradingSignal::Buy)
-            }
+            },
             "SELL" | "SHORT" | "STRONG_SELL" | "STRONGSELL" | "BEAR" | "BEARISH" => {
                 Ok(TradingSignal::Sell)
-            }
+            },
             _ => Ok(TradingSignal::Hold), // "HOLD", "NEUTRAL", "SIDEWAYS", etc.
         }
     }
