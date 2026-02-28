@@ -827,7 +827,7 @@ class TrendPredictionRequest(BaseModel):
 
     symbol: str = Field(..., description="Trading symbol (e.g., BTCUSDT)")
     timeframe: str = Field(
-        default="4h", description="Timeframe for trend analysis (1h, 4h, 1d)"
+        default="1h", description="Timeframe for trend analysis (1h, 1d)"
     )
 
 
@@ -853,7 +853,7 @@ class AIServiceInfo(BaseModel):
     version: str = Field(default="3.0.0")
     model_version: str = Field(default="grok-4-1-fast-non-reasoning")
     supported_timeframes: List[str] = Field(
-        default_factory=lambda: ["1m", "5m", "15m", "1h", "4h", "1d"]
+        default_factory=lambda: ["1m", "5m", "15m", "1h", "1d"]
     )
     supported_symbols: List[str] = Field(
         default_factory=lambda: FALLBACK_ANALYSIS_SYMBOLS
@@ -1448,12 +1448,11 @@ class GrokTradingAnalyzer:
             # Convert to DataFrames and calculate indicators
             dataframes = TechnicalAnalyzer.candles_to_dataframe(request.timeframe_data)
 
-            # Get indicators for ALL timeframes (15m, 30m, 1h, 4h) for multi-timeframe analysis
-            # This fixes the issue where short-term downtrend was ignored because AI only looked at 1H/4H
+            # Get indicators for ALL timeframes (15m, 30m, 1h) for multi-timeframe analysis
+            # This fixes the issue where short-term downtrend was ignored because AI only looked at 1H
             indicators_15m = {}
             indicators_30m = {}
             indicators_1h = {}
-            indicators_4h = {}
 
             if "15m" in dataframes and len(dataframes["15m"]) >= 2:
                 indicators_15m = TechnicalAnalyzer.calculate_indicators(
@@ -1468,18 +1467,14 @@ class GrokTradingAnalyzer:
             if "1h" in dataframes and len(dataframes["1h"]) >= 2:
                 indicators_1h = TechnicalAnalyzer.calculate_indicators(dataframes["1h"])
 
-            if "4h" in dataframes and len(dataframes["4h"]) >= 2:
-                indicators_4h = TechnicalAnalyzer.calculate_indicators(dataframes["4h"])
-
             # Choose analysis method based on client availability
-            # Pass all 4 timeframes for comprehensive multi-timeframe analysis
+            # Pass all 3 timeframes for comprehensive multi-timeframe analysis
             if self.client is not None:
                 ai_analysis = await self._gpt_analysis(
                     request,
                     indicators_15m,
                     indicators_30m,
                     indicators_1h,
-                    indicators_4h,
                 )
             else:
                 ai_analysis = self._fallback_analysis(
@@ -1487,7 +1482,6 @@ class GrokTradingAnalyzer:
                     indicators_15m,
                     indicators_30m,
                     indicators_1h,
-                    indicators_4h,
                 )
 
             # Create response
@@ -1538,15 +1532,14 @@ class GrokTradingAnalyzer:
         indicators_15m: Dict,
         indicators_30m: Dict,
         indicators_1h: Dict,
-        indicators_4h: Dict,
     ) -> Dict[str, Any]:
-        """Grok powered analysis with multi-timeframe support (15m, 30m, 1h, 4h)."""
+        """Grok powered analysis with multi-timeframe support (15m, 30m, 1h)."""
         try:
             logger.info(f"🤖 Starting Grok analysis for {request.symbol}")
 
             # Prepare market context with ALL timeframes
             market_context = self._prepare_market_context(
-                request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+                request, indicators_15m, indicators_30m, indicators_1h
             )
             logger.debug(
                 f"📊 Market context prepared: {len(market_context)} characters"
@@ -1615,7 +1608,6 @@ class GrokTradingAnalyzer:
                 indicators_15m,
                 indicators_30m,
                 indicators_1h,
-                indicators_4h,
             )
 
             # Use recalculated confidence for directional signals, keep GPT's for Neutral
@@ -1651,7 +1643,7 @@ class GrokTradingAnalyzer:
             # Fall back to technical analysis
             logger.warning("🔄 Falling back to technical analysis...")
             return self._fallback_analysis(
-                request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+                request, indicators_15m, indicators_30m, indicators_1h
             )
 
     def _classify_timeframe(
@@ -1760,15 +1752,13 @@ class GrokTradingAnalyzer:
         indicators_15m: Dict,
         indicators_30m: Dict,
         indicators_1h: Dict,
-        indicators_4h: Dict,
     ) -> float:
         """
         Recalculate confidence using WEIGHTED timeframe voting.
 
         Grok often returns 0.5 as default confidence. This method calculates
         proper confidence using WEIGHTED voting (same as fallback analysis):
-        - 4H has 2.0 weight (main trend - most important)
-        - 1H has 1.5 weight
+        - 1H has 2.0 weight (main trend - most important)
         - 30M has 1.0 weight
         - 15M has 0.5 weight (short-term noise)
 
@@ -1786,7 +1776,6 @@ class GrokTradingAnalyzer:
         candles_15m = request.timeframe_data.get("15m", [])
         candles_30m = request.timeframe_data.get("30m", [])
         candles_1h = request.timeframe_data.get("1h", [])
-        candles_4h = request.timeframe_data.get("4h", [])
 
         tf_15m, _ = self._classify_timeframe(
             "15M", indicators_15m, candles_15m, trend_threshold
@@ -1797,20 +1786,16 @@ class GrokTradingAnalyzer:
         tf_1h, _ = self._classify_timeframe(
             "1H", indicators_1h, candles_1h, trend_threshold
         )
-        tf_4h, _ = self._classify_timeframe(
-            "4H", indicators_4h, candles_4h, trend_threshold
-        )
 
         # ==================== WEIGHTED TIMEFRAME VOTING ====================
         # Same weights as fallback_analysis for consistency
         TIMEFRAME_WEIGHTS = {
             "15M": 0.5,  # Short-term noise, least important
             "30M": 1.0,  # Short-term trend
-            "1H": 1.5,  # Medium-term trend
-            "4H": 2.0,  # MAIN TREND - most important
+            "1H": 2.0,  # MAIN TREND - most important
         }
 
-        tf_results = {"15M": tf_15m, "30M": tf_30m, "1H": tf_1h, "4H": tf_4h}
+        tf_results = {"15M": tf_15m, "30M": tf_30m, "1H": tf_1h}
 
         # Calculate weighted scores
         weighted_bullish = 0.0
@@ -1834,8 +1819,8 @@ class GrokTradingAnalyzer:
             (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
         )
 
-        # Main trend (4H) for counter-trend detection
-        main_trend = tf_4h
+        # Main trend (1H) for counter-trend detection
+        main_trend = tf_1h
 
         # Calculate confidence based on signal and weighted score
         if signal == "Long":
@@ -1843,7 +1828,7 @@ class GrokTradingAnalyzer:
                 # Counter-trend Long = lower confidence
                 confidence = 0.45
                 logger.debug(
-                    f"🔄 Confidence: Long but 4H BEARISH (counter-trend) → {confidence}"
+                    f"🔄 Confidence: Long but 1H BEARISH (counter-trend) → {confidence}"
                 )
             else:
                 confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
@@ -1855,7 +1840,7 @@ class GrokTradingAnalyzer:
                 # Counter-trend Short = lower confidence
                 confidence = 0.45
                 logger.debug(
-                    f"🔄 Confidence: Short but 4H BULLISH (counter-trend) → {confidence}"
+                    f"🔄 Confidence: Short but 1H BULLISH (counter-trend) → {confidence}"
                 )
             else:
                 confidence = min(0.85, confidence_base + (bearish_score / 100) * 0.35)
@@ -1867,7 +1852,7 @@ class GrokTradingAnalyzer:
             confidence = 0.40
 
         logger.info(
-            f"🔄 Weighted confidence: signal={signal}, 4H={main_trend}, "
+            f"🔄 Weighted confidence: signal={signal}, 1H={main_trend}, "
             f"bull_score={bullish_score:.1f}%, bear_score={bearish_score:.1f}% → {confidence:.2f}"
         )
 
@@ -1879,7 +1864,6 @@ class GrokTradingAnalyzer:
         indicators_15m: Dict,
         indicators_30m: Dict,
         indicators_1h: Dict,
-        indicators_4h: Dict,
     ) -> Dict[str, Any]:
         """
         Fallback technical analysis when Grok is not available.
@@ -1925,13 +1909,6 @@ class GrokTradingAnalyzer:
         )
         timeframe_results.append((tf_1h, reason_1h))
 
-        # 4H
-        candles_4h = request.timeframe_data.get("4h", [])
-        tf_4h, reason_4h = self._classify_timeframe(
-            "4H", indicators_4h, candles_4h, trend_threshold
-        )
-        timeframe_results.append((tf_4h, reason_4h))
-
         # Count bullish/bearish timeframes (for logging)
         bullish_count = sum(1 for tf, _ in timeframe_results if tf == "BULLISH")
         bearish_count = sum(1 for tf, _ in timeframe_results if tf == "BEARISH")
@@ -1943,16 +1920,15 @@ class GrokTradingAnalyzer:
 
         # ==================== WEIGHTED TIMEFRAME VOTING ====================
         # Higher timeframes have MORE weight (main trend is more important)
-        # This prevents counter-trend trades (e.g., shorting during 4H uptrend)
+        # This prevents counter-trend trades (e.g., shorting during 1H uptrend)
         #
-        # Weights: 4H (2.0) > 1H (1.5) > 30M (1.0) > 15M (0.5)
-        # Total weight = 5.0
+        # Weights: 1H (2.0) > 30M (1.0) > 15M (0.5)
+        # Total weight = 3.5
         # ===================================================================
         TIMEFRAME_WEIGHTS = {
             "15M": 0.5,  # Short-term noise, least important
             "30M": 1.0,  # Short-term trend
-            "1H": 1.5,  # Medium-term trend
-            "4H": 2.0,  # MAIN TREND - most important
+            "1H": 2.0,  # MAIN TREND - most important
         }
 
         # Calculate weighted scores
@@ -1960,7 +1936,7 @@ class GrokTradingAnalyzer:
         weighted_bearish = 0.0
         total_weight = 0.0
 
-        tf_names = ["15M", "30M", "1H", "4H"]
+        tf_names = ["15M", "30M", "1H"]
         for i, (tf_class, _) in enumerate(timeframe_results):
             tf_name = tf_names[i]
             weight = TIMEFRAME_WEIGHTS.get(tf_name, 1.0)
@@ -1979,9 +1955,9 @@ class GrokTradingAnalyzer:
             (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
         )
 
-        # SAFETY RULE: Don't trade against main trend (4H)
-        # If 4H is BULLISH, don't SHORT. If 4H is BEARISH, don't LONG.
-        main_trend = tf_4h  # 4H is the main trend
+        # SAFETY RULE: Don't trade against main trend (1H)
+        # If 1H is BULLISH, don't SHORT. If 1H is BEARISH, don't LONG.
+        main_trend = tf_1h  # 1H is the main trend
 
         # Determine signal using WEIGHTED voting
         # Need 60%+ weighted score to trigger directional signal
@@ -1989,22 +1965,22 @@ class GrokTradingAnalyzer:
 
         if bullish_score >= MIN_WEIGHTED_THRESHOLD:
             if main_trend == "BEARISH":
-                # 4H is BEARISH but lower TFs bullish = potential reversal, stay NEUTRAL
+                # 1H is BEARISH but lower TFs bullish = potential reversal, stay NEUTRAL
                 signal = "Neutral"
                 confidence = 0.45
                 logger.info(
-                    f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 4H is BEARISH - staying NEUTRAL"
+                    f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 1H is BEARISH - staying NEUTRAL"
                 )
             else:
                 signal = "Long"
                 confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
         elif bearish_score >= MIN_WEIGHTED_THRESHOLD:
             if main_trend == "BULLISH":
-                # 4H is BULLISH but lower TFs bearish = pullback, stay NEUTRAL (DON'T SHORT!)
+                # 1H is BULLISH but lower TFs bearish = pullback, stay NEUTRAL (DON'T SHORT!)
                 signal = "Neutral"
                 confidence = 0.45
                 logger.info(
-                    f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 4H is BULLISH - staying NEUTRAL (no counter-trend)"
+                    f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 1H is BULLISH - staying NEUTRAL (no counter-trend)"
                 )
             else:
                 signal = "Short"
@@ -2016,7 +1992,7 @@ class GrokTradingAnalyzer:
         # Log weighted analysis
         logger.info(
             f"📊 {symbol} Weighted Analysis: Bullish={bullish_score:.1f}%, Bearish={bearish_score:.1f}%, "
-            f"4H_Trend={main_trend}, Signal={signal}"
+            f"1H_Trend={main_trend}, Signal={signal}"
         )
 
         # Build reasoning string with weighted analysis
@@ -2025,7 +2001,7 @@ class GrokTradingAnalyzer:
         reasoning += (
             f" | Weighted: Bullish={bullish_score:.0f}%, Bearish={bearish_score:.0f}%"
         )
-        reasoning += f" | 4H_Trend={main_trend}"
+        reasoning += f" | 1H_Trend={main_trend}"
         if main_trend == "BULLISH" and bearish_score >= MIN_WEIGHTED_THRESHOLD:
             reasoning += " | ⚠️ Blocked SHORT (counter-trend protection)"
         elif main_trend == "BEARISH" and bullish_score >= MIN_WEIGHTED_THRESHOLD:
@@ -2041,9 +2017,7 @@ class GrokTradingAnalyzer:
         # Create strategy scores based on actual indicator values (not keyword matching)
         # Average scores across all available timeframes for more accurate assessment
         all_indicators = [
-            ind
-            for ind in [indicators_15m, indicators_30m, indicators_1h, indicators_4h]
-            if ind
+            ind for ind in [indicators_15m, indicators_30m, indicators_1h] if ind
         ]
         selected_strategies = (
             request.strategy_context.selected_strategies
@@ -2207,18 +2181,17 @@ class GrokTradingAnalyzer:
             f"- Timeframe is BEARISH if: {min_indicators}+ indicators are bearish\n"
             f"- Otherwise NEUTRAL\n"
             f"WEIGHTED TIMEFRAME VOTING (CRITICAL - higher TF = more important):\n"
-            f"- 4H weight: 2.0 (MAIN TREND - most important)\n"
-            f"- 1H weight: 1.5 (medium-term)\n"
+            f"- 1H weight: 2.0 (MAIN TREND - most important)\n"
             f"- 30M weight: 1.0 (short-term)\n"
             f"- 15M weight: 0.5 (noise)\n"
-            f"- Total weight: 5.0, need 60%+ weighted score for directional signal\n"
+            f"- Total weight: 3.5, need 60%+ weighted score for directional signal\n"
             f"COUNTER-TREND PROTECTION (CRITICAL):\n"
-            f"- NEVER give SHORT if 4H is BULLISH (pullback in uptrend)\n"
-            f"- NEVER give LONG if 4H is BEARISH (bounce in downtrend)\n"
-            f"- 4H is the MAIN TREND - always follow it!\n"
+            f"- NEVER give SHORT if 1H is BULLISH (pullback in uptrend)\n"
+            f"- NEVER give LONG if 1H is BEARISH (bounce in downtrend)\n"
+            f"- 1H is the MAIN TREND - always follow it!\n"
             f"SIGNAL DECISION:\n"
-            f"- LONG: bullish_weighted_score >= 60% AND 4H NOT BEARISH\n"
-            f"- SHORT: bearish_weighted_score >= 60% AND 4H NOT BULLISH\n"
+            f"- LONG: bullish_weighted_score >= 60% AND 1H NOT BEARISH\n"
+            f"- SHORT: bearish_weighted_score >= 60% AND 1H NOT BULLISH\n"
             f"- NEUTRAL: otherwise or counter-trend situation\n"
             f"STRATEGY SCORE CALCULATION (score ALL strategies 0.3-1.0):\n"
             f"- RSI: 0.3 neutral, 0.5-0.7 moderate, 0.8-1.0 extreme\n"
@@ -2245,9 +2218,8 @@ class GrokTradingAnalyzer:
         indicators_15m: Dict,
         indicators_30m: Dict,
         indicators_1h: Dict,
-        indicators_4h: Dict,
     ) -> str:
-        """Prepare market context for Grok with multi-timeframe analysis (15m, 30m, 1h, 4h).
+        """Prepare market context for Grok with multi-timeframe analysis (15m, 30m, 1h).
 
         IMPORTANT: 15m and 30m are included to detect short-term trend changes that may conflict
         with longer timeframes. This prevents giving LONG signal when short-term shows downtrend.
@@ -2275,7 +2247,7 @@ class GrokTradingAnalyzer:
                 f"Stoch:{indicators_30m.get('stochastic_k',50):.1f}/{indicators_30m.get('stochastic_d',50):.1f}\n"
             )
 
-        # 1H - Medium-term trend
+        # 1H - Main trend
         context += (
             f"1H: RSI:{indicators_1h.get('rsi',50):.1f} "
             f"MACD:{indicators_1h.get('macd_histogram',0):.2f} "
@@ -2283,15 +2255,6 @@ class GrokTradingAnalyzer:
             f"Vol:{indicators_1h.get('volume_ratio',1):.1f}x "
             f"Stoch:{indicators_1h.get('stochastic_k',50):.1f}/{indicators_1h.get('stochastic_d',50):.1f}"
         )
-
-        # 4H - Long-term trend
-        if indicators_4h:
-            context += (
-                f"\n4H: RSI:{indicators_4h.get('rsi',50):.1f} "
-                f"MACD:{indicators_4h.get('macd_histogram',0):.2f} "
-                f"BB:{indicators_4h.get('bb_position',0.5):.2f} "
-                f"Stoch:{indicators_4h.get('stochastic_k',50):.1f}/{indicators_4h.get('stochastic_d',50):.1f}"
-            )
 
         return context
 
@@ -2444,7 +2407,6 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
 
     current_time = int(datetime.now(timezone.utc).timestamp() * 1000)
     candles_1h = []
-    candles_4h = []
     current_price = 0.0
     volume_24h = 0.0
 
@@ -2478,34 +2440,6 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
             except Exception as e:
                 logger.error(f"❌ Error fetching 1H candles for {symbol}: {e}")
 
-            # Fetch 4H candles from Rust API
-            try:
-                response_4h = await client.get(
-                    f"{RUST_API_URL}/api/market/candles/{symbol}/4h",
-                    params={"limit": 60},  # Need 60 candles for indicators
-                )
-                if response_4h.status_code == 200:
-                    data = response_4h.json()
-                    candle_data = data.get("data", []) if data.get("success") else []
-                    for candle in candle_data:
-                        candles_4h.append(
-                            CandleData(
-                                timestamp=candle.get("timestamp", 0),
-                                open=float(candle.get("open", 0)),
-                                high=float(candle.get("high", 0)),
-                                low=float(candle.get("low", 0)),
-                                close=float(candle.get("close", 0)),
-                                volume=float(candle.get("volume", 0)),
-                            )
-                        )
-                    logger.info(f"📊 Fetched {len(candles_4h)} 4H candles for {symbol}")
-                else:
-                    logger.warning(
-                        f"⚠️ Failed to fetch 4H candles for {symbol}: {response_4h.status_code}"
-                    )
-            except Exception as e:
-                logger.error(f"❌ Error fetching 4H candles for {symbol}: {e}")
-
             # Fetch current price from Rust API
             try:
                 response_prices = await client.get(f"{RUST_API_URL}/api/market/prices")
@@ -2529,10 +2463,6 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
         logger.warning(
             f"⚠️ Insufficient 1H data for {symbol}: {len(candles_1h)} candles (need 50+)"
         )
-    if len(candles_4h) < 50:
-        logger.warning(
-            f"⚠️ Insufficient 4H data for {symbol}: {len(candles_4h)} candles (need 50+)"
-        )
     if current_price == 0:
         logger.warning(f"⚠️ No current price for {symbol}, using last close price")
         if candles_1h:
@@ -2540,7 +2470,7 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
 
     return AIAnalysisRequest(
         symbol=symbol,
-        timeframe_data={"1h": candles_1h, "4h": candles_4h},
+        timeframe_data={"1h": candles_1h},
         current_price=current_price,
         volume_24h=volume_24h,
         timestamp=current_time,
@@ -3081,7 +3011,7 @@ def _calculate_direction_score(
 
 def _combine_timeframe_directions(tf_results: Dict[str, Dict[str, Any]]) -> float:
     """Combine direction scores across timeframes with weighting."""
-    weights = {"1d": 0.45, "4h": 0.35, "1h": 0.20}
+    weights = {"1d": 0.45, "1h": 0.55}
     total_weight = 0.0
     weighted_direction = 0.0
 
@@ -3250,7 +3180,7 @@ async def _fetch_candles_from_db(symbol: str) -> Dict[str, pd.DataFrame]:
         return {}
 
     candles_collection = mongodb_db.market_data
-    timeframes = {"1h": 100, "4h": 100, "1d": 250}
+    timeframes = {"1h": 100, "1d": 250}
     dataframes = {}
 
     for tf, limit in timeframes.items():
@@ -3375,7 +3305,7 @@ async def analyze_market_condition(body: MarketConditionRequest, request: Reques
         }
 
     # Build indicators summary
-    primary_tf = "4h" if "4h" in tf_results else list(tf_results.keys())[0]
+    primary_tf = "1d" if "1d" in tf_results else list(tf_results.keys())[0]
     primary_indicators = tf_results[primary_tf]["indicators"]
     indicators_summary = {
         "primary_timeframe": primary_tf,
@@ -3433,7 +3363,6 @@ async def predict_trend(body: TrendPredictionRequest, request: Request):
 
     This endpoint uses Grok to analyze market data across multiple timeframes:
     - Daily (1d): Major trend direction
-    - 4H: Intermediate trend
     - Requested timeframe: Short-term signals
 
     Grok considers: EMA200, momentum, RSI, MACD, volume, and price action.
@@ -3453,7 +3382,6 @@ async def predict_trend(body: TrendPredictionRequest, request: Request):
         # Fetch multi-timeframe data for comprehensive analysis
         timeframes = {
             "1d": 250,  # Daily for major trend
-            "4h": 250,  # 4H for intermediate trend
             body.timeframe: 250,  # Requested timeframe
         }
 
@@ -3620,19 +3548,15 @@ async def _predict_trend_gpt4(
 DAILY (1d) TIMEFRAME:
 {_format_tf_data("Daily", indicators_by_tf.get("1d", {}))}
 
-4-HOUR (4h) TIMEFRAME:
-{_format_tf_data("4-Hour", indicators_by_tf.get("4h", {}))}
-
 PRIMARY TIMEFRAME:
 {_format_tf_data("Primary", indicators_by_tf.get(list(candles_by_tf.keys())[-1], {}))}
 
 INSTRUCTIONS:
 1. Determine the PRIMARY trend direction considering all timeframes
-2. Daily timeframe is most important (60% weight)
-3. 4H timeframe is moderately important (30% weight)
-4. Primary timeframe fine-tunes the signal (10% weight)
-5. Consider: EMA200 position, momentum, RSI, volume
-6. Be conservative - only strong signals should get high confidence
+2. Daily timeframe is most important (70% weight)
+3. Primary timeframe fine-tunes the signal (30% weight)
+4. Consider: EMA200 position, momentum, RSI, volume
+5. Be conservative - only strong signals should get high confidence
 
 OUTPUT FORMAT (JSON only, no markdown):
 {{
@@ -3641,7 +3565,6 @@ OUTPUT FORMAT (JSON only, no markdown):
   "reasoning": "Explain in 1-2 sentences why you chose this trend",
   "timeframe_alignment": {{
     "daily": "up" | "down" | "neutral",
-    "4h": "up" | "down" | "neutral",
     "primary": "up" | "down" | "neutral"
   }}
 }}"""

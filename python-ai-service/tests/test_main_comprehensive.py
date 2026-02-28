@@ -213,7 +213,7 @@ class TestMarketConditionAnalysis:
 
     async def test_market_condition_single_symbol(self, client):
         """Test market condition with single symbol."""
-        payload = {"symbols": ["BTCUSDT"], "timeframe": "4h"}
+        payload = {"symbols": ["BTCUSDT"], "timeframe": "1h"}
 
         response = await client.post("/ai/market-condition", json=payload)
         assert response.status_code in [200, 500, 422]

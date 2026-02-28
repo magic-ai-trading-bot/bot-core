@@ -154,7 +154,7 @@ class TestStrategyRecommendations:
         """Test successful strategy recommendations."""
         request_data = {
             "symbol": "BTCUSDT",
-            "timeframe_data": {"1h": sample_candle_data, "4h": sample_candle_data},
+            "timeframe_data": {"1h": sample_candle_data},
             "current_price": 45189.23,
             "available_strategies": ["RSI", "MACD", "EMA_Crossover"],
             "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -180,7 +180,7 @@ class TestMarketCondition:
         """Test successful market condition analysis."""
         request_data = {
             "symbol": "BTCUSDT",
-            "timeframe_data": {"1h": sample_candle_data, "4h": sample_candle_data},
+            "timeframe_data": {"1h": sample_candle_data},
             "current_price": 45000.0,
             "volume_24h": 25000000000.0,
             "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -534,11 +534,10 @@ class TestTechnicalAnalyzer:
             ),
         ]
 
-        timeframe_data = {"1h": candles, "4h": candles}
+        timeframe_data = {"1h": candles}
         result = TechnicalAnalyzer.candles_to_dataframe(timeframe_data)
 
         assert "1h" in result
-        assert "4h" in result
         assert len(result["1h"]) == 2
         assert result["1h"]["close"].iloc[0] == 45050.0
 
@@ -748,7 +747,7 @@ class TestGrokTradingAnalyzer:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles, "4h": candles},
+            timeframe_data={"1h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -833,7 +832,6 @@ class TestGrokTradingAnalyzer:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=49500.0,
             volume_24h=1000000.0,
@@ -857,10 +855,9 @@ class TestGrokTradingAnalyzer:
             "stochastic_d": 60.0,  # K>D and K<80 = bullish
             "volume_ratio": 1.5,  # >1.2 confirms trend
         }
-        # Pass same bullish indicators to all 4 timeframes
+        # Pass same bullish indicators to all 3 timeframes
         result = analyzer._fallback_analysis(
             request,
-            bullish_indicators,
             bullish_indicators,
             bullish_indicators,
             bullish_indicators,
@@ -898,7 +895,6 @@ class TestGrokTradingAnalyzer:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45400.0,
             volume_24h=1000000.0,
@@ -921,10 +917,9 @@ class TestGrokTradingAnalyzer:
             "stochastic_d": 40.0,  # K<D and K>20 = bearish
             "volume_ratio": 1.5,  # >1.2 confirms trend
         }
-        # Pass same bearish indicators to all 4 timeframes
+        # Pass same bearish indicators to all 3 timeframes
         result = analyzer._fallback_analysis(
             request,
-            bearish_indicators,
             bearish_indicators,
             bearish_indicators,
             bearish_indicators,
@@ -1083,17 +1078,6 @@ class TestFetchRealMarketData:
             }
             for i in range(100)
         ]
-        mock_candles_4h = [
-            {
-                "timestamp": 1700000000000 + i * 14400000,
-                "open": 50000,
-                "high": 50200,
-                "low": 49800,
-                "close": 50100,
-                "volume": 400.0,
-            }
-            for i in range(60)
-        ]
         mock_prices = {"BTCUSDT": 50000.0, "ETHUSDT": 3000.0}
 
         with patch("httpx.AsyncClient") as mock_client:
@@ -1106,11 +1090,6 @@ class TestFetchRealMarketData:
                     response.status_code = 200
                     response.json = Mock(
                         return_value={"success": True, "data": mock_candles_1h}
-                    )
-                elif "/api/market/candles/" in url and "/4h" in url:
-                    response.status_code = 200
-                    response.json = Mock(
-                        return_value={"success": True, "data": mock_candles_4h}
                     )
                 elif "/api/market/prices" in url:
                     response.status_code = 200
@@ -1129,9 +1108,7 @@ class TestFetchRealMarketData:
             assert result.symbol == "BTCUSDT"
             assert result.current_price == 50000.0
             assert "1h" in result.timeframe_data
-            assert "4h" in result.timeframe_data
             assert len(result.timeframe_data["1h"]) == 100
-            assert len(result.timeframe_data["4h"]) == 60
 
     @pytest.mark.asyncio
     async def test_fetch_real_market_data_api_failure(self):
@@ -1345,10 +1322,9 @@ class TestMoreGPTAnalyzerMethods:
         indicators_15m = {"rsi": 60.0, "macd": 5.0}
         indicators_30m = {"rsi": 62.0, "macd": 7.0}
         indicators_1h = {"rsi": 65.0, "macd": 10.0}
-        indicators_4h = {"rsi": 70.0}
 
         context = analyzer._prepare_market_context(
-            request, indicators_15m, indicators_30m, indicators_1h, indicators_4h
+            request, indicators_15m, indicators_30m, indicators_1h
         )
         assert "BTCUSDT" in context
         assert "RSI" in context
@@ -1393,7 +1369,6 @@ class TestMoreGPTAnalyzerMethods:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45050.0,
             volume_24h=1000000.0,
@@ -1410,7 +1385,7 @@ class TestMoreGPTAnalyzerMethods:
             "stochastic_d": 50.0,
         }
         result = analyzer._fallback_analysis(
-            request, indicators, indicators, indicators, indicators
+            request, indicators, indicators, indicators
         )
         # New format shows "MACD↑" or "MACD↓" in the indicator breakdown
         assert "MACD" in result["reasoning"]
@@ -1441,7 +1416,6 @@ class TestMoreGPTAnalyzerMethods:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45050.0,
             volume_24h=1000000.0,
@@ -1459,7 +1433,7 @@ class TestMoreGPTAnalyzerMethods:
             "stochastic_d": 50.0,
         }
         result = analyzer._fallback_analysis(
-            request, indicators, indicators, indicators, indicators
+            request, indicators, indicators, indicators
         )
         # New format shows "Vol↑" in the indicator breakdown
         assert "Vol" in result["reasoning"] or "NEUTRAL" in result["reasoning"]
@@ -1491,7 +1465,6 @@ class TestMoreGPTAnalyzerMethods:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45050.0,
             volume_24h=1000000.0,
@@ -1511,7 +1484,7 @@ class TestMoreGPTAnalyzerMethods:
             "stochastic_d": 50.0,
         }
         result = analyzer._fallback_analysis(
-            request, indicators, indicators, indicators, indicators
+            request, indicators, indicators, indicators
         )
         # With only 2 bullish indicators per timeframe, each TF is NEUTRAL
         # Result should be Neutral (no 3+ timeframes agree)
@@ -1552,7 +1525,6 @@ class TestMoreGPTAnalyzerMethods:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45500.0,
             volume_24h=1000000.0,
@@ -1561,7 +1533,7 @@ class TestMoreGPTAnalyzerMethods:
         )
 
         # With empty indicators, all timeframes show "insufficient data"
-        result = analyzer._fallback_analysis(request, {}, {}, {}, {})
+        result = analyzer._fallback_analysis(request, {}, {}, {})
         # New format shows "Summary: Bullish=X, Bearish=Y, Neutral=Z"
         assert (
             "Summary" in result["reasoning"]
@@ -1942,11 +1914,11 @@ class TestMarketConditionHelpers:
         assert _determine_market_phase(tf, 0.1) == "Ranging/Consolidation"
 
     def test_determine_market_phase_trending(self):
-        tf = {"4h": {"indicators": {"adx": 28.0}, "direction": 0.4}}
+        tf = {"1h": {"indicators": {"adx": 28.0}, "direction": 0.4}}
         assert _determine_market_phase(tf, 0.4) == "Trending"
 
     def test_determine_market_phase_transitioning(self):
-        tf = {"4h": {"indicators": {"adx": 22.0}, "direction": 0.1}}
+        tf = {"1h": {"indicators": {"adx": 22.0}, "direction": 0.1}}
         assert _determine_market_phase(tf, 0.1) == "Transitioning"
 
     def test_build_characteristics_bullish(self):
@@ -1979,7 +1951,6 @@ class TestMarketConditionHelpers:
     def test_combine_timeframe_directions_multi_tf(self):
         tf = {
             "1d": {"direction": 0.8},
-            "4h": {"direction": 0.6},
             "1h": {"direction": 0.4},
         }
         result = _combine_timeframe_directions(tf)
@@ -2006,7 +1977,7 @@ class TestMarketConditionHelpers:
                     "adx": 35,
                 },
             },
-            "4h": {
+            "1h": {
                 "direction": 0.6,
                 "current_price": 50000,
                 "indicators": {
@@ -2038,7 +2009,7 @@ class TestMarketConditionHelpers:
                     "adx": 25,
                 },
             },
-            "4h": {
+            "1h": {
                 "direction": -0.4,
                 "current_price": 50000,
                 "indicators": {
@@ -2199,7 +2170,7 @@ class TestGPTAnalyzerErrorPaths:
 
         request = AIAnalysisRequest(
             symbol="BTCUSDT",
-            timeframe_data={"1h": candles, "4h": candles},
+            timeframe_data={"1h": candles},
             current_price=45050.0,
             volume_24h=1000000.0,
             timestamp=int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -2556,8 +2527,8 @@ class TestGPTAnalyzerFallbackStrategies:
             strategy_context=AIStrategyContext(selected_strategies=["RSI Strategy"]),
         )
 
-        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h, indicators_4h)
-        result = analyzer._fallback_analysis(request, {}, {}, {"rsi": 55.0}, {})
+        # Note: signature now: (request, indicators_15m, indicators_30m, indicators_1h)
+        result = analyzer._fallback_analysis(request, {}, {}, {"rsi": 55.0})
         assert "neutral" in result["reasoning"].lower()
 
     def test_fallback_analysis_macd_bearish_neutral_signal(self):
@@ -2585,7 +2556,6 @@ class TestGPTAnalyzerFallbackStrategies:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45050.0,
             volume_24h=1000000.0,
@@ -2603,7 +2573,7 @@ class TestGPTAnalyzerFallbackStrategies:
             "stochastic_d": 50.0,
         }
         result = analyzer._fallback_analysis(
-            request, indicators, indicators, indicators, indicators
+            request, indicators, indicators, indicators
         )
         # Signal should be Neutral since only 1 bearish indicator per timeframe
         assert result["signal"] == "Neutral"
@@ -2635,7 +2605,6 @@ class TestGPTAnalyzerFallbackStrategies:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45050.0,
             volume_24h=1000000.0,
@@ -2653,7 +2622,7 @@ class TestGPTAnalyzerFallbackStrategies:
             "stochastic_d": 50.0,
         }
         result = analyzer._fallback_analysis(
-            request, indicators, indicators, indicators, indicators
+            request, indicators, indicators, indicators
         )
         # All indicators neutral, so result is Neutral
         assert result["signal"] == "Neutral"
@@ -2684,7 +2653,6 @@ class TestGPTAnalyzerFallbackStrategies:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=45050.0,
             volume_24h=1000000.0,
@@ -2703,7 +2671,7 @@ class TestGPTAnalyzerFallbackStrategies:
             "stochastic_d": 50.0,
         }
         result = analyzer._fallback_analysis(
-            request, indicators, indicators, indicators, indicators
+            request, indicators, indicators, indicators
         )
         # Single BB upper signal per timeframe = each TF is NEUTRAL
         assert result["signal"] == "Neutral"
@@ -2742,7 +2710,6 @@ class TestGPTAnalyzerFallbackStrategies:
                 "15m": candles,
                 "30m": candles,
                 "1h": candles,
-                "4h": candles,
             },
             current_price=44000.0,
             volume_24h=1000000.0,
@@ -2751,7 +2718,7 @@ class TestGPTAnalyzerFallbackStrategies:
         )
 
         # Empty indicators = all timeframes show "insufficient data"
-        result = analyzer._fallback_analysis(request, {}, {}, {}, {})
+        result = analyzer._fallback_analysis(request, {}, {}, {})
         # New format shows summary
         assert (
             "Summary" in result["reasoning"]
@@ -3330,7 +3297,7 @@ class TestTrendPrediction:
                 }
             )
 
-        candles_by_tf = {"1d": candles, "4h": candles}
+        candles_by_tf = {"1d": candles}
 
         result = _predict_trend_technical("BTCUSDT", candles_by_tf, "1d")
 
