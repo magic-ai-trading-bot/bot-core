@@ -4235,7 +4235,7 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
 
     # Call xAI Grok
     logger.info(f"Calling xAI Grok to analyze trade {trade_id}...")
-    response = client.chat.completions.create(
+    response = await client.chat_completions_create(
         model=AI_MODEL,
         messages=[
             {
@@ -4248,10 +4248,10 @@ You are a professional trading analyst. Analyze this {trade_type} trade and prov
             },
         ],
         temperature=0.3,
-        max_completion_tokens=1500,
+        max_tokens=1500,
     )
 
-    gpt4_response = response.choices[0].message.content
+    gpt4_response = response["choices"][0]["message"]["content"]
 
     # Strip markdown code blocks if present
     if gpt4_response.startswith("```"):

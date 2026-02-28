@@ -847,19 +847,22 @@ class TestAnalyzeTradeEndpoint:
 
         mock_analysis_json = '{"trade_verdict": "LOSING", "entry_analysis": {"quality": "poor", "reasoning": "Bad timing", "signals_valid": false}, "exit_analysis": {"quality": "acceptable", "reasoning": "OK", "better_exit_point": "N/A"}, "key_factors": ["bad entry"], "lessons_learned": ["wait for confirmation"], "recommendations": {"config_changes": null, "strategy_improvements": ["tighter SL"], "risk_management": "Reduce size"}, "confidence": 0.8, "summary": "Trade lost due to poor entry timing."}'
 
-        mock_completion = MagicMock()
-        mock_completion.choices = [
-            MagicMock(message=MagicMock(content=mock_analysis_json))
-        ]
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": mock_analysis_json}}]
+        }
 
         with patch("utils.data_storage.storage") as mock_storage:
             mock_storage.get_trade_analysis.return_value = None
             mock_storage.store_trade_analysis.return_value = "inserted_id"
             with patch.dict(os.environ, {"XAI_API_KEY": "test-key-123"}, clear=False):
-                with patch("openai.OpenAI") as mock_openai_cls:
-                    mock_client = MagicMock()
-                    mock_client.chat.completions.create.return_value = mock_completion
-                    mock_openai_cls.return_value = mock_client
+                with patch("httpx.AsyncClient") as mock_httpx_cls:
+                    mock_http = AsyncMock()
+                    mock_http.post = AsyncMock(return_value=mock_response)
+                    mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+                    mock_http.__aexit__ = AsyncMock(return_value=None)
+                    mock_httpx_cls.return_value = mock_http
 
                     result = await perform_trade_analysis(
                         {
@@ -890,19 +893,22 @@ class TestAnalyzeTradeEndpoint:
         mock_json = '{"trade_verdict": "LOSING", "summary": "test", "confidence": 0.5, "entry_analysis": {"quality": "poor", "reasoning": "test", "signals_valid": false}, "exit_analysis": {"quality": "acceptable", "reasoning": "test", "better_exit_point": "N/A"}, "key_factors": [], "lessons_learned": [], "recommendations": {"config_changes": null, "strategy_improvements": [], "risk_management": "N/A"}}'
         wrapped_response = f"```json\n{mock_json}\n```"
 
-        mock_completion = MagicMock()
-        mock_completion.choices = [
-            MagicMock(message=MagicMock(content=wrapped_response))
-        ]
+        mock_response2 = MagicMock()
+        mock_response2.raise_for_status = MagicMock()
+        mock_response2.json.return_value = {
+            "choices": [{"message": {"content": wrapped_response}}]
+        }
 
         with patch("utils.data_storage.storage") as mock_storage:
             mock_storage.get_trade_analysis.return_value = None
             mock_storage.store_trade_analysis.return_value = "id"
             with patch.dict(os.environ, {"XAI_API_KEY": "test-key"}, clear=False):
-                with patch("openai.OpenAI") as mock_openai_cls:
-                    mock_client = MagicMock()
-                    mock_client.chat.completions.create.return_value = mock_completion
-                    mock_openai_cls.return_value = mock_client
+                with patch("httpx.AsyncClient") as mock_httpx_cls:
+                    mock_http = AsyncMock()
+                    mock_http.post = AsyncMock(return_value=mock_response2)
+                    mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+                    mock_http.__aexit__ = AsyncMock(return_value=None)
+                    mock_httpx_cls.return_value = mock_http
 
                     result = await perform_trade_analysis(
                         {

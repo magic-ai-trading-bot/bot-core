@@ -49,7 +49,7 @@ class TestHealthEndpoint:
         data = response.json()
         assert data["status"] == "healthy"
         assert data["service"] == "Grok Trading AI"
-        assert data["gpt4_available"] is True
+        assert data["grok_available"] is True
         # MongoDB connection status can be True or False in test environment
         assert "mongodb_connected" in data
 
@@ -342,7 +342,7 @@ class TestRootEndpoint:
         data = response.json()
         assert data["service"] == "Grok AI Cryptocurrency Trading Service"
         assert "endpoints" in data
-        assert data["features"]["gpt4_enabled"] is True
+        assert data["features"]["grok_enabled"] is True
 
 
 @pytest.mark.unit
@@ -1589,7 +1589,7 @@ class TestGrokClientAdvanced:
         with patch(
             "main.last_grok_request_time", datetime.now() - timedelta(seconds=5)
         ):
-            with patch("main.OPENAI_REQUEST_DELAY", 10):
+            with patch("main.GROK_REQUEST_DELAY", 10):
                 with patch("httpx.AsyncClient") as mock_httpx:
                     mock_client_instance = AsyncMock()
                     mock_client_instance.post = AsyncMock(
