@@ -15,8 +15,8 @@ from app.core.config import (
     GROK_INPUT_COST_PER_1M,
     GROK_OUTPUT_COST_PER_1M,
     GROK_REQUEST_DELAY,
+    get_ai_api_keys,
     get_mongodb_url,
-    get_openai_api_keys,
 )
 
 
@@ -94,7 +94,7 @@ class TestGetOpenAIAPIKeys:
             if key_name in os.environ:
                 del os.environ[key_name]
 
-        keys = get_openai_api_keys()
+        keys = get_ai_api_keys()
         assert len(keys) == 1
         assert keys[0] == "sk-test-primary"
 
@@ -115,7 +115,7 @@ class TestGetOpenAIAPIKeys:
             if key_name in os.environ:
                 del os.environ[key_name]
 
-        keys = get_openai_api_keys()
+        keys = get_ai_api_keys()
         assert len(keys) == 3
         assert "sk-test-primary" in keys
         assert "sk-test-fallback-1" in keys
@@ -141,7 +141,7 @@ class TestGetOpenAIAPIKeys:
             if key_name in os.environ:
                 del os.environ[key_name]
 
-        keys = get_openai_api_keys()
+        keys = get_ai_api_keys()
         assert len(keys) == 2
         assert "sk-test-fallback-1" in keys
         assert "sk-test-fallback-3" in keys
@@ -158,9 +158,9 @@ class TestGetOpenAIAPIKeys:
                 del os.environ[key_name]
 
         with pytest.raises(ValueError) as exc_info:
-            get_openai_api_keys()
+            get_ai_api_keys()
 
-        assert "At least one OpenAI API key is required" in str(exc_info.value)
+        assert "At least one AI API key is required" in str(exc_info.value)
 
 
 if __name__ == "__main__":
