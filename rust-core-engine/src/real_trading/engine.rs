@@ -2957,7 +2957,10 @@ impl RealTradingEngine {
                     // Build strategy input from historical cache
                     let strategy_input = match self.build_strategy_input(symbol).await {
                         Some(input) => input,
-                        None => continue,
+                        None => {
+                            warn!("Failed to build strategy input for {} (missing data or price)", symbol);
+                            continue;
+                        },
                     };
 
                     // Run strategy engine
@@ -2965,13 +2968,18 @@ impl RealTradingEngine {
                         match self.strategy_engine.analyze_market(&strategy_input).await {
                             Ok(sig) => sig,
                             Err(e) => {
-                                debug!("Strategy analysis failed for {}: {}", symbol, e);
+                                warn!("Strategy analysis failed for {} {}: {}", symbol, timeframe, e);
                                 continue;
                             },
                         };
 
                     let signal = combined_signal.final_signal;
                     let confidence = combined_signal.combined_confidence;
+
+                    info!(
+                        "Strategy result for {} {}: {:?} (confidence: {:.2}%)",
+                        symbol, timeframe, signal, confidence * 100.0
+                    );
 
                     // ===== 5-LAYER SIGNAL FILTERING =====
 
@@ -2982,7 +2990,7 @@ impl RealTradingEngine {
 
                     // Layer 2: Confidence threshold
                     if confidence < min_confidence {
-                        debug!(
+                        info!(
                             "Signal for {} rejected: confidence {:.2} < {:.2}",
                             symbol, confidence, min_confidence
                         );
@@ -3103,9 +3111,9 @@ impl RealTradingEngine {
                     }
 
                     if !confirmed {
-                        debug!(
-                            "Signal for {} awaiting confirmation (need 2 consecutive)",
-                            symbol
+                        info!(
+                            "Signal {:?} for {} awaiting confirmation (need 2 consecutive same-direction within 10min, >=60s apart)",
+                            signal, symbol
                         );
                         continue;
                     }
