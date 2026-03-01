@@ -328,10 +328,18 @@
       "noPositions": "No open positions"
     },
     "orders": {
-      "title": "Open Orders",
+      "title": "Pending Orders",
+      "symbol": "Symbol",
+      "type": "Type",
+      "side": "Side",
+      "price": "Price",
+      "quantity": "Quantity",
+      "filled": "Filled",
+      "status": "Status",
       "cancel": "Cancel",
       "cancelAll": "Cancel All",
-      "noOrders": "No open orders"
+      "noOrders": "No pending orders",
+      "placeOrder": "Place an order"
     },
     "history": {
       "title": "Trade History",

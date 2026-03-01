@@ -221,9 +221,17 @@
     },
     "orders": {
       "title": "オープンオーダー",
+      "symbol": "通貨ペア",
+      "type": "タイプ",
+      "side": "売買",
+      "price": "価格",
+      "quantity": "数量",
+      "filled": "約定済",
+      "status": "ステータス",
       "cancel": "キャンセル",
       "cancelAll": "全てキャンセル",
-      "noOrders": "オープンオーダーなし"
+      "noOrders": "オープンオーダーなし",
+      "placeOrder": "注文する"
     },
     "history": {
       "title": "取引履歴",

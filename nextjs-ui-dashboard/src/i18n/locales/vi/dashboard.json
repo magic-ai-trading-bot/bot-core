@@ -329,9 +329,17 @@
     },
     "orders": {
       "title": "Lệnh đang chờ",
+      "symbol": "Cặp tiền",
+      "type": "Loại",
+      "side": "Chiều",
+      "price": "Giá",
+      "quantity": "Số lượng",
+      "filled": "Đã khớp",
+      "status": "Trạng thái",
       "cancel": "Hủy",
       "cancelAll": "Hủy tất cả",
-      "noOrders": "Chưa có lệnh chờ"
+      "noOrders": "Chưa có lệnh chờ",
+      "placeOrder": "Đặt lệnh"
     },
     "history": {
       "title": "Lịch sử giao dịch",

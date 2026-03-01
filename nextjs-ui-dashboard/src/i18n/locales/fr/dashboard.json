@@ -221,9 +221,17 @@
     },
     "orders": {
       "title": "Ordres Ouverts",
+      "symbol": "Paire",
+      "type": "Type",
+      "side": "Côté",
+      "price": "Prix",
+      "quantity": "Quantité",
+      "filled": "Exécuté",
+      "status": "Statut",
       "cancel": "Annuler",
       "cancelAll": "Tout annuler",
-      "noOrders": "Aucun ordre ouvert"
+      "noOrders": "Aucun ordre ouvert",
+      "placeOrder": "Passer un ordre"
     },
     "history": {
       "title": "Historique des Transactions",

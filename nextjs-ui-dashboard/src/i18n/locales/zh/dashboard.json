@@ -221,9 +221,17 @@
     },
     "orders": {
       "title": "挂单",
+      "symbol": "交易对",
+      "type": "类型",
+      "side": "方向",
+      "price": "价格",
+      "quantity": "数量",
+      "filled": "已成交",
+      "status": "状态",
       "cancel": "取消",
       "cancelAll": "全部取消",
-      "noOrders": "暂无挂单"
+      "noOrders": "暂无挂单",
+      "placeOrder": "下单"
     },
     "history": {
       "title": "交易历史",
