@@ -203,7 +203,7 @@ struct PendingConfirmation {
 }
 
 /// Request to update settings
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct UpdateSettingsRequest {
     pub max_position_size_usdt: Option<f64>,
     pub max_positions: Option<u32>,
@@ -213,6 +213,16 @@ pub struct UpdateSettingsRequest {
     pub default_stop_loss_percent: Option<f64>,
     pub default_take_profit_percent: Option<f64>,
     pub max_leverage: Option<u32>,
+    // Auto-trading fields
+    pub auto_trading_enabled: Option<bool>,
+    pub auto_trade_symbols: Option<Vec<String>>,
+    pub min_signal_confidence: Option<f64>,
+    pub max_consecutive_losses: Option<u32>,
+    pub cool_down_minutes: Option<u32>,
+    pub correlation_limit: Option<f64>,
+    pub max_portfolio_risk_pct: Option<f64>,
+    pub short_only_mode: Option<bool>,
+    pub long_only_mode: Option<bool>,
 }
 
 /// Settings response
@@ -229,6 +239,16 @@ pub struct SettingsResponse {
     pub max_leverage: u32,
     pub circuit_breaker_errors: u32,
     pub circuit_breaker_cooldown_secs: u64,
+    // Auto-trading fields
+    pub auto_trading_enabled: bool,
+    pub auto_trade_symbols: Vec<String>,
+    pub min_signal_confidence: f64,
+    pub max_consecutive_losses: u32,
+    pub cool_down_minutes: u32,
+    pub correlation_limit: f64,
+    pub max_portfolio_risk_pct: f64,
+    pub short_only_mode: bool,
+    pub long_only_mode: bool,
 }
 
 // ============================================================================
@@ -833,6 +853,15 @@ async fn get_settings(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejection>
         max_leverage: config.max_leverage,
         circuit_breaker_errors: config.circuit_breaker_errors,
         circuit_breaker_cooldown_secs: config.circuit_breaker_cooldown_secs,
+        auto_trading_enabled: config.auto_trading_enabled,
+        auto_trade_symbols: config.auto_trade_symbols.clone(),
+        min_signal_confidence: config.min_signal_confidence,
+        max_consecutive_losses: config.max_consecutive_losses,
+        cool_down_minutes: config.cool_down_minutes,
+        correlation_limit: config.correlation_limit,
+        max_portfolio_risk_pct: config.max_portfolio_risk_pct,
+        short_only_mode: config.short_only_mode,
+        long_only_mode: config.long_only_mode,
     };
 
     Ok(warp::reply::with_status(
@@ -887,6 +916,34 @@ async fn update_settings(
     }
     if let Some(v) = request.max_leverage {
         config.max_leverage = v;
+    }
+    // Auto-trading fields
+    if let Some(v) = request.auto_trading_enabled {
+        config.auto_trading_enabled = v;
+    }
+    if let Some(v) = request.auto_trade_symbols {
+        config.auto_trade_symbols = v;
+    }
+    if let Some(v) = request.min_signal_confidence {
+        config.min_signal_confidence = v;
+    }
+    if let Some(v) = request.max_consecutive_losses {
+        config.max_consecutive_losses = v;
+    }
+    if let Some(v) = request.cool_down_minutes {
+        config.cool_down_minutes = v;
+    }
+    if let Some(v) = request.correlation_limit {
+        config.correlation_limit = v;
+    }
+    if let Some(v) = request.max_portfolio_risk_pct {
+        config.max_portfolio_risk_pct = v;
+    }
+    if let Some(v) = request.short_only_mode {
+        config.short_only_mode = v;
+    }
+    if let Some(v) = request.long_only_mode {
+        config.long_only_mode = v;
     }
 
     match engine.update_config(config).await {
@@ -1432,6 +1489,15 @@ mod tests {
             max_leverage: 10,
             circuit_breaker_errors: 3,
             circuit_breaker_cooldown_secs: 300,
+            auto_trading_enabled: false,
+            auto_trade_symbols: vec![],
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -1746,13 +1812,7 @@ mod tests {
 
         let request = UpdateSettingsRequest {
             max_position_size_usdt: Some(5000.0),
-            max_positions: None,
-            max_daily_loss_usdt: None,
-            max_total_exposure_usdt: None,
-            risk_per_trade_percent: None,
-            default_stop_loss_percent: None,
-            default_take_profit_percent: None,
-            max_leverage: None,
+            ..Default::default()
         };
 
         let resp = warp::test::request()
@@ -2602,6 +2662,15 @@ mod tests {
             max_leverage: 20,
             circuit_breaker_errors: 5,
             circuit_breaker_cooldown_secs: 600,
+            auto_trading_enabled: false,
+            auto_trade_symbols: vec![],
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -2984,14 +3053,8 @@ mod tests {
         let routes = api.routes();
 
         let update_req = UpdateSettingsRequest {
-            max_position_size_usdt: None,
             max_positions: Some(15),
-            max_daily_loss_usdt: None,
-            max_total_exposure_usdt: None,
-            risk_per_trade_percent: None,
-            default_stop_loss_percent: None,
-            default_take_profit_percent: None,
-            max_leverage: None,
+            ..Default::default()
         };
 
         let resp = warp::test::request()
@@ -3010,14 +3073,12 @@ mod tests {
         let routes = api.routes();
 
         let update_req = UpdateSettingsRequest {
-            max_position_size_usdt: None,
-            max_positions: None,
             max_daily_loss_usdt: Some(1500.0),
-            max_total_exposure_usdt: None,
             risk_per_trade_percent: Some(2.5),
             default_stop_loss_percent: Some(2.0),
             default_take_profit_percent: Some(5.0),
             max_leverage: Some(5),
+            ..Default::default()
         };
 
         let resp = warp::test::request()
@@ -3236,14 +3297,7 @@ mod tests {
         let routes = api.routes();
 
         let update_req = UpdateSettingsRequest {
-            max_position_size_usdt: None,
-            max_positions: None,
-            max_daily_loss_usdt: None,
-            max_total_exposure_usdt: None,
-            risk_per_trade_percent: None,
-            default_stop_loss_percent: None,
-            default_take_profit_percent: None,
-            max_leverage: None,
+            ..Default::default()
         };
 
         let resp = warp::test::request()
@@ -3338,6 +3392,7 @@ mod tests {
             default_stop_loss_percent: Some(2.5),
             default_take_profit_percent: Some(6.0),
             max_leverage: Some(10),
+            ..Default::default()
         };
 
         let resp = warp::test::request()
@@ -3723,6 +3778,15 @@ mod tests {
             max_leverage: 10,
             circuit_breaker_errors: 3,
             circuit_breaker_cooldown_secs: 300,
+            auto_trading_enabled: false,
+            auto_trade_symbols: vec![],
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -4077,14 +4141,7 @@ mod tests {
     #[test]
     fn test_cov6_update_settings_all_none() {
         let req = UpdateSettingsRequest {
-            max_position_size_usdt: None,
-            max_positions: None,
-            max_daily_loss_usdt: None,
-            max_total_exposure_usdt: None,
-            risk_per_trade_percent: None,
-            default_stop_loss_percent: None,
-            default_take_profit_percent: None,
-            max_leverage: None,
+            ..Default::default()
         };
         let json = serde_json::to_string(&req).unwrap();
         assert!(json.contains("null"));
@@ -4104,6 +4161,15 @@ mod tests {
             max_leverage: 15,
             circuit_breaker_errors: 5,
             circuit_breaker_cooldown_secs: 600,
+            auto_trading_enabled: false,
+            auto_trade_symbols: vec![],
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
         };
         assert_eq!(settings.max_positions, 8);
         assert_eq!(settings.max_leverage, 15);
@@ -4668,6 +4734,7 @@ mod tests {
             default_stop_loss_percent: Some(2.5),
             default_take_profit_percent: Some(6.0),
             max_leverage: Some(15),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&req).unwrap();
@@ -4691,6 +4758,15 @@ mod tests {
             max_leverage: 5,
             circuit_breaker_errors: 3,
             circuit_breaker_cooldown_secs: 300,
+            auto_trading_enabled: false,
+            auto_trade_symbols: vec![],
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -4996,6 +5072,7 @@ mod tests {
             default_stop_loss_percent: Some(1.5),
             default_take_profit_percent: Some(3.0),
             max_leverage: Some(10),
+            ..Default::default()
         };
 
         let resp = warp::test::request()
@@ -6287,6 +6364,7 @@ mod tests {
             default_stop_loss_percent: Some(2.5),
             default_take_profit_percent: Some(5.0),
             max_leverage: Some(20),
+            ..Default::default()
         };
 
         assert_eq!(request.max_position_size_usdt, Some(2000.0));
@@ -6298,13 +6376,7 @@ mod tests {
     fn test_boost_update_settings_request_partial() {
         let request = UpdateSettingsRequest {
             max_position_size_usdt: Some(1000.0),
-            max_positions: None,
-            max_daily_loss_usdt: None,
-            max_total_exposure_usdt: None,
-            risk_per_trade_percent: None,
-            default_stop_loss_percent: None,
-            default_take_profit_percent: None,
-            max_leverage: None,
+            ..Default::default()
         };
 
         assert_eq!(request.max_position_size_usdt, Some(1000.0));
@@ -6325,6 +6397,15 @@ mod tests {
             max_leverage: 10,
             circuit_breaker_errors: 3,
             circuit_breaker_cooldown_secs: 300,
+            auto_trading_enabled: false,
+            auto_trade_symbols: vec![],
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
         };
 
         assert!(settings.use_testnet);
@@ -6346,6 +6427,15 @@ mod tests {
             max_leverage: 5,
             circuit_breaker_errors: 5,
             circuit_breaker_cooldown_secs: 600,
+            auto_trading_enabled: false,
+            auto_trade_symbols: vec![],
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
         };
 
         assert!(!settings.use_testnet);

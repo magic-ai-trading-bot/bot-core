@@ -304,6 +304,9 @@ pub struct RealTradingEngine {
 
     /// Cool-down expiry time (None = not in cool-down)
     cool_down_until: Arc<RwLock<Option<DateTime<Utc>>>>,
+
+    /// Whether the strategy signal loop has been spawned
+    signal_loop_spawned: Arc<RwLock<bool>>,
 }
 
 impl RealTradingEngine {
@@ -358,6 +361,7 @@ impl RealTradingEngine {
             signal_flip_tracker: Arc::new(RwLock::new(HashMap::new())),
             consecutive_losses: Arc::new(RwLock::new(0)),
             cool_down_until: Arc::new(RwLock::new(None)),
+            signal_loop_spawned: Arc::new(RwLock::new(false)),
         })
     }
 
@@ -454,9 +458,10 @@ impl RealTradingEngine {
                 tokio::spawn(async move {
                     engine_for_signals.strategy_signal_loop().await;
                 });
+                *self.signal_loop_spawned.write().await = true;
                 info!("Strategy signal loop spawned (30s interval) - auto-trading ENABLED");
             } else {
-                info!("Auto-trading disabled - strategy signal loop NOT started");
+                info!("Auto-trading disabled - strategy signal loop NOT started (will auto-spawn when enabled via API)");
             }
         }
 
@@ -2237,7 +2242,23 @@ impl RealTradingEngine {
         config
             .validate()
             .map_err(|e| anyhow!("Invalid config: {}", e.join(", ")))?;
+
+        let should_spawn_signal_loop = config.auto_trading_enabled
+            && *self.is_running.read().await
+            && !*self.signal_loop_spawned.read().await;
+
         *self.config.write().await = config;
+
+        // Dynamically spawn strategy signal loop if auto_trading just enabled
+        if should_spawn_signal_loop {
+            let engine_for_signals = self.clone();
+            tokio::spawn(async move {
+                engine_for_signals.strategy_signal_loop().await;
+            });
+            *self.signal_loop_spawned.write().await = true;
+            info!("🚀 Strategy signal loop dynamically spawned - auto-trading ENABLED via API");
+        }
+
         Ok(())
     }
 
