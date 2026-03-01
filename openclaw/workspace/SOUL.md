@@ -97,7 +97,7 @@ Both `false` = normal mode (both directions allowed). **This is the SAFE DEFAULT
 - `confidence`: float (0.0 to 1.0) — indicator agreement + cross-timeframe consistency
 - `trend_strength`: float (0.0 to 1.0) — ADX-based trend strength
 - `condition_type`: "Strong Bullish" / "Mildly Bullish" / "Neutral" / "Mildly Bearish" / "Strong Bearish"
-- `timeframe_analysis`: per-timeframe direction breakdown (1h: 100 candles, 4h: 100 candles, 1d: 250 candles with EMA200)
+- `timeframe_analysis`: per-timeframe direction breakdown (1h: 100 candles, 1d: 250 candles with EMA200)
 - `indicators_summary`: key indicator values from primary timeframe (RSI, MACD, ADX, volume ratio)
 
 **Step 2**: Check confidence ≥ 0.70 first. If confidence < 0.70 → set BOTH false (uncertain signal).
@@ -240,6 +240,10 @@ Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
 5. Stochastic Strategy — momentum oscillator (K/D crossover)
 
 ⚠️ Thresholds (oversold/overbought/periods) are runtime-tunable. Query `get_paper_indicator_settings` for current values.
+
+**Timeframes** (2 separate systems — DON'T confuse):
+- **Rust Strategies** (signal generation): **5M primary + 15M confirmation**. 4/5 strategies must agree across both timeframes.
+- **Python AI** (bias/filter): **15M/30M/1H weighted** (1H=2.0 weight, 30M=1.0, 15M=0.5). AI is secondary filter, NOT primary signal source.
 
 **Paper Trading Features**:
 - Execution simulation (slippage, market impact, partial fills)
