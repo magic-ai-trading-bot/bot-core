@@ -742,7 +742,11 @@ impl RealTradingEngine {
                 r#type: order_type_str,
                 quantity: Some(rounded_qty.to_string()),
                 quote_order_qty: None,
-                price: price.map(|p| format!("{:.2}", p)),
+                price: if order_type == SpotOrderType::Market {
+                    None
+                } else {
+                    price.map(|p| format!("{:.2}", p))
+                },
                 new_client_order_id: Some(client_order_id.clone()),
                 stop_price: stop_price.map(|p| format!("{:.2}", p)),
                 iceberg_qty: None,
