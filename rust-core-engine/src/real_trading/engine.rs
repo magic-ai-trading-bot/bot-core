@@ -332,27 +332,26 @@ impl RealTradingEngine {
         }
         info!("UserDataStream started");
 
-        // 2. Subscribe to events and spawn handler
+        // 2. Load initial balances and perform initial sync
+        self.initial_sync().await?;
+
+        // 3. Set running flag BEFORE spawning loops (prevents race condition)
+        {
+            let mut is_running = self.is_running.write().await;
+            *is_running = true;
+        }
+
+        // 4. Subscribe to events and spawn handler
         let event_rx = {
             let stream = self.user_data_stream.read().await;
             stream.subscribe()
         };
 
-        // Clone self for the spawned task
         let engine = self.clone();
         tokio::spawn(async move {
             engine.process_user_data_events(event_rx).await;
         });
         info!("UserDataStream event handler spawned");
-
-        // 3. Load initial balances and perform initial sync
-        self.initial_sync().await?;
-
-        // 4. Set running flag
-        {
-            let mut is_running = self.is_running.write().await;
-            *is_running = true;
-        }
 
         // 5. Spawn reconciliation loop
         let engine_for_reconciliation = self.clone();
@@ -1492,21 +1491,23 @@ impl RealTradingEngine {
     // @spec:FR-REAL-053 - Balance Reconciliation
     /// Reconcile local balances with exchange balances
     async fn reconcile_balances(&self) -> Result<u32> {
-        let account = self.binance_client.get_account_info().await?;
-        let mut discrepancies = 0;
+        // Use futures or spot endpoint based on trading mode
+        let exchange_balances = if self.use_futures {
+            self.fetch_futures_balances_for_reconciliation().await?
+        } else {
+            self.fetch_spot_balances_for_reconciliation().await?
+        };
 
+        let mut discrepancies = 0;
         let mut local_balances = self.balances.write().await;
 
-        for balance in account.balances {
-            let exchange_free: f64 = balance.free.parse().unwrap_or(0.0);
-            let exchange_locked: f64 = balance.locked.parse().unwrap_or(0.0);
-
+        for (asset, exchange_free, exchange_locked) in exchange_balances {
             // Skip zero balances
             if exchange_free <= 0.0 && exchange_locked <= 0.0 {
                 continue;
             }
 
-            let local_balance = local_balances.get(&balance.asset);
+            let local_balance = local_balances.get(&asset);
             let local_free = local_balance.map(|b| b.free).unwrap_or(0.0);
 
             // Check for significant difference (>0.01% or absolute difference > 0.0001)
@@ -1516,14 +1517,14 @@ impl RealTradingEngine {
             if diff > threshold {
                 warn!(
                     "Balance mismatch for {}: local={:.8}, exchange={:.8} (diff={:.8})",
-                    balance.asset, local_free, exchange_free, diff
+                    asset, local_free, exchange_free, diff
                 );
 
                 // Update local balance
                 local_balances.insert(
-                    balance.asset.clone(),
+                    asset.clone(),
                     Balance {
-                        asset: balance.asset.clone(),
+                        asset: asset.clone(),
                         free: exchange_free,
                         locked: exchange_locked,
                     },
@@ -1533,7 +1534,7 @@ impl RealTradingEngine {
 
                 // Emit event
                 let _ = self.event_tx.send(RealTradingEvent::BalanceUpdated {
-                    asset: balance.asset,
+                    asset,
                     free: exchange_free,
                     locked: exchange_locked,
                 });
@@ -1548,6 +1549,56 @@ impl RealTradingEngine {
         }
 
         Ok(discrepancies)
+    }
+
+    /// Fetch balances from Futures account for reconciliation
+    async fn fetch_futures_balances_for_reconciliation(
+        &self,
+    ) -> Result<Vec<(String, f64, f64)>> {
+        let account = self.binance_client.get_futures_account().await?;
+        let mut balances = Vec::new();
+
+        if let Some(assets) = account.get("assets").and_then(|a| a.as_array()) {
+            for asset_obj in assets {
+                let asset_name = asset_obj
+                    .get("asset")
+                    .and_then(|a| a.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                let wallet_balance = asset_obj
+                    .get("walletBalance")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                let available_balance = asset_obj
+                    .get("availableBalance")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                let locked = (wallet_balance - available_balance).max(0.0);
+
+                balances.push((asset_name, available_balance, locked));
+            }
+        }
+
+        Ok(balances)
+    }
+
+    /// Fetch balances from Spot account for reconciliation
+    async fn fetch_spot_balances_for_reconciliation(
+        &self,
+    ) -> Result<Vec<(String, f64, f64)>> {
+        let account = self.binance_client.get_account_info().await?;
+        let balances = account
+            .balances
+            .into_iter()
+            .map(|b| {
+                let free: f64 = b.free.parse().unwrap_or(0.0);
+                let locked: f64 = b.locked.parse().unwrap_or(0.0);
+                (b.asset, free, locked)
+            })
+            .collect();
+        Ok(balances)
     }
 
     // @spec:FR-REAL-054 - Order Reconciliation
