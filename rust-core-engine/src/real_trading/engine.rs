@@ -610,8 +610,8 @@ impl RealTradingEngine {
         let order = RealOrder::new(
             client_order_id.clone(),
             symbol.to_string(),
-            side_str,
-            order_type_str,
+            side_str.clone(),
+            order_type_str.clone(),
             quantity,
             price,
             stop_price,
@@ -632,8 +632,8 @@ impl RealTradingEngine {
             };
             let request = crate::binance::types::NewOrderRequest {
                 symbol: symbol.to_string(),
-                side: side_str.clone(),
-                r#type: order_type_str.clone(),
+                side: side_str,
+                r#type: order_type_str,
                 quantity: Some(quantity.to_string()),
                 quote_order_qty: None,
                 price: price.map(|p| p.to_string()),
