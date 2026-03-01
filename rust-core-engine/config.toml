@@ -14,8 +14,8 @@ testnet = true
 # For testnet, use these URLs:
 base_url = "https://testnet.binance.vision"
 ws_url = "wss://stream.testnet.binance.vision"
-futures_base_url = "https://testnet.binancefuture.com"
-futures_ws_url = "wss://stream.binancefuture.com/ws"
+futures_base_url = "https://demo-fapi.binance.com"
+futures_ws_url = "wss://fstream.binancefuture.com"
 
 # API endpoints (mainnet URLs for real market data)
 # base_url = "https://api.binance.com"

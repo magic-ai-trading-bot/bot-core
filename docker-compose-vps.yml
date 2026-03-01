@@ -91,8 +91,10 @@ services:
       - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-}
-      - BINANCE_TESTNET=false
-      - TRADING_ENABLED=false
+      - BINANCE_FUTURES_TESTNET_API_KEY=${BINANCE_FUTURES_TESTNET_API_KEY:-}
+      - BINANCE_FUTURES_TESTNET_SECRET_KEY=${BINANCE_FUTURES_TESTNET_SECRET_KEY:-}
+      - BINANCE_TESTNET=true
+      - TRADING_ENABLED=true
       - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_change_in_production}
     volumes:
       - ./rust-core-engine/data:/app/data

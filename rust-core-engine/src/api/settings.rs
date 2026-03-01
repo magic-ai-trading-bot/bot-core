@@ -17,7 +17,7 @@ use warp::http::StatusCode;
 use warp::{Filter, Rejection, Reply};
 
 use crate::binance::BinanceClient;
-use crate::config::BinanceConfig;
+use crate::config::{binance_urls, BinanceConfig};
 use crate::storage::Storage;
 
 /// Encryption key for API secrets (should come from environment in production)
@@ -294,9 +294,9 @@ impl SettingsApi {
         config.secret_key = api_secret.clone();
         config.testnet = use_testnet;
         config.base_url = if use_testnet {
-            "https://testnet.binancefuture.com".to_string()
+            binance_urls::FUTURES_TESTNET_BASE_URL.to_string()
         } else {
-            "https://fapi.binance.com".to_string()
+            binance_urls::FUTURES_MAINNET_BASE_URL.to_string()
         };
 
         Ok(config.clone())
@@ -454,24 +454,24 @@ async fn test_connection(api: Arc<SettingsApi>) -> Result<impl Reply, Rejection>
         futures_secret_key: String::new(),
         testnet: use_testnet,
         base_url: if use_testnet {
-            "https://testnet.binancefuture.com".to_string()
+            binance_urls::FUTURES_TESTNET_BASE_URL.to_string()
         } else {
-            "https://fapi.binance.com".to_string()
+            binance_urls::FUTURES_MAINNET_BASE_URL.to_string()
         },
         ws_url: if use_testnet {
-            "wss://stream.binancefuture.com".to_string()
+            binance_urls::FUTURES_TESTNET_WS_URL.to_string()
         } else {
-            "wss://fstream.binance.com".to_string()
+            binance_urls::FUTURES_MAINNET_WS_URL.to_string()
         },
         futures_base_url: if use_testnet {
-            "https://testnet.binancefuture.com".to_string()
+            binance_urls::FUTURES_TESTNET_BASE_URL.to_string()
         } else {
-            "https://fapi.binance.com".to_string()
+            binance_urls::FUTURES_MAINNET_BASE_URL.to_string()
         },
         futures_ws_url: if use_testnet {
-            "wss://stream.binancefuture.com".to_string()
+            binance_urls::FUTURES_TESTNET_WS_URL.to_string()
         } else {
-            "wss://fstream.binance.com".to_string()
+            binance_urls::FUTURES_MAINNET_WS_URL.to_string()
         },
         trading_mode: Default::default(),
     };
@@ -665,7 +665,7 @@ mod tests {
             testnet: true,
             base_url: "https://testnet.binance.vision".to_string(),
             ws_url: "wss://testnet.binance.vision/ws".to_string(),
-            futures_base_url: "https://testnet.binancefuture.com".to_string(),
+            futures_base_url: binance_urls::FUTURES_TESTNET_BASE_URL.to_string(),
             futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
             trading_mode: crate::config::TradingMode::RealTestnet,
         };

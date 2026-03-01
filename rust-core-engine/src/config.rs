@@ -24,9 +24,9 @@ pub mod binance_urls {
     pub const FUTURES_MAINNET_BASE_URL: &str = "https://fapi.binance.com";
     pub const FUTURES_MAINNET_WS_URL: &str = "wss://fstream.binance.com";
 
-    // Futures testnet
-    pub const FUTURES_TESTNET_BASE_URL: &str = "https://testnet.binancefuture.com";
-    pub const FUTURES_TESTNET_WS_URL: &str = "wss://stream.binancefuture.com/ws";
+    // Futures testnet (Binance Demo Trading)
+    pub const FUTURES_TESTNET_BASE_URL: &str = "https://demo-fapi.binance.com";
+    pub const FUTURES_TESTNET_WS_URL: &str = "wss://fstream.binancefuture.com";
 }
 
 /// Trading mode for the system
@@ -325,6 +325,20 @@ impl Config {
                     binance_urls::FUTURES_MAINNET_BASE_URL.to_string();
                 config.binance.futures_ws_url = binance_urls::FUTURES_MAINNET_WS_URL.to_string();
             }
+        }
+
+        // Allow env var overrides for ALL URLs (takes precedence over testnet flag)
+        if let Ok(url) = std::env::var("BINANCE_BASE_URL") {
+            config.binance.base_url = url;
+        }
+        if let Ok(url) = std::env::var("BINANCE_WS_URL") {
+            config.binance.ws_url = url;
+        }
+        if let Ok(url) = std::env::var("BINANCE_FUTURES_BASE_URL") {
+            config.binance.futures_base_url = url;
+        }
+        if let Ok(url) = std::env::var("BINANCE_FUTURES_WS_URL") {
+            config.binance.futures_ws_url = url;
         }
 
         // Trading mode override (paper_trading, real_testnet, real_mainnet)
