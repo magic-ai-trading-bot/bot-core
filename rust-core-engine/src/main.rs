@@ -235,7 +235,13 @@ async fn main() -> Result<()> {
                     "✅ Real trading engine initialized successfully (testnet={})",
                     real_trading_config.use_testnet
                 );
-                Some(std::sync::Arc::new(engine))
+                let engine = std::sync::Arc::new(engine);
+                // Auto-start the real trading engine so balance/orders are available immediately
+                match engine.start().await {
+                    Ok(_) => info!("🚀 Real trading engine auto-started successfully"),
+                    Err(e) => tracing::warn!("⚠️ Failed to auto-start real trading engine: {}", e),
+                }
+                Some(engine)
             },
             Err(e) => {
                 tracing::warn!(
