@@ -269,15 +269,17 @@ export const useRealTrading = () => {
     if (!isRealMode) return;
 
     try {
-      // TODO: Update endpoint when real trading API is ready
-      const data: RustRealTradingResponse<RealTrade[]> = await fetchWithRetry(
+      // Response shape: { data: { summary, trades: [], message } }
+      const data: RustRealTradingResponse<{ trades?: RealTrade[]; summary?: unknown; message?: string } | RealTrade[]> = await fetchWithRetry(
         `${API_BASE}/api/real-trading/trades/closed`
       );
 
       if (data.success && data.data) {
+        // Handle both array response and { trades: [] } response
+        const trades = Array.isArray(data.data) ? data.data : (data.data.trades || []);
         setState((prev) => ({
           ...prev,
-          closedTrades: data.data!,
+          closedTrades: trades,
         }));
       } else {
         logger.warn("Empty or failed response for real closed trades:", data.error);
