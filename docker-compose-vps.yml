@@ -95,6 +95,9 @@ services:
       - BINANCE_FUTURES_TESTNET_SECRET_KEY=${BINANCE_FUTURES_TESTNET_SECRET_KEY:-}
       - BINANCE_TESTNET=true
       - TRADING_ENABLED=true
+      # Use mainnet for market data (public, no auth needed, more reliable than testnet)
+      - BINANCE_BASE_URL=https://api.binance.com
+      - BINANCE_WS_URL=wss://stream.binance.com:9443/ws
       - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_change_in_production}
     volumes:
       - ./rust-core-engine/data:/app/data
