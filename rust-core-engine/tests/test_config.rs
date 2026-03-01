@@ -40,11 +40,11 @@ mod config_tests {
         assert_eq!(config.binance.ws_url, "wss://testnet.binance.vision/ws");
         assert_eq!(
             config.binance.futures_base_url,
-            "https://testnet.binancefuture.com"
+            "https://demo-fapi.binance.com"
         );
         assert_eq!(
             config.binance.futures_ws_url,
-            "wss://stream.binancefuture.com/ws"
+            "wss://fstream.binancefuture.com"
         );
 
         // Test market data config defaults
