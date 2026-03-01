@@ -667,6 +667,7 @@ impl ApiServer {
         let ai_service = self.ai_service.clone();
         let ws_broadcaster = self.ws_broadcaster.clone();
         let paper_trading = self.paper_trading_engine.clone();
+        let real_trading = self.real_trading_engine.clone();
 
         // AI analysis endpoint with WebSocket broadcasting and paper trading integration
         let ai_analyze = warp::path("analyze")
@@ -675,7 +676,8 @@ impl ApiServer {
             .and(warp::any().map(move || ai_service.clone()))
             .and(warp::any().map(move || ws_broadcaster.clone()))
             .and(warp::any().map(move || paper_trading.clone()))
-            .and_then(|request: crate::ai::AIAnalysisRequest, ai_service: crate::ai::AIService, broadcaster: broadcast::Sender<String>, paper_trading: Arc<PaperTradingEngine>| async move {
+            .and(warp::any().map(move || real_trading.clone()))
+            .and_then(|request: crate::ai::AIAnalysisRequest, ai_service: crate::ai::AIService, broadcaster: broadcast::Sender<String>, paper_trading: Arc<PaperTradingEngine>, real_trading: Option<Arc<RealTradingEngine>>| async move {
                 let strategy_context = request.strategy_context.clone();
                 let symbol = request.symbol.clone();
                 let current_price = request.current_price;
@@ -740,6 +742,24 @@ impl ApiServer {
                         {
                             // Log but don't fail the API response
                             info!("Paper trading signal processing: {}", e);
+                        }
+
+                        // Also route to real trading engine if running + auto-trading enabled
+                        if let Some(ref real_engine) = real_trading {
+                            if let Err(e) = real_engine
+                                .process_external_ai_signal(
+                                    symbol.clone(),
+                                    response.signal,
+                                    response.confidence,
+                                    response.reasoning.clone(),
+                                    current_price,
+                                    stop_loss,
+                                    take_profit,
+                                )
+                                .await
+                            {
+                                info!("Real trading signal processing: {}", e);
+                            }
                         }
 
                         Ok::<_, warp::Rejection>(warp::reply::json(&ApiResponse::success(response)))

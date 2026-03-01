@@ -15,18 +15,25 @@ use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::binance::types::{
-    BalanceUpdate, ExecutionReport, OrderSide, OutboundAccountPosition, SpotOrderRequest,
+    BalanceUpdate, ExecutionReport, Kline, OrderSide, OutboundAccountPosition, SpotOrderRequest,
     SpotOrderResponse, SpotOrderType, TimeInForce,
 };
 use crate::binance::user_data_stream::{UserDataStreamEvent, UserDataStreamManager};
 use crate::binance::BinanceClient;
 use crate::config::TradingMode;
+use crate::market_data::cache::{CandleData, MarketDataCache};
+use crate::paper_trading::AIMarketBias;
+use crate::strategies::strategy_engine::StrategyEngine;
+use crate::strategies::TradingSignal;
 use crate::trading::risk_manager::RiskManager;
 
 use super::config::RealTradingConfig;
 use super::order::{OrderState, RealOrder};
 use super::position::{PositionSide, RealPosition};
 use super::risk::RealTradingRiskManager;
+
+/// Signal history for choppy market detection
+type SignalFlipTracker = HashMap<String, Vec<(i64, TradingSignal)>>;
 
 /// Circuit breaker state for error handling
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -116,6 +123,28 @@ pub enum RealTradingEvent {
     Error(String),
     /// Daily loss limit reached
     DailyLossLimitReached { loss: f64, limit: f64 },
+    /// Strategy signal generated
+    SignalGenerated {
+        symbol: String,
+        signal: String,
+        confidence: f64,
+    },
+    /// Signal executed as real trade
+    SignalExecuted {
+        symbol: String,
+        signal: String,
+        order_id: String,
+    },
+    /// Signal rejected by filters or risk checks
+    SignalRejected {
+        symbol: String,
+        reason: String,
+    },
+    /// Cool-down activated after consecutive losses
+    CooldownActivated {
+        consecutive_losses: u32,
+        cool_down_minutes: u32,
+    },
     /// Engine started
     EngineStarted,
     /// Engine stopped
@@ -249,6 +278,35 @@ pub struct RealTradingEngine {
 
     /// Whether to use Futures endpoints (derived from config.trading_type)
     use_futures: bool,
+
+    // ============ Auto-Trading State ============
+    /// Strategy engine for signal generation
+    strategy_engine: Arc<StrategyEngine>,
+
+    /// Historical kline data cache per symbol_timeframe
+    historical_data_cache: Arc<RwLock<HashMap<String, Vec<Kline>>>>,
+
+    /// Market data cache for O(1) WebSocket price lookups
+    market_data_cache: Option<MarketDataCache>,
+
+    /// Current prices for all tracked symbols
+    current_prices: Arc<RwLock<HashMap<String, f64>>>,
+
+    /// AI market bias per symbol (from external AI service)
+    ai_market_bias: Arc<RwLock<HashMap<String, AIMarketBias>>>,
+
+    /// Signal confirmation: requires 2 consecutive same-direction signals
+    /// Key: "symbol_direction", Value: (first_seen_timestamp, signal_count)
+    recent_signals: Arc<RwLock<HashMap<String, (i64, u32)>>>,
+
+    /// Choppy market detection: tracks direction flips per symbol
+    signal_flip_tracker: Arc<RwLock<SignalFlipTracker>>,
+
+    /// Consecutive loss counter for cool-down trigger
+    consecutive_losses: Arc<RwLock<u32>>,
+
+    /// Cool-down expiry time (None = not in cool-down)
+    cool_down_until: Arc<RwLock<Option<DateTime<Utc>>>>,
 }
 
 impl RealTradingEngine {
@@ -293,7 +351,24 @@ impl RealTradingEngine {
             reconciliation_metrics: Arc::new(RwLock::new(ReconciliationMetrics::default())),
             execution_lock: Arc::new(Mutex::new(())),
             use_futures,
+            // Auto-trading state
+            strategy_engine: Arc::new(StrategyEngine::new()),
+            historical_data_cache: Arc::new(RwLock::new(HashMap::new())),
+            market_data_cache: None,
+            current_prices: Arc::new(RwLock::new(HashMap::new())),
+            ai_market_bias: Arc::new(RwLock::new(HashMap::new())),
+            recent_signals: Arc::new(RwLock::new(HashMap::new())),
+            signal_flip_tracker: Arc::new(RwLock::new(HashMap::new())),
+            consecutive_losses: Arc::new(RwLock::new(0)),
+            cool_down_until: Arc::new(RwLock::new(None)),
         })
+    }
+
+    /// Set the market data cache for real-time WebSocket price lookups
+    /// Must be called before start() — uses O(1) cache reads instead of REST polling
+    pub fn set_market_data_cache(&mut self, cache: MarketDataCache) {
+        self.market_data_cache = Some(cache);
+        info!("Market data cache connected to RealTradingEngine (WebSocket prices -> O(1) lookup)");
     }
 
     /// Get event receiver for subscribing to events
@@ -359,6 +434,34 @@ impl RealTradingEngine {
             engine_for_reconciliation.reconciliation_loop().await;
         });
         info!("Reconciliation loop spawned");
+
+        // 6. Spawn price update loop (always runs — needed for SL/TP monitoring)
+        let engine_for_prices = self.clone();
+        tokio::spawn(async move {
+            engine_for_prices.price_update_loop().await;
+        });
+        info!("Price update loop spawned (5s interval)");
+
+        // 7. Spawn SL/TP monitoring loop (always runs)
+        let engine_for_sltp = self.clone();
+        tokio::spawn(async move {
+            engine_for_sltp.sl_tp_monitoring_loop().await;
+        });
+        info!("SL/TP monitoring loop spawned (5s interval)");
+
+        // 8. Spawn strategy signal loop (only if auto-trading is enabled)
+        {
+            let config = self.config.read().await;
+            if config.auto_trading_enabled {
+                let engine_for_signals = self.clone();
+                tokio::spawn(async move {
+                    engine_for_signals.strategy_signal_loop().await;
+                });
+                info!("Strategy signal loop spawned (30s interval) - auto-trading ENABLED");
+            } else {
+                info!("Auto-trading disabled - strategy signal loop NOT started");
+            }
+        }
 
         self.emit_event(RealTradingEvent::EngineStarted);
 
@@ -2371,6 +2474,194 @@ impl RealTradingEngine {
         self.balances.read().await.clone()
     }
 
+    // ============ Auto-Trading Risk Management ============
+
+    /// Check if engine is currently in cool-down period after consecutive losses
+    /// Lock order: consecutive_losses -> cool_down_until (consistent with update_consecutive_losses)
+    async fn is_in_cooldown(&self) -> bool {
+        let losses = *self.consecutive_losses.read().await;
+        let cool_down_until = self.cool_down_until.read().await;
+        if let Some(until) = *cool_down_until {
+            if Utc::now() < until {
+                let remaining = (until - Utc::now()).num_minutes();
+                warn!(
+                    "Cool-down active: {} minutes remaining (consecutive losses: {})",
+                    remaining, losses
+                );
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Update consecutive loss counter and trigger cool-down if threshold reached
+    async fn update_consecutive_losses(&self, pnl: f64) {
+        let config = self.config.read().await;
+        let max_losses = config.max_consecutive_losses;
+        let cool_down_mins = config.cool_down_minutes;
+        drop(config);
+
+        if pnl < 0.0 {
+            let mut losses = self.consecutive_losses.write().await;
+            *losses += 1;
+
+            info!(
+                "Consecutive losses: {} (max: {})",
+                *losses, max_losses
+            );
+
+            if *losses >= max_losses {
+                let until = Utc::now() + chrono::Duration::minutes(cool_down_mins as i64);
+                let mut cd = self.cool_down_until.write().await;
+                *cd = Some(until);
+
+                error!(
+                    "COOL-DOWN ACTIVATED: {} consecutive losses. Trading paused for {} minutes.",
+                    *losses, cool_down_mins
+                );
+
+                self.emit_event(RealTradingEvent::CooldownActivated {
+                    consecutive_losses: *losses,
+                    cool_down_minutes: cool_down_mins,
+                });
+            }
+        } else {
+            let mut losses = self.consecutive_losses.write().await;
+            if *losses > 0 {
+                info!(
+                    "Profitable trade - resetting consecutive losses counter (was {})",
+                    *losses
+                );
+            }
+            *losses = 0;
+            let mut cd = self.cool_down_until.write().await;
+            *cd = None;
+        }
+    }
+
+    /// Check if adding a new position in the given direction would exceed correlation limit
+    async fn check_correlation_limit(&self, is_long: bool) -> bool {
+        let config = self.config.read().await;
+        let limit = config.correlation_limit;
+        drop(config);
+
+        let positions: Vec<RealPosition> = self.positions.iter().map(|e| e.value().clone()).collect();
+
+        // Only meaningful with 3+ positions
+        if positions.len() < 3 {
+            return true;
+        }
+
+        let mut long_exposure = 0.0;
+        let mut short_exposure = 0.0;
+
+        for pos in &positions {
+            let value = pos.quantity * pos.current_price;
+            match pos.side {
+                PositionSide::Long => long_exposure += value,
+                PositionSide::Short => short_exposure += value,
+            }
+        }
+
+        let total = long_exposure + short_exposure;
+        if total == 0.0 {
+            return true;
+        }
+
+        let ratio = if is_long {
+            long_exposure / total
+        } else {
+            short_exposure / total
+        };
+
+        if ratio > limit {
+            let direction = if is_long { "long" } else { "short" };
+            warn!(
+                "Correlation limit: {:.1}% {} exposure exceeds {:.0}% limit",
+                ratio * 100.0,
+                direction,
+                limit * 100.0
+            );
+            self.emit_event(RealTradingEvent::SignalRejected {
+                symbol: "portfolio".to_string(),
+                reason: format!(
+                    "Correlation limit: {:.1}% {} exposure > {:.0}%",
+                    ratio * 100.0,
+                    direction,
+                    limit * 100.0
+                ),
+            });
+            return false;
+        }
+
+        true
+    }
+
+    /// Check if total portfolio risk is within limits
+    async fn check_portfolio_risk(&self) -> bool {
+        let config = self.config.read().await;
+        let max_risk_pct = config.max_portfolio_risk_pct;
+        let default_sl_pct = config.default_stop_loss_percent;
+        drop(config);
+
+        let positions: Vec<RealPosition> = self.positions.iter().map(|e| e.value().clone()).collect();
+        if positions.is_empty() {
+            return true;
+        }
+
+        // Use total equity = free USDT + unrealized PnL from all positions
+        let free_usdt = self.get_usdt_balance().await;
+        let unrealized_pnl: f64 = positions.iter().map(|p| p.unrealized_pnl).sum();
+        let total_equity = free_usdt + unrealized_pnl;
+        let usdt_balance = if total_equity > 0.0 { total_equity } else { free_usdt };
+
+        if usdt_balance <= 0.0 {
+            warn!("Portfolio equity is zero or negative, blocking trades");
+            return false;
+        }
+
+        let sl_multiplier = default_sl_pct / 100.0;
+        let mut total_risk = 0.0;
+
+        for pos in &positions {
+            let position_value = pos.quantity * pos.entry_price;
+            let sl_price = pos.stop_loss.unwrap_or(match pos.side {
+                PositionSide::Long => pos.entry_price * (1.0 - sl_multiplier),
+                PositionSide::Short => pos.entry_price * (1.0 + sl_multiplier),
+            });
+            let sl_distance_pct =
+                ((pos.entry_price - sl_price).abs() / pos.entry_price) * 100.0;
+            let risk_amount = position_value * (sl_distance_pct / 100.0);
+            let risk_pct = (risk_amount / usdt_balance) * 100.0;
+            total_risk += risk_pct;
+        }
+
+        if total_risk >= max_risk_pct {
+            warn!(
+                "Portfolio risk limit exceeded: {:.1}% of {:.0}% max ({} positions)",
+                total_risk,
+                max_risk_pct,
+                positions.len()
+            );
+            self.emit_event(RealTradingEvent::SignalRejected {
+                symbol: "portfolio".to_string(),
+                reason: format!(
+                    "Portfolio risk {:.1}% exceeds {:.0}% limit",
+                    total_risk, max_risk_pct
+                ),
+            });
+            return false;
+        }
+
+        debug!(
+            "Portfolio risk OK: {:.1}% of {:.0}% max ({} positions)",
+            total_risk,
+            max_risk_pct,
+            positions.len()
+        );
+        true
+    }
+
     // ============ Helpers ============
 
     /// Emit event to subscribers
@@ -2386,6 +2677,718 @@ impl RealTradingEngine {
             if let Some(price) = prices.get(entry.key()) {
                 entry.value_mut().update_price(*price);
             }
+        }
+    }
+
+    // ============ Background Loops (Auto-Trading) ============
+
+    /// Price update loop — fetches prices from WebSocket cache (O(1)) with REST fallback
+    /// Runs every 5 seconds, updates positions and current_prices map
+    async fn price_update_loop(&self) {
+        use tokio::time::{interval, Duration};
+        let mut tick = interval(Duration::from_secs(5));
+
+        info!("Price update loop started (5s interval)");
+
+        loop {
+            tick.tick().await;
+
+            if !*self.is_running.read().await {
+                info!("Price update loop stopped");
+                break;
+            }
+
+            // Determine which symbols to track
+            let symbols = self.get_tracked_symbols().await;
+            if symbols.is_empty() {
+                continue;
+            }
+
+            let mut new_prices = HashMap::new();
+
+            // Try WebSocket cache first (O(1) lookup)
+            if let Some(ref cache) = self.market_data_cache {
+                for symbol in &symbols {
+                    if let Some(price) = cache.get_latest_price(symbol) {
+                        if price > 0.0 {
+                            new_prices.insert(symbol.clone(), price);
+                        }
+                    }
+                }
+            }
+
+            // REST fallback for symbols not in cache
+            let missing: Vec<&String> = symbols.iter().filter(|s| !new_prices.contains_key(*s)).collect();
+            if !missing.is_empty() {
+                debug!("Fetching {} symbols via REST (not in cache)", missing.len());
+                for symbol in &missing {
+                    match self.binance_client.get_symbol_price(symbol).await {
+                        Ok(price_info) => {
+                            if let Ok(price) = price_info.price.parse::<f64>() {
+                                if price > 0.0 {
+                                    new_prices.insert((*symbol).clone(), price);
+                                }
+                            }
+                        }
+                        Err(e) => warn!("Failed to get price for {}: {}", symbol, e),
+                    }
+                }
+            }
+
+            // Update positions
+            self.update_prices(&new_prices);
+
+            // Update current_prices map
+            {
+                let mut prices = self.current_prices.write().await;
+                *prices = new_prices;
+            }
+        }
+    }
+
+    /// SL/TP monitoring loop — checks triggers every 5 seconds and closes positions
+    /// Also tracks PnL for consecutive loss counting
+    async fn sl_tp_monitoring_loop(&self) {
+        use tokio::time::{interval, Duration};
+        let mut tick = interval(Duration::from_secs(5));
+
+        info!("SL/TP monitoring loop started (5s interval)");
+
+        loop {
+            tick.tick().await;
+
+            if !*self.is_running.read().await {
+                info!("SL/TP monitoring loop stopped");
+                break;
+            }
+
+            // Collect triggered positions (read-only scan)
+            let mut triggered: Vec<(String, f64)> = Vec::new();
+
+            for entry in self.positions.iter() {
+                let position = entry.value();
+                let symbol = entry.key().clone();
+
+                if position.should_trigger_stop_loss() {
+                    info!(
+                        "SL triggered for {} ({:?}) price=${:.2} sl=${:.2}",
+                        symbol,
+                        position.side,
+                        position.current_price,
+                        position.stop_loss.unwrap_or(0.0)
+                    );
+                    triggered.push((symbol, position.unrealized_pnl));
+                } else if position.should_trigger_take_profit() {
+                    info!(
+                        "TP triggered for {} ({:?}) price=${:.2} tp=${:.2}",
+                        symbol,
+                        position.side,
+                        position.current_price,
+                        position.take_profit.unwrap_or(0.0)
+                    );
+                    triggered.push((symbol, position.unrealized_pnl));
+                }
+            }
+
+            // Close triggered positions and track PnL
+            for (symbol, estimated_pnl) in triggered {
+                match self.close_position(&symbol).await {
+                    Ok(order) => {
+                        info!(
+                            "Auto-closed {} via SL/TP (order: {})",
+                            symbol, order.client_order_id
+                        );
+                        // Track consecutive losses for cool-down
+                        self.update_consecutive_losses(estimated_pnl).await;
+                    }
+                    Err(e) => error!("Failed to auto-close {} on SL/TP trigger: {}", symbol, e),
+                }
+            }
+        }
+    }
+
+    /// Strategy signal loop — runs strategy engine every 30s on new closed candles
+    /// Mirrors paper trading signal loop with 5-layer filtering
+    async fn strategy_signal_loop(&self) {
+        use tokio::time::{interval, Duration};
+        let mut tick = interval(Duration::from_secs(30));
+
+        // Track last processed candle close_time per symbol_timeframe
+        let mut last_processed: HashMap<String, i64> = HashMap::new();
+
+        info!("Strategy signal loop started (30s interval, auto-trading ENABLED)");
+
+        loop {
+            tick.tick().await;
+
+            if !*self.is_running.read().await {
+                info!("Strategy signal loop stopped");
+                break;
+            }
+
+            // Re-check auto_trading_enabled (can be toggled at runtime)
+            let config = self.config.read().await;
+            if !config.auto_trading_enabled {
+                debug!("Auto-trading disabled, skipping signal loop iteration");
+                continue;
+            }
+            let min_confidence = config.min_signal_confidence;
+            let short_only = config.short_only_mode;
+            let long_only = config.long_only_mode;
+            let symbols = self.get_auto_trade_symbols(&config);
+            drop(config);
+
+            for symbol in &symbols {
+                for timeframe in &["5m", "15m", "1h"] {
+                    let cache_key = format!("{}_{}", symbol, timeframe);
+
+                    // Determine fetch size: 100 candles on first boot (warmup), 5 thereafter
+                    let is_warmup = !last_processed.contains_key(&cache_key);
+                    let fetch_limit = if is_warmup { 100u16 } else { 5u16 };
+
+                    let klines = match self.binance_client.get_klines(symbol, timeframe, Some(fetch_limit)).await {
+                        Ok(k) => k,
+                        Err(e) => {
+                            debug!("Failed to fetch klines for {} {}: {}", symbol, timeframe, e);
+                            continue;
+                        }
+                    };
+
+                    if klines.len() < 2 {
+                        continue;
+                    }
+
+                    // Merge into historical cache (keep max 300)
+                    {
+                        let mut cache = self.historical_data_cache.write().await;
+                        let entry = cache.entry(cache_key.clone()).or_insert_with(Vec::new);
+                        for kline in &klines {
+                            if !entry.iter().any(|k| k.open_time == kline.open_time) {
+                                entry.push(kline.clone());
+                            }
+                        }
+                        entry.sort_by_key(|k| k.open_time);
+                        if entry.len() > 300 {
+                            let drain_count = entry.len() - 300;
+                            entry.drain(..drain_count);
+                        }
+                    }
+
+                    // Detect new closed candle (2nd-to-last = most recent CLOSED)
+                    let closed_kline = &klines[klines.len() - 2];
+                    let last_close_time = closed_kline.close_time;
+                    let prev_time = last_processed.get(&cache_key).copied().unwrap_or(0);
+
+                    if last_close_time <= prev_time {
+                        continue;
+                    }
+
+                    last_processed.insert(cache_key.clone(), last_close_time);
+
+                    // Skip first detection (warmup — wait for 100-candle fetch)
+                    if prev_time == 0 {
+                        info!("Warmup: fetched {} candles for {} {}", klines.len(), symbol, timeframe);
+                        continue;
+                    }
+
+                    // Warmup gate: require >= 50 candles for MACD/Bollinger to be meaningful
+                    {
+                        let cache = self.historical_data_cache.read().await;
+                        if let Some(entry) = cache.get(&cache_key) {
+                            if entry.len() < 50 {
+                                debug!(
+                                    "Insufficient data for {} {}: {} candles (need 50)",
+                                    symbol, timeframe, entry.len()
+                                );
+                                continue;
+                            }
+                        }
+                    }
+
+                    info!(
+                        "New {} candle closed for {}, running strategy analysis...",
+                        timeframe, symbol
+                    );
+
+                    // Build strategy input from historical cache
+                    let strategy_input = match self.build_strategy_input(symbol).await {
+                        Some(input) => input,
+                        None => continue,
+                    };
+
+                    // Run strategy engine
+                    let combined_signal = match self.strategy_engine.analyze_market(&strategy_input).await {
+                        Ok(sig) => sig,
+                        Err(e) => {
+                            debug!("Strategy analysis failed for {}: {}", symbol, e);
+                            continue;
+                        }
+                    };
+
+                    let signal = combined_signal.final_signal;
+                    let confidence = combined_signal.combined_confidence;
+
+                    // ===== 5-LAYER SIGNAL FILTERING =====
+
+                    // Layer 1: Skip neutral signals
+                    if signal == TradingSignal::Neutral {
+                        continue;
+                    }
+
+                    // Layer 2: Confidence threshold
+                    if confidence < min_confidence {
+                        debug!(
+                            "Signal for {} rejected: confidence {:.2} < {:.2}",
+                            symbol, confidence, min_confidence
+                        );
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.clone(),
+                            reason: format!("Low confidence: {:.2} < {:.2}", confidence, min_confidence),
+                        });
+                        continue;
+                    }
+
+                    // Layer 3: Market direction mode
+                    if signal == TradingSignal::Long && short_only {
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.clone(),
+                            reason: "Long signal blocked (short_only_mode)".to_string(),
+                        });
+                        continue;
+                    }
+                    if signal == TradingSignal::Short && long_only {
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.clone(),
+                            reason: "Short signal blocked (long_only_mode)".to_string(),
+                        });
+                        continue;
+                    }
+
+                    // Layer 4: Choppy market detection (4+ flips in 15min = block)
+                    {
+                        let mut tracker = self.signal_flip_tracker.write().await;
+                        let now_ts = Utc::now().timestamp();
+                        let flips = tracker.entry(symbol.clone()).or_insert_with(Vec::new);
+                        flips.retain(|(ts, _)| now_ts - ts < 900); // 15min window
+                        let flip_count = flips.windows(2).filter(|w| w[0].1 != w[1].1).count();
+                        flips.push((now_ts, signal));
+
+                        if flip_count >= 4 {
+                            self.emit_event(RealTradingEvent::SignalRejected {
+                                symbol: symbol.clone(),
+                                reason: format!("Choppy market: {} flips in 15min", flip_count),
+                            });
+                            continue;
+                        }
+                    }
+
+                    // Layer 5: Signal confirmation (2 consecutive same-direction within 10min)
+                    let dedup_key = format!("{}_{:?}", symbol, signal);
+                    let opposite_key = format!(
+                        "{}_{:?}",
+                        symbol,
+                        match signal {
+                            TradingSignal::Long => TradingSignal::Short,
+                            TradingSignal::Short => TradingSignal::Long,
+                            TradingSignal::Neutral => TradingSignal::Neutral,
+                        }
+                    );
+                    let now = Utc::now().timestamp();
+
+                    // Check AI bias alignment
+                    let bias_aligned = {
+                        let bias = self.ai_market_bias.read().await;
+                        if let Some(market_bias) = bias.get(symbol.as_str()) {
+                            if !market_bias.is_stale() && market_bias.bias_confidence > 0.7 {
+                                let signal_dir = match signal {
+                                    TradingSignal::Long => 1.0,
+                                    TradingSignal::Short => -1.0,
+                                    TradingSignal::Neutral => 0.0,
+                                };
+                                let threshold = if matches!(signal, TradingSignal::Long) {
+                                    -0.3
+                                } else {
+                                    -0.5
+                                };
+                                signal_dir * market_bias.direction_bias >= threshold
+                            } else {
+                                true // Stale or low-confidence bias — allow
+                            }
+                        } else {
+                            true // No bias data — allow
+                        }
+                    };
+
+                    if !bias_aligned {
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.clone(),
+                            reason: "AI market bias misaligned".to_string(),
+                        });
+                        continue;
+                    }
+
+                    // Check confirmation
+                    let confirmed = {
+                        let recent = self.recent_signals.read().await;
+                        if let Some((first_seen, count)) = recent.get(&dedup_key) {
+                            now - first_seen < 600 && *count >= 1 && now - first_seen >= 60
+                        } else {
+                            false
+                        }
+                    };
+
+                    // Update confirmation tracking
+                    {
+                        let mut recent = self.recent_signals.write().await;
+                        recent.remove(&opposite_key);
+                        if let Some((first_seen, count)) = recent.get_mut(&dedup_key) {
+                            if now - *first_seen >= 600 {
+                                *first_seen = now;
+                                *count = 1;
+                            } else if now - *first_seen >= 60 {
+                                *count += 1;
+                            }
+                        } else {
+                            recent.insert(dedup_key.clone(), (now, 1));
+                        }
+                        recent.retain(|_, (ts, _)| now - *ts < 600);
+                    }
+
+                    if !confirmed {
+                        debug!(
+                            "Signal for {} awaiting confirmation (need 2 consecutive)",
+                            symbol
+                        );
+                        continue;
+                    }
+
+                    // ===== ALL FILTERS PASSED — EXECUTE =====
+                    self.emit_event(RealTradingEvent::SignalGenerated {
+                        symbol: symbol.clone(),
+                        signal: format!("{:?}", signal),
+                        confidence,
+                    });
+
+                    if let Err(e) = self
+                        .process_signal_for_real_trade(symbol, signal, confidence)
+                        .await
+                    {
+                        error!("Failed to process signal for {}: {}", symbol, e);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Process a confirmed signal into a real Binance trade
+    /// Performs risk checks, calculates position size, places order, sets SL/TP
+    async fn process_signal_for_real_trade(
+        &self,
+        symbol: &str,
+        signal: TradingSignal,
+        confidence: f64,
+    ) -> Result<()> {
+        info!(
+            "Processing real trade signal: {} {:?} (confidence: {:.2})",
+            symbol, signal, confidence
+        );
+
+        // 1. Check daily loss limit (via existing risk manager)
+        {
+            let daily = self.daily_metrics.read().await;
+            let config = self.config.read().await;
+            if daily.realized_pnl.abs() >= config.max_daily_loss_usdt && daily.realized_pnl < 0.0 {
+                self.emit_event(RealTradingEvent::SignalRejected {
+                    symbol: symbol.to_string(),
+                    reason: "Daily loss limit reached".to_string(),
+                });
+                return Ok(());
+            }
+        }
+
+        // 2. Check cool-down
+        if self.is_in_cooldown().await {
+            self.emit_event(RealTradingEvent::SignalRejected {
+                symbol: symbol.to_string(),
+                reason: "In cool-down period after consecutive losses".to_string(),
+            });
+            return Ok(());
+        }
+
+        // 3. Check correlation limit
+        let is_long = signal == TradingSignal::Long;
+        if !self.check_correlation_limit(is_long).await {
+            return Ok(()); // Event already emitted inside
+        }
+
+        // 4. Check portfolio risk
+        if !self.check_portfolio_risk().await {
+            return Ok(()); // Event already emitted inside
+        }
+
+        // 5. Check max positions
+        let config = self.config.read().await;
+        let max_positions = config.max_positions as usize;
+        let default_sl_pct = config.default_stop_loss_percent;
+        let default_tp_pct = config.default_take_profit_percent;
+        let enable_ts = config.enable_trailing_stop;
+        let ts_activation_pct = config.trailing_stop_activation_percent;
+        let ts_trail_pct = config.trailing_stop_percent;
+        drop(config);
+
+        if self.positions.len() >= max_positions {
+            self.emit_event(RealTradingEvent::SignalRejected {
+                symbol: symbol.to_string(),
+                reason: format!(
+                    "Max positions ({}) reached",
+                    max_positions
+                ),
+            });
+            return Ok(());
+        }
+
+        // 6. Check if position already exists for this symbol
+        if self.positions.contains_key(symbol) {
+            debug!("Position already exists for {}, skipping", symbol);
+            self.emit_event(RealTradingEvent::SignalRejected {
+                symbol: symbol.to_string(),
+                reason: "Position already open".to_string(),
+            });
+            return Ok(());
+        }
+
+        // 7. Get current price
+        let entry_price = {
+            let prices = self.current_prices.read().await;
+            match prices.get(symbol).copied() {
+                Some(p) if p > 0.0 => p,
+                _ => {
+                    warn!("No current price for {}, cannot execute", symbol);
+                    return Ok(());
+                }
+            }
+        };
+
+        // 8. Calculate SL/TP
+        let stop_loss = if is_long {
+            entry_price * (1.0 - default_sl_pct / 100.0)
+        } else {
+            entry_price * (1.0 + default_sl_pct / 100.0)
+        };
+
+        let take_profit = if is_long {
+            entry_price * (1.0 + default_tp_pct / 100.0)
+        } else {
+            entry_price * (1.0 - default_tp_pct / 100.0)
+        };
+
+        // 9. Calculate position size
+        let quantity = self.calculate_position_size(entry_price, stop_loss).await;
+        if quantity <= 0.0 {
+            warn!("Calculated position size is 0 for {}, skipping", symbol);
+            return Ok(());
+        }
+
+        // 10. Place market order on Binance
+        let side = if is_long {
+            OrderSide::Buy
+        } else {
+            OrderSide::Sell
+        };
+
+        info!(
+            "Placing REAL {:?} order: {} {:.6} @ ~${:.2} (SL=${:.2}, TP=${:.2})",
+            side, symbol, quantity, entry_price, stop_loss, take_profit
+        );
+
+        // Use place_order directly with price hint for accurate risk validation
+        // Market order (SpotOrderType::Market) but pass Some(entry_price) for risk checks
+        match self
+            .place_order(symbol, side, SpotOrderType::Market, quantity, Some(entry_price), None, None, true)
+            .await
+        {
+            Ok(order) => {
+                info!(
+                    "Real trade executed: {} {:?} {:.6} (order: {})",
+                    symbol, side, quantity, order.client_order_id
+                );
+
+                // 11. Set SL/TP on the new position
+                if let Err(e) = self
+                    .set_sl_tp(symbol, Some(stop_loss), Some(take_profit))
+                    .await
+                {
+                    warn!("Failed to set SL/TP for {}: {} (will retry)", symbol, e);
+                }
+
+                // 12. Enable trailing stop if configured
+                if enable_ts {
+                    let activation = if is_long {
+                        entry_price * (1.0 + ts_activation_pct / 100.0)
+                    } else {
+                        entry_price * (1.0 - ts_activation_pct / 100.0)
+                    };
+                    if let Err(e) = self
+                        .enable_trailing_stop(symbol, activation, ts_trail_pct)
+                        .await
+                    {
+                        warn!("Failed to enable trailing stop for {}: {}", symbol, e);
+                    }
+                }
+
+                self.emit_event(RealTradingEvent::SignalExecuted {
+                    symbol: symbol.to_string(),
+                    signal: format!("{:?}", signal),
+                    order_id: order.client_order_id,
+                });
+            }
+            Err(e) => {
+                error!("Failed to place real order for {}: {}", symbol, e);
+                self.emit_event(RealTradingEvent::SignalRejected {
+                    symbol: symbol.to_string(),
+                    reason: format!("Order failed: {}", e),
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Build strategy input from historical data cache
+    async fn build_strategy_input(
+        &self,
+        symbol: &str,
+    ) -> Option<crate::strategies::StrategyInput> {
+        let cache = self.historical_data_cache.read().await;
+
+        let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
+
+        for timeframe in &["5m", "15m", "1h"] {
+            let cache_key = format!("{}_{}", symbol, timeframe);
+            if let Some(klines) = cache.get(&cache_key) {
+                let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
+                if !candles.is_empty() {
+                    timeframe_data.insert(timeframe.to_string(), candles);
+                }
+            }
+        }
+
+        // Need at least 5m data for strategies
+        if !timeframe_data.contains_key("5m") {
+            debug!(
+                "Insufficient data for strategy analysis on {}: missing 5m timeframe",
+                symbol
+            );
+            return None;
+        }
+
+        let current_price = {
+            let prices = self.current_prices.read().await;
+            prices.get(symbol).copied().unwrap_or(0.0)
+        };
+
+        if current_price <= 0.0 {
+            debug!("No current price for {}, skipping strategy analysis", symbol);
+            return None;
+        }
+
+        let volume_24h = timeframe_data
+            .get("1h")
+            .map(|candles| candles.iter().rev().take(24).map(|c| c.volume).sum::<f64>())
+            .unwrap_or(0.0);
+
+        Some(crate::strategies::StrategyInput {
+            symbol: symbol.to_string(),
+            timeframe_data,
+            current_price,
+            volume_24h,
+            timestamp: Utc::now().timestamp(),
+        })
+    }
+
+    /// Process an external AI signal for real trading
+    pub async fn process_external_ai_signal(
+        &self,
+        symbol: String,
+        signal_type: TradingSignal,
+        confidence: f64,
+        _reasoning: String,
+        _entry_price: f64,
+        _stop_loss: Option<f64>,
+        _take_profit: Option<f64>,
+    ) -> Result<()> {
+        if !*self.is_running.read().await {
+            return Err(anyhow!("Real trading engine is not running"));
+        }
+
+        let config = self.config.read().await;
+        if !config.auto_trading_enabled {
+            return Err(anyhow!("Auto-trading is disabled"));
+        }
+        let min_confidence = config.min_signal_confidence;
+        drop(config);
+
+        // Validate confidence
+        if confidence < min_confidence {
+            info!(
+                "AI signal for {} rejected: confidence {:.2} < {:.2}",
+                symbol, confidence, min_confidence
+            );
+            return Ok(());
+        }
+
+        // Skip neutral
+        if signal_type == TradingSignal::Neutral {
+            return Ok(());
+        }
+
+        info!(
+            "Processing external AI signal for real trading: {} {:?} (confidence: {:.2})",
+            symbol, signal_type, confidence
+        );
+
+        self.process_signal_for_real_trade(&symbol, signal_type, confidence)
+            .await
+    }
+
+    /// Update AI market bias for a symbol (called by external AI service or MCP tools)
+    pub async fn update_ai_market_bias(&self, symbol: String, bias: AIMarketBias) {
+        let mut biases = self.ai_market_bias.write().await;
+        biases.insert(symbol, bias);
+    }
+
+    /// Get symbols to track for price updates (positions + auto-trade symbols)
+    async fn get_tracked_symbols(&self) -> Vec<String> {
+        let mut symbols: HashSet<String> = HashSet::new();
+
+        // All symbols with open positions
+        for entry in self.positions.iter() {
+            symbols.insert(entry.key().clone());
+        }
+
+        // Auto-trade symbols from config
+        let config = self.config.read().await;
+        for s in &config.auto_trade_symbols {
+            symbols.insert(s.clone());
+        }
+        // Fallback to allowed_symbols if auto_trade_symbols is empty
+        if config.auto_trade_symbols.is_empty() {
+            for s in &config.allowed_symbols {
+                symbols.insert(s.clone());
+            }
+        }
+
+        symbols.into_iter().collect()
+    }
+
+    /// Get the list of symbols to auto-trade from config
+    fn get_auto_trade_symbols(&self, config: &RealTradingConfig) -> Vec<String> {
+        if !config.auto_trade_symbols.is_empty() {
+            config.auto_trade_symbols.clone()
+        } else if !config.allowed_symbols.is_empty() {
+            config.allowed_symbols.clone()
+        } else {
+            vec![]
         }
     }
 }

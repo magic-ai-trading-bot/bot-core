@@ -230,11 +230,13 @@ async fn main() -> Result<()> {
         )
         .await
         {
-            Ok(engine) => {
+            Ok(mut engine) => {
                 info!(
                     "✅ Real trading engine initialized successfully (testnet={})",
                     real_trading_config.use_testnet
                 );
+                // Connect WebSocket price cache for O(1) lookups (same cache as paper trading)
+                engine.set_market_data_cache(market_data_processor.get_cache().clone());
                 let engine = std::sync::Arc::new(engine);
                 // Auto-start the real trading engine so balance/orders are available immediately
                 match engine.start().await {

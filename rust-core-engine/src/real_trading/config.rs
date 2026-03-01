@@ -89,6 +89,34 @@ pub struct RealTradingConfig {
     /// Maximum leverage (1 = no leverage, spot only)
     pub max_leverage: u32,
 
+    // ============ Auto-Trading (Strategy Signal Automation) ============
+    /// Enable automatic trading from strategy signals (SAFETY: default false)
+    pub auto_trading_enabled: bool,
+
+    /// Minimum signal confidence to execute (0.0-1.0)
+    pub min_signal_confidence: f64,
+
+    /// Maximum consecutive losses before cool-down
+    pub max_consecutive_losses: u32,
+
+    /// Cool-down period in minutes after max consecutive losses
+    pub cool_down_minutes: u32,
+
+    /// Maximum directional exposure ratio (e.g., 0.70 = 70% in one direction)
+    pub correlation_limit: f64,
+
+    /// Maximum total portfolio risk as % of equity
+    pub max_portfolio_risk_pct: f64,
+
+    /// Only allow short positions (no longs)
+    pub short_only_mode: bool,
+
+    /// Only allow long positions (no shorts)
+    pub long_only_mode: bool,
+
+    /// Symbols to auto-trade (empty = use allowed_symbols)
+    pub auto_trade_symbols: Vec<String>,
+
     // ============ Logging & Monitoring ============
     /// Log all order events
     pub log_order_events: bool,
@@ -142,6 +170,17 @@ impl Default for RealTradingConfig {
             trading_type: "futures".to_string(),
             allowed_symbols: vec![],
             max_leverage: 1,
+
+            // Auto-trading — DISABLED by default for safety
+            auto_trading_enabled: false,
+            min_signal_confidence: 0.65,
+            max_consecutive_losses: 3,
+            cool_down_minutes: 60,
+            correlation_limit: 0.70,
+            max_portfolio_risk_pct: 10.0,
+            short_only_mode: false,
+            long_only_mode: false,
+            auto_trade_symbols: vec![],
 
             // Logging
             log_order_events: true,
@@ -206,6 +245,22 @@ impl RealTradingConfig {
 
         if self.max_leverage == 0 || self.max_leverage > 125 {
             errors.push("max_leverage must be between 1 and 125".to_string());
+        }
+
+        if self.min_signal_confidence < 0.0 || self.min_signal_confidence > 1.0 {
+            errors.push("min_signal_confidence must be between 0.0 and 1.0".to_string());
+        }
+
+        if self.correlation_limit < 0.0 || self.correlation_limit > 1.0 {
+            errors.push("correlation_limit must be between 0.0 and 1.0".to_string());
+        }
+
+        if self.max_portfolio_risk_pct <= 0.0 || self.max_portfolio_risk_pct > 100.0 {
+            errors.push("max_portfolio_risk_pct must be between 0 and 100".to_string());
+        }
+
+        if self.short_only_mode && self.long_only_mode {
+            errors.push("short_only_mode and long_only_mode cannot both be true".to_string());
         }
 
         if errors.is_empty() {
