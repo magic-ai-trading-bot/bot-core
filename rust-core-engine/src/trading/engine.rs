@@ -51,7 +51,12 @@ impl TradingEngine {
             }
 
             if let Err(e) = client.change_margin_type(symbol, &config.margin_type).await {
-                warn!("Failed to set margin type for {}: {}", symbol, e);
+                // -4046 = "No need to change margin type" (already set correctly)
+                if e.to_string().contains("-4046") {
+                    debug!("Margin type already {} for {}", config.margin_type, symbol);
+                } else {
+                    warn!("Failed to set margin type for {}: {}", symbol, e);
+                }
             }
 
             sleep(Duration::from_millis(100)).await; // Rate limiting

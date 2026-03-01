@@ -210,7 +210,13 @@ impl BinanceClient {
 
                     // Other errors - don't retry
                     let error_text = response.text().await?;
-                    error!("Request failed with status {status}: {error_text}");
+                    // Use warn for 400 (often benign like "no need to change margin type")
+                    // Use error for 4xx/5xx that indicate real problems
+                    if status.as_u16() == 400 {
+                        warn!("Request returned {status}: {error_text}");
+                    } else {
+                        error!("Request failed with status {status}: {error_text}");
+                    }
                     return Err(anyhow::anyhow!(
                         "API request failed: {} - {}",
                         status,
