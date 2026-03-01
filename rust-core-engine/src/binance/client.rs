@@ -575,6 +575,27 @@ impl BinanceClient {
             .await
     }
 
+    pub async fn cancel_futures_order(
+        &self,
+        symbol: &str,
+        order_id: Option<i64>,
+        client_order_id: Option<&str>,
+    ) -> Result<CancelOrderResponse> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+
+        if let Some(order_id) = order_id {
+            params.insert("orderId".to_string(), order_id.to_string());
+        }
+
+        if let Some(client_order_id) = client_order_id {
+            params.insert("origClientOrderId".to_string(), client_order_id.to_string());
+        }
+
+        self.make_request(Method::DELETE, "/fapi/v1/order", Some(params), true)
+            .await
+    }
+
     // =========================================================================
     // OCO ORDERS (Phase 2: Advanced Order Types)
     // @spec:FR-REAL-010, FR-REAL-011

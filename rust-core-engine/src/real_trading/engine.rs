@@ -622,68 +622,120 @@ impl RealTradingEngine {
         // Store order in pending state
         self.orders.insert(client_order_id.clone(), order.clone());
 
-        // Build request
-        let request = SpotOrderRequest {
-            symbol: symbol.to_string(),
-            side,
-            order_type,
-            time_in_force: if order_type == SpotOrderType::Limit {
-                Some(TimeInForce::Gtc)
+        // Submit to exchange (futures or spot based on trading mode)
+        if self.use_futures {
+            // Build futures order request
+            let time_in_force = if order_type == SpotOrderType::Limit {
+                Some("GTC".to_string())
             } else {
                 None
-            },
-            quantity: Some(quantity.to_string()),
-            quote_order_qty: None,
-            price: price.map(|p| p.to_string()),
-            client_order_id: Some(client_order_id.clone()),
-            stop_price: stop_price.map(|p| p.to_string()),
-            iceberg_qty: None,
-            new_order_resp_type: None,
-        };
+            };
+            let request = crate::binance::types::NewOrderRequest {
+                symbol: symbol.to_string(),
+                side: side_str.clone(),
+                r#type: order_type_str.clone(),
+                quantity: Some(quantity.to_string()),
+                quote_order_qty: None,
+                price: price.map(|p| p.to_string()),
+                new_client_order_id: Some(client_order_id.clone()),
+                stop_price: stop_price.map(|p| p.to_string()),
+                iceberg_qty: None,
+                new_order_resp_type: None,
+                time_in_force,
+                reduce_only: None,
+                close_position: None,
+                position_side: None,
+                working_type: None,
+                price_protect: None,
+            };
 
-        // Submit to exchange
-        match self.binance_client.place_spot_order(request).await {
-            Ok(response) => {
-                // Update order with exchange response
-                self.update_order_from_response(&client_order_id, &response)
-                    .await;
+            match self.binance_client.place_futures_order(request).await {
+                Ok(response) => {
+                    // Update order from futures response
+                    self.update_order_from_futures_response(&client_order_id, &response)
+                        .await;
 
-                let updated_order = self.orders.get(&client_order_id).map(|o| o.clone());
-
-                if let Some(order) = updated_order {
-                    info!(
-                        "Order placed: {} {} {} @ {:?}",
-                        order.side, order.symbol, order.original_quantity, order.price
-                    );
-
-                    // Record success
-                    self.circuit_breaker.write().await.record_success();
-
-                    self.emit_event(RealTradingEvent::OrderPlaced(order.clone()));
-                    Ok(order)
+                    let updated_order = self.orders.get(&client_order_id).map(|o| o.clone());
+                    if let Some(order) = updated_order {
+                        info!(
+                            "Futures order placed: {} {} {} @ {:?}",
+                            order.side, order.symbol, order.original_quantity, order.price
+                        );
+                        self.circuit_breaker.write().await.record_success();
+                        self.emit_event(RealTradingEvent::OrderPlaced(order.clone()));
+                        Ok(order)
+                    } else {
+                        Err(anyhow!("Order not found after placement"))
+                    }
+                },
+                Err(e) => {
+                    let error_msg = format!("Order placement failed: {}", e);
+                    let mut cb = self.circuit_breaker.write().await;
+                    let config = self.config.read().await;
+                    if cb.record_error(&error_msg, config.circuit_breaker_errors) {
+                        error!("Circuit breaker opened after order error");
+                        self.emit_event(RealTradingEvent::CircuitBreakerOpened(error_msg.clone()));
+                    }
+                    if let Some(mut order) = self.orders.get_mut(&client_order_id) {
+                        order.state = OrderState::Rejected;
+                        order.reject_reason = Some(e.to_string());
+                    }
+                    Err(anyhow!(error_msg))
+                },
+            }
+        } else {
+            // Build spot order request
+            let request = SpotOrderRequest {
+                symbol: symbol.to_string(),
+                side,
+                order_type,
+                time_in_force: if order_type == SpotOrderType::Limit {
+                    Some(TimeInForce::Gtc)
                 } else {
-                    Err(anyhow!("Order not found after placement"))
-                }
-            },
-            Err(e) => {
-                // Record error
-                let error_msg = format!("Order placement failed: {}", e);
-                let mut cb = self.circuit_breaker.write().await;
-                let config = self.config.read().await;
+                    None
+                },
+                quantity: Some(quantity.to_string()),
+                quote_order_qty: None,
+                price: price.map(|p| p.to_string()),
+                client_order_id: Some(client_order_id.clone()),
+                stop_price: stop_price.map(|p| p.to_string()),
+                iceberg_qty: None,
+                new_order_resp_type: None,
+            };
 
-                if cb.record_error(&error_msg, config.circuit_breaker_errors) {
-                    error!("Circuit breaker opened after order error");
-                    self.emit_event(RealTradingEvent::CircuitBreakerOpened(error_msg.clone()));
-                }
+            match self.binance_client.place_spot_order(request).await {
+                Ok(response) => {
+                    self.update_order_from_response(&client_order_id, &response)
+                        .await;
 
-                // Update order to rejected
-                if let Some(mut order) = self.orders.get_mut(&client_order_id) {
-                    order.state = OrderState::Rejected;
-                    order.reject_reason = Some(e.to_string());
-                }
-
-                Err(anyhow!(error_msg))
-            },
+                    let updated_order = self.orders.get(&client_order_id).map(|o| o.clone());
+                    if let Some(order) = updated_order {
+                        info!(
+                            "Spot order placed: {} {} {} @ {:?}",
+                            order.side, order.symbol, order.original_quantity, order.price
+                        );
+                        self.circuit_breaker.write().await.record_success();
+                        self.emit_event(RealTradingEvent::OrderPlaced(order.clone()));
+                        Ok(order)
+                    } else {
+                        Err(anyhow!("Order not found after placement"))
+                    }
+                },
+                Err(e) => {
+                    let error_msg = format!("Order placement failed: {}", e);
+                    let mut cb = self.circuit_breaker.write().await;
+                    let config = self.config.read().await;
+                    if cb.record_error(&error_msg, config.circuit_breaker_errors) {
+                        error!("Circuit breaker opened after order error");
+                        self.emit_event(RealTradingEvent::CircuitBreakerOpened(error_msg.clone()));
+                    }
+                    if let Some(mut order) = self.orders.get_mut(&client_order_id) {
+                        order.state = OrderState::Rejected;
+                        order.reject_reason = Some(e.to_string());
+                    }
+                    Err(anyhow!(error_msg))
+                },
+            }
         }
     }
 
@@ -701,15 +753,25 @@ impl RealTradingEngine {
             return Err(anyhow!("Order not active: {}", client_order_id));
         }
 
-        match self
-            .binance_client
-            .cancel_spot_order(
-                &order.symbol,
-                Some(order.exchange_order_id),
-                Some(client_order_id),
-            )
-            .await
-        {
+        let cancel_result = if self.use_futures {
+            self.binance_client
+                .cancel_futures_order(
+                    &order.symbol,
+                    Some(order.exchange_order_id),
+                    Some(client_order_id),
+                )
+                .await
+        } else {
+            self.binance_client
+                .cancel_spot_order(
+                    &order.symbol,
+                    Some(order.exchange_order_id),
+                    Some(client_order_id),
+                )
+                .await
+        };
+
+        match cancel_result {
             Ok(_) => {
                 if let Some(mut order) = self.orders.get_mut(client_order_id) {
                     order.state = OrderState::Cancelled;
@@ -729,6 +791,34 @@ impl RealTradingEngine {
         &self,
         client_order_id: &str,
         response: &SpotOrderResponse,
+    ) {
+        if let Some(mut order) = self.orders.get_mut(client_order_id) {
+            order.exchange_order_id = response.order_id;
+            order.state = OrderState::from_binance_status(&response.status);
+
+            if let Ok(exec_qty) = response.executed_qty.parse::<f64>() {
+                order.executed_quantity = exec_qty;
+                order.remaining_quantity = order.original_quantity - exec_qty;
+            }
+
+            if let (Ok(quote_qty), Ok(exec_qty)) = (
+                response.cumulative_quote_qty.parse::<f64>(),
+                response.executed_qty.parse::<f64>(),
+            ) {
+                if exec_qty > 0.0 {
+                    order.average_fill_price = quote_qty / exec_qty;
+                }
+            }
+
+            order.updated_at = Utc::now();
+        }
+    }
+
+    /// Update order from futures exchange response
+    async fn update_order_from_futures_response(
+        &self,
+        client_order_id: &str,
+        response: &crate::binance::types::FuturesOrderResponse,
     ) {
         if let Some(mut order) = self.orders.get_mut(client_order_id) {
             order.exchange_order_id = response.order_id;
