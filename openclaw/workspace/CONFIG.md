@@ -89,7 +89,7 @@
 
 **RSI** (rsi_strategy.rs):
 - `rsi_period`: 14, `oversold_threshold`: 30.0, `overbought_threshold`: 70.0
-- `extreme_oversold`: 25.0, `extreme_overbought`: 75.0
+- `extreme_oversold`: 20.0, `extreme_overbought`: 80.0
 
 **MACD** (macd_strategy.rs):
 - `fast_period`: 12, `slow_period`: 26, `signal_period`: 9
@@ -105,7 +105,7 @@
 **Stochastic** (stochastic_strategy.rs):
 - `k_period`: 14, `d_period`: 3
 - `oversold_threshold`: 20.0, `overbought_threshold`: 80.0
-- `extreme_oversold`: 15.0, `extreme_overbought`: 85.0
+- `extreme_oversold`: 10.0, `extreme_overbought`: 90.0
 
 ## Indicator Settings (Shared with Python AI)
 

@@ -16,8 +16,8 @@
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Strong BUY** | RSI_primary ≤ 25.0 AND RSI_confirm ≤ 30.0 AND RSI recovering (prev < current) | 0.87 |
-| **Strong SELL** | RSI_primary ≥ 75.0 AND RSI_confirm ≥ 70.0 AND RSI declining | 0.87 |
+| **Strong BUY** | RSI_primary ≤ 20.0 AND RSI_confirm ≤ 30.0 AND RSI recovering (prev < current) | 0.87 |
+| **Strong SELL** | RSI_primary ≥ 80.0 AND RSI_confirm ≥ 70.0 AND RSI declining | 0.87 |
 | **Moderate BUY** | RSI_primary ≤ 30.0 AND RSI_confirm < 50 AND RSI recovering | 0.73 |
 | **Moderate SELL** | RSI_primary ≥ 70.0 AND RSI_confirm > 50 AND RSI declining | 0.73 |
 | **Weak BUY** | RSI_primary 30.0-50 AND rising AND RSI_confirm < 50 | 0.51 |
@@ -67,16 +67,16 @@
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
 | **Strong BUY** | Bullish crossover (%K crosses above %D) + K_primary ≤ 20.0 + K_confirm ≤ 20.0 | 0.89 |
-| **Extreme BUY** | K_primary ≤ 15.0 (extreme oversold) + K_confirm ≤ 20.0 + K_primary > D_primary | 0.85 |
+| **Extreme BUY** | K_primary ≤ 10.0 (extreme oversold) + K_confirm ≤ 20.0 + K_primary > D_primary | 0.85 |
 | **Strong SELL** | Bearish crossover (%K crosses below %D) + K_primary ≥ 80.0 + K_confirm ≥ 80.0 | 0.89 |
-| **Extreme SELL** | K_primary ≥ 85.0 (extreme overbought) + K_confirm ≥ 80.0 + K_primary < D_primary | 0.85 |
+| **Extreme SELL** | K_primary ≥ 90.0 (extreme overbought) + K_confirm ≥ 80.0 + K_primary < D_primary | 0.85 |
 | **Moderate BUY** | Bullish crossover + K_primary ≤ 20.0+10 + K_confirm < 50 | 0.72 |
 | **Moderate SELL** | Bearish crossover + K_primary ≥ 80.0-10 + K_confirm > 50 | 0.72 |
 | **Weak BUY** | K_primary > D_primary + K_primary < 50 + K_confirm < 50 + K rising | 0.52 |
 | **Weak SELL** | K_primary < D_primary + K_primary > 50 + K_confirm > 50 + K falling | 0.52 |
 
 **Win rate**: 64%
-**Thresholds**: Oversold = 20.0, Overbought = 80.0, Extreme = 15.0/85.0
+**Thresholds**: Oversold = 20.0, Overbought = 80.0, Extreme = 10.0/90.0
 **Common failure**: Stochastic crossover trong sideways market tạo nhiều false signals. Cần confirm với volume hoặc trend.
 
 ---

@@ -110,7 +110,7 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 - `portfolio_history` - Portfolio snapshots over time
 
 **AI:**
-- `ai_analysis_results` - GPT-4 signals (30 day TTL)
+- `ai_analysis_results` - xAI Grok signals (30 day TTL)
 - `ai_signals` - Signal execution log
 - `performance_metrics` - Daily performance aggregation
 

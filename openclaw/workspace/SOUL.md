@@ -279,7 +279,7 @@ Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
 
 **Market Data** (8): `get_market_prices`, `get_market_overview`, `get_candles '{"symbol":"X","timeframe":"1h","limit":24}'`, `get_chart`, `get_multi_charts`, `get_symbols`, `add_symbol`, `remove_symbol`
 
-**AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (GPT-4, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
+**AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (xAI Grok, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
 
 **Self-Tuning** (8): `get_tuning_dashboard`, `get_parameter_bounds`, `get_adjustment_history`, `apply_green_adjustment '{"parameter":"X","new_value":N,"reasoning":"..."}'`, `request_yellow_adjustment`, `request_red_adjustment`, `take_parameter_snapshot`, `rollback_adjustment`
 
