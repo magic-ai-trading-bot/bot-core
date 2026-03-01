@@ -136,10 +136,7 @@ pub enum RealTradingEvent {
         order_id: String,
     },
     /// Signal rejected by filters or risk checks
-    SignalRejected {
-        symbol: String,
-        reason: String,
-    },
+    SignalRejected { symbol: String, reason: String },
     /// Cool-down activated after consecutive losses
     CooldownActivated {
         consecutive_losses: u32,
@@ -1745,9 +1742,7 @@ impl RealTradingEngine {
     }
 
     /// Fetch balances from Futures account for reconciliation
-    async fn fetch_futures_balances_for_reconciliation(
-        &self,
-    ) -> Result<Vec<(String, f64, f64)>> {
+    async fn fetch_futures_balances_for_reconciliation(&self) -> Result<Vec<(String, f64, f64)>> {
         let account = self.binance_client.get_futures_account().await?;
         let mut balances = Vec::new();
 
@@ -1778,9 +1773,7 @@ impl RealTradingEngine {
     }
 
     /// Fetch balances from Spot account for reconciliation
-    async fn fetch_spot_balances_for_reconciliation(
-        &self,
-    ) -> Result<Vec<(String, f64, f64)>> {
+    async fn fetch_spot_balances_for_reconciliation(&self) -> Result<Vec<(String, f64, f64)>> {
         let account = self.binance_client.get_account_info().await?;
         let balances = account
             .balances
@@ -2505,10 +2498,7 @@ impl RealTradingEngine {
             let mut losses = self.consecutive_losses.write().await;
             *losses += 1;
 
-            info!(
-                "Consecutive losses: {} (max: {})",
-                *losses, max_losses
-            );
+            info!("Consecutive losses: {} (max: {})", *losses, max_losses);
 
             if *losses >= max_losses {
                 let until = Utc::now() + chrono::Duration::minutes(cool_down_mins as i64);
@@ -2545,7 +2535,8 @@ impl RealTradingEngine {
         let limit = config.correlation_limit;
         drop(config);
 
-        let positions: Vec<RealPosition> = self.positions.iter().map(|e| e.value().clone()).collect();
+        let positions: Vec<RealPosition> =
+            self.positions.iter().map(|e| e.value().clone()).collect();
 
         // Only meaningful with 3+ positions
         if positions.len() < 3 {
@@ -2604,7 +2595,8 @@ impl RealTradingEngine {
         let default_sl_pct = config.default_stop_loss_percent;
         drop(config);
 
-        let positions: Vec<RealPosition> = self.positions.iter().map(|e| e.value().clone()).collect();
+        let positions: Vec<RealPosition> =
+            self.positions.iter().map(|e| e.value().clone()).collect();
         if positions.is_empty() {
             return true;
         }
@@ -2613,7 +2605,11 @@ impl RealTradingEngine {
         let free_usdt = self.get_usdt_balance().await;
         let unrealized_pnl: f64 = positions.iter().map(|p| p.unrealized_pnl).sum();
         let total_equity = free_usdt + unrealized_pnl;
-        let usdt_balance = if total_equity > 0.0 { total_equity } else { free_usdt };
+        let usdt_balance = if total_equity > 0.0 {
+            total_equity
+        } else {
+            free_usdt
+        };
 
         if usdt_balance <= 0.0 {
             warn!("Portfolio equity is zero or negative, blocking trades");
@@ -2629,8 +2625,7 @@ impl RealTradingEngine {
                 PositionSide::Long => pos.entry_price * (1.0 - sl_multiplier),
                 PositionSide::Short => pos.entry_price * (1.0 + sl_multiplier),
             });
-            let sl_distance_pct =
-                ((pos.entry_price - sl_price).abs() / pos.entry_price) * 100.0;
+            let sl_distance_pct = ((pos.entry_price - sl_price).abs() / pos.entry_price) * 100.0;
             let risk_amount = position_value * (sl_distance_pct / 100.0);
             let risk_pct = (risk_amount / usdt_balance) * 100.0;
             total_risk += risk_pct;
@@ -2718,7 +2713,10 @@ impl RealTradingEngine {
             }
 
             // REST fallback for symbols not in cache
-            let missing: Vec<&String> = symbols.iter().filter(|s| !new_prices.contains_key(*s)).collect();
+            let missing: Vec<&String> = symbols
+                .iter()
+                .filter(|s| !new_prices.contains_key(*s))
+                .collect();
             if !missing.is_empty() {
                 debug!("Fetching {} symbols via REST (not in cache)", missing.len());
                 for symbol in &missing {
@@ -2729,7 +2727,7 @@ impl RealTradingEngine {
                                     new_prices.insert((*symbol).clone(), price);
                                 }
                             }
-                        }
+                        },
                         Err(e) => warn!("Failed to get price for {}: {}", symbol, e),
                     }
                 }
@@ -2800,7 +2798,7 @@ impl RealTradingEngine {
                         );
                         // Track consecutive losses for cool-down
                         self.update_consecutive_losses(estimated_pnl).await;
-                    }
+                    },
                     Err(e) => error!("Failed to auto-close {} on SL/TP trigger: {}", symbol, e),
                 }
             }
@@ -2846,12 +2844,16 @@ impl RealTradingEngine {
                     let is_warmup = !last_processed.contains_key(&cache_key);
                     let fetch_limit = if is_warmup { 100u16 } else { 5u16 };
 
-                    let klines = match self.binance_client.get_klines(symbol, timeframe, Some(fetch_limit)).await {
+                    let klines = match self
+                        .binance_client
+                        .get_klines(symbol, timeframe, Some(fetch_limit))
+                        .await
+                    {
                         Ok(k) => k,
                         Err(e) => {
                             debug!("Failed to fetch klines for {} {}: {}", symbol, timeframe, e);
                             continue;
-                        }
+                        },
                     };
 
                     if klines.len() < 2 {
@@ -2887,7 +2889,12 @@ impl RealTradingEngine {
 
                     // Skip first detection (warmup — wait for 100-candle fetch)
                     if prev_time == 0 {
-                        info!("Warmup: fetched {} candles for {} {}", klines.len(), symbol, timeframe);
+                        info!(
+                            "Warmup: fetched {} candles for {} {}",
+                            klines.len(),
+                            symbol,
+                            timeframe
+                        );
                         continue;
                     }
 
@@ -2898,7 +2905,9 @@ impl RealTradingEngine {
                             if entry.len() < 50 {
                                 debug!(
                                     "Insufficient data for {} {}: {} candles (need 50)",
-                                    symbol, timeframe, entry.len()
+                                    symbol,
+                                    timeframe,
+                                    entry.len()
                                 );
                                 continue;
                             }
@@ -2917,13 +2926,14 @@ impl RealTradingEngine {
                     };
 
                     // Run strategy engine
-                    let combined_signal = match self.strategy_engine.analyze_market(&strategy_input).await {
-                        Ok(sig) => sig,
-                        Err(e) => {
-                            debug!("Strategy analysis failed for {}: {}", symbol, e);
-                            continue;
-                        }
-                    };
+                    let combined_signal =
+                        match self.strategy_engine.analyze_market(&strategy_input).await {
+                            Ok(sig) => sig,
+                            Err(e) => {
+                                debug!("Strategy analysis failed for {}: {}", symbol, e);
+                                continue;
+                            },
+                        };
 
                     let signal = combined_signal.final_signal;
                     let confidence = combined_signal.combined_confidence;
@@ -2943,7 +2953,10 @@ impl RealTradingEngine {
                         );
                         self.emit_event(RealTradingEvent::SignalRejected {
                             symbol: symbol.clone(),
-                            reason: format!("Low confidence: {:.2} < {:.2}", confidence, min_confidence),
+                            reason: format!(
+                                "Low confidence: {:.2} < {:.2}",
+                                confidence, min_confidence
+                            ),
                         });
                         continue;
                     }
@@ -3139,10 +3152,7 @@ impl RealTradingEngine {
         if self.positions.len() >= max_positions {
             self.emit_event(RealTradingEvent::SignalRejected {
                 symbol: symbol.to_string(),
-                reason: format!(
-                    "Max positions ({}) reached",
-                    max_positions
-                ),
+                reason: format!("Max positions ({}) reached", max_positions),
             });
             return Ok(());
         }
@@ -3165,7 +3175,7 @@ impl RealTradingEngine {
                 _ => {
                     warn!("No current price for {}, cannot execute", symbol);
                     return Ok(());
-                }
+                },
             }
         };
 
@@ -3204,7 +3214,16 @@ impl RealTradingEngine {
         // Use place_order directly with price hint for accurate risk validation
         // Market order (SpotOrderType::Market) but pass Some(entry_price) for risk checks
         match self
-            .place_order(symbol, side, SpotOrderType::Market, quantity, Some(entry_price), None, None, true)
+            .place_order(
+                symbol,
+                side,
+                SpotOrderType::Market,
+                quantity,
+                Some(entry_price),
+                None,
+                None,
+                true,
+            )
             .await
         {
             Ok(order) => {
@@ -3241,24 +3260,21 @@ impl RealTradingEngine {
                     signal: format!("{:?}", signal),
                     order_id: order.client_order_id,
                 });
-            }
+            },
             Err(e) => {
                 error!("Failed to place real order for {}: {}", symbol, e);
                 self.emit_event(RealTradingEvent::SignalRejected {
                     symbol: symbol.to_string(),
                     reason: format!("Order failed: {}", e),
                 });
-            }
+            },
         }
 
         Ok(())
     }
 
     /// Build strategy input from historical data cache
-    async fn build_strategy_input(
-        &self,
-        symbol: &str,
-    ) -> Option<crate::strategies::StrategyInput> {
+    async fn build_strategy_input(&self, symbol: &str) -> Option<crate::strategies::StrategyInput> {
         let cache = self.historical_data_cache.read().await;
 
         let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
@@ -3288,7 +3304,10 @@ impl RealTradingEngine {
         };
 
         if current_price <= 0.0 {
-            debug!("No current price for {}, skipping strategy analysis", symbol);
+            debug!(
+                "No current price for {}, skipping strategy analysis",
+                symbol
+            );
             return None;
         }
 
