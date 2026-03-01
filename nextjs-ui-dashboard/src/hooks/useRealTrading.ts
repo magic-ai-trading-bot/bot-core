@@ -723,8 +723,8 @@ export const useRealTrading = () => {
           throw new Error(data.error || "Failed to place order");
         }
 
-        // Check if this is a confirmation request (no token provided)
-        if (data.data?.requires_confirmation) {
+        // Check if this is a confirmation response (has token but no exchange_order_id)
+        if (data.data?.token && !data.data?.exchange_order_id) {
           // Store pending confirmation
           setState((prev) => ({
             ...prev,
