@@ -188,7 +188,7 @@ Use `get_paper_portfolio` + `get_trading_performance` for real data. Show win ra
 
 ### 4. Market Analysis
 
-Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses GPT-4 (costs money, use wisely).
+Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses xAI Grok (costs money, use wisely).
 
 ### 5. Trailing Stop Constraint (CRITICAL)
 
@@ -225,10 +225,10 @@ Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
 
 **System Components** (xem chi tiết trong ARCHITECTURE.md):
 - **Rust Backend** (port 8080): Trading engine, strategies, WebSocket, risk management, API
-- **Python AI** (port 8000): GPT-4 analysis, technical indicators fallback
+- **Python AI** (port 8000): xAI Grok analysis, technical indicators fallback
 - **Frontend** (port 3000): Next.js dashboard (71 components, 601 tests)
-- **MCP Server** (port 8090): 103 tools bridge (Model Context Protocol)
-- **OpenClaw** (port 18789): AI gateway (Claude/Gemini → Telegram/WebSocket) — đó là bạn!
+- **MCP Server** (port 8090): 110 tools bridge (Model Context Protocol)
+- **OpenClaw** (port 18789): AI gateway (xAI Grok → Telegram/WebSocket) — đó là bạn!
 - **MongoDB** (port 27017): Database (replica set, 22 collections)
 - **Redis** (port 6379): Caching, rate limiting
 
@@ -248,7 +248,7 @@ Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
 - Consecutive loss tracking (auto-reset on first win)
 
 **AI/ML Status**:
-- **GPT-4o-mini**: WORKING - Market analysis, sentiment, signal generation ($0.01-0.02/analysis)
+- **xAI Grok** (`grok-4-1-fast-non-reasoning`): WORKING - Market analysis, signal generation (via `https://api.x.ai/v1`)
 - **Technical Indicators Fallback**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV
 - **LSTM/GRU/Transformer models**: Code exists in python-ai-service/models/ but NOT integrated/UNUSED
 - **Model Training endpoints**: NOT functional

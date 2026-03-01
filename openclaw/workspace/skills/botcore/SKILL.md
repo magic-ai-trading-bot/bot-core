@@ -4,7 +4,7 @@ description: Control, monitor, and tune the BotCore cryptocurrency trading bot v
 metadata: {"openclaw":{"emoji":"🤖","requires":{"bins":["botcore"],"env":["MCP_URL","MCP_AUTH_TOKEN"]}}}
 ---
 
-# BotCore Trading Bot Controller — 109 Tools
+# BotCore Trading Bot Controller — 110 Tools
 
 Run commands via `botcore` CLI:
 
@@ -521,7 +521,7 @@ botcore get_ai_strategies               # Available AI strategies
 ### Python API (6 tools)
 ```bash
 botcore get_ai_performance              # ML model accuracy metrics
-botcore get_ai_cost_statistics          # OpenAI API cost breakdown
+botcore get_ai_cost_statistics          # xAI Grok API cost breakdown
 botcore get_ai_config_suggestions       # AI config optimization suggestions
 botcore get_ai_analysis_history         # AI analysis history
 botcore get_ai_storage_stats            # Model storage usage

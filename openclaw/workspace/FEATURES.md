@@ -27,7 +27,7 @@ Simulates realistic trading without real money. Includes:
 | Stochastic | 64% | %K crosses %D at 15/85 |
 
 - **Orchestration**: 4/5 strategies must agree
-- **Multi-timeframe**: Signal loop uses 5M + 15M candles, 1H for volume context
+- **Multi-timeframe**: All strategies use 5M (primary) + 15M (confirmation). 1H loaded for AI bias analysis.
 - **Minimum data**: 50 candles required before trading
 - Full signal conditions: See STRATEGIES.md
 

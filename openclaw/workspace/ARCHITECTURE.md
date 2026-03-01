@@ -7,10 +7,10 @@
 |---------|------|------|------|
 | **MongoDB** | 27017 | MongoDB 7+ | Database (replica set) |
 | **Rust Backend** | 8080 | Rust/Warp | Trading engine, strategies, risk mgmt, WebSocket, API |
-| **Python AI** | 8000 | Python/FastAPI | GPT-4 analysis, sentiment, technical indicators |
+| **Python AI** | 8000 | Python/FastAPI | xAI Grok analysis, technical indicators fallback |
 | **Frontend** | 3000 | Next.js/React/Vite | Dashboard UI |
 | **MCP Server** | 8090 | Node.js/TypeScript | 103 tools bridge (Model Context Protocol) |
-| **OpenClaw** | 18789 | Node.js | AI gateway (Claude/Gemini → Telegram/WebSocket) |
+| **OpenClaw** | 18789 | Node.js | AI gateway (xAI Grok → Telegram/WebSocket) |
 | **Redis** | 6379 | Redis | Caching, rate limiting (optional) |
 
 ## Data Flow
@@ -20,7 +20,7 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
                     │                    │
                     │              Signal Generated
                     │                    │
-                    ├──→ Python AI ──→ GPT-4 Analysis ──→ AI Signal
+                    ├──→ Python AI ──→ xAI Grok Analysis ──→ AI Signal
                     │                    │
                     │              Risk Check (7 layers)
                     │                    │
@@ -77,7 +77,7 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 - Notification preferences, push subscriptions
 
 ### AI — `/api/ai/` (Python service)
-- `POST /analyze` - GPT-4 market analysis (MAIN endpoint, working)
+- `POST /analyze` - xAI Grok market analysis (MAIN endpoint, working)
 - `GET /signals/{symbol}` - Recent AI signals
 
 ## WebSocket Events — `ws://localhost:8080/ws`
@@ -125,7 +125,7 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 - `training_jobs` - ML training jobs
 - `backtest_results` - Backtest results
 
-## MCP Server — 103 Tools, 11 Categories
+## MCP Server — 110 Tools, 12 Categories
 
 | Category | Tools | Examples |
 |----------|-------|---------|

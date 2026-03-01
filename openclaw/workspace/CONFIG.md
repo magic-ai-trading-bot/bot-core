@@ -127,7 +127,7 @@
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `trend_threshold_percent` | 0.8% | Price movement threshold |
-| `min_required_timeframes` | 3 of 4 | Timeframes must agree (5M, 15M, 1H, 4H) |
+| `min_required_timeframes` | 3 of 4 | Timeframes must agree. Strategies use 5M (primary) + 15M (confirmation). 1H for AI bias. |
 | `min_required_indicators` | 4 of 5 | Indicators must agree per timeframe |
 | `confidence_base` | 0.5 | Base confidence |
 | `confidence_per_timeframe` | 0.08 | Added per agreeing timeframe |

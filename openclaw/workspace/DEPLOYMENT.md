@@ -6,7 +6,7 @@
 |------|-------|
 | **IP** | 180.93.2.247 |
 | **OS** | Ubuntu (Docker host) |
-| **RAM** | ~6 GB |
+| **RAM** | 16 GB |
 | **Compose File** | docker-compose-vps.yml |
 | **Deploy Script** | .github/workflows/deploy-vps.yml |
 

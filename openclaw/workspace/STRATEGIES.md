@@ -12,16 +12,16 @@
 > Actual thresholds (oversold/overbought/periods) change via self-tuning.
 > Query `botcore get_paper_indicator_settings` for LIVE values before making decisions.
 
-### 1. RSI Strategy (Period: 14, Multi-timeframe: 1H + 4H)
+### 1. RSI Strategy (Period: 14, Multi-timeframe: 5M + 15M)
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Strong BUY** | RSI1h ≤ 25.0 AND RSI4h ≤ 30.0 AND RSI recovering (prev < current) | 0.87 |
-| **Strong SELL** | RSI1h ≥ 75.0 AND RSI4h ≥ 70.0 AND RSI declining | 0.87 |
-| **Moderate BUY** | RSI1h ≤ 30.0 AND RSI4h < 50 AND RSI recovering | 0.73 |
-| **Moderate SELL** | RSI1h ≥ 70.0 AND RSI4h > 50 AND RSI declining | 0.73 |
-| **Weak BUY** | RSI1h 30.0-50 AND rising AND RSI4h < 50 | 0.51 |
-| **Weak SELL** | RSI1h 50-70.0 AND falling AND RSI4h > 50 | 0.51 |
+| **Strong BUY** | RSI_primary ≤ 25.0 AND RSI_confirm ≤ 30.0 AND RSI recovering (prev < current) | 0.87 |
+| **Strong SELL** | RSI_primary ≥ 75.0 AND RSI_confirm ≥ 70.0 AND RSI declining | 0.87 |
+| **Moderate BUY** | RSI_primary ≤ 30.0 AND RSI_confirm < 50 AND RSI recovering | 0.73 |
+| **Moderate SELL** | RSI_primary ≥ 70.0 AND RSI_confirm > 50 AND RSI declining | 0.73 |
+| **Weak BUY** | RSI_primary 30.0-50 AND rising AND RSI_confirm < 50 | 0.51 |
+| **Weak SELL** | RSI_primary 50-70.0 AND falling AND RSI_confirm > 50 | 0.51 |
 
 **Win rate**: 65%
 **Common failure**: RSI oversold ≠ immediate bounce trong bear trend. Cần confirm trend reversal trước.
@@ -30,11 +30,11 @@
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Strong BUY** | Bullish crossover + histogram4h > 0.001 + both increasing | 0.89 |
-| **Strong SELL** | Bearish crossover + histogram4h < -0.001 + both decreasing | 0.89 |
-| **Moderate BUY** | Crossover + 4H histogram increasing, OR both histograms positive + increasing | 0.71 |
+| **Strong BUY** | Bullish crossover + histogram_confirm > 0.001 + both increasing | 0.89 |
+| **Strong SELL** | Bearish crossover + histogram_confirm < -0.001 + both decreasing | 0.89 |
+| **Moderate BUY** | Crossover + confirmation histogram increasing, OR both histograms positive + increasing | 0.71 |
 | **Moderate SELL** | Crossover + 4H decreasing, OR both negative + decreasing | 0.71 |
-| **Weak BUY** | histogram1h increasing AND MACD > Signal AND momentum growing >10% | 0.55 |
+| **Weak BUY** | histogram_primary increasing AND MACD > Signal AND momentum growing >10% | 0.55 |
 
 **Win rate**: 61%
 **Key**: Crossover = prev_MACD ≤ prev_Signal AND current_MACD > current_Signal
@@ -43,10 +43,10 @@
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Squeeze Breakout BUY** | Squeeze (BB width < 2.00%) + expanding + price > upper + 4H position > 0.5 | 0.87 |
-| **Mean Reversion BUY** | BB position ≤ 0.1 + 4H position < 0.3 + NOT expanding | 0.73 |
-| **Trend Continuation BUY** | BB position > 0.8 + 4H > 0.6 + expanding | 0.69 |
-| **Moderate BUY** | BB position < 0.25 + price > 4H middle band | 0.58 |
+| **Squeeze Breakout BUY** | Squeeze (BB width < 2.00%) + expanding + price > upper + confirm_position > 0.5 | 0.87 |
+| **Mean Reversion BUY** | BB position ≤ 0.1 + confirm_position < 0.3 + NOT expanding | 0.73 |
+| **Trend Continuation BUY** | BB position > 0.8 + confirm > 0.6 + expanding | 0.69 |
+| **Moderate BUY** | BB position < 0.25 + price > confirm middle band | 0.58 |
 
 **Win rate**: 63%
 **BB Position** = (Price - Lower) / (Upper - Lower). 0 = at lower band, 1 = at upper band.
@@ -62,18 +62,18 @@
 **Win rate**: 58%
 **POC** = Point of Control (price level with highest trading volume in 20 periods)
 
-### 5. Stochastic Oscillator Strategy (K Period: 14, D Period: 3, Multi-timeframe: 1H + 4H)
+### 5. Stochastic Oscillator Strategy (K Period: 14, D Period: 3, Multi-timeframe: 5M + 15M)
 
 | Signal | Condition | Confidence |
 |--------|-----------|------------|
-| **Strong BUY** | Bullish crossover (%K crosses above %D) + K1h ≤ 20.0 + K4h ≤ 20.0 | 0.89 |
-| **Extreme BUY** | K1h ≤ 15.0 (extreme oversold) + K4h ≤ 20.0 + K1h > D1h | 0.85 |
-| **Strong SELL** | Bearish crossover (%K crosses below %D) + K1h ≥ 80.0 + K4h ≥ 80.0 | 0.89 |
-| **Extreme SELL** | K1h ≥ 85.0 (extreme overbought) + K4h ≥ 80.0 + K1h < D1h | 0.85 |
-| **Moderate BUY** | Bullish crossover + K1h ≤ 20.0+10 + K4h < 50 | 0.72 |
-| **Moderate SELL** | Bearish crossover + K1h ≥ 80.0-10 + K4h > 50 | 0.72 |
-| **Weak BUY** | K1h > D1h + K1h < 50 + K4h < 50 + K rising | 0.52 |
-| **Weak SELL** | K1h < D1h + K1h > 50 + K4h > 50 + K falling | 0.52 |
+| **Strong BUY** | Bullish crossover (%K crosses above %D) + K_primary ≤ 20.0 + K_confirm ≤ 20.0 | 0.89 |
+| **Extreme BUY** | K_primary ≤ 15.0 (extreme oversold) + K_confirm ≤ 20.0 + K_primary > D_primary | 0.85 |
+| **Strong SELL** | Bearish crossover (%K crosses below %D) + K_primary ≥ 80.0 + K_confirm ≥ 80.0 | 0.89 |
+| **Extreme SELL** | K_primary ≥ 85.0 (extreme overbought) + K_confirm ≥ 80.0 + K_primary < D_primary | 0.85 |
+| **Moderate BUY** | Bullish crossover + K_primary ≤ 20.0+10 + K_confirm < 50 | 0.72 |
+| **Moderate SELL** | Bearish crossover + K_primary ≥ 80.0-10 + K_confirm > 50 | 0.72 |
+| **Weak BUY** | K_primary > D_primary + K_primary < 50 + K_confirm < 50 + K rising | 0.52 |
+| **Weak SELL** | K_primary < D_primary + K_primary > 50 + K_confirm > 50 + K falling | 0.52 |
 
 **Win rate**: 64%
 **Thresholds**: Oversold = 20.0, Overbought = 80.0, Extreme = 15.0/85.0
@@ -86,7 +86,7 @@
 - **5 strategies** run in parallel: RSI, MACD, Bollinger, Volume, Stochastic
 - **Minimum agreement**: 4/5 strategies must agree on direction
 - **Combination modes**: WeightedAverage (default), Consensus, BestConfidence, Conservative
-- **Multi-timeframe**: All strategies analyze both 1H and 4H candles
+- **Multi-timeframe**: All strategies analyze 5M (primary) + 15M (confirmation) candles. 1H loaded for AI bias analysis only.
 - **Minimum data**: 50 candles per timeframe required before trading starts
 - **Hybrid filter**: Optional AI trend filter for additional validation
 
@@ -207,5 +207,5 @@ Query `get_paper_basic_settings` for current `trailing_stop_pct`, `trailing_acti
 **Fixed architecture** (not tunable):
 - 5 strategies run in parallel: RSI, MACD, Bollinger, Volume, Stochastic
 - Minimum agreement: 4/5 strategies
-- Multi-timeframe: 1H + 4H candles
+- Multi-timeframe: 5M (primary) + 15M (confirmation) candles
 - Execution: slippage ON, 100ms delay, market impact OFF, partial fills OFF
