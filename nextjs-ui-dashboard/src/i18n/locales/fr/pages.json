@@ -336,22 +336,22 @@
         "rsi": {
           "name": "Stratégie RSI",
           "description": "Trading basé sur le momentum utilisant le RSI pour identifier les conditions de surachat et survente.",
-          "winRate": "62%"
+          "winRate": "65%"
         },
         "macd": {
           "name": "Stratégie MACD",
           "description": "Stratégie de suivi de tendance utilisant les croisements MACD.",
-          "winRate": "58%"
+          "winRate": "61%"
         },
         "bollinger": {
           "name": "Bandes de Bollinger",
           "description": "Stratégie basée sur la volatilité tradant les retournements aux limites des bandes.",
-          "winRate": "60%"
+          "winRate": "63%"
         },
         "volume": {
           "name": "Stratégie Volume",
           "description": "Analyse pondérée par le volume pour confirmer les mouvements de prix.",
-          "winRate": "52%"
+          "winRate": "58%"
         },
         "stochastic": {
           "name": "Stochastique",
@@ -371,7 +371,7 @@
       "layers": {
         "position": {
           "title": "Risque de position",
-          "description": "Maximum 2% du portefeuille par trade"
+          "description": "Maximum 5% du portefeuille par trade"
         },
         "stopLoss": {
           "title": "Stop Loss",
@@ -383,7 +383,7 @@
         },
         "daily": {
           "title": "Limite quotidienne",
-          "description": "Protection drawdown max 5%/jour"
+          "description": "Protection drawdown max 3%/jour"
         },
         "consecutiveLosses": {
           "title": "Pertes consécutives",
@@ -395,7 +395,7 @@
         },
         "cooldown": {
           "title": "Cool-down",
-          "description": "Pause de 60 min après 5 pertes consécutives"
+          "description": "Pause de 60 min après 3 pertes consécutives"
         }
       }
     },
@@ -403,11 +403,11 @@
       "title": "Protection Trailing Stop",
       "subtitle": "Verrouillez les profits tout en laissant courir les gagnants",
       "description": "Notre système de trailing stop intelligent ajuste automatiquement votre stop-loss à mesure que le prix évolue en votre faveur.",
-      "result": "Résultat: +3.47% de profit ($1,560) protégé même quand le prix a chuté du sommet",
+      "result": "Résultat: +11.84% PnL protégé même quand le prix a chuté du sommet (levier 10x)",
       "steps": {
         "entry": "Entrée",
-        "profit": "+5% Profit",
-        "trailing": "Trailing actif",
+        "profit": "+1% PnL Activation",
+        "trailing": "Trailing actif (0.8%)",
         "peak": "Prix max",
         "exit": "Sortie"
       }

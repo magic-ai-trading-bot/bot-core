@@ -130,8 +130,8 @@ const STRATEGY_INFO = {
     how_it_works:
       "So sánh giá đóng cửa với khoảng giá trong N kỳ. %K (fast line) và %D (slow line) dao động 0-100. Crossover tạo tín hiệu mua/bán",
     signals: {
-      buy: "%K cắt lên %D trong vùng oversold (<15)",
-      sell: "%K cắt xuống %D trong vùng overbought (>85)",
+      buy: "%K cắt lên %D trong vùng oversold (<20)",
+      sell: "%K cắt xuống %D trong vùng overbought (>80)",
     },
     advantages: [
       "Tín hiệu sớm hơn RSI",
@@ -872,7 +872,7 @@ const STRATEGY_CONFIGS = {
     icon: Target,
     description: "Stochastic Oscillator - momentum and overbought/oversold detection",
     color: "bg-pink-500",
-    defaultParams: { kPeriod: 10, dPeriod: 2, oversold: 15, overbought: 85 },
+    defaultParams: { kPeriod: 14, dPeriod: 3, oversold: 20, overbought: 80 },
   },
 };
 

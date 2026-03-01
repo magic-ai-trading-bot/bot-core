@@ -574,22 +574,22 @@
         "rsi": {
           "name": "Chiến lược RSI",
           "description": "Giao dịch dựa trên động lượng sử dụng RSI để xác định điều kiện quá mua và quá bán.",
-          "winRate": "62%"
+          "winRate": "65%"
         },
         "macd": {
           "name": "Chiến lược MACD",
           "description": "Chiến lược theo xu hướng sử dụng giao cắt MACD.",
-          "winRate": "58%"
+          "winRate": "61%"
         },
         "bollinger": {
           "name": "Bollinger Bands",
           "description": "Chiến lược dựa trên biến động giao dịch đảo chiều giá tại ranh giới band.",
-          "winRate": "60%"
+          "winRate": "63%"
         },
         "volume": {
           "name": "Chiến lược Volume",
           "description": "Phân tích có trọng số khối lượng để xác nhận biến động giá và breakout.",
-          "winRate": "52%"
+          "winRate": "58%"
         },
         "stochastic": {
           "name": "Stochastic",
@@ -609,7 +609,7 @@
       "layers": {
         "position": {
           "title": "Rủi ro vị thế",
-          "description": "Tối đa 2% danh mục mỗi giao dịch"
+          "description": "Tối đa 5% danh mục mỗi giao dịch"
         },
         "stopLoss": {
           "title": "Stop Loss",
@@ -621,7 +621,7 @@
         },
         "daily": {
           "title": "Giới hạn hàng ngày",
-          "description": "Bảo vệ sụt giảm tối đa 5% mỗi ngày"
+          "description": "Bảo vệ sụt giảm tối đa 3% mỗi ngày"
         },
         "consecutiveLosses": {
           "title": "Lỗ liên tiếp",
@@ -633,7 +633,7 @@
         },
         "cooldown": {
           "title": "Cool-down",
-          "description": "Tạm dừng 60 phút sau 5 lỗ liên tiếp"
+          "description": "Tạm dừng 60 phút sau 3 lỗ liên tiếp"
         }
       }
     },
@@ -641,11 +641,11 @@
       "title": "Bảo vệ Trailing Stop",
       "subtitle": "Khóa lợi nhuận trong khi để lệnh thắng chạy tiếp",
       "description": "Hệ thống trailing stop thông minh tự động điều chỉnh stop-loss khi giá di chuyển có lợi, bảo vệ lợi nhuận trong khi tối đa hóa tiềm năng tăng.",
-      "result": "Kết quả: +3.47% lợi nhuận ($1,560) được bảo vệ ngay cả khi giá giảm từ đỉnh",
+      "result": "Kết quả: +11.84% PnL được bảo vệ ngay cả khi giá giảm từ đỉnh (leverage 10x)",
       "steps": {
         "entry": "Vào lệnh",
-        "profit": "+5% Lợi nhuận",
-        "trailing": "Trailing Kích hoạt",
+        "profit": "+1% PnL Kích hoạt",
+        "trailing": "Trailing (0.8%)",
         "peak": "Giá đỉnh",
         "exit": "Thoát lệnh"
       }

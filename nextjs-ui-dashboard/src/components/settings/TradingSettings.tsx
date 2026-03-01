@@ -38,10 +38,10 @@ interface TradingSettingsData {
 }
 
 const DEFAULT_SETTINGS: TradingSettingsData = {
-  defaultLeverage: 1,
+  defaultLeverage: 10,
   maxPositionSize: 10000,
-  defaultStopLoss: 2,
-  defaultTakeProfit: 5,
+  defaultStopLoss: 10,
+  defaultTakeProfit: 20,
   autoCloseOnProfit: false,
   autoCloseOnLoss: true,
   paperModeByDefault: true,

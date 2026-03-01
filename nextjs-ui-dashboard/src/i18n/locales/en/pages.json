@@ -574,22 +574,22 @@
         "rsi": {
           "name": "RSI Strategy",
           "description": "Momentum-based trading using Relative Strength Index to identify overbought and oversold conditions.",
-          "winRate": "62%"
+          "winRate": "65%"
         },
         "macd": {
           "name": "MACD Strategy",
           "description": "Trend-following strategy using Moving Average Convergence Divergence crossovers.",
-          "winRate": "58%"
+          "winRate": "61%"
         },
         "bollinger": {
           "name": "Bollinger Bands",
           "description": "Volatility-based strategy trading price reversals at band boundaries.",
-          "winRate": "60%"
+          "winRate": "63%"
         },
         "volume": {
           "name": "Volume Strategy",
           "description": "Volume-weighted analysis to confirm price movements and breakouts.",
-          "winRate": "52%"
+          "winRate": "58%"
         },
         "stochastic": {
           "name": "Stochastic",
@@ -609,7 +609,7 @@
       "layers": {
         "position": {
           "title": "Position Risk",
-          "description": "Maximum 2% of portfolio per trade"
+          "description": "Maximum 5% of portfolio per trade"
         },
         "stopLoss": {
           "title": "Stop Loss",
@@ -621,7 +621,7 @@
         },
         "daily": {
           "title": "Daily Limit",
-          "description": "5% maximum daily drawdown protection"
+          "description": "3% maximum daily drawdown protection"
         },
         "consecutiveLosses": {
           "title": "Consecutive Losses",
@@ -633,7 +633,7 @@
         },
         "cooldown": {
           "title": "Cool-down",
-          "description": "60-minute pause after 5 consecutive losses"
+          "description": "60-minute pause after 3 consecutive losses"
         }
       }
     },
@@ -641,11 +641,11 @@
       "title": "Trailing Stop Protection",
       "subtitle": "Lock in profits while letting winners run",
       "description": "Our intelligent trailing stop system automatically adjusts your stop-loss as the price moves in your favor, protecting profits while maximizing upside potential.",
-      "result": "Result: +3.47% profit ($1,560) protected even when price dropped from peak",
+      "result": "Result: +11.84% PnL protected even when price dropped from peak (10x leverage)",
       "steps": {
         "entry": "Entry",
-        "profit": "+5% Profit",
-        "trailing": "Trailing Active",
+        "profit": "+1% PnL Activation",
+        "trailing": "Trailing Active (0.8%)",
         "peak": "Peak Price",
         "exit": "Exit"
       }

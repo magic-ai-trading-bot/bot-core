@@ -1,20 +1,26 @@
 # CONFIG.md - All Tunable Parameters
-# Source: rust-core-engine/src/paper_trading/settings.rs — the single source of truth
 #
-# ⚠️ WARNING: These are INITIAL DEFAULTS from Rust code, NOT current live values!
-# ALWAYS run `botcore get_paper_basic_settings` to get ACTUAL current values.
-# Live values may have been changed by self-tuning or manual adjustments.
+# ⚠️ CRITICAL: ALL values below are INITIAL DEFAULTS from Rust code, NOT current live values!
+# Live values change via self-tuning and manual adjustments. NEVER quote these as "current".
+#
+# ALWAYS QUERY BEFORE DECIDING:
+#   botcore get_paper_symbols          → per-symbol SL, TP, leverage, position_size (ENGINE USES THESE)
+#   botcore get_paper_basic_settings   → global risk settings
+#   botcore get_paper_indicator_settings → strategy thresholds (RSI/MACD/BB/Stoch)
+#   botcore get_tuning_dashboard       → full overview
 
 ## Quick Reference — Most Important Settings
+
+> ⚠️ **Defaults below ≠ live values.** Query `get_paper_symbols` + `get_paper_basic_settings` for LIVE values.
 
 | Parameter | Default | Range | API Endpoint |
 |-----------|---------|-------|-------------|
 | `initial_balance` | 10,000 USDT | > 0 | PUT /basic-settings |
-| `default_leverage` | 3x | 1-125 | PUT /basic-settings |
-| `default_position_size_pct` | 2.0% | - | PUT /basic-settings |
-| `max_positions` | 5 | - | PUT /basic-settings |
-| `default_stop_loss_pct` | 5.0% | - | PUT /basic-settings |
-| `default_take_profit_pct` | 10.0% | - | PUT /basic-settings |
+| `default_leverage` | 10x | 1-125 | PUT /basic-settings |
+| `default_position_size_pct` | 5.0% | - | PUT /basic-settings |
+| `max_positions` | 1 | - | PUT /basic-settings |
+| `default_stop_loss_pct` | 10.0% | - | PUT /basic-settings |
+| `default_take_profit_pct` | 20.0% | - | PUT /basic-settings |
 | `daily_loss_limit_pct` | 3.0% | - | PUT /basic-settings |
 | `max_consecutive_losses` | 3 | - | PUT /basic-settings |
 | `cool_down_minutes` | 60 | - | PUT /basic-settings |
@@ -24,24 +30,26 @@
 
 ## Risk Settings (Full)
 
+> ⚠️ Query `botcore get_paper_basic_settings` for LIVE values. Per-symbol overrides via `get_paper_symbols`.
+
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `max_risk_per_trade_pct` | 1.0% | Max risk per single trade |
+| `max_risk_per_trade_pct` | 0.5% | Max risk per single trade |
 | `max_portfolio_risk_pct` | 10.0% | Max total portfolio risk |
-| `default_stop_loss_pct` | 5.0% | Auto stop loss |
-| `default_take_profit_pct` | 10.0% | Auto take profit |
-| `max_leverage` | 5x | Max allowed leverage |
+| `default_stop_loss_pct` | 10.0% | Auto stop loss |
+| `default_take_profit_pct` | 20.0% | Auto take profit |
+| `max_leverage` | 10x | Max allowed leverage |
 | `min_margin_level` | 300% | Liquidation warning level |
 | `max_drawdown_pct` | 10.0% | Auto-stop if drawdown exceeds |
 | `daily_loss_limit_pct` | 3.0% | Daily loss limit |
 | `max_consecutive_losses` | 3 | Triggers cool-down |
 | `cool_down_minutes` | 60 | Block duration after streak |
 | `correlation_limit` | 0.7 | Max 70% same direction (only enforced with 3+ open positions; with 1-2 positions check is skipped) |
-| `min_risk_reward_ratio` | 2.0 | Min RR ratio required |
+| `min_risk_reward_ratio` | 3.0 | Min RR ratio required |
 | `dynamic_sizing` | true | Volatility-adjusted sizing |
 | `trailing_stop_enabled` | true | Trailing stop loss |
-| `trailing_stop_pct` | 3.0% | Trailing distance |
-| `trailing_activation_pct` | 5.0% | Min profit to activate trailing |
+| `trailing_stop_pct` | 0.8% | Trailing distance |
+| `trailing_activation_pct` | 1.0% | Min profit to activate trailing |
 | `enable_signal_reversal` | true | Auto reverse positions |
 | `ai_auto_enable_reversal` | true | AI decides when to reverse |
 | `reversal_min_confidence` | 0.65 | Min confidence for reversal |
@@ -63,6 +71,8 @@
 
 ## Strategy Settings
 
+> ⚠️ Query `botcore get_paper_indicator_settings` for LIVE strategy thresholds.
+
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `min_ai_confidence` | 0.6 | Min confidence to trade |
@@ -75,9 +85,11 @@
 
 ### Per-Strategy Parameters
 
+> ⚠️ Thresholds below are code defaults. Query `botcore get_paper_indicator_settings` for LIVE values.
+
 **RSI** (rsi_strategy.rs):
-- `rsi_period`: 14, `oversold_threshold`: 25.0, `overbought_threshold`: 75.0
-- `extreme_oversold`: 20.0, `extreme_overbought`: 80.0
+- `rsi_period`: 14, `oversold_threshold`: 30.0, `overbought_threshold`: 70.0
+- `extreme_oversold`: 25.0, `extreme_overbought`: 75.0
 
 **MACD** (macd_strategy.rs):
 - `fast_period`: 12, `slow_period`: 26, `signal_period`: 9
@@ -92,8 +104,8 @@
 
 **Stochastic** (stochastic_strategy.rs):
 - `k_period`: 14, `d_period`: 3
-- `oversold_threshold`: 15.0, `overbought_threshold`: 85.0
-- `extreme_oversold`: 10.0, `extreme_overbought`: 90.0
+- `oversold_threshold`: 20.0, `overbought_threshold`: 80.0
+- `extreme_oversold`: 15.0, `extreme_overbought`: 85.0
 
 ## Indicator Settings (Shared with Python AI)
 
@@ -143,6 +155,8 @@
 | `max_notifications_per_hour` | 20 | Rate limit |
 
 ## Symbol-Specific Overrides
+
+> ⚠️ Per-symbol settings OVERRIDE global defaults. Query `botcore get_paper_symbols` for actual values engine uses.
 
 Each symbol (BTCUSDT, ETHUSDT, etc.) can override:
 - `enabled`, `leverage`, `position_size_pct`, `stop_loss_pct`, `take_profit_pct`

@@ -114,7 +114,7 @@ const HowItWorks = () => {
       description: t('howItWorks.strategies.items.rsi.description'),
       icon: TrendingUp,
       color: colors.cyan,
-      signals: { buy: 'RSI < 25', sell: 'RSI > 75' }
+      signals: { buy: 'RSI < 30', sell: 'RSI > 70' }
     },
     {
       name: t('howItWorks.strategies.items.macd.name'),
@@ -146,14 +146,14 @@ const HowItWorks = () => {
       description: t('howItWorks.strategies.items.stochastic.description'),
       icon: Target,
       color: colors.rose,
-      signals: { buy: '%K crosses %D < 15', sell: '%K crosses %D > 85' }
+      signals: { buy: '%K crosses %D < 20', sell: '%K crosses %D > 80' }
     },
   ];
 
   // Verified against settings.rs defaults
   const riskLayers = [
-    { layer: 1, name: t('howItWorks.risk.layers.position.title'), value: '≤1%', desc: t('howItWorks.risk.layers.position.description'), icon: Percent },
-    { layer: 2, name: t('howItWorks.risk.layers.stopLoss.title'), value: '5%', desc: t('howItWorks.risk.layers.stopLoss.description'), icon: AlertTriangle },
+    { layer: 1, name: t('howItWorks.risk.layers.position.title'), value: '≤5%', desc: t('howItWorks.risk.layers.position.description'), icon: Percent },
+    { layer: 2, name: t('howItWorks.risk.layers.stopLoss.title'), value: '10%', desc: t('howItWorks.risk.layers.stopLoss.description'), icon: AlertTriangle },
     { layer: 3, name: t('howItWorks.risk.layers.portfolio.title'), value: '≤10%', desc: t('howItWorks.risk.layers.portfolio.description'), icon: Layers },
     { layer: 4, name: t('howItWorks.risk.layers.daily.title'), value: '3%', desc: t('howItWorks.risk.layers.daily.description'), icon: TrendingDown },
     { layer: 5, name: t('howItWorks.risk.layers.consecutiveLosses.title'), value: '3 max', desc: t('howItWorks.risk.layers.consecutiveLosses.description'), icon: Timer },
@@ -581,11 +581,11 @@ const HowItWorks = () => {
                 <div className="p-6">
                   <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
                     {[
-                      { label: t('howItWorks.trailingStop.steps.entry'), value: '$45,000', color: colors.textMuted, icon: Play },
-                      { label: t('howItWorks.trailingStop.steps.profit'), value: '$47,250', color: colors.emerald, icon: TrendingUp },
-                      { label: t('howItWorks.trailingStop.steps.trailing'), value: '$45,832', color: colors.amber, icon: Zap },
-                      { label: t('howItWorks.trailingStop.steps.peak'), value: '$48,000', color: colors.emerald, icon: TrendingUp },
-                      { label: t('howItWorks.trailingStop.steps.exit'), value: '$46,560', color: colors.emerald, icon: CheckCircle, highlight: true },
+                      { label: t('howItWorks.trailingStop.steps.entry'), value: '$100,000', color: colors.textMuted, icon: Play },
+                      { label: t('howItWorks.trailingStop.steps.profit'), value: '$100,100', color: colors.emerald, icon: TrendingUp },
+                      { label: t('howItWorks.trailingStop.steps.trailing'), value: '$99,320', color: colors.amber, icon: Zap },
+                      { label: t('howItWorks.trailingStop.steps.peak'), value: '$102,000', color: colors.emerald, icon: TrendingUp },
+                      { label: t('howItWorks.trailingStop.steps.exit'), value: '$101,184', color: colors.emerald, icon: CheckCircle, highlight: true },
                     ].map((step, idx) => (
                       <Fragment key={idx}>
                         <motion.div

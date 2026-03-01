@@ -314,22 +314,22 @@
         "rsi": {
           "name": "RSI策略",
           "description": "使用相对强弱指数的动量交易，识别超买和超卖条件。",
-          "winRate": "62%"
+          "winRate": "65%"
         },
         "macd": {
           "name": "MACD策略",
           "description": "使用移动平均收敛发散交叉的趋势跟踪策略。",
-          "winRate": "58%"
+          "winRate": "61%"
         },
         "bollinger": {
           "name": "布林带",
           "description": "在带边界交易价格反转的波动率策略。",
-          "winRate": "60%"
+          "winRate": "63%"
         },
         "volume": {
           "name": "成交量策略",
           "description": "成交量加权分析以确认价格走势和突破。",
-          "winRate": "52%"
+          "winRate": "58%"
         },
         "stochastic": {
           "name": "随机指标",
@@ -349,7 +349,7 @@
       "layers": {
         "position": {
           "title": "仓位风险",
-          "description": "每笔交易最多占投资组合的2%"
+          "description": "每笔交易最多占投资组合的5%"
         },
         "stopLoss": {
           "title": "止损",
@@ -361,7 +361,7 @@
         },
         "daily": {
           "title": "每日限制",
-          "description": "5%最大每日回撤保护"
+          "description": "3%最大每日回撤保护"
         },
         "consecutiveLosses": {
           "title": "连续亏损",
@@ -373,7 +373,7 @@
         },
         "cooldown": {
           "title": "冷却期",
-          "description": "5次连续亏损后暂停60分钟"
+          "description": "3次连续亏损后暂停60分钟"
         }
       }
     },
@@ -381,11 +381,11 @@
       "title": "追踪止损保护",
       "subtitle": "锁定利润同时让赢家继续运行",
       "description": "我们的智能追踪止损系统会在价格向有利方向移动时自动调整止损，在最大化上涨潜力的同时保护利润。",
-      "result": "结果：即使价格从峰值下跌，也保护了+3.47%的利润（$1,560）",
+      "result": "结果：即使价格从峰值下跌，也保护了+11.84% PnL（10倍杠杆）",
       "steps": {
         "entry": "入场",
-        "profit": "+5%利润",
-        "trailing": "追踪激活",
+        "profit": "+1% PnL激活",
+        "trailing": "追踪激活（0.8%）",
         "peak": "峰值价格",
         "exit": "出场"
       }
