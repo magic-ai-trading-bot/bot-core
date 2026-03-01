@@ -84,6 +84,13 @@ pub struct RealPosition {
     pub strategy_name: Option<String>,
     /// Signal confidence (0.0 to 1.0)
     pub signal_confidence: Option<f64>,
+    /// Leverage used for this position
+    #[serde(default = "default_leverage")]
+    pub leverage: u32,
+}
+
+fn default_leverage() -> u32 {
+    1
 }
 
 impl RealPosition {
@@ -124,6 +131,7 @@ impl RealPosition {
             updated_at: now,
             strategy_name,
             signal_confidence,
+            leverage: 1,
         }
     }
 
@@ -332,6 +340,28 @@ impl RealPosition {
     /// Get effective stop loss price (trailing or fixed)
     pub fn effective_stop_loss(&self) -> Option<f64> {
         self.trailing_stop_price.or(self.stop_loss)
+    }
+
+    /// Set leverage for this position
+    pub fn set_leverage(&mut self, leverage: u32) {
+        self.leverage = leverage;
+    }
+
+    /// Check if position is at liquidation risk (matching paper trading logic)
+    /// Uses simplified bankruptcy price with 5% safety buffer
+    pub fn is_at_liquidation_risk(&self) -> bool {
+        if self.leverage <= 1 {
+            return false; // Spot positions can't be liquidated
+        }
+        let lev = self.leverage as f64;
+        let bankruptcy_price = match self.side {
+            PositionSide::Long => self.entry_price * (1.0 - 1.0 / lev),
+            PositionSide::Short => self.entry_price * (1.0 + 1.0 / lev),
+        };
+        match self.side {
+            PositionSide::Long => self.current_price <= bankruptcy_price * 1.05, // 5% buffer
+            PositionSide::Short => self.current_price >= bankruptcy_price * 0.95, // 5% buffer
+        }
     }
 }
 

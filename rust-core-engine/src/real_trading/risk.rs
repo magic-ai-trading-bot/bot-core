@@ -208,34 +208,40 @@ impl RealTradingRiskManager {
             )));
         }
 
-        // 3. Check position size limit
-        let order_value = quantity * price;
-        if order_value > config.max_position_size_usdt {
+        // 3. Check position size limit (margin-based with leverage)
+        let order_value = quantity * price; // notional value
+        let leverage = config.max_leverage.max(1) as f64;
+        let margin_required = order_value / leverage; // actual margin needed
+
+        if margin_required > config.max_position_size_usdt {
             return Ok(RiskValidationResult::failure(format!(
-                "Order value ${:.2} exceeds max position size ${:.2}",
-                order_value, config.max_position_size_usdt
+                "Margin required ${:.2} (notional ${:.2} / {}x) exceeds max position size ${:.2}",
+                margin_required, order_value, leverage as u32, config.max_position_size_usdt
             )));
         }
 
-        // 4. Check total exposure limit
+        // 4. Check total exposure limit (margin-based with leverage)
         let current_exposure: f64 = current_positions
             .iter()
-            .map(|p| p.value().position_value())
+            .map(|p| {
+                let pos_leverage = p.value().leverage.max(1) as f64;
+                p.value().position_value() / pos_leverage
+            })
             .sum();
 
-        if current_exposure + order_value > config.max_total_exposure_usdt {
+        if current_exposure + margin_required > config.max_total_exposure_usdt {
             return Ok(RiskValidationResult::failure(format!(
-                "Total exposure ${:.2} + ${:.2} exceeds limit ${:.2}",
-                current_exposure, order_value, config.max_total_exposure_usdt
+                "Total exposure (margin) ${:.2} + ${:.2} exceeds limit ${:.2}",
+                current_exposure, margin_required, config.max_total_exposure_usdt
             )));
         }
 
-        // 5. Check available balance (for buy orders)
+        // 5. Check available balance (for buy orders — margin-based)
         let usdt_balance = balances.get("USDT").copied().unwrap_or(0.0);
-        if side == OrderSide::Buy && order_value > usdt_balance {
+        if side == OrderSide::Buy && margin_required > usdt_balance {
             return Ok(RiskValidationResult::failure(format!(
-                "Insufficient balance: need ${:.2}, have ${:.2}",
-                order_value, usdt_balance
+                "Insufficient balance: need ${:.2} margin (notional ${:.2} / {}x), have ${:.2}",
+                margin_required, order_value, leverage as u32, usdt_balance
             )));
         }
 
@@ -247,17 +253,18 @@ impl RealTradingRiskManager {
             )));
         }
 
-        // 7. Check risk per trade limit
+        // 7. Check risk per trade limit (margin-based)
         let max_risk_amount = usdt_balance * (config.risk_per_trade_percent / 100.0);
-        let max_allowed_position = max_risk_amount * (100.0 / config.default_stop_loss_percent);
+        let sl_pct = config.default_stop_loss_percent / leverage; // leverage-adjusted SL
+        let max_allowed_margin = max_risk_amount * (100.0 / sl_pct.max(0.01));
 
-        if order_value > max_allowed_position {
+        if margin_required > max_allowed_margin {
             result = result.with_warning(format!(
-                "Order value ${:.2} exceeds risk-based limit ${:.2}",
-                order_value, max_allowed_position
+                "Margin ${:.2} exceeds risk-based limit ${:.2}",
+                margin_required, max_allowed_margin
             ));
-            // Calculate suggested size
-            let suggested = max_allowed_position / price;
+            // Calculate suggested size (notional)
+            let suggested = (max_allowed_margin * leverage) / price;
             result = result.with_suggested_size(suggested);
         }
 
@@ -321,9 +328,10 @@ impl RealTradingRiskManager {
         let position_value = risk_amount / effective_stop_distance;
         let position_size = position_value / entry_price;
 
-        // Apply limits
-        let max_size_by_position = config.max_position_size_usdt / entry_price;
-        let max_size_by_exposure = config.max_total_exposure_usdt / entry_price;
+        // Apply limits (multiply by leverage: limits are margin-based, positions are notional)
+        let leverage = config.max_leverage.max(1) as f64;
+        let max_size_by_position = (config.max_position_size_usdt * leverage) / entry_price;
+        let max_size_by_exposure = (config.max_total_exposure_usdt * leverage) / entry_price;
 
         let final_size = position_size
             .min(max_size_by_position)

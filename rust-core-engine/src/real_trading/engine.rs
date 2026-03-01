@@ -1034,7 +1034,7 @@ impl RealTradingEngine {
             } else {
                 // Create new position
                 let side = PositionSide::from_order_side(&order.side);
-                let position = RealPosition::new(
+                let mut position = RealPosition::new(
                     format!("pos_{}", Uuid::new_v4()),
                     symbol.clone(),
                     side,
@@ -1044,6 +1044,10 @@ impl RealTradingEngine {
                     None,
                     None,
                 );
+                // Set leverage from config for liquidation risk monitoring
+                let config = self.config.read().await;
+                position.set_leverage(config.max_leverage);
+                drop(config);
                 self.positions.insert(symbol.clone(), position.clone());
                 self.emit_event(RealTradingEvent::PositionOpened(position));
             }
@@ -2806,6 +2810,16 @@ impl RealTradingEngine {
                         position.take_profit.unwrap_or(0.0)
                     );
                     triggered.push((symbol, position.unrealized_pnl));
+                } else if position.is_at_liquidation_risk() {
+                    warn!(
+                        "LIQUIDATION RISK for {} ({:?}) {}x leverage, price=${:.2}, entry=${:.2}",
+                        symbol,
+                        position.side,
+                        position.leverage,
+                        position.current_price,
+                        position.entry_price
+                    );
+                    triggered.push((symbol, position.unrealized_pnl));
                 }
             }
 
@@ -3165,6 +3179,7 @@ impl RealTradingEngine {
         let max_positions = config.max_positions as usize;
         let default_sl_pct = config.default_stop_loss_percent;
         let default_tp_pct = config.default_take_profit_percent;
+        let leverage = config.max_leverage;
         let enable_ts = config.enable_trailing_stop;
         let ts_activation_pct = config.trailing_stop_activation_percent;
         let ts_trail_pct = config.trailing_stop_percent;
@@ -3178,14 +3193,44 @@ impl RealTradingEngine {
             return Ok(());
         }
 
-        // 6. Check if position already exists for this symbol
-        if self.positions.contains_key(symbol) {
-            debug!("Position already exists for {}, skipping", symbol);
-            self.emit_event(RealTradingEvent::SignalRejected {
-                symbol: symbol.to_string(),
-                reason: "Position already open".to_string(),
-            });
-            return Ok(());
+        // 6. Check if position already exists — close if opposite direction (reversal)
+        if let Some(existing) = self.positions.get(symbol) {
+            let existing_is_long = existing.side == crate::real_trading::PositionSide::Long;
+            let signal_is_long = is_long;
+
+            if existing_is_long == signal_is_long {
+                // Same direction — skip (already positioned correctly)
+                debug!(
+                    "Position already exists for {} in same direction, skipping",
+                    symbol
+                );
+                self.emit_event(RealTradingEvent::SignalRejected {
+                    symbol: symbol.to_string(),
+                    reason: "Position already open in same direction".to_string(),
+                });
+                return Ok(());
+            } else {
+                // Opposite direction — close existing position first (reversal)
+                drop(existing); // Release DashMap ref before mutating
+                info!(
+                    "Reversing position for {}: closing existing {:?} to open {:?}",
+                    symbol,
+                    if existing_is_long { "LONG" } else { "SHORT" },
+                    if signal_is_long { "LONG" } else { "SHORT" }
+                );
+                match self.close_position(symbol).await {
+                    Ok(order) => {
+                        info!(
+                            "Closed existing position for reversal: {} (order: {})",
+                            symbol, order.client_order_id
+                        );
+                    },
+                    Err(e) => {
+                        error!("Failed to close position for reversal on {}: {}", symbol, e);
+                        return Ok(());
+                    },
+                }
+            }
         }
 
         // 7. Get current price
@@ -3200,17 +3245,59 @@ impl RealTradingEngine {
             }
         };
 
-        // 8. Calculate SL/TP
+        // 8a. Set margin mode ISOLATED (futures only, prevents cross-margin bleed)
+        if self.use_futures {
+            match self
+                .binance_client
+                .change_margin_type(symbol, "ISOLATED")
+                .await
+            {
+                Ok(_) => {
+                    info!("Set ISOLATED margin for {}", symbol);
+                },
+                Err(e) => {
+                    // Error -4046 = "No need to change margin type" (already ISOLATED) — safe to ignore
+                    let err_str = e.to_string();
+                    if !err_str.contains("-4046") {
+                        warn!("Failed to set ISOLATED margin for {}: {}", symbol, err_str);
+                    }
+                },
+            }
+        }
+
+        // 8b. Set leverage on Binance (futures only, must be done BEFORE placing order)
+        if self.use_futures && leverage > 1 {
+            match self
+                .binance_client
+                .change_leverage(symbol, leverage as u8)
+                .await
+            {
+                Ok(_) => {
+                    info!("Set leverage {}x for {} on Binance", leverage, symbol);
+                },
+                Err(e) => {
+                    warn!(
+                        "Failed to set leverage {}x for {}: {} (using current exchange leverage)",
+                        leverage, symbol, e
+                    );
+                },
+            }
+        }
+
+        // 9. Calculate SL/TP (PnL-based, adjusted for leverage like paper trading)
+        // With leverage, price_change = pnl_pct / leverage
+        // E.g., 2% SL with 10x leverage = 0.2% price move triggers stop
+        let lev = leverage as f64;
         let stop_loss = if is_long {
-            entry_price * (1.0 - default_sl_pct / 100.0)
+            entry_price * (1.0 - default_sl_pct / (lev * 100.0))
         } else {
-            entry_price * (1.0 + default_sl_pct / 100.0)
+            entry_price * (1.0 + default_sl_pct / (lev * 100.0))
         };
 
         let take_profit = if is_long {
-            entry_price * (1.0 + default_tp_pct / 100.0)
+            entry_price * (1.0 + default_tp_pct / (lev * 100.0))
         } else {
-            entry_price * (1.0 - default_tp_pct / 100.0)
+            entry_price * (1.0 - default_tp_pct / (lev * 100.0))
         };
 
         // 9. Calculate position size

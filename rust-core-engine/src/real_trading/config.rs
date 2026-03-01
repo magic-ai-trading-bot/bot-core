@@ -292,19 +292,24 @@ impl RealTradingConfig {
 
     /// Calculate stop loss price from entry
     pub fn calculate_stop_loss(&self, entry_price: f64, is_long: bool) -> f64 {
+        // PnL-based SL adjusted for leverage (matching paper trading)
+        // With leverage, price_change = pnl_pct / leverage
+        let lev = self.max_leverage.max(1) as f64;
         if is_long {
-            entry_price * (1.0 - self.default_stop_loss_percent / 100.0)
+            entry_price * (1.0 - self.default_stop_loss_percent / (lev * 100.0))
         } else {
-            entry_price * (1.0 + self.default_stop_loss_percent / 100.0)
+            entry_price * (1.0 + self.default_stop_loss_percent / (lev * 100.0))
         }
     }
 
     /// Calculate take profit price from entry
     pub fn calculate_take_profit(&self, entry_price: f64, is_long: bool) -> f64 {
+        // PnL-based TP adjusted for leverage (matching paper trading)
+        let lev = self.max_leverage.max(1) as f64;
         if is_long {
-            entry_price * (1.0 + self.default_take_profit_percent / 100.0)
+            entry_price * (1.0 + self.default_take_profit_percent / (lev * 100.0))
         } else {
-            entry_price * (1.0 - self.default_take_profit_percent / 100.0)
+            entry_price * (1.0 - self.default_take_profit_percent / (lev * 100.0))
         }
     }
 }
