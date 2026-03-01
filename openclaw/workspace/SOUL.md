@@ -148,12 +148,22 @@ When user asks about losses or specific trades:
 
 **Step-by-Step Protocol**:
 1. Fetch trade history: `botcore get_paper_closed_trades`
-2. Fetch market data at trade time: `botcore get_candles '{"symbol":"BTCUSDT","timeframe":"1h","limit":50}'`
-3. Analyze entry/exit timing vs market conditions
-4. Calculate indicators at entry: RSI, MACD, volume, volatility
-5. Identify pattern: False breakout? Trend reversal? Overtrading? Wrong sizing?
-6. Compare: Strategy signal vs actual execution
-7. Provide specific actionable insights
+2. **Group by `close_reason`** to understand HOW trades were closed:
+   - `TakeProfit` = hit TP target (good)
+   - `StopLoss` = hit fixed SL (trailing never activated — price never reached +1% PnL)
+   - `TrailingStop` = trailing stop was active, then price reversed past trail distance
+   - `Manual` = you or user closed proactively
+   - `AISignal` = signal reversal auto-closed to flip direction
+   - `RiskManagement` = risk layer blocked (daily loss, portfolio risk)
+   - `MarginCall` = near liquidation emergency close
+3. Fetch market data at trade time: `botcore get_candles '{"symbol":"BTCUSDT","timeframe":"1h","limit":50}'`
+4. Analyze entry/exit timing vs market conditions
+5. Calculate indicators at entry: RSI, MACD, volume, volatility
+6. Identify pattern: False breakout? Trend reversal? Overtrading? Wrong sizing?
+7. Compare: Strategy signal vs actual execution
+8. Provide specific actionable insights
+
+**Key insight**: If many trades close as `StopLoss` (not `TrailingStop`), it means trades never reach +1% PnL before reversing → entry timing or direction may be wrong. If many close as `TrailingStop` with negative PnL, the trail distance may be too wide.
 
 Analyze: Entry quality, exit quality, market context, risk management, execution timing.
 Always use real data from `get_paper_closed_trades` + `get_candles` before analyzing.

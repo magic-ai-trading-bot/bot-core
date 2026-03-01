@@ -8,6 +8,7 @@ Simulates realistic trading without real money. Includes:
 - **Execution Simulation**: Slippage (0-0.05%), 100ms delay, market impact, partial fills
 - **7-Layer Risk Management**: See STRATEGIES.md for full details
 - **Position Management**: Open/close/reverse trades, trailing stops
+- **8 Close Reasons**: TakeProfit, StopLoss, TrailingStop, Manual, AISignal, RiskManagement, MarginCall, TimeBasedExit
 - **Signal Reversal**: Auto close + open opposite when high-confidence reversal detected
 - **Realism Score**: 98/100 (A+)
 

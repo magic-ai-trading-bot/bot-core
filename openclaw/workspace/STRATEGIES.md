@@ -132,6 +132,39 @@ Prevents trading in ranging/whipsaw markets:
 
 ---
 
+## Trade Close Reasons (8 Types)
+
+When analyzing closed trades via `get_paper_closed_trades`, the `close_reason` field tells you WHY the trade was closed:
+
+| Close Reason | Meaning | Who Triggered |
+|-------------|---------|---------------|
+| **TakeProfit** | PnL reached TP threshold → auto-close with profit | Engine auto |
+| **StopLoss** | PnL reached SL threshold → auto-close with loss | Engine auto |
+| **TrailingStop** | Trailing stop activated, then price reversed past trail distance → auto-close | Engine auto |
+| **Manual** | Closed by user or OpenClaw AI decision | You or user |
+| **AISignal** | Signal reversal — new high-confidence signal in opposite direction | Engine auto (reversal) |
+| **RiskManagement** | Risk layer triggered (daily loss, portfolio risk, etc.) | Engine auto |
+| **MarginCall** | Price near liquidation level → emergency close | Engine auto |
+| **TimeBasedExit** | Order expired (stale order timeout) | Engine auto |
+
+### How to Interpret Trade History
+
+- **TrailingStop** = trade WAS profitable (trailing activated at ≥1% PnL), then price reversed. Check if PnL is positive (locked profit) or negative (price dropped below entry after trail activated)
+- **StopLoss** = trade hit the fixed SL level WITHOUT trailing ever activating (price never reached +1% PnL)
+- **Manual** = likely YOU (OpenClaw) closed it proactively — check your own reasoning
+- **AISignal** = signal reversal feature auto-closed to open opposite position
+
+### Trailing Stop Mechanics (Current Behavior)
+
+1. **Activation**: PnL-based — trailing activates when `unrealized_pnl% ≥ trailing_activation_pct`
+2. **Trail distance**: Price-based — stop follows `trailing_stop_pct` below peak (Long) or above trough (Short)
+3. **One-way ratchet**: Stop only moves in favorable direction, never moves back
+4. **Close reason**: When trail triggers close → `close_reason = "TrailingStop"` (NOT "StopLoss")
+
+Query `get_paper_basic_settings` for current `trailing_stop_pct`, `trailing_activation_pct`, `trailing_stop_enabled`.
+
+---
+
 ## Execution Simulation
 
 | Feature | Default | Detail |

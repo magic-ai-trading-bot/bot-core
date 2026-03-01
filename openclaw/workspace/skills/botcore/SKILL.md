@@ -251,10 +251,16 @@ If price_move > 5% → Very wide. Double-check this is intentional.
 
 The engine checks each open position against its TP/SL on every price update:
 1. Calculate current PnL % for the position
-2. If PnL >= take_profit_pct → auto-close with profit
-3. If PnL <= -stop_loss_pct → auto-close with loss
-4. If trailing is active and price drops below trailing stop → auto-close
-5. If liquidation risk detected → auto-close with margin call
+2. If PnL >= take_profit_pct → auto-close → `close_reason: "TakeProfit"`
+3. If PnL <= -stop_loss_pct → auto-close → `close_reason: "StopLoss"`
+4. If trailing stop is active and price drops below trail stop → auto-close → `close_reason: "TrailingStop"`
+5. If liquidation risk detected → auto-close → `close_reason: "MarginCall"`
+6. If signal reversal triggers → auto-close → `close_reason: "AISignal"`
+7. If you (OpenClaw) close manually → `close_reason: "Manual"`
+
+**8 close reasons**: `TakeProfit`, `StopLoss`, `TrailingStop`, `Manual`, `AISignal`, `RiskManagement`, `MarginCall`, `TimeBasedExit`
+
+**TrailingStop vs StopLoss**: If trailing stop was activated (trade reached +1% PnL) and then price reversed, close_reason = `TrailingStop`. If trade hit the fixed SL without trailing ever activating, close_reason = `StopLoss`. This distinction helps you analyze whether trades are reaching profit before reversing.
 
 **All auto-closures are persisted to MongoDB immediately.** The engine:
 - Saves closed trade status + exit price + PnL to database
