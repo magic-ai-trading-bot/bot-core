@@ -2958,7 +2958,10 @@ impl RealTradingEngine {
                     let strategy_input = match self.build_strategy_input(symbol).await {
                         Some(input) => input,
                         None => {
-                            warn!("Failed to build strategy input for {} (missing data or price)", symbol);
+                            warn!(
+                                "Failed to build strategy input for {} (missing data or price)",
+                                symbol
+                            );
                             continue;
                         },
                     };
@@ -2968,7 +2971,10 @@ impl RealTradingEngine {
                         match self.strategy_engine.analyze_market(&strategy_input).await {
                             Ok(sig) => sig,
                             Err(e) => {
-                                warn!("Strategy analysis failed for {} {}: {}", symbol, timeframe, e);
+                                warn!(
+                                    "Strategy analysis failed for {} {}: {}",
+                                    symbol, timeframe, e
+                                );
                                 continue;
                             },
                         };
@@ -2978,7 +2984,10 @@ impl RealTradingEngine {
 
                     info!(
                         "Strategy result for {} {}: {:?} (confidence: {:.2}%)",
-                        symbol, timeframe, signal, confidence * 100.0
+                        symbol,
+                        timeframe,
+                        signal,
+                        confidence * 100.0
                     );
 
                     // ===== 5-LAYER SIGNAL FILTERING =====
