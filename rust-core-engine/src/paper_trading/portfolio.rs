@@ -1393,6 +1393,7 @@ mod tests {
         let reasons = vec![
             CloseReason::TakeProfit,
             CloseReason::StopLoss,
+            CloseReason::TrailingStop,
             CloseReason::MarginCall,
             CloseReason::Manual,
             CloseReason::TimeBasedExit,
@@ -1675,6 +1676,7 @@ mod tests {
         let reasons = vec![
             CloseReason::TakeProfit,
             CloseReason::StopLoss,
+            CloseReason::TrailingStop,
             CloseReason::MarginCall,
             CloseReason::Manual,
             CloseReason::TimeBasedExit,

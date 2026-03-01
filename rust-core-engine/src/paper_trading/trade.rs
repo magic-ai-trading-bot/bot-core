@@ -33,6 +33,7 @@ pub enum TradeStatus {
 pub enum CloseReason {
     TakeProfit,
     StopLoss,
+    TrailingStop,
     Manual,
     AISignal,
     RiskManagement,
@@ -1607,6 +1608,7 @@ mod tests {
         let reasons = vec![
             CloseReason::TakeProfit,
             CloseReason::StopLoss,
+            CloseReason::TrailingStop,
             CloseReason::Manual,
             CloseReason::AISignal,
             CloseReason::RiskManagement,

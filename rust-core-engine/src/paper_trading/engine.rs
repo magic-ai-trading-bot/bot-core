@@ -2479,15 +2479,28 @@ impl PaperTradingEngine {
                 if let Some(trade) = portfolio.trades.get(trade_id) {
                     if let Some(current_price) = portfolio.current_prices.get(&trade.symbol) {
                         if trade.should_stop_loss(*current_price) {
-                            info!(
-                                "🚨 SL DETECTED: {} ({} {:?}) price=${:.2} sl=${:.2}",
-                                trade_id,
-                                trade.symbol,
-                                trade.trade_type,
-                                current_price,
-                                trade.stop_loss.unwrap_or(0.0)
-                            );
-                            to_close.push((trade_id.clone(), CloseReason::StopLoss));
+                            let reason = if trade.trailing_stop_active {
+                                info!(
+                                    "🎯 TRAILING STOP TRIGGERED: {} ({} {:?}) price=${:.2} sl=${:.2}",
+                                    trade_id,
+                                    trade.symbol,
+                                    trade.trade_type,
+                                    current_price,
+                                    trade.stop_loss.unwrap_or(0.0)
+                                );
+                                CloseReason::TrailingStop
+                            } else {
+                                info!(
+                                    "🚨 SL DETECTED: {} ({} {:?}) price=${:.2} sl=${:.2}",
+                                    trade_id,
+                                    trade.symbol,
+                                    trade.trade_type,
+                                    current_price,
+                                    trade.stop_loss.unwrap_or(0.0)
+                                );
+                                CloseReason::StopLoss
+                            };
+                            to_close.push((trade_id.clone(), reason));
                         } else if trade.should_take_profit(*current_price) {
                             info!(
                                 "✅ TP DETECTED: {} ({} {:?}) price=${:.2} tp=${:.2}",
@@ -2653,6 +2666,7 @@ impl PaperTradingEngine {
                         .as_ref()
                         .and_then(|r| match r.as_str() {
                             "StopLoss" => Some(CloseReason::StopLoss),
+                            "TrailingStop" => Some(CloseReason::TrailingStop),
                             "TakeProfit" => Some(CloseReason::TakeProfit),
                             "Manual" => Some(CloseReason::Manual),
                             "AISignal" => Some(CloseReason::AISignal),
