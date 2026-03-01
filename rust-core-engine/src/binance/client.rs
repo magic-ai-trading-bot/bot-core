@@ -435,8 +435,17 @@ impl BinanceClient {
         params.insert("symbol".to_string(), symbol.to_uppercase());
         params.insert("marginType".to_string(), margin_type.to_string());
 
-        self.make_request(Method::POST, "/fapi/v1/marginType", Some(params), true)
+        match self
+            .make_request(Method::POST, "/fapi/v1/marginType", Some(params), true)
             .await
+        {
+            Ok(v) => Ok(v),
+            Err(e) if e.to_string().contains("-4046") => {
+                // -4046 = "No need to change margin type" (already correct)
+                Ok(serde_json::json!({"code": -4046, "msg": "No need to change margin type."}))
+            },
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn get_symbol_price(&self, symbol: &str) -> Result<SymbolPrice> {
