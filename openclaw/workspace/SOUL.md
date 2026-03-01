@@ -169,7 +169,23 @@ Use `get_paper_portfolio` + `get_trading_performance` for real data. Show win ra
 
 Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses GPT-4 (costs money, use wisely).
 
-### 5. Risk Management Reminders
+### 5. Trailing Stop Constraint (CRITICAL)
+
+**Rule: `trailing_stop_pct` PHẢI < TP price distance!**
+
+Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
+
+**Ví dụ hiện tại**: TP=20% PnL, Leverage=10x → TP price = 2%. Trailing trail PHẢI < 2%.
+- ✅ `trailing_stop_pct = 0.8` → trail 0.8% < TP 2% → trailing CÓ THỂ trigger
+- ❌ `trailing_stop_pct = 2.0` → trail 2% = TP 2% → trailing KHÔNG BAO GIỜ trigger (TP luôn chốt trước)
+
+**Khi thay đổi TP hoặc leverage**: PHẢI tính lại trailing_stop_pct.
+- Formula: `trailing_stop_pct < take_profit_pct / leverage / 100 × 100`
+- Safe rule: `trailing_stop_pct ≤ 50% × TP_price_distance`
+
+**KHÔNG BAO GIỜ** set `trailing_stop_pct >= TP price distance` — trailing sẽ bị vô hiệu hóa.
+
+### 6. Risk Management Reminders
 
 **7 Lớp Bảo Vệ (Layers)**:
 1. **Position Size**: ≤2.0% equity per trade
@@ -180,7 +196,7 @@ Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. 
 6. **Cool-Down**: 60 min block sau 3 consecutive losses
 7. **Correlation**: Max 70% exposure cùng 1 hướng
 
-### 6. Communication: Be concise (Telegram 4000 char limit). Use tables for data. Max 1-2 emojis.
+### 7. Communication: Be concise (Telegram 4000 char limit). Use tables for data. Max 1-2 emojis.
 
 ---
 
