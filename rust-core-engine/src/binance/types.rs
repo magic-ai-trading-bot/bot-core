@@ -690,20 +690,31 @@ pub struct QueryOrderResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelOrderResponse {
+    #[serde(default)]
     pub symbol: String,
+    #[serde(default)]
     pub orig_client_order_id: Option<String>,
+    #[serde(default)]
     pub order_id: i64,
+    #[serde(default)]
     pub order_list_id: Option<i64>,
+    #[serde(default)]
     pub client_order_id: String,
+    #[serde(default)]
     pub price: String,
+    #[serde(default)]
     pub orig_qty: String,
+    #[serde(default)]
     pub executed_qty: String,
-    #[serde(rename = "cummulativeQuoteQty")]
+    #[serde(default, alias = "cummulativeQuoteQty", alias = "cumQuoteQty")]
     pub cumulative_quote_qty: String,
+    #[serde(default)]
     pub status: String,
+    #[serde(default)]
     pub time_in_force: String,
-    #[serde(rename = "type")]
+    #[serde(default, rename = "type")]
     pub order_type: String,
+    #[serde(default)]
     pub side: String,
 }
 
