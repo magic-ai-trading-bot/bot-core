@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tokio::time::{sleep, Duration};
-use tracing::{error, trace, warn};
+use tracing::{debug, error, trace, warn};
 use url::Url;
 
 use super::types::*;
