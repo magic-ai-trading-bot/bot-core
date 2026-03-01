@@ -735,15 +735,16 @@ impl RealTradingEngine {
             } else {
                 None
             };
+            let rounded_qty = Self::round_quantity_for_exchange(symbol, quantity);
             let request = crate::binance::types::NewOrderRequest {
                 symbol: symbol.to_string(),
                 side: side_str,
                 r#type: order_type_str,
-                quantity: Some(quantity.to_string()),
+                quantity: Some(rounded_qty.to_string()),
                 quote_order_qty: None,
-                price: price.map(|p| p.to_string()),
+                price: price.map(|p| format!("{:.2}", p)),
                 new_client_order_id: Some(client_order_id.clone()),
-                stop_price: stop_price.map(|p| p.to_string()),
+                stop_price: stop_price.map(|p| format!("{:.2}", p)),
                 iceberg_qty: None,
                 new_order_resp_type: None,
                 time_in_force,
@@ -3317,8 +3318,9 @@ impl RealTradingEngine {
             entry_price * (1.0 - default_tp_pct / (lev * 100.0))
         };
 
-        // 9. Calculate position size
-        let quantity = self.calculate_position_size(entry_price, stop_loss).await;
+        // 9. Calculate position size (round to exchange step size)
+        let raw_quantity = self.calculate_position_size(entry_price, stop_loss).await;
+        let quantity = Self::round_quantity_for_exchange(symbol, raw_quantity);
         if quantity <= 0.0 {
             warn!("Calculated position size is 0 for {}, skipping", symbol);
             return Ok(());
@@ -3448,6 +3450,24 @@ impl RealTradingEngine {
             volume_24h,
             timestamp: Utc::now().timestamp(),
         })
+    }
+
+    /// Round quantity to exchange-allowed step size for a symbol.
+    /// Binance rejects orders with precision exceeding the LOT_SIZE filter.
+    fn round_quantity_for_exchange(symbol: &str, quantity: f64) -> f64 {
+        // Futures step sizes (from Binance exchange info)
+        let decimals = match symbol {
+            "BTCUSDT" => 3,  // step 0.001
+            "ETHUSDT" => 3,  // step 0.001
+            "BNBUSDT" => 2,  // step 0.01
+            "SOLUSDT" => 1,  // step 0.1 (futures) — some testnet use 0
+            "XRPUSDT" => 1,  // step 0.1
+            "DOGEUSDT" => 0, // step 1
+            "ADAUSDT" => 0,  // step 1
+            _ => 3,          // safe default
+        };
+        let factor = 10f64.powi(decimals);
+        (quantity * factor).floor() / factor
     }
 
     /// Process an external AI signal for real trading
