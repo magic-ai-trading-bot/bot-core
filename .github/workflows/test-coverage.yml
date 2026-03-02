@@ -18,8 +18,8 @@ env:
   FRONTEND_COVERAGE_THRESHOLD: 95.0
 
 jobs:
-  test-rust:
-    name: Rust Core Engine Tests
+  test-rust-lib:
+    name: Rust Library Tests + Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -62,10 +62,10 @@ jobs:
           rustup component add llvm-tools-preview
           cargo install cargo-llvm-cov
 
-      - name: Run Rust tests
+      - name: Run Rust library tests
         working-directory: ./rust-core-engine
         run: |
-          cargo test --all --verbose -- --test-threads=1 --nocapture
+          cargo test --lib --verbose
 
       - name: Generate coverage report
         working-directory: ./rust-core-engine
@@ -104,6 +104,55 @@ jobs:
         with:
           name: rust-coverage-report
           path: rust-core-engine/coverage/
+
+  test-rust-integration:
+    name: Rust Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # Optimized for speed and space
+          tool-cache: false
+          android: true        # ~12GB, fast
+          dotnet: true         # ~2GB, fast
+          haskell: true        # ~2GB, fast
+          large-packages: false  # Slow, only ~1GB
+          docker-images: true    # ~2GB, medium speed
+          swap-storage: false    # Slow, not needed
+
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-v3-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-v3-
+
+      - name: Install llvm-tools and cargo-llvm-cov
+        run: |
+          rustup component add llvm-tools-preview
+          cargo install cargo-llvm-cov
+
+      - name: Run Rust integration tests
+        working-directory: ./rust-core-engine
+        run: |
+          cargo test --tests --verbose
 
   test-python:
     name: Python AI Service Tests
@@ -369,7 +418,7 @@ jobs:
 
   coverage-report:
     name: Generate Coverage Report
-    needs: [test-rust, test-python, test-frontend]
+    needs: [test-rust-lib, test-rust-integration, test-python, test-frontend]
     runs-on: ubuntu-latest
     if: always()
 
