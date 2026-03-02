@@ -2880,45 +2880,40 @@ impl RealTradingEngine {
                 for timeframe in &["5m", "15m", "1h"] {
                     let cache_key = format!("{}_{}", symbol, timeframe);
 
-                    // Determine fetch size: 100 candles on first boot (warmup), 5 thereafter
-                    let is_warmup = !last_processed.contains_key(&cache_key);
-                    let fetch_limit = if is_warmup { 100u16 } else { 5u16 };
-
-                    let klines = match self
-                        .binance_client
-                        .get_klines(symbol, timeframe, Some(fetch_limit))
-                        .await
-                    {
-                        Ok(k) => k,
-                        Err(e) => {
-                            debug!("Failed to fetch klines for {} {}: {}", symbol, timeframe, e);
-                            continue;
-                        },
+                    // Use market_data_cache (mainnet) for candle close detection
+                    // This ensures real trading analyzes the SAME data as paper trading
+                    let candles = if let Some(ref mdc) = self.market_data_cache {
+                        mdc.get_all_candles(symbol, timeframe)
+                    } else {
+                        // Fallback: fetch from testnet API (not ideal but functional)
+                        let fetch_limit = if !last_processed.contains_key(&cache_key) {
+                            100u16
+                        } else {
+                            5u16
+                        };
+                        match self
+                            .binance_client
+                            .get_klines(symbol, timeframe, Some(fetch_limit))
+                            .await
+                        {
+                            Ok(k) => k.iter().map(CandleData::from).collect(),
+                            Err(e) => {
+                                debug!(
+                                    "Failed to fetch klines for {} {}: {}",
+                                    symbol, timeframe, e
+                                );
+                                continue;
+                            },
+                        }
                     };
 
-                    if klines.len() < 2 {
+                    if candles.len() < 2 {
                         continue;
                     }
 
-                    // Merge into historical cache (keep max 300)
-                    {
-                        let mut cache = self.historical_data_cache.write().await;
-                        let entry = cache.entry(cache_key.clone()).or_insert_with(Vec::new);
-                        for kline in &klines {
-                            if !entry.iter().any(|k| k.open_time == kline.open_time) {
-                                entry.push(kline.clone());
-                            }
-                        }
-                        entry.sort_by_key(|k| k.open_time);
-                        if entry.len() > 300 {
-                            let drain_count = entry.len() - 300;
-                            entry.drain(..drain_count);
-                        }
-                    }
-
                     // Detect new closed candle (2nd-to-last = most recent CLOSED)
-                    let closed_kline = &klines[klines.len() - 2];
-                    let last_close_time = closed_kline.close_time;
+                    let closed_candle = &candles[candles.len() - 2];
+                    let last_close_time = closed_candle.close_time;
                     let prev_time = last_processed.get(&cache_key).copied().unwrap_or(0);
 
                     if last_close_time <= prev_time {
@@ -2927,11 +2922,11 @@ impl RealTradingEngine {
 
                     last_processed.insert(cache_key.clone(), last_close_time);
 
-                    // Skip first detection (warmup — wait for 100-candle fetch)
+                    // Skip first detection (warmup)
                     if prev_time == 0 {
                         info!(
-                            "Warmup: fetched {} candles for {} {}",
-                            klines.len(),
+                            "Warmup: {} candles available for {} {}",
+                            candles.len(),
                             symbol,
                             timeframe
                         );
@@ -2939,19 +2934,14 @@ impl RealTradingEngine {
                     }
 
                     // Warmup gate: require >= 50 candles for MACD/Bollinger to be meaningful
-                    {
-                        let cache = self.historical_data_cache.read().await;
-                        if let Some(entry) = cache.get(&cache_key) {
-                            if entry.len() < 50 {
-                                debug!(
-                                    "Insufficient data for {} {}: {} candles (need 50)",
-                                    symbol,
-                                    timeframe,
-                                    entry.len()
-                                );
-                                continue;
-                            }
-                        }
+                    if candles.len() < 50 {
+                        debug!(
+                            "Insufficient data for {} {}: {} candles (need 50)",
+                            symbol,
+                            timeframe,
+                            candles.len()
+                        );
+                        continue;
                     }
 
                     info!(
@@ -3406,16 +3396,31 @@ impl RealTradingEngine {
 
     /// Build strategy input from historical data cache
     async fn build_strategy_input(&self, symbol: &str) -> Option<crate::strategies::StrategyInput> {
-        let cache = self.historical_data_cache.read().await;
-
         let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
 
-        for timeframe in &["5m", "15m", "1h"] {
-            let cache_key = format!("{}_{}", symbol, timeframe);
-            if let Some(klines) = cache.get(&cache_key) {
-                let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
+        // Use market_data_cache (mainnet WebSocket data) as PRIMARY source.
+        // This ensures real trading uses the SAME market data as paper trading,
+        // since testnet klines can differ from mainnet and produce different signals.
+        if let Some(ref mdc) = self.market_data_cache {
+            for timeframe in &["5m", "15m", "1h"] {
+                let candles = mdc.get_all_candles(symbol, timeframe);
                 if !candles.is_empty() {
                     timeframe_data.insert(timeframe.to_string(), candles);
+                }
+            }
+        }
+
+        // Fallback to historical_data_cache (testnet klines) if market_data_cache unavailable
+        if timeframe_data.is_empty() {
+            let cache = self.historical_data_cache.read().await;
+            for timeframe in &["5m", "15m", "1h"] {
+                let cache_key = format!("{}_{}", symbol, timeframe);
+                if let Some(klines) = cache.get(&cache_key) {
+                    let candles: Vec<CandleData> =
+                        klines.iter().map(CandleData::from).collect();
+                    if !candles.is_empty() {
+                        timeframe_data.insert(timeframe.to_string(), candles);
+                    }
                 }
             }
         }
@@ -3429,7 +3434,10 @@ impl RealTradingEngine {
             return None;
         }
 
-        let current_price = {
+        // Use mainnet price from market_data_cache if available
+        let current_price = if let Some(ref mdc) = self.market_data_cache {
+            mdc.get_latest_price(symbol).unwrap_or(0.0)
+        } else {
             let prices = self.current_prices.read().await;
             prices.get(symbol).copied().unwrap_or(0.0)
         };
