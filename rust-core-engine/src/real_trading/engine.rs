@@ -1594,14 +1594,11 @@ impl RealTradingEngine {
                 let mut synced = 0;
 
                 // Build set of active exchange symbols for cleanup later
-                let exchange_active_symbols: HashSet<String> =
-                    futures_positions
-                        .iter()
-                        .filter(|fp| {
-                            fp.position_amt.parse::<f64>().unwrap_or(0.0).abs() > 1e-10
-                        })
-                        .map(|fp| fp.symbol.clone())
-                        .collect();
+                let exchange_active_symbols: HashSet<String> = futures_positions
+                    .iter()
+                    .filter(|fp| fp.position_amt.parse::<f64>().unwrap_or(0.0).abs() > 1e-10)
+                    .map(|fp| fp.symbol.clone())
+                    .collect();
 
                 for fp in &futures_positions {
                     let position_amt: f64 = fp.position_amt.parse().unwrap_or(0.0);
@@ -1687,7 +1684,10 @@ impl RealTradingEngine {
                 info!(
                     "Position sync complete: {} new positions synced, {} total open",
                     synced,
-                    self.positions.iter().filter(|p| p.value().is_open()).count()
+                    self.positions
+                        .iter()
+                        .filter(|p| p.value().is_open())
+                        .count()
                 );
 
                 Ok(())
@@ -1950,12 +1950,11 @@ impl RealTradingEngine {
         let mut discrepancies = 0;
 
         // Build map of exchange positions with non-zero quantity
-        let exchange_map: HashMap<String, &FuturesPosition> =
-            futures_positions
-                .iter()
-                .filter(|fp| fp.position_amt.parse::<f64>().unwrap_or(0.0).abs() > 1e-10)
-                .map(|fp| (fp.symbol.clone(), fp))
-                .collect();
+        let exchange_map: HashMap<String, &FuturesPosition> = futures_positions
+            .iter()
+            .filter(|fp| fp.position_amt.parse::<f64>().unwrap_or(0.0).abs() > 1e-10)
+            .map(|fp| (fp.symbol.clone(), fp))
+            .collect();
 
         // Check exchange positions against local
         for (symbol, fp) in &exchange_map {
@@ -1977,7 +1976,9 @@ impl RealTradingEngine {
                 if qty_diff > 1e-8 {
                     warn!(
                         "Position {} qty mismatch: local={}, exchange={}",
-                        symbol, local_pos.quantity, position_amt.abs()
+                        symbol,
+                        local_pos.quantity,
+                        position_amt.abs()
                     );
                     local_pos.quantity = position_amt.abs();
                     local_pos.entry_price = entry_price;
@@ -3709,8 +3710,7 @@ impl RealTradingEngine {
             for timeframe in &["5m", "15m", "1h"] {
                 let cache_key = format!("{}_{}", symbol, timeframe);
                 if let Some(klines) = cache.get(&cache_key) {
-                    let candles: Vec<CandleData> =
-                        klines.iter().map(CandleData::from).collect();
+                    let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
                     if !candles.is_empty() {
                         timeframe_data.insert(timeframe.to_string(), candles);
                     }

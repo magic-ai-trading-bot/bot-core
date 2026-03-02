@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Skip husky hooks in CI environment
+if [ "$CI" = "true" ]; then
+  exit 0
+fi
+
+# Check if rust files were modified
+RUST_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.rs$' || true)
+
+if [ -n "$RUST_CHANGED" ]; then
+  echo "🔍 Rust files changed — running pre-commit checks..."
+
+  # Run cargo fmt check
+  echo "  → cargo fmt --check"
+  (cd rust-core-engine && cargo fmt --check 2>&1)
+  FMT_EXIT=$?
+  if [ $FMT_EXIT -ne 0 ]; then
+    echo ""
+    echo "❌ cargo fmt failed! Run: cd rust-core-engine && cargo fmt"
+    exit 1
+  fi
+  echo "  ✅ formatting OK"
+
+  # Run cargo check (fast compilation check, no codegen)
+  echo "  → cargo check"
+  (cd rust-core-engine && cargo check 2>&1)
+  CHECK_EXIT=$?
+  if [ $CHECK_EXIT -ne 0 ]; then
+    echo ""
+    echo "❌ cargo check failed! Fix compilation errors before committing."
+    exit 1
+  fi
+  echo "  ✅ compilation OK"
+
+  echo "✅ All Rust pre-commit checks passed"
+fi

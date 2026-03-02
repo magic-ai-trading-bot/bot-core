@@ -801,8 +801,16 @@ async fn get_closed_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejec
                 "EXPIRED" => "Cancelled",
                 _ => "Closed",
             };
-            let trade_type = if o.side.to_uppercase() == "BUY" { "Long" } else { "Short" };
-            let side_str = if o.side.to_uppercase() == "BUY" { "LONG" } else { "SHORT" };
+            let trade_type = if o.side.to_uppercase() == "BUY" {
+                "Long"
+            } else {
+                "Short"
+            };
+            let side_str = if o.side.to_uppercase() == "BUY" {
+                "LONG"
+            } else {
+                "SHORT"
+            };
             let ts = chrono::DateTime::from_timestamp_millis(o.time)
                 .map(|dt| dt.to_rfc3339())
                 .unwrap_or_default();
