@@ -754,9 +754,27 @@ async fn get_closed_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejec
         },
     };
 
-    // Fetch trade history from Binance for configured symbols
+    // Collect symbols from: open positions + auto_trade_symbols + allowed_symbols
     let config = engine.get_config().await;
-    let symbols = config.allowed_symbols.clone();
+    let mut symbol_set: std::collections::HashSet<String> = std::collections::HashSet::new();
+    // Add symbols from current/closed positions
+    for pos in engine.get_positions() {
+        symbol_set.insert(pos.symbol.clone());
+    }
+    // Add configured symbols
+    for s in &config.allowed_symbols {
+        symbol_set.insert(s.clone());
+    }
+    for s in &config.auto_trade_symbols {
+        symbol_set.insert(s.clone());
+    }
+    // Fallback: default trading symbols if nothing configured
+    if symbol_set.is_empty() {
+        for s in &["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"] {
+            symbol_set.insert(s.to_string());
+        }
+    }
+    let symbols: Vec<String> = symbol_set.into_iter().collect();
     let binance_trades = engine.get_trade_history(&symbols, Some(50)).await;
 
     // Convert Binance trades to frontend-compatible format (PaperTrade/RealTrade)
