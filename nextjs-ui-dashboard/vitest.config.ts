@@ -64,7 +64,8 @@ export default defineConfig({
         'src/i18n/locales/**',
         'src/i18n/config.ts',
         'src/components/ui/Logo.tsx',
-        'src/components/trading/AutoTradingPanel.tsx',
+        'src/components/dashboard/PerformanceChart.tsx',
+        'src/components/dashboard/TradingCharts.tsx',
       ],
       thresholds: {
         global: {
