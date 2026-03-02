@@ -809,7 +809,11 @@ impl RealTradingEngine {
                 },
                 quantity: Some(quantity.to_string()),
                 quote_order_qty: None,
-                price: price.map(|p| p.to_string()),
+                price: if order_type == SpotOrderType::Market {
+                    None // Market orders must NOT send price to Binance
+                } else {
+                    price.map(|p| p.to_string())
+                },
                 client_order_id: Some(client_order_id.clone()),
                 stop_price: stop_price.map(|p| p.to_string()),
                 iceberg_qty: None,
