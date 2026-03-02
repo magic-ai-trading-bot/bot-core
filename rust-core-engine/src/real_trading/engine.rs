@@ -15,8 +15,8 @@ use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::binance::types::{
-    BalanceUpdate, ExecutionReport, Kline, OrderSide, OutboundAccountPosition, SpotOrderRequest,
-    SpotOrderResponse, SpotOrderType, TimeInForce,
+    BalanceUpdate, ExecutionReport, FuturesPosition, Kline, OrderSide, OutboundAccountPosition,
+    SpotOrderRequest, SpotOrderResponse, SpotOrderType, TimeInForce,
 };
 use crate::binance::user_data_stream::{UserDataStreamEvent, UserDataStreamManager};
 use crate::binance::BinanceClient;
@@ -1501,6 +1501,9 @@ impl RealTradingEngine {
         // 2. Load open orders from REST API
         self.sync_open_orders().await?;
 
+        // 3. Sync open positions from exchange
+        self.sync_positions_from_exchange().await?;
+
         info!("Initial sync completed successfully");
         Ok(())
     }
@@ -1568,6 +1571,127 @@ impl RealTradingEngine {
             Err(e) => {
                 warn!("Failed to sync open orders: {}", e);
                 // Don't fail engine start if order sync fails
+                Ok(())
+            },
+        }
+    }
+
+    // @spec:FR-REAL-055 - Position Sync from Exchange
+    /// Sync open positions from Binance Futures API into local state
+    async fn sync_positions_from_exchange(&self) -> Result<()> {
+        if !self.use_futures {
+            debug!("Position sync skipped: not in futures mode");
+            return Ok(());
+        }
+
+        info!("Syncing open positions from exchange...");
+
+        match self.binance_client.get_futures_positions().await {
+            Ok(futures_positions) => {
+                let mut synced = 0;
+
+                // Build set of active exchange symbols for cleanup later
+                let exchange_active_symbols: HashSet<String> =
+                    futures_positions
+                        .iter()
+                        .filter(|fp| {
+                            fp.position_amt.parse::<f64>().unwrap_or(0.0).abs() > 1e-10
+                        })
+                        .map(|fp| fp.symbol.clone())
+                        .collect();
+
+                for fp in &futures_positions {
+                    let position_amt: f64 = fp.position_amt.parse().unwrap_or(0.0);
+
+                    // Skip zero-size positions (Binance returns all symbols)
+                    if position_amt.abs() < 1e-10 {
+                        continue;
+                    }
+
+                    let symbol = fp.symbol.clone();
+                    let entry_price: f64 = fp.entry_price.parse().unwrap_or(0.0);
+                    let mark_price: f64 = fp.mark_price.parse().unwrap_or(0.0);
+                    let unrealized_pnl: f64 = fp.unrealized_pnl.parse().unwrap_or(0.0);
+                    let leverage: u32 = fp.leverage.parse().unwrap_or(1);
+
+                    let side = if position_amt > 0.0 {
+                        PositionSide::Long
+                    } else {
+                        PositionSide::Short
+                    };
+
+                    // Check if we already track this position
+                    if let Some(mut existing) = self.positions.get_mut(&symbol) {
+                        // Update existing position with exchange data
+                        existing.quantity = position_amt.abs();
+                        existing.entry_price = entry_price;
+                        existing.current_price = mark_price;
+                        existing.unrealized_pnl = unrealized_pnl;
+                        existing.side = side;
+                        existing.leverage = leverage;
+                        existing.updated_at = Utc::now();
+                        debug!(
+                            "Updated existing position {}: qty={}, entry={:.2}, mark={:.2}",
+                            symbol, existing.quantity, entry_price, mark_price
+                        );
+                    } else {
+                        // Create new position from exchange data
+                        let mut position = RealPosition::new(
+                            Uuid::new_v4().to_string(),
+                            symbol.clone(),
+                            side,
+                            position_amt.abs(),
+                            entry_price,
+                            format!("exchange-sync-{}", Uuid::new_v4()),
+                            None, // strategy_name unknown for exchange-synced positions
+                            None, // signal_confidence unknown
+                        );
+                        position.current_price = mark_price;
+                        position.unrealized_pnl = unrealized_pnl;
+                        position.leverage = leverage;
+
+                        info!(
+                            "Synced position from exchange: {} {:?} qty={} entry={:.2} mark={:.2} pnl={:.4}",
+                            symbol, position.side, position.quantity, entry_price, mark_price, unrealized_pnl
+                        );
+
+                        self.positions.insert(symbol, position);
+                        synced += 1;
+                    }
+                }
+
+                // Remove local positions that no longer exist on exchange
+                let local_symbols: Vec<String> = self
+                    .positions
+                    .iter()
+                    .filter(|p| p.value().is_open())
+                    .map(|p| p.key().clone())
+                    .collect();
+
+                for symbol in &local_symbols {
+                    if !exchange_active_symbols.contains(symbol) {
+                        if let Some(mut pos) = self.positions.get_mut(symbol) {
+                            warn!(
+                                "Position {} exists locally but not on exchange — marking as closed",
+                                symbol
+                            );
+                            pos.quantity = 0.0;
+                            pos.updated_at = Utc::now();
+                        }
+                    }
+                }
+
+                info!(
+                    "Position sync complete: {} new positions synced, {} total open",
+                    synced,
+                    self.positions.iter().filter(|p| p.value().is_open()).count()
+                );
+
+                Ok(())
+            },
+            Err(e) => {
+                warn!("Failed to sync positions from exchange: {}", e);
+                // Don't fail engine start if position sync fails
                 Ok(())
             },
         }
@@ -1677,7 +1801,11 @@ impl RealTradingEngine {
         let stale_cleaned = self.cleanup_stale_orders().await?;
         discrepancies += stale_cleaned;
 
-        // 4. Clean up old terminal orders (sync function, no await)
+        // 4. Reconcile positions with exchange
+        let position_discrepancies = self.reconcile_positions().await?;
+        discrepancies += position_discrepancies;
+
+        // 5. Clean up old terminal orders (sync function, no await)
         let terminal_cleaned = self.cleanup_terminal_orders();
 
         // Update metrics
@@ -1799,6 +1927,120 @@ impl RealTradingEngine {
             })
             .collect();
         Ok(balances)
+    }
+
+    // @spec:FR-REAL-056 - Position Reconciliation
+    /// Reconcile local positions with exchange positions
+    async fn reconcile_positions(&self) -> Result<u32> {
+        if !self.use_futures {
+            return Ok(0);
+        }
+
+        let futures_positions = match self.binance_client.get_futures_positions().await {
+            Ok(fp) => fp,
+            Err(e) => {
+                warn!("Failed to fetch positions for reconciliation: {}", e);
+                return Ok(0);
+            },
+        };
+
+        let mut discrepancies = 0;
+
+        // Build map of exchange positions with non-zero quantity
+        let exchange_map: HashMap<String, &FuturesPosition> =
+            futures_positions
+                .iter()
+                .filter(|fp| fp.position_amt.parse::<f64>().unwrap_or(0.0).abs() > 1e-10)
+                .map(|fp| (fp.symbol.clone(), fp))
+                .collect();
+
+        // Check exchange positions against local
+        for (symbol, fp) in &exchange_map {
+            let position_amt: f64 = fp.position_amt.parse().unwrap_or(0.0);
+            let entry_price: f64 = fp.entry_price.parse().unwrap_or(0.0);
+            let mark_price: f64 = fp.mark_price.parse().unwrap_or(0.0);
+            let unrealized_pnl: f64 = fp.unrealized_pnl.parse().unwrap_or(0.0);
+            let leverage: u32 = fp.leverage.parse().unwrap_or(1);
+
+            let side = if position_amt > 0.0 {
+                PositionSide::Long
+            } else {
+                PositionSide::Short
+            };
+
+            if let Some(mut local_pos) = self.positions.get_mut(symbol) {
+                // Check for quantity mismatch
+                let qty_diff = (local_pos.quantity - position_amt.abs()).abs();
+                if qty_diff > 1e-8 {
+                    warn!(
+                        "Position {} qty mismatch: local={}, exchange={}",
+                        symbol, local_pos.quantity, position_amt.abs()
+                    );
+                    local_pos.quantity = position_amt.abs();
+                    local_pos.entry_price = entry_price;
+                    local_pos.side = side;
+                    local_pos.leverage = leverage;
+                    local_pos.updated_at = Utc::now();
+                    discrepancies += 1;
+                }
+                // Always update mark price and PnL
+                local_pos.current_price = mark_price;
+                local_pos.unrealized_pnl = unrealized_pnl;
+            } else {
+                // Exchange has position we don't track — create it
+                warn!(
+                    "Position {} found on exchange but not locally — syncing",
+                    symbol
+                );
+                let mut position = RealPosition::new(
+                    Uuid::new_v4().to_string(),
+                    symbol.clone(),
+                    side,
+                    position_amt.abs(),
+                    entry_price,
+                    format!("reconciliation-sync-{}", Uuid::new_v4()),
+                    None,
+                    None,
+                );
+                position.current_price = mark_price;
+                position.unrealized_pnl = unrealized_pnl;
+                position.leverage = leverage;
+
+                self.positions.insert(symbol.clone(), position);
+                discrepancies += 1;
+            }
+        }
+
+        // Check local open positions not on exchange
+        let local_open: Vec<String> = self
+            .positions
+            .iter()
+            .filter(|p| p.value().is_open())
+            .map(|p| p.key().clone())
+            .collect();
+
+        for symbol in local_open {
+            if !exchange_map.contains_key(&symbol) {
+                warn!(
+                    "Position {} exists locally but not on exchange — closing",
+                    symbol
+                );
+                if let Some(mut pos) = self.positions.get_mut(&symbol) {
+                    pos.quantity = 0.0;
+                    pos.updated_at = Utc::now();
+                }
+                discrepancies += 1;
+            }
+        }
+
+        if discrepancies > 0 {
+            info!(
+                "Position reconciliation: {} mismatches corrected",
+                discrepancies
+            );
+        }
+
+        Ok(discrepancies)
     }
 
     // @spec:FR-REAL-054 - Order Reconciliation
