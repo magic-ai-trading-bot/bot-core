@@ -37,14 +37,13 @@ jobs:
       - name: Free up disk space
         uses: jlumbroso/free-disk-space@main
         with:
-          # Optimized for speed and space
           tool-cache: false
-          android: true        # ~12GB, fast
-          dotnet: true         # ~2GB, fast
-          haskell: true        # ~2GB, fast
-          large-packages: false  # Slow, only ~1GB
-          docker-images: true    # ~2GB, medium speed
-          swap-storage: false    # Slow, not needed
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
 
       - name: Cache cargo registry
         uses: actions/cache@v5
@@ -56,6 +55,15 @@ jobs:
           key: ${{ runner.os }}-cargo-v3-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-v3-
+
+      - name: Cache cargo target
+        uses: actions/cache@v5
+        continue-on-error: true
+        with:
+          path: rust-core-engine/target
+          key: ${{ runner.os }}-cargo-target-lib-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-lib-
 
       - name: Install llvm-tools and cargo-llvm-cov
         run: |
@@ -70,7 +78,6 @@ jobs:
       - name: Generate coverage report
         working-directory: ./rust-core-engine
         run: |
-          # Use llvm-cov (much faster than tarpaulin)
           mkdir -p coverage
           cargo llvm-cov --lib --lcov --output-path coverage/lcov.info
           cargo llvm-cov --lib --html --output-dir coverage
@@ -87,7 +94,6 @@ jobs:
       - name: Check coverage threshold
         working-directory: ./rust-core-engine
         run: |
-          # Extract line coverage from llvm-cov report (last percentage before branch columns)
           COVERAGE=$(cargo llvm-cov report 2>/dev/null | grep "TOTAL" | awk '{for(i=1;i<=NF;i++) if($i ~ /%/) last=$i; print last}' | sed 's/%//' || echo "0")
           echo "Current Rust coverage: $COVERAGE%"
           echo "Required threshold: $RUST_COVERAGE_THRESHOLD%"
@@ -106,9 +112,31 @@ jobs:
           path: rust-core-engine/coverage/
 
   test-rust-integration:
-    name: Rust Integration Tests
+    name: Rust Integration ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 1
+            name: "Trading Core"
+            tests: "--test test_paper_trading --test test_paper_trading_coverage --test test_paper_trading_engine --test test_trading --test test_trading_engine_coverage"
+          - shard: 2
+            name: "Strategies & Risk"
+            tests: "--test test_strategies --test test_all_5_strategies_live --test test_risk_management --test test_position_risk_comprehensive --test test_trailing_stops --test test_indicators_comprehensive"
+          - shard: 3
+            name: "API & Auth"
+            tests: "--test test_api_handlers --test test_auth --test test_auth_coverage --test test_security_handlers --test test_notifications_settings"
+          - shard: 4
+            name: "Data & Storage"
+            tests: "--test test_storage --test test_storage_coverage --test test_fn_storage_simple --test test_market_data --test test_market_data_processor --test test_config"
+          - shard: 5
+            name: "Services & WebSocket"
+            tests: "--test test_cross_service --test test_service_integration --test test_binance_client --test test_binance_client_coverage --test test_websocket"
+          - shard: 6
+            name: "AI & Real Trading"
+            tests: "--test test_coverage_boost_3 --test test_real_trading_integration --test test_ai"
 
     steps:
       - name: Checkout code
@@ -119,19 +147,17 @@ jobs:
         with:
           toolchain: stable
           override: true
-          components: rustfmt, clippy
 
       - name: Free up disk space
         uses: jlumbroso/free-disk-space@main
         with:
-          # Optimized for speed and space
           tool-cache: false
-          android: true        # ~12GB, fast
-          dotnet: true         # ~2GB, fast
-          haskell: true        # ~2GB, fast
-          large-packages: false  # Slow, only ~1GB
-          docker-images: true    # ~2GB, medium speed
-          swap-storage: false    # Slow, not needed
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
 
       - name: Cache cargo registry
         uses: actions/cache@v5
@@ -144,15 +170,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-v3-
 
-      - name: Install llvm-tools and cargo-llvm-cov
-        run: |
-          rustup component add llvm-tools-preview
-          cargo install cargo-llvm-cov
+      - name: Cache cargo target
+        uses: actions/cache@v5
+        continue-on-error: true
+        with:
+          path: rust-core-engine/target
+          key: ${{ runner.os }}-cargo-target-shard${{ matrix.shard }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-shard${{ matrix.shard }}-
 
-      - name: Run Rust integration tests
+      - name: Run integration tests (Shard ${{ matrix.shard }})
         working-directory: ./rust-core-engine
         run: |
-          cargo test --tests --verbose
+          cargo test ${{ matrix.tests }} --verbose
 
   test-python:
     name: Python AI Service Tests
