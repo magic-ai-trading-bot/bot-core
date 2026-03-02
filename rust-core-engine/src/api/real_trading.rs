@@ -675,7 +675,6 @@ async fn get_portfolio(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejection
             take_profit: pos.take_profit,
             created_at: created.clone(),
             open_time: created,
-            ..Default::default()
         });
     }
 
@@ -763,7 +762,6 @@ async fn get_open_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejecti
                 take_profit: pos.take_profit,
                 created_at: created.clone(),
                 open_time: created,
-                ..Default::default()
             }
         })
         .collect();
