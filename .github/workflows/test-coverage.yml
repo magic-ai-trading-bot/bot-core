@@ -70,18 +70,19 @@ jobs:
           rustup component add llvm-tools-preview
           cargo install cargo-llvm-cov
 
-      - name: Run Rust library tests
+      - name: Run tests with coverage (single run)
         working-directory: ./rust-core-engine
         run: |
-          cargo test --lib --verbose
-
-      - name: Generate coverage report
-        working-directory: ./rust-core-engine
-        run: |
+          # Run tests ONCE with coverage instrumentation
           mkdir -p coverage
-          cargo llvm-cov --lib --lcov --output-path coverage/lcov.info
-          cargo llvm-cov --lib --html --output-dir coverage
           cargo llvm-cov --lib --cobertura --output-path coverage/cobertura.xml
+
+      - name: Generate additional coverage reports (no re-run)
+        working-directory: ./rust-core-engine
+        run: |
+          # Generate reports from existing profdata (does NOT re-run tests)
+          cargo llvm-cov report --lib --lcov --output-path coverage/lcov.info
+          cargo llvm-cov report --lib --html --output-dir coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -94,7 +95,8 @@ jobs:
       - name: Check coverage threshold
         working-directory: ./rust-core-engine
         run: |
-          COVERAGE=$(cargo llvm-cov report 2>/dev/null | grep "TOTAL" | awk '{for(i=1;i<=NF;i++) if($i ~ /%/) last=$i; print last}' | sed 's/%//' || echo "0")
+          # Uses existing profdata (no re-run)
+          COVERAGE=$(cargo llvm-cov report --lib 2>/dev/null | grep "TOTAL" | awk '{for(i=1;i<=NF;i++) if($i ~ /%/) last=$i; print last}' | sed 's/%//' || echo "0")
           echo "Current Rust coverage: $COVERAGE%"
           echo "Required threshold: $RUST_COVERAGE_THRESHOLD%"
 
