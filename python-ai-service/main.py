@@ -204,7 +204,9 @@ def get_pipeline_counter_trend_mode() -> str:
 
 
 def get_pipeline_analysis_timeframes() -> list:
-    return settings_manager.get_pipeline_value("analysis_timeframes", ["15m", "30m", "1h"])
+    return settings_manager.get_pipeline_value(
+        "analysis_timeframes", ["15m", "30m", "1h"]
+    )
 
 
 def get_rsi_period() -> int:
@@ -1925,29 +1927,41 @@ class GrokTradingAnalyzer:
         if signal == "Long":
             if ct_enabled and main_trend == "BEARISH":
                 if ct_mode == "block":
-                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                    confidence = (
+                        neutral_conf + get_pipeline_counter_trend_block_offset()
+                    )
                 else:
                     # "reduce" mode: allow but cap confidence
-                    confidence = min(ct_conf_max, confidence_base + (bullish_score / 100) * ct_mult)
+                    confidence = min(
+                        ct_conf_max, confidence_base + (bullish_score / 100) * ct_mult
+                    )
                 logger.debug(
                     f"🔄 Confidence: Long but 1H BEARISH (counter-trend, mode={ct_mode}) → {confidence}"
                 )
             else:
-                confidence = min(conf_max, confidence_base + (bullish_score / 100) * conf_mult)
+                confidence = min(
+                    conf_max, confidence_base + (bullish_score / 100) * conf_mult
+                )
                 logger.debug(
                     f"🔄 Confidence: Long, bullish_score={bullish_score:.1f}% → {confidence:.2f}"
                 )
         elif signal == "Short":
             if ct_enabled and main_trend == "BULLISH":
                 if ct_mode == "block":
-                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                    confidence = (
+                        neutral_conf + get_pipeline_counter_trend_block_offset()
+                    )
                 else:
-                    confidence = min(ct_conf_max, confidence_base + (bearish_score / 100) * ct_mult)
+                    confidence = min(
+                        ct_conf_max, confidence_base + (bearish_score / 100) * ct_mult
+                    )
                 logger.debug(
                     f"🔄 Confidence: Short but 1H BULLISH (counter-trend, mode={ct_mode}) → {confidence}"
                 )
             else:
-                confidence = min(conf_max, confidence_base + (bearish_score / 100) * conf_mult)
+                confidence = min(
+                    conf_max, confidence_base + (bearish_score / 100) * conf_mult
+                )
                 logger.debug(
                     f"🔄 Confidence: Short, bearish_score={bearish_score:.1f}% → {confidence:.2f}"
                 )
@@ -2072,37 +2086,49 @@ class GrokTradingAnalyzer:
             if ct_enabled and main_trend == "BEARISH":
                 if ct_mode == "block":
                     signal = "Neutral"
-                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                    confidence = (
+                        neutral_conf + get_pipeline_counter_trend_block_offset()
+                    )
                     logger.info(
                         f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 1H is BEARISH - staying NEUTRAL (block mode)"
                     )
                 else:
                     # "reduce" mode: allow but cap confidence
                     signal = "Long"
-                    confidence = min(ct_conf_max, confidence_base + (bullish_score / 100) * ct_mult)
+                    confidence = min(
+                        ct_conf_max, confidence_base + (bullish_score / 100) * ct_mult
+                    )
                     logger.info(
                         f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 1H is BEARISH - reduced confidence (reduce mode) → {confidence:.2f}"
                     )
             else:
                 signal = "Long"
-                confidence = min(conf_max, confidence_base + (bullish_score / 100) * conf_mult)
+                confidence = min(
+                    conf_max, confidence_base + (bullish_score / 100) * conf_mult
+                )
         elif bearish_score >= MIN_WEIGHTED_THRESHOLD:
             if ct_enabled and main_trend == "BULLISH":
                 if ct_mode == "block":
                     signal = "Neutral"
-                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                    confidence = (
+                        neutral_conf + get_pipeline_counter_trend_block_offset()
+                    )
                     logger.info(
                         f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 1H is BULLISH - staying NEUTRAL (block mode)"
                     )
                 else:
                     signal = "Short"
-                    confidence = min(ct_conf_max, confidence_base + (bearish_score / 100) * ct_mult)
+                    confidence = min(
+                        ct_conf_max, confidence_base + (bearish_score / 100) * ct_mult
+                    )
                     logger.info(
                         f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 1H is BULLISH - reduced confidence (reduce mode) → {confidence:.2f}"
                     )
             else:
                 signal = "Short"
-                confidence = min(conf_max, confidence_base + (bearish_score / 100) * conf_mult)
+                confidence = min(
+                    conf_max, confidence_base + (bearish_score / 100) * conf_mult
+                )
         else:
             signal = "Neutral"
             confidence = neutral_conf
@@ -2120,9 +2146,17 @@ class GrokTradingAnalyzer:
             f" | Weighted: Bullish={bullish_score:.0f}%, Bearish={bearish_score:.0f}%"
         )
         reasoning += f" | 1H_Trend={main_trend}"
-        if ct_enabled and main_trend == "BULLISH" and bearish_score >= MIN_WEIGHTED_THRESHOLD:
+        if (
+            ct_enabled
+            and main_trend == "BULLISH"
+            and bearish_score >= MIN_WEIGHTED_THRESHOLD
+        ):
             reasoning += f" | ⚠️ Counter-trend SHORT ({ct_mode} mode)"
-        elif ct_enabled and main_trend == "BEARISH" and bullish_score >= MIN_WEIGHTED_THRESHOLD:
+        elif (
+            ct_enabled
+            and main_trend == "BEARISH"
+            and bullish_score >= MIN_WEIGHTED_THRESHOLD
+        ):
             reasoning += f" | ⚠️ Counter-trend LONG ({ct_mode} mode)"
 
         # Debug logging for signal generation
@@ -2230,7 +2264,9 @@ class GrokTradingAnalyzer:
 
                 elif strategy == "Volume Strategy":
                     vol_ratio = indicators.get("volume_ratio", 1.0)
-                    vol_spike = get_pipeline_volume_confirm_multiplier() * 1.25  # Strong spike = 1.5x
+                    vol_spike = (
+                        get_pipeline_volume_confirm_multiplier() * 1.25
+                    )  # Strong spike = 1.5x
                     # 0.3 if ratio<1.0, 0.5-0.7 if moderate, 0.8-1.0 if spike
                     if vol_ratio < 1.0:
                         score = 0.3
@@ -2625,7 +2661,9 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
                 if isinstance(result, list):
                     timeframe_data[tf] = result
                 elif isinstance(result, Exception):
-                    logger.error(f"❌ Error fetching {tf} candles for {symbol}: {result}")
+                    logger.error(
+                        f"❌ Error fetching {tf} candles for {symbol}: {result}"
+                    )
                     timeframe_data[tf] = []
 
             # Fetch current price from Rust API
@@ -2837,7 +2875,16 @@ async def signal_quality(limit: int = 50):
         if mongodb_db is not None:
             cursor = (
                 mongodb_db[AI_ANALYSIS_COLLECTION]
-                .find({}, {"signal": 1, "confidence": 1, "timestamp": 1, "symbol": 1, "_id": 0})
+                .find(
+                    {},
+                    {
+                        "signal": 1,
+                        "confidence": 1,
+                        "timestamp": 1,
+                        "symbol": 1,
+                        "_id": 0,
+                    },
+                )
                 .sort("timestamp", -1)
                 .limit(limit)
             )
@@ -3954,11 +4001,17 @@ def _predict_trend_technical(
     # Determine trend
     if distance_pct > EMA_DISTANCE_THRESHOLD and price_change_20 > MOMENTUM_THRESHOLD:
         trend = "Uptrend"
-        confidence = min(TREND_CONFIDENCE_BASE + (abs(distance_pct) / 10), TREND_CONFIDENCE_MAX)
+        confidence = min(
+            TREND_CONFIDENCE_BASE + (abs(distance_pct) / 10), TREND_CONFIDENCE_MAX
+        )
         reasoning = f"Price {distance_pct:.1f}% above EMA200 with {price_change_20:.1f}% upward momentum"
-    elif distance_pct < -EMA_DISTANCE_THRESHOLD and price_change_20 < -MOMENTUM_THRESHOLD:
+    elif (
+        distance_pct < -EMA_DISTANCE_THRESHOLD and price_change_20 < -MOMENTUM_THRESHOLD
+    ):
         trend = "Downtrend"
-        confidence = min(TREND_CONFIDENCE_BASE + (abs(distance_pct) / 10), TREND_CONFIDENCE_MAX)
+        confidence = min(
+            TREND_CONFIDENCE_BASE + (abs(distance_pct) / 10), TREND_CONFIDENCE_MAX
+        )
         reasoning = f"Price {distance_pct:.1f}% below EMA200 with {price_change_20:.1f}% downward momentum"
     else:
         trend = "Neutral"
