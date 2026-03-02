@@ -687,8 +687,11 @@ impl RealTradingEngine {
         }
 
         // Pre-trade risk checks using comprehensive risk manager
-        self.check_risk_limits(symbol, side, quantity, price)
-            .await?;
+        // Skip risk checks for exit orders (closing positions reduces risk)
+        if is_entry {
+            self.check_risk_limits(symbol, side, quantity, price)
+                .await?;
+        }
 
         // Generate client order ID
         let client_order_id = format!(

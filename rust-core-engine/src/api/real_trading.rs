@@ -86,14 +86,62 @@ pub struct PositionInfo {
     pub id: String,
     pub symbol: String,
     pub side: String,
+    /// "Long" or "Short" — matches PaperTrade.trade_type for frontend compatibility
+    #[serde(default)]
+    pub trade_type: String,
+    #[serde(default = "default_status_open")]
+    pub status: String,
     pub quantity: f64,
     pub entry_price: f64,
     pub current_price: f64,
     pub unrealized_pnl: f64,
     pub unrealized_pnl_pct: f64,
+    /// Alias for unrealized_pnl — frontend reads this field
+    #[serde(default)]
+    pub pnl: f64,
+    /// Alias for unrealized_pnl_pct — frontend reads this field
+    #[serde(default)]
+    pub pnl_percentage: f64,
+    #[serde(default = "default_leverage")]
+    pub leverage: u32,
     pub stop_loss: Option<f64>,
     pub take_profit: Option<f64>,
     pub created_at: String,
+    /// Alias for created_at — frontend reads open_time
+    #[serde(default)]
+    pub open_time: String,
+}
+
+fn default_status_open() -> String {
+    "Open".to_string()
+}
+
+fn default_leverage() -> u32 {
+    1
+}
+
+impl Default for PositionInfo {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            symbol: String::new(),
+            side: String::new(),
+            trade_type: String::new(),
+            status: "Open".to_string(),
+            quantity: 0.0,
+            entry_price: 0.0,
+            current_price: 0.0,
+            unrealized_pnl: 0.0,
+            unrealized_pnl_pct: 0.0,
+            pnl: 0.0,
+            pnl_percentage: 0.0,
+            leverage: 1,
+            stop_loss: None,
+            take_profit: None,
+            created_at: String::new(),
+            open_time: String::new(),
+        }
+    }
 }
 
 /// Balance info for API response
@@ -593,18 +641,31 @@ async fn get_portfolio(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejection
         total_unrealized_pnl += pos.unrealized_pnl;
         total_realized_pnl += pos.realized_pnl;
 
+        let trade_type = match pos.side {
+            crate::real_trading::position::PositionSide::Long => "Long".to_string(),
+            crate::real_trading::position::PositionSide::Short => "Short".to_string(),
+        };
+        let pnl_pct = pos.pnl_percentage();
+        let created = pos.created_at.to_rfc3339();
         position_infos.push(PositionInfo {
             id: pos.id.clone(),
             symbol: pos.symbol.clone(),
             side: pos.side.as_str().to_string(),
+            trade_type,
+            status: "Open".to_string(),
             quantity: pos.quantity,
             entry_price: pos.entry_price,
             current_price: pos.current_price,
             unrealized_pnl: pos.unrealized_pnl,
-            unrealized_pnl_pct: pos.pnl_percentage(),
+            unrealized_pnl_pct: pnl_pct,
+            pnl: pos.unrealized_pnl,
+            pnl_percentage: pnl_pct,
+            leverage: pos.leverage,
             stop_loss: pos.stop_loss,
             take_profit: pos.take_profit,
-            created_at: pos.created_at.to_rfc3339(),
+            created_at: created.clone(),
+            open_time: created,
+            ..Default::default()
         });
     }
 
@@ -643,18 +704,33 @@ async fn get_open_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejecti
     let position_infos: Vec<PositionInfo> = positions
         .into_iter()
         .filter(|p| p.is_open())
-        .map(|pos| PositionInfo {
-            id: pos.id.clone(),
-            symbol: pos.symbol.clone(),
-            side: pos.side.as_str().to_string(),
-            quantity: pos.quantity,
-            entry_price: pos.entry_price,
-            current_price: pos.current_price,
-            unrealized_pnl: pos.unrealized_pnl,
-            unrealized_pnl_pct: pos.pnl_percentage(),
-            stop_loss: pos.stop_loss,
-            take_profit: pos.take_profit,
-            created_at: pos.created_at.to_rfc3339(),
+        .map(|pos| {
+            let trade_type = match pos.side {
+                crate::real_trading::position::PositionSide::Long => "Long".to_string(),
+                crate::real_trading::position::PositionSide::Short => "Short".to_string(),
+            };
+            let pnl_pct = pos.pnl_percentage();
+            let created = pos.created_at.to_rfc3339();
+            PositionInfo {
+                id: pos.id.clone(),
+                symbol: pos.symbol.clone(),
+                side: pos.side.as_str().to_string(),
+                trade_type,
+                status: "Open".to_string(),
+                quantity: pos.quantity,
+                entry_price: pos.entry_price,
+                current_price: pos.current_price,
+                unrealized_pnl: pos.unrealized_pnl,
+                unrealized_pnl_pct: pnl_pct,
+                pnl: pos.unrealized_pnl,
+                pnl_percentage: pnl_pct,
+                leverage: pos.leverage,
+                stop_loss: pos.stop_loss,
+                take_profit: pos.take_profit,
+                created_at: created.clone(),
+                open_time: created,
+                ..Default::default()
+            }
         })
         .collect();
 
@@ -1528,6 +1604,7 @@ mod tests {
             stop_loss: Some(49000.0),
             take_profit: Some(55000.0),
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&pos).unwrap();
@@ -2677,6 +2754,7 @@ mod tests {
             stop_loss: None,
             take_profit: None,
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&pos).unwrap();
@@ -3906,6 +3984,7 @@ mod tests {
             stop_loss: Some(49000.0),
             take_profit: Some(55000.0),
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         let cloned = pos.clone();
@@ -4077,6 +4156,7 @@ mod tests {
             stop_loss: Some(49000.0),
             take_profit: Some(55000.0),
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         let portfolio = PortfolioResponse {
@@ -4107,6 +4187,7 @@ mod tests {
             stop_loss: None,
             take_profit: None,
             created_at: "2025-01-02T00:00:00Z".to_string(),
+            ..Default::default()
         };
         assert_eq!(pos.unrealized_pnl, -100.0);
     }
@@ -4521,6 +4602,7 @@ mod tests {
             stop_loss: Some(0.45),
             take_profit: Some(0.6),
             created_at: "2025-01-05T00:00:00Z".to_string(),
+            ..Default::default()
         };
         let cloned = pos.clone();
         assert_eq!(cloned.id, pos.id);
@@ -4783,6 +4865,7 @@ mod tests {
             stop_loss: Some(95.0),
             take_profit: Some(110.0),
             created_at: "2025-01-15T12:00:00Z".to_string(),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&pos).unwrap();
@@ -5202,6 +5285,7 @@ mod tests {
                 stop_loss: Some(49000.0),
                 take_profit: Some(55000.0),
                 created_at: "2025-01-15T10:00:00Z".to_string(),
+                ..Default::default()
             }],
             balances: vec![BalanceInfo {
                 asset: "USDT".to_string(),
@@ -5447,6 +5531,7 @@ mod tests {
             stop_loss: Some(49000.0),
             take_profit: Some(52000.0),
             created_at: Utc::now().to_rfc3339(),
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&position).unwrap();
@@ -5723,6 +5808,7 @@ mod tests {
             stop_loss: None,
             take_profit: None,
             created_at: Utc::now().to_rfc3339(),
+            ..Default::default()
         };
 
         assert!(position.stop_loss.is_none());
@@ -6144,6 +6230,7 @@ mod tests {
             stop_loss: None,
             take_profit: None,
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         let portfolio = PortfolioResponse {
@@ -6174,6 +6261,7 @@ mod tests {
             stop_loss: Some(3100.0),
             take_profit: Some(2800.0),
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         assert_eq!(pos.stop_loss, Some(3100.0));
@@ -6195,6 +6283,7 @@ mod tests {
             stop_loss: None,
             take_profit: None,
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         assert_eq!(pos.unrealized_pnl, 0.0);
@@ -6713,6 +6802,7 @@ mod tests {
             stop_loss: Some(49000.0),
             take_profit: Some(55000.0),
             created_at: "2025-01-01T00:00:00Z".to_string(),
+            ..Default::default()
         };
 
         let cloned = pos.clone();
