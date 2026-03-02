@@ -12,7 +12,6 @@ use warp::{Filter, Rejection, Reply};
 
 use crate::binance::types::OrderSide;
 use crate::real_trading::RealTradingEngine;
-use crate::strategies::TradingSignal;
 
 /// API handlers for real trading functionality
 /// SAFETY: This involves REAL MONEY - all operations require explicit confirmation
@@ -526,15 +525,6 @@ impl RealTradingApi {
             .and(with_api(api.clone()))
             .and_then(modify_sltp);
 
-        // POST /api/real-trading/test-signal - Trigger a test signal (testnet only)
-        let test_signal_route = base_path
-            .and(warp::path("test-signal"))
-            .and(warp::path::end())
-            .and(warp::post())
-            .and(warp::body::json())
-            .and(with_api(api.clone()))
-            .and_then(test_signal);
-
         // Combine all routes
         status_route
             .or(portfolio_route)
@@ -550,7 +540,6 @@ impl RealTradingApi {
             .or(cancel_order_route)
             .or(cancel_all_orders_route)
             .or(modify_sltp_route)
-            .or(test_signal_route)
             .with(cors)
     }
 }
@@ -1593,92 +1582,6 @@ async fn modify_sltp(
         warp::reply::json(&ApiResponse::success(result)),
         StatusCode::OK,
     ))
-}
-
-/// Request body for test signal endpoint
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TestSignalRequest {
-    pub symbol: String,
-    pub signal: String, // "Long" or "Short"
-    #[serde(default = "default_confidence")]
-    pub confidence: f64,
-}
-fn default_confidence() -> f64 {
-    0.75
-}
-
-/// POST /api/real-trading/test-signal — Trigger a test signal (testnet only)
-async fn test_signal(
-    request: TestSignalRequest,
-    api: Arc<RealTradingApi>,
-) -> Result<impl Reply, Rejection> {
-    let engine = match &api.engine {
-        Some(e) => e,
-        None => {
-            return Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(
-                    "Real trading service is not configured".to_string(),
-                )),
-                StatusCode::SERVICE_UNAVAILABLE,
-            ))
-        },
-    };
-
-    // Safety: only allow on testnet
-    let config = engine.get_config().await;
-    if !config.use_testnet {
-        return Ok(warp::reply::with_status(
-            warp::reply::json(&ApiResponse::<()>::error(
-                "Test signal only allowed on testnet".to_string(),
-            )),
-            StatusCode::FORBIDDEN,
-        ));
-    }
-
-    let signal = match request.signal.to_lowercase().as_str() {
-        "long" | "buy" => TradingSignal::Long,
-        "short" | "sell" => TradingSignal::Short,
-        _ => {
-            return Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(
-                    "Signal must be 'Long' or 'Short'".to_string(),
-                )),
-                StatusCode::BAD_REQUEST,
-            ))
-        },
-    };
-
-    tracing::info!(
-        "🧪 Test signal triggered: {} {:?} (confidence: {:.2})",
-        request.symbol,
-        signal,
-        request.confidence
-    );
-
-    match engine
-        .process_external_ai_signal(
-            request.symbol.clone(),
-            signal,
-            request.confidence,
-            "Test signal".to_string(),
-            0.0,
-            None,
-            None,
-        )
-        .await
-    {
-        Ok(()) => Ok(warp::reply::with_status(
-            warp::reply::json(&ApiResponse::success(format!(
-                "Test signal processed: {} {:?}",
-                request.symbol, request.signal
-            ))),
-            StatusCode::OK,
-        )),
-        Err(e) => Ok(warp::reply::with_status(
-            warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )),
-    }
 }
 
 #[cfg(test)]
