@@ -642,8 +642,8 @@ async fn get_portfolio(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejection
         total_realized_pnl += pos.realized_pnl;
 
         let trade_type = match pos.side {
-            crate::real_trading::position::PositionSide::Long => "Long".to_string(),
-            crate::real_trading::position::PositionSide::Short => "Short".to_string(),
+            crate::real_trading::PositionSide::Long => "Long".to_string(),
+            crate::real_trading::PositionSide::Short => "Short".to_string(),
         };
         let pnl_pct = pos.pnl_percentage();
         let created = pos.created_at.to_rfc3339();
@@ -706,8 +706,8 @@ async fn get_open_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejecti
         .filter(|p| p.is_open())
         .map(|pos| {
             let trade_type = match pos.side {
-                crate::real_trading::position::PositionSide::Long => "Long".to_string(),
-                crate::real_trading::position::PositionSide::Short => "Short".to_string(),
+                crate::real_trading::PositionSide::Long => "Long".to_string(),
+                crate::real_trading::PositionSide::Short => "Short".to_string(),
             };
             let pnl_pct = pos.pnl_percentage();
             let created = pos.created_at.to_rfc3339();
