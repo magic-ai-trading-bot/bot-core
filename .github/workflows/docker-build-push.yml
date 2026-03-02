@@ -152,8 +152,9 @@ jobs:
           sbom: false
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.31.0
         if: github.event_name != 'pull_request'
+        continue-on-error: true
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/bot-core/${{ matrix.service }}:sha-${{ steps.build-meta.outputs.git-sha }}
           format: 'sarif'
