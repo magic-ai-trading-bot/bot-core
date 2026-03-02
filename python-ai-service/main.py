@@ -2590,9 +2590,7 @@ async def get_analysis_statistics() -> Dict[str, Any]:
         return {"error": "Failed to get analysis stats. Check server logs for details."}
 
 
-async def _fetch_candles(
-    client: "httpx.AsyncClient", symbol: str, timeframe: str, limit: int = 100
-) -> list:
+async def _fetch_candles(client, symbol: str, timeframe: str, limit: int = 100) -> list:
     """Fetch candles for a single timeframe from Rust API.
 
     @spec:FR-SETTINGS-003 - Reusable candle fetcher for configurable timeframes
