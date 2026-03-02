@@ -13,16 +13,36 @@ const snapshots: ParameterSnapshot[] = [];
  * Take a snapshot of current parameter state by reading from BotCore APIs.
  */
 export async function takeSnapshot(): Promise<ParameterSnapshot> {
-  // Fetch current settings and performance in parallel
-  const [settingsRes, performanceRes] = await Promise.all([
+  // Fetch current settings, indicator/pipeline settings, and performance in parallel
+  const [settingsRes, indicatorRes, performanceRes] = await Promise.all([
     apiRequest("rust", "/api/paper-trading/basic-settings", { timeoutMs: 10_000 }),
+    apiRequest("rust", "/api/paper-trading/indicator-settings", { timeoutMs: 10_000 }),
     apiRequest("rust", "/api/trading/performance", { timeoutMs: 10_000 }),
   ]);
+
+  // Merge basic settings with flattened signal_pipeline.* keys for snapshot lookup
+  const params: Record<string, unknown> = settingsRes.success
+    ? (settingsRes.data as Record<string, unknown>)
+    : {};
+
+  if (indicatorRes.success) {
+    const indicatorData = indicatorRes.data as Record<string, unknown>;
+    // Flatten signal_pipeline into dotted keys for audit trail lookup
+    const pipeline = indicatorData?.signal_pipeline as Record<string, unknown> | undefined;
+    if (pipeline) {
+      for (const [key, val] of Object.entries(pipeline)) {
+        params[`signal_pipeline.${key}`] = val;
+      }
+    }
+    // Also store indicator/signal sections for completeness
+    if (indicatorData?.indicators) params["_indicators"] = indicatorData.indicators;
+    if (indicatorData?.signal) params["_signal"] = indicatorData.signal;
+  }
 
   const snapshot: ParameterSnapshot = {
     id: randomUUID(),
     timestamp: new Date().toISOString(),
-    parameters: settingsRes.success ? (settingsRes.data as Record<string, unknown>) : {},
+    parameters: params,
     performance: performanceRes.success
       ? (performanceRes.data as ParameterSnapshot["performance"])
       : undefined,

@@ -3,6 +3,11 @@ use crate::strategies::indicators::calculate_rsi;
 use async_trait::async_trait;
 use serde_json::json;
 
+/// RSI momentum classification thresholds for trend-following signals
+/// These match signal_pipeline.rsi_bull_threshold / rsi_bear_threshold defaults
+const RSI_BULL_MOMENTUM: f64 = 55.0;
+const RSI_BEAR_MOMENTUM: f64 = 45.0;
+
 /// RSI-based trading strategy
 
 // @spec:FR-STRATEGIES-001 - RSI Strategy
@@ -276,8 +281,8 @@ impl RsiStrategy {
             );
         }
 
-        // Bullish momentum — RSI rising above 55 on both timeframes (trend-following)
-        if rsi_1h > 55.0
+        // Bullish momentum — RSI rising above threshold on both timeframes (trend-following)
+        if rsi_1h > RSI_BULL_MOMENTUM
             && rsi_1h < overbought
             && prev_rsi_1h < rsi_1h
             && rsi_4h > 50.0
@@ -286,12 +291,15 @@ impl RsiStrategy {
             return (
                 TradingSignal::Long,
                 0.60,
-                "Bullish momentum: RSI rising above 55 on both timeframes".to_string(),
+                format!(
+                    "Bullish momentum: RSI rising above {} on both timeframes",
+                    RSI_BULL_MOMENTUM
+                ),
             );
         }
 
-        // Bearish momentum — RSI falling below 45 on both timeframes (trend-following)
-        if rsi_1h < 45.0
+        // Bearish momentum — RSI falling below threshold on both timeframes (trend-following)
+        if rsi_1h < RSI_BEAR_MOMENTUM
             && rsi_1h > oversold
             && prev_rsi_1h > rsi_1h
             && rsi_4h < 50.0

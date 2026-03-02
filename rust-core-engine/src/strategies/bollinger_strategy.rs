@@ -3,6 +3,12 @@ use crate::strategies::indicators::calculate_bollinger_bands;
 use async_trait::async_trait;
 use serde_json::json;
 
+/// BB position thresholds for trend continuation signals
+/// Upper threshold: position above this indicates bearish/overbought zone
+const BB_TREND_UPPER: f64 = 0.65;
+/// Lower threshold: position below this indicates bullish/oversold zone
+const BB_TREND_LOWER: f64 = 0.35;
+
 /// Bollinger Bands-based trading strategy
 
 // @spec:FR-STRATEGIES-003 - Bollinger Bands Strategy
@@ -308,7 +314,7 @@ impl BollingerStrategy {
         }
 
         // Trend continuation signals (relaxed for 5m/15m responsiveness)
-        if bb_position_1h > 0.65 && bb_position_4h > 0.55 && bb_expanding_1h {
+        if bb_position_1h > BB_TREND_UPPER && bb_position_4h > 0.55 && bb_expanding_1h {
             return (
                 TradingSignal::Long,
                 0.65,
@@ -316,7 +322,7 @@ impl BollingerStrategy {
             );
         }
 
-        if bb_position_1h < 0.35 && bb_position_4h < 0.45 && bb_expanding_1h {
+        if bb_position_1h < BB_TREND_LOWER && bb_position_4h < 0.45 && bb_expanding_1h {
             return (
                 TradingSignal::Short,
                 0.65,
@@ -325,7 +331,7 @@ impl BollingerStrategy {
         }
 
         // Moderate signals based on position
-        if bb_position_1h < 0.35 && current_price > middle_4h {
+        if bb_position_1h < BB_TREND_LOWER && current_price > middle_4h {
             return (
                 TradingSignal::Long,
                 0.58,
@@ -333,7 +339,7 @@ impl BollingerStrategy {
             );
         }
 
-        if bb_position_1h > 0.65 && current_price < middle_4h {
+        if bb_position_1h > BB_TREND_UPPER && current_price < middle_4h {
             return (
                 TradingSignal::Short,
                 0.58,

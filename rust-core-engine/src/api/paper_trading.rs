@@ -336,12 +336,39 @@ pub struct SignalGenerationSettingsApi {
     pub confidence_per_timeframe: f64,
 }
 
+/// Signal pipeline settings for API
+/// @spec:FR-SETTINGS-003 - Signal pipeline configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalPipelineSettingsApi {
+    pub min_weighted_threshold: f64,
+    pub weight_15m: f64,
+    pub weight_30m: f64,
+    pub weight_1h: f64,
+    pub rsi_bull_threshold: f64,
+    pub rsi_bear_threshold: f64,
+    pub bb_bull_threshold: f64,
+    pub bb_bear_threshold: f64,
+    pub stoch_overbought: f64,
+    pub stoch_oversold: f64,
+    pub volume_confirm_multiplier: f64,
+    pub confidence_max: f64,
+    pub confidence_multiplier: f64,
+    pub counter_trend_confidence_max: f64,
+    pub counter_trend_multiplier: f64,
+    pub neutral_confidence: f64,
+    pub counter_trend_block_offset: f64,
+    pub counter_trend_enabled: bool,
+    pub counter_trend_mode: String,
+    pub analysis_timeframes: Vec<String>,
+}
+
 /// Response for indicator-settings endpoint
 /// This is fetched by Python AI service on startup
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IndicatorSettingsResponse {
     pub indicators: IndicatorSettingsApi,
     pub signal: SignalGenerationSettingsApi,
+    pub signal_pipeline: SignalPipelineSettingsApi,
 }
 
 /// Request to update indicator and signal settings
@@ -349,6 +376,7 @@ pub struct IndicatorSettingsResponse {
 pub struct UpdateIndicatorSettingsRequest {
     pub indicators: Option<IndicatorSettingsApi>,
     pub signal: Option<SignalGenerationSettingsApi>,
+    pub signal_pipeline: Option<SignalPipelineSettingsApi>,
 }
 
 /// Response for API operations
@@ -1940,6 +1968,28 @@ async fn get_indicator_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply,
             confidence_base: settings.signal.confidence_base,
             confidence_per_timeframe: settings.signal.confidence_per_timeframe,
         },
+        signal_pipeline: SignalPipelineSettingsApi {
+            min_weighted_threshold: settings.signal_pipeline.min_weighted_threshold,
+            weight_15m: settings.signal_pipeline.weight_15m,
+            weight_30m: settings.signal_pipeline.weight_30m,
+            weight_1h: settings.signal_pipeline.weight_1h,
+            rsi_bull_threshold: settings.signal_pipeline.rsi_bull_threshold,
+            rsi_bear_threshold: settings.signal_pipeline.rsi_bear_threshold,
+            bb_bull_threshold: settings.signal_pipeline.bb_bull_threshold,
+            bb_bear_threshold: settings.signal_pipeline.bb_bear_threshold,
+            stoch_overbought: settings.signal_pipeline.stoch_overbought,
+            stoch_oversold: settings.signal_pipeline.stoch_oversold,
+            volume_confirm_multiplier: settings.signal_pipeline.volume_confirm_multiplier,
+            confidence_max: settings.signal_pipeline.confidence_max,
+            confidence_multiplier: settings.signal_pipeline.confidence_multiplier,
+            counter_trend_confidence_max: settings.signal_pipeline.counter_trend_confidence_max,
+            counter_trend_multiplier: settings.signal_pipeline.counter_trend_multiplier,
+            neutral_confidence: settings.signal_pipeline.neutral_confidence,
+            counter_trend_block_offset: settings.signal_pipeline.counter_trend_block_offset,
+            counter_trend_enabled: settings.signal_pipeline.counter_trend_enabled,
+            counter_trend_mode: settings.signal_pipeline.counter_trend_mode.clone(),
+            analysis_timeframes: settings.signal_pipeline.analysis_timeframes.clone(),
+        },
     };
 
     log::info!(
@@ -1990,6 +2040,36 @@ async fn update_indicator_settings(
         current_settings.signal.min_required_indicators = signal.min_required_indicators;
         current_settings.signal.confidence_base = signal.confidence_base;
         current_settings.signal.confidence_per_timeframe = signal.confidence_per_timeframe;
+    }
+
+    // Update signal pipeline settings if provided
+    // @spec:FR-SETTINGS-003 - Signal pipeline configuration update
+    if let Some(pipeline) = request.signal_pipeline {
+        current_settings.signal_pipeline.min_weighted_threshold = pipeline.min_weighted_threshold;
+        current_settings.signal_pipeline.weight_15m = pipeline.weight_15m;
+        current_settings.signal_pipeline.weight_30m = pipeline.weight_30m;
+        current_settings.signal_pipeline.weight_1h = pipeline.weight_1h;
+        current_settings.signal_pipeline.rsi_bull_threshold = pipeline.rsi_bull_threshold;
+        current_settings.signal_pipeline.rsi_bear_threshold = pipeline.rsi_bear_threshold;
+        current_settings.signal_pipeline.bb_bull_threshold = pipeline.bb_bull_threshold;
+        current_settings.signal_pipeline.bb_bear_threshold = pipeline.bb_bear_threshold;
+        current_settings.signal_pipeline.stoch_overbought = pipeline.stoch_overbought;
+        current_settings.signal_pipeline.stoch_oversold = pipeline.stoch_oversold;
+        current_settings.signal_pipeline.volume_confirm_multiplier =
+            pipeline.volume_confirm_multiplier;
+        current_settings.signal_pipeline.confidence_max = pipeline.confidence_max;
+        current_settings.signal_pipeline.confidence_multiplier = pipeline.confidence_multiplier;
+        current_settings
+            .signal_pipeline
+            .counter_trend_confidence_max = pipeline.counter_trend_confidence_max;
+        current_settings.signal_pipeline.counter_trend_multiplier =
+            pipeline.counter_trend_multiplier;
+        current_settings.signal_pipeline.neutral_confidence = pipeline.neutral_confidence;
+        current_settings.signal_pipeline.counter_trend_block_offset =
+            pipeline.counter_trend_block_offset;
+        current_settings.signal_pipeline.counter_trend_enabled = pipeline.counter_trend_enabled;
+        current_settings.signal_pipeline.counter_trend_mode = pipeline.counter_trend_mode;
+        current_settings.signal_pipeline.analysis_timeframes = pipeline.analysis_timeframes;
     }
 
     match api.engine.update_settings(current_settings).await {
@@ -5283,6 +5363,28 @@ mod tests {
                 confidence_base: 0.5,
                 confidence_per_timeframe: 0.15,
             },
+            signal_pipeline: SignalPipelineSettingsApi {
+                min_weighted_threshold: 60.0,
+                weight_15m: 0.5,
+                weight_30m: 1.0,
+                weight_1h: 2.0,
+                rsi_bull_threshold: 55.0,
+                rsi_bear_threshold: 45.0,
+                bb_bull_threshold: 0.3,
+                bb_bear_threshold: 0.7,
+                stoch_overbought: 80.0,
+                stoch_oversold: 20.0,
+                volume_confirm_multiplier: 1.2,
+                confidence_max: 0.85,
+                confidence_multiplier: 0.35,
+                counter_trend_confidence_max: 0.65,
+                counter_trend_multiplier: 0.20,
+                neutral_confidence: 0.40,
+                counter_trend_block_offset: 0.05,
+                counter_trend_enabled: true,
+                counter_trend_mode: "block".to_string(),
+                analysis_timeframes: vec!["15m".to_string(), "30m".to_string(), "1h".to_string()],
+            },
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -5306,6 +5408,7 @@ mod tests {
                 stochastic_d_period: 3,
             }),
             signal: None,
+            signal_pipeline: None,
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -6273,6 +6376,7 @@ mod tests {
                 confidence_base: 0.6,
                 confidence_per_timeframe: 0.15,
             }),
+            signal_pipeline: None,
         };
 
         let resp = request()
@@ -6304,6 +6408,7 @@ mod tests {
                 stochastic_d_period: 3,
             }),
             signal: None,
+            signal_pipeline: None,
         };
 
         let resp = request()
@@ -6330,6 +6435,7 @@ mod tests {
                 confidence_base: 0.5,
                 confidence_per_timeframe: 0.1,
             }),
+            signal_pipeline: None,
         };
 
         let resp = request()
@@ -6783,6 +6889,28 @@ mod tests {
                 confidence_base: 0.5,
                 confidence_per_timeframe: 0.1,
             },
+            signal_pipeline: SignalPipelineSettingsApi {
+                min_weighted_threshold: 60.0,
+                weight_15m: 0.5,
+                weight_30m: 1.0,
+                weight_1h: 2.0,
+                rsi_bull_threshold: 55.0,
+                rsi_bear_threshold: 45.0,
+                bb_bull_threshold: 0.3,
+                bb_bear_threshold: 0.7,
+                stoch_overbought: 80.0,
+                stoch_oversold: 20.0,
+                volume_confirm_multiplier: 1.2,
+                confidence_max: 0.85,
+                confidence_multiplier: 0.35,
+                counter_trend_confidence_max: 0.65,
+                counter_trend_multiplier: 0.20,
+                neutral_confidence: 0.40,
+                counter_trend_block_offset: 0.05,
+                counter_trend_enabled: true,
+                counter_trend_mode: "block".to_string(),
+                analysis_timeframes: vec!["15m".to_string(), "30m".to_string(), "1h".to_string()],
+            },
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -6812,6 +6940,7 @@ mod tests {
                 confidence_base: 0.6,
                 confidence_per_timeframe: 0.15,
             }),
+            signal_pipeline: None,
         };
 
         assert!(request.indicators.is_some());
@@ -6834,6 +6963,7 @@ mod tests {
                 stochastic_d_period: 3,
             }),
             signal: None,
+            signal_pipeline: None,
         };
 
         assert!(request.indicators.is_some());
@@ -6851,6 +6981,7 @@ mod tests {
                 confidence_base: 0.5,
                 confidence_per_timeframe: 0.1,
             }),
+            signal_pipeline: None,
         };
 
         assert!(request.indicators.is_none());
@@ -8707,6 +8838,28 @@ mod tests {
                 confidence_base: 0.5,
                 confidence_per_timeframe: 0.15,
             },
+            signal_pipeline: SignalPipelineSettingsApi {
+                min_weighted_threshold: 60.0,
+                weight_15m: 0.5,
+                weight_30m: 1.0,
+                weight_1h: 2.0,
+                rsi_bull_threshold: 55.0,
+                rsi_bear_threshold: 45.0,
+                bb_bull_threshold: 0.3,
+                bb_bear_threshold: 0.7,
+                stoch_overbought: 80.0,
+                stoch_oversold: 20.0,
+                volume_confirm_multiplier: 1.2,
+                confidence_max: 0.85,
+                confidence_multiplier: 0.35,
+                counter_trend_confidence_max: 0.65,
+                counter_trend_multiplier: 0.20,
+                neutral_confidence: 0.40,
+                counter_trend_block_offset: 0.05,
+                counter_trend_enabled: true,
+                counter_trend_mode: "block".to_string(),
+                analysis_timeframes: vec!["15m".to_string(), "30m".to_string(), "1h".to_string()],
+            },
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -8726,6 +8879,7 @@ mod tests {
                 confidence_base: 0.6,
                 confidence_per_timeframe: 0.2,
             }),
+            signal_pipeline: None,
         };
 
         let json = serde_json::to_string(&request).unwrap();
@@ -10939,6 +11093,28 @@ mod tests {
                 confidence_base: 0.6,
                 confidence_per_timeframe: 0.1,
             },
+            signal_pipeline: SignalPipelineSettingsApi {
+                min_weighted_threshold: 60.0,
+                weight_15m: 0.5,
+                weight_30m: 1.0,
+                weight_1h: 2.0,
+                rsi_bull_threshold: 55.0,
+                rsi_bear_threshold: 45.0,
+                bb_bull_threshold: 0.3,
+                bb_bear_threshold: 0.7,
+                stoch_overbought: 80.0,
+                stoch_oversold: 20.0,
+                volume_confirm_multiplier: 1.2,
+                confidence_max: 0.85,
+                confidence_multiplier: 0.35,
+                counter_trend_confidence_max: 0.65,
+                counter_trend_multiplier: 0.20,
+                neutral_confidence: 0.40,
+                counter_trend_block_offset: 0.05,
+                counter_trend_enabled: true,
+                counter_trend_mode: "block".to_string(),
+                analysis_timeframes: vec!["15m".to_string(), "30m".to_string(), "1h".to_string()],
+            },
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -10962,6 +11138,7 @@ mod tests {
                 stochastic_d_period: 5,
             }),
             signal: None,
+            signal_pipeline: None,
         };
 
         assert!(request.indicators.is_some());
@@ -10979,6 +11156,7 @@ mod tests {
                 confidence_base: 0.7,
                 confidence_per_timeframe: 0.12,
             }),
+            signal_pipeline: None,
         };
 
         assert!(request.indicators.is_none());

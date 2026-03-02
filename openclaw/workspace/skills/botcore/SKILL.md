@@ -689,6 +689,36 @@ Parse modes: `HTML` (default), `Markdown`, `MarkdownV2`
 
 For ALL scheduled reports, alerts, and cron job outputs: use `send_telegram_notification` to deliver results. Do not just print the report.
 
+## 13. Signal Pipeline Settings (3 tools)
+
+Controls how raw indicator data becomes trading signals. These thresholds determine whether the bot generates Long/Short/Neutral signals.
+
+```bash
+botcore get_paper_signal_pipeline_settings                                            # Read all signal pipeline thresholds
+botcore update_paper_signal_pipeline_settings '{"settings":{"min_weighted_threshold":50}}'  # Partial update
+botcore get_signal_quality_report                                                     # Bull/bear/neutral breakdown
+botcore get_signal_quality_report '{"limit":100}'                                     # Last 100 signals
+```
+
+Key parameters and what they do:
+- `min_weighted_threshold` (60): % weighted agreement needed for Long/Short. Lower = more signals
+- `rsi_bull_threshold` (55) / `rsi_bear_threshold` (45): RSI direction classification
+- `bb_bull_threshold` (0.3) / `bb_bear_threshold` (0.7): Bollinger Band position
+- `stoch_overbought` (80) / `stoch_oversold` (20): Stochastic boundaries
+- `volume_confirm_multiplier` (1.2): Volume ratio for trend confirmation
+- `weight_15m` (0.5) / `weight_30m` (1.0) / `weight_1h` (2.0): Timeframe importance
+- `confidence_max` (0.85): Max confidence cap
+- `counter_trend_enabled` (true) / `counter_trend_mode` ("block"/"reduce"): Counter-trend protection
+- `analysis_timeframes` (["15m","30m","1h"]): Which candle timeframes to fetch
+
+When signals are all Neutral (signal quality issue):
+1. `botcore get_signal_quality_report` — check neutral_pct
+2. If neutral_pct > 80%: thresholds too strict
+3. Reduce `min_weighted_threshold` (60→40-50)
+4. Reduce `min_required_indicators` (4→2-3)
+5. Switch `counter_trend_mode` to "reduce"
+6. Lower `rsi_bull_threshold` (55→52) and raise `rsi_bear_threshold` (45→48)
+
 ---
 
 ## Tunable Parameters Reference
@@ -703,11 +733,24 @@ GREEN tier (auto-apply — you can adjust all of these freely):
 - `take_profit_percent`: range 2.0-40.0, default 20.0, cooldown 6h — PnL-based! price_move = this / leverage. ALWAYS query leverage first.
 - `min_required_indicators`: range 2-5, default 4, cooldown 6h — min indicators that must agree (MACD, RSI, Bollinger, Stochastic, Volume)
 - `min_required_timeframes`: range 1-4, default 3, cooldown 6h — min timeframes that must agree (5M, 15M, 1H, 4H)
+- `sp_min_weighted_threshold`: range 30-70, default 60, cooldown 6h — weighted agreement % for directional signal
+- `sp_rsi_bull_threshold`: range 50-65, default 55, cooldown 6h — RSI above this = bullish
+- `sp_rsi_bear_threshold`: range 35-50, default 45, cooldown 6h — RSI below this = bearish
+- `sp_volume_confirm_multiplier`: range 1.0-2.0, default 1.2, cooldown 6h — volume ratio for confirmation
+- `sp_confidence_max`: range 0.70-0.95, default 0.85, cooldown 6h — max confidence cap
+- `sp_neutral_confidence`: range 0.30-0.50, default 0.40, cooldown 6h — neutral signal confidence
+- `sp_counter_trend_mode`: enum [block, reduce], default block, cooldown 1h — counter-trend handling
 
 YELLOW tier (user confirmation — capital risk params):
 - `position_size_percent`: range 1.0-10.0, default 5.0, cooldown 6h
 - `max_positions`: range 1-8, default 4, cooldown 6h
 - `leverage`: range 1-20, default 10, cooldown 6h
+- `sp_bb_bull_threshold`: range 0.1-0.4, default 0.3, cooldown 6h — BB position for bullish
+- `sp_bb_bear_threshold`: range 0.6-0.9, default 0.7, cooldown 6h — BB position for bearish
+- `sp_stoch_overbought`: range 70-90, default 80, cooldown 6h
+- `sp_stoch_oversold`: range 10-30, default 20, cooldown 6h
+- `sp_weight_15m`/`sp_weight_30m`/`sp_weight_1h`: range 0.0-3.0, defaults 0.5/1.0/2.0, cooldown 6h
+- `sp_counter_trend_enabled`: true/false, default true, cooldown 1h
 
 RED tier (explicit approval):
 - `max_daily_loss_percent`: range 1.0-15.0, default 3.0, cooldown 6h

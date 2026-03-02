@@ -125,6 +125,88 @@ def get_signal_confidence_per_tf() -> float:
     )
 
 
+# @spec:FR-SETTINGS-003 - Signal pipeline settings from Rust API
+# These helper functions get signal pipeline settings from settings_manager
+def get_pipeline_min_weighted_threshold() -> float:
+    return settings_manager.get_pipeline_value("min_weighted_threshold", 60.0)
+
+
+def get_pipeline_weight_15m() -> float:
+    return settings_manager.get_pipeline_value("weight_15m", 0.5)
+
+
+def get_pipeline_weight_30m() -> float:
+    return settings_manager.get_pipeline_value("weight_30m", 1.0)
+
+
+def get_pipeline_weight_1h() -> float:
+    return settings_manager.get_pipeline_value("weight_1h", 2.0)
+
+
+def get_pipeline_rsi_bull_threshold() -> float:
+    return settings_manager.get_pipeline_value("rsi_bull_threshold", 55.0)
+
+
+def get_pipeline_rsi_bear_threshold() -> float:
+    return settings_manager.get_pipeline_value("rsi_bear_threshold", 45.0)
+
+
+def get_pipeline_bb_bull_threshold() -> float:
+    return settings_manager.get_pipeline_value("bb_bull_threshold", 0.3)
+
+
+def get_pipeline_bb_bear_threshold() -> float:
+    return settings_manager.get_pipeline_value("bb_bear_threshold", 0.7)
+
+
+def get_pipeline_stoch_overbought() -> float:
+    return settings_manager.get_pipeline_value("stoch_overbought", 80.0)
+
+
+def get_pipeline_stoch_oversold() -> float:
+    return settings_manager.get_pipeline_value("stoch_oversold", 20.0)
+
+
+def get_pipeline_volume_confirm_multiplier() -> float:
+    return settings_manager.get_pipeline_value("volume_confirm_multiplier", 1.2)
+
+
+def get_pipeline_confidence_max() -> float:
+    return settings_manager.get_pipeline_value("confidence_max", 0.85)
+
+
+def get_pipeline_confidence_multiplier() -> float:
+    return settings_manager.get_pipeline_value("confidence_multiplier", 0.35)
+
+
+def get_pipeline_counter_trend_confidence_max() -> float:
+    return settings_manager.get_pipeline_value("counter_trend_confidence_max", 0.65)
+
+
+def get_pipeline_counter_trend_multiplier() -> float:
+    return settings_manager.get_pipeline_value("counter_trend_multiplier", 0.20)
+
+
+def get_pipeline_neutral_confidence() -> float:
+    return settings_manager.get_pipeline_value("neutral_confidence", 0.40)
+
+
+def get_pipeline_counter_trend_enabled() -> bool:
+    return settings_manager.get_pipeline_value("counter_trend_enabled", True)
+
+
+def get_pipeline_counter_trend_block_offset() -> float:
+    return settings_manager.get_pipeline_value("counter_trend_block_offset", 0.05)
+
+
+def get_pipeline_counter_trend_mode() -> str:
+    return settings_manager.get_pipeline_value("counter_trend_mode", "block")
+
+
+def get_pipeline_analysis_timeframes() -> list:
+    return settings_manager.get_pipeline_value("analysis_timeframes", ["15m", "30m", "1h"])
+
+
 def get_rsi_period() -> int:
     """Get RSI period with fallback to default 14"""
     return settings_manager.get_indicator_value("rsi_period", 14)
@@ -1211,9 +1293,10 @@ class TechnicalAnalyzer:
 
             # Determine volume trend
             volume_ratio = indicators.get("volume_ratio", 1.0)
-            if volume_ratio > 1.2:
+            vol_threshold = get_pipeline_volume_confirm_multiplier()
+            if volume_ratio > vol_threshold:
                 context["volume_trend"] = "increasing"
-            elif volume_ratio < 0.8:
+            elif volume_ratio < (1.0 / vol_threshold):
                 context["volume_trend"] = "decreasing"
             else:
                 context["volume_trend"] = "stable"
@@ -1690,32 +1773,39 @@ class GrokTradingAnalyzer:
             bearish_points += 1
             signals.append("MACD↓")
 
-        # 2. RSI
-        if rsi > 55:
+        # 2. RSI — @spec:FR-SETTINGS-003 configurable thresholds
+        rsi_bull = get_pipeline_rsi_bull_threshold()
+        rsi_bear = get_pipeline_rsi_bear_threshold()
+        if rsi > rsi_bull:
             bullish_points += 1
             signals.append(f"RSI{rsi:.0f}↑")
-        elif rsi < 45:
+        elif rsi < rsi_bear:
             bearish_points += 1
             signals.append(f"RSI{rsi:.0f}↓")
 
-        # 3. Bollinger Bands
-        if bb_position < 0.3:
+        # 3. Bollinger Bands — @spec:FR-SETTINGS-003 configurable thresholds
+        bb_bull = get_pipeline_bb_bull_threshold()
+        bb_bear = get_pipeline_bb_bear_threshold()
+        if bb_position < bb_bull:
             bullish_points += 1
             signals.append("BB↑")
-        elif bb_position > 0.7:
+        elif bb_position > bb_bear:
             bearish_points += 1
             signals.append("BB↓")
 
-        # 4. Stochastic
-        if stoch_k > stoch_d and stoch_k < 80:
+        # 4. Stochastic — @spec:FR-SETTINGS-003 configurable thresholds
+        stoch_ob = get_pipeline_stoch_overbought()
+        stoch_os = get_pipeline_stoch_oversold()
+        if stoch_k > stoch_d and stoch_k < stoch_ob:
             bullish_points += 1
             signals.append(f"Stoch{stoch_k:.0f}↑")
-        elif stoch_k < stoch_d and stoch_k > 20:
+        elif stoch_k < stoch_d and stoch_k > stoch_os:
             bearish_points += 1
             signals.append(f"Stoch{stoch_k:.0f}↓")
 
-        # 5. Volume (confirms trend direction)
-        if volume_ratio > 1.2:
+        # 5. Volume (confirms trend direction) — @spec:FR-SETTINGS-003
+        vol_mult = get_pipeline_volume_confirm_multiplier()
+        if volume_ratio > vol_mult:
             if bullish_points > bearish_points:
                 bullish_points += 1
                 signals.append(f"Vol{volume_ratio:.1f}x↑")
@@ -1788,11 +1878,11 @@ class GrokTradingAnalyzer:
         )
 
         # ==================== WEIGHTED TIMEFRAME VOTING ====================
-        # Same weights as fallback_analysis for consistency
+        # @spec:FR-SETTINGS-003 - Configurable timeframe weights
         TIMEFRAME_WEIGHTS = {
-            "15M": 0.5,  # Short-term noise, least important
-            "30M": 1.0,  # Short-term trend
-            "1H": 2.0,  # MAIN TREND - most important
+            "15M": get_pipeline_weight_15m(),
+            "30M": get_pipeline_weight_30m(),
+            "1H": get_pipeline_weight_1h(),
         }
 
         tf_results = {"15M": tf_15m, "30M": tf_30m, "1H": tf_1h}
@@ -1822,34 +1912,48 @@ class GrokTradingAnalyzer:
         # Main trend (1H) for counter-trend detection
         main_trend = tf_1h
 
+        # @spec:FR-SETTINGS-003 - Configurable confidence scoring
+        conf_max = get_pipeline_confidence_max()
+        conf_mult = get_pipeline_confidence_multiplier()
+        ct_conf_max = get_pipeline_counter_trend_confidence_max()
+        ct_mult = get_pipeline_counter_trend_multiplier()
+        neutral_conf = get_pipeline_neutral_confidence()
+        ct_enabled = get_pipeline_counter_trend_enabled()
+        ct_mode = get_pipeline_counter_trend_mode()
+
         # Calculate confidence based on signal and weighted score
         if signal == "Long":
-            if main_trend == "BEARISH":
-                # Counter-trend Long = lower confidence
-                confidence = 0.45
+            if ct_enabled and main_trend == "BEARISH":
+                if ct_mode == "block":
+                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                else:
+                    # "reduce" mode: allow but cap confidence
+                    confidence = min(ct_conf_max, confidence_base + (bullish_score / 100) * ct_mult)
                 logger.debug(
-                    f"🔄 Confidence: Long but 1H BEARISH (counter-trend) → {confidence}"
+                    f"🔄 Confidence: Long but 1H BEARISH (counter-trend, mode={ct_mode}) → {confidence}"
                 )
             else:
-                confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
+                confidence = min(conf_max, confidence_base + (bullish_score / 100) * conf_mult)
                 logger.debug(
                     f"🔄 Confidence: Long, bullish_score={bullish_score:.1f}% → {confidence:.2f}"
                 )
         elif signal == "Short":
-            if main_trend == "BULLISH":
-                # Counter-trend Short = lower confidence
-                confidence = 0.45
+            if ct_enabled and main_trend == "BULLISH":
+                if ct_mode == "block":
+                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                else:
+                    confidence = min(ct_conf_max, confidence_base + (bearish_score / 100) * ct_mult)
                 logger.debug(
-                    f"🔄 Confidence: Short but 1H BULLISH (counter-trend) → {confidence}"
+                    f"🔄 Confidence: Short but 1H BULLISH (counter-trend, mode={ct_mode}) → {confidence}"
                 )
             else:
-                confidence = min(0.85, confidence_base + (bearish_score / 100) * 0.35)
+                confidence = min(conf_max, confidence_base + (bearish_score / 100) * conf_mult)
                 logger.debug(
                     f"🔄 Confidence: Short, bearish_score={bearish_score:.1f}% → {confidence:.2f}"
                 )
         else:
             # Neutral signal
-            confidence = 0.40
+            confidence = neutral_conf
 
         logger.info(
             f"🔄 Weighted confidence: signal={signal}, 1H={main_trend}, "
@@ -1919,16 +2023,11 @@ class GrokTradingAnalyzer:
         confidence_per_tf = get_signal_confidence_per_tf()
 
         # ==================== WEIGHTED TIMEFRAME VOTING ====================
-        # Higher timeframes have MORE weight (main trend is more important)
-        # This prevents counter-trend trades (e.g., shorting during 1H uptrend)
-        #
-        # Weights: 1H (2.0) > 30M (1.0) > 15M (0.5)
-        # Total weight = 3.5
-        # ===================================================================
+        # @spec:FR-SETTINGS-003 - Configurable timeframe weights & thresholds
         TIMEFRAME_WEIGHTS = {
-            "15M": 0.5,  # Short-term noise, least important
-            "30M": 1.0,  # Short-term trend
-            "1H": 2.0,  # MAIN TREND - most important
+            "15M": get_pipeline_weight_15m(),
+            "30M": get_pipeline_weight_30m(),
+            "1H": get_pipeline_weight_1h(),
         }
 
         # Calculate weighted scores
@@ -1955,44 +2054,63 @@ class GrokTradingAnalyzer:
             (weighted_bearish / total_weight) * 100 if total_weight > 0 else 0
         )
 
-        # SAFETY RULE: Don't trade against main trend (1H)
-        # If 1H is BULLISH, don't SHORT. If 1H is BEARISH, don't LONG.
+        # Counter-trend settings
         main_trend = tf_1h  # 1H is the main trend
+        ct_enabled = get_pipeline_counter_trend_enabled()
+        ct_mode = get_pipeline_counter_trend_mode()
+        conf_max = get_pipeline_confidence_max()
+        conf_mult = get_pipeline_confidence_multiplier()
+        ct_conf_max = get_pipeline_counter_trend_confidence_max()
+        ct_mult = get_pipeline_counter_trend_multiplier()
+        neutral_conf = get_pipeline_neutral_confidence()
 
         # Determine signal using WEIGHTED voting
-        # Need 60%+ weighted score to trigger directional signal
-        MIN_WEIGHTED_THRESHOLD = 60.0  # 60% weighted agreement
+        # @spec:FR-SETTINGS-003 - Configurable weighted threshold
+        MIN_WEIGHTED_THRESHOLD = get_pipeline_min_weighted_threshold()
 
         if bullish_score >= MIN_WEIGHTED_THRESHOLD:
-            if main_trend == "BEARISH":
-                # 1H is BEARISH but lower TFs bullish = potential reversal, stay NEUTRAL
-                signal = "Neutral"
-                confidence = 0.45
-                logger.info(
-                    f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 1H is BEARISH - staying NEUTRAL"
-                )
+            if ct_enabled and main_trend == "BEARISH":
+                if ct_mode == "block":
+                    signal = "Neutral"
+                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                    logger.info(
+                        f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 1H is BEARISH - staying NEUTRAL (block mode)"
+                    )
+                else:
+                    # "reduce" mode: allow but cap confidence
+                    signal = "Long"
+                    confidence = min(ct_conf_max, confidence_base + (bullish_score / 100) * ct_mult)
+                    logger.info(
+                        f"⚠️ {symbol}: Bullish score {bullish_score:.1f}% but 1H is BEARISH - reduced confidence (reduce mode) → {confidence:.2f}"
+                    )
             else:
                 signal = "Long"
-                confidence = min(0.85, confidence_base + (bullish_score / 100) * 0.35)
+                confidence = min(conf_max, confidence_base + (bullish_score / 100) * conf_mult)
         elif bearish_score >= MIN_WEIGHTED_THRESHOLD:
-            if main_trend == "BULLISH":
-                # 1H is BULLISH but lower TFs bearish = pullback, stay NEUTRAL (DON'T SHORT!)
-                signal = "Neutral"
-                confidence = 0.45
-                logger.info(
-                    f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 1H is BULLISH - staying NEUTRAL (no counter-trend)"
-                )
+            if ct_enabled and main_trend == "BULLISH":
+                if ct_mode == "block":
+                    signal = "Neutral"
+                    confidence = neutral_conf + get_pipeline_counter_trend_block_offset()
+                    logger.info(
+                        f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 1H is BULLISH - staying NEUTRAL (block mode)"
+                    )
+                else:
+                    signal = "Short"
+                    confidence = min(ct_conf_max, confidence_base + (bearish_score / 100) * ct_mult)
+                    logger.info(
+                        f"⚠️ {symbol}: Bearish score {bearish_score:.1f}% but 1H is BULLISH - reduced confidence (reduce mode) → {confidence:.2f}"
+                    )
             else:
                 signal = "Short"
-                confidence = min(0.85, confidence_base + (bearish_score / 100) * 0.35)
+                confidence = min(conf_max, confidence_base + (bearish_score / 100) * conf_mult)
         else:
             signal = "Neutral"
-            confidence = 0.40
+            confidence = neutral_conf
 
         # Log weighted analysis
         logger.info(
             f"📊 {symbol} Weighted Analysis: Bullish={bullish_score:.1f}%, Bearish={bearish_score:.1f}%, "
-            f"1H_Trend={main_trend}, Signal={signal}"
+            f"1H_Trend={main_trend}, Signal={signal}, Threshold={MIN_WEIGHTED_THRESHOLD}%"
         )
 
         # Build reasoning string with weighted analysis
@@ -2002,10 +2120,10 @@ class GrokTradingAnalyzer:
             f" | Weighted: Bullish={bullish_score:.0f}%, Bearish={bearish_score:.0f}%"
         )
         reasoning += f" | 1H_Trend={main_trend}"
-        if main_trend == "BULLISH" and bearish_score >= MIN_WEIGHTED_THRESHOLD:
-            reasoning += " | ⚠️ Blocked SHORT (counter-trend protection)"
-        elif main_trend == "BEARISH" and bullish_score >= MIN_WEIGHTED_THRESHOLD:
-            reasoning += " | ⚠️ Blocked LONG (counter-trend protection)"
+        if ct_enabled and main_trend == "BULLISH" and bearish_score >= MIN_WEIGHTED_THRESHOLD:
+            reasoning += f" | ⚠️ Counter-trend SHORT ({ct_mode} mode)"
+        elif ct_enabled and main_trend == "BEARISH" and bullish_score >= MIN_WEIGHTED_THRESHOLD:
+            reasoning += f" | ⚠️ Counter-trend LONG ({ct_mode} mode)"
 
         # Debug logging for signal generation
         logger.info(
@@ -2088,8 +2206,10 @@ class GrokTradingAnalyzer:
 
                 if strategy == "RSI Strategy":
                     rsi = indicators.get("rsi", 50)
-                    # 0.3 if neutral (45-55), 0.5-0.7 if moderate, 0.8-1.0 if extreme
-                    if 45 <= rsi <= 55:
+                    rsi_bear = get_pipeline_rsi_bear_threshold()
+                    rsi_bull = get_pipeline_rsi_bull_threshold()
+                    # 0.3 if neutral, 0.5-0.7 if moderate, 0.8-1.0 if extreme
+                    if rsi_bear <= rsi <= rsi_bull:
                         score = 0.3
                     elif rsi < 30 or rsi > 70:
                         score = 0.8 + min(0.2, abs(rsi - 50) / 50)  # Max 1.0
@@ -2110,10 +2230,11 @@ class GrokTradingAnalyzer:
 
                 elif strategy == "Volume Strategy":
                     vol_ratio = indicators.get("volume_ratio", 1.0)
-                    # 0.3 if ratio<1.0, 0.5-0.7 if 1.0-1.5x, 0.8-1.0 if >1.5x
+                    vol_spike = get_pipeline_volume_confirm_multiplier() * 1.25  # Strong spike = 1.5x
+                    # 0.3 if ratio<1.0, 0.5-0.7 if moderate, 0.8-1.0 if spike
                     if vol_ratio < 1.0:
                         score = 0.3
-                    elif vol_ratio > 1.5:
+                    elif vol_ratio > vol_spike:
                         score = 0.8 + min(0.2, (vol_ratio - 1.5) / 2)  # Max 1.0
                     else:
                         score = 0.5 + (vol_ratio - 1.0) * 0.4  # 0.5-0.7
@@ -2133,12 +2254,14 @@ class GrokTradingAnalyzer:
 
                 elif strategy == "Stochastic Strategy":
                     stoch_k = indicators.get("stochastic_k", 50)
-                    # 0.3 if neutral (30-70), 0.5-0.7 if moderate, 0.8-1.0 if overbought/oversold
-                    if 30 <= stoch_k <= 70:
+                    stoch_os = get_pipeline_stoch_oversold()
+                    stoch_ob = get_pipeline_stoch_overbought()
+                    # 0.3 if neutral, 0.5-0.7 if moderate, 0.8-1.0 if overbought/oversold
+                    if stoch_os + 10 <= stoch_k <= stoch_ob - 10:
                         # Score based on distance from center (50)
                         dist_from_center = abs(stoch_k - 50)
                         score = 0.3 + (dist_from_center / 20) * 0.2  # Max 0.5
-                    elif stoch_k < 20 or stoch_k > 80:
+                    elif stoch_k < stoch_os or stoch_k > stoch_ob:
                         score = 0.9 + min(0.1, abs(stoch_k - 50) / 100)
                     else:
                         score = 0.6 + abs(stoch_k - 50) / 50 * 0.2  # 0.6-0.8
@@ -2162,37 +2285,68 @@ class GrokTradingAnalyzer:
         - min_required_indicators: minimum indicators per timeframe (default 4/5)
         - min_required_timeframes: minimum timeframes needed to agree
         """
-        # @spec:FR-SETTINGS-002 - Get settings from Rust API for Grok prompt
+        # @spec:FR-SETTINGS-002, FR-SETTINGS-003 - Get settings from Rust API for Grok prompt
         min_indicators = get_signal_min_indicators()
         min_timeframes = get_signal_min_timeframes()
         confidence_base = get_signal_confidence_base()
         confidence_per_tf = get_signal_confidence_per_tf()
 
+        # @spec:FR-SETTINGS-003 - All signal pipeline values are dynamic
+        rsi_bull = get_pipeline_rsi_bull_threshold()
+        rsi_bear = get_pipeline_rsi_bear_threshold()
+        bb_bull = get_pipeline_bb_bull_threshold()
+        bb_bear = get_pipeline_bb_bear_threshold()
+        stoch_ob = get_pipeline_stoch_overbought()
+        stoch_os = get_pipeline_stoch_oversold()
+        vol_mult = get_pipeline_volume_confirm_multiplier()
+        w_15m = get_pipeline_weight_15m()
+        w_30m = get_pipeline_weight_30m()
+        w_1h = get_pipeline_weight_1h()
+        total_w = w_15m + w_30m + w_1h
+        min_wt = get_pipeline_min_weighted_threshold()
+        conf_max = get_pipeline_confidence_max()
+        conf_mult = get_pipeline_confidence_multiplier()
+        ct_enabled = get_pipeline_counter_trend_enabled()
+        ct_mode = get_pipeline_counter_trend_mode()
+
+        ct_prompt = ""
+        if ct_enabled:
+            if ct_mode == "block":
+                ct_prompt = (
+                    f"COUNTER-TREND PROTECTION (BLOCK mode):\n"
+                    f"- NEVER give SHORT if 1H is BULLISH (pullback in uptrend)\n"
+                    f"- NEVER give LONG if 1H is BEARISH (bounce in downtrend)\n"
+                    f"- 1H is the MAIN TREND - always follow it!\n"
+                )
+            else:
+                ct_prompt = (
+                    f"COUNTER-TREND PROTECTION (REDUCE mode):\n"
+                    f"- Counter-trend signals allowed but with REDUCED confidence\n"
+                    f"- Cap counter-trend confidence at {get_pipeline_counter_trend_confidence_max()}\n"
+                )
+
         return (
             f"Crypto trading analyst using WEIGHTED MULTI-TIMEFRAME + 5 STRATEGIES analysis.\n"
             f"INDICATOR SCORING (per timeframe - count bullish/bearish points):\n"
             f"- MACD: histogram > 0 = +1 bullish, < 0 = +1 bearish\n"
-            f"- RSI: > 55 = +1 bullish, < 45 = +1 bearish (50-55/45-50 = neutral)\n"
-            f"- BB: position < 0.3 = +1 bullish (near lower), > 0.7 = +1 bearish (near upper)\n"
-            f"- Stochastic: K > D and K < 80 = +1 bullish, K < D and K > 20 = +1 bearish\n"
-            f"- Volume: ratio > 1.2x confirms trend direction\n"
+            f"- RSI: > {rsi_bull} = +1 bullish, < {rsi_bear} = +1 bearish ({rsi_bear}-{rsi_bull} = neutral)\n"
+            f"- BB: position < {bb_bull} = +1 bullish (near lower), > {bb_bear} = +1 bearish (near upper)\n"
+            f"- Stochastic: K > D and K < {stoch_ob} = +1 bullish, K < D and K > {stoch_os} = +1 bearish\n"
+            f"- Volume: ratio > {vol_mult}x confirms trend direction\n"
             f"TIMEFRAME CLASSIFICATION (STRICT - requires {min_indicators}/5 indicators):\n"
             f"- Timeframe is BULLISH if: {min_indicators}+ indicators are bullish\n"
             f"- Timeframe is BEARISH if: {min_indicators}+ indicators are bearish\n"
             f"- Otherwise NEUTRAL\n"
             f"WEIGHTED TIMEFRAME VOTING (CRITICAL - higher TF = more important):\n"
-            f"- 1H weight: 2.0 (MAIN TREND - most important)\n"
-            f"- 30M weight: 1.0 (short-term)\n"
-            f"- 15M weight: 0.5 (noise)\n"
-            f"- Total weight: 3.5, need 60%+ weighted score for directional signal\n"
-            f"COUNTER-TREND PROTECTION (CRITICAL):\n"
-            f"- NEVER give SHORT if 1H is BULLISH (pullback in uptrend)\n"
-            f"- NEVER give LONG if 1H is BEARISH (bounce in downtrend)\n"
-            f"- 1H is the MAIN TREND - always follow it!\n"
+            f"- 1H weight: {w_1h} (MAIN TREND - most important)\n"
+            f"- 30M weight: {w_30m} (short-term)\n"
+            f"- 15M weight: {w_15m} (noise)\n"
+            f"- Total weight: {total_w}, need {min_wt}%+ weighted score for directional signal\n"
+            f"{ct_prompt}"
             f"SIGNAL DECISION:\n"
-            f"- LONG: bullish_weighted_score >= 60% AND 1H NOT BEARISH\n"
-            f"- SHORT: bearish_weighted_score >= 60% AND 1H NOT BULLISH\n"
-            f"- NEUTRAL: otherwise or counter-trend situation\n"
+            f"- LONG: bullish_weighted_score >= {min_wt}%{' AND 1H NOT BEARISH' if ct_enabled else ''}\n"
+            f"- SHORT: bearish_weighted_score >= {min_wt}%{' AND 1H NOT BULLISH' if ct_enabled else ''}\n"
+            f"- NEUTRAL: otherwise{' or counter-trend situation' if ct_enabled else ''}\n"
             f"STRATEGY SCORE CALCULATION (score ALL strategies 0.3-1.0):\n"
             f"- RSI: 0.3 neutral, 0.5-0.7 moderate, 0.8-1.0 extreme\n"
             f"- MACD: 0.3 weak, 0.5-0.7 moderate, 0.8-1.0 strong\n"
@@ -2209,7 +2363,7 @@ class GrokTradingAnalyzer:
             '"risk_assessment":{"overall_risk":"Low|Medium|High","technical_risk":0-1,'
             '"market_risk":0-1,"recommended_position_size":0-1,"stop_loss_suggestion":null,'
             '"take_profit_suggestion":null}}\n'
-            f"Confidence: {confidence_base} base + (weighted_score/100)*0.35. Max 0.85."
+            f"Confidence: {confidence_base} base + (weighted_score/100)*{conf_mult}. Max {conf_max}."
         )
 
     def _prepare_market_context(
@@ -2290,22 +2444,26 @@ class GrokTradingAnalyzer:
 
     def _fallback_parse(self, text: str) -> Dict[str, Any]:
         """Fallback parsing for non-JSON responses."""
+        FALLBACK_NEUTRAL_CONF = 0.5
+        FALLBACK_STRONG_CONF = 0.7
+        FALLBACK_MODERATE_CONF = 0.6
+
         signal = "Neutral"
-        confidence = 0.5
+        confidence = FALLBACK_NEUTRAL_CONF
 
         text_upper = text.upper()
         if "STRONG BUY" in text_upper or "LONG" in text_upper:
             signal = "Long"
-            confidence = 0.7
+            confidence = FALLBACK_STRONG_CONF
         elif "STRONG SELL" in text_upper or "SHORT" in text_upper:
             signal = "Short"
-            confidence = 0.7
+            confidence = FALLBACK_STRONG_CONF
         elif "BUY" in text_upper:
             signal = "Long"
-            confidence = 0.6
+            confidence = FALLBACK_MODERATE_CONF
         elif "SELL" in text_upper:
             signal = "Short"
-            confidence = 0.6
+            confidence = FALLBACK_MODERATE_CONF
 
         return {
             "signal": signal,
@@ -2396,49 +2554,79 @@ async def get_analysis_statistics() -> Dict[str, Any]:
         return {"error": "Failed to get analysis stats. Check server logs for details."}
 
 
+async def _fetch_candles(
+    client: "httpx.AsyncClient", symbol: str, timeframe: str, limit: int = 100
+) -> list:
+    """Fetch candles for a single timeframe from Rust API.
+
+    @spec:FR-SETTINGS-003 - Reusable candle fetcher for configurable timeframes
+    """
+    try:
+        response = await client.get(
+            f"{RUST_API_URL}/api/market/candles/{symbol}/{timeframe}",
+            params={"limit": limit},
+        )
+        if response.status_code == 200:
+            data = response.json()
+            candle_data = data.get("data", []) if data.get("success") else []
+            candles = [
+                CandleData(
+                    timestamp=c.get("timestamp", 0),
+                    open=float(c.get("open", 0)),
+                    high=float(c.get("high", 0)),
+                    low=float(c.get("low", 0)),
+                    close=float(c.get("close", 0)),
+                    volume=float(c.get("volume", 0)),
+                )
+                for c in candle_data
+            ]
+            logger.info(f"📊 Fetched {len(candles)} {timeframe} candles for {symbol}")
+            return candles
+        else:
+            logger.warning(
+                f"⚠️ Failed to fetch {timeframe} candles for {symbol}: {response.status_code}"
+            )
+            return []
+    except Exception as e:
+        logger.error(f"❌ Error fetching {timeframe} candles for {symbol}: {e}")
+        return []
+
+
 async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
     """
     Fetch REAL market data from Rust Core Engine API.
 
     CRITICAL: This function fetches actual market data from Binance via Rust API.
     Never use dummy/fake data for trading decisions!
+
+    @spec:FR-SETTINGS-003 - Fetches candles for all configured timeframes in parallel
     """
     import httpx
 
     current_time = int(datetime.now(timezone.utc).timestamp() * 1000)
-    candles_1h = []
+    timeframe_data = {}
     current_price = 0.0
     volume_24h = 0.0
 
+    # @spec:FR-SETTINGS-003 - Configurable analysis timeframes
+    analysis_timeframes = get_pipeline_analysis_timeframes()
+
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Fetch 1H candles from Rust API
-            try:
-                response_1h = await client.get(
-                    f"{RUST_API_URL}/api/market/candles/{symbol}/1h",
-                    params={"limit": 100},  # Need 100 candles for indicators
-                )
-                if response_1h.status_code == 200:
-                    data = response_1h.json()
-                    candle_data = data.get("data", []) if data.get("success") else []
-                    for candle in candle_data:
-                        candles_1h.append(
-                            CandleData(
-                                timestamp=candle.get("timestamp", 0),
-                                open=float(candle.get("open", 0)),
-                                high=float(candle.get("high", 0)),
-                                low=float(candle.get("low", 0)),
-                                close=float(candle.get("close", 0)),
-                                volume=float(candle.get("volume", 0)),
-                            )
-                        )
-                    logger.info(f"📊 Fetched {len(candles_1h)} 1H candles for {symbol}")
-                else:
-                    logger.warning(
-                        f"⚠️ Failed to fetch 1H candles for {symbol}: {response_1h.status_code}"
-                    )
-            except Exception as e:
-                logger.error(f"❌ Error fetching 1H candles for {symbol}: {e}")
+            # Fetch all configured timeframes in parallel
+            import asyncio
+
+            tasks = [
+                _fetch_candles(client, symbol, tf, 100) for tf in analysis_timeframes
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for tf, result in zip(analysis_timeframes, results):
+                if isinstance(result, list):
+                    timeframe_data[tf] = result
+                elif isinstance(result, Exception):
+                    logger.error(f"❌ Error fetching {tf} candles for {symbol}: {result}")
+                    timeframe_data[tf] = []
 
             # Fetch current price from Rust API
             try:
@@ -2451,14 +2639,16 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
             except Exception as e:
                 logger.error(f"❌ Error fetching price for {symbol}: {e}")
 
-            # Calculate 24h volume from 1H candles
+            # Calculate 24h volume from 1H candles (or largest available timeframe)
+            candles_1h = timeframe_data.get("1h", [])
             if candles_1h:
                 volume_24h = sum(c.volume for c in candles_1h[:24])
 
     except Exception as e:
         logger.error(f"❌ Failed to fetch market data for {symbol}: {e}")
 
-    # Validate we have sufficient data
+    # Validate we have sufficient data for main timeframe (1h)
+    candles_1h = timeframe_data.get("1h", [])
     if len(candles_1h) < 50:
         logger.warning(
             f"⚠️ Insufficient 1H data for {symbol}: {len(candles_1h)} candles (need 50+)"
@@ -2468,9 +2658,13 @@ async def fetch_real_market_data(symbol: str) -> AIAnalysisRequest:
         if candles_1h:
             current_price = candles_1h[0].close
 
+    # Log multi-timeframe data availability
+    tf_summary = {tf: len(candles) for tf, candles in timeframe_data.items()}
+    logger.info(f"📊 {symbol} Multi-TF data: {tf_summary}")
+
     return AIAnalysisRequest(
         symbol=symbol,
-        timeframe_data={"1h": candles_1h},
+        timeframe_data=timeframe_data,
         current_price=current_price,
         volume_24h=volume_24h,
         timestamp=current_time,
@@ -2616,6 +2810,75 @@ async def deep_health_market_condition():
         raise HTTPException(
             status_code=503, detail=f"Market condition pipeline error: {str(e)}"
         )
+
+
+@app.get("/api/ai/signal-quality")
+async def signal_quality(limit: int = 50):
+    """
+    Get signal quality analysis from recent AI signals.
+
+    @spec:FR-SETTINGS-003 - Signal quality monitoring
+    Returns bull/bear/neutral breakdown, neutral %, average confidence,
+    consecutive neutral count, and pipeline settings summary.
+    """
+    result = {
+        "total": 0,
+        "bull_count": 0,
+        "bear_count": 0,
+        "neutral_count": 0,
+        "neutral_pct": 0.0,
+        "avg_confidence": 0.0,
+        "consecutive_neutral": 0,
+        "signals": [],
+        "pipeline_settings": settings_manager.get_all_pipeline_settings(),
+    }
+
+    try:
+        if mongodb_db is not None:
+            cursor = (
+                mongodb_db[AI_ANALYSIS_COLLECTION]
+                .find({}, {"signal": 1, "confidence": 1, "timestamp": 1, "symbol": 1, "_id": 0})
+                .sort("timestamp", -1)
+                .limit(limit)
+            )
+            signals = await cursor.to_list(length=limit)
+
+            if signals:
+                result["total"] = len(signals)
+                result["signals"] = signals
+
+                for s in signals:
+                    sig = s.get("signal", "Neutral")
+                    if sig == "Long":
+                        result["bull_count"] += 1
+                    elif sig == "Short":
+                        result["bear_count"] += 1
+                    else:
+                        result["neutral_count"] += 1
+
+                confidences = [s.get("confidence", 0) for s in signals]
+                result["avg_confidence"] = (
+                    sum(confidences) / len(confidences) if confidences else 0
+                )
+                result["neutral_pct"] = (
+                    (result["neutral_count"] / result["total"]) * 100
+                    if result["total"] > 0
+                    else 0
+                )
+
+                # Count consecutive neutrals from most recent
+                for s in signals:
+                    if s.get("signal", "Neutral") == "Neutral":
+                        result["consecutive_neutral"] += 1
+                    else:
+                        break
+
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ Signal quality report error: {e}")
+        result["error"] = str(e)
+        return result
 
 
 @app.get("/debug/gpt4")
@@ -2943,11 +3206,13 @@ def _calculate_direction_score(
 
     # --- RSI Momentum (15%) ---
     rsi = float(indicators.get("rsi", 50.0))
+    rsi_bull = get_pipeline_rsi_bull_threshold()
+    rsi_bear = get_pipeline_rsi_bear_threshold()
     if rsi > 70:
         rsi_score = 0.3
-    elif rsi > 55:
+    elif rsi > rsi_bull:
         rsi_score = 0.7
-    elif rsi > 45:
+    elif rsi > rsi_bear:
         rsi_score = 0.0
     elif rsi > 30:
         rsi_score = -0.7
@@ -3112,16 +3377,23 @@ def _determine_market_phase(
     tf_results: Dict[str, Dict[str, Any]], direction: float
 ) -> str:
     """Determine market phase from ADX and direction."""
+    # Market phase classification thresholds
+    ADX_STRONG_TREND = 30
+    ADX_TRENDING = 25
+    ADX_RANGING = 20
+    DIRECTION_STRONG = 0.5
+    DIRECTION_TRENDING = 0.3
+
     adx_values = [
         data.get("indicators", {}).get("adx", 25.0) for data in tf_results.values()
     ]
     avg_adx = sum(adx_values) / len(adx_values) if adx_values else 25.0
 
-    if avg_adx > 30 and abs(direction) > 0.5:
+    if avg_adx > ADX_STRONG_TREND and abs(direction) > DIRECTION_STRONG:
         return "Strong Trend"
-    elif avg_adx > 25 and abs(direction) > 0.3:
+    elif avg_adx > ADX_TRENDING and abs(direction) > DIRECTION_TRENDING:
         return "Trending"
-    elif avg_adx < 20:
+    elif avg_adx < ADX_RANGING:
         return "Ranging/Consolidation"
     else:
         return "Transitioning"
@@ -3131,10 +3403,14 @@ def _build_characteristics(
     tf_results: Dict[str, Dict[str, Any]], direction: float
 ) -> List[str]:
     """Build human-readable characteristics list."""
+    DIRECTION_THRESHOLD = 0.3
+    VOLUME_HIGH = 1.5
+    VOLUME_LOW = 0.7
+
     chars = []
-    if direction > 0.3:
+    if direction > DIRECTION_THRESHOLD:
         chars.append("Bullish momentum across timeframes")
-    elif direction < -0.3:
+    elif direction < -DIRECTION_THRESHOLD:
         chars.append("Bearish pressure across timeframes")
     else:
         chars.append("Mixed signals / sideways action")
@@ -3145,9 +3421,9 @@ def _build_characteristics(
         for data in tf_results.values()
     ]
     avg_vol = sum(vol_ratios) / len(vol_ratios) if vol_ratios else 1.0
-    if avg_vol > 1.5:
+    if avg_vol > VOLUME_HIGH:
         chars.append("High volume confirming move")
-    elif avg_vol < 0.7:
+    elif avg_vol < VOLUME_LOW:
         chars.append("Low volume - weak conviction")
 
     # Check ADX
@@ -3669,14 +3945,20 @@ def _predict_trend_technical(
     # Calculate momentum
     price_change_20 = ((df["close"].iloc[-1] / df["close"].iloc[-20]) - 1) * 100
 
+    # Trend classification thresholds
+    EMA_DISTANCE_THRESHOLD = 1.0  # % distance from EMA200 to confirm trend
+    MOMENTUM_THRESHOLD = 2.0  # % price change over 20 periods
+    TREND_CONFIDENCE_BASE = 0.75
+    TREND_CONFIDENCE_MAX = 0.95
+
     # Determine trend
-    if distance_pct > 1.0 and price_change_20 > 2.0:
+    if distance_pct > EMA_DISTANCE_THRESHOLD and price_change_20 > MOMENTUM_THRESHOLD:
         trend = "Uptrend"
-        confidence = min(0.75 + (abs(distance_pct) / 10), 0.95)
+        confidence = min(TREND_CONFIDENCE_BASE + (abs(distance_pct) / 10), TREND_CONFIDENCE_MAX)
         reasoning = f"Price {distance_pct:.1f}% above EMA200 with {price_change_20:.1f}% upward momentum"
-    elif distance_pct < -1.0 and price_change_20 < -2.0:
+    elif distance_pct < -EMA_DISTANCE_THRESHOLD and price_change_20 < -MOMENTUM_THRESHOLD:
         trend = "Downtrend"
-        confidence = min(0.75 + (abs(distance_pct) / 10), 0.95)
+        confidence = min(TREND_CONFIDENCE_BASE + (abs(distance_pct) / 10), TREND_CONFIDENCE_MAX)
         reasoning = f"Price {distance_pct:.1f}% below EMA200 with {price_change_20:.1f}% downward momentum"
     else:
         trend = "Neutral"

@@ -176,6 +176,28 @@ class SettingsManager:
                 "confidence_base": 0.5,
                 "confidence_per_timeframe": 0.08,
             },
+            "signal_pipeline": {
+                "min_weighted_threshold": 60.0,
+                "weight_15m": 0.5,
+                "weight_30m": 1.0,
+                "weight_1h": 2.0,
+                "rsi_bull_threshold": 55.0,
+                "rsi_bear_threshold": 45.0,
+                "bb_bull_threshold": 0.3,
+                "bb_bear_threshold": 0.7,
+                "stoch_overbought": 80.0,
+                "stoch_oversold": 20.0,
+                "volume_confirm_multiplier": 1.2,
+                "confidence_max": 0.85,
+                "confidence_multiplier": 0.35,
+                "counter_trend_confidence_max": 0.65,
+                "counter_trend_multiplier": 0.20,
+                "neutral_confidence": 0.40,
+                "counter_trend_block_offset": 0.05,
+                "counter_trend_enabled": True,
+                "counter_trend_mode": "block",
+                "analysis_timeframes": ["15m", "30m", "1h"],
+            },
         }
 
     def get_indicator_value(self, key: str, default: Any = None) -> Any:
@@ -231,6 +253,38 @@ class SettingsManager:
         if self.settings_cache is None:
             return self._get_default_settings()["signal"]
         return self.settings_cache.get("signal", self._get_default_settings()["signal"])
+
+    def get_pipeline_value(self, key: str, default: Any = None) -> Any:
+        """
+        Get a specific signal pipeline value synchronously.
+        Safe to call from sync code - uses cached settings.
+
+        @spec:FR-SETTINGS-003 - Signal pipeline configuration
+
+        Args:
+            key: Setting key (e.g., 'min_weighted_threshold', 'rsi_bull_threshold')
+            default: Default value if key not found
+
+        Returns:
+            Setting value or default
+        """
+        if self.settings_cache is None:
+            defaults = self._get_default_settings()
+            return defaults.get("signal_pipeline", {}).get(key, default)
+        return self.settings_cache.get("signal_pipeline", {}).get(key, default)
+
+    def get_all_pipeline_settings(self) -> Dict[str, Any]:
+        """
+        Get all signal pipeline settings.
+        Returns cached settings or defaults.
+
+        @spec:FR-SETTINGS-003 - Signal pipeline configuration
+        """
+        if self.settings_cache is None:
+            return self._get_default_settings()["signal_pipeline"]
+        return self.settings_cache.get(
+            "signal_pipeline", self._get_default_settings()["signal_pipeline"]
+        )
 
 
 # Global singleton instance

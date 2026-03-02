@@ -542,6 +542,98 @@ export function registerPaperTradingTools(server: McpServer): void {
     }
   );
 
+  // @spec:FR-SETTINGS-003 - Signal pipeline settings tools
+  server.registerTool(
+    "get_paper_signal_pipeline_settings",
+    {
+      title: "Get Signal Pipeline Settings",
+      description:
+        "Get signal pipeline configuration: weighted voting thresholds, indicator classification thresholds (RSI bull/bear, BB, Stochastic), confidence scoring, counter-trend filter, analysis timeframes",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async () => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/indicator-settings",
+        { timeoutMs: 10_000 }
+      );
+      if (!res.success) {
+        return toolError(res.error || "Failed to get signal pipeline settings");
+      }
+      // Return only the signal_pipeline section for clarity
+      const pipeline = (res.data as Record<string, unknown>)?.signal_pipeline;
+      return pipeline
+        ? toolSuccess(pipeline)
+        : toolError("signal_pipeline section not found in settings response");
+    }
+  );
+
+  server.registerTool(
+    "update_paper_signal_pipeline_settings",
+    {
+      title: "Update Signal Pipeline Settings",
+      description:
+        "Update signal pipeline configuration: weighted voting thresholds, indicator classification, confidence scoring, counter-trend filter, analysis timeframes. Partial updates supported.",
+      inputSchema: {
+        settings: z
+          .record(z.unknown())
+          .describe(
+            "Signal pipeline settings (e.g., {min_weighted_threshold: 50, rsi_bull_threshold: 52, counter_trend_mode: 'reduce'})"
+          ),
+      },
+      annotations: { readOnlyHint: false, openWorldHint: false },
+    },
+    async ({ settings }: { settings: Record<string, unknown> }) => {
+      // First fetch current pipeline settings to merge partial updates
+      const current = await apiRequest(
+        "rust",
+        "/api/paper-trading/indicator-settings",
+        { timeoutMs: 10_000 }
+      );
+      const currentData = current.data as Record<string, unknown>;
+      if (!current.success || !currentData?.signal_pipeline) {
+        return toolError("Failed to fetch current signal pipeline settings for merge");
+      }
+      const merged = { ...(currentData.signal_pipeline as Record<string, unknown>), ...settings };
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/indicator-settings",
+        { method: "PUT", body: { signal_pipeline: merged }, timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to update signal pipeline settings");
+    }
+  );
+
+  server.registerTool(
+    "get_signal_quality_report",
+    {
+      title: "Get Signal Quality Report",
+      description:
+        "Get signal quality analysis: bull/bear/neutral breakdown, neutral %, average confidence, consecutive neutral count. Use to diagnose signal pipeline issues.",
+      inputSchema: {
+        limit: z
+          .number()
+          .optional()
+          .describe("Number of recent signals to analyze (default: 50)"),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async ({ limit }: { limit?: number }) => {
+      const n = limit ?? 50;
+      const res = await apiRequest(
+        "python",
+        `/api/ai/signal-quality?limit=${n}`,
+        { timeoutMs: 15_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to get signal quality report");
+    }
+  );
+
   server.registerTool(
     "reset_paper_account",
     {

@@ -10,6 +10,66 @@ import { logAdjustment, getAuditHistory, isInCooldown, getCooldownRemaining } fr
 import { takeSnapshot, getSnapshots, restoreFromSnapshot, getLatestSnapshot } from "../tuning/snapshot.js";
 import { generateConfirmToken, validateConfirmToken, hashParams } from "../security.js";
 
+/**
+ * Build API request body from a potentially dotted apiField path.
+ * For nested paths like "signal_pipeline.min_weighted_threshold",
+ * produces { signal_pipeline: { min_weighted_threshold: value } }.
+ * For simple paths like "stop_loss_percent", produces { stop_loss_percent: value }.
+ */
+function buildApiBody(apiField: string, value: unknown): Record<string, unknown> {
+  const parts = apiField.split(".");
+  if (parts.length === 1) return { [apiField]: value };
+  const body: Record<string, unknown> = {};
+  let cursor: Record<string, unknown> = body;
+  for (let i = 0; i < parts.length - 1; i++) {
+    cursor[parts[i]] = {};
+    cursor = cursor[parts[i]] as Record<string, unknown>;
+  }
+  cursor[parts[parts.length - 1]] = value;
+  return body;
+}
+
+/**
+ * Apply a parameter adjustment via API, handling nested paths correctly.
+ * For indicator-settings with dotted apiField (signal_pipeline.*),
+ * fetches current settings and merges to avoid clobbering other fields.
+ */
+async function applyParameterChange(
+  apiEndpoint: string,
+  apiField: string,
+  value: unknown,
+): Promise<{ success: boolean; error?: string; data?: unknown }> {
+  // For dotted paths targeting indicator-settings, do fetch-merge-put
+  if (apiField.includes(".") && apiEndpoint.includes("indicator-settings")) {
+    const parts = apiField.split(".");
+    const section = parts[0]; // e.g. "signal_pipeline"
+    const field = parts.slice(1).join("."); // e.g. "min_weighted_threshold"
+
+    // Fetch current settings
+    const current = await apiRequest("rust", apiEndpoint, { timeoutMs: 10_000 });
+    if (!current.success) {
+      return { success: false, error: `Failed to fetch current settings for merge: ${current.error}` };
+    }
+    const currentData = current.data as Record<string, unknown>;
+    const currentSection = (currentData?.[section] ?? {}) as Record<string, unknown>;
+    const merged = { ...currentSection, [field]: value };
+
+    return apiRequest("rust", apiEndpoint, {
+      method: "PUT",
+      body: { [section]: merged },
+      timeoutMs: 10_000,
+    });
+  }
+
+  // Simple path — direct PUT
+  const body = buildApiBody(apiField, value);
+  return apiRequest("rust", apiEndpoint, {
+    method: "PUT",
+    body,
+    timeoutMs: 10_000,
+  });
+}
+
 export function registerTuningTools(server: McpServer): void {
   // ── 1. Tuning Dashboard ──
   server.registerTool(
@@ -123,17 +183,17 @@ export function registerTuningTools(server: McpServer): void {
       // Take snapshot before change
       const snapshot = await takeSnapshot();
 
-      // Apply via BotCore API
-      const body = parameter === "signal_interval_minutes"
-        ? { interval_seconds: (effectiveValue as number) * 60 }
-        : { [bound.apiField]: effectiveValue };
-
-      const method = bound.apiEndpoint.includes("signal-interval") ? "PUT" : "PUT";
-      const res = await apiRequest("rust", bound.apiEndpoint, {
-        method,
-        body,
-        timeoutMs: 10_000,
-      });
+      // Apply via BotCore API — handles nested paths for signal_pipeline.*
+      let res;
+      if (parameter === "signal_interval_minutes") {
+        res = await apiRequest("rust", bound.apiEndpoint, {
+          method: "PUT",
+          body: { interval_seconds: (effectiveValue as number) * 60 },
+          timeoutMs: 10_000,
+        });
+      } else {
+        res = await applyParameterChange(bound.apiEndpoint, bound.apiField, effectiveValue);
+      }
 
       if (!res.success) return toolError(res.error || "Failed to apply adjustment");
 
@@ -203,11 +263,7 @@ export function registerTuningTools(server: McpServer): void {
         }
 
         const snapshot = await takeSnapshot();
-        const res = await apiRequest("rust", bound.apiEndpoint, {
-          method: "PUT",
-          body: { [bound.apiField]: effectiveValue },
-          timeoutMs: 10_000,
-        });
+        const res = await applyParameterChange(bound.apiEndpoint, bound.apiField, effectiveValue);
 
         if (!res.success) return toolError(res.error || "Failed to apply adjustment");
 
@@ -296,11 +352,7 @@ export function registerTuningTools(server: McpServer): void {
             : "/api/paper-trading/stop";
           res = await apiRequest("rust", endpoint, { method: "POST", body: {}, timeoutMs: 10_000 });
         } else {
-          res = await apiRequest("rust", bound.apiEndpoint, {
-            method: "PUT",
-            body: { [bound.apiField]: effectiveValue },
-            timeoutMs: 10_000,
-          });
+          res = await applyParameterChange(bound.apiEndpoint, bound.apiField, effectiveValue);
         }
 
         if (!res.success) return toolError(res.error || "Failed to apply RED adjustment");

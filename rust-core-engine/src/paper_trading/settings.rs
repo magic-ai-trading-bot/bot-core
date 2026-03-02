@@ -35,6 +35,12 @@ pub struct PaperTradingSettings {
     /// @spec:FR-SETTINGS-002 - Unified signal generation settings
     #[serde(default)]
     pub signal: SignalGenerationSettings,
+
+    /// Signal pipeline configuration (shared with Python AI service)
+    /// Controls how raw indicator data becomes trading signals
+    /// @spec:FR-SETTINGS-003 - Signal pipeline configuration
+    #[serde(default)]
+    pub signal_pipeline: SignalPipelineSettings,
 }
 
 /// Technical indicator configuration
@@ -111,6 +117,95 @@ pub struct SignalGenerationSettings {
     /// Max confidence with 4 timeframes = base + (4 * per_tf) = ~0.82
     /// Valid range: 0.01-0.2
     pub confidence_per_timeframe: f64,
+}
+
+/// Signal pipeline configuration
+/// Controls how raw indicator data becomes trading signals.
+/// These settings are shared with Python AI service to ensure consistent
+/// signal generation logic. Covers weighted voting, indicator classification
+/// thresholds, confidence scoring, and counter-trend filtering.
+/// @spec:FR-SETTINGS-003 - Signal pipeline configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalPipelineSettings {
+    // --- Weighted voting ---
+    /// Minimum weighted agreement % to generate directional signal (default: 60.0)
+    pub min_weighted_threshold: f64,
+
+    // --- Timeframe weights ---
+    /// Weight for 15M timeframe in voting (default: 0.5)
+    pub weight_15m: f64,
+    /// Weight for 30M timeframe in voting (default: 1.0)
+    pub weight_30m: f64,
+    /// Weight for 1H timeframe in voting (default: 2.0)
+    pub weight_1h: f64,
+
+    // --- Indicator classification thresholds ---
+    /// RSI bullish threshold (value > this = bullish, default: 55.0)
+    pub rsi_bull_threshold: f64,
+    /// RSI bearish threshold (value < this = bearish, default: 45.0)
+    pub rsi_bear_threshold: f64,
+    /// BB position bullish threshold (position < this = bullish/oversold, default: 0.3)
+    pub bb_bull_threshold: f64,
+    /// BB position bearish threshold (position > this = bearish/overbought, default: 0.7)
+    pub bb_bear_threshold: f64,
+    /// Stochastic overbought level (default: 80.0)
+    pub stoch_overbought: f64,
+    /// Stochastic oversold level (default: 20.0)
+    pub stoch_oversold: f64,
+    /// Volume confirmation multiplier (default: 1.2)
+    pub volume_confirm_multiplier: f64,
+
+    // --- Confidence scoring ---
+    /// Maximum confidence cap (default: 0.85)
+    pub confidence_max: f64,
+    /// Confidence multiplier for weighted score (default: 0.35)
+    pub confidence_multiplier: f64,
+    /// Counter-trend confidence cap (default: 0.65)
+    pub counter_trend_confidence_max: f64,
+    /// Counter-trend confidence multiplier (default: 0.20)
+    pub counter_trend_multiplier: f64,
+    /// Neutral signal confidence (default: 0.40)
+    pub neutral_confidence: f64,
+
+    /// Confidence offset added to neutral_confidence for counter-trend block signals (default: 0.05)
+    pub counter_trend_block_offset: f64,
+
+    // --- Counter-trend filter ---
+    /// Enable counter-trend protection (default: true)
+    pub counter_trend_enabled: bool,
+    /// Counter-trend behavior: "block" (force Neutral) or "reduce" (lower confidence)
+    pub counter_trend_mode: String,
+
+    // --- Timeframe selection for periodic analysis ---
+    /// Which timeframes to fetch candles for (default: ["15m", "30m", "1h"])
+    pub analysis_timeframes: Vec<String>,
+}
+
+impl Default for SignalPipelineSettings {
+    fn default() -> Self {
+        Self {
+            min_weighted_threshold: 60.0,
+            weight_15m: 0.5,
+            weight_30m: 1.0,
+            weight_1h: 2.0,
+            rsi_bull_threshold: 55.0,
+            rsi_bear_threshold: 45.0,
+            bb_bull_threshold: 0.3,
+            bb_bear_threshold: 0.7,
+            stoch_overbought: 80.0,
+            stoch_oversold: 20.0,
+            volume_confirm_multiplier: 1.2,
+            confidence_max: 0.85,
+            confidence_multiplier: 0.35,
+            counter_trend_confidence_max: 0.65,
+            counter_trend_multiplier: 0.20,
+            neutral_confidence: 0.40,
+            counter_trend_block_offset: 0.05,
+            counter_trend_enabled: true,
+            counter_trend_mode: "block".to_string(),
+            analysis_timeframes: vec!["15m".to_string(), "30m".to_string(), "1h".to_string()],
+        }
+    }
 }
 
 impl Default for IndicatorSettings {
@@ -790,6 +885,52 @@ impl PaperTradingSettings {
             return Err(anyhow::anyhow!(
                 "Confidence per timeframe must be between 0.01 and 0.2, got {}",
                 self.signal.confidence_per_timeframe
+            ));
+        }
+
+        // Validate signal pipeline settings
+        // @spec:FR-SETTINGS-003 - Signal pipeline validation rules
+        if self.signal_pipeline.min_weighted_threshold < 10.0
+            || self.signal_pipeline.min_weighted_threshold > 90.0
+        {
+            return Err(anyhow::anyhow!(
+                "Min weighted threshold must be between 10 and 90, got {}",
+                self.signal_pipeline.min_weighted_threshold
+            ));
+        }
+
+        if self.signal_pipeline.rsi_bull_threshold <= self.signal_pipeline.rsi_bear_threshold {
+            return Err(anyhow::anyhow!(
+                "RSI bull threshold ({}) must be greater than bear threshold ({})",
+                self.signal_pipeline.rsi_bull_threshold,
+                self.signal_pipeline.rsi_bear_threshold
+            ));
+        }
+
+        if self.signal_pipeline.bb_bear_threshold <= self.signal_pipeline.bb_bull_threshold {
+            return Err(anyhow::anyhow!(
+                "BB bear threshold ({}) must be greater than bull threshold ({})",
+                self.signal_pipeline.bb_bear_threshold,
+                self.signal_pipeline.bb_bull_threshold
+            ));
+        }
+
+        if self.signal_pipeline.confidence_max < 0.5 || self.signal_pipeline.confidence_max > 1.0 {
+            return Err(anyhow::anyhow!(
+                "Confidence max must be between 0.5 and 1.0, got {}",
+                self.signal_pipeline.confidence_max
+            ));
+        }
+
+        if self.signal_pipeline.analysis_timeframes.is_empty() {
+            return Err(anyhow::anyhow!("Analysis timeframes cannot be empty"));
+        }
+
+        let valid_counter_trend_modes = ["block", "reduce"];
+        if !valid_counter_trend_modes.contains(&self.signal_pipeline.counter_trend_mode.as_str()) {
+            return Err(anyhow::anyhow!(
+                "Counter-trend mode must be 'block' or 'reduce', got '{}'",
+                self.signal_pipeline.counter_trend_mode
             ));
         }
 

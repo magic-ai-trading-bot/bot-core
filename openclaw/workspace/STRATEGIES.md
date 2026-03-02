@@ -84,23 +84,63 @@
 ## Strategy Orchestration
 
 - **5 strategies** run in parallel: RSI, MACD, Bollinger, Volume, Stochastic
-- **Minimum agreement**: 4/5 strategies must agree on direction
+- **Minimum agreement**: `min_required_indicators`/5 strategies must agree (query `get_paper_indicator_settings`)
 - **Combination modes**: WeightedAverage (default), Consensus, BestConfidence, Conservative
-- **Multi-timeframe**: All strategies analyze 5M (primary) + 15M (confirmation) candles. 1H loaded for AI bias analysis only.
+- **Multi-timeframe**: Candles fetched for configured `analysis_timeframes` (default: 15m, 30m, 1h). Query `get_paper_signal_pipeline_settings`.
 - **Minimum data**: 50 candles per timeframe required before trading starts
 - **Hybrid filter**: Optional AI trend filter for additional validation
 
-### Signal Pipeline (order of checks)
+### Signal Pipeline — How Indicators Become Signals
 
-1. **Neutral filter**: Skip neutral signals
-2. **Confidence filter**: Skip if confidence < min_confidence (0.60)
-3. **Market direction filter**: `short_only_mode` → block Longs; `long_only_mode` → block Shorts (DYNAMIC — check via `get_paper_basic_settings`)
-4. **Choppy market filter**: Skip if 4+ direction flips in 15 minutes for the symbol
-5. **Signal confirmation**: Require 2 consecutive same-direction signals within 10 minutes (60s dedup)
-6. **AI bias check**: Stricter for Longs (threshold -0.3) vs Shorts (threshold -0.5). Skip if `signal_dir × direction_bias < threshold`
-7. **Trade execution**: Pass through risk management layers → execute trade
+> ⚠️ **All thresholds below are CONFIGURABLE via `botcore get_paper_signal_pipeline_settings`**
+> Use `botcore update_paper_signal_pipeline_settings` to tune any value.
 
-**Note on step 6**: Long signals blocked when bias even mildly bearish (> -0.3). Short signals only blocked when bias mildly bullish (< 0.5). This asymmetry protects against losing Long trades in bearish markets.
+**Step 1: Fetch candles** for configured timeframes (default: 15m, 30m, 1h)
+
+**Step 2: Per-timeframe classification** — classify as BULLISH/BEARISH/NEUTRAL:
+- Needs `min_required_indicators` (default 4/5) indicator points to agree
+- MACD histogram > 0 = bullish point, < 0 = bearish point
+- RSI > `rsi_bull_threshold` (55) = bullish, < `rsi_bear_threshold` (45) = bearish
+- BB position < `bb_bull_threshold` (0.3) = bullish, > `bb_bear_threshold` (0.7) = bearish
+- Stochastic K > D and K < `stoch_overbought` (80) = bullish, K < D and K > `stoch_oversold` (20) = bearish
+- Volume ratio > `volume_confirm_multiplier` (1.2x) = confirms trend direction
+
+**Step 3: Weighted voting** across timeframes:
+- 15M × `weight_15m` (0.5) + 30M × `weight_30m` (1.0) + 1H × `weight_1h` (2.0) = total 3.5
+- Normalize to percentage (0-100%)
+
+**Step 4: Signal decision**:
+- If bullish_score >= `min_weighted_threshold` (60%) → Long signal
+- If bearish_score >= `min_weighted_threshold` (60%) → Short signal
+- Otherwise → Neutral
+
+**Step 5: Counter-trend filter** (if `counter_trend_enabled`):
+- mode="block": If 1H conflicts with signal → force Neutral
+- mode="reduce": If 1H conflicts → allow signal but cap confidence at `counter_trend_confidence_max`
+
+**Step 6: Confidence scoring**:
+- confidence = min(`confidence_max`, confidence_base + (score/100) × `confidence_multiplier`)
+- Neutral signals get `neutral_confidence` (0.40)
+
+**Step 7: Trade execution pipeline**:
+1. Neutral filter: Skip neutral signals
+2. Confidence filter: Skip if confidence < min_confidence (0.60)
+3. Market direction filter: `short_only_mode`/`long_only_mode` (query `get_paper_basic_settings`)
+4. Choppy market filter: Skip if 4+ direction flips in 15 minutes
+5. Signal confirmation: Require 2 consecutive same-direction signals within 10 minutes
+6. Risk management layers → execute trade
+
+### Diagnosing Signal Quality Issues
+
+When signals are all Neutral (check with `botcore get_signal_quality_report`):
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| neutral_pct > 80% | Thresholds too strict | Reduce `min_weighted_threshold` (60→40-50) |
+| neutral_pct > 80% | Too many indicators required | Reduce `min_required_indicators` (4→2-3) |
+| All signals blocked | Counter-trend blocking everything | Switch `counter_trend_mode` to "reduce" |
+| Low confidence | Thresholds too wide | Narrow RSI thresholds (55→52, 45→48) |
+| No 15m/30m data | Only 1h configured | Add to `analysis_timeframes` |
 
 ### Choppy Market Detection
 

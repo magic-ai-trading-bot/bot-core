@@ -3,6 +3,10 @@ use crate::strategies::indicators::{calculate_sma, calculate_volume_profile};
 use async_trait::async_trait;
 use serde_json::json;
 
+/// Volume confirmation multiplier for weak signal detection
+/// Matches signal_pipeline.volume_confirm_multiplier default
+const VOLUME_CONFIRM_MULTIPLIER: f64 = 1.2;
+
 /// Volume-based trading strategy
 
 // @spec:FR-STRATEGIES-004 - Volume Strategy
@@ -276,7 +280,7 @@ impl VolumeStrategy {
         }
 
         // Weak signals based on volume patterns
-        if bullish_volume_ratio >= 0.55 && volume_ratio > 1.2 {
+        if bullish_volume_ratio >= 0.55 && volume_ratio > VOLUME_CONFIRM_MULTIPLIER {
             return (
                 TradingSignal::Long,
                 0.51,
@@ -284,7 +288,7 @@ impl VolumeStrategy {
             );
         }
 
-        if bullish_volume_ratio <= 0.45 && volume_ratio > 1.2 {
+        if bullish_volume_ratio <= 0.45 && volume_ratio > VOLUME_CONFIRM_MULTIPLIER {
             return (
                 TradingSignal::Short,
                 0.51,

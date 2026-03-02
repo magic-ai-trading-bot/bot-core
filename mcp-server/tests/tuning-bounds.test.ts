@@ -122,10 +122,12 @@ describe("getParametersByTier", () => {
 
     // Verify counts (from bounds.ts)
     // GREEN: rsi_oversold, rsi_overbought, signal_interval, confidence, data_resolution, stop_loss, take_profit, min_indicators, min_timeframes (9)
-    expect(grouped.GREEN.length).toBe(9);
+    // + sp_min_weighted_threshold, sp_rsi_bull_threshold, sp_rsi_bear_threshold, sp_volume_confirm_multiplier, sp_confidence_max, sp_neutral_confidence, sp_counter_trend_block_offset, sp_counter_trend_mode (8)
+    expect(grouped.GREEN.length).toBe(17);
 
     // YELLOW: position_size_percent, max_positions, leverage (3)
-    expect(grouped.YELLOW.length).toBe(3);
+    // + sp_bb_bull_threshold, sp_bb_bear_threshold, sp_stoch_overbought, sp_stoch_oversold, sp_weight_15m, sp_weight_30m, sp_weight_1h, sp_counter_trend_enabled (8)
+    expect(grouped.YELLOW.length).toBe(11);
 
     // RED: max_daily_loss_percent, engine_running (2)
     expect(grouped.RED.length).toBe(2);
@@ -134,8 +136,9 @@ describe("getParametersByTier", () => {
     const greenNames = grouped.GREEN.map(p => p.name);
     expect(greenNames).toContain("RSI Oversold Threshold");
     expect(greenNames).toContain("Signal Confidence Threshold");
-    expect(greenNames).toContain("Stop Loss %");
-    expect(greenNames).toContain("Take Profit %");
+    expect(greenNames).toContain("Stop Loss % (PnL-based)");
+    expect(greenNames).toContain("Take Profit % (PnL-based)");
+    expect(greenNames).toContain("Min Weighted Threshold");
 
     const yellowNames = grouped.YELLOW.map(p => p.name);
     expect(yellowNames).toContain("Leverage");

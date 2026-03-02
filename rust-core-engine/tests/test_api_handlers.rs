@@ -395,6 +395,28 @@ fn test_indicator_settings_response() {
             confidence_base: 0.5,
             confidence_per_timeframe: 0.1,
         },
+        signal_pipeline: SignalPipelineSettingsApi {
+            min_weighted_threshold: 60.0,
+            weight_15m: 0.5,
+            weight_30m: 1.0,
+            weight_1h: 2.0,
+            rsi_bull_threshold: 55.0,
+            rsi_bear_threshold: 45.0,
+            bb_bull_threshold: 0.3,
+            bb_bear_threshold: 0.7,
+            stoch_overbought: 80.0,
+            stoch_oversold: 20.0,
+            volume_confirm_multiplier: 1.2,
+            confidence_max: 0.85,
+            confidence_multiplier: 0.35,
+            counter_trend_confidence_max: 0.65,
+            counter_trend_multiplier: 0.20,
+            neutral_confidence: 0.40,
+            counter_trend_block_offset: 0.05,
+            counter_trend_enabled: true,
+            counter_trend_mode: "block".to_string(),
+            analysis_timeframes: vec!["15m".to_string(), "30m".to_string(), "1h".to_string()],
+        },
     };
 
     assert_eq!(response.indicators.rsi_period, 14);
@@ -645,6 +667,7 @@ fn test_update_indicator_settings_request() {
             confidence_base: 0.6,
             confidence_per_timeframe: 0.15,
         }),
+        signal_pipeline: None,
     };
 
     assert!(request.indicators.is_some());

@@ -38,6 +38,15 @@ use super::{
 /// Signal history for choppy market detection: Vec of (timestamp, direction) per symbol
 type SignalFlipTracker = HashMap<String, Vec<(i64, TradingSignal)>>;
 
+/// Timeframes used by the Rust strategy engine for real-time signal generation.
+/// 5m = primary candle resolution for all strategies (RSI, MACD, Bollinger, Volume, Stochastic)
+/// 15m = confirmation timeframe for multi-timeframe validation
+/// These are architectural requirements of the strategy system, NOT the Python signal pipeline.
+const STRATEGY_REFRESH_TIMEFRAMES: &[&str] = &["5m", "15m"];
+
+/// Full set of timeframes loaded for strategy input (includes 1h for AI bias analysis)
+const STRATEGY_ALL_TIMEFRAMES: &[&str] = &["5m", "15m", "1h"];
+
 /// Main paper trading engine
 #[derive(Clone)]
 pub struct PaperTradingEngine {
@@ -371,7 +380,7 @@ impl PaperTradingEngine {
 
                 for symbol in &symbols {
                     // Fetch fresh klines for key timeframes and update cache
-                    for timeframe in &["5m", "15m"] {
+                    for timeframe in STRATEGY_REFRESH_TIMEFRAMES {
                         let cache_key = format!("{}_{}", symbol, timeframe);
 
                         // Fetch latest 5 candles from Binance to detect new closes
@@ -736,7 +745,7 @@ impl PaperTradingEngine {
 
         let mut timeframe_data: HashMap<String, Vec<CandleData>> = HashMap::new();
 
-        for timeframe in &["5m", "15m", "1h"] {
+        for timeframe in STRATEGY_ALL_TIMEFRAMES {
             let cache_key = format!("{}_{}", symbol, timeframe);
             if let Some(klines) = cache.get(&cache_key) {
                 let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
@@ -1446,7 +1455,7 @@ impl PaperTradingEngine {
         // @spec:FR-STRATEGIES-007 - Multi-Timeframe Analysis
         // CRITICAL: All strategies require BOTH 5m and 15m timeframes
         // Must check both timeframes have sufficient data
-        const REQUIRED_TIMEFRAMES: &[&str] = &["5m", "15m"];
+        const REQUIRED_TIMEFRAMES: &[&str] = STRATEGY_REFRESH_TIMEFRAMES;
 
         // STEP 1: Check cache for ALL required timeframes
         {
@@ -1547,7 +1556,7 @@ impl PaperTradingEngine {
         // CRITICAL: Load ALL timeframes required by strategies
         // RSI, MACD, Bollinger, Stochastic all require 5m + 15m
         // Also load 1h for AI bias analysis
-        const REQUIRED_TIMEFRAMES: &[&str] = &["5m", "15m", "1h"];
+        const REQUIRED_TIMEFRAMES: &[&str] = STRATEGY_ALL_TIMEFRAMES;
         const MIN_CANDLES: u32 = 50;
         let mut total_loaded = 0;
         let mut failed = 0;
@@ -4098,7 +4107,8 @@ mod tests {
     use super::*;
     use crate::paper_trading::settings::{
         AISettings, BasicSettings, ExecutionSettings, IndicatorSettings, NotificationSettings,
-        RiskSettings, SignalGenerationSettings, StrategySettings, SymbolSettings,
+        RiskSettings, SignalGenerationSettings, SignalPipelineSettings, StrategySettings,
+        SymbolSettings,
     };
     use crate::paper_trading::trade::TradeStatus;
     use crate::paper_trading::{ManualOrderParams, MarketAnalysisData};
@@ -4167,9 +4177,10 @@ mod tests {
             ai: AISettings::default(),
             execution: ExecutionSettings::default(),
             notifications: NotificationSettings::default(),
-            // @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified settings
+            // @spec:FR-SETTINGS-001, FR-SETTINGS-002, FR-SETTINGS-003 - Unified settings
             indicators: IndicatorSettings::default(),
             signal: SignalGenerationSettings::default(),
+            signal_pipeline: SignalPipelineSettings::default(),
         }
     }
 
