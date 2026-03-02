@@ -2510,6 +2510,30 @@ impl RealTradingEngine {
         all_trades
     }
 
+    /// Fetch order history from Binance for given symbols (includes cancelled/filled/expired)
+    pub async fn get_order_history(
+        &self,
+        symbols: &[String],
+        limit: Option<u16>,
+    ) -> Vec<crate::binance::types::FuturesOrder> {
+        let mut all_orders = Vec::new();
+        for symbol in symbols {
+            match self
+                .binance_client
+                .get_all_futures_orders(symbol, limit)
+                .await
+            {
+                Ok(orders) => all_orders.extend(orders),
+                Err(e) => {
+                    warn!("Failed to fetch order history for {}: {}", symbol, e);
+                },
+            }
+        }
+        // Sort by time descending (newest first)
+        all_orders.sort_by(|a, b| b.time.cmp(&a.time));
+        all_orders
+    }
+
     /// Get current configuration
     pub async fn get_config(&self) -> RealTradingConfig {
         self.config.read().await.clone()

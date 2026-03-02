@@ -773,38 +773,58 @@ async fn get_closed_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejec
         symbol_set.insert(s.clone());
     }
     let symbols: Vec<String> = symbol_set.into_iter().collect();
-    let binance_trades = engine.get_trade_history(&symbols, Some(500)).await;
 
-    // Convert Binance trades to frontend-compatible format (PaperTrade/RealTrade)
-    let trades: Vec<serde_json::Value> = binance_trades
+    // Fetch all orders (filled, cancelled, expired) from Binance
+    let binance_orders = engine.get_order_history(&symbols, Some(500)).await;
+
+    // Filter to non-active orders (completed history) and convert to frontend format
+    let trades: Vec<serde_json::Value> = binance_orders
         .iter()
-        .map(|t| {
-            let qty: f64 = t.qty.parse().unwrap_or(0.0);
-            let price: f64 = t.price.parse().unwrap_or(0.0);
-            let pnl: f64 = t.realized_pnl.parse().unwrap_or(0.0);
-            let commission: f64 = t.commission.parse().unwrap_or(0.0);
-            let cost = qty * price;
-            let pnl_pct = if cost > 0.0 { (pnl / cost) * 100.0 } else { 0.0 };
-            let trade_type = if t.buyer { "Long" } else { "Short" };
-            let ts = chrono::DateTime::from_timestamp_millis(t.time)
+        .filter(|o| {
+            let status = o.status.to_uppercase();
+            // Include filled, cancelled, expired — exclude NEW (still active)
+            status != "NEW" && status != "PARTIALLY_FILLED"
+        })
+        .map(|o| {
+            let orig_qty: f64 = o.orig_qty.parse().unwrap_or(0.0);
+            let executed_qty: f64 = o.executed_qty.parse().unwrap_or(0.0);
+            let price: f64 = o.price.parse().unwrap_or(0.0);
+            let avg_price: f64 = if executed_qty > 0.0 {
+                let cum_quote: f64 = o.cumulative_quote_qty.parse().unwrap_or(0.0);
+                cum_quote / executed_qty
+            } else {
+                price
+            };
+            let status_str = match o.status.to_uppercase().as_str() {
+                "FILLED" => "Closed",
+                "CANCELED" | "CANCELLED" => "Cancelled",
+                "EXPIRED" => "Cancelled",
+                _ => "Closed",
+            };
+            let trade_type = if o.side.to_uppercase() == "BUY" { "Long" } else { "Short" };
+            let side_str = if o.side.to_uppercase() == "BUY" { "LONG" } else { "SHORT" };
+            let ts = chrono::DateTime::from_timestamp_millis(o.time)
+                .map(|dt| dt.to_rfc3339())
+                .unwrap_or_default();
+            let close_ts = chrono::DateTime::from_timestamp_millis(o.update_time)
                 .map(|dt| dt.to_rfc3339())
                 .unwrap_or_default();
 
             serde_json::json!({
-                "id": format!("{}", t.id),
-                "symbol": t.symbol,
+                "id": format!("{}", o.order_id),
+                "symbol": o.symbol,
                 "trade_type": trade_type,
-                "side": if t.buyer { "LONG" } else { "SHORT" },
-                "status": "Closed",
-                "entry_price": price,
-                "exit_price": price,
-                "quantity": qty,
+                "side": side_str,
+                "status": status_str,
+                "order_type": o.r#type,
+                "entry_price": if avg_price > 0.0 { avg_price } else { price },
+                "exit_price": avg_price,
+                "quantity": if executed_qty > 0.0 { executed_qty } else { orig_qty },
                 "leverage": 1,
-                "pnl": pnl,
-                "pnl_percentage": pnl_pct,
-                "commission": commission,
+                "pnl": 0.0,
+                "pnl_percentage": 0.0,
                 "open_time": ts,
-                "close_time": ts,
+                "close_time": close_ts,
             })
         })
         .collect();
