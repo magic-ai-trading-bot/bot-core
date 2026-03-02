@@ -23,16 +23,16 @@ if [ -n "$RUST_CHANGED" ]; then
   fi
   echo "  ✅ formatting OK"
 
-  # Run cargo check (fast compilation check, no codegen)
-  echo "  → cargo check"
-  (cd rust-core-engine && cargo check 2>&1)
-  CHECK_EXIT=$?
-  if [ $CHECK_EXIT -ne 0 ]; then
+  # Run cargo clippy (matches CI: -D warnings -A too_many_arguments)
+  echo "  → cargo clippy -- -D warnings -A clippy::too_many_arguments"
+  (cd rust-core-engine && cargo clippy -- -D warnings -A clippy::too_many_arguments -A clippy::uninlined_format_args 2>&1)
+  CLIPPY_EXIT=$?
+  if [ $CLIPPY_EXIT -ne 0 ]; then
     echo ""
-    echo "❌ cargo check failed! Fix compilation errors before committing."
+    echo "❌ cargo clippy failed! Fix lint warnings before committing."
     exit 1
   fi
-  echo "  ✅ compilation OK"
+  echo "  ✅ clippy OK"
 
   echo "✅ All Rust pre-commit checks passed"
 fi
