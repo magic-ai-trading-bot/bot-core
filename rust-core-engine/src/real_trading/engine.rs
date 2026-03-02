@@ -2482,6 +2482,17 @@ impl RealTradingEngine {
             .collect()
     }
 
+    /// Get open orders directly from Binance exchange
+    pub async fn get_exchange_open_orders(&self) -> Vec<crate::binance::types::FuturesOrder> {
+        match self.binance_client.get_open_orders(None).await {
+            Ok(orders) => orders,
+            Err(e) => {
+                warn!("Failed to fetch open orders from exchange: {}", e);
+                Vec::new()
+            },
+        }
+    }
+
     /// Get order by client ID
     pub fn get_order(&self, client_order_id: &str) -> Option<RealOrder> {
         self.orders.get(client_order_id).map(|o| o.clone())

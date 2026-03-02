@@ -204,13 +204,13 @@ export const useRealTrading = () => {
         const mappedPortfolio: RealPortfolioMetrics = {
           ...defaultPortfolio,
           current_balance: apiData.total_balance || 0,
-          equity: apiData.total_balance || 0,
+          equity: apiData.equity || apiData.total_balance || 0,
           margin_used: apiData.locked_balance || 0,
           free_margin: apiData.available_balance || 0,
-          total_pnl: apiData.realized_pnl || 0,
-          total_pnl_percentage: apiData.total_balance > 0
-            ? ((apiData.realized_pnl || 0) / apiData.total_balance) * 100
-            : 0,
+          total_pnl: apiData.total_pnl ?? apiData.unrealized_pnl ?? 0,
+          total_pnl_percentage: apiData.total_pnl_percentage ?? 0,
+          total_trades: apiData.total_trades ?? 0,
+          win_rate: apiData.win_rate ?? 0,
         };
 
         setState((prev) => ({

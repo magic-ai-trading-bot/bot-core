@@ -69,13 +69,23 @@ pub struct EngineStatus {
 }
 
 /// Portfolio response
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct PortfolioResponse {
     pub total_balance: f64,
     pub available_balance: f64,
     pub locked_balance: f64,
     pub unrealized_pnl: f64,
     pub realized_pnl: f64,
+    #[serde(default)]
+    pub total_pnl: f64,
+    #[serde(default)]
+    pub total_pnl_percentage: f64,
+    #[serde(default)]
+    pub equity: f64,
+    #[serde(default)]
+    pub total_trades: u32,
+    #[serde(default)]
+    pub win_rate: f64,
     pub positions: Vec<PositionInfo>,
     pub balances: Vec<BalanceInfo>,
 }
@@ -669,12 +679,36 @@ async fn get_portfolio(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejection
         });
     }
 
+    // Calculate total PnL and stats
+    let total_pnl = total_unrealized_pnl + total_realized_pnl;
+    let total_pnl_percentage = if total_balance > 0.0 {
+        (total_pnl / total_balance) * 100.0
+    } else {
+        0.0
+    };
+    let equity = total_balance + total_unrealized_pnl;
+    let total_trades = position_infos.len() as u32;
+    let winning_trades = position_infos
+        .iter()
+        .filter(|p| p.unrealized_pnl > 0.0)
+        .count() as u32;
+    let win_rate = if total_trades > 0 {
+        (winning_trades as f64 / total_trades as f64) * 100.0
+    } else {
+        0.0
+    };
+
     let portfolio = PortfolioResponse {
         total_balance,
         available_balance,
         locked_balance,
         unrealized_pnl: total_unrealized_pnl,
         realized_pnl: total_realized_pnl,
+        total_pnl,
+        total_pnl_percentage,
+        equity,
+        total_trades,
+        win_rate,
         positions: position_infos,
         balances: balance_infos,
     };
@@ -1309,31 +1343,64 @@ async fn list_orders(
         },
     };
 
-    let orders = engine.get_active_orders();
+    // Fetch open orders directly from Binance exchange (source of truth)
+    let exchange_orders = engine.get_exchange_open_orders().await;
 
-    let filtered_orders: Vec<OrderInfo> = orders
+    let mut all_orders: Vec<OrderInfo> = exchange_orders
         .into_iter()
         .filter(|o| {
-            // Filter by symbol if provided
             if let Some(ref sym) = query.symbol {
                 if o.symbol != *sym {
                     return false;
                 }
             }
-            // Filter by status if provided
-            if let Some(ref status) = query.status {
-                let status_lower = status.to_lowercase();
-                if status_lower != "all" {
-                    let order_status = format!("{:?}", o.state).to_lowercase();
-                    if !order_status.contains(&status_lower) {
-                        return false;
-                    }
-                }
-            }
             true
         })
-        .take(query.limit)
-        .map(|o| OrderInfo {
+        .map(|o| {
+            let price_val = o.price.parse::<f64>().unwrap_or(0.0);
+            let qty = o.orig_qty.parse::<f64>().unwrap_or(0.0);
+            let exec_qty = o.executed_qty.parse::<f64>().unwrap_or(0.0);
+            let avg_price =
+                o.cumulative_quote_qty.parse::<f64>().unwrap_or(0.0) / exec_qty.max(0.0001);
+            let timestamp = chrono::DateTime::from_timestamp_millis(o.time)
+                .unwrap_or_default()
+                .to_rfc3339();
+            let update_time = chrono::DateTime::from_timestamp_millis(o.update_time)
+                .unwrap_or_default()
+                .to_rfc3339();
+            OrderInfo {
+                id: o.client_order_id,
+                exchange_order_id: o.order_id,
+                symbol: o.symbol,
+                side: o.side,
+                order_type: o.r#type,
+                quantity: qty,
+                executed_quantity: exec_qty,
+                price: if price_val > 0.0 {
+                    Some(price_val)
+                } else {
+                    None
+                },
+                avg_fill_price: avg_price,
+                status: o.status,
+                is_entry: true,
+                created_at: timestamp,
+                updated_at: update_time,
+            }
+        })
+        .collect();
+
+    // Also include in-memory active orders (placed through our engine)
+    let local_orders = engine.get_active_orders();
+    let exchange_ids: std::collections::HashSet<i64> =
+        all_orders.iter().map(|o| o.exchange_order_id).collect();
+
+    for o in local_orders {
+        // Avoid duplicates — skip if already fetched from exchange
+        if exchange_ids.contains(&o.exchange_order_id) {
+            continue;
+        }
+        all_orders.push(OrderInfo {
             id: o.client_order_id.clone(),
             exchange_order_id: o.exchange_order_id,
             symbol: o.symbol.clone(),
@@ -1347,11 +1414,14 @@ async fn list_orders(
             is_entry: o.is_entry,
             created_at: o.created_at.to_rfc3339(),
             updated_at: o.updated_at.to_rfc3339(),
-        })
-        .collect();
+        });
+    }
+
+    // Apply limit
+    all_orders.truncate(query.limit);
 
     Ok(warp::reply::with_status(
-        warp::reply::json(&ApiResponse::success(filtered_orders)),
+        warp::reply::json(&ApiResponse::success(all_orders)),
         StatusCode::OK,
     ))
 }
@@ -1661,6 +1731,7 @@ mod tests {
             realized_pnl: 500.0,
             positions: vec![],
             balances: vec![],
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&portfolio).unwrap();
@@ -2810,6 +2881,7 @@ mod tests {
             realized_pnl: 0.0,
             positions: vec![],
             balances: vec![],
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&portfolio).unwrap();
@@ -4244,6 +4316,7 @@ mod tests {
             realized_pnl: 50.0,
             positions: vec![pos],
             balances: vec![],
+            ..Default::default()
         };
 
         assert_eq!(portfolio.positions.len(), 1);
@@ -5370,6 +5443,7 @@ mod tests {
                 locked: 5000.0,
                 total: 25000.0,
             }],
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&portfolio).unwrap();
@@ -5666,6 +5740,7 @@ mod tests {
             realized_pnl: 1500.0,
             positions: vec![],
             balances: vec![],
+            ..Default::default()
         };
 
         assert_eq!(portfolio.total_balance, 15000.0);
@@ -6149,6 +6224,7 @@ mod tests {
             realized_pnl: -100.0,
             positions: vec![],
             balances: vec![],
+            ..Default::default()
         };
 
         assert!(portfolio.unrealized_pnl < 0.0);
@@ -6286,6 +6362,7 @@ mod tests {
             realized_pnl: 0.0,
             positions: vec![],
             balances: vec![],
+            ..Default::default()
         };
 
         assert!(portfolio.positions.is_empty());
@@ -6318,6 +6395,7 @@ mod tests {
             realized_pnl: 100.0,
             positions: vec![pos],
             balances: vec![],
+            ..Default::default()
         };
 
         assert_eq!(portfolio.positions.len(), 1);
