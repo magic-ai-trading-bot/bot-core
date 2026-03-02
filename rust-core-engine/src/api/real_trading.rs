@@ -12,7 +12,7 @@ use warp::{Filter, Rejection, Reply};
 
 use crate::binance::types::OrderSide;
 use crate::real_trading::RealTradingEngine;
-use crate::strategies::types::TradingSignal;
+use crate::strategies::TradingSignal;
 
 /// API handlers for real trading functionality
 /// SAFETY: This involves REAL MONEY - all operations require explicit confirmation
