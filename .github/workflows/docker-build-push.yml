@@ -251,7 +251,7 @@ jobs:
 
     steps:
       - name: Download Trivy results
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
 
       - name: Generate Security Report
