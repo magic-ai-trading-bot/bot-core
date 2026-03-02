@@ -968,7 +968,8 @@ describe('useRealTrading', () => {
         total_balance: 10000,
         available_balance: 8000,
         locked_balance: 2000,
-        realized_pnl: 500,
+        total_pnl: 500,
+        total_pnl_percentage: 5,
       };
 
       mockFetch.mockImplementation((url: string) => {
