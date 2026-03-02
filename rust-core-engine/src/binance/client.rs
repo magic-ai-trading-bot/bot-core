@@ -346,6 +346,36 @@ impl BinanceClient {
             .await
     }
 
+    /// Get futures trade history (fills) from Binance
+    pub async fn get_futures_user_trades(
+        &self,
+        symbol: &str,
+        limit: Option<u16>,
+    ) -> Result<Vec<FuturesUserTrade>> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+        if let Some(limit) = limit {
+            params.insert("limit".to_string(), limit.to_string());
+        }
+        self.make_request(Method::GET, "/fapi/v1/userTrades", Some(params), true)
+            .await
+    }
+
+    /// Get all futures orders (open + closed) for a symbol
+    pub async fn get_all_futures_orders(
+        &self,
+        symbol: &str,
+        limit: Option<u16>,
+    ) -> Result<Vec<FuturesOrder>> {
+        let mut params = HashMap::new();
+        params.insert("symbol".to_string(), symbol.to_uppercase());
+        if let Some(limit) = limit {
+            params.insert("limit".to_string(), limit.to_string());
+        }
+        self.make_request(Method::GET, "/fapi/v1/allOrders", Some(params), true)
+            .await
+    }
+
     pub async fn get_open_orders(&self, symbol: Option<&str>) -> Result<Vec<FuturesOrder>> {
         let mut params = HashMap::new();
         if let Some(symbol) = symbol {

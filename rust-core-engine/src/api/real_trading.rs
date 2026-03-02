@@ -754,12 +754,46 @@ async fn get_closed_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejec
         },
     };
 
-    // Get closed trades from engine (will track via daily metrics for now)
-    let daily_metrics = engine.get_daily_metrics().await;
+    // Fetch trade history from Binance for configured symbols
+    let config = engine.get_config().await;
+    let symbols = config.allowed_symbols.clone();
+    let binance_trades = engine.get_trade_history(&symbols, Some(50)).await;
 
-    // For now, return summary data - full trade history will be implemented with DB persistence
-    // The engine doesn't persist closed trades in memory long-term to avoid memory growth
-    let empty_trades: Vec<ClosedTradeInfo> = vec![];
+    // Convert Binance trades to frontend-compatible format (PaperTrade/RealTrade)
+    let trades: Vec<serde_json::Value> = binance_trades
+        .iter()
+        .map(|t| {
+            let qty: f64 = t.qty.parse().unwrap_or(0.0);
+            let price: f64 = t.price.parse().unwrap_or(0.0);
+            let pnl: f64 = t.realized_pnl.parse().unwrap_or(0.0);
+            let commission: f64 = t.commission.parse().unwrap_or(0.0);
+            let cost = qty * price;
+            let pnl_pct = if cost > 0.0 { (pnl / cost) * 100.0 } else { 0.0 };
+            let trade_type = if t.buyer { "Long" } else { "Short" };
+            let ts = chrono::DateTime::from_timestamp_millis(t.time)
+                .map(|dt| dt.to_rfc3339())
+                .unwrap_or_default();
+
+            serde_json::json!({
+                "id": format!("{}", t.id),
+                "symbol": t.symbol,
+                "trade_type": trade_type,
+                "side": if t.buyer { "LONG" } else { "SHORT" },
+                "status": "Closed",
+                "entry_price": price,
+                "exit_price": price,
+                "quantity": qty,
+                "leverage": 1,
+                "pnl": pnl,
+                "pnl_percentage": pnl_pct,
+                "commission": commission,
+                "open_time": ts,
+                "close_time": ts,
+            })
+        })
+        .collect();
+
+    let daily_metrics = engine.get_daily_metrics().await;
     let summary = serde_json::json!({
         "summary": {
             "total_trades_today": daily_metrics.trades_count,
@@ -770,8 +804,7 @@ async fn get_closed_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejec
             "total_commission": daily_metrics.total_commission,
             "win_rate": daily_metrics.win_rate(),
         },
-        "trades": empty_trades,
-        "message": "Full trade history requires database persistence. Daily summary shown instead."
+        "trades": trades,
     });
 
     Ok(warp::reply::with_status(

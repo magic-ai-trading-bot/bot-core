@@ -2486,6 +2486,30 @@ impl RealTradingEngine {
         self.orders.get(client_order_id).map(|o| o.clone())
     }
 
+    /// Fetch trade history from Binance for given symbols
+    pub async fn get_trade_history(
+        &self,
+        symbols: &[String],
+        limit: Option<u16>,
+    ) -> Vec<crate::binance::types::FuturesUserTrade> {
+        let mut all_trades = Vec::new();
+        for symbol in symbols {
+            match self
+                .binance_client
+                .get_futures_user_trades(symbol, limit)
+                .await
+            {
+                Ok(trades) => all_trades.extend(trades),
+                Err(e) => {
+                    warn!("Failed to fetch trade history for {}: {}", symbol, e);
+                },
+            }
+        }
+        // Sort by time descending (newest first)
+        all_trades.sort_by(|a, b| b.time.cmp(&a.time));
+        all_trades
+    }
+
     /// Get current configuration
     pub async fn get_config(&self) -> RealTradingConfig {
         self.config.read().await.clone()

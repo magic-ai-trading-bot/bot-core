@@ -256,6 +256,40 @@ pub struct FuturesOrderResponse {
     pub update_time: i64,
 }
 
+/// A single trade fill from Binance Futures /fapi/v1/userTrades
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FuturesUserTrade {
+    #[serde(default)]
+    pub symbol: String,
+    #[serde(default)]
+    pub id: i64,
+    #[serde(default)]
+    pub order_id: i64,
+    #[serde(default)]
+    pub side: String,
+    #[serde(default)]
+    pub price: String,
+    #[serde(default)]
+    pub qty: String,
+    #[serde(default)]
+    pub realized_pnl: String,
+    #[serde(default)]
+    pub quote_qty: String,
+    #[serde(default)]
+    pub commission: String,
+    #[serde(default)]
+    pub commission_asset: String,
+    #[serde(default)]
+    pub time: i64,
+    #[serde(default)]
+    pub position_side: String,
+    #[serde(default)]
+    pub buyer: bool,
+    #[serde(default)]
+    pub maker: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FuturesPosition {
