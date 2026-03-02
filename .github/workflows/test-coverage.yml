@@ -81,8 +81,8 @@ jobs:
         working-directory: ./rust-core-engine
         run: |
           # Generate reports from existing profdata (does NOT re-run tests)
-          cargo llvm-cov report --lib --lcov --output-path coverage/lcov.info
-          cargo llvm-cov report --lib --html --output-dir coverage
+          cargo llvm-cov report --lcov --output-path coverage/lcov.info
+          cargo llvm-cov report --html --output-dir coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -96,7 +96,7 @@ jobs:
         working-directory: ./rust-core-engine
         run: |
           # Uses existing profdata (no re-run)
-          COVERAGE=$(cargo llvm-cov report --lib 2>/dev/null | grep "TOTAL" | awk '{for(i=1;i<=NF;i++) if($i ~ /%/) last=$i; print last}' | sed 's/%//' || echo "0")
+          COVERAGE=$(cargo llvm-cov report 2>/dev/null | grep "TOTAL" | awk '{for(i=1;i<=NF;i++) if($i ~ /%/) last=$i; print last}' | sed 's/%//' || echo "0")
           echo "Current Rust coverage: $COVERAGE%"
           echo "Required threshold: $RUST_COVERAGE_THRESHOLD%"
 
