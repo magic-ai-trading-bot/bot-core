@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRealTrading, type RealOrder } from '@/hooks/useRealTrading';
+import { AutoTradingPanel } from '@/components/trading/AutoTradingPanel';
 import { useTradingMode } from '@/hooks/useTradingMode';
 import { TradingViewChart } from '@/components/trading/TradingViewChart';
 import { type OrderFormData } from '@/components/trading/OrderForm';
@@ -1964,10 +1965,10 @@ export default function RealTrading() {
           </div>
         </div>
 
-        {/* Right Column: Order Book + Form (full width on mobile, 40% on desktop) */}
-        {/* Desktop: no scroll - content should fit naturally */}
-        <div className="col-span-1 lg:col-span-5 flex flex-col overflow-hidden w-full max-w-full" style={{ backgroundColor: colors.bgPrimary }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[1px] h-full" style={{ backgroundColor: colors.borderSubtle }}>
+        {/* Right Column: Order Book + Form + Auto-Trading (full width on mobile, 40% on desktop) */}
+        {/* Desktop: scrollable to accommodate auto-trading panel */}
+        <div className="col-span-1 lg:col-span-5 flex flex-col lg:overflow-y-auto overflow-x-hidden custom-scrollbar w-full max-w-full" style={{ backgroundColor: colors.bgPrimary }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[1px]" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
             <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: colors.bgPrimary }}>
               <OrderBook symbol={selectedSymbol} onPriceClick={handlePriceClick} />
@@ -2006,6 +2007,13 @@ export default function RealTrading() {
               </div>
             </div>
           </div>
+
+          {/* Auto-Trading Panel */}
+          <AutoTradingPanel
+            settings={realTrading.flatSettings}
+            onUpdateSettings={realTrading.updatePartialSettings}
+            isLoading={realTrading.isLoading}
+          />
         </div>
       </div>
     </motion.div>

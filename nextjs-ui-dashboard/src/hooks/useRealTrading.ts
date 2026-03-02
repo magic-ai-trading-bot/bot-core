@@ -21,6 +21,27 @@ import {
   AISignal,
 } from "@/hooks/usePaperTrading";
 
+// Flat settings interface matching backend real trading API response
+export interface RealTradingSettingsFlat {
+  use_testnet: boolean;
+  auto_trading_enabled: boolean;
+  auto_trade_symbols: string[];
+  max_position_size_usdt: number;
+  max_positions: number;
+  max_leverage: number;
+  max_daily_loss_usdt: number;
+  risk_per_trade_percent: number;
+  default_stop_loss_percent: number;
+  default_take_profit_percent: number;
+  min_signal_confidence: number;
+  max_consecutive_losses: number;
+  cool_down_minutes: number;
+  correlation_limit: number;
+  max_portfolio_risk_pct: number;
+  short_only_mode: boolean;
+  long_only_mode: boolean;
+}
+
 interface RustRealTradingResponse<T> {
   success: boolean;
   data?: T;
@@ -39,6 +60,7 @@ export interface RealTradingState {
   closedTrades: RealTrade[];
   activeOrders: RealOrder[];
   settings: RealTradingSettings;
+  flatSettings: RealTradingSettingsFlat;
   recentSignals: AISignal[];
   isLoading: boolean;
   error: string | null;
@@ -107,6 +129,26 @@ const defaultSettings: RealTradingSettings = {
   },
 };
 
+const defaultFlatSettings: RealTradingSettingsFlat = {
+  use_testnet: true,
+  auto_trading_enabled: false,
+  auto_trade_symbols: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"],
+  max_position_size_usdt: 100,
+  max_positions: 3,
+  max_leverage: 5,
+  max_daily_loss_usdt: 50,
+  risk_per_trade_percent: 2.0,
+  default_stop_loss_percent: 1.5,
+  default_take_profit_percent: 3.0,
+  min_signal_confidence: 0.7,
+  max_consecutive_losses: 3,
+  cool_down_minutes: 60,
+  correlation_limit: 0.7,
+  max_portfolio_risk_pct: 20,
+  short_only_mode: false,
+  long_only_mode: false,
+};
+
 const defaultPortfolio: RealPortfolioMetrics = {
   total_trades: 0,
   win_rate: 0,
@@ -136,6 +178,7 @@ export const useRealTrading = () => {
     closedTrades: [],
     activeOrders: [],
     settings: defaultSettings,
+    flatSettings: defaultFlatSettings,
     recentSignals: [],
     isLoading: false,
     error: null,
@@ -305,7 +348,6 @@ export const useRealTrading = () => {
     if (!isRealMode) return;
 
     try {
-      // TODO: Update endpoint when real trading API is ready
       const response = await fetch(`${API_BASE}/api/real-trading/settings`, {
         method: "GET",
         headers: {
@@ -313,14 +355,24 @@ export const useRealTrading = () => {
         },
       });
 
-      const data: RustRealTradingResponse<RealTradingSettings> = await response.json();
+      const data: RustRealTradingResponse<RealTradingSettingsFlat | RealTradingSettings> = await response.json();
 
       if (data.success && data.data) {
-        setState((prev) => ({
-          ...prev,
-          settings: data.data!,
-          lastUpdated: new Date(),
-        }));
+        // Backend returns flat structure — detect by checking for auto_trading_enabled field
+        const respData = data.data as Record<string, unknown>;
+        if ('auto_trading_enabled' in respData) {
+          setState((prev) => ({
+            ...prev,
+            flatSettings: respData as unknown as RealTradingSettingsFlat,
+            lastUpdated: new Date(),
+          }));
+        } else {
+          setState((prev) => ({
+            ...prev,
+            settings: data.data as RealTradingSettings,
+            lastUpdated: new Date(),
+          }));
+        }
       }
     } catch (error) {
       logger.error("Failed to fetch real trading settings:", error);
@@ -654,6 +706,61 @@ export const useRealTrading = () => {
       }
     },
     [API_BASE, fetchPortfolioStatus, isRealMode, toast]
+  );
+
+  // Update partial settings (sends only changed fields)
+  const updatePartialSettings = useCallback(
+    async (partial: Partial<RealTradingSettingsFlat>) => {
+      if (!isRealMode) {
+        toast({
+          title: "Error",
+          description: "Cannot update real trading settings - not in real mode",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        const response = await fetch(`${API_BASE}/api/real-trading/settings`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(partial),
+        });
+
+        const data: RustRealTradingResponse<SimpleApiResponse> = await response.json();
+
+        if (data.success) {
+          setState((prev) => ({
+            ...prev,
+            flatSettings: { ...prev.flatSettings, ...partial },
+            isLoading: false,
+          }));
+
+          toast({
+            title: "Settings Updated",
+            description: "Real trading settings have been updated",
+          });
+        } else {
+          throw new Error(data.error || "Failed to update settings");
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }));
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update settings",
+          variant: "destructive",
+        });
+      }
+    },
+    [API_BASE, isRealMode, toast]
   );
 
   // Reset portfolio (disabled for real trading)
@@ -994,6 +1101,7 @@ export const useRealTrading = () => {
         closedTrades: [],
         activeOrders: [],
         settings: defaultSettings,
+        flatSettings: defaultFlatSettings,
         recentSignals: [],
         isLoading: false,
         error: null,
@@ -1169,6 +1277,7 @@ export const useRealTrading = () => {
     stopTrading,
     closeTrade,
     updateSettings,
+    updatePartialSettings,
     resetPortfolio,
 
     // Order management (Phase 5)

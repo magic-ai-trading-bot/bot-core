@@ -119,14 +119,31 @@ Allows AI assistants (Claude, OpenClaw) to control the entire trading system.
 Streamable HTTP transport on port 8090.
 
 ## 10. Real Trading ⚠️ Available but USE WITH CAUTION
-**Code**: `rust-core-engine/src/api/real_trading.rs`
+**Code**: `rust-core-engine/src/api/real_trading.rs`, `rust-core-engine/src/real_trading/`
 
 14 endpoints mirroring paper trading but using real Binance account.
 - 2-step order confirmation for safety
 - SL/TP modification on open positions
 - Uses `BINANCE_API_KEY` / `BINANCE_SECRET_KEY`
 
-**Safety defaults**: `BINANCE_TESTNET=true`, `TRADING_ENABLED=false`
+**Auto-Trading Automation** (when `auto_trading_enabled = true`):
+- **Strategy Signal Loop** (30s): 5 strategies × 3 timeframes → 5-layer filtering → auto-execute
+- **SL/TP Monitor Loop** (5s): Auto-close positions at stop loss / take profit thresholds
+- **Price Update Loop** (5s): Real-time unrealized PnL tracking from Binance
+- **5-Layer Signal Filtering**: Confidence → Direction mode → Choppy market → AI bias → Signal confirmation
+- **Risk Checks**: Daily loss limit, cool-down after consecutive losses, correlation limit, portfolio risk cap, max positions
+
+**Key Config** (via `update_real_trading_settings`):
+- `auto_trading_enabled`: Master toggle for automation (default: false)
+- `auto_trade_symbols`: Symbols to auto-trade (default: BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT)
+- `min_signal_confidence`: Minimum signal strength (default: 0.7)
+- `max_consecutive_losses`: Triggers cool-down (default: 3)
+- `cool_down_minutes`: Trading pause duration (default: 60)
+- `long_only_mode` / `short_only_mode`: Direction restriction
+
+**Dashboard UI**: Auto-Trading Panel on Real Trading page with toggle, symbols config, risk settings.
+
+**Safety defaults**: `BINANCE_TESTNET=true`, `TRADING_ENABLED=false`, `auto_trading_enabled=false`
 **NEVER enable production trading without explicit user approval.**
 
 ## 11. Frontend Dashboard ✅ Production

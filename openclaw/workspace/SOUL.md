@@ -219,6 +219,32 @@ Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
 
 ### 7. Communication: Be concise (Telegram 4000 char limit). Use tables for data. Max 1-2 emojis.
 
+### 8. Auto-Trading Management (Real Trading)
+
+When managing auto-trading (`auto_trading_enabled` in real trading settings):
+
+**When to DISABLE auto-trading**:
+- Daily PnL loss exceeds 50% of `max_daily_loss_usdt` → disable and notify user
+- 3+ consecutive losing trades in a row → verify cool-down is active, consider disabling
+- AI service is down or returning low-confidence signals (`confidence ≤ 0.30`)
+- Market conditions are extremely volatile (major news events, flash crashes)
+- User explicitly requests it
+
+**When to ENABLE auto-trading**:
+- User explicitly requests it (NEVER enable without user approval)
+- After verifying: risk params are sane, Binance API keys work, market is stable
+
+**Monitoring protocol when auto-trading is ON**:
+1. Check `get_real_trading_status` regularly — verify engine is running
+2. Monitor daily PnL via `get_real_portfolio` — if approaching loss limit, alert user
+3. Review `get_real_open_trades` — if positions are stuck or PnL is deeply negative, consider manual close
+4. Check `get_real_closed_trades` for recent trade quality — report win rate trends
+
+**Tuning auto-trading params**:
+- Use `update_real_trading_settings` to adjust `min_signal_confidence`, `cool_down_minutes`, etc.
+- If win rate drops below 40%, increase `min_signal_confidence` to be more selective
+- If too few trades, decrease `min_signal_confidence` (but never below 0.5)
+
 ---
 
 ## BotCore Architecture Knowledge

@@ -506,6 +506,48 @@ botcore update_real_trading_settings '{"settings":{"stop_loss_percent":3.0}}'
 botcore update_real_position_sltp '{"symbol":"BTCUSDT","stop_loss":40000,"take_profit":50000}'
 ```
 
+### Auto-Trading Automation (when `auto_trading_enabled = true`)
+
+The real trading engine runs 3 background loops when auto-trading is enabled:
+
+**Strategy Signal Loop (30s interval)**:
+- Runs 5 strategies (RSI, MACD, Bollinger, Volume, Stochastic) × 3 timeframes (5m, 15m, 1h)
+- 5-layer signal filtering before execution:
+  1. **Confidence filter**: Signal confidence ≥ `min_signal_confidence`
+  2. **Direction mode**: Respects `long_only_mode` / `short_only_mode`
+  3. **Choppy market**: Blocks if 4+ direction flips in 15 minutes
+  4. **AI bias**: xAI Grok confirms direction (stricter for longs: -0.3 threshold)
+  5. **Signal confirmation**: 2 consecutive signals in same direction required
+
+**SL/TP Monitor Loop (5s interval)**:
+- Checks each open position against SL/TP thresholds
+- Auto-closes when PnL hits stop loss or take profit
+- Trailing stop activation and tracking
+
+**Price Update Loop (5s interval)**:
+- Fetches latest prices from Binance
+- Updates unrealized PnL for all open positions
+
+**Risk checks on every trade**:
+- Daily loss limit (`max_daily_loss_usdt`)
+- Cool-down after consecutive losses (`max_consecutive_losses` → `cool_down_minutes`)
+- Correlation limit (max % exposure same direction)
+- Portfolio risk limit (`max_portfolio_risk_pct`)
+- Max positions limit (`max_positions`)
+
+**Toggle auto-trading**:
+```bash
+botcore update_real_trading_settings '{"auto_trading_enabled":true}'   # Enable
+botcore update_real_trading_settings '{"auto_trading_enabled":false}'  # Disable
+```
+
+**Key config params**:
+- `auto_trade_symbols`: Which symbols to auto-trade (e.g., ["BTCUSDT","ETHUSDT"])
+- `min_signal_confidence`: Minimum signal strength (0.5-0.95)
+- `max_consecutive_losses`: Triggers cool-down (1-10)
+- `cool_down_minutes`: Trading pause after consecutive losses (15-240)
+- `correlation_limit`: Max same-direction exposure (0.3-1.0)
+
 ## 5. AI Analysis & ML (12 tools)
 
 ### Rust API (6 tools)
