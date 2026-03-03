@@ -1967,7 +1967,7 @@ export default function RealTrading() {
 
         {/* Right Column: Order Book + Form + Auto-Trading (full width on mobile, 40% on desktop) */}
         {/* Desktop: scrollable to accommodate auto-trading panel */}
-        <div className="col-span-1 lg:col-span-5 flex flex-col lg:overflow-y-auto overflow-x-hidden custom-scrollbar w-full max-w-full" style={{ backgroundColor: colors.bgPrimary }}>
+        <div className="col-span-1 lg:col-span-5 flex flex-col lg:overflow-y-auto overflow-x-hidden custom-scrollbar w-full max-w-full lg:h-0 lg:min-h-full" style={{ backgroundColor: colors.bgPrimary }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-[1px]" style={{ backgroundColor: colors.borderSubtle }}>
             {/* Order Book */}
             <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: colors.bgPrimary }}>
