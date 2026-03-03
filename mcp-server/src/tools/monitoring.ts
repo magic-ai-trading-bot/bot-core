@@ -1,4 +1,4 @@
-// @spec:FR-MCP-005 - Monitoring Tools
+// @spec:FR-MONITORING-001, FR-MONITORING-002, FR-MONITORING-003, FR-MONITORING-006 - Monitoring Tools
 // @ref:plans/20260215-1900-openclaw-mcp-integration/phases/phase-02-monitoring-tools.md
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

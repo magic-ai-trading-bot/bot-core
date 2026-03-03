@@ -16,7 +16,7 @@
 - [x] JWT auto-login for outgoing BotCore API calls
 - [x] Health check endpoint (unauthenticated)
 - [x] Session lifecycle management (create/reuse/delete)
-- [x] 12 tool categories registered (114 tools total)
+- [x] 12 tool categories registered (114 tools total, verified)
 - [x] API client proxy to Rust (:8080) and Python (:8000) backends
 - [x] Request timeout and 5xx retry handling
 - [x] Response normalization for mixed Rust/Python formats
@@ -175,7 +175,7 @@ All trading bot capabilities are exposed as MCP tools grouped into 12 categories
 
 | Category | Count | File | Purpose |
 |---|---|---|---|
-| health | 3 | `tools/health.ts` | System health & Docker monitoring |
+| health | 3 | `tools/health.ts` | System health & AI pipeline health |
 | market | 8 | `tools/market.ts` | Market data & symbols |
 | trading | 4 | `tools/trading.ts` | Live trading positions |
 | paper-trading | 39 | `tools/paper-trading.ts` | Paper trading engine |

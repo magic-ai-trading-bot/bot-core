@@ -1697,10 +1697,12 @@ make clean-all     # Remove everything
 | `rust-core-engine-dev` | `rust-core-engine-dev` | 8080 | Build: `rust-core-engine/Dockerfile.dev` | `dev` | 1.5G | `GET /api/health` |
 | `nextjs-ui-dashboard` | `nextjs-ui-dashboard` | 3000 | Build: `nextjs-ui-dashboard/Dockerfile` | `prod` | 1G | `GET /health` |
 | `nextjs-ui-dashboard-dev` | `nextjs-ui-dashboard-dev` | 3000, 24678 | Build: `nextjs-ui-dashboard/Dockerfile.dev` | `dev` | 768M | `GET /` |
-| `mongodb` | `mongodb` | 27017 | `mongo:7.0` | (all) | — | `mongosh ping` |
-| `redis` | `redis-cache` | 6379 | `redis:7-alpine` | (all) | 256M | `redis-cli ping` |
-| `mcp-server` | `mcp-server` | 8090 | Build: `mcp-server/Dockerfile` | (all) | — | `GET /health` |
-| `openclaw` | `openclaw` | 18789 | Build: `openclaw/Dockerfile` | (all) | — | `curl canvas` |
+| `mongodb` | `mongodb` | 27017 | `mongo:7.0` | (no profile — always) | 2G | `mongosh ping` |
+| `redis` | `redis-cache` | (internal) | `redis:7-alpine` | `redis` | 256M | `redis-cli ping` |
+| `mcp-server` | `mcp-server` | 8090 | Build: `mcp-server/Dockerfile` | `prod` | 512M | `GET /health` |
+| `mcp-server-dev` | `mcp-server` | 8090 | Build: `mcp-server/Dockerfile` | `dev` | 512M | `GET /health` |
+| `openclaw` | `openclaw` | (none/internal) | Build: `openclaw/Dockerfile` | `prod` | 2048M | `curl canvas` |
+| `openclaw-dev` | `openclaw` | 18789 | Build: `openclaw/Dockerfile` | `dev` | 2048M | `curl canvas` |
 
 **Key env vars (docker-compose.yml):**
 
@@ -1710,7 +1712,7 @@ make clean-all     # Remove everything
 | `rust-core-engine` | `BINANCE_API_KEY`, `BINANCE_SECRET_KEY`, `BINANCE_TESTNET`, `TRADING_ENABLED`, `DATABASE_URL`, `JWT_SECRET` |
 | `nextjs-ui-dashboard` | `VITE_RUST_API_URL`, `VITE_PYTHON_AI_URL`, `VITE_WS_URL`, `DASHBOARD_SESSION_SECRET` |
 | `mcp-server` | `MCP_AUTH_TOKEN`, `RUST_API_URL`, `PYTHON_API_URL`, `BOTCORE_EMAIL`, `BOTCORE_PASSWORD` |
-| `openclaw` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `MCP_URL`, `MCP_AUTH_TOKEN`, `CLAUDE_AI_SESSION_KEY` |
+| `openclaw` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `MCP_URL`, `MCP_AUTH_TOKEN`, `ANTHROPIC_API_KEY`, `XAI_API_KEY` |
 
 ---
 
@@ -1723,7 +1725,7 @@ make clean-all     # Remove everything
 | `rust-core-engine` | `rust-core-engine` | 8080 | Build: `rust-core-engine/Dockerfile` | 2G | `GET /api/health` (900s start) | python-ai-service, mongodb |
 | `nextjs-ui-dashboard` | `nextjs-ui-dashboard` | 3000 | Build: `nextjs-ui-dashboard/Dockerfile` | 512M | `GET /` | rust-core-engine |
 | `redis` | `redis-cache` | (internal) | `redis:7-alpine` | 256M | `redis-cli ping` | — |
-| `mcp-server` | `mcp-server` | 8090 | Build: `mcp-server/Dockerfile` | — | `GET /health` | rust-core-engine |
+| `mcp-server` | `mcp-server` | 8090 | Build: `mcp-server/Dockerfile` | 512M | `GET /health` | rust-core-engine, python-ai-service |
 | `openclaw` | `openclaw` | 18789 | Build: `openclaw/Dockerfile` | 768M | `curl canvas` (120s start) | mcp-server |
 
 **VPS-specific env vars:**

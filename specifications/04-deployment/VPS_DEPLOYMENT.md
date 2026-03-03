@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0
 **Last Updated:** 2024-11-24
-**Target VPS:** Viettel IDC T2.GEN 03 (8 vCPU / 8 GB RAM / 100 GB SSD)
+**Target VPS:** Viettel IDC (8 vCPU / 16 GB RAM / 100 GB SSD)
 **Estimated Setup Time:** 2-3 hours
 **Difficulty:** Intermediate
 
@@ -349,11 +349,11 @@ mongosh -u admin -p --authenticationDatabase admin
 mongodb://botcore_user:CHANGE_THIS_PASSWORD_456@localhost:27017/botcore_production
 ```
 
-### **Step 4: Install Node.js** (For frontend builds)
+### **Step 4: Install Node.js** (For frontend builds and OpenClaw)
 
 ```bash
-# Install Node.js 18.x LTS
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Install Node.js 22.x LTS (required by OpenClaw)
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 
 # Verify installation
@@ -363,8 +363,8 @@ npm --version
 
 **Expected output:**
 ```
-v18.19.0
-10.2.3
+v22.x.x
+10.x.x
 ```
 
 ---
@@ -494,13 +494,13 @@ LOG_LEVEL=info
 LOG_FORMAT=json
 LOG_FILE=/app/logs/app.log
 
-# Memory Limits (for 8GB VPS)
+# Memory Limits (for 16GB VPS)
 PYTHON_MEMORY_LIMIT=2G
 PYTHON_MEMORY_RESERVE=1G
 RUST_MEMORY_LIMIT=2G
 RUST_MEMORY_RESERVE=1G
-FRONTEND_MEMORY_LIMIT=1G
-FRONTEND_MEMORY_RESERVE=512M
+FRONTEND_MEMORY_LIMIT=512M
+FRONTEND_MEMORY_RESERVE=256M
 NODE_MEMORY=1024
 
 # CPU Limits

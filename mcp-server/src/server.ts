@@ -38,14 +38,14 @@ Safety: 4-tier security (PUBLIC, AUTHENTICATED, SENSITIVE, CRITICAL). Write oper
   );
 
   // Register all tool categories
-  registerHealthTools(server);     // 4 tools - system health & Docker monitoring
+  registerHealthTools(server);     // 3 tools - system health & AI pipeline health
   registerMarketTools(server);     // 8 tools - market data & symbols
   registerTradingTools(server);    // 4 tools - live trading positions
-  registerPaperTradingTools(server); // 28 tools - paper trading engine
+  registerPaperTradingTools(server); // 39 tools - paper trading engine
   registerRealTradingTools(server);  // 14 tools - real trading (CAUTION)
   registerAiTools(server);         // 12 tools - AI analysis & predictions
   registerTaskTools(server);       // 7 tools - AI tasks & chat
-  registerMonitoringTools(server); // 5 tools - system & trading metrics
+  registerMonitoringTools(server); // 4 tools - system & trading metrics
   registerSettingsTools(server);   // 10 tools - API keys & notifications
   registerAuthTools(server);       // 4 tools - authentication
   registerTuningTools(server);     // 8 tools - self-tuning engine

@@ -158,7 +158,7 @@ pub struct TradingConfig {
     pub enabled: bool,                        // Global trading switch
     pub max_positions: u32,                   // Maximum concurrent positions (default: 5)
     pub default_quantity: f64,                // Position size (default: 0.01 BTC)
-    pub leverage: u32,                        // Futures leverage (default: 10x)
+    pub leverage: u8,                         // Futures leverage (default: 10x)
     pub margin_type: String,                  // "ISOLATED" or "CROSSED"
     pub risk_percentage: f64,                 // Risk per trade (default: 2%)
     pub stop_loss_percentage: f64,            // Default SL (default: 2%)

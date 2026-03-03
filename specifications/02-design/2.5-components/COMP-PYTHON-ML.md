@@ -34,14 +34,14 @@ The Python ML/AI Component provides machine learning price predictions, market s
 |------------|---------|---------|
 | Python | 3.11+ | Core language |
 | FastAPI | ^0.115.0 | REST API framework |
-| TensorFlow | ^2.15.0 | Deep learning (LSTM, GRU) |
-| PyTorch | ^2.1.0 | Transformers |
+| TensorFlow | ^2.18.0 | Deep learning (LSTM, GRU) |
+| PyTorch | ^2.9.0 | Transformers |
 | OpenAI (SDK) | ^1.50.0 | OpenAI-compatible SDK for xAI Grok (base_url: api.x.ai/v1) |
-| Celery | ^5.3.0 | Async task queue |
+| Celery | ^5.4.0 | Async task queue |
 | RabbitMQ | ^3.12 | Message broker |
 | Redis | ^7.2 | Result backend |
-| pandas | ^2.1.0 | Data manipulation |
-| scikit-learn | ^1.3.0 | ML utilities, metrics |
+| pandas | ^2.2.0 | Data manipulation |
+| scikit-learn | ^1.6.0 | ML utilities, metrics |
 
 ### 1.3 Dependencies
 

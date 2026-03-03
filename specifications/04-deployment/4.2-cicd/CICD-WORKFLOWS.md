@@ -1,9 +1,25 @@
 # CI/CD Workflow Automation Specification
 
-**Document Version:** 1.0.0
-**Last Updated:** 2025-10-11
+**Document Version:** 1.1.0
+**Last Updated:** 2026-03-03
 **Status:** Active
 **Owner:** DevOps Team
+
+---
+
+## Active GitHub Actions Workflows
+
+The following workflows are **currently active** in `.github/workflows/`:
+
+| Workflow file | Triggers | Purpose |
+|--------------|---------|---------|
+| `test-coverage.yml` | push/PR to main, develop | Rust (90%), Python (93%), Frontend (95%) coverage + quality gates |
+| `lint.yml` | push/PR to main, develop | Rust clippy+fmt, Python flake8+black, Frontend ESLint |
+| `security-scan.yml` | scheduled + push | Trivy vulnerability scan |
+| `mutation-testing.yml` | scheduled | Rust mutation tests (cargo-mutants) |
+| `docker-build-push.yml` | push to main | Build and push Docker images to registry |
+| `deploy-vps.yml` | manual dispatch | Deploy to Viettel VPS |
+| `integration-tests.yml` | push/PR | Cross-service integration tests |
 
 ---
 
@@ -21,7 +37,7 @@
 
 ## 1. Overview
 
-This document defines automated workflows for dependency updates, security scanning, testing, migrations, and documentation generation.
+This document defines aspirational automated workflows for dependency updates, security scanning, testing, migrations, and documentation generation. See the "Active GitHub Actions Workflows" section above for currently active workflows.
 
 ---
 

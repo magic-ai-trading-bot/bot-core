@@ -130,9 +130,9 @@ The primary objectives of testing the Bot Core trading platform are:
 Based on analysis of existing test files:
 
 #### Rust Core Engine
-- **Unit Test Files**: 15 files in `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/`
+- **Unit Test Files**: 30 files in `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/`
 - **Test Coverage**: 90.4% (target: 90%+) ✅
-- **Mutation Score**: 76% (target: 75%+) ✅
+- **Mutation Score**: 84% (target: 75%+) ✅
 - **Key Test Files**:
   - `test_auth.rs` - Authentication and JWT (11 tests)
   - `test_trading.rs` - Trading calculations (10 tests)
@@ -147,8 +147,8 @@ Based on analysis of existing test files:
   - `test_service_integration.rs` - Full service integration
 
 #### Python AI Service
-- **Unit Test Files**: 20+ files in `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/`
-- **Test Coverage**: 85%+ (target: 85%+) ✅
+- **Unit Test Files**: 39 files in `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/`
+- **Test Coverage**: 93%+ (target: 93%+, enforced in CI) ✅
 - **Key Test Files**:
   - `test_models.py` - ML model testing
   - `test_technical_analyzer.py` - Technical analysis (11 tests)
@@ -162,8 +162,8 @@ Based on analysis of existing test files:
   - `test_ml_performance.py` - Performance benchmarks
 
 #### Frontend Dashboard
-- **Unit Test Files**: 25+ files in `/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/__tests__/`
-- **Test Coverage**: 80%+ (target: 80%+) ✅
+- **Unit Test Files**: 78 files in `/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/`
+- **Test Coverage**: 95%+ (target: 95%+, enforced in CI) ✅
 - **Key Test Files**:
   - `pages/Login.test.tsx` - Login page
   - `pages/Register.test.tsx` - Registration
@@ -232,7 +232,7 @@ stages:
 **Success Criteria for PR Merge:**
 - All unit tests pass (100%)
 - Integration tests pass (100%)
-- Code coverage >= 90% (Rust), 85% (Python), 80% (Frontend)
+- Code coverage >= 90% (Rust), 93% (Python), 95% (Frontend)
 - No critical security vulnerabilities
 - Linting passes with zero errors
 
@@ -472,15 +472,17 @@ New → Assigned → In Progress → Fixed → Testing → Verified → Closed
 ### 6.1 Code Coverage Metrics
 
 **Coverage Tools:**
-- **Rust**: cargo-tarpaulin
+- **Rust**: cargo-llvm-cov (CI) / cargo-tarpaulin (local alternative)
 - **Python**: pytest-cov, coverage.py
 - **Frontend**: Vitest coverage (v8)
 
 **Coverage Reports:**
 ```bash
-# Generate Rust coverage
+# Generate Rust coverage (CI uses cargo-llvm-cov)
 cd /Users/dungngo97/Documents/bot-core/rust-core-engine
-cargo tarpaulin --out Html --output-dir coverage
+cargo llvm-cov --lib --html --output-dir coverage
+# Or with tarpaulin (local):
+# cargo tarpaulin --out Html --output-dir coverage
 
 # Generate Python coverage
 cd /Users/dungngo97/Documents/bot-core/python-ai-service
@@ -491,10 +493,10 @@ cd /Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard
 npm run test:coverage
 ```
 
-**Current Coverage Status:**
-- Rust Core: 90.4% line coverage ✅
-- Python AI: 85%+ line coverage ✅
-- Frontend: 80%+ line coverage ✅
+**Current Coverage Status (CI-enforced thresholds):**
+- Rust Core: 90.4% line coverage (threshold: 90%) ✅
+- Python AI: 93%+ line coverage (threshold: 93%) ✅
+- Frontend: 95%+ line coverage (threshold: 95%) ✅
 
 ### 6.2 Test Pass/Fail Rates
 
@@ -547,7 +549,7 @@ Defect Density = (Total Defects / Total KLOC)
 **Mutation Testing**: Modify code to introduce bugs and verify tests catch them
 
 **Current Mutation Scores:**
-- Rust Core: 76% (target: 75%+) ✅
+- Rust Core: 84% (target: 75%+) ✅
 
 **Mutation Testing Tools:**
 - **Rust**: cargo-mutants
@@ -645,7 +647,8 @@ cd /Users/dungngo97/Documents/bot-core
 | Tool | Purpose | Usage |
 |------|---------|-------|
 | **cargo test** | Unit & integration testing | `cargo test` |
-| **cargo tarpaulin** | Code coverage | `cargo tarpaulin --out Html` |
+| **cargo-llvm-cov** | Code coverage (CI) | `cargo llvm-cov --lib` |
+| **cargo tarpaulin** | Code coverage (local alt) | `cargo tarpaulin --out Html` |
 | **cargo-mutants** | Mutation testing | `cargo mutants` |
 | **cargo clippy** | Linting | `cargo clippy` |
 | **mockall** | Mocking framework | Used in test files |

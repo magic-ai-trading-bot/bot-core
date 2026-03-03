@@ -11,7 +11,7 @@
 | API | `GET/POST /api/real-trading/*` |
 | Code | `rust-core-engine/src/real_trading/` |
 | Spec | `specifications/01-requirements/1.1-functional-requirements/FR-REAL-TRADING.md` |
-| MCP tools | 8 tools in `mcp-server/src/tools/real-trading.ts` |
+| MCP tools | 14 tools in `mcp-server/src/tools/real-trading.ts` |
 
 ### Code Locations
 
@@ -85,7 +85,7 @@ PnL-based activation (not price-based):
 
 - Tracks consecutive errors via `CircuitBreakerState`
 - Opens after N errors (default: 3 prod: 2) → halts trading
-- Auto-closes after cooldown (default: 300s, prod: 60s)
+- Auto-closes after cooldown (default: 300s)
 - Optional: auto-close all positions on open (`circuit_breaker_close_positions`)
 - Events: `CircuitBreakerOpened(reason)`, `CircuitBreakerClosed`
 

@@ -1,4 +1,4 @@
-// @spec:FR-MCP-005 - System Health Check Tools
+// @spec:FR-MONITORING-004, FR-MONITORING-005, FR-MONITORING-007 - System Health Check Tools
 // @ref:plans/20260215-1900-openclaw-mcp-integration/phases/phase-01-mcp-server-setup.md
 
 import { z } from "zod";

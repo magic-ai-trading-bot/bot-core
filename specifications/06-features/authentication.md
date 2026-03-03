@@ -10,10 +10,10 @@ rust-core-engine/src/auth/
 │   ├── generate_token() - Create JWT (HS256, 7-day expiry)
 │   └── verify_token() - Verify JWT signature via decode()
 ├── handlers.rs - Auth API endpoints
-│   ├── handle_register() - POST /auth/register
-│   ├── handle_login() - POST /auth/login
-│   ├── handle_verify() - GET /auth/verify
-│   └── handle_profile() - GET /auth/profile
+│   ├── handle_register() - POST /api/auth/register
+│   ├── handle_login() - POST /api/auth/login
+│   ├── handle_verify() - GET /api/auth/verify
+│   └── handle_profile() - GET /api/auth/profile
 ├── middleware.rs - Auth middleware
 │   ├── with_auth() - Protect routes (line 19)
 │   ├── with_optional_auth() - Optional auth (line 27)
@@ -28,10 +28,10 @@ rust-core-engine/src/auth/
 ```
 
 ### API Endpoints
-- `POST /auth/register` - Create new user account
-- `POST /auth/login` - Login and get JWT token
-- `GET /auth/verify` - Verify JWT token validity
-- `GET /auth/profile` - Get current user info (protected)
+- `POST /api/auth/register` - Create new user account
+- `POST /api/auth/login` - Login and get JWT token
+- `GET /api/auth/verify` - Verify JWT token validity
+- `GET /api/auth/profile` - Get current user info (protected)
 
 ### Database Collections
 - `users` - User accounts (email, hashed password, role)

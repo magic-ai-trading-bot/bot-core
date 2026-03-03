@@ -200,8 +200,8 @@ Claude MUST suggest agents when detecting these patterns:
 - **Spec**: `specifications/01-requirements/1.1-functional-requirements/FR-MCP.md`
 - **Code**: `mcp-server/`
   - `src/index.ts` Express + MCP SDK, Streamable HTTP
-  - `src/tools/` 110 tools: market(4), paper-trading(28), AI(4), strategies(3), monitoring(3), auth(4), tasks(4), self-tuning(11), real-trading(8), backtests(4), misc(30)
-  - `src/services/api-client.ts` HTTP client for backends
+  - `src/tools/` 114 tools: health(3), market(8), trading(4), paper-trading(39), real-trading(14), ai(12), tasks(7), monitoring(4), settings(10), auth(4), tuning(8), notification(1)
+  - `src/client.ts` HTTP client for backends
 - **Protocol**: MCP v2024-11-05, port 8090
 - **SDK**: `@modelcontextprotocol/sdk ^1.12.1`
 - **Tests**: `mcp-server/tests/` (89 tests)
@@ -218,10 +218,11 @@ Claude MUST suggest agents when detecting these patterns:
 - **Production env**: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `OPENCLAW_GATEWAY_TOKEN`
 
 ### Self-Tuning Engine
-- **Code**: `mcp-server/src/tools/self-tuning-tools.ts`
-- **Parameters** (11): rsi_oversold/overbought, macd_signal_threshold, bollinger_std_dev, volume_spike_multiplier, stop/take_profit/trailing_stop_pct, max_position_size_pct, max_daily_trades, cool_down_minutes
-- **Tiers**: GREEN (auto: stop/take/trailing/cooldown), YELLOW (confirm: RSI/MACD/Bollinger/volume), RED (approve: position_size/daily_trades)
-- **MCP tools**: `self_tuning_get_parameters`, `self_tuning_green_adjust`, `self_tuning_yellow_adjust`, `self_tuning_confirm_adjustment`, `self_tuning_rollback`, `self_tuning_get_dashboard`
+- **Code**: `mcp-server/src/tools/tuning.ts`, `mcp-server/src/tuning/` (bounds.ts, audit.ts, snapshot.ts, types.ts)
+- **GREEN tier** (auto-adjust, 22 params): rsi_oversold/overbought, signal_interval_minutes, confidence_threshold, data_resolution, stop_loss_percent, take_profit_percent, min_required_indicators/timeframes, atr_stop/tp_multiplier, sp_* signal pipeline params (13 params), funding_spike_threshold, atr_spike_multiplier, consecutive_loss_reduction_pct
+- **YELLOW tier** (confirm token, 13 params): position_size_percent, max_positions, leverage, base_risk_pct, kelly_fraction, sp_bb/stoch/weight params (9 params)
+- **RED tier** (explicit approval text, 5 params): max_daily_loss_percent, weekly_drawdown_limit_pct, atr_stop_enabled, kelly_enabled, engine_running
+- **MCP tools** (8): `get_tuning_dashboard`, `get_parameter_bounds`, `apply_green_adjustment`, `request_yellow_adjustment`, `request_red_adjustment`, `get_adjustment_history`, `rollback_adjustment`, `take_parameter_snapshot`
 
 ---
 

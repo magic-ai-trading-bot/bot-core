@@ -14,7 +14,7 @@
 - [x] Trading metrics collection (PnL, win rate, drawdown, Sharpe)
 - [x] Connection status tracking (WebSocket, API, reconnect count)
 - [x] REST API endpoints for monitoring data (`/api/monitoring/*`)
-- [x] MCP tool exposure (4 tools via `mcp-server/src/tools/monitoring.ts`)
+- [x] MCP tool exposure (7 tools: 4 in `monitoring.ts` + 3 in `health.ts`)
 - [x] Health check endpoints for all services
 - [x] AI pipeline deep health check
 - [x] Sysinfo integration for real CPU/memory readings
@@ -43,7 +43,7 @@
 
 ## Overview
 
-`MonitoringService` (Rust) collects and exposes system, trading, and connection metrics. Metrics are served via three REST endpoints on the Rust Core Engine at `:8080`. The MCP Server exposes these as 4 tools for AI-driven monitoring via OpenClaw/Claude.
+`MonitoringService` (Rust) collects and exposes system, trading, and connection metrics. Metrics are served via three REST endpoints on the Rust Core Engine at `:8080`. The MCP Server exposes these as 7 tools for AI-driven monitoring via OpenClaw/Claude (4 in `monitoring.ts`, 3 in `health.ts`).
 
 ---
 
@@ -229,9 +229,9 @@
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/api/monitoring/system` | JWT | System metrics (CPU, memory, uptime) |
-| GET | `/api/monitoring/trading` | JWT | Trading metrics (PnL, win rate) |
-| GET | `/api/monitoring/connection` | JWT | Connection status |
+| GET | `/api/monitoring/system` | None | System metrics (CPU, memory, uptime) |
+| GET | `/api/monitoring/trading` | None | Trading metrics (PnL, win rate) |
+| GET | `/api/monitoring/connection` | None | Connection status |
 | GET | `/api/health` | None | Basic health check |
 
 ### MCP Tools (7 total)

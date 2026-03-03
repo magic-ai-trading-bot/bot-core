@@ -46,7 +46,8 @@ rust-core-engine/src/paper_trading/
 - `POST /api/paper-trading/stop` - Stop paper trading session
 - `GET /api/paper-trading/status` - Get current status
 - `GET /api/paper-trading/portfolio` - Get portfolio state
-- `GET /api/paper-trading/trades` - List all trades
+- `GET /api/paper-trading/trades/open` - List open trades
+- `GET /api/paper-trading/trades/closed` - List closed trades
 - `POST /api/paper-trading/settings` - Update settings
 
 ### Database Collections

@@ -49,9 +49,9 @@ The system shall initialize the real trading engine with proper configuration, A
 - [ ] Logs configuration details (excluding secrets)
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/mod.rs:1-50`
-- `rust-core-engine/src/binance/types.rs:331-400`
-- `rust-core-engine/src/binance/client.rs:393-440`
+- `rust-core-engine/src/real_trading/mod.rs` (initialization/re-exports)
+- `rust-core-engine/src/real_trading/config.rs` (configuration)
+- `rust-core-engine/src/binance/client.rs:35` (`BinanceClient::new`)
 
 **Test Cases**: TC-REAL-001, TC-REAL-002, TC-REAL-003
 
@@ -78,8 +78,7 @@ The system shall execute market buy/sell orders via Binance API with immediate e
 - [ ] Prevent duplicate orders with execution lock
 
 **Code Location**:
-- `rust-core-engine/src/binance/client.rs:442-465` (place_market_order)
-- `rust-core-engine/src/binance/types.rs:331-400` (SpotOrderRequest)
+- `rust-core-engine/src/binance/client.rs:550` (`place_market_order`)
 
 **Test Cases**: TC-REAL-010, TC-REAL-011, TC-REAL-012
 
@@ -106,7 +105,7 @@ The system shall execute limit buy/sell orders at specified price with GTC (Good
 - [ ] Handle API errors
 
 **Code Location**:
-- `rust-core-engine/src/binance/client.rs:467-493` (place_limit_order)
+- `rust-core-engine/src/binance/client.rs:562` (`place_limit_order`)
 
 **Test Cases**: TC-REAL-013, TC-REAL-014, TC-REAL-015
 
@@ -132,7 +131,7 @@ The system shall execute stop-loss orders to limit losses by selling at market w
 - [ ] Handle API errors
 
 **Code Location**:
-- `rust-core-engine/src/binance/client.rs:481-505` (place_stop_loss_order)
+- `rust-core-engine/src/binance/client.rs:575` (`place_stop_loss_limit_order`)
 
 **Test Cases**: TC-REAL-016, TC-REAL-017, TC-REAL-018
 
@@ -158,7 +157,7 @@ The system shall execute take-profit orders to lock in profits by selling at mar
 - [ ] Handle API errors
 
 **Code Location**:
-- `rust-core-engine/src/binance/client.rs:495-520` (place_take_profit_order)
+- `rust-core-engine/src/binance/client.rs:589` (`place_take_profit_limit_order`)
 
 **Test Cases**: TC-REAL-019, TC-REAL-020, TC-REAL-021
 
@@ -184,7 +183,7 @@ The system shall cancel open orders by order ID or client order ID.
 - [ ] Handle API errors
 
 **Code Location**:
-- `rust-core-engine/src/binance/client.rs:518-550` (cancel_order)
+- `rust-core-engine/src/binance/client.rs:427` (`cancel_order` for futures), `603` (`cancel_spot_order`)
 
 **Test Cases**: TC-REAL-022, TC-REAL-023, TC-REAL-024
 
@@ -209,8 +208,7 @@ The system shall query order status from Binance API by order ID.
 - [ ] Handle API errors
 
 **Code Location**:
-- `rust-core-engine/src/binance/client.rs:583-615` (query_order)
-- `rust-core-engine/src/binance/types.rs:596-700` (SpotOrderResponse)
+- `rust-core-engine/src/binance/client.rs:725` (`get_spot_order_status`)
 
 **Test Cases**: TC-REAL-025, TC-REAL-026
 
@@ -235,8 +233,7 @@ The system shall retrieve account balance from Binance API including free and lo
 - [ ] Handle API errors
 
 **Code Location**:
-- `rust-core-engine/src/binance/client.rs:205-240` (get_account_balance)
-- `rust-core-engine/src/binance/types.rs:596-700`
+- `rust-core-engine/src/binance/client.rs:335` (`get_account_info` for spot, `get_futures_account` at 339 for futures)
 
 **Test Cases**: TC-REAL-027, TC-REAL-028
 
@@ -309,15 +306,15 @@ The system shall manage configuration for trading mode (testnet/mainnet), risk l
 **Acceptance Criteria**:
 - [ ] Support testnet mode (default)
 - [ ] Support mainnet mode (requires explicit enable)
-- [ ] Configure max open positions
-- [ ] Configure daily loss limit percentage
-- [ ] Configure circuit breaker threshold (consecutive errors)
+- [ ] Configure max open positions (`max_positions`)
+- [ ] Configure daily loss limit in USDT (`max_daily_loss_usdt`)
+- [ ] Configure circuit breaker threshold in consecutive errors (`circuit_breaker_errors`)
 - [ ] Configure circuit breaker cooldown duration
 - [ ] Configure reconciliation interval
 - [ ] Validate configuration on load
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/config.rs:1-150`
+- `rust-core-engine/src/real_trading/config.rs` (748 lines)
 
 **Test Cases**: TC-REAL-040, TC-REAL-041
 
@@ -346,7 +343,7 @@ The system shall provide a real trading engine that orchestrates order execution
 - [ ] Execution lock prevents race conditions
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1-1200`
+- `rust-core-engine/src/real_trading/engine.rs` (10,000+ lines)
 
 **Test Cases**: TC-REAL-050, TC-REAL-051, TC-REAL-052
 
@@ -399,7 +396,7 @@ The system shall update account balance in real-time from BalanceUpdate events i
 - [ ] Thread-safe balance access
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1092-1150` (handle_balance_update)
+- `rust-core-engine/src/real_trading/engine.rs:1455` (`handle_balance_update`)
 
 **Test Cases**: TC-REAL-070, TC-REAL-071
 
@@ -424,7 +421,7 @@ The system shall sync initial state (open orders, positions, balance) from Binan
 - [ ] Handle API errors gracefully
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1209-1290` (sync_initial_state)
+- `rust-core-engine/src/real_trading/engine.rs` (`sync_initial_state` — search by function name)
 
 **Test Cases**: TC-REAL-080, TC-REAL-081
 
@@ -529,7 +526,7 @@ The system shall periodically reconcile in-memory state with Binance API to dete
 - [ ] Broadcast reconciliation events
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1294-1350` (start_reconciliation_loop)
+- `rust-core-engine/src/real_trading/engine.rs` (reconciliation loop — see `run_reconciliation` at ~1805)
 
 **Test Cases**: TC-REAL-100, TC-REAL-101, TC-REAL-102
 
@@ -555,7 +552,7 @@ The system shall execute reconciliation logic comparing in-memory state with Bin
 - [ ] Handle API errors gracefully
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1378-1410` (run_reconciliation)
+- `rust-core-engine/src/real_trading/engine.rs:1805` (`run_reconciliation`)
 
 **Test Cases**: TC-REAL-103, TC-REAL-104
 
@@ -563,7 +560,7 @@ The system shall execute reconciliation logic comparing in-memory state with Bin
 
 ---
 
-### FR-REAL-053: Balance Reconciliation
+### FR-REAL-053: Balance Reconciliation (`reconcile_balances`)
 
 **Priority**: High
 **Status**: ✅ Implemented
@@ -580,7 +577,7 @@ The system shall reconcile account balance between in-memory cache and Binance A
 - [ ] Handle API errors
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1411-1470` (reconcile_balance)
+- `rust-core-engine/src/real_trading/engine.rs:1842` (`reconcile_balances`)
 
 **Test Cases**: TC-REAL-110, TC-REAL-111
 
@@ -606,7 +603,7 @@ The system shall reconcile orders between in-memory state and Binance API.
 - [ ] Broadcast events for new/updated orders
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1472-1620` (reconcile_orders)
+- `rust-core-engine/src/real_trading/engine.rs:2066` (`reconcile_orders`)
 
 **Test Cases**: TC-REAL-115, TC-REAL-116, TC-REAL-117
 
@@ -631,7 +628,7 @@ The system shall clean up orders that are in our state but not in Binance API (l
 - [ ] Broadcast OrderFilled or OrderCancelled event
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1622-1710` (cleanup_stale_orders)
+- `rust-core-engine/src/real_trading/engine.rs:2216` (`cleanup_stale_orders`)
 
 **Test Cases**: TC-REAL-120, TC-REAL-121
 
@@ -657,7 +654,7 @@ The system shall handle User Data Stream disconnections gracefully with automati
 - [ ] Circuit breaker after multiple consecutive failures
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1713-1735` (handle_disconnect)
+- `rust-core-engine/src/real_trading/engine.rs` (disconnect handling — embedded in user stream processing loop)
 
 **Test Cases**: TC-REAL-130, TC-REAL-131, TC-REAL-132
 
@@ -683,7 +680,7 @@ The system shall provide an emergency stop mechanism to halt all trading immedia
 - [ ] Require manual reset to resume trading
 
 **Code Location**:
-- `rust-core-engine/src/real_trading/engine.rs:1738-1800` (emergency_stop)
+- `rust-core-engine/src/real_trading/engine.rs:2332` (`emergency_stop`)
 
 **Test Cases**: TC-REAL-140, TC-REAL-141
 
@@ -727,15 +724,19 @@ The system shall provide REST API endpoints for real trading operations.
 
 ### Input Data
 
-**Configuration**:
+**Configuration** (key fields — see `config.rs` for full struct):
 ```rust
 pub struct RealTradingConfig {
-    pub testnet: bool,              // Default: true
-    pub max_open_positions: usize,  // Default: 10
-    pub daily_loss_limit_percent: f64, // Default: 5.0%
-    pub circuit_breaker_threshold: u32, // Default: 5
-    pub circuit_breaker_cooldown_secs: u64, // Default: 300 (5 min)
-    pub reconciliation_interval_secs: u64, // Default: 300
+    pub use_testnet: bool,                     // Default: true
+    pub max_positions: u32,                    // Default: 5
+    pub max_daily_loss_usdt: f64,              // Default: 500.0
+    pub max_position_size_usdt: f64,           // Default: 1000.0
+    pub circuit_breaker_errors: u32,           // Default: 3
+    pub circuit_breaker_cooldown_secs: u64,    // Default: 300 (5 min)
+    pub reconciliation_interval_secs: u64,     // Default: 300 (5 min)
+    pub auto_trading_enabled: bool,            // Default: false (safety)
+    pub trading_type: String,                  // Default: "futures"
+    pub risk_per_trade_percent: f64,           // Default: 2.0%
 }
 ```
 
@@ -755,29 +756,37 @@ pub struct OrderRequest {
 **Order Response**:
 ```rust
 pub struct RealOrder {
-    pub order_id: u64,
     pub client_order_id: String,
+    pub exchange_order_id: i64,
     pub symbol: String,
-    pub side: OrderSide,
-    pub order_type: OrderType,
-    pub status: OrderState,     // NEW, FILLED, CANCELED, REJECTED
-    pub quantity: f64,
-    pub filled_quantity: f64,
-    pub fills: Vec<Fill>,
+    pub side: String,           // "BUY" / "SELL"
+    pub order_type: String,     // "MARKET", "LIMIT", "STOP_LOSS_LIMIT", etc.
+    pub state: OrderState,      // Pending, New, PartiallyFilled, Filled, Cancelled, Rejected, Expired
+    pub original_quantity: f64,
+    pub executed_quantity: f64,
+    pub average_fill_price: f64,
+    pub fills: Vec<OrderFill>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 ```
 
-**Position**:
+**Position** (key fields — see `position.rs` for full struct):
 ```rust
 pub struct RealPosition {
+    pub id: String,
     pub symbol: String,
     pub side: PositionSide,     // Long/Short
     pub entry_price: f64,
+    pub current_price: f64,
     pub quantity: f64,
     pub unrealized_pnl: f64,
     pub realized_pnl: f64,
+    pub stop_loss: Option<f64>,
+    pub take_profit: Option<f64>,
+    pub trailing_stop_active: bool,
     pub opened_at: DateTime<Utc>,
+    pub closed_at: Option<DateTime<Utc>>,
 }
 ```
 
@@ -893,7 +902,7 @@ pub struct RealPosition {
 ### Code Locations
 
 All code uses `@spec:FR-REAL-XXX` tags for traceability:
-- `rust-core-engine/src/real_trading/` - 9 files
+- `rust-core-engine/src/real_trading/` - 6 files (mod.rs, engine.rs, config.rs, order.rs, position.rs, risk.rs)
 - `rust-core-engine/src/binance/` - 5 files
 - `rust-core-engine/src/api/real_trading.rs` - API endpoints
 

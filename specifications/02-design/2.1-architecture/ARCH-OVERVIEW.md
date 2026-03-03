@@ -167,7 +167,7 @@ graph TB
 - Market condition analysis
 
 **MCP Server (Port 8090)**:
-- Model Context Protocol server (110 tools)
+- Model Context Protocol server (114 tools)
 - Bridge between AI agents and trading system
 - Exposes paper trading, real trading, strategy, monitoring tools
 

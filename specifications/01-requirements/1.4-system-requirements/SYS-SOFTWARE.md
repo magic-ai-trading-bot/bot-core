@@ -227,13 +227,13 @@ cargo --version  # cargo 1.86.0 or later
 ### Core Dependencies (from Cargo.toml)
 
 **Async Runtime**:
-- **tokio** = `1.0` (features: `["full"]`)
+- **tokio** = `1.49` (features: `["full"]`)
   - Purpose: Asynchronous runtime for concurrent operations
   - Critical: WebSocket handling, HTTP server, task scheduling
   - License: MIT
 
 **WebSocket**:
-- **tokio-tungstenite** = `0.20` (features: `["rustls-tls-native-roots"]`)
+- **tokio-tungstenite** = `0.28` (features: `["rustls-tls-native-roots"]`)
   - Purpose: Async WebSocket client for Binance streams
   - Critical: Real-time market data ingestion
   - License: MIT
@@ -248,13 +248,13 @@ cargo --version  # cargo 1.86.0 or later
   - License: MIT/Apache-2.0
 
 **HTTP Client**:
-- **reqwest** = `0.11` (features: `["json", "rustls-tls"]`)
+- **reqwest** = `0.12` (features: `["json", "rustls-tls"]`)
   - Purpose: HTTP client for REST API calls to Binance
   - Critical: Order placement, account queries
   - License: MIT/Apache-2.0
 
 **Web Framework**:
-- **warp** = `0.3`
+- **warp** = `0.4`
   - Purpose: HTTP server framework for API endpoints
   - Critical: Dashboard API, health checks, metrics
   - License: MIT
@@ -269,7 +269,7 @@ cargo --version  # cargo 1.86.0 or later
 - **tracing** = `0.1`
   - Purpose: Structured logging framework
   - License: MIT
-- **tracing-subscriber** = `0.3.20` (features: `["env-filter"]`)
+- **tracing-subscriber** = `0.3.22` (features: `["env-filter"]`)
   - Purpose: Logging implementation
   - License: MIT
 - **log** = `0.4`
@@ -280,12 +280,12 @@ cargo --version  # cargo 1.86.0 or later
 - **anyhow** = `1.0`
   - Purpose: Flexible error handling
   - License: MIT/Apache-2.0
-- **thiserror** = `1.0`
+- **thiserror** = `2.0`
   - Purpose: Derive macro for error types
   - License: MIT/Apache-2.0
 
 **Concurrency**:
-- **dashmap** = `5.4`
+- **dashmap** = `6.1`
   - Purpose: Concurrent HashMap
   - Critical: Shared state for trading data
   - License: MIT
@@ -297,11 +297,11 @@ cargo --version  # cargo 1.86.0 or later
   - License: MIT/Apache-2.0
 
 **Configuration**:
-- **config** = `0.13`
+- **config** = `0.15`
   - Purpose: Configuration file parsing
   - Critical: Load config.toml
   - License: MIT/Apache-2.0
-- **toml** = `0.8`
+- **toml** = `1.0`
   - Purpose: TOML parser
   - License: MIT/Apache-2.0
 
@@ -319,13 +319,13 @@ cargo --version  # cargo 1.86.0 or later
   - License: MIT/Apache-2.0
 
 **Numeric**:
-- **rust_decimal** = `1.33` (features: `["serde"]`)
+- **rust_decimal** = `1.40` (features: `["serde"]`)
   - Purpose: High-precision decimal arithmetic
   - Critical: Price and quantity calculations
   - License: MIT
 
 **Database** (Optional feature: `database`):
-- **mongodb** = `3.3` (optional)
+- **mongodb** = `3.5` (optional)
   - Purpose: MongoDB driver
   - Critical: Data persistence
   - License: Apache-2.0
@@ -334,15 +334,15 @@ cargo --version  # cargo 1.86.0 or later
   - License: MIT
 
 **Authentication**:
-- **jsonwebtoken** = `9.1`
+- **jsonwebtoken** = `10.3`
   - Purpose: JWT token handling
   - Critical: Inter-service authentication
   - License: MIT
-- **bcrypt** = `0.15`
+- **bcrypt** = `0.17`
   - Purpose: Password hashing
   - Critical: User authentication
   - License: MIT
-- **base64** = `0.21.7`
+- **base64** = `0.22.1`
   - Purpose: Base64 encoding
   - License: MIT/Apache-2.0
 
@@ -352,23 +352,25 @@ cargo --version  # cargo 1.86.0 or later
   - License: MIT/Apache-2.0
 
 **Other**:
-- **url** = `2.5.4` - URL parsing
-- **uuid** = `1.0` (features: `["v4"]`) - UUID generation
+- **url** = `2.5.8` - URL parsing
+- **uuid** = `1.21` (features: `["v4"]`) - UUID generation
 - **futures-util** = `0.3` - Future utilities
 - **futures** = `0.3` - Futures trait
 - **async-trait** = `0.1` - Async trait support
-- **slab** = `0.4.11` - Slab allocator
+- **slab** = `0.4.12` - Slab allocator
 - **structopt** = `0.3` - CLI argument parsing
+- **rand** = `0.9` - Random number generation
+- **sysinfo** = `0.38` - System information
 
 ### Development Dependencies
 
 **Testing**:
 - **tokio-test** = `0.4`
   - Purpose: Testing utilities for async code
-- **warp** = `0.3`
-  - Purpose: HTTP server and WebSocket framework
-- **tempfile** = `3.8`
+- **actix-web** = `4.13` (features: `["macros"]`) - Used in integration tests
+- **tempfile** = `3.26`
   - Purpose: Temporary file handling in tests
+- **criterion** = `0.8` (features: `["html_reports"]`) - Benchmarking
 
 ### Build Requirements
 
@@ -476,20 +478,20 @@ python3 --version  # Python 3.11.0 or later
 ### Core Dependencies (from requirements.txt)
 
 **Web Framework**:
-- **fastapi** == `0.104.1`
+- **fastapi** >= `0.115.0`
   - Purpose: REST API framework
   - Critical: API endpoints, validation, documentation
   - License: MIT
-- **uvicorn** == `0.24.0`
+- **uvicorn** >= `0.30.0`
   - Purpose: ASGI server for FastAPI
   - Critical: HTTP server runtime
   - License: BSD-3-Clause
-- **python-multipart** == `0.0.6`
+- **python-multipart** >= `0.0.22`
   - Purpose: Multipart form data parsing
   - License: Apache-2.0
 
 **Data Validation**:
-- **pydantic** == `2.5.0`
+- **pydantic** >= `2.9.0`
   - Purpose: Data validation using type hints
   - Critical: Request/response validation
   - License: MIT
@@ -499,114 +501,115 @@ python3 --version  # Python 3.11.0 or later
   - Purpose: Array operations, numerical computing
   - Critical: All numerical operations, ML models
   - License: BSD-3-Clause
-- **pandas** == `2.2.3`
+- **pandas** >= `2.2.0`
   - Purpose: Data manipulation, time series
   - Critical: Candle data processing, analysis
   - License: BSD-3-Clause
 
 **Machine Learning**:
-- **scikit-learn** == `1.3.0`
+- **scikit-learn** >= `1.6.0`
   - Purpose: Traditional ML algorithms, preprocessing
   - License: BSD-3-Clause
 
 **Deep Learning - TensorFlow**:
-- **tensorflow** == `2.18.0`
+- **tensorflow** >= `2.18.0`
   - Purpose: LSTM/GRU model training and inference
   - Critical: AI predictions
   - License: Apache-2.0
   - Note: Large package (~500 MB), GPU support optional
 
 **Deep Learning - PyTorch**:
-- **torch** == `2.5.1`
+- **torch** >= `2.9.0`
   - Purpose: Transformer model training and inference
   - Critical: Advanced AI models
   - License: BSD-3-Clause
-- **torchvision** == `0.20.1`
+- **torchvision** >= `0.20.0`
   - Purpose: Image processing utilities (optional)
   - License: BSD-3-Clause
-- **torchaudio** == `2.5.1`
+- **torchaudio** >= `2.5.0`
   - Purpose: Audio processing utilities (optional)
   - License: BSD-3-Clause
 
 **Technical Indicators**:
-- **ta** == `0.10.2`
+- **ta** >= `0.11.0`
   - Purpose: Technical analysis indicators (RSI, MACD, Bollinger Bands)
   - Critical: Market analysis features
   - License: MIT
 
 **Logging**:
-- **loguru** == `0.7.2`
+- **loguru** >= `0.7.0`
   - Purpose: Advanced logging with rotation
   - License: MIT
 
 **Configuration**:
-- **pyyaml** == `6.0.1`
+- **pyyaml** >= `6.0.0`
   - Purpose: YAML configuration parsing
   - Critical: Load config.yaml
   - License: MIT
 
 **HTTP Client**:
-- **requests** == `2.31.0`
+- **requests** >= `2.32.3`
   - Purpose: HTTP client for API calls
   - License: Apache-2.0
-- **aiofiles** == `23.2.0`
+- **aiofiles** >= `24.0.0`
   - Purpose: Async file I/O
   - License: Apache-2.0
 
 **Database**:
-- **pymongo** == `4.9.1`
+- **pymongo** >= `4.10.0`
   - Purpose: MongoDB driver (synchronous)
   - License: Apache-2.0
-- **motor** == `3.6.0`
+- **motor** >= `3.6.0`
   - Purpose: MongoDB driver (async)
   - Critical: Async database operations
   - License: Apache-2.0
+- **redis** >= `5.3.0`
+  - Purpose: Redis client (async/sync)
+  - License: MIT
 
 **AI Integration**:
-- **openai** == `1.51.0`
+- **openai** >= `1.50.0`
   - Purpose: OpenAI-compatible SDK client (used with xAI/Grok API via `base_url=https://api.x.ai/v1`)
   - Critical: AI-powered market analysis
   - License: MIT
 
 **Rate Limiting**:
-- **slowapi** == `0.1.9`
+- **slowapi** >= `0.1.9`
   - Purpose: Rate limiting for API endpoints
   - License: MIT
 
 **Utilities**:
-- **joblib** == `1.3.2`
+- **joblib** >= `1.4.0`
   - Purpose: Model serialization, parallel processing
   - License: BSD-3-Clause
-- **python-dotenv** == `1.0.0`
+- **python-dotenv** >= `1.0.0`
   - Purpose: Environment variable loading
   - License: BSD-3-Clause
 
 ### Development Dependencies (requirements.dev.txt)
 
 **Linting and Formatting**:
-- **black** == `23.12.1` - Code formatter
-- **flake8** == `7.0.0` - Linter
-- **mypy** == `1.8.0` - Type checker
-- **isort** == `5.13.2` - Import sorting
+- **black** >= `24.8.0` - Code formatter
+- **flake8** >= `7.1.0` - Linter
+- **mypy** >= `1.11.0` - Type checker
+- **isort** >= `5.13.0` - Import sorting
 
 **Testing**:
-- **pytest** == `7.4.3` - Testing framework
-- **pytest-asyncio** == `0.21.1` - Async test support
-- **pytest-cov** == `4.1.0` - Coverage reporting
-- **httpx** == `0.25.2` - Async HTTP client for testing
+- **pytest** >= `8.3.0` - Testing framework
+- **pytest-asyncio** >= `0.24.0` - Async test support
+- **pytest-cov** >= `5.0.0` - Coverage reporting
+- **pytest-mock** >= `3.14.0` - Mocking
+- **pytest-xdist** >= `3.6.0` - Parallel test execution
+- **httpx** >= `0.27.0` - Async HTTP client for testing
 
-**Documentation**:
-- **mkdocs** == `1.5.3` - Documentation generator
-- **mkdocs-material** == `9.5.3` - Material theme
+### Testing Dependencies (included in requirements.txt)
 
-### Testing Dependencies (requirements.test.txt)
-
-- **pytest** == `7.4.3`
-- **pytest-asyncio** == `0.21.1`
-- **pytest-cov** == `4.1.0`
-- **pytest-mock** == `3.12.0`
-- **coverage** == `7.4.0`
-- **httpx** == `0.25.2`
+- **pytest** >= `8.3.0`
+- **pytest-asyncio** >= `0.24.0`
+- **pytest-cov** >= `5.0.0`
+- **pytest-mock** >= `3.14.0`
+- **pytest-xdist** >= `3.6.0`
+- **httpx** >= `0.27.0`
 
 ### System Requirements
 
@@ -732,20 +735,19 @@ Node.js runtime, npm/yarn/bun, and all frontend dependencies for the React/Vite 
 ### Node.js Runtime
 
 **Node.js Version**:
-- **Minimum**: **18.0.0** (LTS - April 2022)
-- **Recommended**: **20.x** (LTS - April 2023)
-- **Latest**: **22.x** (Current)
+- **Minimum**: **22.0.0** (required by OpenClaw gateway)
+- **Recommended**: **22.x** (LTS)
 - **Architecture**: x64 or ARM64
 
 **Installation**:
 ```bash
 # Using nvm (recommended)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-nvm install 20
-nvm use 20
+nvm install 22
+nvm use 22
 
 # Verify
-node --version  # v20.x.x
+node --version  # v22.x.x
 npm --version   # 10.x.x
 ```
 

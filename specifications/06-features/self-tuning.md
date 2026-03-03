@@ -8,7 +8,7 @@
 |------|-------|
 | Code | `mcp-server/src/tools/tuning.ts`, `mcp-server/src/tuning/` |
 | Spec | `specifications/01-requirements/1.1-functional-requirements/FR-SELF-TUNING.md` |
-| MCP tools | 8 tools (`get_tuning_dashboard`, `get_parameter_bounds`, `apply_green_adjustment`, ...) |
+| MCP tools | 8 tools (`get_tuning_dashboard`, `get_parameter_bounds`, `apply_green_adjustment`, `request_yellow_adjustment`, `request_red_adjustment`, `get_adjustment_history`, `rollback_adjustment`, `take_parameter_snapshot`) |
 | Cron | 3x daily: `0 2,8,16 * * *` (Asia/Ho_Chi_Minh) |
 | Audit log | `/data/audit/tuning-audit.jsonl` (JSONL, append-only) |
 | Snapshots | In-memory, max 48 snapshots |
@@ -62,7 +62,7 @@ AI agent wants to adjust parameter
 1. AI calls `request_yellow_adjustment(parameter, new_value, reasoning)`
 2. Returns `confirm_token` (HMAC-signed, short-lived)
 3. User reviews and provides token back to AI
-4. AI calls same tool with `confirm_token` field set
+4. AI calls `request_yellow_adjustment` again with `confirm_token` field set
 5. Token validated → change applied + audited
 
 ### RED Tier Flow
@@ -74,7 +74,7 @@ AI agent wants to adjust parameter
 
 ### Rollback
 
-`rollback_to_snapshot(snapshot_id)` restores all parameters from a snapshot via PUT to Rust API. Snapshots stored in-memory (max 48, FIFO eviction). Each change auto-takes a snapshot before applying.
+`rollback_adjustment(snapshot_id?)` restores all parameters from a snapshot via PUT to Rust API. `snapshot_id` is optional — omit to rollback to the most recent previous snapshot. Snapshots stored in-memory (max 48, FIFO eviction). Each change auto-takes a snapshot before applying.
 
 ### Cooldown Enforcement
 
@@ -105,6 +105,11 @@ Per-parameter cooldowns tracked in `Map<string, number>` (last adjustment time).
 | `sp_neutral_confidence` | Neutral Confidence | 0.30–0.50 | 0.40 | 6h |
 | `sp_counter_trend_block_offset` | Counter-Trend Offset | 0.0–0.15 | 0.05 | 1h |
 | `sp_counter_trend_mode` | Counter-Trend Mode | block/reduce | block | 1h |
+| `atr_stop_multiplier` | ATR Stop Multiplier | 0.8–2.5 | 1.2 | 6h |
+| `atr_tp_multiplier` | ATR TP Multiplier | 1.5–5.0 | 2.4 | 6h |
+| `funding_spike_threshold` | Funding Spike Threshold | 0.0001–0.001 | 0.0003 | 6h |
+| `atr_spike_multiplier` | ATR Spike Multiplier | 1.5–3.0 | 2.0 | 6h |
+| `consecutive_loss_reduction_pct` | Consecutive Loss Reduction % | 0.1–0.5 | 0.3 | 6h |
 
 > Note: `stop_loss_percent` and `take_profit_percent` are PnL-based, not price%.
 > Price move = pnl% / leverage. Always verify price_move in 0.5–3% range for crypto.
@@ -124,6 +129,18 @@ Per-parameter cooldowns tracked in `Map<string, number>` (last adjustment time).
 | `sp_weight_30m` | 30M Weight | 0.0–3.0 | 1.0 |
 | `sp_weight_1h` | 1H Weight | 0.0–3.0 | 2.0 |
 | `sp_counter_trend_enabled` | Counter-Trend Protection | bool | true |
+| `base_risk_pct` | Base Risk % per Trade | 0.5–5.0 | 2.0 |
+| `kelly_fraction` | Kelly Fraction | 0.25–0.75 | 0.5 |
+
+### RED Tier (Explicit "APPROVE CHANGE X" text required)
+
+| Key | Name | Range | Default |
+|-----|------|-------|---------|
+| `atr_stop_enabled` | ATR Stop Loss Enabled | bool | false |
+| `kelly_enabled` | Half-Kelly Enabled | bool | false |
+| `weekly_drawdown_limit_pct` | Weekly Drawdown Limit % | 3.0–15.0 | 7.0 |
+| `max_daily_loss_percent` | Max Daily Loss % | 3.0–15.0 | 10.0 |
+| `engine_running` | Paper Trading Engine On/Off | bool | — |
 
 ---
 
@@ -134,11 +151,11 @@ Per-parameter cooldowns tracked in `Map<string, number>` (last adjustment time).
 | `get_tuning_dashboard` | Read | Aggregated view: settings, performance, AI suggestions, recent adjustments |
 | `get_parameter_bounds` | Read | All params grouped by tier with current cooldown status |
 | `apply_green_adjustment` | GREEN write | Auto-apply with reasoning |
-| `request_yellow_adjustment` | YELLOW write | Request with token workflow |
-| `confirm_yellow_adjustment` | YELLOW write | Apply after user confirms token |
+| `request_yellow_adjustment` | YELLOW write | Request with token workflow; pass `confirm_token` field to confirm |
 | `request_red_adjustment` | RED write | Request with approval text workflow |
-| `rollback_to_snapshot` | Write | Restore all params from snapshot |
 | `get_adjustment_history` | Read | Filter by tier, parameter, date |
+| `rollback_adjustment` | Write | Restore all params from a previous snapshot |
+| `take_parameter_snapshot` | Write | Manually snapshot current params for later rollback |
 
 ---
 
