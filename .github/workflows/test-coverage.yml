@@ -72,6 +72,8 @@ jobs:
 
       - name: Run tests with coverage (single run)
         working-directory: ./rust-core-engine
+        env:
+          RUST_MIN_STACK: 8388608  # 8MB stack to prevent overflow in deeply nested warp filter types
         run: |
           # Run tests ONCE with coverage instrumentation
           mkdir -p coverage

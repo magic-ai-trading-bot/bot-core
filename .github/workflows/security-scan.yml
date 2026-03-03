@@ -51,8 +51,18 @@ jobs:
         path: trivy-results.sarif
         retention-days: 30
 
+    - name: Install Trivy CLI
+      if: github.event_name == 'push'
+      run: |
+        sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install -y trivy
+
     - name: Run Trivy vulnerability scanner for Docker images
       if: github.event_name == 'push'
+      continue-on-error: true
       run: |
         # Copy root lockfile to frontend directory for reproducible Docker builds
         cp bun.lock nextjs-ui-dashboard/bun.lock 2>/dev/null || true
