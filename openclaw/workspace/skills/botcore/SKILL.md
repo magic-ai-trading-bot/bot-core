@@ -379,7 +379,7 @@ botcore update_paper_settings '{"settings":{"any_field":"value"}}'  # Generic ca
 
 ### Settings Field Reference
 
-**`update_paper_basic_settings`** fields (32 total):
+**`update_paper_basic_settings`** fields (50 total):
 
 Basic fields:
 - `initial_balance` (number) — Starting balance. Example: 10000
@@ -406,7 +406,7 @@ Risk fields:
 - `trailing_stop_enabled` (boolean) — Enable trailing stop. Example: true
 - `trailing_stop_pct` (number) — Trailing stop distance % (price-based). Example: 3.0
 - `trailing_activation_pct` (number) — PnL % to activate trailing stop. Example: 5.0
-- `position_sizing_method` (string) — One of: FixedPercentage, RiskBased, VolatilityAdjusted, ConfidenceWeighted, Composite
+- `position_sizing_method` (string) — One of: FixedPercentage, RiskBased, VolatilityAdjusted, ConfidenceWeighted, Composite, ATRBased
 - `min_risk_reward_ratio` (number) — Min risk/reward ratio. Example: 2.0
 - `correlation_limit` (number) — Position correlation limit. Example: 0.7
 - `dynamic_sizing` (boolean) — Dynamic sizing by volatility. Example: true
@@ -416,6 +416,31 @@ Risk fields:
 - `reversal_min_confidence` (number) — Min confidence for reversal. Example: 0.65
 - `reversal_max_pnl_pct` (number) — Max PnL % before trailing stop. Example: 10.0
 - `reversal_allowed_regimes` (array) — Allowed regimes. Example: ["trending","ranging"]
+
+ATR-based position sizing fields:
+- `atr_stop_enabled` (boolean) — Use ATR for SL/TP instead of fixed PnL%. Example: true
+- `atr_period` (number) — ATR calculation period. Example: 14
+- `atr_stop_multiplier` (number) — SL = entry ± (ATR × this). Example: 1.2
+- `atr_tp_multiplier` (number) — TP = entry ∓ (ATR × this). Example: 2.4
+- `base_risk_pct` (number) — Base risk % per trade for ATR sizing. Example: 2.0
+
+Half-Kelly criterion fields:
+- `kelly_enabled` (boolean) — Scale position by win rate edge. Example: true
+- `kelly_min_trades` (number) — Min closed trades before Kelly activates. Example: 200
+- `kelly_fraction` (number) — Kelly fraction (0.5 = Half-Kelly). Example: 0.5
+- `kelly_lookback` (number) — Use last N trades for Kelly calc. Example: 100
+
+Regime filter fields:
+- `funding_spike_filter_enabled` (boolean) — Reduce size on high funding rate. Example: true
+- `funding_spike_threshold` (number) — Funding rate threshold. Example: 0.0003
+- `funding_spike_reduction` (number) — Size multiplier when spike. Example: 0.5
+- `atr_spike_filter_enabled` (boolean) — Reduce size on ATR spike. Example: true
+- `atr_spike_multiplier` (number) — ATR spike = current > mean × this. Example: 2.0
+- `atr_spike_reduction` (number) — Size multiplier when ATR spike. Example: 0.5
+- `consecutive_loss_reduction_enabled` (boolean) — Progressive size reduction after losses. Example: true
+- `consecutive_loss_reduction_pct` (number) — Reduction % per excess loss. Example: 0.3
+- `consecutive_loss_reduction_threshold` (number) — Losses before reduction starts. Example: 3
+- `weekly_drawdown_limit_pct` (number) — Weekly drawdown limit %. Example: 7.0
 
 **`update_paper_execution_settings`** fields (10 total):
 - `auto_execution` (boolean) — Enable auto trade execution. Example: true
@@ -469,10 +494,18 @@ botcore update_paper_basic_settings '{"settings":{"default_stop_loss_pct":7.5}}'
 # ❌ NEVER set default_stop_loss_pct = 1.5 thinking it's 1.5% price! With 10x that's only 0.15% price!
 # Enable trailing stop: activate at PnL%, trail % below peak price
 botcore update_paper_basic_settings '{"settings":{"trailing_stop_enabled":true,"trailing_stop_pct":2.5,"trailing_activation_pct":10.0}}'
+# Enable ATR-based stop loss & position sizing (adapts to volatility)
+botcore update_paper_basic_settings '{"settings":{"atr_stop_enabled":true,"atr_stop_multiplier":1.2,"atr_tp_multiplier":2.4,"base_risk_pct":2.0}}'
+# Enable regime filters (reduce size in bad conditions)
+botcore update_paper_basic_settings '{"settings":{"funding_spike_filter_enabled":true,"atr_spike_filter_enabled":true,"consecutive_loss_reduction_enabled":true}}'
+# Enable Kelly criterion (after 200+ closed trades)
+botcore update_paper_basic_settings '{"settings":{"kelly_enabled":true,"kelly_fraction":0.5}}'
+# Check ATR/Kelly/regime status
+botcore get_atr_diagnostics
 # Disable signal reversal
 botcore update_paper_basic_settings '{"settings":{"enable_signal_reversal":false}}'
 # Change position sizing method
-botcore update_paper_basic_settings '{"settings":{"position_sizing_method":"VolatilityAdjusted"}}'
+botcore update_paper_basic_settings '{"settings":{"position_sizing_method":"ATRBased"}}'
 # Enable slippage simulation
 botcore update_paper_execution_settings '{"settings":{"simulate_slippage":true,"max_slippage_pct":0.05}}'
 # Change signal refresh interval
