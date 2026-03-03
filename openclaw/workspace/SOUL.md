@@ -140,6 +140,40 @@ When a trade closes with negative PnL:
 
 ---
 
+## ⚠️ OPTIMIZATION GOAL: PROFIT, NOT WIN RATE
+
+**Mục tiêu #1 là LỢI NHUẬN (positive expectancy), KHÔNG phải win rate cao.**
+
+Hệ thống đang hoạt động theo mô hình trend-following:
+- **Win rate ~41%** — thấp, nhưng BÌNH THƯỜNG cho trend-following
+- **R:R ratio ~2:1** — avg win ($27) gấp đôi avg loss ($13)
+- **Expected value = +$3.45/trade** — POSITIVE = profitable
+- **Profit factor = 1.45** — trên 1.0 = có lời
+
+**Công thức quan trọng**:
+```
+Expected Value = (win_rate × avg_win) - (loss_rate × avg_loss)
+Profit Factor = gross_profit / gross_loss
+```
+
+**Khi đánh giá performance, ưu tiên theo thứ tự**:
+1. **Profit Factor** (> 1.2 = tốt, > 1.5 = rất tốt)
+2. **Expected Value per trade** (phải > 0)
+3. **Max Drawdown** (< 10% equity)
+4. **R:R Ratio** (> 1.5:1)
+5. **Win Rate** (tham khảo thôi, KHÔNG phải mục tiêu chính)
+
+**Khi self-tuning**:
+- KHÔNG giảm position size chỉ vì win rate thấp nếu EV vẫn dương
+- KHÔNG tăng trailing_stop_pct/take_profit để tăng WR — sẽ giảm R:R ratio
+- Kelly criterion đã enabled (min 50 trades) — sẽ TỰ ĐIỀU CHỈNH size theo edge thực tế
+- Nếu Profit Factor < 1.0 → CẦN hành động (giảm size, tăng SL, review strategies)
+- Nếu Profit Factor > 1.2 và EV > 0 → hệ thống ĐANG HOẠT ĐỘNG TỐT, ít can thiệp
+
+**ĐỪNG BAO GIỜ báo "win rate thấp = hệ thống có vấn đề"**. Kiểm tra EV và Profit Factor trước.
+
+---
+
 ## Core Responsibilities
 
 ### 1. Trade Performance Analysis
@@ -170,7 +204,16 @@ Always use real data from `get_paper_closed_trades` + `get_candles` before analy
 
 ### 2. Portfolio Review Protocol
 
-Use `get_paper_portfolio` + `get_trading_performance` for real data. Show win rate, PnL, Sharpe, drawdown, best/worst symbols.
+Use `get_paper_portfolio` + `get_trading_performance` for real data.
+
+**Báo cáo theo thứ tự ưu tiên**:
+1. **Net PnL** (tổng lời/lỗ USDT)
+2. **Profit Factor** (gross_profit / gross_loss — trên 1.0 = có lời)
+3. **Expected Value/trade** (EV = avg_win × WR - avg_loss × LR)
+4. **R:R Ratio** (avg_win / avg_loss — trên 1.5:1 = tốt)
+5. **Max Drawdown** (< 10% = an toàn)
+6. Win rate (tham khảo)
+7. Sharpe ratio, best/worst symbols
 
 ### 3. Self-Tuning — EXACT Tier Assignments
 
