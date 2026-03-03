@@ -21,6 +21,19 @@ import {
   AISignal,
 } from "@/hooks/usePaperTrading";
 
+// Sync from Paper Trading types
+export interface SyncFieldChange {
+  field: string;
+  label: string;
+  paperValue: unknown;
+  realValue: unknown;
+}
+
+export interface SyncPreview {
+  changes: SyncFieldChange[];
+  skipped: Array<{ field: string; reason: string }>;
+}
+
 // Flat settings interface matching backend real trading API response
 export interface RealTradingSettingsFlat {
   use_testnet: boolean;
@@ -763,6 +776,91 @@ export const useRealTrading = () => {
     [API_BASE, isRealMode, toast]
   );
 
+  // Sync settings from Paper Trading → Real Trading
+  const syncFromPaper = useCallback(async (): Promise<SyncPreview | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/api/paper-trading/basic-settings`);
+      const data = await response.json();
+
+      if (!data.success || !data.data) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch paper trading settings",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      const paper = data.data;
+      const real = state.flatSettings;
+
+      // Field mapping: paper (nested) → real (flat)
+      const fieldMap: Array<{
+        label: string;
+        realKey: keyof RealTradingSettingsFlat;
+        paperPath: [string, string];
+      }> = [
+        { label: "Stop Loss %", realKey: "default_stop_loss_percent", paperPath: ["risk", "default_stop_loss_pct"] },
+        { label: "Take Profit %", realKey: "default_take_profit_percent", paperPath: ["risk", "default_take_profit_pct"] },
+        { label: "Risk per Trade %", realKey: "risk_per_trade_percent", paperPath: ["risk", "max_risk_per_trade_pct"] },
+        { label: "Max Leverage", realKey: "max_leverage", paperPath: ["risk", "max_leverage"] },
+        { label: "Max Consecutive Losses", realKey: "max_consecutive_losses", paperPath: ["risk", "max_consecutive_losses"] },
+        { label: "Cool-Down Minutes", realKey: "cool_down_minutes", paperPath: ["risk", "cool_down_minutes"] },
+        { label: "Correlation Limit", realKey: "correlation_limit", paperPath: ["risk", "correlation_limit"] },
+        { label: "Max Portfolio Risk %", realKey: "max_portfolio_risk_pct", paperPath: ["risk", "max_portfolio_risk_pct"] },
+        { label: "Short Only Mode", realKey: "short_only_mode", paperPath: ["risk", "short_only_mode"] },
+        { label: "Long Only Mode", realKey: "long_only_mode", paperPath: ["risk", "long_only_mode"] },
+        { label: "Max Positions", realKey: "max_positions", paperPath: ["basic", "max_positions"] },
+        { label: "Min Signal Confidence", realKey: "min_signal_confidence", paperPath: ["risk", "reversal_min_confidence"] },
+      ];
+
+      const changes: SyncFieldChange[] = [];
+
+      for (const { label, realKey, paperPath } of fieldMap) {
+        const paperSection = paper[paperPath[0]];
+        if (!paperSection) continue;
+        const paperValue = paperSection[paperPath[1]];
+        if (paperValue === undefined) continue;
+
+        const realValue = real[realKey];
+        if (paperValue !== realValue) {
+          changes.push({ field: realKey, label, paperValue, realValue });
+        }
+      }
+
+      const skipped = [
+        { field: "use_testnet", reason: "Safety: never change trading mode automatically" },
+        { field: "auto_trading_enabled", reason: "Safety: must be explicitly enabled by user" },
+        { field: "auto_trade_symbols", reason: "User preference: symbol list is account-specific" },
+        { field: "max_position_size_usdt", reason: "Dollar limit depends on real account balance" },
+        { field: "max_daily_loss_usdt", reason: "Dollar limit depends on real account balance" },
+        { field: "max_total_exposure_usdt", reason: "Dollar limit depends on real account balance" },
+      ];
+
+      return { changes, skipped };
+    } catch (error) {
+      logger.error("Failed to sync from paper trading:", error);
+      toast({
+        title: "Error",
+        description: "Could not connect to paper trading service",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }, [API_BASE, state.flatSettings, toast]);
+
+  // Apply sync changes from preview
+  const confirmSyncFromPaper = useCallback(
+    async (changes: SyncFieldChange[]) => {
+      const partial: Partial<RealTradingSettingsFlat> = {};
+      for (const change of changes) {
+        (partial as Record<string, unknown>)[change.field] = change.paperValue;
+      }
+      await updatePartialSettings(partial);
+    },
+    [updatePartialSettings]
+  );
+
   // Reset portfolio (disabled for real trading)
   const resetPortfolio = useCallback(async () => {
     toast({
@@ -1278,6 +1376,8 @@ export const useRealTrading = () => {
     closeTrade,
     updateSettings,
     updatePartialSettings,
+    syncFromPaper,
+    confirmSyncFromPaper,
     resetPortfolio,
 
     // Order management (Phase 5)

@@ -10,29 +10,61 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeColors } from '@/hooks/useThemeColors';
-import type { RealTradingSettingsFlat } from '@/hooks/useRealTrading';
+import type { RealTradingSettingsFlat, SyncPreview, SyncFieldChange } from '@/hooks/useRealTrading';
 import {
   Zap,
   Shield,
   ChevronDown,
+  ChevronRight,
   AlertTriangle,
   Settings2,
   TrendingUp,
   TrendingDown,
+  RefreshCw,
+  ArrowRight,
+  Check,
+  Info,
 } from 'lucide-react';
 
 interface AutoTradingPanelProps {
   settings: RealTradingSettingsFlat;
   onUpdateSettings: (partial: Partial<RealTradingSettingsFlat>) => Promise<void>;
+  onSyncFromPaper?: () => Promise<SyncPreview | null>;
+  onConfirmSync?: (changes: SyncFieldChange[]) => Promise<void>;
   isLoading: boolean;
 }
 
 const AVAILABLE_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT'];
 
-export function AutoTradingPanel({ settings, onUpdateSettings, isLoading }: AutoTradingPanelProps) {
+export function AutoTradingPanel({ settings, onUpdateSettings, onSyncFromPaper, onConfirmSync, isLoading }: AutoTradingPanelProps) {
   const colors = useThemeColors();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showSyncDialog, setShowSyncDialog] = useState(false);
+  const [syncPreview, setSyncPreview] = useState<SyncPreview | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showSkipped, setShowSkipped] = useState(false);
+
+  const handleSyncFromPaper = useCallback(async () => {
+    if (!onSyncFromPaper) return;
+    setIsSyncing(true);
+    const preview = await onSyncFromPaper();
+    setIsSyncing(false);
+    if (preview) {
+      setSyncPreview(preview);
+      setShowSyncDialog(true);
+      setShowSkipped(false);
+    }
+  }, [onSyncFromPaper]);
+
+  const handleConfirmSync = useCallback(async () => {
+    if (!onConfirmSync || !syncPreview) return;
+    setIsSyncing(true);
+    await onConfirmSync(syncPreview.changes);
+    setIsSyncing(false);
+    setShowSyncDialog(false);
+    setSyncPreview(null);
+  }, [onConfirmSync, syncPreview]);
 
   const handleToggleAutoTrading = useCallback(() => {
     if (settings.auto_trading_enabled) {
@@ -155,6 +187,172 @@ export function AutoTradingPanel({ settings, onUpdateSettings, isLoading }: Auto
         )}
       </AnimatePresence>
 
+      {/* Sync from Paper Trading Dialog */}
+      <AnimatePresence>
+        {showSyncDialog && syncPreview && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSyncDialog(false)} />
+            <motion.div
+              className="relative z-10 max-w-md mx-4 rounded-2xl overflow-hidden max-h-[80vh] flex flex-col"
+              style={{
+                backgroundColor: colors.bgPrimary,
+                border: '1px solid rgba(0, 217, 255, 0.3)',
+                boxShadow: '0 0 40px rgba(0, 217, 255, 0.1)',
+              }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              {/* Header */}
+              <div className="p-4 border-b" style={{ borderColor: colors.borderSubtle }}>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="p-2 rounded-xl"
+                    style={{ background: 'rgba(0, 217, 255, 0.15)', border: '1px solid rgba(0, 217, 255, 0.3)' }}
+                  >
+                    <RefreshCw className="w-4 h-4" style={{ color: colors.cyan }} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold" style={{ color: colors.textPrimary }}>
+                      Sync from Paper Trading
+                    </h3>
+                    <p className="text-[10px] mt-0.5" style={{ color: colors.textMuted }}>
+                      Copy proven settings to real trading
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="overflow-y-auto flex-1 p-4">
+                {syncPreview.changes.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 py-6">
+                    <div
+                      className="p-3 rounded-xl"
+                      style={{ background: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)' }}
+                    >
+                      <Check className="w-5 h-5" style={{ color: '#22c55e' }} />
+                    </div>
+                    <p className="text-xs font-medium" style={{ color: colors.textSecondary }}>
+                      All settings already match paper trading
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-[10px] uppercase tracking-wider mb-2 font-bold" style={{ color: colors.textMuted }}>
+                      {syncPreview.changes.length} field{syncPreview.changes.length > 1 ? 's' : ''} will change
+                    </p>
+                    <div className="space-y-1.5">
+                      {syncPreview.changes.map((change) => (
+                        <div
+                          key={change.field}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg"
+                          style={{ background: 'rgba(255, 255, 255, 0.03)', border: `1px solid ${colors.borderSubtle}` }}
+                        >
+                          <span className="text-[11px] font-medium" style={{ color: colors.textSecondary }}>
+                            {change.label}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono" style={{ color: colors.textMuted }}>
+                              {formatSyncValue(change.realValue)}
+                            </span>
+                            <ArrowRight className="w-3 h-3" style={{ color: colors.cyan }} />
+                            <span className="text-[11px] font-mono font-bold" style={{ color: colors.cyan }}>
+                              {formatSyncValue(change.paperValue)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Skipped fields */}
+                {syncPreview.skipped.length > 0 && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setShowSkipped(!showSkipped)}
+                      className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold cursor-pointer"
+                      style={{ color: colors.textMuted }}
+                    >
+                      {showSkipped ? (
+                        <ChevronDown className="w-3 h-3" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3" />
+                      )}
+                      <Info className="w-3 h-3" />
+                      {syncPreview.skipped.length} fields not synced
+                    </button>
+                    <AnimatePresence>
+                      {showSkipped && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-2 space-y-1">
+                            {syncPreview.skipped.map((item) => (
+                              <div
+                                key={item.field}
+                                className="px-3 py-1.5 rounded-lg"
+                                style={{ background: 'rgba(255, 255, 255, 0.02)' }}
+                              >
+                                <span className="text-[10px] font-mono" style={{ color: colors.textMuted }}>
+                                  {item.field}
+                                </span>
+                                <span className="text-[10px] ml-2" style={{ color: colors.textMuted }}>
+                                  — {item.reason}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t flex gap-2" style={{ borderColor: colors.borderSubtle }}>
+                <button
+                  onClick={() => setShowSyncDialog(false)}
+                  className="flex-1 px-4 py-2.5 text-xs font-bold rounded-xl transition-all"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: colors.textSecondary,
+                  }}
+                >
+                  {syncPreview.changes.length === 0 ? 'Close' : 'Cancel'}
+                </button>
+                {syncPreview.changes.length > 0 && (
+                  <button
+                    onClick={handleConfirmSync}
+                    disabled={isSyncing}
+                    className="flex-1 px-4 py-2.5 text-xs font-bold rounded-xl transition-all"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(0, 217, 255, 0.7), rgba(0, 150, 255, 0.7))',
+                      border: '1px solid rgba(0, 217, 255, 0.5)',
+                      color: '#fff',
+                      opacity: isSyncing ? 0.5 : 1,
+                    }}
+                  >
+                    {isSyncing ? 'Applying...' : `Apply ${syncPreview.changes.length} Change${syncPreview.changes.length > 1 ? 's' : ''}`}
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col gap-[1px]" style={{ backgroundColor: colors.borderSubtle }}>
         {/* Section 1: Auto-Trading Toggle */}
         <div className="p-3" style={{ backgroundColor: colors.bgPrimary }}>
@@ -221,6 +419,24 @@ export function AutoTradingPanel({ settings, onUpdateSettings, isLoading }: Auto
             >
               System will auto-place REAL orders from strategy signals
             </motion.p>
+          )}
+
+          {/* Sync from Paper Button */}
+          {onSyncFromPaper && (
+            <button
+              onClick={handleSyncFromPaper}
+              disabled={isSyncing || isLoading}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all cursor-pointer"
+              style={{
+                background: 'rgba(0, 217, 255, 0.08)',
+                border: '1px solid rgba(0, 217, 255, 0.2)',
+                color: colors.cyan,
+                opacity: isSyncing || isLoading ? 0.5 : 1,
+              }}
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Loading...' : 'Sync from Paper Trading'}
+            </button>
           )}
         </div>
 
@@ -470,6 +686,15 @@ export function AutoTradingPanel({ settings, onUpdateSettings, isLoading }: Auto
       </div>
     </>
   );
+}
+
+function formatSyncValue(value: unknown): string {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) return String(value);
+    return value.toFixed(2);
+  }
+  return String(value);
 }
 
 /**

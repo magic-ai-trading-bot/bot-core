@@ -2012,6 +2012,8 @@ export default function RealTrading() {
           <AutoTradingPanel
             settings={realTrading.flatSettings}
             onUpdateSettings={realTrading.updatePartialSettings}
+            onSyncFromPaper={realTrading.syncFromPaper}
+            onConfirmSync={realTrading.confirmSyncFromPaper}
             isLoading={realTrading.isLoading}
           />
         </div>
