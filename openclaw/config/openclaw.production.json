@@ -35,13 +35,15 @@
     "mode": "local",
     "bind": "lan",
     "controlUi": {
-      "allowInsecureAuth": true
+      "allowInsecureAuth": true,
+      "dangerouslyDisableDeviceAuth": true,
+      "allowedOrigins": ["http://180.93.2.247:18789", "http://localhost:18789", "http://127.0.0.1:18789", "https://180.93.2.247:18790"]
     },
     "auth": {
       "mode": "token",
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
-    "trustedProxies": ["192.168.65.0/24", "172.16.0.0/12", "127.0.0.0/8"]
+    "trustedProxies": ["0.0.0.0/0"]
   },
   "skills": {
     "load": {

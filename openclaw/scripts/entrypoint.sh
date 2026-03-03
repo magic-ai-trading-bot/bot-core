@@ -102,13 +102,13 @@ echo "=== Starting OpenClaw Gateway ==="
 openclaw gateway --dev --port 18789 --bind lan --token "${OPENCLAW_GATEWAY_TOKEN:-default-token}" &
 GATEWAY_PID=$!
 
-# Wait for gateway to be ready (canvas endpoint responds)
-# Gateway can take 90-120s on first start (model loading, plugin init)
+# Wait for gateway to be ready (root endpoint responds with 200)
+# Canvas endpoint requires auth since v2026.2.26, so use root "/" instead
 echo "Waiting for gateway to be ready..."
 RETRIES=0
 MAX_RETRIES=80
 GATEWAY_READY=false
-until curl -sf "http://localhost:18789/__openclaw__/canvas/" > /dev/null 2>&1; do
+until curl -sf "http://localhost:18789/" > /dev/null 2>&1; do
   # Check if gateway process died
   if ! kill -0 $GATEWAY_PID 2>/dev/null; then
     echo "ERROR: Gateway process died during startup"
@@ -217,12 +217,12 @@ if [ "$GATEWAY_READY" = "true" ]; then
   sleep 15
 
   # Verify gateway is still responsive after potential restart
-  if curl -sf "http://localhost:18789/__openclaw__/canvas/" > /dev/null 2>&1; then
+  if curl -sf "http://localhost:18789/" > /dev/null 2>&1; then
     register_cron_jobs
   else
     echo "Gateway restarted during stabilization, waiting for it to come back..."
     RESTAB=0
-    until curl -sf "http://localhost:18789/__openclaw__/canvas/" > /dev/null 2>&1; do
+    until curl -sf "http://localhost:18789/" > /dev/null 2>&1; do
       RESTAB=$((RESTAB + 1))
       if [ $RESTAB -gt 60 ]; then
         echo "ERROR: Gateway did not recover after restart. Cron NOT registered."
