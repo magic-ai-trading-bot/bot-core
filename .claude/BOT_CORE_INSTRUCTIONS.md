@@ -33,7 +33,7 @@ This file provides bot-core specific guidance for all ClaudeKit agents working w
 
 2. **Specification Directory Structure**
    ```
-   specs/
+   specifications/
    ├── README.md                    # Master specification index
    ├── TRACEABILITY_MATRIX.md       # Requirements-to-code mapping
    ├── TASK_TRACKER.md              # 100% completion tracking
@@ -41,7 +41,8 @@ This file provides bot-core specific guidance for all ClaudeKit agents working w
    ├── 02-design/                   # 20 docs (Architecture, DB, API, UI)
    ├── 03-testing/                  # 12 docs (Test cases & scenarios)
    ├── 04-deployment/               # 7 docs (Infrastructure, CI/CD)
-   └── 05-operations/               # 3 docs (Operations, DR plan)
+   ├── 05-operations/               # docs (Operations, DR plan, guides)
+   └── 06-features/                 # 9 feature guides
    ```
 
 3. **Code Tagging Convention (MANDATORY)**
@@ -49,13 +50,13 @@ This file provides bot-core specific guidance for all ClaudeKit agents working w
    - Format:
      ```rust
      // @spec:FR-AUTH-001 - JWT Token Generation
-     // @ref:specs/02-design/2.5-components/COMP-RUST-AUTH.md
+     // @ref:specifications/02-design/2.5-components/COMP-RUST-AUTH.md
      // @test:TC-AUTH-001, TC-AUTH-002
      ```
    - Validate tags: `python3 scripts/validate-spec-tags.py`
 
 4. **Development Workflow**
-   - Read spec FIRST (specs/01-requirements/, specs/02-design/)
+   - Read spec FIRST (specifications/01-requirements/, specifications/02-design/)
    - Verify code tagging exists
    - Update spec BEFORE coding if changes needed
    - Add @spec tags to new code
@@ -77,21 +78,18 @@ This file provides bot-core specific guidance for all ClaudeKit agents working w
 
 ### 📁 Correct Documentation Locations
 
-**All documentation goes to `docs/` directory:**
+**All documentation goes to `specifications/` directory:**
 ```
-docs/
-├── reports/                       # ALL reports
-│   ├── QUALITY_METRICS_SUMMARY.md
-│   ├── TEST_COVERAGE_REPORT.md
-│   └── SECURITY_AUDIT_REPORT.md
-├── certificates/                  # Achievements
-│   └── PERFECT_10_10_CERTIFICATE.md
-├── testing/                       # Testing docs
-├── architecture/                  # Architecture docs
-├── CONTRIBUTING.md
-├── SECURITY_CREDENTIALS.md
-├── TESTING_GUIDE.md
-└── TROUBLESHOOTING.md
+specifications/
+├── 01-requirements/               # Functional & non-functional requirements
+├── 02-design/                     # Architecture, DB, API, UI specs
+├── 03-testing/                    # Test cases, scenarios, TESTING_GUIDE
+├── 04-deployment/                 # Infra, CI/CD, PRODUCTION_DEPLOYMENT_GUIDE
+├── 05-operations/                 # Ops manual, TROUBLESHOOTING, CONTRIBUTING, guides
+├── 06-features/                   # Feature guides (paper-trading, auth, AI, etc.)
+├── TRACEABILITY_MATRIX.md
+├── TASK_TRACKER.md
+└── README.md
 ```
 
 **Service-specific documentation:**
@@ -99,7 +97,7 @@ docs/
 - `python-ai-service/docs/` - Python-specific
 - `nextjs-ui-dashboard/docs/` - Frontend-specific
 
-**Rule:** If it's a `.md` file and not `README.md` or `CLAUDE.md`, it belongs in `docs/` or `{service}/docs/`.
+**Rule:** If it's a `.md` file and not `README.md` or `CLAUDE.md`, it belongs in `specifications/` or `{service}/docs/`.
 
 ---
 
@@ -174,11 +172,11 @@ docs/
 
 **When creating plans:**
 1. **Read specs FIRST:**
-   - `specs/01-requirements/` - Functional/non-functional requirements
-   - `specs/02-design/` - Architecture, API, database design
-   - `specs/TRACEABILITY_MATRIX.md` - Requirements mapping
+   - `specifications/01-requirements/` - Functional/non-functional requirements
+   - `specifications/02-design/` - Architecture, API, database design
+   - `specifications/TRACEABILITY_MATRIX.md` - Requirements mapping
 
-2. **Save plans to:** `docs/plans/` (NOT `./plans/`)
+2. **Save plans to:** `./plans/` directory
 
 3. **Plan must include:**
    - Spec references (FR-XXX-YYY)
@@ -188,8 +186,7 @@ docs/
    - File organization adherence
 
 4. **Use `scout` agents to search:**
-   - `specs/` - Existing specifications
-   - `docs/` - Project documentation
+   - `specifications/` - Existing specifications and docs
    - Source code for patterns
 
 ### For `tester` Agent
@@ -218,7 +215,7 @@ make test-integration
 - Python: ≥95% (all modules)
 - Frontend: ≥90% (components + hooks)
 
-**Test report location:** `docs/testing/`
+**Test report location:** `specifications/03-testing/`
 
 ### For `code-reviewer` Agent
 
@@ -248,22 +245,19 @@ make security-check    # Comprehensive scan
 - [ ] Security scan clean
 - [ ] Quality score ≥94/100
 
-**Report location:** `docs/reports/CODE_REVIEW_REPORT.md`
+**Report location:** `plans/reports/CODE_REVIEW_REPORT.md`
 
 ### For `docs-manager` Agent
 
 **Documentation structure:**
-- **Specifications:** `specs/` (60 docs, 2.6MB, 77,574 lines)
-- **General docs:** `docs/`
+- **Specifications:** `specifications/` (115+ docs)
 - **Service docs:** `{service}/docs/`
-- **Reports:** `docs/reports/`
-- **Testing:** `docs/testing/`
+- **Reports:** `plans/reports/`
 
 **Update these when code changes:**
-- `specs/TRACEABILITY_MATRIX.md` - Requirements mapping
-- `specs/TASK_TRACKER.md` - Task completion
-- `docs/reports/QUALITY_METRICS_SUMMARY.md` - Quality metrics
-- Relevant API specs in `specs/02-design/2.3-api/`
+- `specifications/TRACEABILITY_MATRIX.md` - Requirements mapping
+- `specifications/TASK_TRACKER.md` - Task completion
+- Relevant API specs in `specifications/02-design/2.3-api/`
 
 **Never create .md files in root** (except README.md, CLAUDE.md)
 
@@ -347,7 +341,7 @@ make test-frontend
 - trades, paper_trades, risk_metrics
 - system_logs, audit_logs
 
-**Schema location:** `specs/02-design/2.2-database/DB-SCHEMA.md`
+**Schema location:** `specifications/02-design/2.2-database/DB-SCHEMA.md`
 
 **Access:**
 ```bash
@@ -440,8 +434,7 @@ make build-fast              # Sequential (memory-optimized)
 
 3. **File Organization**
    - No .md in root (except README/CLAUDE)
-   - All docs in docs/
-   - All specs in specs/
+   - All docs and specs in specifications/
    - Service docs in {service}/docs/
 
 4. **Security & Safety**
@@ -462,16 +455,14 @@ make build-fast              # Sequential (memory-optimized)
 
 **Read these files:**
 - `CLAUDE.md` - Complete project overview and guidelines
-- `specs/README.md` - Master specification index
-- `docs/CONTRIBUTING.md` - Contribution guide
-- `docs/TESTING_GUIDE.md` - Testing documentation
-- `docs/TROUBLESHOOTING.md` - Common issues
+- `specifications/README.md` - Master specification index
+- `specifications/05-operations/5.4-guides/` - Contribution guide
+- `specifications/03-testing/` - Testing documentation
+- `specifications/05-operations/5.2-troubleshooting/` - Common issues
 
 **Key Reports:**
-- `docs/reports/QUALITY_METRICS_SUMMARY.md` - Quality dashboard
-- `docs/reports/PERFECT_10_10_VALIDATION_REPORT.md` - Perfect score validation
-- `docs/reports/TEST_COVERAGE_REPORT.md` - Coverage details
-- `specs/TRACEABILITY_MATRIX.md` - Complete traceability
+- `plans/reports/` - Quality and validation reports
+- `specifications/TRACEABILITY_MATRIX.md` - Complete traceability
 
 ---
 

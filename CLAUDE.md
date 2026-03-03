@@ -12,10 +12,10 @@
 
 #### Step 1: CREATE SPEC FIRST (Before ANY code)
 
-1. **Search existing specs**: `specs/01-requirements/1.1-functional-requirements/FR-*.md`
-2. **Create new spec**: `specs/01-requirements/1.1-functional-requirements/FR-XXX.md` (use `specs/_SPEC_TEMPLATE.md`)
+1. **Search existing specs**: `specifications/01-requirements/1.1-functional-requirements/FR-*.md`
+2. **Create new spec**: `specifications/01-requirements/1.1-functional-requirements/FR-XXX.md` (use `specifications/_SPEC_TEMPLATE.md`)
 3. **Add to** `TRACEABILITY_MATRIX.md`
-4. **Create test cases**: `specs/03-testing/3.2-test-cases/TC-XXX.md` (Gherkin format)
+4. **Create test cases**: `specifications/03-testing/3.2-test-cases/TC-XXX.md` (Gherkin format)
 
 **DO NOT write ANY code until specs are complete!**
 
@@ -27,7 +27,7 @@ See Agent Quick Reference below. **NEVER code manually** for complex features.
 
 ```rust
 // @spec:FR-RISK-007 - Trailing Stop Loss
-// @ref:specs/01-requirements/1.1-functional-requirements/FR-RISK.md
+// @ref:specifications/01-requirements/1.1-functional-requirements/FR-RISK.md
 // @test:TC-TRADING-054, TC-TRADING-055
 pub fn update_trailing_stop(...) -> Result<...> { ... }
 ```
@@ -41,8 +41,8 @@ pub fn update_trailing_stop(...) -> Result<...> { ... }
 #### Step 5: VERIFY TRACEABILITY
 
 ```bash
-grep -r "FR-XXX-YYY" specs/01-requirements/          # Requirement exists
-grep "FR-XXX-YYY" specs/TRACEABILITY_MATRIX.md        # In matrix
+grep -r "FR-XXX-YYY" specifications/01-requirements/          # Requirement exists
+grep "FR-XXX-YYY" specifications/TRACEABILITY_MATRIX.md        # In matrix
 grep -r "@spec:FR-XXX-YYY" rust-core-engine/          # Has @spec tag
 python3 scripts/validate-specs.py                      # Validation passes
 ```
@@ -129,7 +129,7 @@ Claude MUST suggest agents when detecting these patterns:
 
 ## How Claude Should Understand the Project
 
-1. **Check specs first** (NOT code): `grep -r "feature-name" specs/01-requirements/`
+1. **Check specs first** (NOT code): `grep -r "feature-name" specifications/01-requirements/`
 2. **Then read code** using locations from `TRACEABILITY_MATRIX.md`
 3. **Spec = source of truth**. If code mismatches spec → code is wrong
 
@@ -141,48 +141,48 @@ Claude MUST suggest agents when detecting these patterns:
 ## Quick Feature Location Map
 
 ### Paper Trading (Execution + Risk Management)
-- **Doc**: `docs/features/paper-trading.md`
+- **Doc**: `specifications/06-features/paper-trading.md`
 - **Code**: `rust-core-engine/src/paper_trading/`
-  - `engine.rs:738-845` Execution simulation (slippage, market impact, partial fills)
-  - `engine.rs:847-1039` Risk management (daily loss, cool-down, correlation)
-  - `engine.rs:509-560` process_trading_signal() - risk checks
-  - `engine.rs:1041-1197` execute_trade() - full execution
-  - `engine.rs:1425-1452` close_trade() - consecutive loss tracking
-  - `portfolio.rs:77-81` Cool-down state fields
-  - `trade.rs:145-152` Latency tracking fields
+  - `engine.rs` Execution simulation (slippage, market impact, partial fills)
+  - `engine.rs` Risk management (daily loss, cool-down, correlation)
+  - `engine.rs` process_trading_signal() - risk checks
+  - `engine.rs` execute_trade() - full execution
+  - `engine.rs` close_trade() - consecutive loss tracking
+  - `portfolio.rs` Cool-down state fields
+  - `trade.rs` Latency tracking fields
   - `settings.rs` All configuration options
 - **Tests**: `rust-core-engine/tests/test_paper_trading.rs`
 
 ### Authentication & Authorization
-- **Doc**: `docs/features/authentication.md`
+- **Doc**: `specifications/06-features/authentication.md`
 - **Code**: `rust-core-engine/src/auth/` (jwt.rs, handlers.rs, middleware.rs, database.rs)
-- **API**: POST `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, GET `/api/auth/me`
+- **API**: POST `/api/auth/login`, `/api/auth/register`, `/api/auth/verify`, GET `/api/auth/profile`
 - **Tests**: `rust-core-engine/tests/test_auth.rs`
-- **Security**: RS256 JWT, bcrypt hashing
+- **Security**: HS256 JWT, bcrypt hashing
 
 ### AI & ML Integration
-- **Doc**: `docs/features/ai-integration.md`
+- **Doc**: `specifications/06-features/ai-integration.md`
 - **Code**: `python-ai-service/` (models/, main.py, features/)
-- **API**: POST `/predict`, `/analyze`, `/sentiment`, `/train`
-- **Models**: LSTM 68%, GRU 65%, Transformer 70%, Ensemble 72%
+- **API**: POST `/predict-trend`, `/analyze`
+- **Models**: LSTM 68%, GRU 65%, Transformer 70%, Ensemble 72% | Grok/xAI for signal generation
 - **Tests**: `python-ai-service/tests/`
 
 ### Trading Strategies
-- **Doc**: `docs/features/trading-strategies.md`
+- **Doc**: `specifications/06-features/trading-strategies.md`
 - **Code**: `rust-core-engine/src/strategies/` (rsi, macd, bollinger, volume, strategy_engine, indicators)
 - **API**: GET `/api/strategies/active`, `/api/strategies/signals/:symbol`, POST `/api/strategies/backtest`
 - **Performance**: 65% combined win rate, 1.5% avg profit, Sharpe 1.6
 - **Tests**: `rust-core-engine/tests/test_strategies.rs`
 
 ### WebSocket & Real-Time
-- **Doc**: `docs/features/websocket-realtime.md`
-- **Code**: `rust-core-engine/src/binance/websocket.rs`, `src/websocket/`, `nextjs-ui-dashboard/src/hooks/useWebSocket.ts`
+- **Doc**: `specifications/06-features/websocket-realtime.md`
+- **Code**: `rust-core-engine/src/binance/websocket.rs`, `nextjs-ui-dashboard/src/hooks/useWebSocket.ts`
 - **Events**: price_update, signal_generated, trade_executed, portfolio_update, risk_event
 - **Tests**: `nextjs-ui-dashboard/src/hooks/useWebSocket.test.tsx`
 
 ### Risk Management
-- **Doc**: `docs/features/paper-trading.md#risk-management`
-- **Code**: `rust-core-engine/src/paper_trading/engine.rs:847-1039`
+- **Doc**: `specifications/06-features/paper-trading.md#risk-management`
+- **Code**: `rust-core-engine/src/paper_trading/engine.rs`
 - **Features**: Daily Loss Limit (5%), Cool-Down (60min/5losses), Correlation Limits (70%), Consecutive Loss Tracking
 
 ### Frontend Dashboard
@@ -192,17 +192,18 @@ Claude MUST suggest agents when detecting these patterns:
 - **Tests**: `nextjs-ui-dashboard/src/**/*.test.tsx` (601 tests)
 
 ### Database Schema
-- **Doc**: `specs/02-design/2.2-database/DB-SCHEMA.md`
+- **Doc**: `specifications/02-design/2.2-database/DB-SCHEMA.md`
 - **Collections** (17): users, paper_portfolios, paper_trades, strategies, market_data, signals, etc.
 - **Indexes**: See `DB-INDEXES.md` (37 indexes)
 
 ### MCP Server (Model Context Protocol)
-- **Spec**: `specs/01-requirements/1.1-functional-requirements/FR-MCP.md`
+- **Spec**: `specifications/01-requirements/1.1-functional-requirements/FR-MCP.md`
 - **Code**: `mcp-server/`
   - `src/index.ts` Express + MCP SDK, Streamable HTTP
-  - `src/tools/` 103 tools: market(4), paper-trading(28), AI(4), strategies(3), monitoring(3), auth(4), tasks(4), self-tuning(11), real-trading(8), backtests(4), misc(30)
+  - `src/tools/` 110 tools: market(4), paper-trading(28), AI(4), strategies(3), monitoring(3), auth(4), tasks(4), self-tuning(11), real-trading(8), backtests(4), misc(30)
   - `src/services/api-client.ts` HTTP client for backends
 - **Protocol**: MCP v2024-11-05, port 8090
+- **SDK**: `@modelcontextprotocol/sdk ^1.12.1`
 - **Tests**: `mcp-server/tests/` (89 tests)
 - **Health**: `curl http://localhost:8090/health`
 
@@ -226,17 +227,14 @@ Claude MUST suggest agents when detecting these patterns:
 
 ## Documentation Structure
 
-### `/docs/` - Operational (daily use)
-- `features/` - 7 feature guides (paper-trading, auth, ai, strategies, websocket, mcp-server, openclaw)
-- `guides/`, `reports/`, `plans/`, `testing/`, `certificates/`, `archive/`
-- Root: `CONTRIBUTING.md`, `TESTING_GUIDE.md`, `TROUBLESHOOTING.md`, `PRODUCTION_DEPLOYMENT_GUIDE.md`
-
-### `/specs/` - Technical Specifications (development)
+### `/specifications/` - Unified Documentation (specs + operational docs)
 - `01-requirements/` 24 docs (194 requirements, 63 user stories)
 - `02-design/` 20 docs (Architecture, API, DB schema)
-- `03-testing/` 12 docs (186 test cases, 45 scenarios)
-- `04-deployment/` 7 docs, `05-operations/` 3 docs
-- Root: `TRACEABILITY_MATRIX.md`, `TASK_TRACKER.md`
+- `03-testing/` 12 docs (186 test cases, 45 scenarios) — includes TESTING_GUIDE
+- `04-deployment/` 7 docs — includes PRODUCTION_DEPLOYMENT_GUIDE
+- `05-operations/` docs (ops manual, troubleshooting, DR plan, guides, CONTRIBUTING)
+- `06-features/` 9 feature guides (paper-trading, auth, ai, strategies, websocket, mcp-server, openclaw, signal-reversal, ai-auto-reversal)
+- Root: `TRACEABILITY_MATRIX.md`, `TASK_TRACKER.md`, `README.md`
 
 ---
 
@@ -271,7 +269,7 @@ cd nextjs-ui-dashboard && npm run lint && npm run type-check && npm test
 
 ## Tech Stack & Quality
 
-**Stack**: Rust 1.86+ (Actix-web, MongoDB) | Python 3.11+ (FastAPI, TensorFlow, PyTorch, GPT-4) | TypeScript/React 18/Vite/Shadcn/TailwindCSS | MCP Server (Node 18, Express, SDK v1.26.0) | OpenClaw (Node 22, Telegram, Claude Sonnet 4.5) | MongoDB replica sets | WebSocket
+**Stack**: Rust 1.86+ (Actix-web, MongoDB) | Python 3.11+ (FastAPI, TensorFlow, PyTorch, Grok/xAI) | TypeScript/React 18/Vite/Shadcn/TailwindCSS | MCP Server (Node 18, Express, SDK ^1.12.1) | OpenClaw (Node 22, Telegram, Claude Sonnet 4.5) | MongoDB replica sets | WebSocket
 
 **Quality**: 94/100 overall (A) | 98/100 security (A+) | 90.4% coverage | 84% mutation score | 2,202+ tests | PERFECT 10/10 code quality
 
@@ -292,6 +290,6 @@ cd nextjs-ui-dashboard && npm run lint && npm run type-check && npm test
 
 - **Logs**: `./scripts/bot.sh logs --service <name>`
 - **Health**: `curl localhost:8080/api/health` | `curl localhost:8090/health`
-- **Troubleshooting**: `docs/TROUBLESHOOTING.md`
-- **Deploy**: `docs/PRODUCTION_DEPLOYMENT_GUIDE.md`
+- **Troubleshooting**: `specifications/05-operations/5.2-troubleshooting/`
+- **Deploy**: `specifications/04-deployment/`
 - **Common issues**: OOM → `--memory-optimized`, Port conflict → `lsof -i :PORT`, Build fail → `make build-fast`
