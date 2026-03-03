@@ -1681,6 +1681,88 @@ make clean-all     # Remove everything
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0.0 | 2025-10-11 | DevOps Team | Initial version |
+| 1.1.0 | 2026-03-03 | System | Added service matrix tables for all compose files |
+
+---
+
+## 14. Service Matrix
+
+### 14.1 docker-compose.yml (Dev + Prod profiles)
+
+| Service | Container | Port(s) | Image | Profile | Memory Limit | Healthcheck |
+|---------|-----------|---------|-------|---------|-------------|------------|
+| `python-ai-service` | `python-ai-service` | 8000 | Build: `python-ai-service/Dockerfile` | `prod` | 2G | `GET /health` |
+| `python-ai-service-dev` | `python-ai-service-dev` | 8000 | Build: `python-ai-service/Dockerfile.dev` | `dev` | 1.5G | `GET /health` |
+| `rust-core-engine` | `rust-core-engine` | 8080 | Build: `rust-core-engine/Dockerfile` | `prod` | 2G | `GET /api/health` |
+| `rust-core-engine-dev` | `rust-core-engine-dev` | 8080 | Build: `rust-core-engine/Dockerfile.dev` | `dev` | 1.5G | `GET /api/health` |
+| `nextjs-ui-dashboard` | `nextjs-ui-dashboard` | 3000 | Build: `nextjs-ui-dashboard/Dockerfile` | `prod` | 1G | `GET /health` |
+| `nextjs-ui-dashboard-dev` | `nextjs-ui-dashboard-dev` | 3000, 24678 | Build: `nextjs-ui-dashboard/Dockerfile.dev` | `dev` | 768M | `GET /` |
+| `mongodb` | `mongodb` | 27017 | `mongo:7.0` | (all) | — | `mongosh ping` |
+| `redis` | `redis-cache` | 6379 | `redis:7-alpine` | (all) | 256M | `redis-cli ping` |
+| `mcp-server` | `mcp-server` | 8090 | Build: `mcp-server/Dockerfile` | (all) | — | `GET /health` |
+| `openclaw` | `openclaw` | 18789 | Build: `openclaw/Dockerfile` | (all) | — | `curl canvas` |
+
+**Key env vars (docker-compose.yml):**
+
+| Service | Critical Env Vars |
+|---------|------------------|
+| `python-ai-service` | `XAI_API_KEY`, `DATABASE_URL`, `RUST_API_URL`, `INTER_SERVICE_TOKEN` |
+| `rust-core-engine` | `BINANCE_API_KEY`, `BINANCE_SECRET_KEY`, `BINANCE_TESTNET`, `TRADING_ENABLED`, `DATABASE_URL`, `JWT_SECRET` |
+| `nextjs-ui-dashboard` | `VITE_RUST_API_URL`, `VITE_PYTHON_AI_URL`, `VITE_WS_URL`, `DASHBOARD_SESSION_SECRET` |
+| `mcp-server` | `MCP_AUTH_TOKEN`, `RUST_API_URL`, `PYTHON_API_URL`, `BOTCORE_EMAIL`, `BOTCORE_PASSWORD` |
+| `openclaw` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `MCP_URL`, `MCP_AUTH_TOKEN`, `CLAUDE_AI_SESSION_KEY` |
+
+---
+
+### 14.2 docker-compose-vps.yml (VPS Production — 7 core services)
+
+| Service | Container | Port(s) | Image | Memory Limit | Healthcheck | Depends On |
+|---------|-----------|---------|-------|-------------|------------|-----------|
+| `mongodb` | `mongodb` | 27017 | `mongo:7.0` | 2G | `mongosh ping` | — |
+| `python-ai-service` | `python-ai-service` | 8000 | Build: `python-ai-service/Dockerfile` | 2G | `GET /health` | mongodb |
+| `rust-core-engine` | `rust-core-engine` | 8080 | Build: `rust-core-engine/Dockerfile` | 2G | `GET /api/health` (900s start) | python-ai-service, mongodb |
+| `nextjs-ui-dashboard` | `nextjs-ui-dashboard` | 3000 | Build: `nextjs-ui-dashboard/Dockerfile` | 512M | `GET /` | rust-core-engine |
+| `redis` | `redis-cache` | (internal) | `redis:7-alpine` | 256M | `redis-cli ping` | — |
+| `mcp-server` | `mcp-server` | 8090 | Build: `mcp-server/Dockerfile` | — | `GET /health` | rust-core-engine |
+| `openclaw` | `openclaw` | 18789 | Build: `openclaw/Dockerfile` | 768M | `curl canvas` (120s start) | mcp-server |
+
+**VPS-specific env vars:**
+
+| Variable | VPS Value |
+|----------|----------|
+| `BINANCE_TESTNET` | `true` (keep safe) |
+| `TRADING_ENABLED` | `true` (paper trading active) |
+| `BINANCE_BASE_URL` | `https://api.binance.com` (mainnet for market data) |
+| `TZ` | `Asia/Ho_Chi_Minh` |
+| `REDIS_HOST` | `redis-cache` |
+
+**VPS**: 16GB RAM / Viettel IDC. SSH: `root@180.93.2.247`
+
+---
+
+### 14.3 docker-compose.prod.yml
+
+Extends `docker-compose.yml` with production overrides. Used alongside base file:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+```
+
+Typical overrides: stricter resource limits, `NODE_ENV=production`, no dev volumes.
+
+---
+
+### 14.4 Startup Order (VPS)
+
+```
+mongodb (healthy)
+    └─> python-ai-service (healthy, 60s start)
+            └─> rust-core-engine (healthy, 900s start — Rust compile + init)
+                    ├─> nextjs-ui-dashboard
+                    └─> mcp-server (healthy)
+                            └─> openclaw (healthy, 120s start)
+```
+
+**Note**: `rust-core-engine` has a 900-second `start_period` because Cargo compilation can take 10–15 minutes on first build. Subsequent starts are fast (pre-compiled binary).
 
 ---
 

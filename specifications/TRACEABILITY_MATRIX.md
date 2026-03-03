@@ -10,10 +10,17 @@
 
 This traceability matrix provides bidirectional linkage between user stories, functional requirements, non-functional requirements, design documents, implementation code, and test cases. It ensures complete coverage and accountability across the entire specification system.
 
-**Total Specifications Tracked**: 77 documents (+2)
-**Total Requirements Mapped**: 287 (+31)
-**Total Test Cases**: 371+ (+80)
+**Total Specifications Tracked**: 79 documents (+2)
+**Total Requirements Mapped**: 298 (+11)
+**Total Test Cases**: 382+ (+11)
 **Overall Coverage**: 100%
+
+**Recent Updates (v2.4 - 2026-03-03)**:
+- **Added Monitoring Module** (FR-MONITORING-001 to FR-MONITORING-005): 5 requirements, health/metrics/alerts/reports
+- **Added Binance Integration Module** (FR-BINANCE-001 to FR-BINANCE-006): 6 requirements, REST/WebSocket/Futures/Testnet
+- **Added Docker service matrix** to INFRA-DOCKER.md (14.1–14.4)
+- **Feature guides created**: real-trading.md, self-tuning.md
+- **Scripts inventory**: BOT_SCRIPT_GUIDE.md expanded to cover all 52 scripts
 
 **Recent Updates (v2.3 - 2026-02-06)**:
 - **Added Real Trading Module** (FR-REAL-001 to FR-REAL-057, FR-REAL-API-001):
@@ -253,6 +260,37 @@ This traceability matrix provides bidirectional linkage between user stories, fu
 | FR-REAL-056 | WebSocket Disconnect Handler | NFR-RELIABILITY.md, API-WEBSOCKET.md | TC-REAL-130, TC-REAL-131, TC-REAL-132 | ✅ Implemented |
 | FR-REAL-057 | Emergency Stop | FR-RISK.md, NFR-RELIABILITY.md | TC-REAL-140, TC-REAL-141 | ✅ Implemented |
 | FR-REAL-API-001 | Real Trading API Endpoints | API-RUST-CORE.md | TC-REAL-150 to TC-REAL-165 | ✅ Implemented |
+
+### Monitoring Module
+
+| Requirement ID | Description | Design Docs | Test Cases | Status |
+|----------------|-------------|-------------|------------|--------|
+| FR-MONITORING-001 | Service Health Endpoints | INFRA-DOCKER.md, API-RUST-CORE.md | TC-MON-001, TC-MON-002 | ✅ Implemented |
+| FR-MONITORING-002 | Performance Metrics Tracking | MON-LOGGING.md, API-RUST-CORE.md | TC-MON-010, TC-MON-011 | ✅ Implemented |
+| FR-MONITORING-003 | Telegram Alert Notifications | COMP-PYTHON-ML.md, API-PYTHON-AI.md | TC-MON-020, TC-MON-021 | ✅ Implemented |
+| FR-MONITORING-004 | Daily Performance Reports | COMP-PYTHON-ML.md, API-PYTHON-AI.md | TC-MON-030, TC-MON-031 | ✅ Implemented |
+| FR-MONITORING-005 | Log Aggregation | MON-LOGGING.md, INFRA-DOCKER.md | TC-MON-040 | ✅ Implemented |
+
+**Spec**: `specifications/01-requirements/1.1-functional-requirements/FR-MONITORING.md`
+**Code**: `rust-core-engine/src/monitoring/`, `python-ai-service/monitoring/`, `scripts/health-check.sh`, `scripts/monitor_performance.py`
+
+---
+
+### Binance Integration Module
+
+| Requirement ID | Description | Design Docs | Test Cases | Status |
+|----------------|-------------|-------------|------------|--------|
+| FR-BINANCE-001 | Binance REST API Client | COMP-RUST-TRADING.md, API-RUST-CORE.md | TC-BINANCE-001, TC-BINANCE-002 | ✅ Implemented |
+| FR-BINANCE-002 | Market Data WebSocket | API-WEBSOCKET.md, ARCH-DATA-FLOW.md | TC-BINANCE-010, TC-BINANCE-011 | ✅ Implemented |
+| FR-BINANCE-003 | User Data Stream | API-WEBSOCKET.md, COMP-RUST-TRADING.md | TC-BINANCE-020, TC-BINANCE-021 | ✅ Implemented |
+| FR-BINANCE-004 | Testnet / Mainnet Toggle | INFRA-DOCKER.md, COMP-RUST-TRADING.md | TC-BINANCE-030 | ✅ Implemented |
+| FR-BINANCE-005 | Order Placement and Tracking | COMP-RUST-TRADING.md, API-RUST-CORE.md | TC-BINANCE-040, TC-BINANCE-041 | ✅ Implemented |
+| FR-BINANCE-006 | Futures USDT-M Support | COMP-RUST-TRADING.md, API-RUST-CORE.md | TC-BINANCE-050, TC-BINANCE-051 | ✅ Implemented |
+
+**Spec**: `specifications/01-requirements/1.1-functional-requirements/FR-BINANCE.md`
+**Code**: `rust-core-engine/src/binance/` (client.rs, websocket.rs, user_data_stream.rs, types.rs, futures_client.rs)
+
+---
 
 ### Settings Management Module
 

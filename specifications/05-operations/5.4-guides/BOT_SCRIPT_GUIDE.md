@@ -1,775 +1,256 @@
-# 🚀 Bot.sh Script - Hướng Dẫn Đầy Đủ
+# Bot Core Scripts Inventory
 
-## Tổng Quan
+**Updated**: 2026-03-03 | **Script count**: 52 scripts in `scripts/`
+**Related specs**: `specifications/04-deployment/`, `specifications/05-operations/`
 
-Script `scripts/bot.sh` là công cụ chính để quản lý toàn bộ hệ thống Crypto Trading Bot.
+---
 
-**Syntax**:
+## Quick Reference: bot.sh (Main Control)
+
 ```bash
 ./scripts/bot.sh [COMMAND] [OPTIONS]
 ```
 
+| Command | Purpose | Key Options |
+|---------|---------|------------|
+| `start` | Start services (production mode) | `--memory-optimized`, `--with-rabbitmq`, `--with-enterprise` |
+| `dev` | Start services (dev mode, hot reload) | `--memory-optimized`, `--with-rabbitmq` |
+| `stop` | Stop all containers (data preserved) | — |
+| `restart` | Stop then start | same as start |
+| `build` | Build Docker images | `--service <name>` |
+| `test` | Run async task tests | `--coverage`, `--all` |
+| `status` | Show container status + resource usage | — |
+| `logs` | Follow logs | `--service <name>` |
+| `clean` | Remove all containers + volumes (DATA LOST) | — |
+| `verify` | Check prerequisites + env | — |
+| `help` | Show usage | — |
+
+Service URLs: Frontend :3000 | Rust API :8080 | Python AI :8000 | MCP :8090 | OpenClaw :18789
+
 ---
 
-## 📋 Danh Sách Commands (11 Commands)
+## All Scripts by Category
 
-### 1. `start` - Khởi động hệ thống (Production Mode)
+### Deployment
 
-**Chức năng**:
-- Khởi động tất cả services ở chế độ production
-- Sử dụng Dockerfile production
-- Tự động seed MongoDB data (lần đầu tiên)
-- Hiển thị service URLs sau khi start
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `bot.sh` | Main system control script | `./scripts/bot.sh start --memory-optimized` |
+| `deploy.sh` | Deploy all services to Fly.io | `./scripts/deploy.sh` |
+| `deploy-to-viettel-vps.sh` | Automated deploy to Viettel VPS | `./scripts/deploy-to-viettel-vps.sh` |
+| `deploy-local.sh` | Local deployment with health checks, backup, rollback | `./scripts/deploy-local.sh` |
+| `rollback.sh` | Restore from most recent backup | `./scripts/rollback.sh` |
+| `pre-deployment-check.sh` | Validate all checks before deploy | `./scripts/pre-deployment-check.sh` |
+| `build-and-push.sh` | Build Docker images and push to registry | `./scripts/build-and-push.sh` |
+| `pull-images.sh` | Pull pre-built images from registry | `./scripts/pull-images.sh` |
+| `demo.sh` | Showcase different deployment options | `./scripts/demo.sh` |
 
-**Cú pháp**:
+**Related spec**: `specifications/04-deployment/`
+
+---
+
+### VPS Setup & Initialization
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `vps-auto-setup.sh` | Full VPS setup from scratch (Ubuntu 22.04) | `./scripts/vps-auto-setup.sh` |
+| `vps-init-services.sh` | Initialize/restart services on VPS | `./scripts/vps-init-services.sh` |
+| `init-all-services.sh` | Wait for services healthy + seed initial data | `./scripts/init-all-services.sh` |
+| `init-db.sh` | Initialize MongoDB database + run migrations | `./scripts/init-db.sh` |
+| `init-mongodb-seed.sh` | Seed MongoDB with sample data on first startup | `./scripts/init-mongodb-seed.sh` |
+| `seed-mongodb.js` | MongoDB seed data (run via mongosh) | `docker exec mongodb mongosh ... < scripts/seed-mongodb.js` |
+| `generate-secrets.sh` | Generate all secure secrets for .env | `./scripts/generate-secrets.sh` |
+| `verify-setup.sh` | Verify Docker, env, connectivity | `./scripts/verify-setup.sh` |
+| `validate-env.sh` | Validate all required environment variables | `./scripts/validate-env.sh` |
+| `validate-db.sh` | Validate DB setup, schema, indexes | `./scripts/validate-db.sh` |
+| `reorganize-structure.sh` | Reorganize folder structure (optional, one-time) | `./scripts/reorganize-structure.sh` |
+
+**Related spec**: `specifications/04-deployment/4.1-infrastructure/`
+
+---
+
+### Docker Management
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `docker-cleanup.sh` | Remove stopped containers, dangling images, unused volumes | `./scripts/docker-cleanup.sh` |
+| `docker-registry-setup.sh` | Configure auth for Docker registries (GitHub/DockerHub/private) | `./scripts/docker-registry-setup.sh` |
+| `verify-docker-registry-setup.sh` | Verify Docker registry infrastructure is configured | `./scripts/verify-docker-registry-setup.sh` |
+| `manage.sh` | Manage Fly.io deployed services | `./scripts/manage.sh` |
+
+**Cron recommendation** for `docker-cleanup.sh`: `0 3 * * 0` (weekly Sunday 3am)
+
+---
+
+### SSL / TLS
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `generate-ssl-certs.sh` | Generate self-signed SSL certs for dev | `./scripts/generate-ssl-certs.sh` |
+| `setup-letsencrypt.sh` | Set up Let's Encrypt for production | `./scripts/setup-letsencrypt.sh` |
+| `renew-ssl.sh` | Renew Let's Encrypt certificates | `./scripts/renew-ssl.sh` |
+| `verify-ssl-security.sh` | Verify SSL configuration and security | `./scripts/verify-ssl-security.sh` |
+
+**Cron recommendation** for `renew-ssl.sh`: `0 2 * * *` (daily 2am)
+**Related spec**: `ARCH-SECURITY-004`
+
+---
+
+### Backup & Disaster Recovery
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `backup/` | Backup scripts directory | `ls scripts/backup/` |
+| `backup-storage/` | Backup storage utilities directory | — |
+| `backup-status-report.sh` | Generate daily backup status report | `./scripts/backup-status-report.sh` |
+| `check-backup-health.sh` | Check backup health and completeness | `./scripts/check-backup-health.sh` |
+| `verify-backups.sh` | Verify backup integrity and restorability | `./scripts/verify-backups.sh` |
+| `cleanup-old-backups.sh` | Enforce retention policy, remove old backups | `./scripts/cleanup-old-backups.sh` |
+| `test-dr.sh` | Run disaster recovery drill | `./scripts/test-dr.sh` |
+| `restore/` | Restore scripts directory | `ls scripts/restore/` |
+
+**Related spec**: `specifications/05-operations/5.3-disaster-recovery/DR-PLAN.md`
+**NFR specs**: NFR-OPS-013 (verify), NFR-OPS-014 (cleanup), NFR-OPS-016 (health), NFR-OPS-017 (report), NFR-OPS-018 (DR testing)
+
+---
+
+### Security
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `security-scan.sh` | Full security scan: secrets, deps, OWASP | `./scripts/security-scan.sh` |
+| `setup-openai-key.sh` | Safely configure xAI/OpenAI API key in .env | `./scripts/setup-openai-key.sh` |
+| `dismiss-alerts.sh` | Dismiss specific GitHub code scanning alerts | `./scripts/dismiss-alerts.sh` |
+| `dismiss-security-alerts.sh` | Dismiss known safe GitHub Dependabot alerts | `./scripts/dismiss-security-alerts.sh` |
+
+**Related spec**: `specifications/02-design/2.1-architecture/ARCH-SECURITY.md`
+
+---
+
+### Monitoring & Performance
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `health-check.sh` | Check health of all services (HTTP + process) | `./scripts/health-check.sh` |
+| `monitor_performance.py` | Track win rate, avg profit, Sharpe vs targets | `python3 scripts/monitor_performance.py --continuous` |
+| `monitor-dashboard.sh` | Real-time cost monitoring terminal dashboard | `./scripts/monitor-dashboard.sh` |
+| `daily_report.sh` | Generate daily performance report | `./scripts/daily_report.sh [--week]` |
+| `quality-metrics.sh` | Code quality analysis (lint, complexity, duplication) | `./scripts/quality-metrics.sh` |
+
+**Health check targets**: Rust API :8080, Python :8000, MCP :8090, Frontend :3000
+**Related spec**: `specifications/05-operations/5.1-monitoring/`, FR-OPS-003
+
+---
+
+### Code Quality & Spec Validation
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `check-rust.sh` | Rust fmt + clippy + tests before commit | `./scripts/check-rust.sh` |
+| `validate-specs.py` | Validate all spec files in sync with code | `python scripts/validate-specs.py [--verbose] [--fix]` |
+| `validate-spec-tags.py` | Verify @spec tags in source code match spec files | `python scripts/validate-spec-tags.py` |
+| `add-spec-tags.sh` | Add @spec traceability tags to source files | `./scripts/add-spec-tags.sh` |
+| `auto-tag-code.py` | Auto-add @spec tags based on TRACEABILITY_MATRIX.md | `python scripts/auto-tag-code.py` |
+
+**Required before commit**: `./scripts/check-rust.sh` for Rust changes
+**Required before push**: `python scripts/validate-specs.py` (must show 0 errors)
+
+---
+
+### Dev Tools
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `sync-openclaw-knowledge.sh` | Generate OpenClaw workspace knowledge from codebase | `./scripts/sync-openclaw-knowledge.sh` |
+| `test_strategies_live.py` | Test all 5 strategies with real Binance market data | `python3 scripts/test_strategies_live.py` |
+
+**sync-openclaw-knowledge.sh** outputs:
+- `openclaw/workspace/STRATEGIES.md` — actual strategy params from source
+- `openclaw/workspace/SOUL.md` — system prompt with architecture knowledge
+
+---
+
+## Common Workflows
+
+### First-Time Setup (Local)
 ```bash
-./scripts/bot.sh start [OPTIONS]
-```
-
-**Ví dụ**:
-```bash
-# Start core services only (MongoDB, Redis, Rust, Python, Frontend)
-./scripts/bot.sh start
-
-# Start với async jobs (RabbitMQ, Celery, Flower)
-./scripts/bot.sh start --with-rabbitmq
-
-# Start tất cả enterprise features
-./scripts/bot.sh start --with-enterprise
-
-# Start với memory optimization
+cp .env.example .env
+./scripts/generate-secrets.sh
+./scripts/validate-env.sh
 ./scripts/bot.sh start --memory-optimized
-
-# Start với multiple features
-./scripts/bot.sh start --with-rabbitmq --with-monitoring --memory-optimized
+./scripts/health-check.sh
 ```
 
-**Services được start**:
-- **Core** (luôn start):
-  - MongoDB (database)
-  - Redis (cache)
-  - Rust Core Engine (port 8080)
-  - Python AI Service (port 8000)
-  - Frontend Dashboard (port 3000)
-
-- **Với --with-rabbitmq**:
-  - RabbitMQ (ports 5672, 15672)
-  - Celery Worker
-  - Celery Beat
-  - Flower (port 5555)
-
-- **Với --with-enterprise** (tất cả):
-  - All core services
-  - RabbitMQ + Celery + Flower
-  - Kong API Gateway (ports 8100, 8001)
-  - Prometheus (port 9090)
-  - Grafana (port 3001)
-
----
-
-### 2. `dev` - Khởi động ở Development Mode
-
-**Chức năng**:
-- Khởi động services với hot reload
-- Sử dụng Dockerfile.dev
-- Log level = DEBUG
-- Node.js memory tăng lên 768MB
-
-**Cú pháp**:
+### First-Time VPS Setup
 ```bash
-./scripts/bot.sh dev [OPTIONS]
+# On fresh Ubuntu 22.04 VPS
+./scripts/vps-auto-setup.sh
+./scripts/generate-secrets.sh
+./scripts/deploy-to-viettel-vps.sh
+./scripts/vps-init-services.sh
 ```
 
-**Ví dụ**:
+### Pre-Deploy Checklist
 ```bash
-# Dev mode cơ bản
-./scripts/bot.sh dev
-
-# Dev mode với async jobs
-./scripts/bot.sh dev --with-rabbitmq
-
-# Dev mode với memory optimization
-./scripts/bot.sh dev --memory-optimized
+./scripts/pre-deployment-check.sh
+./scripts/validate-env.sh
+./scripts/validate-specs.py
+./scripts/security-scan.sh
 ```
 
-**Khác biệt với `start`**:
-| Feature | start | dev |
-|---------|-------|-----|
-| Dockerfile | Dockerfile | Dockerfile.dev |
-| Log Level | INFO | DEBUG |
-| Hot Reload | ❌ | ✅ |
-| Node Memory | 512MB | 768MB |
-| Rust Log | info | debug |
-
----
-
-### 3. `stop` - Dừng tất cả services
-
-**Chức năng**:
-- Dừng tất cả containers đang chạy
-- Xóa orphan containers
-- Giữ nguyên volumes (data không bị mất)
-
-**Cú pháp**:
+### Backup Verification (Weekly)
 ```bash
-./scripts/bot.sh stop
+./scripts/verify-backups.sh
+./scripts/check-backup-health.sh
+./scripts/backup-status-report.sh
 ```
 
-**Ví dụ**:
+### After Code Changes (Rust)
 ```bash
-./scripts/bot.sh stop
-```
-
-**Lưu ý**:
-- Data trong MongoDB, Redis vẫn được giữ
-- Có thể start lại bất cứ lúc nào
-
----
-
-### 4. `restart` - Khởi động lại hệ thống
-
-**Chức năng**:
-- Dừng tất cả services
-- Sau đó khởi động lại với cùng cấu hình
-
-**Cú pháp**:
-```bash
-./scripts/bot.sh restart [OPTIONS]
-```
-
-**Ví dụ**:
-```bash
-# Restart basic
+./scripts/check-rust.sh           # fmt + clippy + tests
+./scripts/validate-spec-tags.py   # ensure @spec tags present
 ./scripts/bot.sh restart
-
-# Restart với async jobs
-./scripts/bot.sh restart --with-rabbitmq
-
-# Restart với enterprise features
-./scripts/bot.sh restart --with-enterprise
 ```
 
-**Khi nào dùng**:
-- Sau khi thay đổi .env
-- Sau khi update code
-- Khi services bị lỗi
-
----
-
-### 5. `build` - Build lại Docker images
-
-**Chức năng**:
-- Build lại Docker images cho services
-- Có thể build toàn bộ hoặc từng service riêng lẻ
-- Sử dụng cache để tăng tốc
-
-**Cú pháp**:
+### Sync AI Knowledge
 ```bash
-./scripts/bot.sh build [OPTIONS]
-```
-
-**Ví dụ**:
-```bash
-# Build tất cả services
-./scripts/bot.sh build
-
-# Build specific service
-./scripts/bot.sh build --service python-ai-service
-
-# Build trong dev mode
-./scripts/bot.sh dev build
-
-# Build và bypass cache (clean build)
-docker compose build --no-cache
-```
-
-**Khi nào cần build**:
-- Sau khi thay đổi Dockerfile
-- Sau khi thay đổi dependencies (requirements.txt, Cargo.toml, package.json)
-- Khi muốn update base images
-
----
-
-### 6. `test` - Chạy Test Suite ✨ (NEW)
-
-**Chức năng**:
-- Chạy automated tests cho async tasks
-- Hỗ trợ coverage report
-- Có thể chạy simplified hoặc comprehensive tests
-
-**Cú pháp**:
-```bash
-./scripts/bot.sh test [OPTIONS]
-```
-
-**Ví dụ**:
-```bash
-# Test đơn giản (24 tests, 100% pass) - RECOMMENDED
-./scripts/bot.sh test
-
-# Test với coverage report
-./scripts/bot.sh test --coverage
-
-# Test tất cả test files (138 tests)
-./scripts/bot.sh test --all
-
-# Test tất cả + coverage
-./scripts/bot.sh test --all --coverage
-```
-
-**Output**:
-```
-============================== 24 passed in 2.50s ==============================
-✅ All tests passed!
-```
-
-**Coverage report location**:
-```
-python-ai-service/htmlcov/index.html
-```
-
-**Test files**:
-- `test_async_tasks_simple.py` (24 tests) - Default
-- `test_monitoring_tasks.py` (21 tests) - Với --all
-- `test_ai_improvement_tasks.py` (23 tests) - Với --all
-- `test_notifications.py` (24 tests) - Với --all
-- `test_data_storage.py` (24 tests) - Với --all
-- `test_celery_integration.py` (22 tests) - Với --all
-
-**Requirements**:
-- Celery-worker container phải đang chạy
-- Start services trước: `./scripts/bot.sh start --with-rabbitmq`
-
----
-
-### 7. `status` - Hiển thị trạng thái hệ thống
-
-**Chức năng**:
-- Hiển thị status của tất cả containers
-- Hiển thị resource usage (CPU, Memory)
-- Kiểm tra service health
-
-**Cú pháp**:
-```bash
-./scripts/bot.sh status
-```
-
-**Output**:
-```
-Service status:
-NAME              STATUS
-mongodb           Up 10 minutes (healthy)
-redis             Up 10 minutes (healthy)
-rabbitmq          Up 10 minutes (healthy)
-celery-worker     Up 5 minutes (unhealthy)
-celery-beat       Up 5 minutes (unhealthy)
-flower            Up 5 minutes (unhealthy)
-rust-core-engine  Up 10 minutes (healthy)
-python-ai-service Up 10 minutes (healthy)
-frontend          Up 10 minutes (healthy)
-
-Resource usage:
-NAME              MEM USAGE / LIMIT    MEM %    CPU %
-mongodb           245.2MiB / 512MiB    47.89%   1.23%
-redis             15.4MiB / 256MiB     6.01%    0.45%
-rabbitmq          156.8MiB / 512MiB    30.63%   2.34%
-...
+./scripts/sync-openclaw-knowledge.sh
+# Then rebuild openclaw container to pick up changes
+./scripts/bot.sh build --service openclaw
+./scripts/bot.sh restart
 ```
 
 ---
 
-### 8. `logs` - Xem logs của services
+## Environment Variables Reference
 
-**Chức năng**:
-- Hiển thị logs của tất cả services hoặc specific service
-- Theo dõi logs real-time (tail -f)
-- Hỗ trợ filtering
+Key vars expected by most scripts:
 
-**Cú pháp**:
-```bash
-./scripts/bot.sh logs [OPTIONS]
-```
+| Variable | Description | Required |
+|----------|-------------|---------|
+| `BINANCE_API_KEY` | Binance mainnet API key | Real trading only |
+| `BINANCE_SECRET_KEY` | Binance mainnet secret | Real trading only |
+| `BINANCE_FUTURES_TESTNET_API_KEY` | Testnet futures key | Default mode |
+| `BINANCE_TESTNET` | `true`/`false` | Always set |
+| `TRADING_ENABLED` | Enable auto-trading | Default: false |
+| `DATABASE_URL` | MongoDB connection string | All services |
+| `JWT_SECRET` | JWT signing secret | Rust API |
+| `MCP_AUTH_TOKEN` | MCP server bearer token | MCP + OpenClaw |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token | OpenClaw |
+| `XAI_API_KEY` | xAI/Grok API key | AI service |
 
-**Ví dụ**:
-```bash
-# Xem logs tất cả services
-./scripts/bot.sh logs
-
-# Xem logs specific service
-./scripts/bot.sh logs --service python-ai-service
-
-# Xem logs của Rust Core Engine
-./scripts/bot.sh logs --service rust-core-engine
-
-# Xem logs của Celery Worker
-./scripts/bot.sh logs --service celery-worker
-
-# Xem logs của RabbitMQ
-./scripts/bot.sh logs --service rabbitmq
-```
-
-**Tips**:
-- Press `Ctrl+C` để thoát
-- Logs sẽ scroll real-time
-- Có thể grep logs: `./scripts/bot.sh logs --service celery-worker | grep ERROR`
+Generate all secrets: `./scripts/generate-secrets.sh`
 
 ---
 
-### 9. `clean` - Dọn dẹp hệ thống
-
-**Chức năng**:
-- Dừng và xóa tất cả containers
-- Xóa tất cả volumes (⚠️ DATA SẼ MẤT)
-- Xóa unused images
-- Giải phóng disk space
-
-**Cú pháp**:
-```bash
-./scripts/bot.sh clean
-```
-
-**Interactive confirmation**:
-```
-⚠️  This will remove all containers, images, and volumes. Are you sure? (y/N)
-```
-
-**⚠️ CẢNH BÁO**:
-- Sẽ XÓA TẤT CẢ DATA trong MongoDB, Redis
-- Không thể khôi phục
-- Chỉ dùng khi muốn reset hoàn toàn
-
-**Khi nào dùng**:
-- Muốn reset hệ thống về trạng thái ban đầu
-- Troubleshooting các vấn đề nghiêm trọng
-- Giải phóng disk space
-
----
-
-### 10. `verify` - Kiểm tra cấu hình hệ thống
-
-**Chức năng**:
-- Verify các prerequisites (Docker, Docker Compose)
-- Kiểm tra .env configuration
-- Verify secrets và API keys
-- Test connectivity
-
-**Cú pháp**:
-```bash
-./scripts/bot.sh verify
-```
-
-**Script được chạy**:
-```bash
-./scripts/verify-setup.sh
-```
-
-**Checks performed**:
-- ✅ Docker installed
-- ✅ Docker Compose installed
-- ✅ .env file exists
-- ✅ Required environment variables set
-- ✅ MongoDB connection
-- ✅ Redis connection
-- ✅ Network connectivity
-
----
-
-### 11. `help` - Hiển thị help message
-
-**Chức năng**:
-- Hiển thị usage instructions
-- List tất cả commands và options
-- Hiển thị examples
-
-**Cú pháp**:
-```bash
-./scripts/bot.sh help
-```
-
-**Hoặc**:
-```bash
-./scripts/bot.sh
-```
-
----
-
-## ⚙️ Options (9 Options)
-
-### 1. `--memory-optimized`
-
-**Chức năng**: Sử dụng memory-optimized settings
-
-**Resource limits**:
-```bash
-PYTHON_MEMORY_LIMIT="1.5G"    # Default: 2G
-PYTHON_CPU_LIMIT="1.5"        # Default: 2
-RUST_MEMORY_LIMIT="1G"        # Default: 2G
-RUST_CPU_LIMIT="1"            # Default: 2
-FRONTEND_MEMORY_LIMIT="512M"  # Default: 1G
-FRONTEND_CPU_LIMIT="0.5"      # Default: 1
-NODE_MEMORY="512"             # Default: 768
-```
-
-**Khi nào dùng**:
-- RAM < 16GB
-- Muốn chạy nhiều services khác
-- Cloud instances với limited resources
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh start --memory-optimized
-./scripts/bot.sh dev --memory-optimized --with-rabbitmq
-```
-
----
-
-### 2. `--with-enterprise`
-
-**Chức năng**: Start TẤT CẢ enterprise features
-
-**Bao gồm**:
-- Redis cache
-- RabbitMQ + Celery + Flower (messaging)
-- Kong API Gateway
-- Prometheus + Grafana (monitoring)
-
-**Equivalent to**:
-```bash
---with-redis --with-rabbitmq --with-kong --with-monitoring
-```
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh start --with-enterprise
-```
-
----
-
-### 3. `--with-redis`
-
-**Chức năng**: Start Redis cache
-
-**Services**:
-- Redis (port 6379)
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh start --with-redis
-```
-
----
-
-### 4. `--with-rabbitmq`
-
-**Chức năng**: Start async job processing system
-
-**Services**:
-- RabbitMQ (ports 5672, 15672)
-- Celery Worker
-- Celery Beat
-- Flower (port 5555)
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh start --with-rabbitmq
-```
-
-**⭐ RECOMMENDED cho async tasks**
-
----
-
-### 5. `--with-kong`
-
-**Chức năng**: Start Kong API Gateway
-
-**Services**:
-- Kong Database (PostgreSQL)
-- Kong (ports 8100, 8001)
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh start --with-kong
-```
-
----
-
-### 6. `--with-monitoring`
-
-**Chức năng**: Start monitoring stack
-
-**Services**:
-- Prometheus (port 9090)
-- Grafana (port 3001)
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh start --with-monitoring
-```
-
----
-
-### 7. `--service SERVICE`
-
-**Chức năng**: Target specific service
-
-**Áp dụng cho**: `build`, `logs`
-
-**Ví dụ**:
-```bash
-# Build specific service
-./scripts/bot.sh build --service python-ai-service
-
-# View logs của specific service
-./scripts/bot.sh logs --service celery-worker
-```
-
-**Available services**:
-- mongodb
-- redis
-- rabbitmq
-- celery-worker
-- celery-beat
-- flower
-- rust-core-engine
-- python-ai-service
-- frontend
-- kong
-- prometheus
-- grafana
-
----
-
-### 8. `--coverage`
-
-**Chức năng**: Generate test coverage report
-
-**Áp dụng cho**: `test` command only
-
-**Output**:
-- Terminal: Coverage summary
-- HTML: `python-ai-service/htmlcov/index.html`
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh test --coverage
-```
-
----
-
-### 9. `--all`
-
-**Chức năng**: Run ALL test files (138 tests)
-
-**Áp dụng cho**: `test` command only
-
-**Test files**:
-- test_async_tasks_simple.py (24 tests)
-- test_monitoring_tasks.py (21 tests)
-- test_ai_improvement_tasks.py (23 tests)
-- test_notifications.py (24 tests)
-- test_data_storage.py (24 tests)
-- test_celery_integration.py (22 tests)
-
-**Ví dụ**:
-```bash
-./scripts/bot.sh test --all
-./scripts/bot.sh test --all --coverage
-```
-
----
-
-## 🎯 Common Workflows
-
-### 1. First Time Setup
-
-```bash
-# 1. Verify prerequisites
-./scripts/bot.sh verify
-
-# 2. Start core services
-./scripts/bot.sh start --memory-optimized
-
-# 3. Check status
-./scripts/bot.sh status
-```
-
-### 2. Development Workflow
-
-```bash
-# 1. Start dev mode với async jobs
-./scripts/bot.sh dev --with-rabbitmq
-
-# 2. Make code changes...
-
-# 3. View logs
-./scripts/bot.sh logs --service python-ai-service
-
-# 4. Run tests
-./scripts/bot.sh test
-
-# 5. Restart if needed
-./scripts/bot.sh restart --with-rabbitmq
-```
-
-### 3. Production Deployment
-
-```bash
-# 1. Build production images
-./scripts/bot.sh build
-
-# 2. Start with all features
-./scripts/bot.sh start --with-enterprise --memory-optimized
-
-# 3. Verify all services healthy
-./scripts/bot.sh status
-
-# 4. Run comprehensive tests
-./scripts/bot.sh test --all --coverage
-
-# 5. Monitor logs
-./scripts/bot.sh logs
-```
-
-### 4. Testing Async Jobs
-
-```bash
-# 1. Start services with messaging
-./scripts/bot.sh start --with-rabbitmq
-
-# 2. Run tests
-./scripts/bot.sh test
-
-# 3. Check Flower dashboard
-open http://localhost:5555
-
-# 4. Check RabbitMQ management
-open http://localhost:15672
-```
-
-### 5. Troubleshooting
-
-```bash
-# 1. Check status
-./scripts/bot.sh status
-
-# 2. View logs
-./scripts/bot.sh logs --service <problematic-service>
-
-# 3. Restart
-./scripts/bot.sh restart --with-rabbitmq
-
-# 4. If still issues, clean rebuild
-./scripts/bot.sh clean
-./scripts/bot.sh build
-./scripts/bot.sh start --with-rabbitmq
-```
-
----
-
-## 📊 Service URLs Reference
-
-### Core Services
-- **Frontend Dashboard**: http://localhost:3000
-- **Rust Core API**: http://localhost:8080/api/health
-- **Python AI API**: http://localhost:8000/health
-- **MongoDB**: mongodb://localhost:27017
-
-### Enterprise Features
-- **RabbitMQ Management**: http://localhost:15672 (admin/admin)
-- **Flower (Celery)**: http://localhost:5555 (admin/admin)
-- **Kong Admin API**: http://localhost:8001
-- **Kong Proxy**: http://localhost:8100
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3001 (admin/admin)
-
----
-
-## 🔒 Security Notes
-
-### Default Credentials
-
-**⚠️ CHANGE THESE IN PRODUCTION**
-
-```bash
-# RabbitMQ
-Username: admin
-Password: rabbitmq_default_password
-
-# MongoDB
-Username: bot_core_app
-Password: secure_mongo_password_change_me
-
-# Redis
-Password: redis_default_password
-
-# Flower
-Username: admin
-Password: admin
-
-# Grafana
-Username: admin
-Password: admin
-```
-
-### How to Change
-
-Edit `.env` file:
-```bash
-RABBITMQ_USER=your_user
-RABBITMQ_PASSWORD=your_strong_password
-MONGO_ROOT_PASSWORD=your_mongo_password
-REDIS_PASSWORD=your_redis_password
-FLOWER_USER=your_flower_user
-FLOWER_PASSWORD=your_flower_password
-```
-
-Then restart:
-```bash
-./scripts/bot.sh restart --with-enterprise
-```
-
----
-
-## 🚨 Important Notes
-
-### Prerequisites
-- Docker 20.10+
-- Docker Compose 2.0+
-- 16GB RAM (minimum 8GB với --memory-optimized)
-- 20GB free disk space
-
-### Data Persistence
-- MongoDB data: `mongodb_data` volume
-- Redis data: `redis_data` volume
-- RabbitMQ data: `rabbitmq_data` volume
-
-**⚠️ Only `clean` command deletes volumes**
-
-### Performance Tips
-1. Use `--memory-optimized` on limited resources
-2. Use `dev` mode only for development
-3. Use `--with-rabbitmq` instead of `--with-enterprise` if you don't need monitoring
-4. Monitor resource usage with `./scripts/bot.sh status`
-
----
-
-## 📖 Quick Reference
-
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `start` | Start services (production) | `./scripts/bot.sh start --with-rabbitmq` |
-| `dev` | Start services (development) | `./scripts/bot.sh dev --memory-optimized` |
-| `stop` | Stop all services | `./scripts/bot.sh stop` |
-| `restart` | Restart services | `./scripts/bot.sh restart --with-enterprise` |
-| `build` | Build Docker images | `./scripts/bot.sh build --service python-ai-service` |
-| `test` | Run tests | `./scripts/bot.sh test --coverage` |
-| `status` | Check service status | `./scripts/bot.sh status` |
-| `logs` | View logs | `./scripts/bot.sh logs --service celery-worker` |
-| `clean` | Clean everything | `./scripts/bot.sh clean` |
-| `verify` | Verify setup | `./scripts/bot.sh verify` |
-| `help` | Show help | `./scripts/bot.sh help` |
-
----
-
-**Last Updated**: 2025-11-22
-**Version**: 2.0 (với test command)
+## Script Exit Codes
+
+All scripts use `set -e` (exit on error). Standard codes:
+- `0` — Success
+- `1` — General error
+- `2` — Critical error (validate-specs.py specific)
+
+`validate-specs.py` exits:
+- `0` — All validations passed
+- `1` — Validation errors found
+- `2` — Critical errors (missing files, parse errors)

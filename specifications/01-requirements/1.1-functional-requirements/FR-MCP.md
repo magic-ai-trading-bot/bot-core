@@ -21,7 +21,7 @@
 - [x] Request timeout and 5xx retry handling
 - [x] Response normalization for mixed Rust/Python formats
 - [x] 4-tier security model (PUBLIC/AUTHENTICATED/SENSITIVE/CRITICAL)
-- [ ] Rate limiting per session
+- [x] Rate limiting per session
 - [ ] Tool-level audit logging
 - [ ] Metrics/observability endpoint
 
