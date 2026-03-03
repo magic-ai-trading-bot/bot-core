@@ -6,7 +6,7 @@
 
 Simulates realistic trading without real money. Includes:
 - **Execution Simulation**: Slippage (0-0.05%), 100ms delay, market impact, partial fills
-- **7-Layer Risk Management**: See STRATEGIES.md for full details
+- **8-Layer Risk Management**: See STRATEGIES.md for full details (8th layer: regime filters)
 - **Position Management**: Open/close/reverse trades, trailing stops
 - **8 Close Reasons**: TakeProfit, StopLoss, TrailingStop, Manual, AISignal, RiskManagement, MarginCall, TimeBasedExit
 - **Signal Reversal**: Auto close + open opposite when high-confidence reversal detected
@@ -113,7 +113,7 @@ Full audit trail, snapshot/restore, cooldown between changes.
 ## 9. MCP Server ✅ Production
 **Code**: `mcp-server/src/`
 
-103 tools across 11 categories bridging all BotCore APIs.
+114 tools across 12 categories bridging all BotCore APIs.
 Allows AI assistants (Claude, OpenClaw) to control the entire trading system.
 4-tier security (PUBLIC → CRITICAL).
 Streamable HTTP transport on port 8090.
@@ -163,3 +163,63 @@ Channels: WebSocket, Email, Telegram, Discord, Webhook
 - Daily summary, weekly report
 - Push notification support (VAPID)
 - Rate limited: max 20/hour
+
+## 13. ATR-Based Position Sizing ✅ Production
+**Code**: `rust-core-engine/src/paper_trading/`
+
+Volatility-adaptive position sizing using Average True Range (ATR) instead of fixed percentages.
+
+- **How it works**: Position size = `(equity × base_risk_pct) / (ATR × atr_stop_multiplier × leverage)`
+- SL distance = `ATR × atr_stop_multiplier`, TP distance = `ATR × atr_tp_multiplier`
+- Ensures consistent dollar risk per trade regardless of current volatility
+- Falls back to `default_position_size_pct` when disabled
+
+**Config**: `atr_stop_enabled` (default: false), `atr_period` (14), `atr_stop_multiplier` (1.2), `atr_tp_multiplier` (2.4), `base_risk_pct` (2.0%)
+**Diagnostic**: `botcore get_atr_diagnostics` — shows ATR values + computed sizes per symbol
+
+## 14. Half-Kelly Criterion Position Sizing ✅ Production
+**Code**: `rust-core-engine/src/paper_trading/`
+
+Dynamically scales position sizes based on historical win rate and average R-multiple using the Kelly Criterion formula. Uses half-Kelly (50%) for safety margin.
+
+- **Formula**: `Kelly% = (win_rate × avg_win − (1 − win_rate) × avg_loss) / avg_win × kelly_fraction`
+- Requires minimum `kelly_min_trades` (default 200) closed trades before activating
+- Uses last `kelly_lookback` (default 100) trades for the calculation
+- Falls back to `default_position_size_pct` until sufficient trade history exists
+
+**Config**: `kelly_enabled` (default: false), `kelly_min_trades` (200), `kelly_fraction` (0.5), `kelly_lookback` (100)
+
+## 15. Regime Filters ✅ Production
+**Code**: `rust-core-engine/src/paper_trading/`
+
+Four independent filters that reduce or halt trading when adverse market conditions are detected. Each filter applies a position size multiplier — they compose (multiply together) when multiple filters trigger simultaneously.
+
+### Funding Rate Spike Filter
+Reduces position size when Binance perpetual funding rate exceeds threshold. High funding = crowded trade = elevated reversal risk.
+- `funding_spike_filter_enabled` (default: false), `funding_spike_threshold` (0.0003 = 0.03%/8h), `funding_spike_reduction` (0.5 = 50% size)
+
+### ATR Spike Filter
+Reduces position size when current ATR is abnormally high relative to recent average. Protects against sudden volatility explosions.
+- `atr_spike_filter_enabled` (default: false), `atr_spike_multiplier` (2.0x avg = spike), `atr_spike_reduction` (0.5 = 50% size)
+
+### Consecutive Loss Reduction
+Progressively reduces position size after consecutive losses, before the hard cool-down triggers. Applies beyond the configured threshold.
+- `consecutive_loss_reduction_enabled` (default: false), `consecutive_loss_reduction_threshold` (3 losses), `consecutive_loss_reduction_pct` (0.3 = 30% reduction per extra loss)
+
+### Weekly Drawdown Limit
+Suspends all new trades if portfolio drawdown within the current week exceeds the configured limit. Resets at start of new week.
+- `weekly_drawdown_limit_pct` (default: 7.0%)
+
+**All regime filter config**: `botcore get_paper_basic_settings` to read, `botcore update_paper_basic_settings` to change.
+
+## 16. Signal Pipeline Weighted Voting ✅ Production
+**Code**: `rust-core-engine/src/strategies/`
+
+The signal aggregation pipeline uses a weighted voting system across strategies and timeframes rather than simple majority counting.
+
+- Each strategy's vote is weighted by its historical win rate and recent performance
+- Timeframe agreement is scored: 5M primary (weight 1.0) + 15M confirmation (weight 0.7)
+- AI bias acts as a secondary multiplier on the combined score (not a vote)
+- Final signal confidence = weighted sum of strategy scores × timeframe agreement × AI bias adjustment
+- `combination_method` setting controls aggregation mode (default: `AIEnsemble`)
+- `get_signal_quality_report` tool provides breakdown of per-strategy contribution to the last N signals

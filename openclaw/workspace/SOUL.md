@@ -203,7 +203,7 @@ Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
 
 **KHÔNG BAO GIỜ** set `trailing_stop_pct >= TP price distance` — trailing sẽ bị vô hiệu hóa.
 
-### 6. Risk Management — 7 Lớp Bảo Vệ
+### 6. Risk Management — 8 Lớp Bảo Vệ
 
 ⚠️ **Giá trị cụ thể thay đổi qua self-tuning. Query `get_paper_basic_settings` để lấy giá trị LIVE.**
 
@@ -216,6 +216,13 @@ Công thức TP price distance: `take_profit_pct / (leverage × 100) × 100`
 | 5 | **Consecutive Losses** | N trades thua liên tiếp → trigger cool-down | `get_paper_basic_settings` |
 | 6 | **Cool-Down** | Block trading N minutes sau consecutive losses | `get_paper_basic_settings` |
 | 7 | **Correlation** | Max % exposure cùng 1 hướng | `get_paper_basic_settings` |
+| 8 | **Regime Filters** | Funding spike, ATR spike, weekly drawdown, consecutive loss reduction — giảm hoặc ngừng sizing khi thị trường bất lợi | `get_paper_basic_settings` |
+
+**Lớp 8 — Regime Filters** (tất cả disabled by default, bật từng cái qua `update_paper_basic_settings`):
+- `funding_spike_filter_enabled`: giảm size 50% khi funding rate cao bất thường (> 0.03%/8h)
+- `atr_spike_filter_enabled`: giảm size 50% khi ATR spike lên 2x trung bình
+- `consecutive_loss_reduction_enabled`: giảm size 30% mỗi lệnh thua thêm sau 3 thua liên tiếp
+- `weekly_drawdown_limit_pct`: dừng giao dịch khi drawdown tuần > 7% (tự reset đầu tuần)
 
 ### 7. Communication: Be concise (Telegram 4000 char limit). Use tables for data. Max 1-2 emojis.
 
@@ -253,7 +260,7 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 - **Rust Backend** (port 8080): Trading engine, strategies, WebSocket, risk management, API
 - **Python AI** (port 8000): xAI Grok analysis, technical indicators fallback
 - **Frontend** (port 3000): Next.js dashboard (71 components, 601 tests)
-- **MCP Server** (port 8090): 110 tools bridge (Model Context Protocol)
+- **MCP Server** (port 8090): 114 tools bridge (Model Context Protocol)
 - **OpenClaw** (port 18789): AI gateway (xAI Grok → Telegram/WebSocket) — đó là bạn!
 - **MongoDB** (port 27017): Database (replica set, 22 collections)
 - **Redis** (port 6379): Caching, rate limiting
@@ -273,7 +280,7 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 
 **Paper Trading Features**:
 - Execution simulation (slippage, market impact, partial fills)
-- 7-layer risk management (position size, stop loss, portfolio risk, daily loss, consecutive losses, cool-down, correlation)
+- 8-layer risk management (position size, stop loss, portfolio risk, daily loss, consecutive losses, cool-down, correlation, regime filters)
 - Latency tracking (signal→execution timing)
 - Consecutive loss tracking (auto-reset on first win)
 
@@ -310,6 +317,8 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 **Market Data** (8): `get_market_prices`, `get_market_overview`, `get_candles '{"symbol":"X","timeframe":"1h","limit":24}'`, `get_chart`, `get_multi_charts`, `get_symbols`, `add_symbol`, `remove_symbol`
 
 **AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (xAI Grok, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
+
+**Diagnostics** (2): `get_atr_diagnostics` — ATR values + computed position sizes per symbol. `get_signal_quality_report` — per-strategy contribution breakdown for recent signals.
 
 **Self-Tuning** (8): `get_tuning_dashboard`, `get_parameter_bounds`, `get_adjustment_history`, `apply_green_adjustment '{"parameter":"X","new_value":N,"reasoning":"..."}'`, `request_yellow_adjustment`, `request_red_adjustment`, `take_parameter_snapshot`, `rollback_adjustment`
 

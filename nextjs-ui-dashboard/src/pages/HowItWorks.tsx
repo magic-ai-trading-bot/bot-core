@@ -5,7 +5,7 @@
  * Verified data against rust-core-engine/src/paper_trading/settings.rs
  */
 
-import { useState, Fragment } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
@@ -46,13 +46,31 @@ const HowItWorks = () => {
   const { t } = useTranslation('pages');
   const colors = useThemeColors();
   const [activeStep, setActiveStep] = useState(0);
+  const [liveSettings, setLiveSettings] = useState<any>(null);
+  const [atrDiag, setAtrDiag] = useState<any>(null);
 
-  // Verified against rust-core-engine settings
+  useEffect(() => {
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    Promise.all([
+      fetch(`${API_BASE}/api/paper-trading/basic-settings`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/api/paper-trading/atr-diagnostics`).then(r => r.json()).catch(() => null),
+    ]).then(([settings, atr]) => {
+      setLiveSettings(settings?.data || null);
+      setAtrDiag(atr?.data || null);
+    });
+  }, []);
+
+  // Verified against rust-core-engine settings — 8 risk layers (added weekly drawdown)
   const stats = [
     { value: '5', label: t('howItWorks.stats.strategies'), icon: BarChart3, color: colors.cyan },
-    { value: '7', label: t('howItWorks.stats.riskLayers'), icon: Shield, color: colors.emerald },
+    { value: '8', label: t('howItWorks.stats.riskLayers'), icon: Shield, color: colors.emerald },
     { value: '24/7', label: t('howItWorks.stats.uptime'), icon: Clock, color: colors.amber },
-    { value: '72%', label: t('howItWorks.stats.aiAccuracy'), icon: Brain, color: colors.purple },
+    {
+      value: atrDiag?.kelly?.win_rate != null ? `${atrDiag.kelly.win_rate.toFixed(1)}%` : '—',
+      label: t('howItWorks.stats.winRate'),
+      icon: Brain,
+      color: colors.purple,
+    },
   ];
 
   const steps = [
@@ -150,15 +168,64 @@ const HowItWorks = () => {
     },
   ];
 
-  // Verified against settings.rs defaults
+  // Verified against settings.rs defaults — uses live settings when available
   const riskLayers = [
-    { layer: 1, name: t('howItWorks.risk.layers.position.title'), value: '≤5%', desc: t('howItWorks.risk.layers.position.description'), icon: Percent },
-    { layer: 2, name: t('howItWorks.risk.layers.stopLoss.title'), value: '10%', desc: t('howItWorks.risk.layers.stopLoss.description'), icon: AlertTriangle },
-    { layer: 3, name: t('howItWorks.risk.layers.portfolio.title'), value: '≤10%', desc: t('howItWorks.risk.layers.portfolio.description'), icon: Layers },
-    { layer: 4, name: t('howItWorks.risk.layers.daily.title'), value: '3%', desc: t('howItWorks.risk.layers.daily.description'), icon: TrendingDown },
-    { layer: 5, name: t('howItWorks.risk.layers.consecutiveLosses.title'), value: '3 max', desc: t('howItWorks.risk.layers.consecutiveLosses.description'), icon: Timer },
-    { layer: 6, name: t('howItWorks.risk.layers.cooldown.title'), value: '60 min', desc: t('howItWorks.risk.layers.cooldown.description'), icon: Clock },
-    { layer: 7, name: t('howItWorks.risk.layers.correlation.title'), value: '70%', desc: t('howItWorks.risk.layers.correlation.description'), icon: Activity },
+    {
+      layer: 1,
+      name: t('howItWorks.risk.layers.position.title'),
+      value: liveSettings ? `≤${liveSettings.risk?.default_position_size_pct ?? 5}%` : '≤5%',
+      desc: t('howItWorks.risk.layers.position.description'),
+      icon: Percent,
+    },
+    {
+      layer: 2,
+      name: t('howItWorks.risk.layers.stopLoss.title'),
+      value: liveSettings ? `${liveSettings.risk?.default_stop_loss_pct ?? 10}%` : '10%',
+      desc: t('howItWorks.risk.layers.stopLoss.description'),
+      icon: AlertTriangle,
+    },
+    {
+      layer: 3,
+      name: t('howItWorks.risk.layers.portfolio.title'),
+      value: liveSettings ? `≤${liveSettings.risk?.max_portfolio_risk_pct ?? 10}%` : '≤10%',
+      desc: t('howItWorks.risk.layers.portfolio.description'),
+      icon: Layers,
+    },
+    {
+      layer: 4,
+      name: t('howItWorks.risk.layers.daily.title'),
+      value: liveSettings ? `${liveSettings.risk?.daily_loss_limit_pct ?? 3}%` : '3%',
+      desc: t('howItWorks.risk.layers.daily.description'),
+      icon: TrendingDown,
+    },
+    {
+      layer: 5,
+      name: t('howItWorks.risk.layers.consecutiveLosses.title'),
+      value: liveSettings ? `${liveSettings.risk?.max_consecutive_losses ?? 3} max` : '3 max',
+      desc: t('howItWorks.risk.layers.consecutiveLosses.description'),
+      icon: Timer,
+    },
+    {
+      layer: 6,
+      name: t('howItWorks.risk.layers.cooldown.title'),
+      value: liveSettings ? `${liveSettings.risk?.cool_down_minutes ?? 60} min` : '60 min',
+      desc: t('howItWorks.risk.layers.cooldown.description'),
+      icon: Clock,
+    },
+    {
+      layer: 7,
+      name: t('howItWorks.risk.layers.correlation.title'),
+      value: liveSettings ? `${(liveSettings.risk?.correlation_limit ?? 0.7) * 100}%` : '70%',
+      desc: t('howItWorks.risk.layers.correlation.description'),
+      icon: Activity,
+    },
+    {
+      layer: 8,
+      name: t('howItWorks.risk.layers.weeklyDrawdown.title'),
+      value: atrDiag ? `${atrDiag.weekly_drawdown?.limit_pct ?? 7}%` : '7%',
+      desc: t('howItWorks.risk.layers.weeklyDrawdown.description'),
+      icon: TrendingDown,
+    },
   ];
 
   return (
@@ -520,7 +587,7 @@ const HowItWorks = () => {
 
             <motion.div
               variants={containerVariants}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4"
             >
               {riskLayers.slice(4).map((layer) => (
                 <GlassCard key={layer.layer} hoverable className="relative overflow-hidden">
@@ -554,6 +621,116 @@ const HowItWorks = () => {
                   </div>
                 </GlassCard>
               ))}
+            </motion.div>
+          </section>
+
+          {/* Adaptive Position Sizing */}
+          <section>
+            <motion.div variants={itemVariants}>
+              <SectionHeader
+                title={t('howItWorks.adaptive.title')}
+                subtitle={t('howItWorks.adaptive.subtitle')}
+                icon={Target}
+                gradient
+              />
+            </motion.div>
+
+            <motion.div
+              variants={containerVariants}
+              className="grid grid-cols-1 md:grid-cols-3 gap-4"
+            >
+              {/* ATR Card */}
+              <GlassCard hoverable>
+                <div className="flex items-center gap-3 mb-3">
+                  <GlowIcon icon={Activity} color={colors.cyan} size="md" />
+                  <div>
+                    <h3 className="text-sm font-bold" style={{ color: colors.textPrimary }}>
+                      {t('howItWorks.adaptive.atr.title')}
+                    </h3>
+                    <Badge variant={atrDiag?.atr_stop_enabled ? 'success' : 'info'} size="sm">
+                      {atrDiag?.atr_stop_enabled ? 'ACTIVE' : 'STANDBY'}
+                    </Badge>
+                  </div>
+                </div>
+                <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                  {t('howItWorks.adaptive.atr.description')}
+                </p>
+                <div className="space-y-1 text-xs" style={{ color: colors.textMuted }}>
+                  <div>SL Multiplier: <span style={{ color: colors.textPrimary }}>{atrDiag?.atr_stop_multiplier ?? '1.2'}x ATR</span></div>
+                  <div>TP Multiplier: <span style={{ color: colors.textPrimary }}>{atrDiag?.atr_tp_multiplier ?? '2.4'}x ATR</span></div>
+                  <div>Base Risk: <span style={{ color: colors.textPrimary }}>{atrDiag?.base_risk_pct ?? '2.0'}%</span></div>
+                </div>
+              </GlassCard>
+
+              {/* Kelly Card */}
+              <GlassCard hoverable>
+                <div className="flex items-center gap-3 mb-3">
+                  <GlowIcon icon={Brain} color={colors.purple} size="md" />
+                  <div>
+                    <h3 className="text-sm font-bold" style={{ color: colors.textPrimary }}>
+                      {t('howItWorks.adaptive.kelly.title')}
+                    </h3>
+                    <Badge variant={atrDiag?.kelly?.enabled ? 'success' : 'info'} size="sm">
+                      {atrDiag?.kelly?.enabled
+                        ? 'ACTIVE'
+                        : `${atrDiag?.kelly?.total_closed_trades ?? 0}/${atrDiag?.kelly?.min_trades ?? 200} trades`}
+                    </Badge>
+                  </div>
+                </div>
+                <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                  {t('howItWorks.adaptive.kelly.description')}
+                </p>
+                <div className="space-y-1 text-xs" style={{ color: colors.textMuted }}>
+                  <div>Win Rate: <span style={{ color: colors.textPrimary }}>{atrDiag?.kelly?.win_rate?.toFixed(1) ?? '—'}%</span></div>
+                  <div>Fraction: <span style={{ color: colors.textPrimary }}>{atrDiag?.kelly?.fraction ?? 0.5} (Half-Kelly)</span></div>
+                  <div>Lookback: <span style={{ color: colors.textPrimary }}>{atrDiag?.kelly?.lookback ?? 100} trades</span></div>
+                </div>
+              </GlassCard>
+
+              {/* Regime Filters Card */}
+              <GlassCard hoverable>
+                <div className="flex items-center gap-3 mb-3">
+                  <GlowIcon icon={Shield} color={colors.emerald} size="md" />
+                  <div>
+                    <h3 className="text-sm font-bold" style={{ color: colors.textPrimary }}>
+                      {t('howItWorks.adaptive.regime.title')}
+                    </h3>
+                    <Badge variant="success" size="sm">
+                      {[
+                        atrDiag?.regime_filters?.funding_spike?.enabled,
+                        atrDiag?.regime_filters?.atr_spike?.enabled,
+                        atrDiag?.regime_filters?.consecutive_loss?.enabled,
+                      ].filter(Boolean).length}/3 ACTIVE
+                    </Badge>
+                  </div>
+                </div>
+                <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                  {t('howItWorks.adaptive.regime.description')}
+                </p>
+                <div className="space-y-1.5 text-xs" style={{ color: colors.textMuted }}>
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: atrDiag?.regime_filters?.funding_spike?.enabled ? colors.emerald : colors.textMuted }}
+                    />
+                    Funding Spike Filter
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: atrDiag?.regime_filters?.atr_spike?.enabled ? colors.emerald : colors.textMuted }}
+                    />
+                    ATR Spike Filter
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: atrDiag?.regime_filters?.consecutive_loss?.enabled ? colors.emerald : colors.textMuted }}
+                    />
+                    Consecutive Loss Reduction
+                  </div>
+                </div>
+              </GlassCard>
             </motion.div>
           </section>
 

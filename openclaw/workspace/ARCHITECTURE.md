@@ -9,7 +9,7 @@
 | **Rust Backend** | 8080 | Rust/Warp | Trading engine, strategies, risk mgmt, WebSocket, API |
 | **Python AI** | 8000 | Python/FastAPI | xAI Grok analysis, technical indicators fallback |
 | **Frontend** | 3000 | Next.js/React/Vite | Dashboard UI |
-| **MCP Server** | 8090 | Node.js/TypeScript | 103 tools bridge (Model Context Protocol) |
+| **MCP Server** | 8090 | Node.js/TypeScript | 114 tools bridge (Model Context Protocol) |
 | **OpenClaw** | 18789 | Node.js | AI gateway (xAI Grok → Telegram/WebSocket) |
 | **Redis** | 6379 | Redis | Caching, rate limiting (optional) |
 
@@ -22,7 +22,7 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
                     │                    │
                     ├──→ Python AI ──→ xAI Grok Analysis ──→ AI Signal
                     │                    │
-                    │              Risk Check (7 layers)
+                    │              Risk Check (8 layers)
                     │                    │
                     ├──→ Paper Trading Engine ──→ Execute/Reject
                     │         │
@@ -34,6 +34,9 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 ```
 
 ## REST API Endpoints (Key Groups)
+
+### Diagnostics — `/api/paper-trading/`
+- `GET /atr-diagnostics` - ATR-based position sizing diagnostic info (ATR values, multipliers, computed position sizes per symbol)
 
 ### Paper Trading (28 endpoints) — `/api/paper-trading/`
 - `GET /status` - Engine status (running/stopped)
@@ -125,7 +128,7 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 - `training_jobs` - ML training jobs
 - `backtest_results` - Backtest results
 
-## MCP Server — 110 Tools, 12 Categories
+## MCP Server — 114 Tools, 12 Categories
 
 | Category | Tools | Examples |
 |----------|-------|---------|
@@ -140,6 +143,7 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 | Auth | 4 | login, register, refresh_token |
 | Tuning | 8 | get_tuning_dashboard, apply_adjustment |
 | Backtests | 3 | run_backtest, get_results |
+| Diagnostics | 1 | get_atr_diagnostics |
 
 **Security**: 4-tier (PUBLIC → AUTHENTICATED → SENSITIVE → CRITICAL)
 **Transport**: Streamable HTTP on port 8090
@@ -153,3 +157,18 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 | **RED** (approve) | Need explicit approval text | Max daily loss, engine on/off | 1-6h |
 
 Tuning tools: `get_tuning_dashboard`, `get_parameter_bounds`, `apply_green_adjustment`, `request_yellow_adjustment`, `request_red_adjustment`, `get_audit_history`, `take_snapshot`, `restore_from_snapshot`
+
+## Risk Management — 8 Layers
+
+| Layer | Name | Description |
+|-------|------|-------------|
+| 1 | **Position Size** | Limit % equity per trade |
+| 2 | **Stop Loss** | PnL-based auto-close |
+| 3 | **Portfolio Risk** | Total portfolio exposure cap |
+| 4 | **Daily Loss** | Daily limit → stop all trading |
+| 5 | **Consecutive Losses** | N losses → trigger cool-down |
+| 6 | **Cool-Down** | Block trading N minutes after streak |
+| 7 | **Correlation** | Max % same-direction exposure |
+| 8 | **Regime Filters** | Funding spike, ATR spike, weekly drawdown — reduce or block trading in adverse regimes |
+
+Regime filter config: `funding_spike_filter_enabled`, `atr_spike_filter_enabled`, `consecutive_loss_reduction_enabled`, `weekly_drawdown_limit_pct`. See CONFIG.md for full parameter list.

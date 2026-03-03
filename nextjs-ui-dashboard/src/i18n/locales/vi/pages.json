@@ -508,7 +508,8 @@
       "strategies": "Chiến lược giao dịch",
       "riskLayers": "Lớp rủi ro",
       "uptime": "Thời gian hoạt động",
-      "aiAccuracy": "Độ chính xác AI"
+      "aiAccuracy": "Độ chính xác AI",
+      "winRate": "Tỷ lệ thắng"
     },
     "process": {
       "title": "Cách Bot Core hoạt động",
@@ -634,7 +635,27 @@
         "cooldown": {
           "title": "Cool-down",
           "description": "Tạm dừng 60 phút sau 3 lỗ liên tiếp"
+        },
+        "weeklyDrawdown": {
+          "title": "Giới hạn tuần",
+          "description": "Giới hạn lỗ tối đa trong tuần, reset mỗi thứ Hai"
         }
+      }
+    },
+    "adaptive": {
+      "title": "Định cỡ vị thế thích ứng",
+      "subtitle": "Tự động điều chỉnh kích thước giao dịch theo volatility, edge, và điều kiện thị trường.",
+      "atr": {
+        "title": "Stop Loss theo ATR",
+        "description": "SL/TP tự động co giãn theo biến động thị trường thực tế dựa trên Average True Range."
+      },
+      "kelly": {
+        "title": "Tiêu chí Half-Kelly",
+        "description": "Kích thước vị thế tỷ lệ thuận với lợi thế giao dịch — edge càng lớn, size càng lớn."
+      },
+      "regime": {
+        "title": "Bộ lọc điều kiện",
+        "description": "Tự động giảm kích thước khi điều kiện thị trường bất lợi."
       }
     },
     "trailingStop": {

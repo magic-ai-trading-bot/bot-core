@@ -508,7 +508,8 @@
       "strategies": "Trading Strategies",
       "riskLayers": "Risk Layers",
       "uptime": "Uptime",
-      "aiAccuracy": "AI Accuracy"
+      "aiAccuracy": "AI Accuracy",
+      "winRate": "Win Rate"
     },
     "process": {
       "title": "How Bot Core Works",
@@ -634,7 +635,27 @@
         "cooldown": {
           "title": "Cool-down",
           "description": "60-minute pause after 3 consecutive losses"
+        },
+        "weeklyDrawdown": {
+          "title": "Weekly Drawdown",
+          "description": "Maximum weekly loss limit, resets every Monday"
         }
+      }
+    },
+    "adaptive": {
+      "title": "Adaptive Position Sizing",
+      "subtitle": "AI-driven position scaling that adapts to market conditions, your edge, and risk environment in real-time.",
+      "atr": {
+        "title": "ATR-Based Stops",
+        "description": "Stop loss and take profit automatically scale with market volatility using Average True Range."
+      },
+      "kelly": {
+        "title": "Half-Kelly Criterion",
+        "description": "Position size scales based on your demonstrated trading edge — more edge means larger positions."
+      },
+      "regime": {
+        "title": "Regime Filters",
+        "description": "Automatically reduce position size during unfavorable market conditions."
       }
     },
     "trailingStop": {

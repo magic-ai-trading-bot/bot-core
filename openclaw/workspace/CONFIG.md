@@ -55,6 +55,83 @@
 | `reversal_min_confidence` | 0.65 | Min confidence for reversal |
 | `reversal_max_pnl_pct` | 10.0% | Max PnL before disabling reversal |
 
+## ATR-Based Position Sizing
+
+> ⚠️ Query `botcore get_paper_basic_settings` for LIVE values. Disabled by default.
+
+When `atr_stop_enabled = true`, position size and SL/TP distances are computed from the ATR indicator instead of fixed percentages. This makes sizing volatility-adaptive: tighter stops in calm markets, wider stops in volatile markets.
+
+| Parameter | Type | Default | Description | Command to change |
+|-----------|------|---------|-------------|-------------------|
+| `atr_stop_enabled` | bool | false | Master toggle for ATR-based sizing | `botcore update_paper_basic_settings '{"settings":{"risk":{"atr_stop_enabled":true}}}'` |
+| `atr_period` | number | 14 | ATR lookback period (candles) | `botcore update_paper_basic_settings '{"settings":{"risk":{"atr_period":14}}}'` |
+| `atr_stop_multiplier` | number | 1.2 | Stop loss = ATR × this value | `botcore update_paper_basic_settings '{"settings":{"risk":{"atr_stop_multiplier":1.2}}}'` |
+| `atr_tp_multiplier` | number | 2.4 | Take profit = ATR × this value | `botcore update_paper_basic_settings '{"settings":{"risk":{"atr_tp_multiplier":2.4}}}'` |
+| `base_risk_pct` | number | 2.0% | Base risk per trade (% of equity) when ATR sizing is active | `botcore update_paper_basic_settings '{"settings":{"risk":{"base_risk_pct":2.0}}}'` |
+
+**How it works**: Position size = `(equity × base_risk_pct) / (ATR × atr_stop_multiplier × leverage)`. Ensures consistent dollar risk per trade regardless of volatility.
+
+**Diagnostic tool**: `botcore get_atr_diagnostics` — shows current ATR values, multipliers, and computed position sizes per active symbol.
+
+## Half-Kelly Criterion Position Sizing
+
+> ⚠️ Query `botcore get_paper_basic_settings` for LIVE values. Disabled by default. Requires minimum trade history.
+
+When `kelly_enabled = true`, position sizes are dynamically scaled using the Kelly Criterion formula based on historical win rate and average win/loss ratio. Uses half-Kelly for safety.
+
+| Parameter | Type | Default | Description | Command to change |
+|-----------|------|---------|-------------|-------------------|
+| `kelly_enabled` | bool | false | Master toggle for Kelly Criterion sizing | `botcore update_paper_basic_settings '{"settings":{"risk":{"kelly_enabled":true}}}'` |
+| `kelly_min_trades` | number | 200 | Minimum closed trades before Kelly activates | `botcore update_paper_basic_settings '{"settings":{"risk":{"kelly_min_trades":200}}}'` |
+| `kelly_fraction` | number | 0.5 | Fraction of full Kelly to use (0.5 = half-Kelly) | `botcore update_paper_basic_settings '{"settings":{"risk":{"kelly_fraction":0.5}}}'` |
+| `kelly_lookback` | number | 100 | Number of recent trades used to compute win rate / avg R | `botcore update_paper_basic_settings '{"settings":{"risk":{"kelly_lookback":100}}}'` |
+
+**Formula**: `Kelly% = (win_rate × avg_win − (1 − win_rate) × avg_loss) / avg_win`, then multiply by `kelly_fraction`. Engine falls back to `default_position_size_pct` when trade count < `kelly_min_trades`.
+
+## Regime Filters
+
+> ⚠️ Query `botcore get_paper_basic_settings` for LIVE values. All filters disabled by default.
+
+Regime filters reduce or block position sizing when adverse market conditions are detected. Each filter applies a multiplier to the computed position size (not a hard stop).
+
+### Funding Rate Spike Filter
+
+Reduces position size when Binance perpetual funding rate exceeds threshold (extreme funding = crowded trade, elevated reversal risk).
+
+| Parameter | Type | Default | Description | Command to change |
+|-----------|------|---------|-------------|-------------------|
+| `funding_spike_filter_enabled` | bool | false | Enable funding spike filter | `botcore update_paper_basic_settings '{"settings":{"risk":{"funding_spike_filter_enabled":true}}}'` |
+| `funding_spike_threshold` | number | 0.0003 | Funding rate threshold (0.0003 = 0.03% per 8h) | `botcore update_paper_basic_settings '{"settings":{"risk":{"funding_spike_threshold":0.0003}}}'` |
+| `funding_spike_reduction` | number | 0.5 | Position size multiplier when spike detected (0.5 = 50% of normal) | `botcore update_paper_basic_settings '{"settings":{"risk":{"funding_spike_reduction":0.5}}}'` |
+
+### ATR Spike Filter
+
+Reduces position size when current ATR is unusually high relative to recent average (extreme volatility regime).
+
+| Parameter | Type | Default | Description | Command to change |
+|-----------|------|---------|-------------|-------------------|
+| `atr_spike_filter_enabled` | bool | false | Enable ATR spike filter | `botcore update_paper_basic_settings '{"settings":{"risk":{"atr_spike_filter_enabled":true}}}'` |
+| `atr_spike_multiplier` | number | 2.0 | ATR is "spiked" when current ATR > avg ATR × this value | `botcore update_paper_basic_settings '{"settings":{"risk":{"atr_spike_multiplier":2.0}}}'` |
+| `atr_spike_reduction` | number | 0.5 | Position size multiplier when ATR spike detected (0.5 = 50% of normal) | `botcore update_paper_basic_settings '{"settings":{"risk":{"atr_spike_reduction":0.5}}}'` |
+
+### Consecutive Loss Reduction
+
+Progressively reduces position size after consecutive losses (before the cool-down threshold is reached).
+
+| Parameter | Type | Default | Description | Command to change |
+|-----------|------|---------|-------------|-------------------|
+| `consecutive_loss_reduction_enabled` | bool | false | Enable consecutive loss size reduction | `botcore update_paper_basic_settings '{"settings":{"risk":{"consecutive_loss_reduction_enabled":true}}}'` |
+| `consecutive_loss_reduction_pct` | number | 0.3 | Reduce position size by this fraction per extra loss beyond threshold (0.3 = 30% reduction) | `botcore update_paper_basic_settings '{"settings":{"risk":{"consecutive_loss_reduction_pct":0.3}}}'` |
+| `consecutive_loss_reduction_threshold` | number | 3 | Number of consecutive losses before reduction kicks in | `botcore update_paper_basic_settings '{"settings":{"risk":{"consecutive_loss_reduction_threshold":3}}}'` |
+
+### Weekly Drawdown Limit
+
+Halts all new trades if portfolio drawdown within the current week exceeds the limit.
+
+| Parameter | Type | Default | Description | Command to change |
+|-----------|------|---------|-------------|-------------------|
+| `weekly_drawdown_limit_pct` | number | 7.0% | Max weekly drawdown before trading is suspended until next week | `botcore update_paper_basic_settings '{"settings":{"risk":{"weekly_drawdown_limit_pct":7.0}}}'` |
+
 ## Execution Settings
 
 | Parameter | Default | Description |
