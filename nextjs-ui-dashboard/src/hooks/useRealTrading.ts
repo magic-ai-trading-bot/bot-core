@@ -53,6 +53,36 @@ export interface RealTradingSettingsFlat {
   max_portfolio_risk_pct: number;
   short_only_mode: boolean;
   long_only_mode: boolean;
+  // Trailing stop
+  enable_trailing_stop: boolean;
+  trailing_stop_activation_percent: number;
+  trailing_stop_percent: number;
+  // ATR-Based Sizing
+  atr_stop_enabled: boolean;
+  atr_period: number;
+  atr_stop_multiplier: number;
+  atr_tp_multiplier: number;
+  base_risk_pct: number;
+  // Kelly Criterion
+  kelly_enabled: boolean;
+  kelly_min_trades: number;
+  kelly_fraction: number;
+  kelly_lookback: number;
+  // Regime Filters
+  funding_spike_filter_enabled: boolean;
+  funding_spike_threshold: number;
+  funding_spike_reduction: number;
+  atr_spike_filter_enabled: boolean;
+  atr_spike_multiplier: number;
+  atr_spike_reduction: number;
+  consecutive_loss_reduction_enabled: boolean;
+  consecutive_loss_reduction_pct: number;
+  consecutive_loss_reduction_threshold: number;
+  // Signal Reversal
+  enable_signal_reversal: boolean;
+  reversal_min_confidence: number;
+  reversal_max_pnl_pct: number;
+  reversal_allowed_regimes: string[];
 }
 
 interface RustRealTradingResponse<T> {
@@ -160,6 +190,36 @@ const defaultFlatSettings: RealTradingSettingsFlat = {
   max_portfolio_risk_pct: 20,
   short_only_mode: false,
   long_only_mode: false,
+  // Trailing stop
+  enable_trailing_stop: false,
+  trailing_stop_activation_percent: 1.5,
+  trailing_stop_percent: 1.0,
+  // ATR-Based Sizing — all OFF by default
+  atr_stop_enabled: false,
+  atr_period: 14,
+  atr_stop_multiplier: 1.2,
+  atr_tp_multiplier: 2.4,
+  base_risk_pct: 2.0,
+  // Kelly Criterion — OFF by default
+  kelly_enabled: false,
+  kelly_min_trades: 200,
+  kelly_fraction: 0.5,
+  kelly_lookback: 100,
+  // Regime Filters — all OFF by default
+  funding_spike_filter_enabled: false,
+  funding_spike_threshold: 0.0003,
+  funding_spike_reduction: 0.5,
+  atr_spike_filter_enabled: false,
+  atr_spike_multiplier: 2.0,
+  atr_spike_reduction: 0.5,
+  consecutive_loss_reduction_enabled: false,
+  consecutive_loss_reduction_pct: 0.3,
+  consecutive_loss_reduction_threshold: 3,
+  // Signal Reversal — OFF by default
+  enable_signal_reversal: false,
+  reversal_min_confidence: 0.75,
+  reversal_max_pnl_pct: 5.0,
+  reversal_allowed_regimes: ["trending"],
 };
 
 const defaultPortfolio: RealPortfolioMetrics = {
@@ -812,6 +872,35 @@ export const useRealTrading = () => {
         { label: "Long Only Mode", realKey: "long_only_mode", paperPath: ["risk", "long_only_mode"] },
         { label: "Max Positions", realKey: "max_positions", paperPath: ["basic", "max_positions"] },
         { label: "Min Signal Confidence", realKey: "min_signal_confidence", paperPath: ["risk", "reversal_min_confidence"] },
+        // Trailing stop
+        { label: "Enable Trailing Stop", realKey: "enable_trailing_stop", paperPath: ["risk", "enable_trailing_stop"] },
+        { label: "Trailing Stop Activation %", realKey: "trailing_stop_activation_percent", paperPath: ["risk", "trailing_stop_activation_pct"] },
+        { label: "Trailing Stop %", realKey: "trailing_stop_percent", paperPath: ["risk", "trailing_stop_callback_pct"] },
+        // ATR-Based Sizing
+        { label: "ATR Stop Enabled", realKey: "atr_stop_enabled", paperPath: ["risk", "atr_stop_enabled"] },
+        { label: "ATR Period", realKey: "atr_period", paperPath: ["risk", "atr_period"] },
+        { label: "ATR Stop Multiplier", realKey: "atr_stop_multiplier", paperPath: ["risk", "atr_stop_multiplier"] },
+        { label: "ATR TP Multiplier", realKey: "atr_tp_multiplier", paperPath: ["risk", "atr_tp_multiplier"] },
+        { label: "Base Risk %", realKey: "base_risk_pct", paperPath: ["risk", "base_risk_pct"] },
+        // Kelly Criterion
+        { label: "Kelly Enabled", realKey: "kelly_enabled", paperPath: ["risk", "kelly_enabled"] },
+        { label: "Kelly Min Trades", realKey: "kelly_min_trades", paperPath: ["risk", "kelly_min_trades"] },
+        { label: "Kelly Fraction", realKey: "kelly_fraction", paperPath: ["risk", "kelly_fraction"] },
+        { label: "Kelly Lookback", realKey: "kelly_lookback", paperPath: ["risk", "kelly_lookback"] },
+        // Regime Filters
+        { label: "Funding Spike Filter", realKey: "funding_spike_filter_enabled", paperPath: ["risk", "funding_spike_filter_enabled"] },
+        { label: "Funding Spike Threshold", realKey: "funding_spike_threshold", paperPath: ["risk", "funding_spike_threshold"] },
+        { label: "Funding Spike Reduction", realKey: "funding_spike_reduction", paperPath: ["risk", "funding_spike_reduction"] },
+        { label: "ATR Spike Filter", realKey: "atr_spike_filter_enabled", paperPath: ["risk", "atr_spike_filter_enabled"] },
+        { label: "ATR Spike Multiplier", realKey: "atr_spike_multiplier", paperPath: ["risk", "atr_spike_multiplier"] },
+        { label: "ATR Spike Reduction", realKey: "atr_spike_reduction", paperPath: ["risk", "atr_spike_reduction"] },
+        { label: "Consec. Loss Reduction", realKey: "consecutive_loss_reduction_enabled", paperPath: ["risk", "consecutive_loss_reduction_enabled"] },
+        { label: "Consec. Loss Reduction %", realKey: "consecutive_loss_reduction_pct", paperPath: ["risk", "consecutive_loss_reduction_pct"] },
+        { label: "Consec. Loss Threshold", realKey: "consecutive_loss_reduction_threshold", paperPath: ["risk", "consecutive_loss_reduction_threshold"] },
+        // Signal Reversal
+        { label: "Signal Reversal", realKey: "enable_signal_reversal", paperPath: ["risk", "enable_signal_reversal"] },
+        { label: "Reversal Min Confidence", realKey: "reversal_min_confidence", paperPath: ["risk", "reversal_min_confidence"] },
+        { label: "Reversal Max PnL %", realKey: "reversal_max_pnl_pct", paperPath: ["risk", "reversal_max_pnl_pct"] },
       ];
 
       const changes: SyncFieldChange[] = [];

@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{broadcast, Mutex, RwLock};
@@ -307,6 +307,13 @@ pub struct RealTradingEngine {
 
     /// Whether the strategy signal loop has been spawned
     signal_loop_spawned: Arc<RwLock<bool>>,
+
+    // ============ Advanced Feature State ============
+    /// Cached funding rates per symbol (for regime filters)
+    funding_rates: Arc<RwLock<HashMap<String, f64>>>,
+
+    /// Ring buffer of recent trade PnL values (for Kelly criterion)
+    trade_pnl_history: Arc<RwLock<VecDeque<f64>>>,
 }
 
 impl RealTradingEngine {
@@ -362,6 +369,9 @@ impl RealTradingEngine {
             consecutive_losses: Arc::new(RwLock::new(0)),
             cool_down_until: Arc::new(RwLock::new(None)),
             signal_loop_spawned: Arc::new(RwLock::new(false)),
+            // Advanced features
+            funding_rates: Arc::new(RwLock::new(HashMap::new())),
+            trade_pnl_history: Arc::new(RwLock::new(VecDeque::with_capacity(200))),
         })
     }
 
@@ -2696,14 +2706,14 @@ impl RealTradingEngine {
     pub async fn enable_trailing_stop(
         &self,
         symbol: &str,
-        activation_price: f64,
+        activation_pct: f64,
         trail_percent: f64,
     ) -> Result<()> {
         if let Some(mut position) = self.positions.get_mut(symbol) {
-            position.enable_trailing_stop(activation_price, trail_percent);
+            position.enable_trailing_stop(activation_pct, trail_percent);
             info!(
-                "Enabled trailing stop for {}: activation=${:.2}, trail={:.2}%",
-                symbol, activation_price, trail_percent
+                "Enabled trailing stop for {}: activation={:.2}% PnL, trail={:.2}%",
+                symbol, activation_pct, trail_percent
             );
             self.emit_event(RealTradingEvent::PositionUpdated(position.clone()));
             Ok(())
@@ -2826,8 +2836,221 @@ impl RealTradingEngine {
         false
     }
 
-    /// Update consecutive loss counter and trigger cool-down if threshold reached
+    // ============ Advanced Feature Methods (ported from paper trading) ============
+
+    /// Calculate current ATR and mean ATR for a symbol.
+    /// Uses market_data_cache (primary) or historical_data_cache (fallback).
+    /// Returns (current_atr, mean_atr) for spike detection.
+    /// @spec:FR-RISK-010 - ATR-based stop loss and position sizing
+    async fn calculate_current_atr(&self, symbol: &str, period: usize) -> Option<(f64, f64)> {
+        use crate::market_data::cache::CandleData;
+
+        // Try market_data_cache first (mainnet WebSocket data)
+        if let Some(ref mdc) = self.market_data_cache {
+            let candles = mdc.get_all_candles(symbol, "15m");
+            if !candles.is_empty() {
+                let atr_values =
+                    crate::strategies::indicators::calculate_atr(&candles, period).ok()?;
+                if atr_values.is_empty() {
+                    return None;
+                }
+                let current_atr = *atr_values.last()?;
+                let mean_atr = if atr_values.len() >= 2 {
+                    atr_values.iter().sum::<f64>() / atr_values.len() as f64
+                } else {
+                    current_atr
+                };
+                if current_atr <= 0.0 {
+                    return None;
+                }
+                return Some((current_atr, mean_atr));
+            }
+        }
+
+        // Fallback to historical_data_cache
+        let cache = self.historical_data_cache.read().await;
+        let cache_key = format!("{symbol}_15m");
+        let klines = cache.get(&cache_key)?;
+        let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
+        drop(cache);
+
+        let atr_values = crate::strategies::indicators::calculate_atr(&candles, period).ok()?;
+        if atr_values.is_empty() {
+            return None;
+        }
+        let current_atr = *atr_values.last()?;
+        let mean_atr = if atr_values.len() >= 2 {
+            atr_values.iter().sum::<f64>() / atr_values.len() as f64
+        } else {
+            current_atr
+        };
+        if current_atr <= 0.0 {
+            return None;
+        }
+        Some((current_atr, mean_atr))
+    }
+
+    /// Calculate Half-Kelly criterion multiplier based on recent trade performance.
+    /// Returns a multiplier [0.25, 2.0] where 1.0 = no adjustment.
+    /// @spec:FR-RISK-011 - Kelly criterion position sizing
+    async fn calculate_half_kelly(&self) -> f64 {
+        let config = self.config.read().await;
+        if !config.kelly_enabled {
+            return 1.0;
+        }
+        let min_trades = config.kelly_min_trades;
+        let fraction = config.kelly_fraction;
+        let lookback = config.kelly_lookback as usize;
+        drop(config);
+
+        let history = self.trade_pnl_history.read().await;
+        if (history.len() as u64) < min_trades {
+            return 1.0;
+        }
+
+        // Use last `lookback` trades
+        let recent: Vec<f64> = history.iter().rev().take(lookback).copied().collect();
+        drop(history);
+
+        let mut wins = 0u64;
+        let mut total_win_pnl = 0.0f64;
+        let mut total_loss_pnl = 0.0f64;
+        let mut losses = 0u64;
+
+        for &pnl in &recent {
+            if pnl > 0.0 {
+                wins += 1;
+                total_win_pnl += pnl;
+            } else if pnl < 0.0 {
+                losses += 1;
+                total_loss_pnl += pnl.abs();
+            }
+        }
+
+        if losses == 0 || wins == 0 {
+            return 1.0;
+        }
+
+        let win_rate = wins as f64 / (wins + losses) as f64;
+        let avg_win = total_win_pnl / wins as f64;
+        let avg_loss = total_loss_pnl / losses as f64;
+
+        if avg_loss <= 0.0 {
+            return 1.0;
+        }
+
+        let b = avg_win / avg_loss;
+        let p = win_rate;
+        let q = 1.0 - p;
+
+        // Kelly formula: f = (bp - q) / b
+        let kelly_f = (b * p - q) / b;
+        let multiplier = (fraction * kelly_f).clamp(0.25, 2.0);
+
+        info!(
+            "Kelly: win_rate={:.1}% avg_win={:.2} avg_loss={:.2} b={:.2} kelly_f={:.3} mult={:.3}",
+            win_rate * 100.0,
+            avg_win,
+            avg_loss,
+            b,
+            kelly_f,
+            multiplier
+        );
+
+        multiplier
+    }
+
+    /// Apply regime filters that reduce position size based on market conditions.
+    /// Returns a multiplicative factor [0.0, 1.0] where 1.0 = no reduction.
+    /// @spec:FR-RISK-012 - Regime-based position reduction
+    async fn apply_regime_filters(&self, symbol: &str, atr_data: Option<(f64, f64)>) -> f64 {
+        let config = self.config.read().await;
+        let mut factor = 1.0f64;
+
+        // 1. Funding rate spike filter
+        if config.funding_spike_filter_enabled {
+            let funding_rates = self.funding_rates.read().await;
+            if let Some(&rate) = funding_rates.get(symbol) {
+                if rate.abs() > config.funding_spike_threshold {
+                    factor *= config.funding_spike_reduction;
+                    info!(
+                        "Funding spike filter: {} rate={:.6} > threshold={:.6}, reduction={:.2}",
+                        symbol,
+                        rate.abs(),
+                        config.funding_spike_threshold,
+                        config.funding_spike_reduction
+                    );
+                }
+            }
+        }
+
+        // 2. ATR spike filter
+        if config.atr_spike_filter_enabled {
+            if let Some((current_atr, mean_atr)) = atr_data {
+                if mean_atr > 0.0 && current_atr > mean_atr * config.atr_spike_multiplier {
+                    factor *= config.atr_spike_reduction;
+                    info!(
+                        "ATR spike filter: {} current={:.4} > {:.1}x mean={:.4}, reduction={:.2}",
+                        symbol,
+                        current_atr,
+                        config.atr_spike_multiplier,
+                        mean_atr,
+                        config.atr_spike_reduction
+                    );
+                }
+            }
+        }
+
+        // 3. Consecutive loss gradual reduction
+        if config.consecutive_loss_reduction_enabled {
+            let losses = *self.consecutive_losses.read().await;
+            let threshold = config.consecutive_loss_reduction_threshold;
+            if losses >= threshold {
+                let excess = losses - threshold;
+                let reduction = (1.0 - config.consecutive_loss_reduction_pct).powi(excess as i32);
+                factor *= reduction;
+                info!(
+                    "Consecutive loss filter: {} losses (threshold={}), excess={}, factor={:.3}",
+                    losses, threshold, excess, reduction
+                );
+            }
+        }
+
+        drop(config);
+        factor.clamp(0.0, 1.0)
+    }
+
+    /// Detect market regime using ATR ratio (simple heuristic).
+    /// Returns "volatile", "trending", or "ranging".
+    fn detect_market_regime_simple(atr_data: Option<(f64, f64)>) -> &'static str {
+        if let Some((current_atr, mean_atr)) = atr_data {
+            if mean_atr > 0.0 {
+                let ratio = current_atr / mean_atr;
+                if ratio > 1.5 {
+                    return "volatile";
+                } else if ratio > 0.8 {
+                    return "trending";
+                }
+            }
+        }
+        "ranging"
+    }
+
+    /// Update consecutive loss counter and trigger cool-down if threshold reached.
+    /// Also records PnL to trade_pnl_history for Kelly criterion.
     async fn update_consecutive_losses(&self, pnl: f64) {
+        // Record PnL for Kelly criterion
+        {
+            let config = self.config.read().await;
+            let lookback = config.kelly_lookback as usize;
+            drop(config);
+            let mut history = self.trade_pnl_history.write().await;
+            history.push_back(pnl);
+            while history.len() > lookback.max(200) {
+                history.pop_front();
+            }
+        }
+
         let config = self.config.read().await;
         let max_losses = config.max_consecutive_losses;
         let cool_down_mins = config.cool_down_minutes;
@@ -3504,6 +3727,15 @@ impl RealTradingEngine {
         let enable_ts = config.enable_trailing_stop;
         let ts_activation_pct = config.trailing_stop_activation_percent;
         let ts_trail_pct = config.trailing_stop_percent;
+        // Advanced feature config
+        let atr_stop_enabled = config.atr_stop_enabled;
+        let atr_period = config.atr_period;
+        let atr_stop_multiplier = config.atr_stop_multiplier;
+        let atr_tp_multiplier = config.atr_tp_multiplier;
+        let enable_signal_reversal = config.enable_signal_reversal;
+        let reversal_min_confidence = config.reversal_min_confidence;
+        let reversal_max_pnl_pct = config.reversal_max_pnl_pct;
+        let reversal_allowed_regimes = config.reversal_allowed_regimes.clone();
         drop(config);
 
         if self.positions.len() >= max_positions {
@@ -3514,7 +3746,14 @@ impl RealTradingEngine {
             return Ok(());
         }
 
-        // 6. Check if position already exists — close if opposite direction (reversal)
+        // 5a. Pre-compute ATR data (used for SL/TP and regime filters)
+        let atr_data = if atr_stop_enabled || self.config.read().await.atr_spike_filter_enabled {
+            self.calculate_current_atr(symbol, atr_period).await
+        } else {
+            None
+        };
+
+        // 6. Check if position already exists — handle reversal logic
         if let Some(existing) = self.positions.get(symbol) {
             let existing_is_long = existing.side == crate::real_trading::PositionSide::Long;
             let signal_is_long = is_long;
@@ -3531,7 +3770,60 @@ impl RealTradingEngine {
                 });
                 return Ok(());
             } else {
-                // Opposite direction — close existing position first (reversal)
+                // Opposite direction — check if reversal is allowed
+                if enable_signal_reversal {
+                    // Advanced reversal: check confidence, PnL limit, and regime
+                    if confidence < reversal_min_confidence {
+                        info!(
+                            "Reversal rejected for {}: confidence {:.2} < {:.2}",
+                            symbol, confidence, reversal_min_confidence
+                        );
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.to_string(),
+                            reason: format!(
+                                "Reversal confidence too low: {:.2} < {:.2}",
+                                confidence, reversal_min_confidence
+                            ),
+                        });
+                        drop(existing);
+                        return Ok(());
+                    }
+
+                    // Check PnL limit on existing position
+                    let pnl_pct = existing.pnl_percentage().abs();
+                    if pnl_pct > reversal_max_pnl_pct {
+                        info!(
+                            "Reversal rejected for {}: PnL {:.2}% > max {:.2}%",
+                            symbol, pnl_pct, reversal_max_pnl_pct
+                        );
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.to_string(),
+                            reason: format!(
+                                "Reversal PnL too high: {:.2}% > {:.2}%",
+                                pnl_pct, reversal_max_pnl_pct
+                            ),
+                        });
+                        drop(existing);
+                        return Ok(());
+                    }
+
+                    // Check regime
+                    let regime = Self::detect_market_regime_simple(atr_data);
+                    if !reversal_allowed_regimes.iter().any(|r| r == regime) {
+                        info!(
+                            "Reversal rejected for {}: regime '{}' not in {:?}",
+                            symbol, regime, reversal_allowed_regimes
+                        );
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.to_string(),
+                            reason: format!("Reversal not allowed in '{}' regime", regime),
+                        });
+                        drop(existing);
+                        return Ok(());
+                    }
+                }
+                // else: reversal disabled = always reverse on opposite signal (existing behavior)
+
                 drop(existing); // Release DashMap ref before mutating
                 info!(
                     "Reversing position for {}: closing existing {:?} to open {:?}",
@@ -3605,31 +3897,96 @@ impl RealTradingEngine {
             }
         }
 
-        // 9. Calculate SL/TP (PnL-based, adjusted for leverage like paper trading)
-        // With leverage, price_change = pnl_pct / leverage
-        // E.g., 2% SL with 10x leverage = 0.2% price move triggers stop
+        // 9. Calculate SL/TP — ATR-based or static leverage-adjusted
         let lev = leverage as f64;
-        let stop_loss = if is_long {
-            entry_price * (1.0 - default_sl_pct / (lev * 100.0))
+        let (stop_loss, take_profit) = if atr_stop_enabled {
+            if let Some((current_atr, _)) = atr_data {
+                // ATR-based: absolute price distance
+                let sl_distance = current_atr * atr_stop_multiplier;
+                let tp_distance = current_atr * atr_tp_multiplier;
+                let sl = if is_long {
+                    entry_price - sl_distance
+                } else {
+                    entry_price + sl_distance
+                };
+                let tp = if is_long {
+                    entry_price + tp_distance
+                } else {
+                    entry_price - tp_distance
+                };
+                info!(
+                    "ATR SL/TP for {}: ATR={:.4}, SL=${:.2} (dist={:.2}), TP=${:.2} (dist={:.2})",
+                    symbol, current_atr, sl, sl_distance, tp, tp_distance
+                );
+                (sl, tp)
+            } else {
+                // ATR data unavailable, fall back to static
+                warn!(
+                    "ATR data unavailable for {}, falling back to static SL/TP",
+                    symbol
+                );
+                let sl = if is_long {
+                    entry_price * (1.0 - default_sl_pct / (lev * 100.0))
+                } else {
+                    entry_price * (1.0 + default_sl_pct / (lev * 100.0))
+                };
+                let tp = if is_long {
+                    entry_price * (1.0 + default_tp_pct / (lev * 100.0))
+                } else {
+                    entry_price * (1.0 - default_tp_pct / (lev * 100.0))
+                };
+                (sl, tp)
+            }
         } else {
-            entry_price * (1.0 + default_sl_pct / (lev * 100.0))
+            // Static leverage-adjusted SL/TP (existing behavior)
+            let sl = if is_long {
+                entry_price * (1.0 - default_sl_pct / (lev * 100.0))
+            } else {
+                entry_price * (1.0 + default_sl_pct / (lev * 100.0))
+            };
+            let tp = if is_long {
+                entry_price * (1.0 + default_tp_pct / (lev * 100.0))
+            } else {
+                entry_price * (1.0 - default_tp_pct / (lev * 100.0))
+            };
+            (sl, tp)
         };
 
-        let take_profit = if is_long {
-            entry_price * (1.0 + default_tp_pct / (lev * 100.0))
-        } else {
-            entry_price * (1.0 - default_tp_pct / (lev * 100.0))
-        };
-
-        // 9. Calculate position size (round to exchange step size)
+        // 10. Calculate position size with Kelly + regime adjustments
         let raw_quantity = self.calculate_position_size(entry_price, stop_loss).await;
-        let quantity = Self::round_quantity_for_exchange(symbol, raw_quantity);
+
+        // Apply Kelly criterion multiplier
+        let kelly_mult = self.calculate_half_kelly().await;
+        // Apply regime filters
+        let regime_mult = self.apply_regime_filters(symbol, atr_data).await;
+
+        let adjusted_quantity = raw_quantity * kelly_mult * regime_mult;
+
+        // Cap at max_position_size_usdt
+        let config = self.config.read().await;
+        let max_usdt = config.max_position_size_usdt;
+        drop(config);
+        let max_qty_from_cap = if entry_price > 0.0 {
+            max_usdt / entry_price
+        } else {
+            adjusted_quantity
+        };
+        let capped_quantity = adjusted_quantity.min(max_qty_from_cap);
+
+        if kelly_mult != 1.0 || regime_mult != 1.0 {
+            info!(
+                "Position sizing for {}: raw={:.6} kelly={:.3} regime={:.3} adjusted={:.6} capped={:.6}",
+                symbol, raw_quantity, kelly_mult, regime_mult, adjusted_quantity, capped_quantity
+            );
+        }
+
+        let quantity = Self::round_quantity_for_exchange(symbol, capped_quantity);
         if quantity <= 0.0 {
             warn!("Calculated position size is 0 for {}, skipping", symbol);
             return Ok(());
         }
 
-        // 10. Place market order on Binance
+        // 11. Place market order on Binance
         let side = if is_long {
             OrderSide::Buy
         } else {
@@ -3641,8 +3998,6 @@ impl RealTradingEngine {
             side, symbol, quantity, entry_price, stop_loss, take_profit
         );
 
-        // Use place_order directly with price hint for accurate risk validation
-        // Market order (SpotOrderType::Market) but pass Some(entry_price) for risk checks
         match self
             .place_order(
                 symbol,
@@ -3662,7 +4017,7 @@ impl RealTradingEngine {
                     symbol, side, quantity, order.client_order_id
                 );
 
-                // 11. Set SL/TP on the new position
+                // 12. Set SL/TP on the new position
                 if let Err(e) = self
                     .set_sl_tp(symbol, Some(stop_loss), Some(take_profit))
                     .await
@@ -3670,15 +4025,10 @@ impl RealTradingEngine {
                     warn!("Failed to set SL/TP for {}: {} (will retry)", symbol, e);
                 }
 
-                // 12. Enable trailing stop if configured
+                // 13. Enable trailing stop if configured (PnL-based activation)
                 if enable_ts {
-                    let activation = if is_long {
-                        entry_price * (1.0 + ts_activation_pct / 100.0)
-                    } else {
-                        entry_price * (1.0 - ts_activation_pct / 100.0)
-                    };
                     if let Err(e) = self
-                        .enable_trailing_stop(symbol, activation, ts_trail_pct)
+                        .enable_trailing_stop(symbol, ts_activation_pct, ts_trail_pct)
                         .await
                     {
                         warn!("Failed to enable trailing stop for {}: {}", symbol, e);
@@ -4614,13 +4964,14 @@ mod tests {
             None,
             None,
         );
-        pos.enable_trailing_stop(52000.0, 2.0);
+        // PnL-based activation: 4% PnL from 50000 entry = price at 52000
+        pos.enable_trailing_stop(4.0, 2.0);
 
-        // Below activation - no trailing stop
-        pos.update_price(51000.0);
+        // Below activation PnL threshold - no trailing stop
+        pos.update_price(51000.0); // 2% PnL, below 4%
         assert!(pos.trailing_stop_price.is_none());
 
-        // At activation
+        // At activation (4% PnL = 52000)
         pos.update_price(52000.0);
         // Trailing stop = 52000 * 0.98 = 50960
         assert!((pos.trailing_stop_price.unwrap() - 50960.0).abs() < 1.0);

@@ -70,6 +70,12 @@ pub struct RealPosition {
     pub trailing_stop_percent: Option<f64>,
     /// Current trailing stop price (dynamic)
     pub trailing_stop_price: Option<f64>,
+    /// Whether trailing stop has been activated (PnL-based activation)
+    #[serde(default)]
+    pub trailing_stop_active: bool,
+    /// Best price since trailing stop activated (tracks high-water mark)
+    #[serde(default)]
+    pub best_price_since_trailing: Option<f64>,
     /// Order IDs that opened this position
     pub entry_order_ids: Vec<String>,
     /// Order IDs that closed (partially or fully)
@@ -124,6 +130,8 @@ impl RealPosition {
             trailing_stop_activation: None,
             trailing_stop_percent: None,
             trailing_stop_price: None,
+            trailing_stop_active: false,
+            best_price_since_trailing: None,
             entry_order_ids: vec![entry_order_id],
             exit_order_ids: Vec::new(),
             total_commission: 0.0,
@@ -266,32 +274,58 @@ impl RealPosition {
         self.update_trailing_stop(self.current_price);
     }
 
-    /// Update trailing stop price based on current price
+    /// Update trailing stop price based on current price.
+    /// Uses PnL-based activation: trailing stop activates when unrealized PnL%
+    /// reaches the activation threshold, then tracks best price from that point.
     fn update_trailing_stop(&mut self, price: f64) {
-        if let (Some(activation), Some(percent)) =
+        if let (Some(activation_pct), Some(trail_pct)) =
             (self.trailing_stop_activation, self.trailing_stop_percent)
         {
-            match self.side {
-                PositionSide::Long => {
-                    // For long: trailing stop activates when price goes above activation
-                    if price >= activation {
-                        let new_stop = price * (1.0 - percent / 100.0);
-                        // Only update if new stop is higher
+            // Check if trailing stop should activate based on PnL%
+            if !self.trailing_stop_active {
+                let pnl_pct = match self.side {
+                    PositionSide::Long => (price - self.entry_price) / self.entry_price * 100.0,
+                    PositionSide::Short => (self.entry_price - price) / self.entry_price * 100.0,
+                };
+
+                if pnl_pct >= activation_pct {
+                    self.trailing_stop_active = true;
+                    self.best_price_since_trailing = Some(price);
+                }
+            }
+
+            // Once active, track best price and update trailing stop
+            if self.trailing_stop_active {
+                match self.side {
+                    PositionSide::Long => {
+                        // Update best price (highest since activation)
+                        let best = self
+                            .best_price_since_trailing
+                            .map(|b| b.max(price))
+                            .unwrap_or(price);
+                        self.best_price_since_trailing = Some(best);
+
+                        let new_stop = best * (1.0 - trail_pct / 100.0);
+                        // Only move stop up, never down
                         if self.trailing_stop_price.is_none_or(|s| new_stop > s) {
                             self.trailing_stop_price = Some(new_stop);
                         }
-                    }
-                },
-                PositionSide::Short => {
-                    // For short: trailing stop activates when price goes below activation
-                    if price <= activation {
-                        let new_stop = price * (1.0 + percent / 100.0);
-                        // Only update if new stop is lower
+                    },
+                    PositionSide::Short => {
+                        // Update best price (lowest since activation)
+                        let best = self
+                            .best_price_since_trailing
+                            .map(|b| b.min(price))
+                            .unwrap_or(price);
+                        self.best_price_since_trailing = Some(best);
+
+                        let new_stop = best * (1.0 + trail_pct / 100.0);
+                        // Only move stop down, never up
                         if self.trailing_stop_price.is_none_or(|s| new_stop < s) {
                             self.trailing_stop_price = Some(new_stop);
                         }
-                    }
-                },
+                    },
+                }
             }
         }
     }
@@ -482,15 +516,17 @@ mod tests {
     #[test]
     fn test_position_trailing_stop_long() {
         let mut pos = create_test_position(PositionSide::Long);
-        // Entry at 50000, activate trailing at 52000, 2% trail
-        pos.enable_trailing_stop(52000.0, 2.0);
+        // Entry at 50000, activate trailing at 4% PnL (price ~52000), 2% trail
+        pos.enable_trailing_stop(4.0, 2.0);
 
-        // Price below activation - no trailing stop yet
-        pos.update_price(51000.0);
+        // Price below activation PnL threshold - no trailing stop yet
+        pos.update_price(51000.0); // 2% PnL, below 4% threshold
         assert!(pos.trailing_stop_price.is_none());
+        assert!(!pos.trailing_stop_active);
 
-        // Price hits activation
+        // Price hits activation threshold (4% PnL = 52000)
         pos.update_price(52000.0);
+        assert!(pos.trailing_stop_active);
         // Trailing stop = 52000 * 0.98 = 50960
         assert!((pos.trailing_stop_price.unwrap() - 50960.0).abs() < 1.0);
 
@@ -596,15 +632,17 @@ mod tests {
     #[test]
     fn test_position_trailing_stop_short() {
         let mut pos = create_test_position(PositionSide::Short);
-        // Entry at 50000, activate trailing at 48000 (price going down), 2% trail
-        pos.enable_trailing_stop(48000.0, 2.0);
+        // Entry at 50000, activate trailing at 4% PnL (price ~48000 for short), 2% trail
+        pos.enable_trailing_stop(4.0, 2.0);
 
-        // Price above activation - no trailing stop yet
+        // Price above activation - PnL only 2%, below 4% threshold
         pos.update_price(49000.0);
         assert!(pos.trailing_stop_price.is_none());
+        assert!(!pos.trailing_stop_active);
 
-        // Price hits activation
+        // Price hits activation (4% PnL for short = 48000)
         pos.update_price(48000.0);
+        assert!(pos.trailing_stop_active);
         // Trailing stop = 48000 * 1.02 = 48960
         assert!((pos.trailing_stop_price.unwrap() - 48960.0).abs() < 1.0);
 
@@ -669,9 +707,9 @@ mod tests {
         pos.set_sl_tp(Some(49000.0), None);
         assert_eq!(pos.effective_stop_loss(), Some(49000.0));
 
-        // Enable trailing stop
-        pos.enable_trailing_stop(52000.0, 2.0);
-        pos.update_price(52000.0); // Activate trailing
+        // Enable trailing stop (4% PnL activation, 2% trail)
+        pos.enable_trailing_stop(4.0, 2.0);
+        pos.update_price(52000.0); // 4% PnL -> activates trailing
 
         // Trailing stop should take precedence
         assert!(pos.trailing_stop_price.is_some());

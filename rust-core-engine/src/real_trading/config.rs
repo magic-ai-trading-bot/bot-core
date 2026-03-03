@@ -117,6 +117,76 @@ pub struct RealTradingConfig {
     /// Symbols to auto-trade (empty = use allowed_symbols)
     pub auto_trade_symbols: Vec<String>,
 
+    // ============ ATR-Based Sizing ============
+    /// Enable ATR-based stop loss and take profit (overrides default_stop_loss/take_profit)
+    pub atr_stop_enabled: bool,
+
+    /// ATR calculation period (number of candles)
+    pub atr_period: usize,
+
+    /// ATR multiplier for stop loss distance (SL = entry +/- ATR * multiplier)
+    pub atr_stop_multiplier: f64,
+
+    /// ATR multiplier for take profit distance (TP = entry +/- ATR * multiplier)
+    pub atr_tp_multiplier: f64,
+
+    /// Base risk percentage per trade when using ATR sizing (% of equity risked)
+    pub base_risk_pct: f64,
+
+    // ============ Kelly Criterion ============
+    /// Enable Kelly criterion position sizing
+    pub kelly_enabled: bool,
+
+    /// Minimum closed trades before Kelly activates
+    pub kelly_min_trades: u64,
+
+    /// Kelly fraction (0.5 = Half-Kelly for safety)
+    pub kelly_fraction: f64,
+
+    /// Number of recent trades to use for Kelly calculation
+    pub kelly_lookback: u64,
+
+    // ============ Regime Filters ============
+    /// Enable funding rate spike filter (reduces size when funding is extreme)
+    pub funding_spike_filter_enabled: bool,
+
+    /// Funding rate threshold above which filter activates (absolute value)
+    pub funding_spike_threshold: f64,
+
+    /// Position size multiplier when funding spike detected (0.0-1.0)
+    pub funding_spike_reduction: f64,
+
+    /// Enable ATR spike filter (reduces size when volatility is extreme)
+    pub atr_spike_filter_enabled: bool,
+
+    /// ATR spike threshold: current_atr > mean_atr * multiplier triggers filter
+    pub atr_spike_multiplier: f64,
+
+    /// Position size multiplier when ATR spike detected (0.0-1.0)
+    pub atr_spike_reduction: f64,
+
+    /// Enable gradual position reduction after consecutive losses
+    pub consecutive_loss_reduction_enabled: bool,
+
+    /// Reduction factor per consecutive loss beyond threshold (0.0-1.0)
+    pub consecutive_loss_reduction_pct: f64,
+
+    /// Number of consecutive losses before reduction kicks in
+    pub consecutive_loss_reduction_threshold: u32,
+
+    // ============ Signal Reversal ============
+    /// Enable advanced signal reversal logic (requires confidence + regime check)
+    pub enable_signal_reversal: bool,
+
+    /// Minimum signal confidence required for reversal
+    pub reversal_min_confidence: f64,
+
+    /// Maximum PnL% on existing position to allow reversal (safety cap)
+    pub reversal_max_pnl_pct: f64,
+
+    /// Market regimes where reversal is allowed (e.g., ["trending"])
+    pub reversal_allowed_regimes: Vec<String>,
+
     // ============ Logging & Monitoring ============
     /// Log all order events
     pub log_order_events: bool,
@@ -181,6 +251,36 @@ impl Default for RealTradingConfig {
             short_only_mode: false,
             long_only_mode: false,
             auto_trade_symbols: vec![],
+
+            // ATR-Based Sizing — DISABLED by default
+            atr_stop_enabled: false,
+            atr_period: 14,
+            atr_stop_multiplier: 1.2,
+            atr_tp_multiplier: 2.4,
+            base_risk_pct: 2.0,
+
+            // Kelly Criterion — DISABLED by default
+            kelly_enabled: false,
+            kelly_min_trades: 200,
+            kelly_fraction: 0.5,
+            kelly_lookback: 100,
+
+            // Regime Filters — all DISABLED by default
+            funding_spike_filter_enabled: false,
+            funding_spike_threshold: 0.0003,
+            funding_spike_reduction: 0.5,
+            atr_spike_filter_enabled: false,
+            atr_spike_multiplier: 2.0,
+            atr_spike_reduction: 0.5,
+            consecutive_loss_reduction_enabled: false,
+            consecutive_loss_reduction_pct: 0.3,
+            consecutive_loss_reduction_threshold: 3,
+
+            // Signal Reversal — DISABLED by default
+            enable_signal_reversal: false,
+            reversal_min_confidence: 0.75,
+            reversal_max_pnl_pct: 5.0,
+            reversal_allowed_regimes: vec!["trending".to_string()],
 
             // Logging
             log_order_events: true,
@@ -261,6 +361,73 @@ impl RealTradingConfig {
 
         if self.short_only_mode && self.long_only_mode {
             errors.push("short_only_mode and long_only_mode cannot both be true".to_string());
+        }
+
+        // ATR-based sizing validation (only when enabled)
+        if self.atr_stop_enabled {
+            if self.atr_period < 2 || self.atr_period > 100 {
+                errors.push("atr_period must be between 2 and 100".to_string());
+            }
+            if self.atr_stop_multiplier <= 0.0 || self.atr_stop_multiplier > 10.0 {
+                errors.push("atr_stop_multiplier must be between 0 and 10".to_string());
+            }
+            if self.atr_tp_multiplier <= 0.0 || self.atr_tp_multiplier > 20.0 {
+                errors.push("atr_tp_multiplier must be between 0 and 20".to_string());
+            }
+            if self.base_risk_pct <= 0.0 || self.base_risk_pct > 20.0 {
+                errors.push("base_risk_pct must be between 0 and 20".to_string());
+            }
+        }
+
+        // Kelly criterion validation (only when enabled)
+        if self.kelly_enabled {
+            if self.kelly_min_trades < 10 {
+                errors.push("kelly_min_trades must be at least 10".to_string());
+            }
+            if self.kelly_fraction <= 0.0 || self.kelly_fraction > 1.0 {
+                errors.push("kelly_fraction must be between 0 and 1".to_string());
+            }
+            if self.kelly_lookback < 10 || self.kelly_lookback > 1000 {
+                errors.push("kelly_lookback must be between 10 and 1000".to_string());
+            }
+        }
+
+        // Regime filter validation (only when enabled)
+        if self.funding_spike_filter_enabled {
+            if self.funding_spike_threshold <= 0.0 {
+                errors.push("funding_spike_threshold must be positive".to_string());
+            }
+            if self.funding_spike_reduction < 0.0 || self.funding_spike_reduction > 1.0 {
+                errors.push("funding_spike_reduction must be between 0 and 1".to_string());
+            }
+        }
+        if self.atr_spike_filter_enabled {
+            if self.atr_spike_multiplier <= 1.0 {
+                errors.push("atr_spike_multiplier must be greater than 1".to_string());
+            }
+            if self.atr_spike_reduction < 0.0 || self.atr_spike_reduction > 1.0 {
+                errors.push("atr_spike_reduction must be between 0 and 1".to_string());
+            }
+        }
+        if self.consecutive_loss_reduction_enabled {
+            if self.consecutive_loss_reduction_pct < 0.0
+                || self.consecutive_loss_reduction_pct > 1.0
+            {
+                errors.push("consecutive_loss_reduction_pct must be between 0 and 1".to_string());
+            }
+            if self.consecutive_loss_reduction_threshold == 0 {
+                errors.push("consecutive_loss_reduction_threshold must be at least 1".to_string());
+            }
+        }
+
+        // Signal reversal validation (only when enabled)
+        if self.enable_signal_reversal {
+            if self.reversal_min_confidence < 0.0 || self.reversal_min_confidence > 1.0 {
+                errors.push("reversal_min_confidence must be between 0 and 1".to_string());
+            }
+            if self.reversal_max_pnl_pct <= 0.0 {
+                errors.push("reversal_max_pnl_pct must be positive".to_string());
+            }
         }
 
         if errors.is_empty() {

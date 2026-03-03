@@ -281,10 +281,40 @@ pub struct UpdateSettingsRequest {
     pub max_portfolio_risk_pct: Option<f64>,
     pub short_only_mode: Option<bool>,
     pub long_only_mode: Option<bool>,
+    // Trailing stop fields
+    pub enable_trailing_stop: Option<bool>,
+    pub trailing_stop_activation_percent: Option<f64>,
+    pub trailing_stop_percent: Option<f64>,
+    // ATR-Based Sizing
+    pub atr_stop_enabled: Option<bool>,
+    pub atr_period: Option<usize>,
+    pub atr_stop_multiplier: Option<f64>,
+    pub atr_tp_multiplier: Option<f64>,
+    pub base_risk_pct: Option<f64>,
+    // Kelly Criterion
+    pub kelly_enabled: Option<bool>,
+    pub kelly_min_trades: Option<u64>,
+    pub kelly_fraction: Option<f64>,
+    pub kelly_lookback: Option<u64>,
+    // Regime Filters
+    pub funding_spike_filter_enabled: Option<bool>,
+    pub funding_spike_threshold: Option<f64>,
+    pub funding_spike_reduction: Option<f64>,
+    pub atr_spike_filter_enabled: Option<bool>,
+    pub atr_spike_multiplier: Option<f64>,
+    pub atr_spike_reduction: Option<f64>,
+    pub consecutive_loss_reduction_enabled: Option<bool>,
+    pub consecutive_loss_reduction_pct: Option<f64>,
+    pub consecutive_loss_reduction_threshold: Option<u32>,
+    // Signal Reversal
+    pub enable_signal_reversal: Option<bool>,
+    pub reversal_min_confidence: Option<f64>,
+    pub reversal_max_pnl_pct: Option<f64>,
+    pub reversal_allowed_regimes: Option<Vec<String>>,
 }
 
 /// Settings response
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SettingsResponse {
     pub use_testnet: bool,
     pub max_position_size_usdt: f64,
@@ -307,6 +337,36 @@ pub struct SettingsResponse {
     pub max_portfolio_risk_pct: f64,
     pub short_only_mode: bool,
     pub long_only_mode: bool,
+    // Trailing stop
+    pub enable_trailing_stop: bool,
+    pub trailing_stop_activation_percent: f64,
+    pub trailing_stop_percent: f64,
+    // ATR-Based Sizing
+    pub atr_stop_enabled: bool,
+    pub atr_period: usize,
+    pub atr_stop_multiplier: f64,
+    pub atr_tp_multiplier: f64,
+    pub base_risk_pct: f64,
+    // Kelly Criterion
+    pub kelly_enabled: bool,
+    pub kelly_min_trades: u64,
+    pub kelly_fraction: f64,
+    pub kelly_lookback: u64,
+    // Regime Filters
+    pub funding_spike_filter_enabled: bool,
+    pub funding_spike_threshold: f64,
+    pub funding_spike_reduction: f64,
+    pub atr_spike_filter_enabled: bool,
+    pub atr_spike_multiplier: f64,
+    pub atr_spike_reduction: f64,
+    pub consecutive_loss_reduction_enabled: bool,
+    pub consecutive_loss_reduction_pct: f64,
+    pub consecutive_loss_reduction_threshold: u32,
+    // Signal Reversal
+    pub enable_signal_reversal: bool,
+    pub reversal_min_confidence: f64,
+    pub reversal_max_pnl_pct: f64,
+    pub reversal_allowed_regimes: Vec<String>,
 }
 
 // ============================================================================
@@ -1047,6 +1107,36 @@ async fn get_settings(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejection>
         max_portfolio_risk_pct: config.max_portfolio_risk_pct,
         short_only_mode: config.short_only_mode,
         long_only_mode: config.long_only_mode,
+        // Trailing stop
+        enable_trailing_stop: config.enable_trailing_stop,
+        trailing_stop_activation_percent: config.trailing_stop_activation_percent,
+        trailing_stop_percent: config.trailing_stop_percent,
+        // ATR-Based Sizing
+        atr_stop_enabled: config.atr_stop_enabled,
+        atr_period: config.atr_period,
+        atr_stop_multiplier: config.atr_stop_multiplier,
+        atr_tp_multiplier: config.atr_tp_multiplier,
+        base_risk_pct: config.base_risk_pct,
+        // Kelly Criterion
+        kelly_enabled: config.kelly_enabled,
+        kelly_min_trades: config.kelly_min_trades,
+        kelly_fraction: config.kelly_fraction,
+        kelly_lookback: config.kelly_lookback,
+        // Regime Filters
+        funding_spike_filter_enabled: config.funding_spike_filter_enabled,
+        funding_spike_threshold: config.funding_spike_threshold,
+        funding_spike_reduction: config.funding_spike_reduction,
+        atr_spike_filter_enabled: config.atr_spike_filter_enabled,
+        atr_spike_multiplier: config.atr_spike_multiplier,
+        atr_spike_reduction: config.atr_spike_reduction,
+        consecutive_loss_reduction_enabled: config.consecutive_loss_reduction_enabled,
+        consecutive_loss_reduction_pct: config.consecutive_loss_reduction_pct,
+        consecutive_loss_reduction_threshold: config.consecutive_loss_reduction_threshold,
+        // Signal Reversal
+        enable_signal_reversal: config.enable_signal_reversal,
+        reversal_min_confidence: config.reversal_min_confidence,
+        reversal_max_pnl_pct: config.reversal_max_pnl_pct,
+        reversal_allowed_regimes: config.reversal_allowed_regimes.clone(),
     };
 
     Ok(warp::reply::with_status(
@@ -1129,6 +1219,86 @@ async fn update_settings(
     }
     if let Some(v) = request.long_only_mode {
         config.long_only_mode = v;
+    }
+    // Trailing stop fields
+    if let Some(v) = request.enable_trailing_stop {
+        config.enable_trailing_stop = v;
+    }
+    if let Some(v) = request.trailing_stop_activation_percent {
+        config.trailing_stop_activation_percent = v;
+    }
+    if let Some(v) = request.trailing_stop_percent {
+        config.trailing_stop_percent = v;
+    }
+    // ATR-Based Sizing
+    if let Some(v) = request.atr_stop_enabled {
+        config.atr_stop_enabled = v;
+    }
+    if let Some(v) = request.atr_period {
+        config.atr_period = v;
+    }
+    if let Some(v) = request.atr_stop_multiplier {
+        config.atr_stop_multiplier = v;
+    }
+    if let Some(v) = request.atr_tp_multiplier {
+        config.atr_tp_multiplier = v;
+    }
+    if let Some(v) = request.base_risk_pct {
+        config.base_risk_pct = v;
+    }
+    // Kelly Criterion
+    if let Some(v) = request.kelly_enabled {
+        config.kelly_enabled = v;
+    }
+    if let Some(v) = request.kelly_min_trades {
+        config.kelly_min_trades = v;
+    }
+    if let Some(v) = request.kelly_fraction {
+        config.kelly_fraction = v;
+    }
+    if let Some(v) = request.kelly_lookback {
+        config.kelly_lookback = v;
+    }
+    // Regime Filters
+    if let Some(v) = request.funding_spike_filter_enabled {
+        config.funding_spike_filter_enabled = v;
+    }
+    if let Some(v) = request.funding_spike_threshold {
+        config.funding_spike_threshold = v;
+    }
+    if let Some(v) = request.funding_spike_reduction {
+        config.funding_spike_reduction = v;
+    }
+    if let Some(v) = request.atr_spike_filter_enabled {
+        config.atr_spike_filter_enabled = v;
+    }
+    if let Some(v) = request.atr_spike_multiplier {
+        config.atr_spike_multiplier = v;
+    }
+    if let Some(v) = request.atr_spike_reduction {
+        config.atr_spike_reduction = v;
+    }
+    if let Some(v) = request.consecutive_loss_reduction_enabled {
+        config.consecutive_loss_reduction_enabled = v;
+    }
+    if let Some(v) = request.consecutive_loss_reduction_pct {
+        config.consecutive_loss_reduction_pct = v;
+    }
+    if let Some(v) = request.consecutive_loss_reduction_threshold {
+        config.consecutive_loss_reduction_threshold = v;
+    }
+    // Signal Reversal
+    if let Some(v) = request.enable_signal_reversal {
+        config.enable_signal_reversal = v;
+    }
+    if let Some(v) = request.reversal_min_confidence {
+        config.reversal_min_confidence = v;
+    }
+    if let Some(v) = request.reversal_max_pnl_pct {
+        config.reversal_max_pnl_pct = v;
+    }
+    if let Some(v) = request.reversal_allowed_regimes {
+        config.reversal_allowed_regimes = v;
     }
 
     match engine.update_config(config).await {
@@ -1721,6 +1891,7 @@ mod tests {
             max_portfolio_risk_pct: 10.0,
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -2896,6 +3067,7 @@ mod tests {
             max_portfolio_risk_pct: 10.0,
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -4012,6 +4184,7 @@ mod tests {
             max_portfolio_risk_pct: 10.0,
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -4399,6 +4572,7 @@ mod tests {
             max_portfolio_risk_pct: 10.0,
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
         assert_eq!(settings.max_positions, 8);
         assert_eq!(settings.max_leverage, 15);
@@ -4998,6 +5172,7 @@ mod tests {
             max_portfolio_risk_pct: 10.0,
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -6648,6 +6823,7 @@ mod tests {
             max_portfolio_risk_pct: 10.0,
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         assert!(settings.use_testnet);
@@ -6678,6 +6854,7 @@ mod tests {
             max_portfolio_risk_pct: 10.0,
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         assert!(!settings.use_testnet);

@@ -40,6 +40,7 @@ export function AutoTradingPanel({ settings, onUpdateSettings, onSyncFromPaper, 
   const colors = useThemeColors();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvancedRisk, setShowAdvancedRisk] = useState(false);
   const [showSyncDialog, setShowSyncDialog] = useState(false);
   const [syncPreview, setSyncPreview] = useState<SyncPreview | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -683,8 +684,185 @@ export function AutoTradingPanel({ settings, onUpdateSettings, onSyncFromPaper, 
             )}
           </AnimatePresence>
         </div>
+
+        {/* Section 4: Advanced Risk (collapsible) */}
+        <div style={{ backgroundColor: colors.bgPrimary }}>
+          <button
+            onClick={() => setShowAdvancedRisk(!showAdvancedRisk)}
+            className="w-full flex items-center justify-between p-3 cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Settings2 className="w-3.5 h-3.5" style={{ color: colors.textMuted }} />
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.textMuted }}>
+                Advanced Risk
+              </span>
+            </div>
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${showAdvancedRisk ? 'rotate-180' : ''}`}
+              style={{ color: colors.textMuted }}
+            />
+          </button>
+
+          <AnimatePresence>
+            {showAdvancedRisk && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="px-3 pb-3 space-y-3">
+
+                  {/* ATR-Based SL/TP */}
+                  <FeatureGroup
+                    label="ATR-Based SL/TP"
+                    enabled={settings.atr_stop_enabled}
+                    onToggle={(v) => onUpdateSettings({ atr_stop_enabled: v })}
+                    isLoading={isLoading}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      <CompactInput label="ATR Period" value={settings.atr_period} min={2} max={100} onChange={(v) => onUpdateSettings({ atr_period: v })} disabled={isLoading} />
+                      <CompactInput label="Base Risk %" value={settings.base_risk_pct} suffix="%" min={0.5} max={20} step={0.5} onChange={(v) => onUpdateSettings({ base_risk_pct: v })} disabled={isLoading} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <CompactInput label="SL Multiplier" value={settings.atr_stop_multiplier} min={0.5} max={5} step={0.1} onChange={(v) => onUpdateSettings({ atr_stop_multiplier: v })} disabled={isLoading} />
+                      <CompactInput label="TP Multiplier" value={settings.atr_tp_multiplier} min={0.5} max={10} step={0.1} onChange={(v) => onUpdateSettings({ atr_tp_multiplier: v })} disabled={isLoading} />
+                    </div>
+                  </FeatureGroup>
+
+                  {/* Kelly Criterion */}
+                  <FeatureGroup
+                    label="Kelly Criterion"
+                    enabled={settings.kelly_enabled}
+                    onToggle={(v) => onUpdateSettings({ kelly_enabled: v })}
+                    isLoading={isLoading}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      <CompactInput label="Min Trades" value={settings.kelly_min_trades} min={10} max={1000} onChange={(v) => onUpdateSettings({ kelly_min_trades: v })} disabled={isLoading} />
+                      <CompactInput label="Fraction" value={settings.kelly_fraction} min={0.1} max={1.0} step={0.1} onChange={(v) => onUpdateSettings({ kelly_fraction: v })} disabled={isLoading} />
+                    </div>
+                    <CompactInput label="Lookback" value={settings.kelly_lookback} min={10} max={1000} onChange={(v) => onUpdateSettings({ kelly_lookback: v })} disabled={isLoading} />
+                  </FeatureGroup>
+
+                  {/* Regime Filters */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.textMuted }}>Regime Filters</span>
+
+                    <FeatureGroup
+                      label="Funding Spike"
+                      enabled={settings.funding_spike_filter_enabled}
+                      onToggle={(v) => onUpdateSettings({ funding_spike_filter_enabled: v })}
+                      isLoading={isLoading}
+                    >
+                      <div className="grid grid-cols-2 gap-2">
+                        <CompactInput label="Threshold" value={settings.funding_spike_threshold} min={0.0001} max={0.01} step={0.0001} onChange={(v) => onUpdateSettings({ funding_spike_threshold: v })} disabled={isLoading} />
+                        <CompactInput label="Reduction" value={settings.funding_spike_reduction} min={0.1} max={1.0} step={0.1} onChange={(v) => onUpdateSettings({ funding_spike_reduction: v })} disabled={isLoading} />
+                      </div>
+                    </FeatureGroup>
+
+                    <FeatureGroup
+                      label="ATR Spike"
+                      enabled={settings.atr_spike_filter_enabled}
+                      onToggle={(v) => onUpdateSettings({ atr_spike_filter_enabled: v })}
+                      isLoading={isLoading}
+                    >
+                      <div className="grid grid-cols-2 gap-2">
+                        <CompactInput label="Multiplier" value={settings.atr_spike_multiplier} min={1.1} max={5} step={0.1} onChange={(v) => onUpdateSettings({ atr_spike_multiplier: v })} disabled={isLoading} />
+                        <CompactInput label="Reduction" value={settings.atr_spike_reduction} min={0.1} max={1.0} step={0.1} onChange={(v) => onUpdateSettings({ atr_spike_reduction: v })} disabled={isLoading} />
+                      </div>
+                    </FeatureGroup>
+
+                    <FeatureGroup
+                      label="Consec. Loss"
+                      enabled={settings.consecutive_loss_reduction_enabled}
+                      onToggle={(v) => onUpdateSettings({ consecutive_loss_reduction_enabled: v })}
+                      isLoading={isLoading}
+                    >
+                      <div className="grid grid-cols-2 gap-2">
+                        <CompactInput label="Threshold" value={settings.consecutive_loss_reduction_threshold} min={1} max={10} onChange={(v) => onUpdateSettings({ consecutive_loss_reduction_threshold: v })} disabled={isLoading} />
+                        <CompactInput label="Reduction" value={settings.consecutive_loss_reduction_pct} min={0.1} max={1.0} step={0.1} onChange={(v) => onUpdateSettings({ consecutive_loss_reduction_pct: v })} disabled={isLoading} />
+                      </div>
+                    </FeatureGroup>
+                  </div>
+
+                  {/* Signal Reversal */}
+                  <FeatureGroup
+                    label="Signal Reversal"
+                    enabled={settings.enable_signal_reversal}
+                    onToggle={(v) => onUpdateSettings({ enable_signal_reversal: v })}
+                    isLoading={isLoading}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      <CompactInput label="Min Confidence" value={settings.reversal_min_confidence} min={0.5} max={1.0} step={0.05} onChange={(v) => onUpdateSettings({ reversal_min_confidence: v })} disabled={isLoading} />
+                      <CompactInput label="Max PnL %" value={settings.reversal_max_pnl_pct} suffix="%" min={1} max={20} step={0.5} onChange={(v) => onUpdateSettings({ reversal_max_pnl_pct: v })} disabled={isLoading} />
+                    </div>
+                  </FeatureGroup>
+
+                  {/* Trailing Stop */}
+                  <FeatureGroup
+                    label="Trailing Stop"
+                    enabled={settings.enable_trailing_stop}
+                    onToggle={(v) => onUpdateSettings({ enable_trailing_stop: v })}
+                    isLoading={isLoading}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      <CompactInput label="Activation %" value={settings.trailing_stop_activation_percent} suffix="%" min={0.5} max={10} step={0.5} onChange={(v) => onUpdateSettings({ trailing_stop_activation_percent: v })} disabled={isLoading} />
+                      <CompactInput label="Trail %" value={settings.trailing_stop_percent} suffix="%" min={0.5} max={10} step={0.5} onChange={(v) => onUpdateSettings({ trailing_stop_percent: v })} disabled={isLoading} />
+                    </div>
+                  </FeatureGroup>
+
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </>
+  );
+}
+
+/**
+ * FeatureGroup - Toggle + expandable params for advanced features
+ */
+function FeatureGroup({
+  label,
+  enabled,
+  onToggle,
+  isLoading,
+  children,
+}: {
+  label: string;
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+  isLoading: boolean;
+  children: React.ReactNode;
+}) {
+  const colors = useThemeColors();
+
+  return (
+    <div
+      className="rounded-lg border p-2 space-y-2"
+      style={{
+        borderColor: enabled ? 'rgba(239, 68, 68, 0.3)' : colors.borderSubtle,
+        backgroundColor: enabled ? 'rgba(239, 68, 68, 0.03)' : 'transparent',
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-medium" style={{ color: enabled ? colors.textPrimary : colors.textMuted }}>
+          {label}
+        </span>
+        <button
+          onClick={() => onToggle(!enabled)}
+          disabled={isLoading}
+          className={`relative w-7 h-4 rounded-full transition-colors ${enabled ? 'bg-red-500' : 'bg-white/10'}`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${enabled ? 'translate-x-3' : ''}`}
+          />
+        </button>
+      </div>
+      {enabled && <div className="space-y-2">{children}</div>}
+    </div>
   );
 }
 

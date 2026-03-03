@@ -71,7 +71,8 @@ export function registerRealTradingTools(server: McpServer): void {
     "get_real_trading_settings",
     {
       title: "Get Real Trading Settings",
-      description: "Get current real trading settings including risk parameters, position sizing, and strategy configurations.",
+      description: "Get current real trading settings including risk parameters, position sizing, strategy configurations, " +
+        "and advanced features (ATR sizing, Kelly criterion, regime filters, signal reversal, trailing stop).",
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -153,9 +154,16 @@ export function registerRealTradingTools(server: McpServer): void {
     "update_real_trading_settings",
     {
       title: "Update Real Trading Settings",
-      description: "⚠️ CAUTION: Update real trading settings. Changes will affect future trades and may impact risk management.",
+      description: "⚠️ CAUTION: Update real trading settings. Changes will affect future trades and may impact risk management. " +
+        "Categories: basic (max_position_size_usdt, max_positions, max_leverage, ...), " +
+        "auto-trading (auto_trading_enabled, min_signal_confidence, ...), " +
+        "trailing stop (enable_trailing_stop, trailing_stop_activation_percent, trailing_stop_percent), " +
+        "ATR sizing (atr_stop_enabled, atr_period, atr_stop_multiplier, atr_tp_multiplier, base_risk_pct), " +
+        "Kelly criterion (kelly_enabled, kelly_min_trades, kelly_fraction, kelly_lookback), " +
+        "regime filters (funding_spike_filter_enabled, atr_spike_filter_enabled, consecutive_loss_reduction_enabled + params), " +
+        "signal reversal (enable_signal_reversal, reversal_min_confidence, reversal_max_pnl_pct, reversal_allowed_regimes).",
       inputSchema: {
-        settings: z.record(z.unknown()).describe("Settings object with fields to update"),
+        settings: z.record(z.unknown()).describe("Settings object with fields to update. All advanced features default to disabled."),
       },
       annotations: { readOnlyHint: false, openWorldHint: false },
     },
