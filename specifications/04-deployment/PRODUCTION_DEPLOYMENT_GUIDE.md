@@ -75,7 +75,7 @@ Production Environment
 - [ ] Cloud provider account (AWS/GCP/Azure/DigitalOcean)
 - [ ] Docker Hub or private registry account
 - [ ] Binance account with API access (production or testnet)
-- [ ] OpenAI account with API key (GPT-4 access)
+- [ ] xAI account with API key (Grok access, XAI_API_KEY)
 - [ ] MongoDB Atlas account (or self-hosted MongoDB)
 - [ ] Domain name registered and configured
 - [ ] SSL certificate provider access (Let's Encrypt/CloudFlare)
@@ -316,7 +316,7 @@ REDIS_PASSWORD=STRONG_REDIS_PASSWORD
 # CRITICAL: Use production keys, keep secure
 BINANCE_API_KEY=your_production_binance_api_key
 BINANCE_SECRET_KEY=your_production_binance_secret_key
-OPENAI_API_KEY=sk-your_production_openai_key
+XAI_API_KEY=your_production_xai_key
 
 # === TRADING CONFIGURATION ===
 # IMPORTANT: Set to false for testnet, true for REAL trading
@@ -332,9 +332,8 @@ PYTHON_API_KEY=GENERATE_64_CHAR_RANDOM_STRING
 JWT_SECRET=GENERATE_64_CHAR_RANDOM_STRING
 DASHBOARD_SESSION_SECRET=GENERATE_64_CHAR_RANDOM_STRING
 
-# JWT Keys for Kong (RS256)
-JWT_PRIVATE_KEY=/etc/ssl/private/jwt-private.key
-JWT_PUBLIC_KEY=/etc/ssl/certs/jwt-public.key
+# JWT Secret (HS256)
+JWT_SECRET=GENERATE_64_CHAR_RANDOM_STRING
 
 # === RESOURCE LIMITS ===
 PYTHON_MEMORY_LIMIT=4G
@@ -769,9 +768,9 @@ server:
   workers: 4
   reload: false
 
-openai:
-  api_key: ${OPENAI_API_KEY}
-  model: "gpt-4"
+xai:
+  api_key: ${XAI_API_KEY}
+  model: "grok-4-1-fast-non-reasoning"
   max_tokens: 2048
   temperature: 0.7
 
@@ -861,7 +860,7 @@ docker-compose exec rust-core-engine /app/bot-core --seed
 # Test Binance connection
 curl -X GET http://localhost:8080/api/v1/binance/test
 
-# Test OpenAI connection
+# Test Grok/xAI connection
 curl -X POST http://localhost:8000/api/ai/test \
   -H "Content-Type: application/json"
 
@@ -1163,7 +1162,7 @@ timeout = 60
 - [ ] Log rotation working
 - [ ] Resource usage within limits
 - [ ] No error messages in logs
-- [ ] External API connectivity verified (Binance, OpenAI)
+- [ ] External API connectivity verified (Binance, xAI/Grok)
 
 ### Performance Verification
 

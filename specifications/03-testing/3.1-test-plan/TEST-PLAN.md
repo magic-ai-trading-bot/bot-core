@@ -50,12 +50,12 @@ The primary objectives of testing the Bot Core trading platform are:
 - **Python AI Service** (`/Users/dungngo97/Documents/bot-core/python-ai-service/`)
   - Machine learning models (LSTM, GRU, Transformer)
   - Technical indicator calculations
-  - GPT-4 integration
+  - Grok/xAI integration
   - Feature engineering
   - Redis caching
   - FastAPI endpoints
 
-- **Next.js Dashboard** (`/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/`)
+- **Frontend Dashboard** (`/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/`)
   - User authentication flows
   - Trading interface components
   - Real-time WebSocket updates
@@ -72,7 +72,7 @@ The primary objectives of testing the Bot Core trading platform are:
 #### Out of Scope:
 - Third-party libraries (assumed tested by vendors)
 - Binance exchange infrastructure
-- OpenAI GPT-4 API internals
+- xAI/Grok API internals
 - Browser-specific rendering (limited to Chrome/Firefox)
 
 ### 1.3 Testing Types
@@ -152,7 +152,7 @@ Based on analysis of existing test files:
 - **Key Test Files**:
   - `test_models.py` - ML model testing
   - `test_technical_analyzer.py` - Technical analysis (11 tests)
-  - `test_gpt_analyzer.py` - GPT-4 integration
+  - `test_gpt_analyzer.py` - Grok/xAI integration
   - `test_technical_indicators.py` - Indicator calculations
   - `test_feature_engineering.py` - Feature engineering
   - `test_redis_cache.py` - Caching mechanism
@@ -161,7 +161,7 @@ Based on analysis of existing test files:
   - `test_security_fixes.py` - Security validations
   - `test_ml_performance.py` - Performance benchmarks
 
-#### Next.js Dashboard
+#### Frontend Dashboard
 - **Unit Test Files**: 25+ files in `/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/__tests__/`
 - **Test Coverage**: 80%+ (target: 80%+) ✅
 - **Key Test Files**:
@@ -344,7 +344,7 @@ def generate_trade_history(user_id, count):
 
 #### Mock Data:
 - **Binance API Responses**: Mock API responses for testing
-- **OpenAI GPT Responses**: Mock GPT-4 responses
+- **Grok/xAI Responses**: Mock Grok responses
 - **WebSocket Messages**: Mock real-time data streams
 
 ### 4.2 Test Data Storage

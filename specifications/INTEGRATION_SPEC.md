@@ -111,7 +111,7 @@ Index: symbol + timestamp (compound)
   timestamp: ISODate("2025-07-31T18:33:29.169Z"),
   technical_indicators: {...},
   metadata: {
-    model_version: "gpt-4o-mini",
+    model_version: "grok-4-1-fast-non-reasoning",
     processing_time_ms: 1234
   }
 }

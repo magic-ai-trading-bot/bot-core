@@ -2,9 +2,9 @@
 
 **Spec ID**: FR-RISK-001
 **Version**: 2.0
-**Status**: ☐ Draft
+**Status**: ☑ Implemented (core risk controls in `rust-core-engine/src/trading/risk_manager.rs` and `paper_trading/engine.rs`)
 **Owner**: Risk Management Team
-**Last Updated**: 2025-11-22
+**Last Updated**: 2026-03-03
 
 ---
 
@@ -83,7 +83,7 @@ Without proper risk management, traders can quickly lose substantial capital thr
 ### FR-RISK-001: Position Risk Limits
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-001`
 
 **Description**:
@@ -125,7 +125,7 @@ The system shall enforce position-level risk limits including maximum concurrent
 ### FR-RISK-002: Stop-Loss Requirements
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-002`
 
 **Description**:
@@ -168,7 +168,7 @@ The system shall enforce mandatory stop-loss requirements on all positions to li
 ### FR-RISK-003: Daily Loss Limits
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-003`
 
 **Description**:
@@ -212,7 +212,7 @@ The system shall enforce a daily loss limit to prevent catastrophic losses from 
 ### FR-RISK-004: Leverage Limits
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-004`
 
 **Description**:
@@ -259,7 +259,7 @@ The system shall enforce leverage limits to control position risk and margin usa
 ### FR-RISK-005: Pre-Trade Risk Checks
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-005`
 
 **Description**:
@@ -310,7 +310,7 @@ The system shall perform comprehensive pre-trade risk validation before every tr
 ### FR-RISK-006: Real-Time Risk Monitoring
 
 **Priority**: ☑ High
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-006`
 
 **Description**:
@@ -362,7 +362,7 @@ The system shall continuously monitor risk metrics in real-time and generate ale
 ### FR-RISK-007: Trailing Stop Loss (Long Positions)
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-007`
 
 **Description**:
@@ -519,7 +519,7 @@ test_persistence_across_restarts() -> assert trailing state restored after resta
 ### FR-RISK-008: Trailing Stop Loss (Short Positions)
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-RISK-008`
 
 **Description**:

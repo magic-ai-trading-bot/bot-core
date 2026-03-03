@@ -665,7 +665,7 @@ python-ai-service:
 
 **Symptoms:**
 - Cannot connect to Binance API
-- Timeout connecting to OpenAI
+- Timeout connecting to xAI API
 - DNS resolution fails for external hosts
 
 **Diagnosis:**

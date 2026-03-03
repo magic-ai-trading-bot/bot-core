@@ -52,7 +52,7 @@ This specification defines all network requirements for the Bot Core trading pla
 ## Business Context
 
 **Problem Statement**:
-The Bot Core platform requires real-time connectivity to cryptocurrency exchanges (Binance), AI services (OpenAI), and internal microservices. Network misconfiguration can cause trading delays (lost opportunities), API rate limiting, security vulnerabilities, and system instability. Clear network requirements ensure secure, low-latency, and reliable operations.
+The Bot Core platform requires real-time connectivity to cryptocurrency exchanges (Binance), AI services (xAI/Grok), and internal microservices. Network misconfiguration can cause trading delays (lost opportunities), API rate limiting, security vulnerabilities, and system instability. Clear network requirements ensure secure, low-latency, and reliable operations.
 
 **Business Goals**:
 - Minimize trading execution latency (< 100ms target)
@@ -82,8 +82,8 @@ The Bot Core platform requires real-time connectivity to cryptocurrency exchange
                                        |
                     +------------------+------------------+
                     |                  |                  |
-            Binance API         OpenAI API          Users (Web)
-         (api.binance.com)   (api.openai.com)      (Browsers)
+            Binance API         xAI API             Users (Web)
+         (api.binance.com)   (api.x.ai)            (Browsers)
                     |                  |                  |
                     |                  |                  |
             +-------+------------------+------------------+-------+
@@ -126,7 +126,7 @@ All TCP/UDP ports used by Bot Core services, both internally and externally. Pro
 
 ### Core Services Ports
 
-**Frontend Dashboard** (Next.js):
+**Frontend Dashboard** (React/Vite):
 - **Port**: 3000
 - **Protocol**: TCP/HTTP
 - **Binding**: `0.0.0.0:3000` (all interfaces)
@@ -319,7 +319,7 @@ done
 **Code Tags**: `@spec:SYS-NETWORK-002`
 
 **Description**:
-Connectivity requirements for external APIs including Binance (production and testnet), OpenAI, and other third-party services. Includes URLs, ports, protocols, authentication, and rate limits.
+Connectivity requirements for external APIs including Binance (production and testnet), xAI/Grok, and other third-party services. Includes URLs, ports, protocols, authentication, and rate limits.
 
 ### Binance API (Production)
 
@@ -403,10 +403,10 @@ base_url = "https://testnet.binance.vision"
 ws_url = "wss://stream.testnet.binance.vision"
 ```
 
-### OpenAI API
+### xAI API (Grok)
 
 **Base URL**:
-- **API Endpoint**: `https://api.openai.com/v1`
+- **API Endpoint**: `https://api.x.ai/v1`
 
 **Ports**:
 - **443** (HTTPS)
@@ -416,33 +416,30 @@ ws_url = "wss://stream.testnet.binance.vision"
 - **TLS**: 1.2+ required
 
 **Authentication**:
-- **Bearer Token**: `Authorization: Bearer {OPENAI_API_KEY}`
-- **API Key**: Obtained from OpenAI dashboard
+- **Bearer Token**: `Authorization: Bearer {XAI_API_KEY}`
+- **API Key**: Obtained from xAI dashboard (console.x.ai)
 
 **Rate Limits** (Tier-dependent):
-- **Free Tier**: 3 requests/minute, 200 requests/day
-- **Pay-as-you-go**: 3,500 requests/minute (GPT-3.5), 10,000 tokens/minute
-- **Tier 1-5**: Higher limits based on usage
+- Depends on subscription tier
+- Default: 60 requests/minute
 
 **API Endpoints Used**:
-- `/v1/chat/completions` - GPT-4 chat for market analysis
-- `/v1/embeddings` - Text embeddings (optional)
+- `/v1/chat/completions` - Grok chat for market analysis (OpenAI-compatible)
 
 **Timeout Configuration**:
 ```python
 # python-ai-service
-OPENAI_API_TIMEOUT = 30  # seconds
-OPENAI_MAX_RETRIES = 3
+XAI_API_TIMEOUT = 30  # seconds
+XAI_MAX_RETRIES = 3
 ```
 
 **Cost Considerations**:
-- GPT-4: $0.03-0.06 per 1K tokens
-- GPT-3.5-turbo: $0.0015-0.002 per 1K tokens
-- Monitor usage with OpenAI dashboard
+- `grok-4-1-fast-non-reasoning`: pricing per token
+- Monitor usage with xAI dashboard
 
 **Configuration** (.env):
 ```bash
-OPENAI_API_KEY=${OPENAI_API_KEY}
+XAI_API_KEY=${XAI_API_KEY}
 ```
 
 ### Network Requirements Summary
@@ -451,7 +448,7 @@ OPENAI_API_KEY=${OPENAI_API_KEY}
 - `api.binance.com:443` (HTTPS)
 - `stream.binance.com:9443` (WSS)
 - `testnet.binance.vision:443` (HTTPS/WSS) - Testnet
-- `api.openai.com:443` (HTTPS)
+- `api.x.ai:443` (HTTPS)
 
 **Firewall Egress Rules**:
 ```bash
@@ -459,8 +456,8 @@ OPENAI_API_KEY=${OPENAI_API_KEY}
 iptables -A OUTPUT -p tcp -d api.binance.com --dport 443 -j ACCEPT
 iptables -A OUTPUT -p tcp -d stream.binance.com --dport 9443 -j ACCEPT
 
-# Allow HTTPS to OpenAI
-iptables -A OUTPUT -p tcp -d api.openai.com --dport 443 -j ACCEPT
+# Allow HTTPS to xAI
+iptables -A OUTPUT -p tcp -d api.x.ai --dport 443 -j ACCEPT
 
 # Allow DNS
 iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
@@ -496,7 +493,7 @@ export NO_PROXY=localhost,127.0.0.1,*.local
 - [x] Firewall rules defined
 - [x] Timeout and retry logic configured
 - [x] Error handling for API failures implemented
-- [x] Cost monitoring enabled (OpenAI)
+- [x] Cost monitoring enabled (xAI)
 
 **Dependencies**: SYS-NETWORK-001 (Ports), SYS-NETWORK-006 (Firewall)
 **Test Cases**: TC-NETWORK-003 (External API Connectivity), TC-NETWORK-004 (Rate Limit Compliance)
@@ -510,13 +507,13 @@ curl -I https://testnet.binance.vision/api/v3/ping
 # Test Binance WebSocket
 wscat -c wss://stream.binance.com:9443/ws/btcusdt@trade
 
-# Test OpenAI API
-curl https://api.openai.com/v1/models \
-  -H "Authorization: Bearer $OPENAI_API_KEY"
+# Test xAI API
+curl https://api.x.ai/v1/models \
+  -H "Authorization: Bearer $XAI_API_KEY"
 
 # Check DNS resolution
 nslookup api.binance.com
-dig api.openai.com
+dig api.x.ai
 ```
 
 **Reference**: `/rust-core-engine/config.toml` lines 4-29, `/python-ai-service/config.yaml`, `/CLAUDE.md`
@@ -775,7 +772,7 @@ Network bandwidth requirements for different deployment scenarios, including dat
 **Bandwidth Breakdown**:
 - **Binance WebSocket** (1 symbol, 1m candles): ~10 KB/s (0.08 Mbps)
 - **Binance REST API** (occasional): ~100 KB per request, 10 requests/min = ~17 KB/s
-- **OpenAI API** (occasional): ~10 KB per request, 1 request/min = ~0.2 KB/s
+- **xAI API** (occasional): ~10 KB per request, 1 request/min = ~0.2 KB/s
 - **Docker image pulls**: 500 MB total (one-time), ~1 Mbps during setup
 - **Git operations**: ~1 MB, occasional
 - **npm/pip/cargo installs**: ~200 MB total (one-time)
@@ -784,7 +781,7 @@ Network bandwidth requirements for different deployment scenarios, including dat
 
 **Latency Tolerance**:
 - **Binance API**: < 500ms acceptable (testnet)
-- **OpenAI API**: < 5s acceptable
+- **xAI API**: < 5s acceptable
 - **Development server**: < 100ms for HMR
 
 ### Production Environment - Small Scale
@@ -807,7 +804,7 @@ Network bandwidth requirements for different deployment scenarios, including dat
   - Account queries: 5 KB per request
   - Historical data: 100 KB per request
   - Estimated: 100 requests/hour = ~0.3 KB/s = 0.002 Mbps
-- **OpenAI API**:
+- **xAI API**:
   - Analysis requests: 10 KB per request
   - Responses: 5 KB per response
   - Estimated: 10 requests/hour = ~0.04 KB/s = 0.0003 Mbps
@@ -835,7 +832,7 @@ Network bandwidth requirements for different deployment scenarios, including dat
 **Bandwidth Breakdown** (50 trading pairs):
 - **Binance WebSocket**: 750 KB/s = 6 Mbps
 - **Binance REST API**: 2 KB/s = 0.016 Mbps
-- **OpenAI API**: 0.5 KB/s = 0.004 Mbps
+- **xAI API**: 0.5 KB/s = 0.004 Mbps
 - **Frontend Users** (100 concurrent): 2 MB/s = 16 Mbps
 - **Monitoring/Logging**: 500 KB/s = 4 Mbps
 - **Database Replication** (optional): 1 MB/s = 8 Mbps
@@ -896,8 +893,8 @@ Network bandwidth requirements for different deployment scenarios, including dat
 - **Historical Candles**: 100 KB per request, 10 requests/hour = 278 bytes/s
 - **Total**: ~0.4 KB/s = 0.003 Mbps (negligible)
 
-**OpenAI API Calls** (per hour):
-- **Chat Completions** (GPT-4): 2 KB request + 8 KB response = 10 KB per call
+**xAI API Calls** (per hour):
+- **Chat Completions** (Grok): 2 KB request + 8 KB response = 10 KB per call
 - **Frequency**: 10 calls/hour (market analysis on-demand)
 - **Total**: ~0.03 KB/s = 0.0002 Mbps (negligible)
 
@@ -1016,11 +1013,11 @@ Total:                    150ms  (target p99)
 | AWS eu-central-1 (Frankfurt) | 15-30ms | < 40ms | Best for Europe |
 | Other regions | 50-200ms | < 100ms | Not ideal for trading |
 
-**OpenAI API**:
+**xAI API**:
 - **Target**: < 2000ms (2 seconds)
 - **Acceptable**: < 5000ms (5 seconds)
 - **Critical**: > 10000ms (timeout)
-- **Note**: OpenAI API is used for analysis, not time-critical
+- **Note**: xAI API is used for analysis, not time-critical
 
 ### Internal Service Latency Targets
 
@@ -1058,7 +1055,7 @@ Total:                    150ms  (target p99)
 2. **External API Latency**
    - Binance REST API response time
    - Binance WebSocket message delay
-   - OpenAI API response time
+   - xAI API response time
 3. **Database Query Time**
    - Average, p50, p95, p99
    - Slow query log (> 100ms)
@@ -1305,8 +1302,8 @@ iptables -A OUTPUT -p tcp -d api.binance.com --dport 443 -j ACCEPT
 # Binance WebSocket (WSS)
 iptables -A OUTPUT -p tcp -d stream.binance.com --dport 9443 -j ACCEPT
 
-# OpenAI API (HTTPS)
-iptables -A OUTPUT -p tcp -d api.openai.com --dport 443 -j ACCEPT
+# xAI API (HTTPS)
+iptables -A OUTPUT -p tcp -d api.x.ai --dport 443 -j ACCEPT
 
 # DNS (UDP/TCP)
 iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
@@ -1331,7 +1328,7 @@ iptables -P OUTPUT DROP
 # Allow only specific destinations (whitelist)
 iptables -A OUTPUT -p tcp -d api.binance.com --dport 443 -j ACCEPT
 iptables -A OUTPUT -p tcp -d stream.binance.com --dport 9443 -j ACCEPT
-iptables -A OUTPUT -p tcp -d api.openai.com --dport 443 -j ACCEPT
+iptables -A OUTPUT -p tcp -d api.x.ai --dport 443 -j ACCEPT
 
 # Allow DNS to specific servers
 iptables -A OUTPUT -p udp -d 8.8.8.8 --dport 53 -j ACCEPT
@@ -1352,7 +1349,7 @@ iptables -A OUTPUT -p udp -d 1.1.1.1 --dport 53 -j ACCEPT
 **Outbound Rules**:
 | Type | Protocol | Port Range | Destination | Description |
 |------|----------|------------|-------------|-------------|
-| HTTPS | TCP | 443 | 0.0.0.0/0 | Binance, OpenAI APIs |
+| HTTPS | TCP | 443 | 0.0.0.0/0 | Binance, xAI APIs |
 | Custom TCP | TCP | 9443 | 0.0.0.0/0 | Binance WebSocket |
 | All traffic | All | All | sg-xxxxxx | Internal services |
 
@@ -1601,7 +1598,7 @@ sudo certbot renew --dry-run
 - **Frontend ↔ User**: HTTPS (TLS 1.3)
 - **API ↔ Client**: HTTPS (TLS 1.3)
 - **Rust ↔ Binance API**: HTTPS (TLS 1.2+) - Binance requirement
-- **Python ↔ OpenAI**: HTTPS (TLS 1.2+) - OpenAI requirement
+- **Python ↔ xAI**: HTTPS (TLS 1.2+) - xAI requirement
 - **WebSocket ↔ Binance**: WSS (TLS 1.2+)
 
 **Internal Communications** (Docker Network):
@@ -1705,7 +1702,7 @@ fn sign_binance_request(query_string: &str, secret_key: &str) -> String {
 ```
 DMZ → Application: Allow HTTP/HTTPS to specific services
 Application → Data: Allow database protocols (MongoDB, Redis)
-Application → External: Allow HTTPS to Binance, OpenAI
+Application → External: Allow HTTPS to Binance, xAI
 Management → All: Allow metrics scraping (Prometheus)
 External → DMZ: Allow HTTP/HTTPS only
 External → Application: DENY
@@ -1747,7 +1744,7 @@ services:
 # API Keys (sensitive)
 BINANCE_API_KEY=your_api_key_here
 BINANCE_SECRET_KEY=your_secret_key_here
-OPENAI_API_KEY=your_openai_key_here
+XAI_API_KEY=your_xai_key_here
 
 # Inter-service tokens (generate with: openssl rand -hex 32)
 INTER_SERVICE_TOKEN=64_character_hex_string
@@ -1899,7 +1896,7 @@ curl -H "X-API-Key: invalid_key" http://localhost:8080/api/health
                               ┌──────────────┴──────────────┐
                               │                             │
                      ┌────────▼────────┐         ┌─────────▼────────┐
-                     │  Binance API    │         │   OpenAI API     │
+                     │  Binance API    │         │   xAI API        │
                      │  (HTTPS/WSS)    │         │    (HTTPS)       │
                      └─────────────────┘         └──────────────────┘
                               │                             │
@@ -1962,7 +1959,7 @@ curl -H "X-API-Key: invalid_key" http://localhost:8080/api/health
 | Grafana | HTTP | 3001 | External (admin) | TLS (via proxy) | Username/Password |
 | Binance API | HTTPS | 443 | Outbound | TLS 1.2+ | API Key + HMAC |
 | Binance WebSocket | WSS | 9443 | Outbound | TLS 1.2+ | API Key |
-| OpenAI API | HTTPS | 443 | Outbound | TLS 1.2+ | Bearer Token |
+| xAI API | HTTPS | 443 | Outbound | TLS 1.2+ | Bearer Token |
 
 ---
 

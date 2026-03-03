@@ -68,7 +68,7 @@ Feature: Complete Trading Workflow
     Then Rust engine requests analysis from Python AI service
     And Python calculates technical indicators (RSI, MACD, Bollinger)
     And Python runs ML models (LSTM, GRU, Transformer)
-    And Python queries GPT-4 for intelligent analysis
+    And Python queries Grok/xAI for intelligent analysis
     And AI returns signal: "Long" with confidence: 0.78
     And reasoning: "Strong bullish momentum: RSI oversold (28), MACD golden cross, price bounced off lower Bollinger Band"
     And I should see AI recommendation on screen
@@ -184,7 +184,7 @@ Feature: AI-Driven Automated Trading
       - GRU predicts: 51300
       - Transformer predicts: 51400
       - Ensemble: 51400
-    And Python queries GPT-4:
+    And Python queries Grok/xAI:
       ```
       Prompt: "Analyze BTC/USDT with RSI=32, MACD=-150 (bullish cross), price=50000 at lower Bollinger. Predict signal."
       Response: {"signal": "Long", "confidence": 0.78, "reasoning": "Strong buy opportunity: oversold RSI, MACD golden cross, price bounce off support"}

@@ -110,7 +110,7 @@ graph TD
 
 ## 3. Service Configurations
 
-### 3.1 Frontend Service (Next.js Dashboard)
+### 3.1 Frontend Service (React/Vite Dashboard)
 
 #### Production Configuration
 
@@ -364,7 +364,7 @@ python-ai-service:
     - LOG_LEVEL=${LOG_LEVEL:-INFO}
     - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:?Error: INTER_SERVICE_TOKEN not set}
     - PYTHON_API_KEY=${PYTHON_API_KEY:?Error: PYTHON_API_KEY not set}
-    - OPENAI_API_KEY=${OPENAI_API_KEY}
+    - XAI_API_KEY=${XAI_API_KEY}
     - DATABASE_URL=${DATABASE_URL:?Error: DATABASE_URL not set}
   volumes:
     - ./python-ai-service/models:/app/models
@@ -418,7 +418,7 @@ python-ai-service-dev:
     - LOG_LEVEL=DEBUG
     - FLASK_ENV=development
     - ENABLE_HOT_RELOAD=true
-    - OPENAI_API_KEY=${OPENAI_API_KEY}
+    - XAI_API_KEY=${XAI_API_KEY}
     - DATABASE_URL=${DATABASE_URL}
   volumes:
     - ./python-ai-service:/app
@@ -1246,7 +1246,7 @@ environment:
   - DATABASE_URL=${DATABASE_URL:?Error: DATABASE_URL not set}
 
   # Optional secrets
-  - OPENAI_API_KEY=${OPENAI_API_KEY}
+  - XAI_API_KEY=${XAI_API_KEY}
 ```
 
 **Generate secrets:**

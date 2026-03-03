@@ -21,7 +21,7 @@ This document contains error handling test scenarios that verify the system prop
 | TS-ERROR-002 | Binance API Failure | Critical | ✅ |
 | TS-ERROR-003 | Database Write Failure | Critical | ✅ |
 | TS-ERROR-004 | WebSocket Disconnection | High | ✅ |
-| TS-ERROR-005 | OpenAI API Rate Limit | High | ✅ |
+| TS-ERROR-005 | xAI API Rate Limit | High | ✅ |
 | TS-ERROR-006 | Insufficient Balance Error | Critical | ✅ |
 | TS-ERROR-007 | Risk Limit Exceeded | Critical | ✅ |
 | TS-ERROR-008 | Invalid Order Parameters | High | ✅ |
@@ -179,28 +179,28 @@ Feature: WebSocket Disconnection Handling
 
 ---
 
-## TS-ERROR-005: OpenAI API Rate Limit
+## TS-ERROR-005: xAI API Rate Limit
 
 ### Gherkin Scenario
 
 ```gherkin
-Feature: OpenAI Rate Limit Handling
+Feature: xAI Rate Limit Handling
   As the AI service
-  I want to handle OpenAI rate limits
+  I want to handle xAI rate limits
   So that analysis continues despite limits
 
-  Scenario: Hit OpenAI rate limit (429 error)
-    Given I make 61 GPT-4 requests in 1 minute
+  Scenario: Hit xAI rate limit (429 error)
+    Given I make 61 Grok requests in 1 minute
     When request #61 returns 429 Too Many Requests
     Then Python should:
       1. Check Redis cache for recent analysis (<5 min old)
       2. If cache hit, return cached result
       3. If cache miss, fall back to technical analysis only
       4. Log rate limit event
-      5. Implement backoff before next GPT-4 call
+      5. Implement backoff before next Grok call
 
-  Scenario: OpenAI quota exceeded
-    Given monthly OpenAI quota is exhausted
+  Scenario: xAI quota exceeded
+    Given monthly xAI quota is exhausted
     When AI analysis is requested
     Then system should:
       - Permanently fall back to technical analysis
@@ -335,8 +335,8 @@ Feature: Invalid JSON Handling
   I want to handle malformed responses
   So that parsing errors don't crash system
 
-  Scenario: GPT-4 returns non-JSON text
-    Given GPT-4 returns: "I think the market will go up"
+  Scenario: Grok returns non-JSON text
+    Given Grok returns: "I think the market will go up"
     Instead of: {"signal": "Long", "confidence": 0.75}
     When Python parses response
     Then JSON parsing should fail

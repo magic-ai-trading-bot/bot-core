@@ -232,13 +232,13 @@ As the **AI service**, I want to **continuously generate trading signals based o
   - Prepares feature vector for ML model
   - Runs prediction through selected model (LSTM/GRU/Transformer)
   - Gets model probability output [0.0-1.0]
-- [ ] If GPT-4 integration is enabled
+- [ ] If Grok/xAI integration is enabled
 - [ ] Then the system also:
-  - Formats market context for GPT-4
-  - Calls OpenAI API (with rate limiting)
-  - Parses GPT-4 response for signal, confidence, reasoning
+  - Formats market context for Grok/xAI
+  - Calls xAI API (with rate limiting)
+  - Parses Grok response for signal, confidence, reasoning
   - Validates response format
-- [ ] When both ML model and GPT-4 provide signals
+- [ ] When both ML model and Grok/xAI provide signals
 - [ ] Then the system combines predictions (weighted average or override)
 - [ ] And creates TradingSignal object with:
   - Signal type (Long/Short/Neutral)
@@ -835,8 +835,8 @@ As the **database layer**, I want to **manage connection pooling efficiently** s
    - System calculates technical indicators (RSI, MACD, BB, etc.)
    - System prepares feature matrix for ML model
    - LSTM model predicts: probability 0.73
-   - System calls GPT-4 for analysis
-   - GPT-4 returns: Signal=Long, Confidence=0.78
+   - System calls Grok/xAI for analysis
+   - Grok returns: Signal=Long, Confidence=0.78
    - System combines predictions: Final confidence=0.76
    - System creates TradingSignal object
    - System caches signal in MongoDB
@@ -884,7 +884,7 @@ As the **database layer**, I want to **manage connection pooling efficiently** s
 **Alternative Flows**:
 - **Alt 1 - Stop-Loss Triggered**: Price drops to $49,000, position closed with -$50 loss
 - **Alt 2 - Risk Validation Fails**: Maximum positions reached, trade is rejected
-- **Alt 3 - GPT-4 Unavailable**: System falls back to technical analysis only
+- **Alt 3 - Grok/xAI Unavailable**: System falls back to technical analysis only
 
 **Postconditions**:
 - Trade completed successfully

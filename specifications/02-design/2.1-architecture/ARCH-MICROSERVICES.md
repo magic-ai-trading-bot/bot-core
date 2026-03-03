@@ -179,29 +179,39 @@ graph TB
 // @spec:ARCH-MICROSERVICES-001
 // src/auth/handlers.rs
 
-pub async fn login(
-    credentials: Json<LoginRequest>,
-    storage: web::Data<Storage>,
-) -> Result<Json<LoginResponse>, ApiError> {
-    // 1. Validate credentials
-    let user = storage
-        .get_user_by_username(&credentials.username)
-        .await?
-        .ok_or(ApiError::InvalidCredentials)?;
+async fn handle_login(
+    request: LoginRequest,
+    auth_service: AuthService,
+) -> Result<impl Reply, Infallible> {
+    // 1. Look up user by email
+    let user = match auth_service.user_repo.find_by_email(&request.email).await {
+        Ok(Some(u)) => u,
+        _ => return Ok(warp::reply::with_status(
+            warp::reply::json(&json!({ "success": false, "error": "Invalid credentials" })),
+            warp::http::StatusCode::UNAUTHORIZED,
+        )),
+    };
 
     // 2. Verify password (BCrypt)
-    if !bcrypt::verify(&credentials.password, &user.password_hash)? {
-        return Err(ApiError::InvalidCredentials);
+    if !PasswordService::verify_password(&request.password, &user.password_hash)
+        .unwrap_or(false)
+    {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&json!({ "success": false, "error": "Invalid credentials" })),
+            warp::http::StatusCode::UNAUTHORIZED,
+        ));
     }
 
-    // 3. Generate JWT token (24-hour expiry)
-    let token = generate_jwt(&user.id, &user.username, 86400)?;
+    // 3. Generate JWT token (HS256, 7-day expiry)
+    let token = auth_service.jwt_service.generate_token(
+        &user.id.to_hex(), &user.email, user.is_admin,
+    ).unwrap();
 
     // 4. Return token and user profile
-    Ok(Json(LoginResponse {
-        token,
-        user: user.into(),
-    }))
+    Ok(warp::reply::with_status(
+        warp::reply::json(&json!({ "success": true, "data": LoginResponse { token, user: user.to_profile() } })),
+        warp::http::StatusCode::OK,
+    ))
 }
 ```
 
@@ -682,8 +692,7 @@ cache_ttl_seconds = 60
 
 **Rust Crates** (from `Cargo.toml`):
 - `tokio = "1.0"` - Async runtime
-- `actix-web = "4.0"` - Web framework (dev only, not used in main)
-- `warp = "0.3"` - WebSocket server
+- `warp = "0.3"` - Web framework (HTTP + WebSocket server)
 - `serde = "1.0"` - Serialization
 - `serde_json = "1.0"` - JSON support
 - `reqwest = "0.11"` - HTTP client
@@ -735,7 +744,7 @@ cache_ttl_seconds = 60
 
 ### Description
 
-The Python AI Service provides machine learning-powered trading signal generation, technical analysis, and OpenAI GPT-4 integration for intelligent market analysis.
+The Python AI Service provides machine learning-powered trading signal generation, technical analysis, and Grok/xAI integration for intelligent market analysis.
 
 ### Service Architecture Diagram
 
@@ -766,7 +775,7 @@ graph TB
         end
 
         subgraph "Integration Layer"
-            OPENAI_CLIENT[OpenAI Client<br/>Direct HTTP Client]
+            GROK_CLIENT[Grok Client<br/>xAI via OpenAI-compatible SDK]
             MONGO_CLIENT[MongoDB Client<br/>Motor Async Driver]
             WS_MANAGER[WebSocket Manager<br/>Connection Manager]
         end
@@ -781,7 +790,7 @@ graph TB
     subgraph "External Dependencies"
         RUST_CORE[Rust Core Engine]
         MONGODB[(MongoDB Atlas)]
-        OPENAI_API[OpenAI GPT-4 API]
+        XAI_API[xAI Grok API<br/>(api.x.ai/v1)]
         FRONTEND[Frontend Clients]
     end
 
@@ -795,7 +804,7 @@ graph TB
     API_FEEDBACK --> MONGO_CLIENT
 
     GPT_ANALYZER --> TECHNICAL_ANALYZER
-    GPT_ANALYZER --> OPENAI_CLIENT
+    GPT_ANALYZER --> GROK_CLIENT
     GPT_ANALYZER --> CACHE_MGR
 
     MARKET_ANALYZER --> TECHNICAL_ANALYZER
@@ -807,7 +816,7 @@ graph TB
     MODEL_MGR --> GRU
     MODEL_MGR --> TRANSFORMER
 
-    OPENAI_CLIENT --> OPENAI_API
+    GROK_CLIENT --> XAI_API
     GPT_ANALYZER --> MONGO_CLIENT
     MONGO_CLIENT --> MONGODB
 
@@ -820,23 +829,23 @@ graph TB
 
     style API_ANALYZE fill:#4AE290
     style GPT_ANALYZER fill:#5BC0DE
-    style OPENAI_CLIENT fill:#E74C3C
+    style GROK_CLIENT fill:#E74C3C
     style MONGODB fill:#F0AD4E
 ```
 
 ### Core Components
 
-#### 1. GPT Trading Analyzer
+#### 1. Grok Trading Analyzer
 
-**Purpose**: Main AI analysis logic using GPT-4
+**Purpose**: Main AI analysis logic using Grok/xAI
 
 **Key Functionality**:
 ```python
 # @spec:ARCH-MICROSERVICES-002
 # main.py:1071-1534
 
-class GPTTradingAnalyzer:
-    """GPT-4 powered trading analysis."""
+class GrokTradingAnalyzer:
+    """Grok/xAI powered trading analysis."""
 
     def __init__(self, client):
         self.client = client
@@ -845,7 +854,7 @@ class GPTTradingAnalyzer:
         self,
         request: AIAnalysisRequest
     ) -> AISignalResponse:
-        """Analyze trading signals using GPT-4 or fallback."""
+        """Analyze trading signals using Grok or fallback."""
 
         # 1. Convert to DataFrames
         dataframes = TechnicalAnalyzer.candles_to_dataframe(
@@ -882,17 +891,17 @@ class GPTTradingAnalyzer:
         )
 ```
 
-**GPT-4 Integration**:
+**Grok Integration**:
 ```python
 # main.py:1144-1210
 
-async def _gpt_analysis(
+async def _grok_analysis(
     self,
     request: AIAnalysisRequest,
     indicators_1h: Dict,
     indicators_4h: Dict
 ) -> Dict[str, Any]:
-    """GPT-4 powered analysis."""
+    """Grok/xAI powered analysis (OpenAI-compatible SDK, base_url: api.x.ai/v1)."""
 
     # 1. Prepare market context
     market_context = self._prepare_market_context(
@@ -905,9 +914,9 @@ async def _gpt_analysis(
         request.strategy_context
     )
 
-    # 3. Call GPT-4
+    # 3. Call Grok (model configured via AI_MODEL env var)
     response = await self.client.chat_completions_create(
-        model="gpt-4o-mini",
+        model=os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning"),
         messages=[
             {"role": "system", "content": self._get_system_prompt()},
             {"role": "user", "content": prompt}
@@ -918,7 +927,7 @@ async def _gpt_analysis(
 
     # 4. Parse response
     response_content = response["choices"][0]["message"]["content"]
-    parsed_result = self._parse_gpt_response(response_content)
+    parsed_result = self._parse_grok_response(response_content)
 
     return parsed_result
 ```
@@ -933,11 +942,11 @@ def _fallback_analysis(
     indicators_1h: Dict,
     indicators_4h: Dict
 ) -> Dict[str, Any]:
-    """Fallback technical analysis when GPT-4 unavailable."""
+    """Fallback technical analysis when Grok unavailable."""
 
     signal = "Long"  # Default
     confidence = 0.65
-    reasoning = "Technical analysis (GPT-4 unavailable): "
+    reasoning = "Technical analysis (Grok unavailable): "
     signals = []
 
     # RSI Analysis
@@ -1226,7 +1235,7 @@ class DirectOpenAIClient:
     def __init__(self, api_keys: list):
         self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
         self.current_key_index = 0
-        self.base_url = "https://api.openai.com/v1"
+        self.base_url = "https://api.x.ai/v1"
         self.rate_limited_keys = set()
 
     async def chat_completions_create(
@@ -1393,7 +1402,7 @@ async def periodic_analysis_runner():
                 analysis_request = await generate_dummy_market_data(symbol)
 
                 # Run AI analysis
-                analyzer = GPTTradingAnalyzer(openai_client)
+                analyzer = GrokTradingAnalyzer(grok_client)
                 analysis_result = await analyzer.analyze_trading_signals(
                     analysis_request
                 )
@@ -1438,7 +1447,7 @@ async def analyze_trading_signals(
     request: AIAnalysisRequest,
     http_request: Request
 ):
-    """Analyze trading signals using GPT-4 AI with MongoDB storage."""
+    """Analyze trading signals using Grok/xAI with MongoDB storage."""
 
     # 1. Check cache (MongoDB)
     latest_analysis = await get_latest_analysis(request.symbol)
@@ -1448,7 +1457,7 @@ async def analyze_trading_signals(
         return create_response_from_cache(latest_analysis)
 
     # 3. Perform fresh AI analysis
-    analyzer = GPTTradingAnalyzer(openai_client)
+    analyzer = GrokTradingAnalyzer(grok_client)
     response = await analyzer.analyze_trading_signals(request)
 
     # 4. Store in MongoDB
@@ -1484,13 +1493,14 @@ async def analyze_trading_signals(
 # @spec:ARCH-MICROSERVICES-002
 
 service:
-  name: "GPT-4 Trading AI Service"
+  name: "Grok Trading AI Service"
   version: "2.0.0"
   port: 8000
   host: "0.0.0.0"
 
-openai:
-  model: "gpt-4o-mini"
+xai:
+  model: "grok-4-1-fast-non-reasoning"
+  base_url: "https://api.x.ai/v1"
   timeout: 30
   max_retries: 3
   rate_limit_delay: 20  # seconds
@@ -1519,7 +1529,7 @@ rate_limiting:
 - `uvicorn==0.34.0` - ASGI server
 - `tensorflow==2.18.0` - Deep learning
 - `torch==2.5.1` - PyTorch
-- `openai==1.59.5` - OpenAI SDK (not used, using direct HTTP)
+- `openai==1.59.5` - OpenAI-compatible SDK (used with xAI Grok, base_url: api.x.ai/v1)
 - `motor==3.6.0` - Async MongoDB driver
 - `pandas==2.2.3` - Data analysis
 - `numpy==2.1.3` - Numerical computing
@@ -1531,22 +1541,22 @@ rate_limiting:
 
 | Metric | Target | Actual | Notes |
 |--------|--------|--------|-------|
-| Analysis Latency (GPT-4) | < 2s | ~1-1.5s | Depends on OpenAI API |
+| Analysis Latency (Grok) | < 2s | ~1-1.5s | Depends on xAI API |
 | Analysis Latency (Fallback) | < 100ms | ~50ms | Technical analysis only |
 | Cache Hit Ratio | > 70% | ~80% | 5-minute TTL |
 | Memory Usage | < 1.5GB | ~1.2GB | With loaded models |
 | CPU Usage | < 50% | ~40% | During analysis |
-| OpenAI API Success Rate | > 95% | ~98% | With fallback keys |
+| Grok API Success Rate | > 95% | ~98% | With fallback keys |
 
 ### Acceptance Criteria
 
-- [x] GPT-4 integration works correctly
+- [x] Grok/xAI integration works correctly
 - [x] Fallback technical analysis is accurate
 - [x] MongoDB caching reduces API calls
 - [x] WebSocket broadcasting works
 - [x] ML models are loaded correctly (LSTM, GRU, Transformer)
 - [x] Rate limiting protects against abuse
-- [x] Multiple OpenAI API keys with automatic fallback
+- [x] Multiple xAI API keys with automatic fallback
 - [x] Periodic analysis runs in background
 
 ### Dependencies
@@ -1554,7 +1564,7 @@ rate_limiting:
 - Related: [DATA_MODELS.md](../../DATA_MODELS.md)
 
 ### Test Cases
-- TC-PYTHON-001: Test GPT-4 analysis
+- TC-PYTHON-001: Test Grok/xAI analysis
 - TC-PYTHON-002: Test fallback analysis
 - TC-PYTHON-003: Test caching mechanism
 - TC-PYTHON-004: Test WebSocket broadcasting
@@ -2311,7 +2321,7 @@ sequenceDiagram
         Python-->>Rust: Cached Result
     else Cache Miss
         Python->>Python: Calculate Indicators
-        Python->>Python: GPT-4 Analysis
+        Python->>Python: Grok Analysis
         Python->>MongoDB: Store Result
         Python-->>Rust: Fresh Analysis
     end

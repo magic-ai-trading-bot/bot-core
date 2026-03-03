@@ -215,7 +215,7 @@ npm run build
 
 ```
 bot-core/
-├── rust-core-engine/      # Trading engine (Rust/Actix-web)
+├── rust-core-engine/      # Trading engine (Rust/Warp)
 │   ├── src/               # Source code
 │   ├── tests/             # Integration tests
 │   └── benches/           # Performance benchmarks

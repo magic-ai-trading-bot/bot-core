@@ -2021,8 +2021,8 @@ OPENAI_RATE_LIMIT_RESET_TIME = None  # tracked dynamically
 
 **Environment Variables:**
 ```bash
-OPENAI_API_KEY=sk-primary-key-here
-OPENAI_BACKUP_API_KEYS=sk-backup-1,sk-backup-2,sk-backup-3
+XAI_API_KEY=xai-primary-key-here
+XAI_BACKUP_API_KEYS=xai-backup-1,xai-backup-2,xai-backup-3
 ```
 
 **Automatic Fallback:**

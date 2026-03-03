@@ -267,11 +267,11 @@ This document defines the business logic and rules that govern the cryptocurrenc
 ### 10. AI-Specific Rules
 
 #### 10.1 Model Selection
-- **Primary Model**: GPT-4 for analysis
-- **Fallback Models**: GPT-3.5 if rate limited
+- **Primary Model**: Grok/xAI (grok-4-1-fast-non-reasoning) for analysis
+- **Fallback Models**: Technical analysis if rate limited
 - **Confidence Adjustment**:
   ```
-  IF model == "gpt-3.5" THEN
+  IF model == "technical_analysis" THEN
     confidence = confidence * 0.9
   ```
 

@@ -20,7 +20,7 @@ cd bot-core
 cp .env.example .env
 ./scripts/generate-secrets.sh
 nano .env
-# Required: BINANCE_API_KEY, BINANCE_SECRET_KEY, OPENAI_API_KEY
+# Required: BINANCE_API_KEY, BINANCE_SECRET_KEY, XAI_API_KEY
 # Set: BINANCE_TESTNET=true, TRADING_ENABLED=false
 ```
 

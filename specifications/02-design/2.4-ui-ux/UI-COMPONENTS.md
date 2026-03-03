@@ -2104,7 +2104,7 @@ interface ChatbotResponse {
 ```
 
 **Features**:
-- OpenAI GPT-3.5 integration (if API key available)
+- Grok/xAI integration via Python AI service (if API key available)
 - Rule-based fallback for common questions
 - Vietnamese language support
 - Chat history management
@@ -2119,18 +2119,16 @@ const RULE_BASED_RESPONSES = {
 };
 ```
 
-**OpenAI Integration**:
+**AI Integration** (via Python AI Service):
 ```typescript
-const response = await openai.chat.completions.create({
-  model: "gpt-3.5-turbo",
-  messages: [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...chatHistory,
-    { role: "user", content: userMessage }
-  ],
-  temperature: 0.7,
-  max_tokens: 500
+// Frontend calls Python AI service which uses Grok/xAI internally
+const response = await apiClient.post('/analyze', {
+  symbol: currentSymbol,
+  message: userMessage,
+  chat_history: chatHistory,
 });
+// Python AI service (main.py) uses grok_client with model: grok-4-1-fast-non-reasoning
+// via OpenAI-compatible SDK (base_url: api.x.ai/v1)
 ```
 
 ---

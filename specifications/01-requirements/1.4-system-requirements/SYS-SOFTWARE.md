@@ -76,7 +76,7 @@ The Bot Core platform is a complex polyglot microservices system using Rust, Pyt
 ### Programming Languages and Runtimes
 
 1. **Rust** - Core trading engine (high-performance, low-latency)
-2. **Python** - AI/ML service (TensorFlow, PyTorch, OpenAI)
+2. **Python** - AI/ML service (TensorFlow, PyTorch, xAI/Grok)
 3. **TypeScript/JavaScript** - Frontend dashboard (React, Vite)
 4. **Shell** - Infrastructure scripts (Bash)
 
@@ -365,8 +365,8 @@ cargo --version  # cargo 1.86.0 or later
 **Testing**:
 - **tokio-test** = `0.4`
   - Purpose: Testing utilities for async code
-- **actix-web** = `4.0` (features: `["macros"]`)
-  - Purpose: Testing HTTP endpoints
+- **warp** = `0.3`
+  - Purpose: HTTP server and WebSocket framework
 - **tempfile** = `3.8`
   - Purpose: Temporary file handling in tests
 
@@ -564,7 +564,7 @@ python3 --version  # Python 3.11.0 or later
 
 **AI Integration**:
 - **openai** == `1.51.0`
-  - Purpose: OpenAI API client (GPT-4, embeddings)
+  - Purpose: OpenAI-compatible SDK client (used with xAI/Grok API via `base_url=https://api.x.ai/v1`)
   - Critical: AI-powered market analysis
   - License: MIT
 
@@ -727,7 +727,7 @@ pip check
 **Code Tags**: `@spec:SYS-SOFTWARE-004`
 
 **Description**:
-Node.js runtime, npm/yarn/bun, and all frontend dependencies for the Next.js (Vite) dashboard including React, TypeScript, and UI libraries.
+Node.js runtime, npm/yarn/bun, and all frontend dependencies for the React/Vite dashboard including React, TypeScript, and UI libraries.
 
 ### Node.js Runtime
 

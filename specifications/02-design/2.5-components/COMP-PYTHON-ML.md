@@ -12,11 +12,11 @@
 1. [Component Overview](#1-component-overview)
 2. [Module Structure](#2-module-structure)
 3. [ML Models](#3-ml-models)
-4. [GPT-4 Integration](#4-gpt-4-integration)
+4. [Grok/xAI Integration](#4-grokxai-integration)
 5. [Feature Engineering](#5-feature-engineering)
 6. [Model Training Pipeline](#6-model-training-pipeline)
 7. [Async Tasks Component](#7-async-tasks-component)
-8. [GPT-4 Self-Analysis Component](#8-gpt-4-self-analysis-component)
+8. [Grok Self-Analysis Component](#8-grok-self-analysis-component)
 9. [Monitoring Tasks Component](#9-monitoring-tasks-component)
 10. [Performance & Optimization](#10-performance--optimization)
 
@@ -26,7 +26,7 @@
 
 ### 1.1 Purpose
 
-The Python ML/AI Component provides machine learning price predictions, market sentiment analysis, and GPT-4-powered intelligent decision-making for the trading bot. It includes async task processing for long-running operations like model training, backtesting, and automated monitoring.
+The Python ML/AI Component provides machine learning price predictions, market sentiment analysis, and Grok/xAI-powered intelligent decision-making for the trading bot. It includes async task processing for long-running operations like model training, backtesting, and automated monitoring.
 
 ### 1.2 Technology Stack
 
@@ -36,7 +36,7 @@ The Python ML/AI Component provides machine learning price predictions, market s
 | FastAPI | ^0.115.0 | REST API framework |
 | TensorFlow | ^2.15.0 | Deep learning (LSTM, GRU) |
 | PyTorch | ^2.1.0 | Transformers |
-| OpenAI | ^1.6.1 | GPT-4 API integration |
+| OpenAI (SDK) | ^1.50.0 | OpenAI-compatible SDK for xAI Grok (base_url: api.x.ai/v1) |
 | Celery | ^5.3.0 | Async task queue |
 | RabbitMQ | ^3.12 | Message broker |
 | Redis | ^7.2 | Result backend |
@@ -46,7 +46,7 @@ The Python ML/AI Component provides machine learning price predictions, market s
 ### 1.3 Dependencies
 
 **External Services:**
-- OpenAI API (api.openai.com) - GPT-4 analysis
+- xAI API (api.x.ai/v1) - Grok analysis via OpenAI-compatible SDK
 - Binance API (api.binance.com) - Market data
 - MongoDB (port 27017) - Training data storage
 - RabbitMQ (port 5672) - Task broker
@@ -60,12 +60,12 @@ The Python ML/AI Component provides machine learning price predictions, market s
 ### 1.4 Key Features
 
 - **ML Price Predictions:** LSTM, GRU, Transformer ensemble (72% accuracy)
-- **GPT-4 Market Analysis:** Deep fundamental analysis
+- **Grok/xAI Market Analysis:** Deep fundamental analysis via Grok model
 - **Sentiment Analysis:** News and social media sentiment
 - **Async Task Processing:** Background training, backtesting, bulk analysis
 - **Intelligent Monitoring:** System health, cost tracking, performance analysis
-- **Adaptive Retraining:** GPT-4-powered decision-making for when to retrain models
-- **Cost Tracking:** Real-time OpenAI API cost monitoring
+- **Adaptive Retraining:** Grok-powered decision-making for when to retrain models
+- **Cost Tracking:** Real-time xAI API cost monitoring
 
 ---
 
@@ -89,7 +89,7 @@ python-ai-service/
 │   ├── ml_tasks.py                 # ML training tasks (300+ lines)
 │   ├── backtest_tasks.py           # Backtesting tasks (250+ lines)
 │   ├── monitoring.py               # System monitoring (558 lines)
-│   └── ai_improvement.py           # GPT-4 self-analysis (537 lines)
+│   └── ai_improvement.py           # Grok self-analysis (537 lines)
 ├── features/
 │   ├── __init__.py
 │   ├── technical_indicators.py     # RSI, MACD, Bollinger, etc.
@@ -98,7 +98,7 @@ python-ai-service/
 │   ├── logger.py                   # Logging utilities
 │   ├── data_storage.py             # MongoDB operations
 │   ├── notifications.py            # Alert system
-│   └── cost_tracker.py             # OpenAI API cost tracking
+│   └── cost_tracker.py             # xAI API cost tracking
 └── tests/
     ├── test_models.py              # Model unit tests
     ├── test_tasks.py               # Task unit tests
@@ -112,7 +112,7 @@ python-ai-service/
 ```mermaid
 graph TB
     A[FastAPI App] --> B[Model Manager]
-    A --> C[GPT-4 Client]
+    A --> C[Grok Client]
     A --> D[Feature Engineering]
     A --> E[Celery Tasks]
 
@@ -131,14 +131,14 @@ graph TB
     K --> P[Daily Cost Report]
     K --> Q[Performance Analysis]
 
-    L --> R[GPT-4 Self-Analysis]
+    L --> R[Grok Self-Analysis]
     L --> S[Adaptive Retrain]
     L --> T[Emergency Strategy Disable]
 
     E --> U[RabbitMQ Broker]
     E --> V[Redis Backend]
 
-    C --> W[OpenAI API]
+    C --> W[xAI API (api.x.ai)]
     D --> X[Technical Indicators]
 
     style A fill:#e1f5ff
@@ -414,24 +414,31 @@ class EnsembleModel:
 
 ---
 
-## 4. GPT-4 Integration
+## 4. Grok/xAI Integration
 
 ### 4.1 Overview
 
-**Purpose:** Deep market analysis using GPT-4's reasoning capabilities
+**Purpose:** Deep market analysis using Grok's reasoning capabilities
 
-**Location:** `main.py:150-250`
+**Location:** `main.py` (GrokTradingAnalyzer class)
+
+**Key config**: `AI_BASE_URL=https://api.x.ai/v1`, `AI_MODEL=grok-4-1-fast-non-reasoning`
 
 ### 4.2 Implementation
 
 ```python
-import openai
+from openai import AsyncOpenAI  # OpenAI-compatible SDK
 from typing import Dict, Any
+import os
 
-class GPT4MarketAnalyzer:
-    def __init__(self, api_key: str):
-        openai.api_key = api_key
-        self.model = "gpt-4-turbo-preview"
+class GrokMarketAnalyzer:
+    def __init__(self, api_keys: list):
+        # Uses OpenAI-compatible SDK with xAI base URL
+        self.client = AsyncOpenAI(
+            api_key=api_keys[0],
+            base_url=os.getenv("AI_BASE_URL", "https://api.x.ai/v1"),
+        )
+        self.model = os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning")
         self.cost_tracker = CostTracker()
 
     async def analyze_market(
@@ -441,7 +448,7 @@ class GPT4MarketAnalyzer:
         news_sentiment: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
-        Analyze market conditions using GPT-4
+        Analyze market conditions using Grok
 
         Args:
             symbol: Trading pair (e.g., "BTCUSDT")
@@ -455,8 +462,8 @@ class GPT4MarketAnalyzer:
         # Build context prompt
         prompt = self._build_analysis_prompt(symbol, technical_data, news_sentiment)
 
-        # Call GPT-4
-        response = await openai.ChatCompletion.acreate(
+        # Call Grok via OpenAI-compatible SDK
+        response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
                 {
@@ -472,12 +479,12 @@ class GPT4MarketAnalyzer:
             max_tokens=1000,
         )
 
-        # Track costs
-        usage = response["usage"]
+        # Track costs (xAI Grok 4.1 Fast: $0.200/1M input, $0.500/1M output)
+        usage = response.usage
         cost_usd = self.cost_tracker.calculate_cost(
             model=self.model,
-            input_tokens=usage["prompt_tokens"],
-            output_tokens=usage["completion_tokens"],
+            input_tokens=usage.prompt_tokens,
+            output_tokens=usage.completion_tokens,
         )
 
         # Parse response
@@ -490,7 +497,7 @@ class GPT4MarketAnalyzer:
             "confidence": self._extract_confidence(analysis_text),
             "key_factors": self._extract_key_factors(analysis_text),
             "cost_usd": cost_usd,
-            "tokens_used": usage["total_tokens"],
+            "tokens_used": usage.total_tokens,
         }
 
     def _get_system_prompt(self) -> str:
@@ -543,17 +550,13 @@ Provide trading recommendation with reasoning.
 
 ```python
 class CostTracker:
-    """Track OpenAI API costs in real-time"""
+    """Track xAI Grok API costs in real-time"""
 
-    # GPT-4 Turbo pricing (as of 2024)
+    # xAI Grok 4.1 Fast pricing
     PRICING = {
-        "gpt-4-turbo-preview": {
-            "input": 0.01 / 1000,   # $0.01 per 1K input tokens
-            "output": 0.03 / 1000,  # $0.03 per 1K output tokens
-        },
-        "gpt-4": {
-            "input": 0.03 / 1000,
-            "output": 0.06 / 1000,
+        "grok-4-1-fast-non-reasoning": {
+            "input": 0.200 / 1_000_000,   # $0.200 per 1M input tokens
+            "output": 0.500 / 1_000_000,  # $0.500 per 1M output tokens
         },
     }
 
@@ -572,7 +575,7 @@ class CostTracker:
     ) -> float:
         """Calculate cost for a single API call"""
 
-        pricing = self.PRICING.get(model, self.PRICING["gpt-4-turbo-preview"])
+        pricing = self.PRICING.get(model, self.PRICING["grok-4-1-fast-non-reasoning"])
 
         cost_usd = (
             input_tokens * pricing["input"] +
@@ -635,9 +638,9 @@ class CostTracker:
 
 ```python
 @app.post("/ai/analyze")
-async def analyze_market_gpt4(request: AnalysisRequest):
+async def analyze_market_grok(request: AnalysisRequest):
     """
-    GPT-4 market analysis endpoint
+    Grok/xAI market analysis endpoint
 
     POST /ai/analyze
     {
@@ -647,7 +650,7 @@ async def analyze_market_gpt4(request: AnalysisRequest):
     }
     """
 
-    analyzer = GPT4MarketAnalyzer(api_key=os.getenv("OPENAI_API_KEY"))
+    analyzer = GrokMarketAnalyzer(api_keys=[os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")])
 
     result = await analyzer.analyze_market(
         symbol=request.symbol,
@@ -660,7 +663,7 @@ async def analyze_market_gpt4(request: AnalysisRequest):
 @app.get("/ai/cost/statistics")
 async def get_cost_statistics():
     """
-    Get OpenAI API cost statistics
+    Get xAI Grok API cost statistics
 
     GET /ai/cost/statistics
     """
@@ -676,11 +679,11 @@ async def get_cost_statistics():
 ### 4.5 Performance
 
 **Metrics:**
-- **Average response time:** 3-5 seconds
-- **Cost per analysis:** $0.015-0.025 USD
+- **Average response time:** 1-3 seconds
+- **Cost per analysis:** ~$0.0003 USD (significantly cheaper than GPT-4)
 - **Token usage:** 800-1200 tokens per request
-- **Daily cost projection:** $0.36-0.60 USD (24 requests/day)
-- **Monthly cost:** $10.80-18.00 USD
+- **Daily cost projection:** <$0.01 USD (24 requests/day)
+- **Monthly cost:** <$0.30 USD
 
 **Spec Reference:** @spec:FR-AI-001
 
@@ -1052,8 +1055,8 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=1, minute=0),
     },
 
-    # GPT-4 self-analysis for adaptive retraining (3 AM UTC)
-    "gpt4-self-analysis": {
+    # Grok self-analysis for adaptive retraining (3 AM UTC)
+    "grok-self-analysis": {
         "task": "tasks.ai_improvement.gpt4_self_analysis",
         "schedule": crontab(hour=3, minute=0),
     },
@@ -1103,12 +1106,12 @@ def train_model_async(self, model_type, symbol, ...):
 
 ---
 
-## 8. GPT-4 Self-Analysis Component
+## 8. Grok Self-Analysis Component
 
 ### 8.1 Overview
 
 **Location**: `tasks/ai_improvement.py:64-247`
-**Purpose**: Intelligent decision-making for model retraining using GPT-4
+**Purpose**: Intelligent decision-making for model retraining using Grok/xAI
 
 ### 8.2 Workflow
 
@@ -1119,8 +1122,8 @@ graph TB
     C --> D[Fetch Market<br/>Conditions]
     D --> E{Performance<br/>Acceptable?}
     E -->|Yes| F[Skip Analysis<br/>Save Cost]
-    E -->|No| G[Build GPT-4<br/>Prompt]
-    G --> H[Call GPT-4<br/>Analysis]
+    E -->|No| G[Build Grok<br/>Prompt]
+    G --> H[Call Grok<br/>Analysis]
     H --> I[Parse<br/>Recommendation]
     I --> J{Retrain?}
     J -->|No| K[Log Decision]
@@ -1131,15 +1134,15 @@ graph TB
     M --> N
 ```
 
-### 8.3 GPT-4 Prompt Template
+### 8.3 Grok Prompt Template
 
 ```python
-def build_gpt4_analysis_prompt(
+def build_grok_analysis_prompt(
     daily_metrics: List[Dict],
     model_accuracy: Dict[str, Any],
     market_data: Dict[str, Any],
 ) -> str:
-    """Build GPT-4 analysis prompt with performance data"""
+    """Build Grok analysis prompt with performance data"""
 
     win_rates = [m["win_rate"] for m in daily_metrics]
     current_win_rate = win_rates[-1] if win_rates else 0
@@ -1173,18 +1176,19 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 
 ### 8.4 Cost Analysis
 
-**Cost per GPT-4 Analysis:**
-- Total cost: **$0.020-0.024 USD per analysis**
+**Cost per Grok Analysis (grok-4-1-fast-non-reasoning):**
+- ~1,000 input tokens × $0.200/1M + ~300 output tokens × $0.500/1M
+- Total cost: **~$0.00035 USD per analysis**
 
 **Daily Cost:**
 - Frequency: Once per day
-- Cost: $0.024 USD/day
-- Monthly cost: $0.72 USD/month
+- Cost: ~$0.00035 USD/day
+- Monthly cost: ~$0.01 USD/month
 
-**Annual Savings:**
-- Naive retraining: $120/year
-- GPT-4 adaptive: $30/year + $8.64 = $38.64
-- **Net savings: $81.36/year (68% cost reduction)**
+**Annual Savings vs GPT-4:**
+- GPT-4 adaptive approach: $38.64/year
+- Grok adaptive approach: ~$0.13/year
+- **Net savings: >$38/year vs GPT-4 approach**
 
 ### 8.5 Success Metrics
 
@@ -1269,7 +1273,7 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 
 **Endpoints:**
 - `POST /ai/predict`: 150-250ms (ensemble)
-- `POST /ai/analyze`: 3-5 seconds (GPT-4)
+- `POST /ai/analyze`: 1-3 seconds (Grok)
 - `GET /ai/cost/statistics`: <10ms (cached)
 - `POST /ai/train` (async): Background task
 
@@ -1287,10 +1291,10 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 
 ### 10.4 Cost Optimization
 
-**GPT-4 API Costs:**
-- Daily: $0.36-0.60 USD
-- Monthly: $10.80-18.00 USD
-- Annual: $130-216 USD
+**Grok API Costs (grok-4-1-fast-non-reasoning):**
+- Daily: <$0.01 USD
+- Monthly: <$0.30 USD
+- Annual: <$3.60 USD
 
 **Spec Reference:** @spec:NFR-PERFORMANCE-001
 
@@ -1302,13 +1306,13 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 
 | Requirement | Module | Implementation |
 |-------------|--------|----------------|
-| FR-AI-001 | main.py | GPT-4 market analysis |
+| FR-AI-001 | main.py | Grok/xAI market analysis |
 | FR-AI-002 | models/ | LSTM, GRU, Transformer |
 | FR-AI-003 | models/ensemble.py | Ensemble predictions |
 | FR-AI-004 | features/ | Feature engineering |
 | FR-AI-005 | Model training pipeline | Training workflow |
 | FR-ASYNC-001 | tasks/, celery_app.py | Async task processing |
-| FR-AI-IMPROVEMENT-001 | tasks/ai_improvement.py | GPT-4 self-analysis |
+| FR-AI-IMPROVEMENT-001 | tasks/ai_improvement.py | Grok self-analysis |
 | FR-MONITORING-001 | tasks/monitoring.py | System monitoring |
 
 ### B. Related Documents
@@ -1323,7 +1327,7 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 3. **Explainable AI:** Model interpretation (SHAP, LIME)
 4. **Real-time Training:** Online learning from live trades
 5. **Multi-Asset:** Cross-asset correlation analysis
-6. **GPT-4 Vision:** Chart pattern recognition
+6. **Grok Vision:** Chart pattern recognition
 7. **Distributed Training:** Multi-GPU training
 
 ---

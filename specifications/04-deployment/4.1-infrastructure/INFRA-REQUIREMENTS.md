@@ -48,7 +48,7 @@ This document defines the infrastructure requirements for the Bot Core cryptocur
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Next.js    │  │     Rust     │  │    Python    │      │
+│  │  Frontend    │  │     Rust     │  │    Python    │      │
 │  │  Dashboard   │  │    Engine    │  │  AI Service  │      │
 │  │  (Port 3000) │  │  (Port 8080) │  │  (Port 8000) │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
@@ -768,7 +768,7 @@ networks:
 - Binance API: `api.binance.com:443`
 - Binance WebSocket: `stream.binance.com:9443`
 - Binance Testnet: `testnet.binance.vision:443`
-- OpenAI API: `api.openai.com:443`
+- xAI API: `api.x.ai:443`
 
 **Required Firewall Rules:**
 ```yaml
@@ -779,7 +779,7 @@ Egress:
   - Destination: stream.binance.com
     Port: 9443
     Protocol: TCP
-  - Destination: api.openai.com
+  - Destination: api.x.ai
     Port: 443
     Protocol: TCP
 ```

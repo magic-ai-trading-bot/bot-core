@@ -355,7 +355,7 @@ This document provides detailed wireframes and layout specifications for all scr
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────┐      │
 │  │ TÍN HIỆU AI GẦN ĐÂY              🟢 Live Analysis               │      │
-│  │ GPT-4 Trading AI v2.0.0 • Model: gpt-3.5-turbo                  │      │
+│  │ Grok Trading AI v2.0.0 • Model: grok-4-1-fast-non-reasoning      │      │
 │  │                                                                   │      │
 │  │ ┌─────────────────────────────────────────────────────────────┐ │      │
 │  │ │ [LONG] BTCUSDT 🟢 ACTIVE 📡 websocket         82%          │ │      │

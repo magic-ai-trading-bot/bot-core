@@ -271,7 +271,7 @@ fn generate_jwt_token(user_id: &str) -> Result<String> {
 
 **Python Example:**
 ```python
-# @spec:FR-AI-003 - GPT-4 signal generation
+# @spec:FR-AI-003 - Grok/xAI signal generation
 # @ref:API_SPEC.md#ai-analysis
 async def analyze_trading_signals(request: AIAnalysisRequest) -> AISignalResponse:
     # Implementation

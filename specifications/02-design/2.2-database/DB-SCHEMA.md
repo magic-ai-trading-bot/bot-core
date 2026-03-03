@@ -573,11 +573,11 @@ db.createCollection("market_data", {
 
   // AI Model Information
   model_metadata: {
-    model_name: string,             // "gpt-4o-mini" | "custom_lstm"
+    model_name: string,             // "grok-4-1-fast" | "custom_lstm"
     model_version: string,          // "v1.2.0"
     processing_time_ms: number,     // Analysis duration
-    tokens_used: number | null,     // For GPT models
-    temperature: number | null       // For GPT models
+    tokens_used: number | null,     // For Grok/xAI models
+    temperature: number | null       // For Grok/xAI models
   },
 
   // Timestamps
@@ -651,7 +651,7 @@ db.ai_analysis_results.createIndex({ "created_at": 1 }, { expireAfterSeconds: 25
     }
   },
   "model_metadata": {
-    "model_name": "gpt-4o-mini",
+    "model_name": "grok-4-1-fast",
     "model_version": "v1.2.0",
     "processing_time_ms": 2450,
     "tokens_used": 1250,

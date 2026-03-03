@@ -13,7 +13,7 @@
 1. [Test Case Summary](#test-case-summary)
 2. [ML Model Prediction Test Cases](#ml-model-prediction-test-cases)
 3. [Technical Indicator Test Cases](#technical-indicator-test-cases)
-4. [GPT-4 Integration Test Cases](#gpt-4-integration-test-cases)
+4. [Grok/xAI Integration Test Cases](#grokxai-integration-test-cases)
 5. [Signal Generation Test Cases](#signal-generation-test-cases)
 6. [Caching Mechanism Test Cases](#caching-mechanism-test-cases)
 7. [Feature Engineering Test Cases](#feature-engineering-test-cases)
@@ -27,7 +27,7 @@
 |----------|-------------|----------|----------|
 | ML Model Predictions | 9 | Critical | 100% |
 | Technical Indicators | 12 | Critical | 100% |
-| GPT-4 Integration | 7 | High | 100% |
+| Grok/xAI Integration | 7 | High | 100% |
 | Signal Generation | 6 | Critical | 100% |
 | Caching Mechanism | 4 | Medium | 100% |
 | Feature Engineering | 5 | High | 100% |
@@ -500,9 +500,9 @@ Feature: Technical Indicator Calculations
 
 ---
 
-## GPT-4 Integration Test Cases
+## Grok/xAI Integration Test Cases
 
-### TC-AI-022: GPT-4 Trading Signal Analysis
+### TC-AI-022: Grok/xAI Trading Signal Analysis
 
 **Priority:** High
 **Test Type:** Integration
@@ -510,16 +510,16 @@ Feature: Technical Indicator Calculations
 
 **Test Scenario (Gherkin):**
 ```gherkin
-Feature: GPT-4 Integration
+Feature: Grok/xAI Integration
   As the AI service
-  I want to use GPT-4 for market analysis
+  I want to use Grok/xAI for market analysis
   So that I can provide intelligent trading insights
 
-  Scenario: Analyze trading signals with GPT-4
+  Scenario: Analyze trading signals with Grok/xAI
     Given I have technical indicators
     And I have market context
-    When I send data to GPT-4 for analysis
-    Then GPT-4 should return:
+    When I send data to Grok/xAI for analysis
+    Then Grok should return:
       - Signal (Long/Short/Neutral)
       - Confidence (0-1)
       - Reasoning (explanation)
@@ -529,7 +529,7 @@ Feature: GPT-4 Integration
 **Test Steps:**
 1. Prepare sample technical indicators
 2. Create market context
-3. Call GPT-4 API
+3. Call Grok/xAI API
 4. Parse response
 5. Validate signal format
 
@@ -545,7 +545,7 @@ Feature: GPT-4 Integration
 
 ---
 
-### TC-AI-023: GPT-4 API Error Handling
+### TC-AI-023: Grok/xAI API Error Handling
 
 **Priority:** Critical
 **Test Type:** Integration
@@ -553,8 +553,8 @@ Feature: GPT-4 Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle GPT-4 API errors gracefully
-    Given GPT-4 API is unavailable
+  Scenario: Handle Grok/xAI API errors gracefully
+    Given Grok/xAI API is unavailable
     When I attempt analysis
     Then system should fall back to technical analysis
     And signal should still be generated
@@ -566,7 +566,7 @@ Feature: GPT-4 Integration
 
 ---
 
-### TC-AI-024: GPT-4 Invalid JSON Response
+### TC-AI-024: Grok/xAI Invalid JSON Response
 
 **Priority:** High
 **Test Type:** Integration
@@ -574,8 +574,8 @@ Feature: GPT-4 Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle invalid JSON from GPT-4
-    Given GPT-4 returns non-JSON text
+  Scenario: Handle invalid JSON from Grok/xAI
+    Given Grok/xAI returns non-JSON text
     When I parse response
     Then system should handle gracefully
     And fall back to technical analysis
@@ -586,7 +586,7 @@ Feature: GPT-4 Integration
 
 ---
 
-### TC-AI-025: GPT-4 Rate Limiting
+### TC-AI-025: Grok/xAI Rate Limiting
 
 **Priority:** High
 **Test Type:** Integration
@@ -594,8 +594,8 @@ Feature: GPT-4 Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle GPT-4 rate limiting
-    Given I exceed GPT-4 API rate limit
+  Scenario: Handle Grok/xAI rate limiting
+    Given I exceed Grok/xAI API rate limit
     When API returns 429 Too Many Requests
     Then system should implement exponential backoff
     And retry after delay
@@ -604,7 +604,7 @@ Feature: GPT-4 Integration
 
 ---
 
-### TC-AI-026: GPT-4 Cost Optimization
+### TC-AI-026: Grok/xAI Cost Optimization
 
 **Priority:** Medium
 **Test Type:** Integration
@@ -612,17 +612,17 @@ Feature: GPT-4 Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Optimize GPT-4 API costs
+  Scenario: Optimize Grok/xAI API costs
     Given I have analysis request
     When I check cache first
     And cached result exists (< 5 minutes old)
-    Then use cached result instead of calling GPT-4
+    Then use cached result instead of calling Grok/xAI
     And save API costs
 ```
 
 ---
 
-### TC-AI-027: GPT-4 Prompt Engineering
+### TC-AI-027: Grok/xAI Prompt Engineering
 
 **Priority:** Medium
 **Test Type:** Integration
@@ -630,9 +630,9 @@ Feature: GPT-4 Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Use optimized prompts for GPT-4
+  Scenario: Use optimized prompts for Grok/xAI
     Given technical indicators
-    When I construct GPT-4 prompt
+    When I construct Grok/xAI prompt
     Then prompt should be concise
     And include relevant context only
     And request structured JSON output
@@ -641,7 +641,7 @@ Feature: GPT-4 Integration
 
 ---
 
-### TC-AI-028: GPT-4 Context Window Management
+### TC-AI-028: Grok/xAI Context Window Management
 
 **Priority:** Medium
 **Test Type:** Integration
@@ -649,7 +649,7 @@ Feature: GPT-4 Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Manage GPT-4 context window limits
+  Scenario: Manage Grok/xAI context window limits
     Given very large indicator dataset
     When dataset exceeds token limit
     Then summarize or truncate data
@@ -677,7 +677,7 @@ Feature: Trading Signal Generation
     Given RSI is 25 (oversold)
     And MACD crosses above signal line
     And price bounces off lower Bollinger Band
-    And GPT-4 confirms "Long" signal
+    And Grok confirms "Long" signal
     When I generate trading signal
     Then signal should be "BUY"
     And confidence should be > 0.75
@@ -698,7 +698,7 @@ Feature: Trading Signal Generation
     Given RSI is 80 (overbought)
     And MACD crosses below signal line
     And price touches upper Bollinger Band
-    And GPT-4 confirms "Short" signal
+    And Grok confirms "Short" signal
     When I generate trading signal
     Then signal should be "SELL"
     And confidence should be > 0.70
@@ -717,7 +717,7 @@ Feature: Trading Signal Generation
   Scenario: Generate neutral signal in uncertain market
     Given indicators show mixed signals
     And trend is unclear
-    And GPT-4 returns "Neutral"
+    And Grok returns "Neutral"
     When I generate trading signal
     Then signal should be "NEUTRAL" or "HOLD"
     And confidence should be moderate (0.4-0.6)
@@ -735,7 +735,7 @@ Feature: Trading Signal Generation
 ```gherkin
   Scenario: Calculate signal confidence score
     Given multiple indicators agree on direction
-    And GPT-4 confidence is high
+    And Grok confidence is high
     And model predictions align
     When I calculate overall confidence
     Then confidence should be weighted average
@@ -798,7 +798,7 @@ Feature: Caching Mechanism
     And result is cached in Redis
     When I request analysis again for same symbol
     Then cached result should be returned
-    And no new GPT-4 call should be made
+    And no new Grok/xAI call should be made
     And response time should be < 50ms
 ```
 
@@ -992,7 +992,7 @@ AI/ML module is considered complete when:
 - [ ] Code coverage >= 85% for AI service
 - [ ] ML models predict with reasonable accuracy
 - [ ] Technical indicators calculate correctly
-- [ ] GPT-4 integration works with error handling
+- [ ] Grok/xAI integration works with error handling
 - [ ] Signal generation produces actionable insights
 - [ ] Caching reduces API calls by 50%+
 - [ ] Feature engineering pipeline complete

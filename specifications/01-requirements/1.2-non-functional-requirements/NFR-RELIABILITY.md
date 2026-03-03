@@ -239,7 +239,7 @@ The system shall maintain high availability with 99.9% uptime, ensuring users ca
    Optional (Graceful Degradation):
    - Python AI Service (trading continues without AI)
    - Redis Cache (direct DB queries)
-   - OpenAI API (AI analysis continues without LLM reasoning)
+   - xAI API (AI analysis continues without LLM reasoning)
    - Monitoring (services continue, blind to issues temporarily)
    ```
 
@@ -516,7 +516,7 @@ The system shall tolerate and recover from common failure scenarios including ne
    ```
 
 **Acceptance Criteria**:
-- [ ] Circuit breaker implemented for external services (Binance API, OpenAI API)
+- [ ] Circuit breaker implemented for external services (Binance API, xAI API)
 - [ ] Circuit breaker states tracked and exposed as metrics
 - [ ] Circuit breaker prevents cascading failures (tested)
 - [x] Retry logic implemented with exponential backoff (3 retries, 1s/2s/4s)

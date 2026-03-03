@@ -163,7 +163,7 @@ Scenario: Successful registration with valid data
 |----------|-------|----------|
 | ML Model Predictions | 9 | Critical |
 | Technical Indicators | 12 | Critical |
-| GPT-4 Integration | 7 | High |
+| Grok/xAI Integration | 7 | High |
 | Signal Generation | 6 | Critical |
 | Caching Mechanism | 4 | Medium |
 | Feature Engineering | 5 | High |
@@ -178,7 +178,7 @@ Scenario: Successful registration with valid data
 **Key Test Cases:**
 - TC-AI-001: LSTM Model Price Prediction
 - TC-AI-010: RSI Calculation
-- TC-AI-022: GPT-4 Trading Signal Analysis
+- TC-AI-022: Grok/xAI Trading Signal Analysis
 - TC-AI-039: Feature Extraction
 
 ---
@@ -237,7 +237,7 @@ Scenario: Successful registration with valid data
 ```
 Step 1: Login
 Step 2: View Market Data (WebSocket real-time)
-Step 3: Request AI Analysis (Rust → Python → GPT-4)
+Step 3: Request AI Analysis (Rust → Python → Grok/xAI)
 Step 4: Execute Market Buy Order
 Step 5: Monitor Position (Real-time PnL updates)
 Step 6: Close Position with Profit
@@ -294,7 +294,7 @@ And notify user: "Extreme volatility detected"
 2. Binance API Failure
 3. Database Write Failure
 4. WebSocket Disconnection
-5. OpenAI API Rate Limit
+5. xAI API Rate Limit
 6. Insufficient Balance Error
 7. Risk Limit Exceeded
 8. Invalid Order Parameters

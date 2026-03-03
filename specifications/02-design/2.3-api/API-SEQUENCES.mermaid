@@ -135,7 +135,7 @@ sequenceDiagram
     participant Frontend as Frontend<br/>(Next.js)
     participant RustAPI as Rust Core API<br/>(Port 8080)
     participant PythonAI as Python AI Service<br/>(Port 8000)
-    participant OpenAI as OpenAI GPT-4 API
+    participant GrokAI as xAI Grok API (api.x.ai/v1)
     participant MongoDB
 
     Frontend->>RustAPI: POST /api/ai/analyze<br/>{symbol, timeframe_data, strategy_context}
@@ -151,13 +151,13 @@ sequenceDiagram
     else Analysis is stale or missing
         PythonAI->>PythonAI: Calculate technical indicators<br/>(RSI, MACD, Bollinger Bands)
 
-        PythonAI->>PythonAI: Prepare GPT-4 prompt<br/>with market context
+        PythonAI->>PythonAI: Prepare Grok/xAI prompt<br/>with market context
 
-        PythonAI->>OpenAI: POST /v1/chat/completions<br/>Model: gpt-4o-mini
+        PythonAI->>GrokAI: POST /v1/chat/completions<br/>Model: grok-4-1-fast-non-reasoning
 
-        OpenAI-->>PythonAI: AI analysis response<br/>(JSON with signal & reasoning)
+        GrokAI-->>PythonAI: AI analysis response<br/>(JSON with signal & reasoning)
 
-        PythonAI->>PythonAI: Parse GPT-4 response
+        PythonAI->>PythonAI: Parse Grok/xAI response
         PythonAI->>MongoDB: Store analysis result<br/>(cache for 5 minutes)
 
         PythonAI-->>RustAPI: 200 OK<br/>{signal, confidence, reasoning, ...}
@@ -191,7 +191,7 @@ sequenceDiagram
         PaperEngine->>PythonAI: POST /ai/analyze<br/>{symbol, timeframe_data}
 
         PythonAI->>PythonAI: Calculate indicators
-        PythonAI->>PythonAI: Run GPT-4 analysis
+        PythonAI->>PythonAI: Run Grok/xAI analysis
         PythonAI-->>PaperEngine: {signal: "Long", confidence: 0.82}
 
         PaperEngine->>PaperEngine: Check confidence threshold<br/>(> 0.65 default)
@@ -300,7 +300,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant PythonAI as Python AI Service<br/>(Background Task)
-    participant OpenAI as OpenAI GPT-4 API
+    participant GrokAI as xAI Grok API (api.x.ai/v1)
     participant MongoDB
     participant WSManager as WebSocket Manager<br/>(Python)
     participant Client1 as Client 1
@@ -311,9 +311,9 @@ sequenceDiagram
     loop For each tracked symbol
         PythonAI->>PythonAI: Generate market data
 
-        PythonAI->>OpenAI: POST /v1/chat/completions<br/>Analyze BTCUSDT
+        PythonAI->>GrokAI: POST /v1/chat/completions<br/>Analyze BTCUSDT
 
-        OpenAI-->>PythonAI: GPT-4 analysis result
+        GrokAI-->>PythonAI: Grok/xAI analysis result
 
         PythonAI->>MongoDB: Store analysis result
 
@@ -462,7 +462,7 @@ sequenceDiagram
     participant Frontend as Frontend<br/>(Strategy Page)
     participant RustAPI as Rust Core API
     participant PythonAI as Python AI Service
-    participant OpenAI as OpenAI GPT-4 API
+    participant GrokAI as xAI Grok API (api.x.ai/v1)
 
     Frontend->>RustAPI: GET /api/market/chart/BTCUSDT/1h?limit=100
 
@@ -479,7 +479,7 @@ sequenceDiagram
 
     PythonAI->>PythonAI: Generate suitability scores<br/>for each strategy
 
-    Note over PythonAI: Simple scoring algorithm<br/>(Future: GPT-4 powered)
+    Note over PythonAI: Simple scoring algorithm<br/>(Future: Grok/xAI powered)
 
     PythonAI-->>RustAPI: 200 OK<br/>[{strategy_name, suitability_score, reasoning}, ...]
 
@@ -509,23 +509,23 @@ sequenceDiagram
     participant Frontend as Frontend
     participant RustAPI as Rust Core API
     participant PythonAI as Python AI Service
-    participant OpenAI as OpenAI GPT-4 API
+    participant GrokAI as xAI Grok API (api.x.ai/v1)
 
     Frontend->>RustAPI: POST /api/ai/analyze
 
     RustAPI->>PythonAI: POST /ai/analyze
 
-    PythonAI->>OpenAI: POST /v1/chat/completions<br/>API Key 1
+    PythonAI->>GrokAI: POST /v1/chat/completions<br/>API Key 1
 
-    OpenAI-->>PythonAI: 429 Rate Limit Exceeded<br/>Retry-After: 60
+    GrokAI-->>PythonAI: 429 Rate Limit Exceeded<br/>Retry-After: 60
 
     Note over PythonAI: Mark API Key 1 as rate limited<br/>Set reset time
 
     PythonAI->>PythonAI: Switch to API Key 2
 
-    PythonAI->>OpenAI: POST /v1/chat/completions<br/>API Key 2
+    PythonAI->>GrokAI: POST /v1/chat/completions<br/>API Key 2
 
-    OpenAI-->>PythonAI: 200 OK<br/>Analysis result
+    GrokAI-->>PythonAI: 200 OK<br/>Analysis result
 
     PythonAI-->>RustAPI: 200 OK<br/>AI analysis
 
@@ -541,9 +541,9 @@ sequenceDiagram
 
     PythonAI->>PythonAI: Clear rate limit flag<br/>Switch back to API Key 1
 
-    PythonAI->>OpenAI: POST /v1/chat/completions<br/>API Key 1
+    PythonAI->>GrokAI: POST /v1/chat/completions<br/>API Key 1
 
-    OpenAI-->>PythonAI: 200 OK
+    GrokAI-->>PythonAI: 200 OK
 
     PythonAI-->>RustAPI: 200 OK
 
@@ -570,12 +570,12 @@ sequenceDiagram
 
     Monitoring->>PythonAI: GET /health
 
-    PythonAI->>PythonAI: Check OpenAI client status
+    PythonAI->>PythonAI: Check Grok/xAI client status
     PythonAI->>MongoDB: Ping database
 
     MongoDB-->>PythonAI: Pong
 
-    PythonAI-->>Monitoring: 200 OK<br/>{status: "healthy", gpt4_available: true, mongodb_connected: true}
+    PythonAI-->>Monitoring: 200 OK<br/>{status: "healthy", grok_available: true, mongodb_connected: true}
 
     Note over Monitoring: All services healthy
 

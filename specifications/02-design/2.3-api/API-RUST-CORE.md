@@ -1514,7 +1514,7 @@ Content-Type: application/json
 
 #### POST /api/paper-trading/process-ai-signal
 
-**Description:** Process external AI signal from frontend (triggers GPT-4 analysis)
+**Description:** Process external AI signal from frontend (triggers Grok/xAI analysis)
 
 **Authentication:** Optional
 
@@ -2025,9 +2025,9 @@ GET /api/paper-trading/correlation-analysis HTTP/1.1
 {
   "success": true,
   "data": {
-    "service_name": "GPT-4 Trading AI",
+    "service_name": "Grok/xAI Trading AI",
     "version": "2.0.0",
-    "model_version": "gpt-4o-mini",
+    "model_version": "grok-4-1-fast-non-reasoning",
     "supported_timeframes": ["1m", "5m", "15m", "1h", "4h", "1d"],
     "supported_symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"],
     "capabilities": [
@@ -2295,7 +2295,7 @@ Trailing stop price updated for a position.
 ```
 
 #### ai_signal_completed
-AI signal analysis completed (GPT-4 analysis).
+AI signal analysis completed (Grok/xAI analysis).
 
 ```json
 {

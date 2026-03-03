@@ -582,7 +582,7 @@ import pytest
 from fastapi.testclient import TestClient
 from main import app
 
-# @spec:FR-AI-005 - GPT-4 Signal Analysis
+# @spec:FR-AI-005 - Grok/xAI Signal Analysis
 # @test:TC-INTEGRATION-025
 
 @pytest.fixture

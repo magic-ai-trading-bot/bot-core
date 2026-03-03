@@ -50,7 +50,7 @@ The Async Task Processing System provides a robust, scalable background job exec
 **Included**:
 - ML model training and batch prediction (3 tasks)
 - System health monitoring and performance tracking (4 tasks)
-- GPT-4 powered AI self-improvement and adaptive retraining (3 tasks)
+- Grok/xAI powered AI self-improvement and adaptive retraining (3 tasks)
 - Strategy backtesting and optimization (2 tasks)
 - Task scheduling with Celery Beat (5 scheduled jobs)
 - Result storage and audit trails in MongoDB
@@ -82,7 +82,7 @@ The Async Task Processing System provides a robust, scalable background job exec
 - `@depends-on`: RabbitMQ (message broker)
 - `@depends-on`: Redis (results backend)
 - `@depends-on`: MongoDB (persistent storage)
-- `@depends-on`: OpenAI GPT-4 API (AI analysis)
+- `@depends-on`: xAI Grok API (AI analysis, OpenAI-compatible SDK with `base_url=https://api.x.ai/v1`, model `grok-4-1-fast-non-reasoning`)
 - `@depends-on`: Rust Core Engine API (trading data)
 - `@depends-on`: Binance API (market data)
 
@@ -907,7 +907,7 @@ Generate comprehensive daily portfolio performance summary and email to admins e
 
 ##### Description
 
-Track and report OpenAI GPT-4 API costs to prevent runaway expenses. **CRITICAL** for cost control in production.
+Track and report Grok/xAI API costs to prevent runaway expenses. **CRITICAL** for cost control in production. Uses OpenAI-compatible SDK (`from openai import OpenAI`) pointed at `https://api.x.ai/v1`.
 
 ##### Business Logic
 
@@ -922,7 +922,7 @@ Track and report OpenAI GPT-4 API costs to prevent runaway expenses. **CRITICAL*
 | Threshold | Daily Limit | Monthly Limit | Action |
 |-----------|-------------|---------------|--------|
 | **WARNING** | $2.00 | $50.00 | Send email notification |
-| **CRITICAL** | $5.00 | $100.00 | Send urgent alert + disable GPT-4 |
+| **CRITICAL** | $5.00 | $100.00 | Send urgent alert + disable Grok/xAI |
 
 ##### Output
 
@@ -950,9 +950,9 @@ Track and report OpenAI GPT-4 API costs to prevent runaway expenses. **CRITICAL*
 ##### Acceptance Criteria
 
 - [ ] Alert sent immediately if daily cost > $5.00
-- [ ] Email includes cost breakdown by model (gpt-4, gpt-4-turbo)
+- [ ] Email includes cost breakdown by model (grok-4-1-fast-non-reasoning)
 - [ ] Track token usage (input/output tokens)
-- [ ] Auto-disable GPT-4 if monthly > $100 (safety net)
+- [ ] Auto-disable Grok/xAI if monthly > $100 (safety net)
 
 ---
 
@@ -965,7 +965,7 @@ Track and report OpenAI GPT-4 API costs to prevent runaway expenses. **CRITICAL*
 
 ##### Description
 
-Analyze trading performance daily and trigger GPT-4 self-analysis if performance degradation detected. This is the **trigger** for adaptive retraining.
+Analyze trading performance daily and trigger Grok/xAI self-analysis if performance degradation detected. This is the **trigger** for adaptive retraining.
 
 ##### Business Logic
 
@@ -973,7 +973,7 @@ Analyze trading performance daily and trigger GPT-4 self-analysis if performance
 flowchart TD
     A[Fetch last 7 days trades] --> B[Calculate metrics]
     B --> C{Win rate < 55%?}
-    C -->|Yes| D[CRITICAL: Trigger GPT-4]
+    C -->|Yes| D[CRITICAL: Trigger Grok/xAI]
     C -->|No| E{Sharpe < 1.0?}
     E -->|Yes| D
     E -->|No| F{Avg profit < 1.5%?}
@@ -981,16 +981,16 @@ flowchart TD
     F -->|No| G[All good, log metrics]
 
     D --> H[Store metrics in MongoDB]
-    H --> I[Flag for GPT-4 analysis at 3 AM]
+    H --> I[Flag for Grok/xAI analysis at 3 AM]
 ```
 
 ##### Performance Thresholds
 
 | Metric | Target | Warning | Critical | Action |
 |--------|--------|---------|----------|--------|
-| **Win Rate** | 70% | < 70% | < 55% | Trigger GPT-4 analysis |
-| **Avg Profit** | 2.6% | < 2.6% | < 1.5% | Trigger GPT-4 analysis |
-| **Sharpe Ratio** | 2.1 | < 2.1 | < 1.0 | Trigger GPT-4 analysis |
+| **Win Rate** | 70% | < 70% | < 55% | Trigger Grok/xAI analysis |
+| **Avg Profit** | 2.6% | < 2.6% | < 1.5% | Trigger Grok/xAI analysis |
+| **Sharpe Ratio** | 2.1 | < 2.1 | < 1.0 | Trigger Grok/xAI analysis |
 
 ##### Output
 
@@ -1014,7 +1014,7 @@ flowchart TD
       "🔴 CRITICAL: Win rate 52.3% below 55% threshold!",
       "🔴 CRITICAL: Sharpe ratio 0.87 below 1.0 threshold!"
     ],
-    "trigger_ai_analysis": true  # Will run GPT-4 at 3 AM
+    "trigger_ai_analysis": true  # Will run Grok/xAI at 3 AM
   }
 }
 ```
@@ -1022,7 +1022,7 @@ flowchart TD
 ##### Acceptance Criteria
 
 - [ ] Require minimum 10 trades for analysis (avoid false positives)
-- [ ] Store metrics in MongoDB for GPT-4 to access
+- [ ] Store metrics in MongoDB for Grok/xAI to access
 - [ ] Flag `trigger_ai_analysis = true` if any CRITICAL threshold breached
 - [ ] Send email to admins with performance summary
 - [ ] Include 7-day trend chart (optional)
@@ -1031,18 +1031,18 @@ flowchart TD
 
 ### 2.3 AI Improvement Tasks (`ai_improvement.py`)
 
-#### FR-ASYNC-008: GPT-4 Self-Analysis
+#### FR-ASYNC-008: Grok/xAI Self-Analysis
 
 **Priority**: CRITICAL
 **Implementation**: `python-ai-service/tasks/ai_improvement.py:64-246`
 **Schedule**: 3:00 AM UTC daily (or triggered by performance alerts)
-**Task Name**: `tasks.ai_improvement.gpt4_self_analysis`
+**Task Name**: `tasks.ai_improvement.gpt4_self_analysis` (legacy name; uses Grok/xAI via OpenAI-compatible SDK)
 
 ##### Description
 
-Use OpenAI GPT-4 to analyze trading performance trends and autonomously decide if model retraining is needed. This is the **intelligent decision-making system** that replaces naive time-based retraining.
+Use Grok/xAI (`grok-4-1-fast-non-reasoning` model via `https://api.x.ai/v1`) to analyze trading performance trends and autonomously decide if model retraining is needed. This is the **intelligent decision-making system** that replaces naive time-based retraining. The OpenAI Python SDK is used with `base_url=https://api.x.ai/v1` and `api_key=$XAI_API_KEY`.
 
-**Why Revolutionary**: Instead of blindly retraining models every N days, GPT-4 analyzes:
+**Why Revolutionary**: Instead of blindly retraining models every N days, the AI analyzes:
 - Performance degradation patterns (temporary vs structural)
 - Market regime changes (bull → bear market)
 - Model accuracy trends
@@ -1057,7 +1057,7 @@ sequenceDiagram
     participant Rust as Rust API
     participant Python as Python API
     participant Binance
-    participant GPT4 as OpenAI GPT-4
+    participant GPT4 as xAI Grok (grok-4-1-fast-non-reasoning)
     participant MongoDB
 
     Beat->>Worker: Trigger at 3 AM daily
@@ -1072,17 +1072,17 @@ sequenceDiagram
     Binance-->>Worker: Market data (volatility, volume)
 
     Worker->>Worker: Calculate daily metrics
-    Worker->>Worker: Build GPT-4 analysis prompt
+    Worker->>Worker: Build Grok analysis prompt
 
-    Worker->>GPT4: POST /v1/chat/completions (analysis prompt)
+    Worker->>GPT4: POST https://api.x.ai/v1/chat/completions (analysis prompt)
     GPT4-->>Worker: JSON recommendation
 
     alt Recommendation = "retrain" AND confidence > 0.7
         Worker->>Worker: Queue adaptive_retrain task
-        Worker->>MongoDB: Store GPT-4 analysis
+        Worker->>MongoDB: Store Grok/xAI analysis
         Worker->>Worker: Send notification
     else Recommendation = "wait"
-        Worker->>MongoDB: Store GPT-4 analysis
+        Worker->>MongoDB: Store Grok/xAI analysis
         Worker->>Worker: Log decision, skip retraining
     end
 ```
@@ -1095,7 +1095,7 @@ sequenceDiagram
 }
 ```
 
-##### GPT-4 Prompt Structure
+##### Grok/xAI Prompt Structure
 
 ```python
 prompt = f"""
@@ -1141,7 +1141,7 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 
 ##### Output
 
-**GPT-4 Response (Retrain Recommended)**:
+**Grok/xAI Response (Retrain Recommended)**:
 ```python
 {
   "status": "success",
@@ -1162,7 +1162,7 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 }
 ```
 
-**GPT-4 Response (Wait Recommended)**:
+**Grok/xAI Response (Wait Recommended)**:
 ```python
 {
   "analysis": {
@@ -1187,33 +1187,33 @@ OUTPUT FORMAT (MUST BE VALID JSON):
 - [ ] Run at 3:00 AM UTC daily
 - [ ] Also run immediately when triggered by performance alerts
 - [ ] Skip analysis if performance acceptable (win_rate ≥ 55%, sharpe ≥ 1.0)
-- [ ] Call GPT-4 with temperature=0.3 (consistent decisions)
+- [ ] Call Grok API with temperature=0.3 (consistent decisions)
 - [ ] Parse JSON response robustly (handle malformed JSON)
 - [ ] Queue `adaptive_retrain` task if recommendation="retrain" + confidence ≥ 0.7 + urgency ∈ ["medium", "high"]
 - [ ] Store analysis in MongoDB for audit trail
 - [ ] Send notification with recommendation
 
 **Performance**:
-- [ ] GPT-4 API call < 10 seconds
+- [ ] Grok API call < 10 seconds
 - [ ] Total analysis < 30 seconds
-- [ ] Cost per analysis < $0.10 (use gpt-4-turbo, not gpt-4-0125-preview)
+- [ ] Cost per analysis < $0.10 (model: `grok-4-1-fast-non-reasoning`)
 
 **Security**:
-- [ ] OPENAI_API_KEY stored securely (not in logs)
+- [ ] XAI_API_KEY stored securely (not in logs)
 - [ ] Scrub sensitive data from prompt (user IDs, account balances)
-- [ ] Rate limit: Max 5 GPT-4 calls per hour (prevent abuse)
+- [ ] Rate limit: Max 5 Grok API calls per hour (prevent abuse)
 
 ##### Edge Cases
 
 | # | Scenario | Expected Behavior |
 |---|----------|-------------------|
-| 1 | OPENAI_API_KEY not configured | Return error, don't crash, send alert |
-| 2 | GPT-4 returns malformed JSON | Retry once, if fails again mark as error |
-| 3 | GPT-4 API timeout | Retry with 30s timeout, max 2 retries |
+| 1 | XAI_API_KEY not configured | Return error, don't crash, send alert |
+| 2 | Grok returns malformed JSON | Retry once, if fails again mark as error |
+| 3 | Grok API timeout | Retry with 30s timeout, max 2 retries |
 | 4 | Insufficient trades (< 10) | Skip analysis, log "Not enough data" |
-| 5 | GPT-4 recommends "retrain" with low confidence (< 0.5) | Don't trigger retrain, just log |
+| 5 | Grok recommends "retrain" with low confidence (< 0.5) | Don't trigger retrain, just log |
 | 6 | MongoDB unavailable | Log analysis to file, skip storage |
-| 7 | Cost limit exceeded ($100/month) | Disable GPT-4 analysis, alert admin |
+| 7 | Cost limit exceeded ($100/month) | Disable Grok/xAI analysis, alert admin |
 
 ##### Example Usage
 
@@ -1239,7 +1239,7 @@ if analysis['analysis']['retrain_triggered']:
 
 ```python
 def test_gpt4_analysis_retrain_recommendation(mock_openai):
-    """Test GPT-4 recommends retrain when performance critical"""
+    """Test Grok/xAI recommends retrain when performance critical"""
     mock_openai.ChatCompletion.create.return_value = {
         "choices": [{
             "message": {
@@ -1256,7 +1256,7 @@ def test_gpt4_analysis_retrain_recommendation(mock_openai):
     assert result["analysis"]["recommendation"] == "retrain"
     assert result["analysis"]["retrain_triggered"] == True
 
-def test_gpt4_analysis_skipped_if_performance_good(mock_requests):
+def test_grok_analysis_skipped_if_performance_good(mock_requests):
     """Test analysis skipped when performance acceptable"""
     # Mock good performance metrics
     mock_requests.get.return_value = Mock(json=lambda: {
@@ -1271,9 +1271,9 @@ def test_gpt4_analysis_skipped_if_performance_good(mock_requests):
 
 ##### Cost Analysis
 
-**GPT-4 Turbo Pricing** (as of 2025-11):
-- Input tokens: $0.01 / 1K tokens
-- Output tokens: $0.03 / 1K tokens
+**Grok/xAI Pricing** (model: `grok-4-1-fast-non-reasoning`, as of 2026):
+- Input tokens: $0.01 / 1K tokens (approximate)
+- Output tokens: $0.03 / 1K tokens (approximate)
 
 **Typical Analysis**:
 - Input: ~1500 tokens (performance data + prompt)
@@ -1292,7 +1292,7 @@ def test_gpt4_analysis_skipped_if_performance_good(mock_requests):
 
 - `@spec:FR-ASYNC-007` - Daily Performance Analysis (trigger)
 - `@spec:FR-ASYNC-009` - Adaptive Retraining (action)
-- `@spec:FR-GPT4-001` - GPT-4 Integration
+- `@spec:FR-AI-GROK-001` - Grok/xAI Integration
 
 ---
 
@@ -1300,12 +1300,12 @@ def test_gpt4_analysis_skipped_if_performance_good(mock_requests):
 
 **Priority**: CRITICAL
 **Implementation**: `python-ai-service/tasks/ai_improvement.py:254-364`
-**Triggered By**: GPT-4 Self-Analysis recommendation
+**Triggered By**: Grok/xAI Self-Analysis recommendation
 **Task Name**: `tasks.ai_improvement.adaptive_retrain`
 
 ##### Description
 
-Automatically retrain ML models when GPT-4 analysis determines performance degradation is structural (not temporary) and retraining will likely improve results. This is **adaptive** because it's triggered by intelligent analysis, not naive time intervals.
+Automatically retrain ML models when Grok/xAI analysis determines performance degradation is structural (not temporary) and retraining will likely improve results. This is **adaptive** because it's triggered by intelligent analysis, not naive time intervals.
 
 **Why Critical**: Keeps models fresh and accurate without over-retraining (which wastes compute) or under-retraining (which causes losses).
 
@@ -1313,7 +1313,7 @@ Automatically retrain ML models when GPT-4 analysis determines performance degra
 
 ```mermaid
 flowchart TD
-    A[Triggered by GPT-4] --> B[Fetch last 60 days market data]
+    A[Triggered by Grok/xAI] --> B[Fetch last 60 days market data]
     B --> C{For each model type}
 
     C --> D1[Train LSTM]
@@ -1346,7 +1346,7 @@ flowchart TD
 ```python
 {
   "model_types": List[str],      # REQUIRED: ["lstm", "gru", "transformer"]
-  "analysis_result": Dict        # REQUIRED: GPT-4 analysis that triggered this
+  "analysis_result": Dict        # REQUIRED: Grok/xAI analysis that triggered this
 }
 ```
 
@@ -1430,7 +1430,7 @@ flowchart TD
 ##### Example Usage
 
 ```python
-# Typically triggered automatically by GPT-4 analysis
+# Typically triggered automatically by Grok/xAI analysis
 # But can be manually triggered
 
 from tasks.ai_improvement import adaptive_retrain
@@ -1704,7 +1704,7 @@ celery_queue_depth{queue="ml_training"}
 - Task failed 3+ times → Email admin
 - Queue depth > 1000 → Slack alert
 - Worker down > 5 minutes → Critical alert
-- Daily cost > $5 → Email + disable GPT-4
+- Daily cost > $5 → Email + disable Grok/xAI
 
 ---
 
@@ -1854,7 +1854,7 @@ beat_schedule = {
   "estimated_improvement": "8-12% win rate improvement",
   "retrain_triggered": true,
   "retrain_task_id": "retrain-abc-123",
-  "full_analysis": {...}  # Complete GPT-4 response
+  "full_analysis": {...}  # Complete Grok/xAI response
 }
 ```
 
@@ -2081,7 +2081,7 @@ sequenceDiagram
     participant Trades as Trading System
     participant Celery as Celery Beat
     participant Worker as Celery Worker
-    participant GPT4 as OpenAI GPT-4
+    participant GPT4 as xAI Grok (grok-4-1-fast-non-reasoning)
     participant Train as Training Service
     participant DB as MongoDB
     participant Alert as Notifications
@@ -2096,18 +2096,18 @@ sequenceDiagram
         Worker->>DB: Store metrics (trigger_ai_analysis=true)
         Worker->>Alert: Send performance alert
 
-        Note over Celery,Worker: 3:00 AM - GPT-4 Self-Analysis
-        Celery->>Worker: Trigger GPT-4 analysis
+        Note over Celery,Worker: 3:00 AM - Grok/xAI Self-Analysis
+        Celery->>Worker: Trigger Grok/xAI analysis
         Worker->>DB: Fetch performance metrics
         Worker->>Trades: Fetch model accuracy trends
         Worker->>Worker: Build analysis prompt
-        Worker->>GPT4: POST /v1/chat/completions
+        Worker->>GPT4: POST https://api.x.ai/v1/chat/completions
         GPT4-->>Worker: JSON recommendation
 
         alt Recommendation = "retrain"
             Worker->>Worker: Queue adaptive_retrain task
-            Worker->>DB: Store GPT-4 analysis
-            Worker->>Alert: Send GPT-4 notification
+            Worker->>DB: Store Grok/xAI analysis
+            Worker->>Alert: Send Grok/xAI notification
 
             Note over Worker,Train: Adaptive Retraining (1-2 hours)
             Worker->>Train: POST /ai/train (LSTM)
@@ -2122,12 +2122,12 @@ sequenceDiagram
             Worker->>Alert: Send completion report
             Worker->>User: Email: "2/3 models improved, deployed"
         else Recommendation = "wait"
-            Worker->>DB: Store GPT-4 analysis
+            Worker->>DB: Store Grok/xAI analysis
             Worker->>Alert: Send notification
         end
     else Performance OK
         Worker->>DB: Store metrics
-        Worker->>Worker: Skip GPT-4 analysis
+        Worker->>Worker: Skip Grok/xAI analysis
     end
 ```
 
@@ -2179,7 +2179,7 @@ sequenceDiagram
 
 ### 8.3 MongoDB Unreachable
 
-**Symptom**: Can't store task results, GPT-4 analysis can't access historical data
+**Symptom**: Can't store task results, Grok/xAI analysis can't access historical data
 
 **Detection**:
 - `mongosh` connection fails
@@ -2199,25 +2199,25 @@ sequenceDiagram
 - Implement connection retry logic
 - Buffer results in Redis if MongoDB down
 
-### 8.4 OpenAI API Rate Limit Exceeded
+### 8.4 xAI Grok API Rate Limit Exceeded
 
-**Symptom**: GPT-4 analysis fails with HTTP 429
+**Symptom**: Grok/xAI analysis fails with HTTP 429
 
 **Detection**:
-- OpenAI API response: `{"error": {"code": "rate_limit_exceeded"}}`
+- xAI API response: `{"error": {"code": "rate_limit_exceeded"}}`
 
-**Impact**: LOW - GPT-4 analysis delayed, not critical
+**Impact**: LOW - Grok/xAI analysis delayed, not critical
 
 **Action**:
 1. Retry with exponential backoff (60s, 120s, 300s)
-2. If still failing, skip GPT-4 analysis for this cycle
+2. If still failing, skip Grok/xAI analysis for this cycle
 3. Log warning, send notification
 4. Continue with manual retraining decisions
 
 **Prevention**:
-- Request higher rate limit from OpenAI
+- Request higher rate limit from xAI
 - Implement local rate limiting (max 5 calls/hour)
-- Cache GPT-4 responses for similar scenarios
+- Cache Grok/xAI responses for similar scenarios
 
 ### 8.5 Training Dataset Too Small
 
@@ -2256,7 +2256,7 @@ sequenceDiagram
    - Was training data corrupted?
    - Is market in unprecedented regime?
    - Are hyperparameters optimal?
-4. Manually review GPT-4 recommendation
+4. Manually review Grok/xAI recommendation
 5. Consider manual retraining with different parameters
 
 **Prevention**:
@@ -2313,7 +2313,7 @@ def test_end_to_end_adaptive_retraining():
     perf_result = daily_performance_analysis.apply().get()
     assert perf_result["analysis"]["trigger_ai_analysis"] == True
 
-    # 2. GPT-4 analysis (mock OpenAI response)
+    # 2. Grok/xAI analysis (mock OpenAI-compatible SDK response)
     with patch('openai.ChatCompletion.create') as mock_gpt4:
         mock_gpt4.return_value = {
             "choices": [{
@@ -2529,7 +2529,9 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       DATABASE_URL: ${DATABASE_URL}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      XAI_API_KEY: ${XAI_API_KEY}
+      AI_BASE_URL: https://api.x.ai/v1
+      AI_MODEL: grok-4-1-fast-non-reasoning
     volumes:
       - ./models:/models
       - ./logs:/logs
@@ -2572,7 +2574,7 @@ volumes:
 
 **Pre-Deployment**:
 - [ ] Generate strong passwords for RabbitMQ, Redis, MongoDB
-- [ ] Configure OPENAI_API_KEY (valid, with sufficient credits)
+- [ ] Configure XAI_API_KEY (valid xAI API key with sufficient credits)
 - [ ] Set up email/Slack/Discord webhooks for notifications
 - [ ] Ensure 250 GB+ disk space available
 - [ ] Configure firewall (block ports 5672, 6379, 27017 externally)
@@ -2714,10 +2716,10 @@ groups:
 
 ### 11.8 Cost Control
 
-- [ ] OpenAI API cost tracking enabled
+- [ ] xAI Grok API cost tracking enabled
 - [ ] Daily cost alerts configured ($2, $5 thresholds)
 - [ ] Monthly cost limit enforced ($100)
-- [ ] Auto-disable GPT-4 if limit exceeded
+- [ ] Auto-disable Grok/xAI if limit exceeded
 - [ ] Cost reports emailed daily at 9 AM
 
 ---
@@ -2788,7 +2790,7 @@ groups:
 - `@story:US-AI-002` - As a trader, I want automated model retraining when performance degrades
 - `@story:US-OPS-001` - As an operator, I want health checks every 15 minutes to detect failures
 - `@story:US-ADMIN-001` - As an admin, I want daily portfolio reports emailed every morning
-- `@story:US-ADMIN-002` - As an admin, I want cost alerts to prevent runaway OpenAI expenses
+- `@story:US-ADMIN-002` - As an admin, I want cost alerts to prevent runaway xAI Grok expenses
 
 ---
 

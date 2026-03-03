@@ -248,7 +248,7 @@ The system shall implement robust authentication and authorization mechanisms to
 **Code Tags**: `@spec:NFR-SECURITY-002`
 
 **Description**:
-The system shall implement comprehensive API security controls to protect against common web application attacks and ensure secure communication between clients and services. API security encompasses input validation, output encoding, rate limiting, CORS configuration, security headers, and protection against OWASP Top 10 vulnerabilities (injection, XSS, CSRF, etc.). This requirement applies to all REST API endpoints in Rust Core Engine, Python AI Service, and public-facing endpoints in the Next.js Dashboard.
+The system shall implement comprehensive API security controls to protect against common web application attacks and ensure secure communication between clients and services. API security encompasses input validation, output encoding, rate limiting, CORS configuration, security headers, and protection against OWASP Top 10 vulnerabilities (injection, XSS, CSRF, etc.). This requirement applies to all REST API endpoints in Rust Core Engine, Python AI Service, and public-facing endpoints in the Frontend Dashboard.
 
 **Implementation Files**:
 - `rust-core-engine/src/api/middleware.rs` - Security middleware (rate limiting, CORS)
@@ -463,7 +463,7 @@ The system shall implement secure secrets management practices to protect sensit
 
    - **API Keys**:
      - `BINANCE_API_KEY`, `BINANCE_SECRET_KEY`: Binance API credentials
-     - `OPENAI_API_KEY`: OpenAI API key (optional)
+     - `XAI_API_KEY`: xAI/Grok API key (optional)
      - Storage: Environment variable
      - Rotation: Manual via exchange/service dashboard
 
@@ -632,7 +632,7 @@ The system shall implement encryption for data in transit and at rest to protect
 
    **Service-to-Service**:
    - Internal services communicate over Docker network (encrypted at network layer)
-   - External API calls use HTTPS (Binance API, OpenAI API)
+   - External API calls use HTTPS (Binance API, xAI API)
    - MongoDB connections use TLS (optional, recommended for production)
 
 2. **Encryption at Rest** (Status: ⚠️ Partial)
@@ -692,7 +692,7 @@ The system shall implement encryption for data in transit and at rest to protect
 - [x] HTTP traffic redirects to HTTPS (301 status)
 - [x] WebSocket connections use WSS (secure WebSocket)
 - [x] TLS cipher suites configured for strong encryption (no weak ciphers)
-- [x] External API calls use HTTPS (Binance, OpenAI)
+- [x] External API calls use HTTPS (Binance, xAI)
 - [x] JWT tokens signed with HS256 algorithm
 - [x] JWT secret is 256-bit random value
 - [x] JWT secret stored securely (environment variable, not hardcoded)
@@ -1141,7 +1141,7 @@ Permissions-Policy: geolocation=(), microphone=(), camera=()
 
 **External Systems**:
 - Binance API: TLS 1.3, API key authentication, rate limiting
-- OpenAI API: TLS 1.3, Bearer token authentication
+- xAI API: TLS 1.3, Bearer token authentication
 - MongoDB: TLS connection (optional, recommended), authentication
 - Redis: TLS connection (optional), password authentication
 

@@ -43,7 +43,7 @@
 
 ## Overview
 
-This specification defines comprehensive performance requirements for the Bot Core cryptocurrency trading platform. Performance is a critical quality attribute that directly impacts trading effectiveness, user experience, and system reliability. These requirements establish measurable targets for response times, throughput, resource utilization, and scalability across all system components including the Rust Core Engine, Python AI Service, and Next.js Dashboard. All requirements are validated against current baseline measurements and industry best practices for high-frequency trading systems.
+This specification defines comprehensive performance requirements for the Bot Core cryptocurrency trading platform. Performance is a critical quality attribute that directly impacts trading effectiveness, user experience, and system reliability. These requirements establish measurable targets for response times, throughput, resource utilization, and scalability across all system components including the Rust Core Engine, Python AI Service, and Frontend Dashboard. All requirements are validated against current baseline measurements and industry best practices for high-frequency trading systems.
 
 ---
 
@@ -749,7 +749,7 @@ The system shall complete AI analysis and trading signal generation within accep
 - **Single Symbol Analysis**: < 5000ms (5 seconds) for complete analysis
 - **Technical Indicators**: < 500ms for all indicators (RSI, MACD, BB, SMA, EMA)
 - **ML Model Inference**: < 2000ms for LSTM/GRU forward pass
-- **LLM Analysis (OpenAI)**: < 3000ms for GPT-4 reasoning (if enabled)
+- **LLM Analysis (Grok/xAI)**: < 3000ms for Grok reasoning (if enabled)
 - **Signal Generation**: < 200ms for confidence calculation and signal creation
 - **Batch Analysis (10 symbols)**: < 15000ms (15 seconds) for concurrent analysis
 - **Current Baseline**: 320ms for single symbol (without LLM), 1200ms for 10 symbols
@@ -808,7 +808,7 @@ The system shall complete AI analysis and trading signal generation within accep
 
 7. **LLM Reasoning (Optional)** (Target: < 3000ms)
    - Format analysis results for LLM input
-   - Call OpenAI GPT-4 API with market context
+   - Call Grok/xAI API with market context
    - Parse LLM response for reasoning and confirmation
    - Typical: 1000-3000ms depending on API latency
    - Only used for high-value trades or on-demand analysis
@@ -891,7 +891,7 @@ The system shall complete AI analysis and trading signal generation within accep
 - **Critical Alert**: p95 analysis time > 10 seconds OR analysis failure rate > 5%
 - **Action**: Optimize slow models, scale worker count, review caching strategy
 
-**Dependencies**: PyTorch/TensorFlow, ONNX Runtime, NumPy, GPU availability (optional), OpenAI API (optional)
+**Dependencies**: PyTorch/TensorFlow, ONNX Runtime, NumPy, GPU availability (optional), xAI API (optional)
 **Test Cases**: TC-PERF-013 (Analysis speed benchmark), TC-PERF-014 (Batch analysis), TC-PERF-015 (Cache effectiveness)
 
 ---
@@ -1051,7 +1051,7 @@ The system shall load the web dashboard quickly to provide responsive user exper
    - Prefetching (load resources for next navigation)
 
 4. **Rendering Optimization**:
-   - Server-side rendering (SSR) for initial HTML (if using Next.js)
+   - Server-side rendering (SSR) for initial HTML (not currently used; Vite SPA)
    - Static generation for non-dynamic pages
    - Incremental static regeneration (ISR)
    - Client-side hydration for interactivity
@@ -1118,7 +1118,7 @@ The system shall handle high transaction volumes and concurrent operations to su
    - Indicator calculations: 50+ calc/sec
    - Current: 20+ analyses/sec with caching ✅
 
-3. **Next.js Dashboard** (Port 3000)
+3. **Frontend Dashboard** (Port 3000)
    - Page requests: 500+ req/sec (static assets cached)
    - API proxy requests: 300+ req/sec (to backend)
    - WebSocket connections: 1000+ concurrent

@@ -397,9 +397,9 @@ case 'TradeExecuted':
     "signal": "long",
     "confidence": 0.82,
     "timestamp": 1697234567000,
-    "model_type": "GPT-4",
+    "model_type": "Grok/xAI",
     "timeframe": "1h",
-    "reasoning": "Strong bullish momentum with RSI oversold (28), MACD crossover, and positive GPT-4 sentiment analysis",
+    "reasoning": "Strong bullish momentum with RSI oversold (28), MACD crossover, and positive Grok/xAI sentiment analysis",
     "strategy_scores": {
       "RSI Strategy": 0.85,
       "MACD Strategy": 0.78,

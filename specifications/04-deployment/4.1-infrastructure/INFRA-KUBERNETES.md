@@ -443,10 +443,10 @@ spec:
             secretKeyRef:
               name: bot-core-secrets
               key: python-api-key
-        - name: OPENAI_API_KEY
+        - name: XAI_API_KEY
           valueFrom:
             secretKeyRef:
-              name: openai-secrets
+              name: xai-secrets
               key: api-key
         - name: DATABASE_URL
           valueFrom:
@@ -784,11 +784,11 @@ stringData:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: openai-secrets
+  name: xai-secrets
   namespace: bot-core-production
 type: Opaque
 stringData:
-  api-key: "YOUR_OPENAI_API_KEY"
+  api-key: "YOUR_XAI_API_KEY"
 ```
 
 **Create secrets from command line:**

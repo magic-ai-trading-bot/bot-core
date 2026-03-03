@@ -16,7 +16,7 @@
 - [x] JWT auto-login for outgoing BotCore API calls
 - [x] Health check endpoint (unauthenticated)
 - [x] Session lifecycle management (create/reuse/delete)
-- [x] 12 tool categories registered (105 tools total)
+- [x] 12 tool categories registered (114 tools total)
 - [x] API client proxy to Rust (:8080) and Python (:8000) backends
 - [x] Request timeout and 5xx retry handling
 - [x] Response normalization for mixed Rust/Python formats
@@ -162,7 +162,7 @@ Unauthenticated `GET /health` endpoint returns service status and current timest
 
 ---
 
-### FR-MCP-007: Tool Registration (105 Tools, 12 Categories)
+### FR-MCP-007: Tool Registration (114 Tools, 12 Categories)
 
 **Priority**: ☑ Critical
 **Status**: ☑ Completed
@@ -175,14 +175,14 @@ All trading bot capabilities are exposed as MCP tools grouped into 12 categories
 
 | Category | Count | File | Purpose |
 |---|---|---|---|
-| health | 4 | `tools/health.ts` | System health & Docker monitoring |
+| health | 3 | `tools/health.ts` | System health & Docker monitoring |
 | market | 8 | `tools/market.ts` | Market data & symbols |
 | trading | 4 | `tools/trading.ts` | Live trading positions |
-| paper-trading | 28 | `tools/paper-trading.ts` | Paper trading engine |
+| paper-trading | 39 | `tools/paper-trading.ts` | Paper trading engine |
 | real-trading | 14 | `tools/real-trading.ts` | Real trading (CAUTION) |
 | ai | 12 | `tools/ai.ts` | AI analysis & predictions |
 | tasks | 7 | `tools/tasks.ts` | AI tasks & chat |
-| monitoring | 5 | `tools/monitoring.ts` | System & trading metrics |
+| monitoring | 4 | `tools/monitoring.ts` | System & trading metrics |
 | settings | 10 | `tools/settings.ts` | API keys & notifications |
 | auth | 4 | `tools/auth-tools.ts` | Authentication |
 | tuning | 8 | `tools/tuning.ts` | Self-tuning engine |

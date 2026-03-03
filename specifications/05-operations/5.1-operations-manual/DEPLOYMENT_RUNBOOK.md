@@ -242,7 +242,7 @@ source /opt/bot-core/.env
 
 # 6.3 Verify required variables are set
 echo "Checking environment variables..."
-for var in DATABASE_URL BINANCE_API_KEY BINANCE_SECRET_KEY OPENAI_API_KEY JWT_SECRET; do
+for var in DATABASE_URL BINANCE_API_KEY BINANCE_SECRET_KEY XAI_API_KEY JWT_SECRET; do
   if [ -z "${!var}" ]; then
     echo "ERROR: $var is not set!"
     exit 1
@@ -256,7 +256,7 @@ done
 # ✓ DATABASE_URL is set
 # ✓ BINANCE_API_KEY is set
 # ✓ BINANCE_SECRET_KEY is set
-# ✓ OPENAI_API_KEY is set
+# ✓ XAI_API_KEY is set
 # ✓ JWT_SECRET is set
 
 # 6.4 Validate secrets are not defaults

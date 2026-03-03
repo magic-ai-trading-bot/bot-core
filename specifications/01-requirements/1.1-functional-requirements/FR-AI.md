@@ -30,7 +30,7 @@
 - Related Data: [DATA_MODELS.md](../../DATA_MODELS.md) - AI Response Models
 
 **Dependencies**:
-- Depends on: External API (OpenAI GPT-4o-mini), MongoDB, Binance Market Data
+- Depends on: External API (xAI Grok via OpenAI-compatible SDK, model: grok-4-1-fast-non-reasoning), MongoDB, Binance Market Data
 - Blocks: FR-CORE-002 (Strategy Optimization), FR-UI-003 (AI Signal Display)
 
 **Business Value**: High
@@ -41,20 +41,20 @@
 
 ## Overview
 
-This specification defines ALL AI/ML prediction features for the Bot Core trading platform, including deep learning models (LSTM, GRU, Transformer), technical indicator calculation, GPT-4 integration for market sentiment analysis, feature engineering pipeline, and real-time prediction caching. The AI service provides trading signal generation with confidence scores, multi-timeframe analysis, and automated model training/retraining capabilities.
+This specification defines ALL AI/ML prediction features for the Bot Core trading platform, including deep learning models (LSTM, GRU, Transformer), technical indicator calculation, Grok/xAI integration for market sentiment analysis, feature engineering pipeline, and real-time prediction caching. The AI service provides trading signal generation with confidence scores, multi-timeframe analysis, and automated model training/retraining capabilities.
 
 ---
 
 ## Business Context
 
 **Problem Statement**:
-Cryptocurrency markets operate 24/7 with high volatility, making manual trading analysis difficult and time-consuming. Traders need intelligent, automated systems that can analyze multiple technical indicators, identify patterns, and provide actionable trading signals with confidence scores. The system must support multiple prediction models (LSTM, GRU, Transformer) and leverage advanced AI (GPT-4) for market sentiment analysis.
+Cryptocurrency markets operate 24/7 with high volatility, making manual trading analysis difficult and time-consuming. Traders need intelligent, automated systems that can analyze multiple technical indicators, identify patterns, and provide actionable trading signals with confidence scores. The system must support multiple prediction models (LSTM, GRU, Transformer) and leverage advanced AI (Grok/xAI) for market sentiment analysis.
 
 **Business Goals**:
 - Provide accurate trading signals with confidence scores >= 70% for high-confidence trades
 - Support multiple timeframes (1m, 5m, 15m, 1h, 4h, 1d) for comprehensive analysis
 - Enable real-time predictions with < 2 second response time
-- Integrate GPT-4 for advanced market sentiment analysis
+- Integrate Grok/xAI for advanced market sentiment analysis
 - Support automated model retraining every 24 hours
 - Achieve model accuracy >= 65% on validation data
 
@@ -63,7 +63,7 @@ Cryptocurrency markets operate 24/7 with high volatility, making manual trading 
 - Prediction response time: < 2 seconds (target: < 1 second)
 - Model uptime: >= 99.5%
 - High-confidence signal success rate (confidence >= 0.70): >= 75%
-- GPT-4 API availability: >= 95% (with fallback to technical analysis)
+- Grok/xAI API availability: >= 95% (with fallback to technical analysis)
 - Daily active predictions: >= 1000 per symbol
 
 ---
@@ -347,40 +347,41 @@ technical_indicators:
 
 ---
 
-### FR-AI-005: OpenAI GPT-4o-mini Integration for Market Sentiment Analysis
+### FR-AI-005: Grok/xAI Integration for Market Sentiment Analysis
 
 **Priority**: ☑ Critical
 **Status**: ☑ Completed
 **Code Tags**: `@spec:FR-AI-005`
 
 **Description**:
-Integration with OpenAI's GPT-4o-mini model for advanced cryptocurrency market analysis and trading signal generation. The system uses GPT-4 to analyze technical indicators, market context, and generate actionable trading signals with detailed reasoning. Includes automatic fallback to technical analysis when GPT-4 is unavailable.
+Integration with xAI's Grok model (grok-4-1-fast-non-reasoning) via the OpenAI-compatible SDK for advanced cryptocurrency market analysis and trading signal generation. The system uses Grok/xAI to analyze technical indicators, market context, and generate actionable trading signals with detailed reasoning. Includes automatic fallback to technical analysis when Grok/xAI is unavailable.
 
 **Implementation Location**:
-- GPT Client: `python-ai-service/main.py:903-1066` (DirectOpenAIClient class)
-- GPT Analyzer: `python-ai-service/main.py:1071-1535` (GPTTradingAnalyzer class)
+- Grok Client: `python-ai-service/main.py:903-1066` (DirectGrokClient class)
+- Grok Analyzer: `python-ai-service/main.py:1071-1535` (GrokTradingAnalyzer class)
 - API Endpoint: `python-ai-service/main.py:1750-1889` (POST /ai/analyze)
 
 **API Configuration**:
-- Model: `gpt-4o-mini` (fast, cost-effective variant)
-- Base URL: `https://api.openai.com/v1`
+- Model: `grok-4-1-fast-non-reasoning` (via OpenAI-compatible SDK)
+- Base URL: `https://api.x.ai/v1`
 - Request timeout: 30 seconds
 - Temperature: 0.0 (deterministic responses)
 - Max tokens: 2000
 
 **Multi-Key Fallback System**:
-- Primary API key: From `OPENAI_API_KEY` environment variable
-- Backup keys: From `OPENAI_BACKUP_API_KEYS` (comma-separated)
+- Primary API key: From `XAI_API_KEY` environment variable
+- Backup keys: From `XAI_BACKUP_API_KEYS` (comma-separated)
 - Automatic rotation on rate limit (429) or quota exceeded (403)
 - Rate limit tracking per key with timestamp-based resets
 - Minimum request delay: 20 seconds between calls
 
 **Rate Limiting**:
-- Request delay: 20 seconds between OpenAI API calls
+- Request delay: 20 seconds between xAI API calls
 - Thread-safe rate limit state using threading.Lock
 - Tracks rate limit reset time per API key
 - HTTP 429 handling with automatic key rotation
 - Retry-After header parsing for precise rate limit reset
+
 
 **Prompt Engineering**:
 
@@ -398,6 +399,7 @@ detailed reasoning. Always respond in valid JSON format with:
 - market_analysis: trend, support/resistance, volatility
 - risk_assessment: risk levels, position sizing, stop loss/take profit
 ```
+
 
 **User Prompt** (`python-ai-service/main.py:1375-1441`):
 Includes:
@@ -446,21 +448,21 @@ Includes:
 - Minimum tradeable confidence: 0.45 (configurable)
 
 **Fallback Technical Analysis** (`python-ai-service/main.py:1211-1337`):
-When GPT-4 is unavailable (API down, rate limit, quota exceeded), the system automatically falls back to rule-based technical analysis:
+When Grok/xAI is unavailable (API down, rate limit, quota exceeded), the system automatically falls back to rule-based technical analysis:
 - RSI oversold (< 30) -> Long signal
 - RSI overbought (> 70) -> Short signal
 - MACD bullish crossover -> Long signal
 - MACD bearish crossover -> Short signal
 - High volume (> 1.5x average) -> Signal strength boost
 - Bollinger Band position (< 0.1 lower band, > 0.9 upper band)
-- Default confidence: 0.65 (more conservative than GPT-4)
+- Default confidence: 0.65 (more conservative than Grok/xAI)
 
 **Acceptance Criteria**:
-- [x] GPT-4o-mini client initializes with valid API key
+- [x] Grok/xAI client initializes with valid API key
 - [x] Multi-key fallback system rotates through backup keys on rate limits
 - [x] Rate limiting enforces 20-second delay between requests
 - [x] Market context preparation formats 1H and 4H indicators
-- [x] System prompt guides GPT-4 to return valid JSON
+- [x] System prompt guides Grok/xAI to return valid JSON
 - [x] Response parsing extracts signal, confidence, reasoning, scores
 - [x] Confidence scores are in range [0.0, 1.0]
 - [x] Signal values are "Long", "Short", or "Neutral" only
@@ -468,8 +470,8 @@ When GPT-4 is unavailable (API down, rate limit, quota exceeded), the system aut
 - [x] Error handling for 401 (auth), 429 (rate limit), 403 (quota), timeout
 - [x] Response validation ensures required fields are present
 - [x] Strategy scores match selected strategies from request
-- [ ] A/B testing comparing GPT-4 vs technical analysis accuracy
-- [ ] Cost monitoring and budget alerts for OpenAI API usage
+- [ ] A/B testing comparing Grok/xAI vs technical analysis accuracy
+- [ ] Cost monitoring and budget alerts for xAI API usage
 - [ ] Prompt optimization for improved signal accuracy
 
 **Error Codes and Handling**:
@@ -480,12 +482,12 @@ When GPT-4 is unavailable (API down, rate limit, quota exceeded), the system aut
 - All other errors: Fall back to technical analysis
 
 **Performance Metrics**:
-- Average response time: 2-5 seconds (GPT-4 call)
+- Average response time: 2-5 seconds (Grok/xAI call)
 - Fallback response time: < 500ms (technical analysis)
 - API availability: 95%+ (target with multi-key setup)
-- Cost per prediction: ~$0.002 (GPT-4o-mini pricing)
+- Cost per prediction: ~$0.0003 (Grok pricing, significantly cheaper than GPT-4)
 
-**Dependencies**: OpenAI API, httpx (HTTP client), asyncio, TechnicalAnalyzer
+**Dependencies**: xAI API (OpenAI-compatible SDK), httpx (HTTP client), asyncio, TechnicalAnalyzer
 **Test Cases**: TC-AI-010, TC-AI-011, TC-AI-012
 
 ---
@@ -497,7 +499,7 @@ When GPT-4 is unavailable (API down, rate limit, quota exceeded), the system aut
 **Code Tags**: `@spec:FR-AI-006`
 
 **Description**:
-FastAPI REST endpoint for receiving cryptocurrency market data and returning AI-powered trading signals. Supports multi-timeframe analysis, strategy selection, and MongoDB result caching. Integrates with both ML models and GPT-4 for comprehensive analysis.
+FastAPI REST endpoint for receiving cryptocurrency market data and returning AI-powered trading signals. Supports multi-timeframe analysis, strategy selection, and MongoDB result caching. Integrates with both ML models and Grok/xAI for comprehensive analysis.
 
 **Implementation Location**:
 - API Endpoint: `python-ai-service/main.py:1750-1889`
@@ -606,7 +608,7 @@ FastAPI REST endpoint for receiving cryptocurrency market data and returning AI-
 4. If no cached result or expired:
    - Convert candle data to DataFrames
    - Calculate technical indicators for 1h and 4h timeframes
-   - Call GPT-4 analyzer (or fallback to technical analysis)
+   - Call Grok/xAI analyzer (or fallback to technical analysis)
    - Store result in MongoDB
    - Broadcast signal via WebSocket
    - Return fresh analysis
@@ -622,7 +624,7 @@ Every AI signal (cached or fresh) is broadcast to all connected WebSocket client
     "signal": "long",
     "confidence": 0.78,
     "timestamp": 1696876800000,
-    "model_type": "GPT-4",
+    "model_type": "Grok/xAI",
     "timeframe": "1h",
     "reasoning": "...",
     "strategy_scores": { /* ... */ }
@@ -639,8 +641,8 @@ Every AI signal (cached or fresh) is broadcast to all connected WebSocket client
 - [x] Cache expiration check based on 5-minute interval
 - [x] Fresh analysis when cache miss or expired
 - [x] Technical indicators calculated for 1h and 4h timeframes
-- [x] GPT-4 analyzer called with prepared market context
-- [x] Fallback to technical analysis on GPT-4 failure
+- [x] Grok/xAI analyzer called with prepared market context
+- [x] Fallback to technical analysis on Grok/xAI failure
 - [x] Analysis result stored in MongoDB with timestamp
 - [x] WebSocket broadcast of signal to all connected clients
 - [x] Response conforms to AISignalResponse schema
@@ -654,11 +656,11 @@ Every AI signal (cached or fresh) is broadcast to all connected WebSocket client
 - 400 Bad Request: Invalid request data (validation errors)
 - 422 Unprocessable Entity: Request validation failed (Pydantic errors)
 - 429 Too Many Requests: Rate limit exceeded
-- 500 Internal Server Error: Analysis failed (GPT-4 error, calculation error)
+- 500 Internal Server Error: Analysis failed (Grok/xAI error, calculation error)
 
 **Performance Targets**:
 - Response time (cached): < 200ms
-- Response time (fresh): < 2000ms (GPT-4) or < 500ms (technical analysis)
+- Response time (fresh): < 2000ms (Grok/xAI) or < 500ms (technical analysis)
 - Concurrent requests: 100+
 - Cache hit rate: >= 80% during active trading hours
 
@@ -967,7 +969,7 @@ technical_indicators:
 **Code Tags**: `@spec:FR-AI-009`
 
 **Description**:
-MongoDB-based caching system for AI analysis results to reduce redundant OpenAI API calls and improve response times. Caches are invalidated after 5 minutes, and all cached results are accessible via REST API for analytics and monitoring.
+MongoDB-based caching system for AI analysis results to reduce redundant xAI API calls and improve response times. Caches are invalidated after 5 minutes, and all cached results are accessible via REST API for analytics and monitoring.
 
 **Implementation Location**:
 - MongoDB Storage: `python-ai-service/main.py:147-184`
@@ -1024,10 +1026,10 @@ MongoDB-based caching system for AI analysis results to reduce redundant OpenAI 
    - Broadcast cached signal via WebSocket
    - Return cached response (response time: ~50-100ms)
 5. On cache miss:
-   - Perform fresh GPT-4 or technical analysis
+   - Perform fresh Grok/xAI or technical analysis
    - Store new result in MongoDB
    - Broadcast fresh signal via WebSocket
-   - Return fresh response (response time: 2-5 seconds for GPT-4)
+   - Return fresh response (response time: 2-5 seconds for Grok/xAI)
 
 **Cache Storage** (`main.py:147-165`):
 ```python
@@ -1089,7 +1091,7 @@ async def get_latest_analysis(symbol: str) -> Optional[Dict[str, Any]]:
 - Cache lookup time: 10-50ms
 - Storage time: 20-50ms
 - Total cache hit response time: ~50-100ms
-- Total cache miss response time: 2000-5000ms (GPT-4) or 500ms (technical)
+- Total cache miss response time: 2000-5000ms (Grok/xAI) or 500ms (technical)
 - Storage size: ~5KB per cached analysis
 
 **Error Handling**:
@@ -1182,7 +1184,7 @@ async def broadcast_signal(signal_data: Dict[str, Any]):
     "signal": "long",
     "confidence": 0.78,
     "timestamp": 1696876800000,
-    "model_type": "GPT-4",
+    "model_type": "Grok/xAI",
     "timeframe": "1h",
     "reasoning": "Bullish momentum with RSI recovery...",
     "strategy_scores": {
@@ -1200,7 +1202,7 @@ async def broadcast_signal(signal_data: Dict[str, Any]):
 - Analyzed symbols: BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT, ADAUSDT, DOTUSDT, XRPUSDT, LINKUSDT
 - Workflow per symbol:
   1. Generate dummy market data (in production: fetch from Binance API)
-  2. Run AI analysis (GPT-4 or technical analysis)
+  2. Run AI analysis (Grok/xAI or technical analysis)
   3. Store result in MongoDB
   4. Broadcast signal via WebSocket
   5. Wait 10 seconds before next symbol (rate limiting)
@@ -1487,12 +1489,12 @@ models/saved/
 
 ## Use Cases
 
-### UC-AI-001: Generate Trading Signal with GPT-4
+### UC-AI-001: Generate Trading Signal with Grok/xAI
 
 **Actor**: Trading Engine / Dashboard
 **Preconditions**:
 - AI service is running on port 8000
-- OpenAI API key configured
+- XAI_API_KEY configured
 - MongoDB connected
 - At least 60 candles of market data available
 
@@ -1501,8 +1503,8 @@ models/saved/
 2. System checks MongoDB for recent cached analysis (< 5 minutes old)
 3. If cache miss, system calculates technical indicators for 1H and 4H timeframes
 4. System prepares market context (prices, indicators, volumes)
-5. System calls GPT-4o-mini with analysis prompt
-6. GPT-4 analyzes indicators and returns JSON response
+5. System calls Grok (grok-4-1-fast-non-reasoning) via OpenAI-compatible SDK
+6. Grok/xAI analyzes indicators and returns JSON response
 7. System parses response to extract signal, confidence, reasoning, scores
 8. System stores analysis result in MongoDB
 9. System broadcasts signal via WebSocket to connected clients
@@ -1516,8 +1518,8 @@ models/saved/
   4. System broadcasts cached signal via WebSocket
   5. System returns cached response (fast path: ~100ms)
 
-- **Alt 2: GPT-4 API Failure**
-  1. GPT-4 call fails (rate limit, quota, timeout, auth error)
+- **Alt 2: Grok/xAI API Failure**
+  1. Grok/xAI call fails (rate limit, quota, timeout, auth error)
   2. System logs error with error type
   3. System falls back to technical analysis
   4. System calculates rule-based signal from RSI, MACD, volume, Bollinger
@@ -1537,7 +1539,7 @@ models/saved/
 
 **Exception Handling**:
 - Request validation error: Return 422 Unprocessable Entity
-- GPT-4 timeout: Fall back to technical analysis after 30s
+- Grok/xAI timeout: Fall back to technical analysis after 30s
 - MongoDB unavailable: Skip caching, proceed with analysis
 - Calculation error: Return 500 Internal Server Error with details
 
@@ -1606,7 +1608,7 @@ models/saved/
 **Actor**: Background Task (Automated)
 **Preconditions**:
 - AI service started with lifespan context
-- GPT-4 analyzer initialized (or technical analysis fallback)
+- Grok/xAI analyzer initialized (or technical analysis fallback)
 - MongoDB connected
 - WebSocket manager initialized
 
@@ -1627,7 +1629,7 @@ models/saved/
 
 **Alternative Flows**:
 - **Alt 1: Symbol Analysis Failure**
-  1. Analysis for one symbol fails (GPT-4 error, data error)
+  1. Analysis for one symbol fails (Grok/xAI error, data error)
   2. System logs error for failed symbol
   3. System continues to next symbol (skip failed symbol)
   4. Cycle continues without interruption
@@ -1638,7 +1640,7 @@ models/saved/
   3. Task logs shutdown message
   4. Task exits cleanly without completing current cycle
 
-- **Alt 3: All GPT-4 Keys Rate Limited**
+- **Alt 3: All Grok/xAI Keys Rate Limited**
   1. All API keys reach rate limit (429 errors)
   2. System falls back to technical analysis for all symbols
   3. Analysis continues with rule-based signals
@@ -1777,12 +1779,12 @@ GET /ai/performance
   Response: AIModelPerformance
 
 GET /debug/gpt4
-  Response: GPT-4 connectivity test
+  Response: Grok/xAI connectivity test
   Rate Limit: 5/minute
 ```
 
 **External Systems** (reference to INTEGRATION_SPEC.md):
-- OpenAI API: GPT-4o-mini for market analysis
+- xAI API: Grok (grok-4-1-fast-non-reasoning) for market analysis, via OpenAI-compatible SDK
 - MongoDB: Result caching and storage
 - Binance API: Market data (OHLCV candles) - future integration
 
@@ -1797,7 +1799,7 @@ GET /debug/gpt4
 
 **Performance**:
 - Analysis response time (cached): < 200ms (target: 100ms)
-- Analysis response time (GPT-4): < 2000ms (target: 1500ms)
+- Analysis response time (Grok/xAI): < 2000ms (target: 1500ms)
 - Analysis response time (technical): < 500ms (target: 300ms)
 - Model inference time: < 100ms (LSTM/GRU), < 200ms (Transformer)
 - Feature calculation time: < 200ms for 100 candles
@@ -1807,7 +1809,7 @@ GET /debug/gpt4
 
 **Security**:
 - API key storage: Environment variables only
-- OpenAI API key: Masked in logs (last 8 chars visible)
+- xAI API key: Masked in logs (last 8 chars visible)
 - MongoDB credentials: Secured via connection string
 - Input validation: Pydantic models with field validation
 - Rate limiting: 10 req/min per IP for analysis, 5 req/min for debug
@@ -1824,8 +1826,8 @@ GET /debug/gpt4
 
 **Reliability**:
 - Service uptime: 99.5% target
-- GPT-4 API availability: 95%+ with multi-key fallback
-- Fallback to technical analysis on GPT-4 failure
+- Grok/xAI API availability: 95%+ with multi-key fallback
+- Fallback to technical analysis on Grok/xAI failure
 - MongoDB graceful degradation (skip caching if unavailable)
 - Error handling at every layer (API, analysis, storage, broadcast)
 - Automatic model retraining every 24 hours
@@ -1848,7 +1850,7 @@ GET /debug/gpt4
 **Python AI Service**:
 - Main Service: `python-ai-service/main.py:1-2087`
   - FastAPI app initialization: lines 349-355
-  - OpenAI client: lines 903-1066
+  - Grok/xAI client (OpenAI-compatible SDK): lines 903-1066
   - GPT analyzer: lines 1071-1535
   - Technical analyzer: lines 556-867
   - WebSocket manager: lines 70-127
@@ -1921,7 +1923,7 @@ GET /debug/gpt4
 - slowapi: 0.1.9 (rate limiting)
 
 **External Integrations**:
-- OpenAI: 1.51.0 (GPT-4 API client)
+- OpenAI: 1.51.0 (OpenAI-compatible SDK used with xAI/Grok at api.x.ai/v1)
 - motor: 3.6.0 (async MongoDB driver)
 - pymongo: 4.9.1 (MongoDB sync driver)
 
@@ -1930,7 +1932,7 @@ GET /debug/gpt4
 - Factory: Model creation (LSTM/GRU/Transformer selection)
 - Manager: WebSocketManager (connection lifecycle)
 - Observer: WebSocket broadcasting (publish-subscribe)
-- Strategy: Technical vs GPT-4 analysis (fallback strategy)
+- Strategy: Technical vs Grok/xAI analysis (fallback strategy)
 - Template Method: Model base class (train, predict, evaluate)
 
 **Configuration** (config.yaml):
@@ -2009,7 +2011,7 @@ logging:
 **Integration Tests**:
 - Test suite: `tests/test_integration.py` (not yet implemented)
 - Integration points tested:
-  1. API endpoint with mock GPT-4 client
+  1. API endpoint with mock Grok/xAI client
   2. MongoDB storage and retrieval
   3. WebSocket connection and broadcasting
   4. Feature engineering + model prediction pipeline
@@ -2024,7 +2026,7 @@ logging:
   1. Complete analysis request flow (POST /ai/analyze)
   2. WebSocket connection and signal reception
   3. Model training from historical data
-  4. GPT-4 analysis with real API call
+  4. Grok/xAI analysis with real API call
   5. Cache hit/miss scenarios
   6. Multi-symbol periodic analysis
   7. Service startup and shutdown
@@ -2070,11 +2072,11 @@ logging:
 - GPU: Optional (for Transformer model training)
 
 **Configuration Changes**:
-- OPENAI_API_KEY: Set via environment variable
+- XAI_API_KEY: Set via environment variable
 - DATABASE_URL: MongoDB connection string
 - LOG_LEVEL: INFO (production), DEBUG (development)
 - ANALYSIS_INTERVAL_MINUTES: 5 (configurable)
-- OPENAI_REQUEST_DELAY: 20 seconds (rate limiting)
+- XAI_REQUEST_DELAY: 20 seconds (rate limiting)
 
 **Database Migrations**:
 - Collection: `ai_analysis_results`
@@ -2095,8 +2097,8 @@ logging:
 **Metrics to Track**:
 - api_requests_total: Total API requests (by endpoint)
 - api_request_duration_seconds: Request latency histogram
-- gpt4_api_calls_total: Total GPT-4 API calls
-- gpt4_api_failures_total: GPT-4 API failures (by error type)
+- grok_api_calls_total: Total Grok/xAI API calls
+- grok_api_failures_total: Grok/xAI API failures (by error type)
 - cache_hit_rate: MongoDB cache hit percentage
 - model_predictions_total: Total model predictions
 - websocket_connections_active: Active WebSocket connections
@@ -2106,7 +2108,7 @@ logging:
 **Alert thresholds**:
 - Response time p95 > 3 seconds: Warning
 - Error rate > 5%: Critical
-- GPT-4 API failure rate > 50%: Warning (fallback active)
+- Grok/xAI API failure rate > 50%: Warning (fallback active)
 - Cache hit rate < 40%: Warning (inefficient caching)
 - WebSocket connection errors > 10/minute: Warning
 - MongoDB connection failures: Critical
@@ -2116,7 +2118,7 @@ logging:
 - Key log events:
   1. Service startup/shutdown
   2. API request received (symbol, timeframe)
-  3. GPT-4 API call (success/failure)
+  3. Grok/xAI API call (success/failure)
   4. Cache hit/miss
   5. Model prediction (signal, confidence)
   6. WebSocket connection/disconnection
@@ -2134,7 +2136,7 @@ logging:
 - Dashboard 2: AI Analysis Metrics
   - Signal distribution (Long/Short/Neutral)
   - Average confidence scores
-  - GPT-4 vs Technical analysis ratio
+  - Grok/xAI vs Technical analysis ratio
   - Analysis count by symbol
 
 - Dashboard 3: System Health
@@ -2158,7 +2160,7 @@ logging:
 - Architecture: [ARCH-AI-001](../../02-design/ARCHITECTURE.md#ai-service) - AI Service Architecture
 - API Spec: [API_SPEC.md#ai-endpoints](../../API_SPEC.md#ai-service-endpoints) - AI REST Endpoints
 - Data Model: [DATA_MODELS.md#ai-models](../../DATA_MODELS.md#ai-prediction-models) - AI Response Models
-- Integration: [INTEGRATION_SPEC.md#openai](../../INTEGRATION_SPEC.md#openai-gpt4) - OpenAI Integration
+- Integration: [INTEGRATION_SPEC.md#xai](../../INTEGRATION_SPEC.md#xai-grok) - xAI/Grok Integration
 
 **Test Cases**:
 - Unit: TC-AI-001 (LSTM model building)
@@ -2170,10 +2172,10 @@ logging:
 - Unit: TC-AI-007 (RSI calculation)
 - Unit: TC-AI-008 (MACD calculation)
 - Unit: TC-AI-009 (Bollinger Bands calculation)
-- Unit: TC-AI-010 (GPT-4 client initialization)
-- Unit: TC-AI-011 (GPT-4 analysis)
+- Unit: TC-AI-010 (Grok/xAI client initialization)
+- Unit: TC-AI-011 (Grok/xAI analysis)
 - Unit: TC-AI-012 (Technical analysis fallback)
-- Integration: TC-AI-013 (API endpoint with GPT-4)
+- Integration: TC-AI-013 (API endpoint with Grok/xAI)
 - Integration: TC-AI-014 (API endpoint with cache)
 - Integration: TC-AI-015 (API endpoint with fallback)
 - Integration: TC-AI-016 (Model training pipeline)
@@ -2198,13 +2200,13 @@ logging:
 
 | Risk | Impact | Probability | Mitigation |
 |------|--------|-------------|------------|
-| OpenAI API rate limits | High | High | Multi-key fallback system + technical analysis fallback |
-| OpenAI API quota exceeded | High | Medium | Monitor usage, set budget alerts, automatic fallback |
+| xAI API rate limits | High | High | Multi-key fallback system + technical analysis fallback |
+| xAI API quota exceeded | High | Medium | Monitor usage, set budget alerts, automatic fallback |
 | Model accuracy degradation | High | Medium | Automated retraining every 24 hours, A/B testing |
 | MongoDB unavailable | Medium | Low | Graceful degradation (skip caching), redundant replica set |
 | Training data quality issues | High | Medium | Data validation, outlier detection, robust preprocessing |
 | WebSocket connection failures | Medium | Medium | Automatic reconnection, error handling, connection cleanup |
-| High API latency (GPT-4) | Medium | Medium | Caching (5-minute TTL), timeout handling (30s), fallback |
+| High API latency (Grok/xAI) | Medium | Medium | Caching (5-minute TTL), timeout handling (30s), fallback |
 | Model file corruption | High | Low | Versioning (keep 5 backups), metadata validation on load |
 | Feature calculation errors | Medium | Low | Error handling per indicator, fallback to available features |
 | Memory leaks (long-running service) | Medium | Low | Memory monitoring, periodic restarts, resource limits |
@@ -2214,8 +2216,8 @@ logging:
 ## Open Questions
 
 - [x] Question 1: What is the target model accuracy for production deployment? **Resolution: >= 65% accuracy on validation data (2025-10-10)**
-- [x] Question 2: Should we implement A/B testing for comparing GPT-4 vs technical analysis? **Resolution: Yes, track accuracy metrics for both methods (2025-10-10)**
-- [ ] Question 3: What is the budget for OpenAI API usage per month? **Resolution needed by 2025-10-20**
+- [x] Question 2: Should we implement A/B testing for comparing Grok/xAI vs technical analysis? **Resolution: Yes, track accuracy metrics for both methods (2025-10-10)**
+- [ ] Question 3: What is the budget for xAI API usage per month? **Resolution needed by 2025-10-20**
 - [ ] Question 4: Should we implement model ensembling (LSTM + GRU + Transformer)? **Resolution needed by 2025-10-15**
 - [x] Question 5: What is the retention policy for MongoDB cached analyses? **Resolution: 5-minute TTL, no long-term retention (2025-10-10)**
 - [ ] Question 6: Should we implement GPU support for model training? **Resolution needed by 2025-10-25**
@@ -2236,7 +2238,7 @@ logging:
 
 **References**:
 - TensorFlow Documentation: https://www.tensorflow.org/api_docs
-- OpenAI API Reference: https://platform.openai.com/docs/api-reference
+- xAI API Reference: https://docs.x.ai/api
 - Technical Analysis Library (ta): https://technical-analysis-library-in-python.readthedocs.io/
 - MongoDB Motor Driver: https://motor.readthedocs.io/
 - FastAPI Documentation: https://fastapi.tiangolo.com/

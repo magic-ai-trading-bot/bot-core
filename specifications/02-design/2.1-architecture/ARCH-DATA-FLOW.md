@@ -748,7 +748,7 @@ fn update_position(user_id: &str, trade: &Trade) -> Result<Position> {
 
 ### Description
 
-This flow describes how AI analysis is triggered, processed through machine learning models and OpenAI GPT-4, cached, and delivered to the Rust Core Engine and frontend.
+This flow describes how AI analysis is triggered, processed through machine learning models and Grok/xAI, cached, and delivered to the Rust Core Engine and frontend.
 
 ### Data Flow Sequence Diagram
 
@@ -760,7 +760,7 @@ sequenceDiagram
     participant MarketData as Market Data Query
     participant Indicators as Technical Indicators
     participant LSTM as LSTM Model
-    participant GPT4 as OpenAI GPT-4
+    participant GPT4 as xAI Grok
     participant RustAPI as Rust Core Engine
     participant Channel as Broadcast Channel
     participant WSServer as WebSocket Server
@@ -832,14 +832,14 @@ sequenceDiagram
         PythonAPI->>GPT4: Analyze market sentiment
         Note right of GPT4: Prompt:<br/>"Analyze the following market data for BTCUSDT:<br/>- Current price: $43,250<br/>- RSI: 67.5 (approaching overbought)<br/>- MACD: Bullish crossover<br/>- Bollinger Bands: Price near upper band<br/>- Volume: Increasing<br/><br/>Provide a brief analysis and trading recommendation."
 
-        GPT4->>GPT4: Process prompt (GPT-4 Turbo)
-        Note right of GPT4: Model: gpt-4-turbo-preview<br/>Max tokens: 500<br/>Temperature: 0.3
+        GPT4->>GPT4: Process prompt (Grok)
+        Note right of GPT4: Model: grok-4-1-fast-non-reasoning<br/>Max tokens: 500<br/>Temperature: 0.3
 
         GPT4-->>PythonAPI: AI Response (latency: 1-3s)
         Note right of PythonAPI: Response:<br/>"The market shows strong bullish momentum with<br/>MACD crossover and increasing volume. However,<br/>RSI at 67.5 suggests caution as it approaches<br/>overbought territory. Consider entering with<br/>tight stop-loss around $42,500. Target: $45,000."
 
         Note over PythonAPI,Cache: Result Aggregation & Caching
-        PythonAPI->>PythonAPI: Combine ML prediction + GPT-4 analysis
+        PythonAPI->>PythonAPI: Combine ML prediction + Grok analysis
         Note right of PythonAPI: Final signal: {<br/>  symbol: "BTCUSDT",<br/>  direction: "BUY",<br/>  confidence: 0.82,<br/>  ml_prediction: [0.82, 0.15, 0.03],<br/>  indicators: {RSI: 67.5, MACD: ...},<br/>  ai_reasoning: "The market shows...",<br/>  timestamp: 1698765432,<br/>  expires_at: 1698765732 (5 min later)<br/>}
 
         PythonAPI->>Cache: Store analysis result
@@ -1016,7 +1016,7 @@ class LSTMPricePredictor(nn.Module):
 - **Low confidence**: 0.50 < probability <= 0.65 (weak signal)
 - **No signal**: probability <= 0.50 (ignore)
 
-### OpenAI GPT-4 Integration
+### Grok/xAI Integration
 
 **API Call**:
 ```python
@@ -1032,8 +1032,9 @@ ML Prediction: {market_data['ml_prediction']} with {market_data['confidence']*10
 
 Provide a brief (3-4 sentences) market analysis and trading recommendation. Focus on key insights."""
 
-    response = await openai.ChatCompletion.acreate(
-        model="gpt-4-turbo-preview",
+    # Uses OpenAI-compatible SDK with xAI base URL (api.x.ai/v1)
+    response = await grok_client.chat_completions_create(
+        model=os.getenv("AI_MODEL", "grok-4-1-fast-non-reasoning"),
         messages=[
             {"role": "system", "content": "You are an expert cryptocurrency trading analyst. Provide concise, actionable insights."},
             {"role": "user", "content": prompt}
@@ -1051,16 +1052,16 @@ The market shows strong bullish momentum with a positive MACD crossover (MACD 12
 ```
 
 **Rate Limiting**:
-- **OpenAI Tier**: Tier 2 (50,000 TPM - Tokens Per Minute)
-- **Requests per minute**: ~20 (assuming 2,500 tokens per request)
+- **xAI API**: Rate-limited with configurable delay between requests
+- **Requests per minute**: ~20 (configurable via env var)
 - **Backoff strategy**: Exponential backoff if rate limit exceeded
-- **Fallback**: Return "AI analysis temporarily unavailable" if OpenAI fails
+- **Fallback**: Return "AI analysis temporarily unavailable" if xAI Grok fails
 
 **Cost Management**:
-- **Model**: GPT-4 Turbo ($0.01 per 1K input tokens, $0.03 per 1K output tokens)
+- **Model**: grok-4-1-fast-non-reasoning ($0.20 per 1M input tokens, $0.50 per 1M output tokens)
 - **Average request**: ~1,000 input tokens, ~200 output tokens
-- **Cost per request**: ~$0.016
-- **Monthly cost** (4 symbols, 5-min interval): ~$2,300
+- **Cost per request**: ~$0.0003
+- **Monthly cost** (4 symbols, 5-min interval): significantly lower than GPT-4
 - **Optimization**: Cache results for 5 minutes, reducing costs by 80%
 
 ### Caching Strategy
@@ -1140,10 +1141,10 @@ Content-Type: application/json
 - **Input shape mismatch**: Log error, skip inference, return cached or default signal
 - **GPU out of memory**: Fallback to CPU inference (slower but functional)
 
-**OpenAI API Errors**:
+**xAI Grok API Errors**:
 - **Rate limit exceeded**: Use exponential backoff, retry after delay
-- **API timeout**: Retry once, if fails return partial signal (ML only, no GPT-4 reasoning)
-- **Invalid API key**: Alert admin, disable GPT-4 integration
+- **API timeout**: Retry once, if fails return partial signal (ML only, no Grok reasoning)
+- **Invalid API key**: Alert admin, disable Grok integration
 - **Content filter triggered**: Log prompt, adjust prompt template
 
 **Data Issues**:
@@ -1158,7 +1159,7 @@ Content-Type: application/json
 - Market data query: 2-20ms
 - Indicators calculation: 5-10ms
 - LSTM inference: 50-200ms (GPU), 500-1000ms (CPU)
-- GPT-4 API call: 1000-3000ms
+- Grok API call: 1000-3000ms
 - Cache storage: 5-10ms
 - Rust API call: 10-30ms
 - Broadcast: 1-5ms
@@ -1174,7 +1175,7 @@ Content-Type: application/json
 - CPU (inference): 20-40% (during inference, spikes to 80%)
 - GPU memory: 2-4 GB (if using GPU)
 - RAM: 1-2 GB (model weights + data)
-- Network: 5-10 KB/s (OpenAI API calls)
+- Network: 5-10 KB/s (xAI Grok API calls)
 
 ### Monitoring & Metrics
 
@@ -1182,14 +1183,14 @@ Content-Type: application/json
 - `ai_analysis_requests_total` (counter, labels: symbol, cache_hit)
 - `ai_analysis_latency_seconds` (histogram, labels: symbol, cache_hit)
 - `ai_ml_inference_latency_seconds` (histogram)
-- `ai_gpt4_api_latency_seconds` (histogram)
+- `ai_grok_api_latency_seconds` (histogram)
 - `ai_cache_hit_rate` (gauge)
 - `ai_confidence_score` (histogram, labels: symbol)
 
 **Alerts**:
 - Analysis latency >10s over 5 minutes
 - Cache hit rate <70% over 15 minutes
-- GPT-4 API error rate >5% over 5 minutes
+- Grok API error rate >5% over 5 minutes
 - ML inference failure rate >1% over 5 minutes
 
 ---
@@ -2187,7 +2188,7 @@ This data flow architecture document provides comprehensive specifications for a
 
 1. **ARCH-DATA-FLOW-001: Market Data Flow** - Real-time market data from Binance to frontend
 2. **ARCH-DATA-FLOW-002: Trading Execution Flow** - Complete trade lifecycle with risk management
-3. **ARCH-DATA-FLOW-003: AI Analysis Flow** - ML-powered trading signals with GPT-4 reasoning
+3. **ARCH-DATA-FLOW-003: AI Analysis Flow** - ML-powered trading signals with Grok/xAI reasoning
 4. **ARCH-DATA-FLOW-004: Authentication Flow** - User registration, login, and JWT management
 5. **ARCH-DATA-FLOW-005: WebSocket Real-Time Updates** - Push notifications to frontend
 6. **ARCH-DATA-FLOW-006: Paper Trading Flow** - Simulated trading without real money

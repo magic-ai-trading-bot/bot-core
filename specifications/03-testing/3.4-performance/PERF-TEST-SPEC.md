@@ -47,7 +47,7 @@
 - **Technical Indicator Calculation**: < 1000ms
 - **ML Model Prediction (LSTM)**: < 3000ms
 - **Ensemble Prediction**: < 5000ms
-- **GPT-4 Analysis**: < 5000ms (network dependent)
+- **Grok/xAI Analysis**: < 5000ms (network dependent)
 - **Feature Engineering**: < 500ms
 
 #### Next.js Frontend

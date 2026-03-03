@@ -292,7 +292,7 @@ As an **administrator**, I want to **modify system-wide configuration settings**
     - Maximum drawdown limit
     - Auto-liquidation margin level
   - **AI Settings**:
-    - OpenAI API keys (primary + backups)
+    - xAI API keys (primary + backups)
     - Model selection (LSTM/GRU/Transformer)
     - Analysis timeout
   - **System Settings**:
@@ -475,10 +475,10 @@ As an **administrator**, I want to **monitor AI model performance and accuracy**
   - Resulting trades (win/loss)
   - Average PnL per signal
   - Confidence vs outcome correlation
-- [ ] And I see GPT-4 integration metrics:
+- [ ] And I see Grok/xAI integration metrics:
   - API success rate
   - Average response time
-  - Fallback rate (when GPT unavailable)
+  - Fallback rate (when Grok unavailable)
   - API costs and usage
 - [ ] And I can trigger manual model retraining
 - [ ] And I see model comparison charts
@@ -539,7 +539,7 @@ As an **administrator**, I want to **start, stop, and restart platform services*
 - [ ] Then I see all services:
   - Rust Trading Engine (port 8080)
   - Python AI Service (port 8000)
-  - Next.js Dashboard (port 3000)
+  - Frontend Dashboard (port 3000)
   - MongoDB (port 27017)
   - Redis Cache (if enabled)
 - [ ] And I can perform actions on each service:
@@ -678,7 +678,7 @@ As an **administrator**, I want to **manage user support tickets and inquiries**
 12. Administrator runs health checks:
     - Service responds: ✓
     - Database connection: ✓
-    - OpenAI API test: ✓
+    - xAI API test: ✓
     - Signal generation test: ✓
 13. Administrator resumes trading (removes halt)
 14. Administrator removes maintenance banner

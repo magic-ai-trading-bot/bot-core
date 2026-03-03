@@ -1,4 +1,4 @@
-# 🚀 Hướng Dẫn Khởi Động Với OpenAI API Key Mới
+# 🚀 Hướng Dẫn Khởi Động Với xAI API Key Mới
 
 **Ngày tạo:** 2024-11-19
 **Tối ưu hóa:** Đã áp dụng (tiết kiệm 63% chi phí)
@@ -26,9 +26,9 @@
 **Key bị lộ:** `sk-proj-hCQBYSka1lf...` (trong chat trước)
 
 ### Thu hồi ngay:
-1. Truy cập: https://platform.openai.com/api-keys
-2. Đăng nhập vào tài khoản OpenAI
-3. Tìm key: `sk-proj-hCQBYSka1lf...`
+1. Truy cập: https://console.x.ai/
+2. Đăng nhập vào tài khoản xAI
+3. Tìm key cũ bị lộ
 4. Click **"Revoke"** hoặc **"Delete"**
 5. Confirm deletion
 
@@ -39,16 +39,16 @@
 ## 🆕 BƯỚC 2: TẠO API KEY MỚI
 
 ### Tạo key:
-1. Vẫn ở: https://platform.openai.com/api-keys
-2. Click **"Create new secret key"**
+1. Vẫn ở: https://console.x.ai/
+2. Click **"Create API Key"**
 3. Đặt tên: `bot-core-production` (hoặc tên bạn muốn)
 4. **QUAN TRỌNG:** Copy key ngay (chỉ hiện 1 lần!)
-   - Key sẽ có dạng: `sk-proj-...` (khoảng 100-150 ký tự)
+   - Key sẽ có dạng: `xai-...`
 
 ### Kiểm tra billing:
-5. Vào: https://platform.openai.com/settings/organization/billing
+5. Vào billing section trên console.x.ai
 6. Đảm bảo có credit hoặc payment method
-7. Set spending limit (khuyến nghị: $50/month)
+7. Set spending limit nếu cần
 
 ---
 
@@ -58,13 +58,13 @@
 
 ```bash
 cd /Users/dungngo97/Documents/bot-core
-./scripts/setup-openai-key.sh
+./scripts/setup-xai-key.sh
 ```
 
 **Script sẽ:**
 - ✅ Backup file `.env` hiện tại
 - ✅ Validate format của API key
-- ✅ Tự động thêm/update `OPENAI_API_KEY`
+- ✅ Tự động thêm/update `XAI_API_KEY`
 - ✅ Không hiển thị key ra console
 
 **Khi chạy:**
@@ -82,7 +82,7 @@ nano .env
 # API Keys - NEVER commit real keys
 
 # Thêm vào ngay sau dòng BINANCE_SECRET_KEY:
-OPENAI_API_KEY=sk-proj-[PASTE_KEY_CỦA_BẠN_VÀO_ĐÂY]
+XAI_API_KEY=xai-[PASTE_KEY_CỦA_BẠN_VÀO_ĐÂY]
 
 # Lưu: Ctrl+O, Enter, Ctrl+X
 ```
@@ -91,10 +91,10 @@ OPENAI_API_KEY=sk-proj-[PASTE_KEY_CỦA_BẠN_VÀO_ĐÂY]
 
 ```bash
 # Check key đã được set (ẩn key)
-grep "OPENAI_API_KEY" .env | sed 's/\(OPENAI_API_KEY=sk-proj-.\{10\}\).*$/\1.../'
+grep "XAI_API_KEY" .env | sed 's/\(XAI_API_KEY=xai-.\{10\}\).*$/\1.../'
 ```
 
-**Expected:** `OPENAI_API_KEY=sk-proj-hC...`
+**Expected:** `XAI_API_KEY=xai-hC...`
 
 ---
 
@@ -116,8 +116,8 @@ grep "OPENAI_API_KEY" .env | sed 's/\(OPENAI_API_KEY=sk-proj-.\{10\}\).*$/\1.../
 docker logs -f python-ai-service
 
 # Đợi thấy:
-# ✅ Direct OpenAI HTTP client initialized successfully
-# ✅ OpenAI GPT-4 client ready for analysis
+# ✅ Direct xAI HTTP client initialized successfully
+# ✅ Grok/xAI client ready for analysis
 # 🔄 Started periodic analysis task (every 10 minutes)
 
 # Nhấn Ctrl+C khi thấy messages trên
@@ -136,15 +136,15 @@ curl http://localhost:8000/health | jq
 ```json
 {
   "status": "healthy",
-  "gpt4_available": true,         // ← Phải là true
+  "grok_available": true,          // ← Phải là true
   "api_key_configured": true,     // ← Phải là true
   "analysis_interval_minutes": 10 // ← Optimized (was 5)
 }
 ```
 
-### Test 2: Debug GPT-4
+### Test 2: Debug Grok/xAI
 ```bash
-curl http://localhost:8000/debug/gpt4 | jq
+curl http://localhost:8000/debug/grok | jq
 ```
 
 **Expected:**
@@ -152,7 +152,7 @@ curl http://localhost:8000/debug/gpt4 | jq
 {
   "status": "success",
   "test_response": "SUCCESS",
-  "model_used": "gpt-4o-mini"
+  "model_used": "grok-4-1-fast-non-reasoning"
 }
 ```
 
@@ -219,7 +219,7 @@ cat > monitor-costs.sh << 'SCRIPT'
 #!/bin/bash
 while true; do
   clear
-  echo "=== Bot-Core GPT-4 Cost Monitor ==="
+  echo "=== Bot-Core Grok/xAI Cost Monitor ==="
   echo "Time: $(date)"
   echo ""
 
@@ -276,7 +276,7 @@ chmod +x monitor-costs.sh
 Sau 24 giờ chạy, verify:
 
 - [ ] Service running: `docker ps | grep python-ai`
-- [ ] Health check: `gpt4_available: true`
+- [ ] Health check: `grok_available: true`
 - [ ] Debug test: `status: success`
 - [ ] First request logged: Thấy "💰 Cost" trong logs
 - [ ] Input tokens: < 500 per request (target: ~280)
@@ -293,17 +293,17 @@ Sau 24 giờ chạy, verify:
 
 ## 🚨 TROUBLESHOOTING
 
-### Problem: `gpt4_available: false`
+### Problem: `grok_available: false`
 
 **Nguyên nhân:** API key không đúng hoặc không set
 
 **Giải pháp:**
 ```bash
 # Check key trong .env
-grep OPENAI_API_KEY .env
+grep XAI_API_KEY .env
 
-# Nếu empty hoặc "your-openai-api-key":
-./scripts/setup-openai-key.sh
+# Nếu empty hoặc "your-xai-api-key":
+./scripts/setup-xai-key.sh
 
 # Restart services
 ./scripts/bot.sh stop
@@ -315,7 +315,7 @@ grep OPENAI_API_KEY .env
 **Nguyên nhân:** API key invalid hoặc expired
 
 **Giải pháp:**
-1. Verify key trên: https://platform.openai.com/api-keys
+1. Verify key trên: https://console.x.ai/
 2. Tạo key mới nếu cần
 3. Update `.env` với key mới
 4. Restart services
@@ -331,7 +331,7 @@ docker logs python-ai-service | grep "rate limit"
 
 # Wait 1 phút và thử lại
 sleep 60
-curl http://localhost:8000/debug/gpt4 | jq
+curl http://localhost:8000/debug/grok | jq
 ```
 
 ### Problem: High cost (>$0.002 per request)
@@ -358,7 +358,7 @@ git pull origin main  # Get latest optimizations
 
 ### Problem: No cost logs sau 15 phút
 
-**Nguyên nhân:** Periodic analysis chưa chạy hoặc GPT-4 không được call
+**Nguyên nhân:** Periodic analysis chưa chạy hoặc Grok/xAI không được call
 
 **Giải pháp:**
 ```bash
@@ -418,7 +418,7 @@ chmod +x scripts/cost-alert.sh
 
 ### Security:
 - ✅ Rotate API keys mỗi 3-6 tháng
-- ✅ Set spending limits trên OpenAI dashboard
+- ✅ Set spending limits trên xAI console (console.x.ai)
 - ✅ Monitor daily costs
 - ✅ Revoke unused keys
 
@@ -430,7 +430,7 @@ chmod +x scripts/cost-alert.sh
 
 ### Quality Assurance:
 - ✅ Review signal confidence scores
-- ✅ Compare GPT-4 vs fallback performance
+- ✅ Compare Grok/xAI vs fallback performance
 - ✅ Monitor for API errors
 - ✅ Check response quality in logs
 
@@ -449,7 +449,7 @@ docker ps
 ```
 
 ### Documentation:
-- Optimization guide: `python-ai-service/docs/GPT4_COST_OPTIMIZATION.md`
+- Optimization guide: `python-ai-service/docs/GROK_COST_OPTIMIZATION.md`
 - Quick test: `QUICK_TEST_GUIDE.md`
 - Summary: `OPTIMIZATION_SUMMARY.md`
 

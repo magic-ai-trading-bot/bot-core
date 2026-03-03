@@ -224,7 +224,7 @@ Protect the gateway and Telegram channel against unauthorized access via token a
 
 ## Dependencies
 
-- **MCP Server** (`mcp-server/`): Must be healthy before gateway starts. Provides all 110 trading tools.
+- **MCP Server** (`mcp-server/`): Must be healthy before gateway starts. Provides all 114 trading tools.
 - **Rust API** (`:8080`): Indirect dependency via MCP server for trading operations.
 - **Python AI Service** (`:8000`): Indirect dependency via MCP server for AI predictions.
 - **Telegram Bot API**: External dependency; requires valid `TELEGRAM_BOT_TOKEN`.

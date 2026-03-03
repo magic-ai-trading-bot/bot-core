@@ -28,9 +28,9 @@ GET /health
 {
   "status": "healthy",
   "timestamp": "2025-07-31T18:33:29.169981+00:00",
-  "service": "GPT-4 Trading AI",
+  "service": "Grok/xAI Trading AI",
   "version": "2.0.0",
-  "gpt4_available": true,
+  "grok_available": true,
   "mongodb_connected": true,
   "analysis_interval_minutes": 5,
   "supported_symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "ADAUSDT", "DOTUSDT", "XRPUSDT", "LINKUSDT"]
@@ -102,7 +102,7 @@ POST /ai/analyze
   "metadata": {
     "analysis_id": "550e8400-e29b-41d4-a716-446655440000",
     "timestamp": "2025-07-31T18:33:29.169981+00:00",
-    "model_version": "gpt-4o-mini",
+    "model_version": "grok-4-1-fast",
     "processing_time_ms": 1234
   }
 }

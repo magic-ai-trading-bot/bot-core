@@ -50,7 +50,7 @@ An enterprise-grade specification system has been created for the Bot Core crypt
    - MongoDB persistence
 
 2. **Python AI Service** (Port 8000)
-   - GPT-4 AI signal generation
+   - Grok/xAI signal generation
    - LSTM/GRU/Transformer ML models
    - Technical indicator calculation
    - Strategy recommendations
@@ -152,7 +152,7 @@ An enterprise-grade specification system has been created for the Bot Core crypt
 ### Python AI Service API (Port 8000)
 
 **AI Analysis Endpoints**:
-- `POST /ai/analyze` - Generate trading signals with GPT-4
+- `POST /ai/analyze` - Generate trading signals with Grok/xAI
 - `POST /ai/strategy-recommendations` - Get strategy recommendations
 - `POST /ai/market-condition` - Analyze market conditions
 - `POST /ai/feedback` - Send performance feedback
@@ -171,7 +171,7 @@ An enterprise-grade specification system has been created for the Bot Core crypt
 - `WS /ws` - Real-time AI signal broadcasting
 
 **Debug**:
-- `GET /debug/gpt4` - GPT-4 connectivity test
+- `GET /debug/grok` - Grok/xAI connectivity test
 
 **Total Python Endpoints**: ~15
 
@@ -260,7 +260,7 @@ From BUSINESS_RULES.md and code analysis:
 ### Backend Stack
 
 **Rust Core Engine**:
-- **Framework**: Actix-web (async HTTP server)
+- **Framework**: Warp (async HTTP server)
 - **Database**: MongoDB (via mongodb crate)
 - **WebSocket**: Tokio-tungstenite
 - **Authentication**: jsonwebtoken (JWT)
@@ -270,7 +270,7 @@ From BUSINESS_RULES.md and code analysis:
 **Python AI Service**:
 - **Framework**: FastAPI
 - **ML Libraries**: TensorFlow, PyTorch
-- **AI**: OpenAI GPT-4 API
+- **AI**: xAI Grok API (via OpenAI-compatible SDK, api.x.ai/v1)
 - **Indicators**: ta-lib, pandas
 - **Database**: Motor (async MongoDB)
 - **WebSocket**: FastAPI WebSocket
@@ -294,7 +294,7 @@ From BUSINESS_RULES.md and code analysis:
 - **Containerization**: Docker + Docker Compose
 - **Database**: MongoDB
 - **External API**: Binance API (testnet & mainnet)
-- **AI**: OpenAI GPT-4
+- **AI**: xAI Grok (grok-4-1-fast-non-reasoning)
 
 ---
 
@@ -397,8 +397,8 @@ From BUSINESS_RULES.md and code analysis:
    - WebSocket for real-time market data
    - Testnet and mainnet support
 
-2. **OpenAI GPT-4** (AI Analysis)
-   - Chat completions API
+2. **xAI Grok** (AI Analysis)
+   - Chat completions API (OpenAI-compatible SDK at api.x.ai/v1)
    - Multiple API key fallback support
    - Rate limit handling with auto-retry
 

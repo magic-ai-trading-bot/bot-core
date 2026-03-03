@@ -277,8 +277,8 @@ Feature: Handle API Rate Limits
     And queue pending requests
     And resume after cooldown
 
-  Scenario: Hit OpenAI API rate limit
-    Given OpenAI rate limit is 60 requests/minute
+  Scenario: Hit xAI API rate limit
+    Given xAI rate limit is 60 requests/minute
     When I exceed limit
     Then system should:
       - Cache recent responses (use cache if <5 min old)

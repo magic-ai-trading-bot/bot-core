@@ -103,7 +103,7 @@ This comprehensive checklist ensures all critical steps are completed before, du
 - [ ] .env file excluded from version control (.gitignore)
 - [ ] Secret rotation schedule documented
 - [ ] Secrets stored in secure vault (AWS Secrets Manager, HashiCorp Vault)
-- [ ] JWT keys generated with RS256 algorithm
+- [ ] JWT secret generated with HS256 algorithm
 - [ ] API keys validated and tested
 - [ ] Database passwords meet complexity requirements (16+ chars)
 - [ ] All default passwords changed

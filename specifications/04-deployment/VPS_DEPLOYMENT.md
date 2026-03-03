@@ -32,7 +32,7 @@
 - [ ] Nhận được thông tin SSH (IP, username, password/key)
 - [ ] Domain name (nếu có) đã trỏ về VPS IP
 - [ ] Binance API keys (testnet hoặc production)
-- [ ] OpenAI API key (cho GPT-4 analysis)
+- [ ] xAI API key (cho Grok analysis, XAI_API_KEY)
 - [ ] MongoDB connection string (hoặc sẽ cài local)
 - [ ] Git repository access
 
@@ -48,7 +48,7 @@ VPS_PASSWORD=<your-password>            # hoặc SSH key path
 BINANCE_API_KEY=<your-binance-api-key>
 BINANCE_SECRET_KEY=<your-binance-secret>
 BINANCE_TESTNET=true                    # QUAN TRỌNG: Luôn bắt đầu với testnet
-OPENAI_API_KEY=<your-openai-key>
+XAI_API_KEY=<your-xai-key>
 
 # Security
 JWT_SECRET=<generate-strong-secret>     # Sẽ generate trong guide
@@ -466,9 +466,9 @@ BINANCE_API_URL=https://testnet.binance.vision
 BINANCE_WS_URL=wss://testnet.binance.vision/ws
 
 # AI/ML Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4
-OPENAI_MAX_TOKENS=1000
+XAI_API_KEY=your_xai_api_key_here
+XAI_MODEL=grok-4-1-fast-non-reasoning
+XAI_MAX_TOKENS=1000
 
 # Database - MongoDB
 MONGODB_URI=mongodb://botcore_user:CHANGE_THIS_PASSWORD_456@localhost:27017/botcore_production
@@ -547,7 +547,7 @@ echo "🔍 Validating environment configuration..."
 REQUIRED_VARS=(
     "BINANCE_API_KEY"
     "BINANCE_SECRET_KEY"
-    "OPENAI_API_KEY"
+    "XAI_API_KEY"
     "MONGODB_URI"
     "JWT_SECRET"
 )

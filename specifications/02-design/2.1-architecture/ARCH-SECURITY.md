@@ -777,11 +777,11 @@ Access-Control-Max-Age: 3600
 
 **1. Content-Security-Policy (CSP)**:
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.botcore.com wss://api.botcore.com https://api.binance.com wss://stream.binance.com https://api.openai.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.botcore.com wss://api.botcore.com https://api.binance.com wss://stream.binance.com https://api.x.ai; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
 ```
 - **default-src 'self'**: Only load resources from same origin by default
 - **script-src**: Allow scripts from self and CDN (for libraries)
-- **connect-src**: Allow API calls to backend, Binance, OpenAI
+- **connect-src**: Allow API calls to backend, Binance, xAI Grok
 - **frame-ancestors 'none'**: Prevent clickjacking (equivalent to X-Frame-Options: DENY)
 
 **2. X-Frame-Options**:
@@ -1110,7 +1110,7 @@ services:
 
 **Network Policies**:
 - **Ingress**: Only load balancer can access services from Internet
-- **Egress**: Services can only access specific external APIs (Binance, OpenAI)
+- **Egress**: Services can only access specific external APIs (Binance, xAI)
 - **Inter-service**: Services can communicate within bot-network
 - **Database**: MongoDB and Redis not exposed to host network
 
@@ -1142,7 +1142,7 @@ ufw default allow outgoing
 # Allow HTTPS to Binance API
 ufw allow out to 3.64.0.0/11 port 443 proto tcp
 
-# Allow HTTPS to OpenAI API
+# Allow HTTPS to xAI API (api.x.ai)
 ufw allow out to 104.18.0.0/15 port 443 proto tcp
 ```
 
@@ -1227,7 +1227,7 @@ JWT_SECRET=<random_64_char_string>
 MONGODB_URI=mongodb://localhost:27017/botcore
 BINANCE_API_KEY=<user_specific_encrypted>
 BINANCE_SECRET_KEY=<user_specific_encrypted>
-OPENAI_API_KEY=sk-...
+XAI_API_KEY=<xai_api_key>
 RUST_LOG=info
 ```
 
@@ -1243,7 +1243,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 **Secret Rotation**:
 - **JWT Secret**: Rotate every 90 days
 - **Binance API Keys**: User-managed, encourage rotation
-- **OpenAI API Key**: Rotate every 180 days
+- **xAI API Key**: Rotate every 180 days
 - **MongoDB Password**: Rotate every 90 days
 
 **Future Enhancement: HashiCorp Vault**:
@@ -1262,7 +1262,7 @@ listener "tcp" {
 
 # Store secrets
 vault kv put secret/botcore/jwt JWT_SECRET=abc123...
-vault kv put secret/botcore/openai OPENAI_API_KEY=sk-...
+vault kv put secret/botcore/xai XAI_API_KEY=xai-...
 
 # Retrieve secrets
 vault kv get secret/botcore/jwt
@@ -1386,7 +1386,7 @@ mount /dev/mapper/mongodb_encrypted /var/lib/mongodb
 - **Rust API ↔ Python AI**: HTTP over internal Docker network (acceptable) or HTTPS (recommended)
 - **Rust API ↔ MongoDB**: TLS (recommended)
 - **Rust API ↔ Binance**: HTTPS (required by Binance)
-- **Python AI ↔ OpenAI**: HTTPS (required by OpenAI)
+- **Python AI ↔ xAI**: HTTPS (required by xAI)
 
 **MongoDB TLS Configuration**:
 ```yaml
@@ -1414,7 +1414,7 @@ let client = Client::with_options(client_options)?;
 **Data to Mask**:
 - Passwords (should never be logged)
 - JWT tokens
-- API keys (Binance, OpenAI)
+- API keys (Binance, xAI)
 - Credit card numbers (if applicable)
 - Email addresses (in some contexts)
 - IP addresses (for GDPR compliance)
@@ -1428,8 +1428,8 @@ fn mask_sensitive_data(log_message: &str) -> String {
     let jwt_regex = Regex::new(r"eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*").unwrap();
     masked = jwt_regex.replace_all(&masked, "***JWT_TOKEN***").to_string();
 
-    // Mask API keys (sk-... format for OpenAI)
-    let api_key_regex = Regex::new(r"sk-[a-zA-Z0-9]{32,}").unwrap();
+    // Mask API keys (xai-... format for xAI)
+    let api_key_regex = Regex::new(r"xai-[a-zA-Z0-9]{32,}").unwrap();
     masked = api_key_regex.replace_all(&masked, "***API_KEY***").to_string();
 
     // Mask Binance API keys (64 alphanumeric characters)
@@ -2099,7 +2099,7 @@ async fn delete_user_account(user_id: &ObjectId, db: &Database) -> Result<()> {
 - What data is collected (email, password, trading activity)
 - Why data is collected (provide trading services)
 - How data is used (account management, trade execution, AI analysis)
-- Who data is shared with (Binance for trade execution, OpenAI for AI analysis)
+- Who data is shared with (Binance for trade execution, xAI for AI analysis)
 - How long data is retained (trade history: 7 years, profile: until deletion)
 - User rights (access, erasure, portability, objection)
 - Contact information (privacy@botcore.com)
@@ -2150,7 +2150,7 @@ graph TB
 
     subgraph "External Services"
         Binance[Binance API<br/>HTTPS Only<br/>Encrypted API Keys]
-        OpenAI[OpenAI API<br/>HTTPS Only<br/>API Key in Env]
+        XAI[xAI API (api.x.ai)<br/>HTTPS Only<br/>API Key in Env]
     end
 
     subgraph "Monitoring & Audit"
@@ -2191,7 +2191,7 @@ graph TB
     PythonAPI --> MongoDB
 
     RustAPI --> Binance
-    PythonAPI --> OpenAI
+    PythonAPI --> XAI
 
     AuthService --> AuditLog
     AuthzService --> AuditLog
@@ -2218,7 +2218,7 @@ graph TB
     style AuditLog fill:#fc9,stroke:#333
     style MongoDB fill:#ff9,stroke:#333
     style Binance fill:#f99,stroke:#333
-    style OpenAI fill:#f99,stroke:#333
+    style XAI fill:#f99,stroke:#333
 ```
 
 ---
@@ -2282,7 +2282,7 @@ This comprehensive security architecture document covers all critical aspects of
 **Security Architecture Diagram** (ARCH-SECURITY-009):
 - Comprehensive diagram showing all security controls
 - Defense-in-depth layers
-- External dependencies (Binance, OpenAI)
+- External dependencies (Binance, xAI)
 
 **Current Security Posture**:
 - ✅ Strong authentication (bcrypt, JWT)

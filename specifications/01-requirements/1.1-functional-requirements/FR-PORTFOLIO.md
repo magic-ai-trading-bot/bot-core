@@ -2,17 +2,17 @@
 
 **Spec ID**: FR-PORTFOLIO-001
 **Version**: 1.0
-**Status**: ☐ Draft
+**Status**: ☑ Implemented (core portfolio tracking in `rust-core-engine/src/paper_trading/portfolio.rs`)
 **Owner**: Trading Systems Team
-**Last Updated**: 2025-10-10
+**Last Updated**: 2026-03-03
 
 ---
 
 ## Tasks Checklist
 
-- [ ] Requirements gathered
-- [ ] Design completed
-- [ ] Implementation done
+- [x] Requirements gathered
+- [x] Design completed
+- [x] Implementation done (core: FR-001, FR-002, FR-003, FR-005, FR-006 implemented)
 - [ ] Tests written
 - [ ] Documentation updated
 - [ ] Code reviewed
@@ -73,7 +73,7 @@ Traders need real-time visibility into their portfolio value, position allocatio
 ### FR-PORTFOLIO-001: Portfolio Value Calculation
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-PORTFOLIO-001`
 
 **Description**:
@@ -113,7 +113,7 @@ Equity = Cash Balance + Unrealized PnL
 ### FR-PORTFOLIO-002: Asset Allocation Management
 
 **Priority**: ☑ High
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-PORTFOLIO-002`
 
 **Description**:
@@ -150,7 +150,7 @@ The system shall enforce asset allocation rules to ensure proper portfolio diver
 ### FR-PORTFOLIO-003: Performance Tracking and Metrics
 
 **Priority**: ☑ High
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-PORTFOLIO-003`
 
 **Description**:
@@ -201,7 +201,7 @@ The system shall calculate and track comprehensive performance metrics including
 ### FR-PORTFOLIO-004: Portfolio Rebalancing
 
 **Priority**: ☐ Medium
-**Status**: ☐ Not Started
+**Status**: ☐ Not Implemented (planned feature — no Rust code found for rebalancing logic)
 **Code Tags**: `@spec:FR-PORTFOLIO-004`
 
 **Description**:
@@ -242,7 +242,7 @@ The system shall support automatic and manual portfolio rebalancing to maintain 
 ### FR-PORTFOLIO-005: Cash and Margin Management
 
 **Priority**: ☑ Critical
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented
 **Code Tags**: `@spec:FR-PORTFOLIO-005`
 
 **Description**:
@@ -290,7 +290,7 @@ The system shall track and manage cash balance, margin usage, and available capi
 ### FR-PORTFOLIO-006: Historical Portfolio Analysis
 
 **Priority**: ☐ Medium
-**Status**: ☐ Not Started
+**Status**: ☑ Implemented (daily snapshots via `add_daily_performance()` in portfolio.rs)
 **Code Tags**: `@spec:FR-PORTFOLIO-006`
 
 **Description**:
@@ -539,18 +539,20 @@ The system shall maintain historical portfolio snapshots and provide analysis to
 
 ## Interface Requirements
 
-**API Endpoints** (reference to API_SPEC.md):
+**API Endpoints** (actual Warp routes, base: `/api/paper-trading`):
 ```
-GET    /api/v1/portfolio                    # Get current portfolio state
-GET    /api/v1/portfolio/value               # Get current portfolio value
-GET    /api/v1/portfolio/metrics             # Get performance metrics
-GET    /api/v1/portfolio/allocation          # Get asset allocation
-GET    /api/v1/portfolio/performance         # Get performance over date range
-POST   /api/v1/portfolio/rebalance           # Trigger portfolio rebalancing
-GET    /api/v1/portfolio/history             # Get historical snapshots
-GET    /api/v1/portfolio/reports/{type}      # Generate performance report
-PUT    /api/v1/portfolio/settings            # Update portfolio settings
+GET    /api/paper-trading/portfolio          # Get current portfolio state & metrics
+GET    /api/paper-trading/status             # Get engine status with portfolio overview
+GET    /api/paper-trading/trades/open        # Get all open trades
+GET    /api/paper-trading/trades/closed      # Get all closed trades (realized PnL)
+POST   /api/paper-trading/trades/{id}/close  # Close specific trade
+GET    /api/paper-trading/basic-settings     # Get basic settings (position size, SL/TP)
+PUT    /api/paper-trading/basic-settings     # Update basic settings
+POST   /api/paper-trading/reset              # Reset portfolio to initial state
+GET    /api/paper-trading/symbols            # Get symbol-specific settings
+PUT    /api/paper-trading/symbols            # Update symbol settings
 ```
+Note: Advanced portfolio analytics (metrics history, rebalancing, reports) are planned but not yet exposed via REST — access via MCP tools (`get_paper_portfolio`, `get_portfolio_metrics`).
 
 **UI Screens** (reference to UI-COMPONENTS.md):
 - Portfolio Dashboard: Real-time portfolio overview

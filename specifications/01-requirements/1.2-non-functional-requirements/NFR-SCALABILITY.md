@@ -115,13 +115,13 @@ The system shall support horizontal scaling by adding more service instances to 
    - **Limitations**: Models loaded per instance (memory duplication)
    - **Solution**: Shared model storage or dedicated inference service
 
-   **Next.js Dashboard**:
-   - **Current State**: Stateless (static files served by nginx)
+   **Frontend Dashboard (React/Vite)**:
+   - **Current State**: Stateless (static files served by Vite preview / nginx)
    - **Build Output**: Static HTML, JS, CSS bundles
    - **Session State**: Client-side only (JWT in localStorage)
    - **Scalability**: Can run infinite instances behind CDN
    - **Limitations**: None for static assets
-   - **Server-Side Rendering (SSR)**: Not currently used (would require session management)
+   - **Server-Side Rendering (SSR)**: Not used (Vite SPA, no SSR)
 
 2. **Load Balancing** (Status: ❌ Not Configured)
 

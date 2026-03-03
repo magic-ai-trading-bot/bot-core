@@ -1335,7 +1335,7 @@ assert "macd" in report["strategies"]
 ```gherkin
 Feature: API Cost Monitoring
   Scenario: Daily cost within budget
-    Given daily OpenAI API cost is $1.87
+    Given daily xAI API cost is $1.87
     And monthly projection is $56.10
     When daily cost report runs at 9:00 AM UTC
     Then report should show cost metrics
@@ -1383,7 +1383,7 @@ with patch('requests.get') as mock:
     When cost report runs
     Then alert should be "⚠️ WARNING: Daily cost $2.34 exceeds $2.00 warning"
     And email should be sent to admin
-    And GPT-4 usage should be monitored closely
+    And Grok/xAI usage should be monitored closely
 ```
 
 **Expected Results:**
@@ -1418,14 +1418,14 @@ with patch('requests.get') as mock:
     Given daily cost is $6.50
     When cost report runs
     Then CRITICAL alert should be sent
-    And GPT-4 API should be automatically disabled
+    And Grok/xAI API should be automatically disabled
     And admin should receive urgent email
     And Slack notification should include cost details
 ```
 
 **Expected Results:**
 - ✅ Critical alert sent
-- ✅ GPT-4 disabled automatically
+- ✅ Grok/xAI disabled automatically
 - ✅ Urgent email/Slack notification
 
 **Assertions:**
@@ -1441,7 +1441,7 @@ with patch('requests.get') as mock:
     # Should have critical alert
     assert any("CRITICAL" in alert or "$5.00" in alert for alert in result["report"]["alerts"])
 
-    # Verify GPT-4 disabled
+    # Verify Grok/xAI disabled
     # (implementation-specific check)
 ```
 
@@ -1462,13 +1462,13 @@ Feature: Performance Analysis
     And avg profit is 2.8%
     When performance analysis runs at 1:00 AM UTC
     Then all metrics should be above target
-    And no GPT-4 analysis should be triggered
+    And no Grok/xAI analysis should be triggered
     And status should be logged as "GOOD"
 ```
 
 **Expected Results:**
 - ✅ Metrics above target (no degradation)
-- ✅ No GPT-4 analysis triggered
+- ✅ No Grok/xAI analysis triggered
 - ✅ Status: "GOOD"
 
 **Assertions:**
@@ -1495,7 +1495,7 @@ with patch('requests.get') as mock:
 
 ---
 
-### TC-ASYNC-041: Daily Performance Analysis - Triggers GPT-4
+### TC-ASYNC-041: Daily Performance Analysis - Triggers Grok/xAI
 
 **Priority:** Critical
 **Test Type:** Integration
@@ -1503,18 +1503,18 @@ with patch('requests.get') as mock:
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Poor performance triggers GPT-4 analysis
+  Scenario: Poor performance triggers Grok/xAI analysis
     Given last 7 days win rate is 52% (below 55% critical)
     And Sharpe ratio is 0.9 (below 1.0 critical)
     When performance analysis runs
     Then performance degradation should be detected
-    And GPT-4 analysis task should be queued
+    And Grok/xAI analysis task should be queued
     And admin should be notified of degradation
 ```
 
 **Expected Results:**
 - ✅ Degradation detected
-- ✅ GPT-4 analysis task queued
+- ✅ Grok/xAI analysis task queued
 - ✅ Admin notification sent
 
 **Assertions:**
@@ -1545,7 +1545,7 @@ with patch('requests.get') as mock:
 **TC-ASYNC-045:** Health Check - MongoDB Unreachable (log to file)
 **TC-ASYNC-046:** Portfolio Report - No Trades (weekend handling)
 **TC-ASYNC-047:** Portfolio Report - Email Delivery Failure
-**TC-ASYNC-048:** Cost Report - OpenAI API Error Handling
+**TC-ASYNC-048:** Cost Report - xAI API Error Handling
 **TC-ASYNC-049:** Cost Report - Monthly Projection Accuracy
 **TC-ASYNC-050:** Performance Analysis - Incomplete Data Handling
 
@@ -1553,7 +1553,7 @@ with patch('requests.get') as mock:
 
 ## AI Improvement Tasks Test Cases
 
-### TC-ASYNC-051: GPT-4 Self-Analysis - Decides NOT to Retrain
+### TC-ASYNC-051: Grok/xAI Self-Analysis - Decides NOT to Retrain
 
 **Priority:** Critical
 **Test Type:** Integration
@@ -1561,20 +1561,20 @@ with patch('requests.get') as mock:
 
 **Test Scenario (Gherkin):**
 ```gherkin
-Feature: GPT-4 Self-Analysis
+Feature: Grok/xAI Self-Analysis
   As an autonomous AI system
   I want to analyze my own performance
   So that I can decide when retraining is needed
 
-  Scenario: GPT-4 decides retraining not needed
+  Scenario: Grok/xAI decides retraining not needed
     Given all models performing well (accuracy > 70%)
     And win rate is 72%, Sharpe 2.3
-    When GPT-4 analysis runs at 3:00 AM UTC
-    Then GPT-4 should analyze performance data
+    When Grok/xAI analysis runs at 3:00 AM UTC
+    Then Grok/xAI should analyze performance data
     And recommendation should be "NO_RETRAINING"
     And reasoning should mention "performing above threshold"
     And no retraining task should be queued
-    And cost should be ~$0.024 (1 GPT-4 call)
+    And cost should be ~$0.024 (1 Grok/xAI call)
 ```
 
 **Test Steps:**
@@ -1587,7 +1587,7 @@ Feature: GPT-4 Self-Analysis
        "model_accuracy": {"lstm": 0.72, "gru": 0.70, "transformer": 0.73}
    }
    ```
-2. Mock GPT-4 response:
+2. Mock Grok/xAI response:
    ```python
    with patch('openai.ChatCompletion.create') as mock_gpt4:
        mock_gpt4.return_value = Mock(
@@ -1604,7 +1604,7 @@ Feature: GPT-4 Self-Analysis
 3. Verify decision
 
 **Expected Results:**
-- ✅ GPT-4 analyzes data successfully
+- ✅ Grok/xAI analyzes data successfully
 - ✅ Recommendation: "NO_RETRAINING"
 - ✅ Confidence: >= 0.70
 - ✅ No retraining task queued
@@ -1632,7 +1632,7 @@ assert db.gpt4_analysis_history.count_documents({"task_id": result["task_id"]}) 
 
 ---
 
-### TC-ASYNC-052: GPT-4 Self-Analysis - Decides TO Retrain
+### TC-ASYNC-052: Grok/xAI Self-Analysis - Decides TO Retrain
 
 **Priority:** Critical
 **Test Type:** Integration
@@ -1640,11 +1640,11 @@ assert db.gpt4_analysis_history.count_documents({"task_id": result["task_id"]}) 
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: GPT-4 decides retraining needed
+  Scenario: Grok/xAI decides retraining needed
     Given LSTM accuracy dropped to 60% (below 65% threshold)
     And win rate is 58% (below 70% target)
-    When GPT-4 analysis runs
-    Then GPT-4 should detect performance degradation
+    When Grok/xAI analysis runs
+    Then Grok/xAI should detect performance degradation
     And recommendation should be "RETRAIN_LSTM"
     And confidence should be >= 0.75
     And urgency should be "high"
@@ -1660,7 +1660,7 @@ assert db.gpt4_analysis_history.count_documents({"task_id": result["task_id"]}) 
        "model_accuracy": {"lstm": 0.60, "gru": 0.71, "transformer": 0.72}
    }
    ```
-2. Mock GPT-4 response recommending retrain:
+2. Mock Grok/xAI response recommending retrain:
    ```python
    with patch('openai.ChatCompletion.create') as mock_gpt4:
        mock_gpt4.return_value = Mock(
@@ -1677,7 +1677,7 @@ assert db.gpt4_analysis_history.count_documents({"task_id": result["task_id"]}) 
 3. Verify retraining triggered
 
 **Expected Results:**
-- ✅ GPT-4 recommendation: "RETRAIN_LSTM"
+- ✅ Grok/xAI recommendation: "RETRAIN_LSTM"
 - ✅ Confidence: >= 0.75
 - ✅ Urgency: "high"
 - ✅ Adaptive retraining task queued
@@ -1701,7 +1701,7 @@ with patch('tasks.ai_improvement.adaptive_retrain.delay') as mock_retrain:
 
 ---
 
-### TC-ASYNC-053: GPT-4 Self-Analysis - OpenAI API Error
+### TC-ASYNC-053: Grok/xAI Self-Analysis - xAI API Error
 
 **Priority:** High
 **Test Type:** Error Handling
@@ -1709,14 +1709,14 @@ with patch('tasks.ai_improvement.adaptive_retrain.delay') as mock_retrain:
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle OpenAI API errors gracefully
+  Scenario: Handle xAI API errors gracefully
     Given performance degradation detected
-    When GPT-4 API call fails with timeout
+    When Grok/xAI API call fails with timeout
     Then task should retry up to 3 times
     When all retries fail
     Then task should fail gracefully
     And error should be logged
-    And admin should be notified of GPT-4 failure
+    And admin should be notified of Grok/xAI failure
     And fallback decision should be made (retrain if critical)
 ```
 
@@ -1740,7 +1740,7 @@ with patch('openai.ChatCompletion.create') as mock_gpt4:
 
 ---
 
-### TC-ASYNC-054: GPT-4 Self-Analysis - Invalid JSON Response
+### TC-ASYNC-054: Grok/xAI Self-Analysis - Invalid JSON Response
 
 **Priority:** Medium
 **Test Type:** Error Handling
@@ -1748,8 +1748,8 @@ with patch('openai.ChatCompletion.create') as mock_gpt4:
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle invalid GPT-4 JSON response
-    Given GPT-4 returns malformed JSON
+  Scenario: Handle invalid Grok/xAI JSON response
+    Given Grok/xAI returns malformed JSON
     When parsing response
     Then JSONDecodeError should be caught
     And error should be logged with raw response
@@ -1774,7 +1774,7 @@ with patch('openai.ChatCompletion.create') as mock_gpt4:
 
 ---
 
-### TC-ASYNC-055: GPT-4 Self-Analysis - Cost Tracking
+### TC-ASYNC-055: Grok/xAI Self-Analysis - Cost Tracking
 
 **Priority:** Medium
 **Test Type:** Functional
@@ -1782,8 +1782,8 @@ with patch('openai.ChatCompletion.create') as mock_gpt4:
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Track GPT-4 API costs
-    Given GPT-4 analysis runs
+  Scenario: Track Grok/xAI API costs
+    Given Grok/xAI analysis runs
     When API call completes
     Then cost should be calculated based on tokens
     And cost should be logged to MongoDB
@@ -1828,7 +1828,7 @@ with patch('openai.ChatCompletion.create') as mock_gpt4:
 ```gherkin
 Feature: Adaptive Model Retraining
   Scenario: Retrain LSTM model successfully
-    Given GPT-4 recommended retraining LSTM
+    Given Grok/xAI recommended retraining LSTM
     When adaptive_retrain task runs
     Then LSTM model should be retrained with latest data
     And validation accuracy should be compared with old model
@@ -1934,7 +1934,7 @@ with patch('models.model_manager.ModelManager.train_model') as mock_train:
 **Test Scenario (Gherkin):**
 ```gherkin
   Scenario: Retrain multiple models (LSTM, GRU, Transformer)
-    Given GPT-4 recommended retraining all models
+    Given Grok/xAI recommended retraining all models
     When adaptive_retrain runs
     Then all 3 models should be retrained sequentially
     And each model should be validated independently
@@ -2018,8 +2018,8 @@ assert "rsi" not in active
 
 ### TC-ASYNC-060 to TC-ASYNC-065: Additional AI Improvement Tests
 
-**TC-ASYNC-060:** GPT-4 Analysis - Skip if Performance Acceptable
-**TC-ASYNC-061:** GPT-4 Analysis - Force Analysis Flag
+**TC-ASYNC-060:** Grok/xAI Analysis - Skip if Performance Acceptable
+**TC-ASYNC-061:** Grok/xAI Analysis - Force Analysis Flag
 **TC-ASYNC-062:** Adaptive Retrain - Data Freshness Check (use last 60 days)
 **TC-ASYNC-063:** Adaptive Retrain - Concurrent Retraining Prevention
 **TC-ASYNC-064:** Emergency Disable - Re-enable After Manual Review
@@ -2796,7 +2796,7 @@ The Async Tasks System is considered complete and production-ready when:
 - [ ] Task progress tracking works for all long-running tasks
 - [ ] Automatic retries work with exponential backoff
 - [ ] Checkpointing and resume work for training tasks
-- [ ] GPT-4 self-analysis makes correct decisions (>=80% accuracy in test scenarios)
+- [ ] Grok/xAI self-analysis makes correct decisions (>=80% accuracy in test scenarios)
 - [ ] Scheduled tasks run within ±1 minute of target time
 - [ ] All notifications (Email, Slack) deliver successfully
 
@@ -2835,7 +2835,7 @@ The Async Tasks System is considered complete and production-ready when:
 - [ ] All tasks logged to MongoDB with audit trail
 - [ ] Flower UI accessible for real-time monitoring
 - [ ] Alerts sent for critical issues within 30 seconds
-- [ ] GPT-4 cost tracking accurate (±5%)
+- [ ] Grok/xAI cost tracking accurate (±5%)
 - [ ] Performance metrics tracked and queryable
 
 ---
@@ -2924,14 +2924,14 @@ pytest tests/ -v --log-cli-level=DEBUG
    - Missed trading opportunities ($$ loss)
    - Stale ML models making poor predictions
    - Undetected system failures leading to downtime
-   - API cost overruns (GPT-4 can get expensive)
+   - API cost overruns (Grok/xAI can get expensive)
 
-2. **GPT-4 Costs**: Each GPT-4 analysis costs ~$0.024. Running hourly = $17/month. Monitor costs closely.
+2. **Grok/xAI Costs**: Each Grok/xAI analysis costs ~$0.024. Running hourly = $17/month. Monitor costs closely.
 
 3. **Testing in Production**:
-   - NEVER test with production OpenAI API key
+   - NEVER test with production xAI API key
    - ALWAYS use testnet for any trading-related tasks
-   - Mock external services (Binance, OpenAI) in tests
+   - Mock external services (Binance, xAI) in tests
 
 4. **Long-Running Tests**:
    - Full test suite can take 2+ hours
@@ -2946,7 +2946,7 @@ pytest tests/ -v --log-cli-level=DEBUG
 **💡 BEST PRACTICES:**
 
 1. **Test Isolation**: Each test should clean up after itself (delete models, clear queues)
-2. **Mocking**: Mock external APIs (OpenAI, Binance) to avoid costs and rate limits
+2. **Mocking**: Mock external APIs (xAI, Binance) to avoid costs and rate limits
 3. **Fixtures**: Use pytest fixtures for common setup (workers, queues, test data)
 4. **Assertions**: Include clear assertion messages explaining expected vs actual
 5. **Logging**: Enable debug logging for failed tests to aid troubleshooting
