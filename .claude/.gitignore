@@ -56,3 +56,6 @@ GoogleService-Info.plist
 
 .mcp.json
 .gemini/*
+
+# hook runtime logs
+hooks/.logs/
