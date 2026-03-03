@@ -123,14 +123,17 @@ describe("getParametersByTier", () => {
     // Verify counts (from bounds.ts)
     // GREEN: rsi_oversold, rsi_overbought, signal_interval, confidence, data_resolution, stop_loss, take_profit, min_indicators, min_timeframes (9)
     // + sp_min_weighted_threshold, sp_rsi_bull_threshold, sp_rsi_bear_threshold, sp_volume_confirm_multiplier, sp_confidence_max, sp_neutral_confidence, sp_counter_trend_block_offset, sp_counter_trend_mode (8)
-    expect(grouped.GREEN.length).toBe(17);
+    // + atr_stop_multiplier, atr_tp_multiplier, funding_spike_threshold, atr_spike_multiplier, consecutive_loss_reduction_pct (5)
+    expect(grouped.GREEN.length).toBe(22);
 
     // YELLOW: position_size_percent, max_positions, leverage (3)
     // + sp_bb_bull_threshold, sp_bb_bear_threshold, sp_stoch_overbought, sp_stoch_oversold, sp_weight_15m, sp_weight_30m, sp_weight_1h, sp_counter_trend_enabled (8)
-    expect(grouped.YELLOW.length).toBe(11);
+    // + base_risk_pct, kelly_fraction (2)
+    expect(grouped.YELLOW.length).toBe(13);
 
     // RED: max_daily_loss_percent, engine_running (2)
-    expect(grouped.RED.length).toBe(2);
+    // + atr_stop_enabled, kelly_enabled, weekly_drawdown_limit_pct (3)
+    expect(grouped.RED.length).toBe(5);
 
     // Verify specific parameters are in correct tiers
     const greenNames = grouped.GREEN.map(p => p.name);

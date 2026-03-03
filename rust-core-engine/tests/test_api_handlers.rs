@@ -290,6 +290,154 @@ fn test_update_basic_settings_request() {
 }
 
 #[test]
+fn test_update_basic_settings_request_atr_fields() {
+    // Test that all ATR/Kelly/Regime fields work in UpdateBasicSettingsRequest
+    let request = UpdateBasicSettingsRequest {
+        atr_stop_enabled: Some(true),
+        atr_period: Some(20),
+        atr_stop_multiplier: Some(1.5),
+        atr_tp_multiplier: Some(3.0),
+        base_risk_pct: Some(1.5),
+        kelly_enabled: Some(true),
+        kelly_min_trades: Some(100),
+        kelly_fraction: Some(0.4),
+        kelly_lookback: Some(50),
+        funding_spike_filter_enabled: Some(true),
+        funding_spike_threshold: Some(0.0005),
+        funding_spike_reduction: Some(0.3),
+        atr_spike_filter_enabled: Some(true),
+        atr_spike_multiplier: Some(2.5),
+        atr_spike_reduction: Some(0.4),
+        consecutive_loss_reduction_enabled: Some(true),
+        consecutive_loss_reduction_pct: Some(0.25),
+        consecutive_loss_reduction_threshold: Some(4),
+        weekly_drawdown_limit_pct: Some(5.0),
+        ..Default::default()
+    };
+
+    assert_eq!(request.atr_stop_enabled, Some(true));
+    assert_eq!(request.atr_period, Some(20));
+    assert_eq!(request.atr_stop_multiplier, Some(1.5));
+    assert_eq!(request.atr_tp_multiplier, Some(3.0));
+    assert_eq!(request.base_risk_pct, Some(1.5));
+    assert_eq!(request.kelly_enabled, Some(true));
+    assert_eq!(request.kelly_min_trades, Some(100));
+    assert_eq!(request.kelly_fraction, Some(0.4));
+    assert_eq!(request.kelly_lookback, Some(50));
+    assert_eq!(request.funding_spike_filter_enabled, Some(true));
+    assert_eq!(request.funding_spike_threshold, Some(0.0005));
+    assert_eq!(request.funding_spike_reduction, Some(0.3));
+    assert_eq!(request.atr_spike_filter_enabled, Some(true));
+    assert_eq!(request.atr_spike_multiplier, Some(2.5));
+    assert_eq!(request.atr_spike_reduction, Some(0.4));
+    assert_eq!(request.consecutive_loss_reduction_enabled, Some(true));
+    assert_eq!(request.consecutive_loss_reduction_pct, Some(0.25));
+    assert_eq!(request.consecutive_loss_reduction_threshold, Some(4));
+    assert_eq!(request.weekly_drawdown_limit_pct, Some(5.0));
+}
+
+#[test]
+fn test_update_basic_settings_request_atr_defaults_to_none() {
+    // All ATR/Kelly/Regime fields default to None
+    let request = UpdateBasicSettingsRequest::default();
+
+    assert_eq!(request.atr_stop_enabled, None);
+    assert_eq!(request.atr_period, None);
+    assert_eq!(request.atr_stop_multiplier, None);
+    assert_eq!(request.atr_tp_multiplier, None);
+    assert_eq!(request.base_risk_pct, None);
+    assert_eq!(request.kelly_enabled, None);
+    assert_eq!(request.kelly_min_trades, None);
+    assert_eq!(request.kelly_fraction, None);
+    assert_eq!(request.kelly_lookback, None);
+    assert_eq!(request.funding_spike_filter_enabled, None);
+    assert_eq!(request.funding_spike_threshold, None);
+    assert_eq!(request.funding_spike_reduction, None);
+    assert_eq!(request.atr_spike_filter_enabled, None);
+    assert_eq!(request.atr_spike_multiplier, None);
+    assert_eq!(request.atr_spike_reduction, None);
+    assert_eq!(request.consecutive_loss_reduction_enabled, None);
+    assert_eq!(request.consecutive_loss_reduction_pct, None);
+    assert_eq!(request.consecutive_loss_reduction_threshold, None);
+    assert_eq!(request.weekly_drawdown_limit_pct, None);
+}
+
+#[test]
+fn test_update_basic_settings_request_partial_atr_update() {
+    // Only ATR fields, others stay None
+    let request = UpdateBasicSettingsRequest {
+        atr_stop_enabled: Some(true),
+        atr_stop_multiplier: Some(1.5),
+        ..Default::default()
+    };
+
+    // ATR fields set
+    assert_eq!(request.atr_stop_enabled, Some(true));
+    assert_eq!(request.atr_stop_multiplier, Some(1.5));
+
+    // Everything else is None
+    assert_eq!(request.initial_balance, None);
+    assert_eq!(request.kelly_enabled, None);
+    assert_eq!(request.funding_spike_filter_enabled, None);
+}
+
+#[test]
+fn test_update_basic_settings_request_atr_serialization() {
+    let request = UpdateBasicSettingsRequest {
+        atr_stop_enabled: Some(true),
+        base_risk_pct: Some(2.5),
+        kelly_enabled: Some(false),
+        weekly_drawdown_limit_pct: Some(10.0),
+        ..Default::default()
+    };
+
+    let json = serde_json::to_string(&request).unwrap();
+    let restored: UpdateBasicSettingsRequest = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(restored.atr_stop_enabled, Some(true));
+    assert_eq!(restored.base_risk_pct, Some(2.5));
+    assert_eq!(restored.kelly_enabled, Some(false));
+    assert_eq!(restored.weekly_drawdown_limit_pct, Some(10.0));
+}
+
+#[test]
+fn test_update_basic_settings_request_atr_json_deserialization() {
+    // Simulate JSON from frontend/MCP
+    let json = r#"{
+        "atr_stop_enabled": true,
+        "atr_stop_multiplier": 1.5,
+        "atr_tp_multiplier": 3.0,
+        "base_risk_pct": 2.0,
+        "kelly_enabled": false,
+        "funding_spike_filter_enabled": true,
+        "funding_spike_threshold": 0.0005,
+        "consecutive_loss_reduction_enabled": true,
+        "consecutive_loss_reduction_pct": 0.25,
+        "consecutive_loss_reduction_threshold": 4,
+        "weekly_drawdown_limit_pct": 8.0
+    }"#;
+
+    let request: UpdateBasicSettingsRequest = serde_json::from_str(json).unwrap();
+
+    assert_eq!(request.atr_stop_enabled, Some(true));
+    assert_eq!(request.atr_stop_multiplier, Some(1.5));
+    assert_eq!(request.atr_tp_multiplier, Some(3.0));
+    assert_eq!(request.base_risk_pct, Some(2.0));
+    assert_eq!(request.kelly_enabled, Some(false));
+    assert_eq!(request.funding_spike_filter_enabled, Some(true));
+    assert_eq!(request.funding_spike_threshold, Some(0.0005));
+    assert_eq!(request.consecutive_loss_reduction_enabled, Some(true));
+    assert_eq!(request.consecutive_loss_reduction_pct, Some(0.25));
+    assert_eq!(request.consecutive_loss_reduction_threshold, Some(4));
+    assert_eq!(request.weekly_drawdown_limit_pct, Some(8.0));
+
+    // Unspecified fields should be None
+    assert_eq!(request.atr_period, None);
+    assert_eq!(request.kelly_min_trades, None);
+    assert_eq!(request.atr_spike_filter_enabled, None);
+}
+
+#[test]
 fn test_symbol_config_structure() {
     let symbol_config = SymbolConfig {
         enabled: true,
@@ -764,6 +912,47 @@ fn test_risk_settings_validation() {
     assert!(risk.max_portfolio_risk > 0.0 && risk.max_portfolio_risk <= 100.0);
     assert!(risk.max_leverage > 0 && risk.max_leverage <= 125);
     assert!(risk.correlation_limit >= 0.0 && risk.correlation_limit <= 1.0);
+}
+
+#[test]
+fn test_atr_settings_validation_ranges() {
+    // Test that ATR settings have sensible validation ranges
+    use binance_trading_bot::paper_trading::settings::RiskSettings;
+
+    let settings = RiskSettings::default();
+
+    // ATR period should be positive
+    assert!(settings.atr_period > 0);
+
+    // Multipliers should be positive
+    assert!(settings.atr_stop_multiplier > 0.0);
+    assert!(settings.atr_tp_multiplier > 0.0);
+
+    // TP multiplier should be >= SL multiplier for positive R:R
+    assert!(settings.atr_tp_multiplier >= settings.atr_stop_multiplier);
+
+    // Base risk should be reasonable (0-10%)
+    assert!(settings.base_risk_pct > 0.0 && settings.base_risk_pct <= 10.0);
+
+    // Kelly fraction should be 0-1
+    assert!(settings.kelly_fraction > 0.0 && settings.kelly_fraction <= 1.0);
+
+    // Kelly min trades should be positive
+    assert!(settings.kelly_min_trades > 0);
+
+    // Funding spike threshold should be small positive number
+    assert!(settings.funding_spike_threshold > 0.0 && settings.funding_spike_threshold < 0.01);
+
+    // Reductions should be 0-1
+    assert!(settings.funding_spike_reduction > 0.0 && settings.funding_spike_reduction <= 1.0);
+    assert!(settings.atr_spike_reduction > 0.0 && settings.atr_spike_reduction <= 1.0);
+    assert!(
+        settings.consecutive_loss_reduction_pct > 0.0
+            && settings.consecutive_loss_reduction_pct <= 1.0
+    );
+
+    // Weekly drawdown limit should be reasonable (1-50%)
+    assert!(settings.weekly_drawdown_limit_pct > 0.0 && settings.weekly_drawdown_limit_pct <= 50.0);
 }
 
 #[test]

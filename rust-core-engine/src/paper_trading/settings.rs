@@ -351,6 +351,88 @@ pub struct RiskSettings {
     /// When true, only Long signals are executed. OpenClaw or user can toggle.
     #[serde(default)]
     pub long_only_mode: bool,
+
+    // --- ATR-Based Position Sizing ---
+    // @spec:FR-RISK-010 - ATR-based stop loss and position sizing
+    /// Enable ATR-based stop loss and position sizing (default: false, uses existing PnL-based)
+    #[serde(default)]
+    pub atr_stop_enabled: bool,
+
+    /// ATR calculation period (number of candles)
+    #[serde(default = "default_atr_period")]
+    pub atr_period: usize,
+
+    /// ATR multiplier for stop loss distance (SL = entry ± ATR × multiplier)
+    #[serde(default = "default_atr_stop_multiplier")]
+    pub atr_stop_multiplier: f64,
+
+    /// ATR multiplier for take profit distance (TP = entry ∓ ATR × multiplier)
+    #[serde(default = "default_atr_tp_multiplier")]
+    pub atr_tp_multiplier: f64,
+
+    /// Base risk percentage per trade (used with ATR sizing: size = equity × base_risk% / SL distance)
+    #[serde(default = "default_base_risk_pct")]
+    pub base_risk_pct: f64,
+
+    // --- Half-Kelly Criterion ---
+    // @spec:FR-RISK-011 - Kelly criterion position sizing
+    /// Enable Half-Kelly criterion for dynamic risk scaling
+    #[serde(default)]
+    pub kelly_enabled: bool,
+
+    /// Minimum closed trades before Kelly kicks in
+    #[serde(default = "default_kelly_min_trades")]
+    pub kelly_min_trades: u64,
+
+    /// Kelly fraction (0.5 = Half-Kelly, safer than full Kelly)
+    #[serde(default = "default_kelly_fraction")]
+    pub kelly_fraction: f64,
+
+    /// Number of recent trades to use for Kelly calculation
+    #[serde(default = "default_kelly_lookback")]
+    pub kelly_lookback: u64,
+
+    // --- Regime Filters ---
+    // @spec:FR-RISK-012 - Regime-based position reduction
+    /// Enable funding rate spike filter (reduce size when funding extreme)
+    #[serde(default)]
+    pub funding_spike_filter_enabled: bool,
+
+    /// Absolute funding rate threshold to trigger reduction (e.g., 0.0003 = 0.03%)
+    #[serde(default = "default_funding_spike_threshold")]
+    pub funding_spike_threshold: f64,
+
+    /// Position size multiplier when funding spike detected (0.5 = halve size)
+    #[serde(default = "default_funding_spike_reduction")]
+    pub funding_spike_reduction: f64,
+
+    /// Enable ATR spike filter (reduce size when volatility abnormally high)
+    #[serde(default)]
+    pub atr_spike_filter_enabled: bool,
+
+    /// ATR spike detection: current ATR > mean ATR × this multiplier
+    #[serde(default = "default_atr_spike_multiplier")]
+    pub atr_spike_multiplier: f64,
+
+    /// Position size multiplier when ATR spike detected
+    #[serde(default = "default_atr_spike_reduction")]
+    pub atr_spike_reduction: f64,
+
+    /// Enable gradual position reduction on consecutive losses (instead of all-or-nothing cooldown)
+    #[serde(default)]
+    pub consecutive_loss_reduction_enabled: bool,
+
+    /// Per-loss reduction factor (0.3 = reduce 30% per loss above threshold)
+    #[serde(default = "default_consecutive_loss_reduction")]
+    pub consecutive_loss_reduction_pct: f64,
+
+    /// Number of consecutive losses before gradual reduction kicks in
+    #[serde(default = "default_consecutive_loss_threshold")]
+    pub consecutive_loss_reduction_threshold: u32,
+
+    /// Weekly drawdown limit percentage (pause trading if weekly DD exceeds this)
+    #[serde(default = "default_weekly_drawdown_limit")]
+    pub weekly_drawdown_limit_pct: f64,
 }
 
 /// Strategy configuration
@@ -394,6 +476,50 @@ pub struct StrategySettings {
 
 fn default_market_preset() -> String {
     "normal_volatility".to_string()
+}
+
+// --- ATR / Kelly / Regime default functions ---
+fn default_atr_period() -> usize {
+    14
+}
+fn default_atr_stop_multiplier() -> f64 {
+    1.2
+}
+fn default_atr_tp_multiplier() -> f64 {
+    2.4
+}
+fn default_base_risk_pct() -> f64 {
+    2.0
+}
+fn default_kelly_min_trades() -> u64 {
+    200
+}
+fn default_kelly_fraction() -> f64 {
+    0.5
+}
+fn default_kelly_lookback() -> u64 {
+    100
+}
+fn default_funding_spike_threshold() -> f64 {
+    0.0003
+}
+fn default_funding_spike_reduction() -> f64 {
+    0.5
+}
+fn default_atr_spike_multiplier() -> f64 {
+    2.0
+}
+fn default_atr_spike_reduction() -> f64 {
+    0.5
+}
+fn default_consecutive_loss_reduction() -> f64 {
+    0.3
+}
+fn default_consecutive_loss_threshold() -> u32 {
+    3
+}
+fn default_weekly_drawdown_limit() -> f64 {
+    7.0
 }
 
 /// AI integration settings
@@ -565,6 +691,8 @@ pub enum PositionSizingMethod {
     ConfidenceWeighted,
     /// Combination of multiple factors
     Composite,
+    /// ATR-based: size = (equity × risk%) / (ATR × multiplier)
+    ATRBased,
 }
 
 /// Strategy combination methods
@@ -642,6 +770,28 @@ impl Default for RiskSettings {
             ], // Allow reversal in ALL market conditions
             short_only_mode: false,
             long_only_mode: false, // Disabled by default, enable in bearish markets
+            // ATR-Based Position Sizing (all default OFF)
+            atr_stop_enabled: false,
+            atr_period: default_atr_period(),
+            atr_stop_multiplier: default_atr_stop_multiplier(),
+            atr_tp_multiplier: default_atr_tp_multiplier(),
+            base_risk_pct: default_base_risk_pct(),
+            // Half-Kelly Criterion (default OFF)
+            kelly_enabled: false,
+            kelly_min_trades: default_kelly_min_trades(),
+            kelly_fraction: default_kelly_fraction(),
+            kelly_lookback: default_kelly_lookback(),
+            // Regime Filters (all default OFF)
+            funding_spike_filter_enabled: false,
+            funding_spike_threshold: default_funding_spike_threshold(),
+            funding_spike_reduction: default_funding_spike_reduction(),
+            atr_spike_filter_enabled: false,
+            atr_spike_multiplier: default_atr_spike_multiplier(),
+            atr_spike_reduction: default_atr_spike_reduction(),
+            consecutive_loss_reduction_enabled: false,
+            consecutive_loss_reduction_pct: default_consecutive_loss_reduction(),
+            consecutive_loss_reduction_threshold: default_consecutive_loss_threshold(),
+            weekly_drawdown_limit_pct: default_weekly_drawdown_limit(),
         }
     }
 }
@@ -1314,6 +1464,7 @@ mod tests {
             reversal_allowed_regimes: vec!["trending".to_string()],
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -1340,6 +1491,7 @@ mod tests {
             PositionSizingMethod::VolatilityAdjusted,
             PositionSizingMethod::ConfidenceWeighted,
             PositionSizingMethod::Composite,
+            PositionSizingMethod::ATRBased,
         ];
 
         for method in methods {
@@ -1879,6 +2031,7 @@ mod tests {
             reversal_allowed_regimes: vec!["trending".to_string()],
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         let result = settings.update_risk(new_risk.clone());
@@ -2141,6 +2294,7 @@ mod tests {
             PositionSizingMethod::VolatilityAdjusted,
             PositionSizingMethod::ConfidenceWeighted,
             PositionSizingMethod::Composite,
+            PositionSizingMethod::ATRBased,
         ];
 
         for method in methods {
@@ -2263,6 +2417,7 @@ mod tests {
             reversal_allowed_regimes: vec!["trending".to_string()],
             short_only_mode: false,
             long_only_mode: false,
+            ..Default::default()
         };
 
         assert_eq!(settings.max_risk_per_trade_pct, 1.5);

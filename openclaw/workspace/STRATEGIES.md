@@ -249,3 +249,40 @@ Query `get_paper_basic_settings` for current `trailing_stop_pct`, `trailing_acti
 - Minimum agreement: 4/5 strategies
 - Multi-timeframe: 5M (primary) + 15M (confirmation) candles
 - Execution: slippage ON, 100ms delay, market impact OFF, partial fills OFF
+
+## ATR-Based Position Sizing & Regime Filters
+
+> All features default to **OFF**. Enable via `botcore update_paper_basic_settings`.
+> Monitor with `botcore get_atr_diagnostics`.
+
+### ATR Stop Loss & Position Sizing (atr_stop_enabled)
+- **Stop Loss**: `SL = entry ± (ATR × atr_stop_multiplier)` — adapts to volatility
+- **Take Profit**: `TP = entry ∓ (ATR × atr_tp_multiplier)` — default 2:1 R:R ratio
+- **Position Size**: `size = (equity × base_risk_pct%) / (ATR × atr_stop_multiplier)`
+- ATR period: 14 candles on 15m timeframe. AI suggested_stop_loss still takes priority.
+- When disabled, uses existing PnL-based stop loss formula (unchanged).
+
+### Half-Kelly Criterion (kelly_enabled)
+- Dynamic risk scaling based on demonstrated edge: `kelly_f = (b×p - q) / b`
+  - `b` = avg_win / avg_loss, `p` = win rate, `q` = 1 - win rate
+- Applies `kelly_fraction` (default 0.5 = Half-Kelly) and clamps to [0.25, 2.0]
+- Requires `kelly_min_trades` (default 200) closed trades before activating
+- Uses last `kelly_lookback` (default 100) trades for calculation
+
+### Regime Filters (5 conditions that reduce position size)
+
+| Filter | Setting | Trigger | Effect |
+|--------|---------|---------|--------|
+| **Funding spike** | `funding_spike_filter_enabled` | `|funding_rate| > 0.0003` | Size × 0.5 |
+| **ATR spike** | `atr_spike_filter_enabled` | `current_ATR > 2.0 × mean_ATR` | Size × 0.5 |
+| **Consecutive loss** | `consecutive_loss_reduction_enabled` | `losses >= 3` | Size × (1-0.3)^excess |
+| **Weekly drawdown** | `weekly_drawdown_limit_pct` | `weekly_DD >= 7%` | Block all trades |
+| **Kelly** | `kelly_enabled` | Always (after min trades) | Size × kelly_mult |
+
+Final size = `base_size × kelly_mult × regime_mult`, then capped by margin/equity limits.
+
+### Troubleshooting
+- **All trades too small**: Check Kelly multiplier (`get_atr_diagnostics`), reduce `kelly_min_trades`, or increase `base_risk_pct`
+- **Weekly DD hit**: Wait for Monday reset or reduce `base_risk_pct` via `self_tuning_yellow_adjust`
+- **ATR SL too tight**: Increase `atr_stop_multiplier` (1.2 → 1.5)
+- **ATR SL too wide**: Decrease `atr_stop_multiplier` (1.2 → 0.8) or increase `atr_tp_multiplier` for better R:R

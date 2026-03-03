@@ -80,6 +80,11 @@ pub struct PaperPortfolio {
 
     /// Cool-down end time (after consecutive losses)
     pub cool_down_until: Option<DateTime<Utc>>,
+
+    /// Weekly drawdown tracking: (week_start_time, equity_at_start)
+    /// Used by ATR regime filter to pause trading if weekly drawdown exceeds limit
+    #[serde(default)]
+    pub week_start_equity: Option<(DateTime<Utc>, f64)>,
 }
 
 /// Comprehensive portfolio metrics
@@ -223,6 +228,7 @@ impl PaperPortfolio {
             daily_performance: Vec::new(),
             consecutive_losses: 0,
             cool_down_until: None,
+            week_start_equity: None,
         }
     }
 

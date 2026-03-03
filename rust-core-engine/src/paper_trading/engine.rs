@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, Utc};
 use rand::Rng;
 use serde_json;
 use std::collections::HashMap;
@@ -1013,6 +1013,231 @@ impl PaperTradingEngine {
         Ok(())
     }
 
+    // ========== ATR / KELLY / REGIME METHODS ==========
+
+    /// Calculate current ATR for a symbol using 15m candle data from cache.
+    /// Returns (current_atr, mean_atr) where mean_atr is calculated over a longer window
+    /// for spike detection. Returns None if insufficient data.
+    /// @spec:FR-RISK-010 - ATR-based stop loss and position sizing
+    async fn calculate_current_atr(&self, symbol: &str, period: usize) -> Option<(f64, f64)> {
+        let cache = self.historical_data_cache.read().await;
+        let cache_key = format!("{symbol}_15m");
+        let klines = cache.get(&cache_key)?;
+
+        let candles: Vec<CandleData> = klines.iter().map(CandleData::from).collect();
+        drop(cache);
+
+        // Need at least period+1 candles for ATR, and 2*period for mean ATR
+        let atr_values = crate::strategies::indicators::calculate_atr(&candles, period).ok()?;
+
+        if atr_values.is_empty() {
+            return None;
+        }
+
+        let current_atr = *atr_values.last()?;
+
+        // Mean ATR over all available values (for spike detection)
+        let mean_atr = if atr_values.len() >= 2 {
+            atr_values.iter().sum::<f64>() / atr_values.len() as f64
+        } else {
+            current_atr
+        };
+
+        if current_atr <= 0.0 {
+            return None;
+        }
+
+        Some((current_atr, mean_atr))
+    }
+
+    /// Calculate Half-Kelly criterion multiplier based on recent trade performance.
+    /// Returns a multiplier [0.25, 2.0] where 1.0 = no adjustment.
+    /// @spec:FR-RISK-011 - Kelly criterion position sizing
+    async fn calculate_half_kelly(&self) -> f64 {
+        let settings = self.settings.read().await;
+        if !settings.risk.kelly_enabled {
+            return 1.0;
+        }
+
+        let min_trades = settings.risk.kelly_min_trades;
+        let fraction = settings.risk.kelly_fraction;
+        let lookback = settings.risk.kelly_lookback as usize;
+        drop(settings);
+
+        let portfolio = self.portfolio.read().await;
+        let total_closed = portfolio.closed_trade_ids.len() as u64;
+
+        if total_closed < min_trades {
+            return 1.0;
+        }
+
+        // Get the last `lookback` closed trades
+        let trade_ids: Vec<String> = portfolio
+            .closed_trade_ids
+            .iter()
+            .rev()
+            .take(lookback)
+            .cloned()
+            .collect();
+
+        let mut wins = 0u64;
+        let mut total_win_pnl = 0.0f64;
+        let mut total_loss_pnl = 0.0f64;
+        let mut losses = 0u64;
+
+        for id in &trade_ids {
+            if let Some(trade) = portfolio.trades.get(id) {
+                if let Some(pnl) = trade.realized_pnl {
+                    if pnl > 0.0 {
+                        wins += 1;
+                        total_win_pnl += pnl;
+                    } else if pnl < 0.0 {
+                        losses += 1;
+                        total_loss_pnl += pnl.abs();
+                    }
+                }
+            }
+        }
+
+        if losses == 0 || wins == 0 {
+            return 1.0; // Can't compute meaningful Kelly without both wins and losses
+        }
+
+        let win_rate = wins as f64 / (wins + losses) as f64;
+        let avg_win = total_win_pnl / wins as f64;
+        let avg_loss = total_loss_pnl / losses as f64;
+
+        if avg_loss <= 0.0 {
+            return 1.0;
+        }
+
+        let b = avg_win / avg_loss; // Win/loss ratio
+        let p = win_rate;
+        let q = 1.0 - p;
+
+        // Kelly formula: f = (bp - q) / b
+        let kelly_f = (b * p - q) / b;
+
+        // Apply fraction (Half-Kelly) and clamp
+        let multiplier = (fraction * kelly_f).clamp(0.25, 2.0);
+
+        info!(
+            "📊 Kelly: win_rate={:.1}% avg_win={:.2} avg_loss={:.2} b={:.2} kelly_f={:.3} mult={:.3}",
+            win_rate * 100.0, avg_win, avg_loss, b, kelly_f, multiplier
+        );
+
+        multiplier
+    }
+
+    /// Apply regime filters that reduce position size based on market conditions.
+    /// Returns a multiplicative factor [0.0, 1.0] where 1.0 = no reduction.
+    /// @spec:FR-RISK-012 - Regime-based position reduction
+    async fn apply_regime_filters(&self, symbol: &str, atr_data: Option<(f64, f64)>) -> f64 {
+        let settings = self.settings.read().await;
+        let mut factor = 1.0f64;
+
+        // 1. Funding rate spike filter
+        if settings.risk.funding_spike_filter_enabled {
+            let funding_rates = self.funding_rates.read().await;
+            if let Some(&rate) = funding_rates.get(symbol) {
+                if rate.abs() > settings.risk.funding_spike_threshold {
+                    factor *= settings.risk.funding_spike_reduction;
+                    info!(
+                        "⚠️ Funding spike filter: {} rate={:.6} > threshold={:.6}, reduction={:.2}",
+                        symbol,
+                        rate.abs(),
+                        settings.risk.funding_spike_threshold,
+                        settings.risk.funding_spike_reduction
+                    );
+                }
+            }
+        }
+
+        // 2. ATR spike filter
+        if settings.risk.atr_spike_filter_enabled {
+            if let Some((current_atr, mean_atr)) = atr_data {
+                if mean_atr > 0.0 && current_atr > mean_atr * settings.risk.atr_spike_multiplier {
+                    factor *= settings.risk.atr_spike_reduction;
+                    info!(
+                        "⚠️ ATR spike filter: {} current={:.4} > {:.1}x mean={:.4}, reduction={:.2}",
+                        symbol, current_atr, settings.risk.atr_spike_multiplier,
+                        mean_atr, settings.risk.atr_spike_reduction
+                    );
+                }
+            }
+        }
+
+        // 3. Consecutive loss gradual reduction
+        if settings.risk.consecutive_loss_reduction_enabled {
+            let portfolio = self.portfolio.read().await;
+            let threshold = settings.risk.consecutive_loss_reduction_threshold;
+            if portfolio.consecutive_losses >= threshold {
+                let excess = portfolio.consecutive_losses - threshold;
+                let reduction =
+                    (1.0 - settings.risk.consecutive_loss_reduction_pct).powi(excess as i32);
+                factor *= reduction;
+                info!(
+                    "⚠️ Consecutive loss filter: {} losses (threshold={}), excess={}, factor={:.3}",
+                    portfolio.consecutive_losses, threshold, excess, reduction
+                );
+            }
+        }
+
+        drop(settings);
+        factor.clamp(0.0, 1.0)
+    }
+
+    /// Check weekly drawdown limit. Returns true if trading is allowed.
+    /// Tracks equity at the start of each week and blocks trading if drawdown exceeds limit.
+    /// @spec:FR-RISK-012 - Weekly drawdown limit
+    async fn check_weekly_drawdown_limit(&self) -> Result<bool> {
+        let settings = self.settings.read().await;
+        let limit_pct = settings.risk.weekly_drawdown_limit_pct;
+        drop(settings);
+
+        // Weekly DD limit of 0 means disabled
+        if limit_pct <= 0.0 {
+            return Ok(true);
+        }
+
+        let mut portfolio = self.portfolio.write().await;
+        let now = Utc::now();
+        let current_equity = portfolio.equity;
+
+        // Check if we need to reset (new week or first time)
+        let should_reset = match portfolio.week_start_equity {
+            None => true,
+            Some((start_time, _)) => {
+                // Reset if 7 days elapsed or crossed Monday
+                let elapsed = now.signed_duration_since(start_time);
+                elapsed.num_days() >= 7
+                    || (now.weekday() == chrono::Weekday::Mon
+                        && start_time.weekday() != chrono::Weekday::Mon)
+            },
+        };
+
+        if should_reset {
+            portfolio.week_start_equity = Some((now, current_equity));
+            return Ok(true);
+        }
+
+        // Check drawdown
+        if let Some((_, start_equity)) = portfolio.week_start_equity {
+            if start_equity > 0.0 {
+                let drawdown_pct = (start_equity - current_equity) / start_equity * 100.0;
+                if drawdown_pct >= limit_pct {
+                    info!(
+                        "🚫 Weekly drawdown limit hit: {:.2}% >= {:.1}% limit (start={:.2}, current={:.2})",
+                        drawdown_pct, limit_pct, start_equity, current_equity
+                    );
+                    return Ok(false);
+                }
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Process a trading signal and potentially execute a trade
     async fn process_trading_signal(
         &self,
@@ -1057,6 +1282,20 @@ impl PaperTradingEngine {
                 success: false,
                 trade_id: None,
                 error_message: Some("Daily loss limit reached - trading disabled".to_string()),
+                execution_price: None,
+                fees_paid: None,
+            });
+        }
+
+        // 1.5 Check weekly drawdown limit
+        // @spec:FR-RISK-012 - Weekly drawdown limit
+        if !self.check_weekly_drawdown_limit().await? {
+            return Ok(TradeExecutionResult {
+                success: false,
+                trade_id: None,
+                error_message: Some(
+                    "Weekly drawdown limit reached - trading paused until next week".to_string(),
+                ),
                 execution_price: None,
                 fees_paid: None,
             });
@@ -1198,65 +1437,174 @@ impl PaperTradingEngine {
                 signal.entry_price
             });
 
-        // @spec:FR-RISK-002 - Fixed Percentage Stop Loss (PnL-BASED)
-        // stop_loss_pct and take_profit_pct are PnL-based (not price-based).
-        // With leverage, price_change = pnl_pct / leverage.
-        // E.g., 5% SL with 3x leverage = 1.67% price move triggers stop.
+        // ========== STOP LOSS & TAKE PROFIT ==========
+        // @spec:FR-RISK-010 - ATR-based stop loss (when enabled)
+        // @spec:FR-RISK-002 - Fixed Percentage Stop Loss (PnL-BASED, fallback)
         let lev = leverage as f64;
-        let stop_loss = signal
-            .suggested_stop_loss
-            .unwrap_or_else(|| match signal.signal_type {
-                crate::strategies::TradingSignal::Long => {
-                    entry_price * (1.0 - symbol_settings.stop_loss_pct / (lev * 100.0))
-                },
-                crate::strategies::TradingSignal::Short => {
-                    entry_price * (1.0 + symbol_settings.stop_loss_pct / (lev * 100.0))
-                },
-                _ => entry_price,
-            });
+        let atr_data = if settings.risk.atr_stop_enabled {
+            self.calculate_current_atr(&signal.symbol, settings.risk.atr_period)
+                .await
+        } else {
+            None
+        };
 
-        let take_profit = signal.suggested_take_profit.unwrap_or_else(|| {
-            match signal.signal_type {
-                crate::strategies::TradingSignal::Long => {
-                    entry_price * (1.0 + symbol_settings.take_profit_pct / (lev * 100.0))
-                },
-                crate::strategies::TradingSignal::Short => {
-                    entry_price * (1.0 - symbol_settings.take_profit_pct / (lev * 100.0))
-                },
-                _ => entry_price, // Neutral signal
+        let (stop_loss, take_profit) = if settings.risk.atr_stop_enabled {
+            if let Some((current_atr, _)) = atr_data {
+                // ATR-based SL/TP
+                let atr_sl_distance = current_atr * settings.risk.atr_stop_multiplier;
+                let atr_tp_distance = current_atr * settings.risk.atr_tp_multiplier;
+
+                let sl = signal
+                    .suggested_stop_loss
+                    .unwrap_or(match signal.signal_type {
+                        crate::strategies::TradingSignal::Long => entry_price - atr_sl_distance,
+                        crate::strategies::TradingSignal::Short => entry_price + atr_sl_distance,
+                        _ => entry_price,
+                    });
+                let tp = signal
+                    .suggested_take_profit
+                    .unwrap_or(match signal.signal_type {
+                        crate::strategies::TradingSignal::Long => entry_price + atr_tp_distance,
+                        crate::strategies::TradingSignal::Short => entry_price - atr_tp_distance,
+                        _ => entry_price,
+                    });
+
+                info!(
+                    "📐 ATR SL/TP: {} ATR={:.4} SL_dist={:.4} TP_dist={:.4} SL={:.4} TP={:.4}",
+                    signal.symbol, current_atr, atr_sl_distance, atr_tp_distance, sl, tp
+                );
+                (sl, tp)
+            } else {
+                // ATR enabled but no data available — fallback to PnL-based
+                warn!(
+                    "⚠️ ATR enabled but no data for {}, falling back to PnL-based SL/TP",
+                    signal.symbol
+                );
+                let sl = signal
+                    .suggested_stop_loss
+                    .unwrap_or_else(|| match signal.signal_type {
+                        crate::strategies::TradingSignal::Long => {
+                            entry_price * (1.0 - symbol_settings.stop_loss_pct / (lev * 100.0))
+                        },
+                        crate::strategies::TradingSignal::Short => {
+                            entry_price * (1.0 + symbol_settings.stop_loss_pct / (lev * 100.0))
+                        },
+                        _ => entry_price,
+                    });
+                let tp = signal
+                    .suggested_take_profit
+                    .unwrap_or_else(|| match signal.signal_type {
+                        crate::strategies::TradingSignal::Long => {
+                            entry_price * (1.0 + symbol_settings.take_profit_pct / (lev * 100.0))
+                        },
+                        crate::strategies::TradingSignal::Short => {
+                            entry_price * (1.0 - symbol_settings.take_profit_pct / (lev * 100.0))
+                        },
+                        _ => entry_price,
+                    });
+                (sl, tp)
             }
-        });
+        } else {
+            // Original PnL-based formula (unchanged)
+            let sl = signal
+                .suggested_stop_loss
+                .unwrap_or_else(|| match signal.signal_type {
+                    crate::strategies::TradingSignal::Long => {
+                        entry_price * (1.0 - symbol_settings.stop_loss_pct / (lev * 100.0))
+                    },
+                    crate::strategies::TradingSignal::Short => {
+                        entry_price * (1.0 + symbol_settings.stop_loss_pct / (lev * 100.0))
+                    },
+                    _ => entry_price,
+                });
+            let tp = signal
+                .suggested_take_profit
+                .unwrap_or_else(|| match signal.signal_type {
+                    crate::strategies::TradingSignal::Long => {
+                        entry_price * (1.0 + symbol_settings.take_profit_pct / (lev * 100.0))
+                    },
+                    crate::strategies::TradingSignal::Short => {
+                        entry_price * (1.0 - symbol_settings.take_profit_pct / (lev * 100.0))
+                    },
+                    _ => entry_price,
+                });
+            (sl, tp)
+        };
 
-        // Calculate position size with PROPER risk-based formula
-        // @spec:FR-RISK-001 - Position Size Calculation (FIXED)
+        // ========== POSITION SIZING ==========
+        // @spec:FR-RISK-010 - ATR-based position sizing (when enabled)
+        // @spec:FR-RISK-011 - Half-Kelly criterion multiplier
+        // @spec:FR-RISK-012 - Regime filters reduce size
+        // @spec:FR-RISK-001 - Position Size Calculation (original fallback)
+        let kelly_mult = self.calculate_half_kelly().await;
+        let regime_mult = self.apply_regime_filters(&signal.symbol, atr_data).await;
+
         let quantity = {
             let portfolio = self.portfolio.read().await;
-            let risk_amount = portfolio.equity * (symbol_settings.position_size_pct / 100.0);
 
-            // Calculate stop loss percentage
-            let stop_loss_pct = ((entry_price - stop_loss).abs() / entry_price) * 100.0;
-
-            // Calculate max position value based on risk
-            let max_position_value = if stop_loss_pct > 0.0 {
-                risk_amount / (stop_loss_pct / 100.0)
+            let base_quantity = if settings.risk.atr_stop_enabled {
+                if let Some((current_atr, _)) = atr_data {
+                    // ATR-based sizing: size = (equity × base_risk%) / SL distance
+                    let sl_distance = current_atr * settings.risk.atr_stop_multiplier;
+                    if sl_distance > 0.0 {
+                        let risk_amount = portfolio.equity * (settings.risk.base_risk_pct / 100.0);
+                        risk_amount / sl_distance
+                    } else {
+                        0.0
+                    }
+                } else {
+                    // Fallback to existing formula
+                    let risk_amount =
+                        portfolio.equity * (symbol_settings.position_size_pct / 100.0);
+                    let stop_loss_pct = ((entry_price - stop_loss).abs() / entry_price) * 100.0;
+                    let max_position_value = if stop_loss_pct > 0.0 {
+                        risk_amount / (stop_loss_pct / 100.0)
+                    } else {
+                        risk_amount * 10.0
+                    };
+                    let max_position_value_with_leverage = max_position_value * lev;
+                    let available_for_position = portfolio.free_margin * 0.95;
+                    let actual_position_value =
+                        max_position_value_with_leverage.min(available_for_position);
+                    actual_position_value / entry_price
+                }
             } else {
-                risk_amount * 10.0 // Default to 10% SL if none set
+                // Original risk-based formula (unchanged)
+                let risk_amount = portfolio.equity * (symbol_settings.position_size_pct / 100.0);
+                let stop_loss_pct = ((entry_price - stop_loss).abs() / entry_price) * 100.0;
+                let max_position_value = if stop_loss_pct > 0.0 {
+                    risk_amount / (stop_loss_pct / 100.0)
+                } else {
+                    risk_amount * 10.0
+                };
+                let max_position_value_with_leverage = max_position_value * lev;
+                let available_for_position = portfolio.free_margin * 0.95;
+                let actual_position_value =
+                    max_position_value_with_leverage.min(available_for_position);
+                actual_position_value / entry_price
             };
 
-            // Apply leverage to position value
-            let max_position_value_with_leverage = max_position_value * leverage as f64;
+            // Apply Kelly and regime multipliers
+            let adjusted_quantity = base_quantity * kelly_mult * regime_mult;
 
-            // Limit by available margin (keep 5% buffer)
-            let available_for_position = portfolio.free_margin * 0.95;
-            let actual_position_value =
-                max_position_value_with_leverage.min(available_for_position);
-
-            // Calculate quantity
-            let max_quantity = actual_position_value / entry_price;
-
-            // Additional safety: limit to max 20% of account per trade
+            // Safety limits: 95% margin, 20% equity cap
+            let margin_limit = portfolio.free_margin * 0.95 / entry_price;
             let safety_limit = portfolio.equity * 0.2 / entry_price;
-            max_quantity.min(safety_limit)
+            let final_quantity = adjusted_quantity.min(margin_limit).min(safety_limit);
+
+            if settings.risk.atr_stop_enabled
+                || settings.risk.kelly_enabled
+                || settings.risk.funding_spike_filter_enabled
+                || settings.risk.atr_spike_filter_enabled
+                || settings.risk.consecutive_loss_reduction_enabled
+            {
+                info!(
+                    "📐 Position sizing: {} base={:.6} kelly={:.3} regime={:.3} final={:.6}",
+                    signal.symbol, base_quantity, kelly_mult, regime_mult, final_quantity
+                );
+            }
+
+            final_quantity
         };
 
         drop(settings);

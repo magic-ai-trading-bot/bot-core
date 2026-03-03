@@ -215,6 +215,28 @@ pub struct UpdateBasicSettingsRequest {
     // Market regime mode settings
     pub short_only_mode: Option<bool>,
     pub long_only_mode: Option<bool>,
+    // ATR-based position sizing
+    pub atr_stop_enabled: Option<bool>,
+    pub atr_period: Option<usize>,
+    pub atr_stop_multiplier: Option<f64>,
+    pub atr_tp_multiplier: Option<f64>,
+    pub base_risk_pct: Option<f64>,
+    // Half-Kelly criterion
+    pub kelly_enabled: Option<bool>,
+    pub kelly_min_trades: Option<u64>,
+    pub kelly_fraction: Option<f64>,
+    pub kelly_lookback: Option<u64>,
+    // Regime filters
+    pub funding_spike_filter_enabled: Option<bool>,
+    pub funding_spike_threshold: Option<f64>,
+    pub funding_spike_reduction: Option<f64>,
+    pub atr_spike_filter_enabled: Option<bool>,
+    pub atr_spike_multiplier: Option<f64>,
+    pub atr_spike_reduction: Option<f64>,
+    pub consecutive_loss_reduction_enabled: Option<bool>,
+    pub consecutive_loss_reduction_pct: Option<f64>,
+    pub consecutive_loss_reduction_threshold: Option<u32>,
+    pub weekly_drawdown_limit_pct: Option<f64>,
 }
 
 /// Request to update execution settings (partial update)
@@ -708,6 +730,15 @@ impl PaperTradingApi {
             .and(with_api(api.clone()))
             .and_then(get_latest_config_suggestion);
 
+        // GET /api/paper-trading/atr-diagnostics
+        // @spec:FR-RISK-010 - ATR diagnostics for monitoring
+        let get_atr_diagnostics_route = base_path
+            .and(warp::path("atr-diagnostics"))
+            .and(warp::path::end())
+            .and(warp::get())
+            .and(with_api(api.clone()))
+            .and_then(get_atr_diagnostics);
+
         // GET /api/paper-trading/signals-history
         // @spec:FR-AI-012 - Signal Outcome Tracking
         // Returns AI signals with their outcomes (win/loss/pending)
@@ -765,6 +796,8 @@ impl PaperTradingApi {
             .or(get_trade_analysis_by_id_route)
             .or(get_config_suggestions_route)
             .or(get_latest_config_suggestion_route)
+            // @spec:FR-RISK-010 - ATR diagnostics
+            .or(get_atr_diagnostics_route)
             // @spec:FR-AI-012 - Signal Outcome Tracking
             .or(get_signals_history_route)
             // @spec:FR-AI-013 - Cached Signal Display
@@ -1316,6 +1349,27 @@ async fn get_basic_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
             "short_only_mode": settings.risk.short_only_mode,
             "long_only_mode": settings.risk.long_only_mode
         },
+        "atr_sizing": {
+            "atr_stop_enabled": settings.risk.atr_stop_enabled,
+            "atr_period": settings.risk.atr_period,
+            "atr_stop_multiplier": settings.risk.atr_stop_multiplier,
+            "atr_tp_multiplier": settings.risk.atr_tp_multiplier,
+            "base_risk_pct": settings.risk.base_risk_pct,
+            "kelly_enabled": settings.risk.kelly_enabled,
+            "kelly_min_trades": settings.risk.kelly_min_trades,
+            "kelly_fraction": settings.risk.kelly_fraction,
+            "kelly_lookback": settings.risk.kelly_lookback,
+            "funding_spike_filter_enabled": settings.risk.funding_spike_filter_enabled,
+            "funding_spike_threshold": settings.risk.funding_spike_threshold,
+            "funding_spike_reduction": settings.risk.funding_spike_reduction,
+            "atr_spike_filter_enabled": settings.risk.atr_spike_filter_enabled,
+            "atr_spike_multiplier": settings.risk.atr_spike_multiplier,
+            "atr_spike_reduction": settings.risk.atr_spike_reduction,
+            "consecutive_loss_reduction_enabled": settings.risk.consecutive_loss_reduction_enabled,
+            "consecutive_loss_reduction_pct": settings.risk.consecutive_loss_reduction_pct,
+            "consecutive_loss_reduction_threshold": settings.risk.consecutive_loss_reduction_threshold,
+            "weekly_drawdown_limit_pct": settings.risk.weekly_drawdown_limit_pct
+        },
         "signal": {
             "min_required_indicators": settings.signal.min_required_indicators,
             "min_required_timeframes": settings.signal.min_required_timeframes
@@ -1423,6 +1477,7 @@ async fn update_basic_settings(
             "VolatilityAdjusted" => PositionSizingMethod::VolatilityAdjusted,
             "ConfidenceWeighted" => PositionSizingMethod::ConfidenceWeighted,
             "Composite" => PositionSizingMethod::Composite,
+            "ATRBased" => PositionSizingMethod::ATRBased,
             _ => new_settings.risk.position_sizing_method, // keep current if invalid
         };
     }
@@ -1489,6 +1544,66 @@ async fn update_basic_settings(
                 "allowing Short signals"
             }
         );
+    }
+    // ATR-based position sizing
+    if let Some(v) = request.atr_stop_enabled {
+        new_settings.risk.atr_stop_enabled = v;
+    }
+    if let Some(v) = request.atr_period {
+        new_settings.risk.atr_period = v;
+    }
+    if let Some(v) = request.atr_stop_multiplier {
+        new_settings.risk.atr_stop_multiplier = v;
+    }
+    if let Some(v) = request.atr_tp_multiplier {
+        new_settings.risk.atr_tp_multiplier = v;
+    }
+    if let Some(v) = request.base_risk_pct {
+        new_settings.risk.base_risk_pct = v;
+    }
+    // Half-Kelly criterion
+    if let Some(v) = request.kelly_enabled {
+        new_settings.risk.kelly_enabled = v;
+    }
+    if let Some(v) = request.kelly_min_trades {
+        new_settings.risk.kelly_min_trades = v;
+    }
+    if let Some(v) = request.kelly_fraction {
+        new_settings.risk.kelly_fraction = v;
+    }
+    if let Some(v) = request.kelly_lookback {
+        new_settings.risk.kelly_lookback = v;
+    }
+    // Regime filters
+    if let Some(v) = request.funding_spike_filter_enabled {
+        new_settings.risk.funding_spike_filter_enabled = v;
+    }
+    if let Some(v) = request.funding_spike_threshold {
+        new_settings.risk.funding_spike_threshold = v;
+    }
+    if let Some(v) = request.funding_spike_reduction {
+        new_settings.risk.funding_spike_reduction = v;
+    }
+    if let Some(v) = request.atr_spike_filter_enabled {
+        new_settings.risk.atr_spike_filter_enabled = v;
+    }
+    if let Some(v) = request.atr_spike_multiplier {
+        new_settings.risk.atr_spike_multiplier = v;
+    }
+    if let Some(v) = request.atr_spike_reduction {
+        new_settings.risk.atr_spike_reduction = v;
+    }
+    if let Some(v) = request.consecutive_loss_reduction_enabled {
+        new_settings.risk.consecutive_loss_reduction_enabled = v;
+    }
+    if let Some(v) = request.consecutive_loss_reduction_pct {
+        new_settings.risk.consecutive_loss_reduction_pct = v;
+    }
+    if let Some(v) = request.consecutive_loss_reduction_threshold {
+        new_settings.risk.consecutive_loss_reduction_threshold = v;
+    }
+    if let Some(v) = request.weekly_drawdown_limit_pct {
+        new_settings.risk.weekly_drawdown_limit_pct = v;
     }
 
     // Update the engine settings
@@ -2346,6 +2461,56 @@ async fn get_latest_signals(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
             ))
         },
     }
+}
+
+/// Get ATR diagnostics for all actively traded symbols
+/// @spec:FR-RISK-010 - ATR diagnostics for monitoring
+async fn get_atr_diagnostics(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
+    let settings = api.engine.get_settings().await;
+    let symbols: Vec<String> = settings.symbols.keys().cloned().collect();
+    let portfolio = api.engine.get_portfolio_status().await;
+
+    let response = serde_json::json!({
+        "atr_stop_enabled": settings.risk.atr_stop_enabled,
+        "atr_period": settings.risk.atr_period,
+        "atr_stop_multiplier": settings.risk.atr_stop_multiplier,
+        "atr_tp_multiplier": settings.risk.atr_tp_multiplier,
+        "base_risk_pct": settings.risk.base_risk_pct,
+        "kelly": {
+            "enabled": settings.risk.kelly_enabled,
+            "min_trades": settings.risk.kelly_min_trades,
+            "fraction": settings.risk.kelly_fraction,
+            "lookback": settings.risk.kelly_lookback,
+            "total_closed_trades": portfolio.total_trades,
+            "win_rate": portfolio.win_rate,
+        },
+        "regime_filters": {
+            "funding_spike": {
+                "enabled": settings.risk.funding_spike_filter_enabled,
+                "threshold": settings.risk.funding_spike_threshold,
+                "reduction": settings.risk.funding_spike_reduction,
+            },
+            "atr_spike": {
+                "enabled": settings.risk.atr_spike_filter_enabled,
+                "multiplier": settings.risk.atr_spike_multiplier,
+                "reduction": settings.risk.atr_spike_reduction,
+            },
+            "consecutive_loss": {
+                "enabled": settings.risk.consecutive_loss_reduction_enabled,
+                "reduction_pct": settings.risk.consecutive_loss_reduction_pct,
+                "threshold": settings.risk.consecutive_loss_reduction_threshold,
+            },
+        },
+        "weekly_drawdown": {
+            "limit_pct": settings.risk.weekly_drawdown_limit_pct,
+        },
+        "symbols": symbols,
+    });
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(response)),
+        StatusCode::OK,
+    ))
 }
 
 #[cfg(test)]

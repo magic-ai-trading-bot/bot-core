@@ -347,6 +347,7 @@ botcore get_paper_notification_settings # Notifications: trade/risk/performance 
 botcore get_paper_indicator_settings    # Indicator params (RSI period, MACD fast/slow/signal, BB)
 botcore get_paper_symbols               # Symbols being traded
 botcore get_paper_pending_orders        # Pending limit/stop orders
+botcore get_atr_diagnostics            # ATR sizing, Kelly mult, regime filters, weekly DD
 botcore get_paper_signals_history       # All strategy signals history
 botcore get_paper_latest_signals        # Most recent signals
 botcore get_paper_trade_analyses        # AI analyses for ALL closed trades
@@ -740,6 +741,11 @@ GREEN tier (auto-apply — you can adjust all of these freely):
 - `sp_confidence_max`: range 0.70-0.95, default 0.85, cooldown 6h — max confidence cap
 - `sp_neutral_confidence`: range 0.30-0.50, default 0.40, cooldown 6h — neutral signal confidence
 - `sp_counter_trend_mode`: enum [block, reduce], default block, cooldown 1h — counter-trend handling
+- `atr_stop_multiplier`: range 0.8-2.5, default 1.2, cooldown 6h — ATR × this = SL distance
+- `atr_tp_multiplier`: range 1.5-5.0, default 2.4, cooldown 6h — ATR × this = TP distance
+- `funding_spike_threshold`: range 0.0001-0.001, default 0.0003, cooldown 6h — funding rate spike detection
+- `atr_spike_multiplier`: range 1.5-3.0, default 2.0, cooldown 6h — ATR spike detection threshold
+- `consecutive_loss_reduction_pct`: range 0.1-0.5, default 0.3, cooldown 6h — per-loss size reduction
 
 YELLOW tier (user confirmation — capital risk params):
 - `position_size_percent`: range 1.0-10.0, default 5.0, cooldown 6h
@@ -751,10 +757,15 @@ YELLOW tier (user confirmation — capital risk params):
 - `sp_stoch_oversold`: range 10-30, default 20, cooldown 6h
 - `sp_weight_15m`/`sp_weight_30m`/`sp_weight_1h`: range 0.0-3.0, defaults 0.5/1.0/2.0, cooldown 6h
 - `sp_counter_trend_enabled`: true/false, default true, cooldown 1h
+- `base_risk_pct`: range 0.5-5.0, default 2.0, cooldown 6h — base risk % for ATR sizing
+- `kelly_fraction`: range 0.25-0.75, default 0.5, cooldown 6h — Half-Kelly fraction
 
 RED tier (explicit approval):
 - `max_daily_loss_percent`: range 1.0-15.0, default 3.0, cooldown 6h
 - `engine_running`: true/false, default false, cooldown 1h
+- `atr_stop_enabled`: true/false, default false, cooldown 1h — enable ATR-based SL/TP/sizing
+- `kelly_enabled`: true/false, default false, cooldown 1h — enable Half-Kelly criterion
+- `weekly_drawdown_limit_pct`: range 3.0-15.0, default 7.0, cooldown 6h — max weekly DD
 
 ---
 

@@ -322,6 +322,28 @@ export function registerPaperTradingTools(server: McpServer): void {
     }
   );
 
+  server.registerTool(
+    "get_atr_diagnostics",
+    {
+      title: "Get ATR Diagnostics",
+      description:
+        "Get ATR-based position sizing diagnostics: current ATR values, Kelly multiplier, " +
+        "regime filter status, weekly drawdown tracking. Use to monitor and tune risk parameters.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async () => {
+      const res = await apiRequest(
+        "rust",
+        "/api/paper-trading/atr-diagnostics",
+        { timeoutMs: 10_000 }
+      );
+      return res.success
+        ? toolSuccess(res.data)
+        : toolError(res.error || "Failed to get ATR diagnostics");
+    }
+  );
+
   // ============================================================================
   // WRITE TOOLS
   // ============================================================================
