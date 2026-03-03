@@ -1,10 +1,35 @@
-import { defineConfig, ViteDevServer } from "vite";
+import { defineConfig, ViteDevServer, Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+/**
+ * Plugin to set proper cache headers in preview mode:
+ * - index.html: no-cache (forces revalidation on every visit → picks up new deploys)
+ * - hashed assets: long-term cache (immutable, hash changes on rebuild)
+ */
+function cacheControlPlugin(): Plugin {
+  return {
+    name: 'cache-control-headers',
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url && /\/assets\/.*\.[a-f0-9]+\.\w+$/.test(req.url)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (!req.url || req.url === '/' || req.url?.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+        next();
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  preview: {
+    host: "0.0.0.0",
+    port: 3000,
+  },
   server: {
     host: "::",
     port: 3000,
@@ -64,9 +89,11 @@ export default defineConfig(({ mode }) => ({
     // Fix for Node.js globals in browser
     global: "globalThis",
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(
-    Boolean
-  ),
+  plugins: [
+    react(),
+    cacheControlPlugin(),
+    mode === "development" && componentTagger(),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
