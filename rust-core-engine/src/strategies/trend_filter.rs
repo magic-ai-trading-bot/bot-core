@@ -393,4 +393,60 @@ mod tests {
         );
         assert_eq!(score, 0.2);
     }
+
+    #[test]
+    fn test_trend_direction_display_neutral() {
+        let direction = TrendDirection::Neutral;
+        assert_eq!(format!("{}", direction), "Neutral");
+    }
+
+    #[test]
+    fn test_trend_direction_display_uptrend() {
+        assert_eq!(format!("{}", TrendDirection::Uptrend), "Uptrend");
+    }
+
+    #[test]
+    fn test_trend_direction_display_downtrend() {
+        assert_eq!(format!("{}", TrendDirection::Downtrend), "Downtrend");
+    }
+
+    #[test]
+    fn test_trend_filter_config_getter() {
+        let config = TrendFilterConfig::default();
+        let filter = TrendFilter::new(config.clone());
+        assert_eq!(
+            filter.config().min_alignment_score,
+            config.min_alignment_score
+        );
+    }
+
+    #[test]
+    fn test_check_alignment_without_daily_candles() {
+        // Use small ema_period (20) to avoid needing 200 candles
+        let mut config = TrendFilterConfig::default();
+        config.ema_period = 20;
+        let filter = TrendFilter::new(config);
+        let candles_4h: Vec<CandleData> = (0..30)
+            .map(|i| CandleData {
+                open: 100.0 + (i as f64),
+                high: 101.0 + (i as f64),
+                low: 99.0 + (i as f64),
+                close: 100.5 + (i as f64),
+                volume: 1000.0,
+                open_time: (i as i64) * 14400000,
+                close_time: (i as i64) * 14400000 + 14400000,
+                quote_volume: 100500.0,
+                trades: 100,
+                is_closed: true,
+            })
+            .collect();
+        let candles_1h = candles_4h.clone();
+
+        // Pass None for candles_1d — should use TrendDirection::Neutral for daily
+        let result = filter.check_alignment(None, &candles_4h, &candles_1h);
+        assert!(result.is_ok());
+        // Daily should be Neutral when no 1d candles provided
+        let alignment = result.unwrap();
+        assert_eq!(alignment.daily, TrendDirection::Neutral);
+    }
 }

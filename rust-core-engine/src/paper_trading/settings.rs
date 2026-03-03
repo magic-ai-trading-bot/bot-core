@@ -2460,4 +2460,320 @@ mod tests {
             cloned.strategy.min_ai_confidence
         );
     }
+
+    // =========================================================================
+    // INDICATOR SETTINGS VALIDATION TESTS (test_cov_indicator_*)
+    // =========================================================================
+
+    #[test]
+    fn test_cov_indicator_rsi_period_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.rsi_period = 4; // Below minimum (5)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_rsi_period_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.rsi_period = 51; // Above maximum (50)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_rsi_period_valid_boundary() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.rsi_period = 5;
+        assert!(settings.validate().is_ok());
+
+        settings.indicators.rsi_period = 50;
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_cov_indicator_macd_fast_equals_slow() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.macd_fast = 20;
+        settings.indicators.macd_slow = 20; // fast must be < slow
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_macd_fast_greater_than_slow() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.macd_fast = 30;
+        settings.indicators.macd_slow = 20; // fast > slow: invalid
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_macd_signal_zero() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.macd_signal = 0; // below minimum (1)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_macd_signal_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.macd_signal = 21; // above maximum (20)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_ema_periods_empty() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.ema_periods = vec![]; // cannot be empty
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_bollinger_period_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.bollinger_period = 4; // below minimum (5)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_bollinger_period_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.bollinger_period = 51; // above maximum (50)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_bollinger_std_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.bollinger_std = 0.9; // below minimum (1.0)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_bollinger_std_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.bollinger_std = 4.1; // above maximum (4.0)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_stochastic_k_period_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.stochastic_k_period = 4; // below minimum (5)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_indicator_stochastic_k_period_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.indicators.stochastic_k_period = 31; // above maximum (30)
+        assert!(settings.validate().is_err());
+    }
+
+    // =========================================================================
+    // SIGNAL GENERATION SETTINGS VALIDATION TESTS (test_cov_signal_*)
+    // =========================================================================
+
+    #[test]
+    fn test_cov_signal_trend_threshold_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.trend_threshold_percent = 0.0; // must be > 0.0
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_trend_threshold_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.trend_threshold_percent = 10.1; // above maximum (10.0)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_min_timeframes_zero() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.min_required_timeframes = 0; // must be >= 1
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_min_timeframes_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.min_required_timeframes = 5; // above maximum (4)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_min_indicators_zero() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.min_required_indicators = 0; // must be >= 1
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_min_indicators_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.min_required_indicators = 6; // above maximum (5)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_confidence_base_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.confidence_base = 0.09; // below minimum (0.1)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_confidence_base_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.confidence_base = 0.91; // above maximum (0.9)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_confidence_per_timeframe_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.confidence_per_timeframe = 0.009; // below minimum (0.01)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_signal_confidence_per_timeframe_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal.confidence_per_timeframe = 0.21; // above maximum (0.2)
+        assert!(settings.validate().is_err());
+    }
+
+    // =========================================================================
+    // SIGNAL PIPELINE SETTINGS VALIDATION TESTS (test_cov_pipeline_*)
+    // =========================================================================
+
+    #[test]
+    fn test_cov_pipeline_min_weighted_threshold_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.min_weighted_threshold = 9.9; // below minimum (10.0)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_min_weighted_threshold_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.min_weighted_threshold = 90.1; // above maximum (90.0)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_rsi_bull_not_greater_than_bear() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.rsi_bull_threshold = 45.0;
+        settings.signal_pipeline.rsi_bear_threshold = 45.0; // bull must be > bear
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_rsi_bull_less_than_bear() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.rsi_bull_threshold = 40.0;
+        settings.signal_pipeline.rsi_bear_threshold = 50.0; // bull < bear: invalid
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_bb_bear_not_greater_than_bull() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.bb_bull_threshold = 0.5;
+        settings.signal_pipeline.bb_bear_threshold = 0.5; // bear must be > bull
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_bb_bear_less_than_bull() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.bb_bull_threshold = 0.6;
+        settings.signal_pipeline.bb_bear_threshold = 0.4; // bear < bull: invalid
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_confidence_max_too_small() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.confidence_max = 0.49; // below minimum (0.5)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_confidence_max_too_large() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.confidence_max = 1.01; // above maximum (1.0)
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_analysis_timeframes_empty() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.analysis_timeframes = vec![]; // cannot be empty
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_counter_trend_mode_invalid() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.counter_trend_mode = "invalid_mode".to_string(); // must be "block" or "reduce"
+        assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn test_cov_pipeline_counter_trend_mode_reduce_valid() {
+        let mut settings = PaperTradingSettings::default();
+        settings.signal_pipeline.counter_trend_mode = "reduce".to_string();
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_cov_pipeline_counter_trend_mode_block_valid() {
+        let settings = PaperTradingSettings::default(); // default is "block"
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_cov_default_indicator_settings() {
+        let settings = PaperTradingSettings::default();
+        assert_eq!(settings.indicators.rsi_period, 14);
+        assert_eq!(settings.indicators.macd_fast, 12);
+        assert_eq!(settings.indicators.macd_slow, 26);
+        assert_eq!(settings.indicators.macd_signal, 9);
+        assert_eq!(settings.indicators.ema_periods, vec![9, 21, 50]);
+        assert_eq!(settings.indicators.bollinger_period, 20);
+        assert_eq!(settings.indicators.bollinger_std, 2.0);
+        assert_eq!(settings.indicators.stochastic_k_period, 14);
+    }
+
+    #[test]
+    fn test_cov_default_signal_settings() {
+        let settings = PaperTradingSettings::default();
+        assert_eq!(settings.signal.trend_threshold_percent, 0.8);
+        assert_eq!(settings.signal.min_required_timeframes, 3);
+        assert_eq!(settings.signal.min_required_indicators, 4);
+        assert_eq!(settings.signal.confidence_base, 0.5);
+        assert_eq!(settings.signal.confidence_per_timeframe, 0.08);
+    }
+
+    #[test]
+    fn test_cov_default_signal_pipeline_settings() {
+        let settings = PaperTradingSettings::default();
+        assert_eq!(settings.signal_pipeline.min_weighted_threshold, 60.0);
+        assert_eq!(settings.signal_pipeline.rsi_bull_threshold, 55.0);
+        assert_eq!(settings.signal_pipeline.rsi_bear_threshold, 45.0);
+        assert_eq!(settings.signal_pipeline.bb_bull_threshold, 0.3);
+        assert_eq!(settings.signal_pipeline.bb_bear_threshold, 0.7);
+        assert_eq!(settings.signal_pipeline.confidence_max, 0.85);
+        assert_eq!(settings.signal_pipeline.counter_trend_mode, "block");
+        assert_eq!(settings.signal_pipeline.analysis_timeframes.len(), 3);
+    }
+
+    #[test]
+    fn test_strategy_settings_default_market_preset() {
+        // Verify that StrategySettings default market_preset is "normal_volatility"
+        // This exercises the default_market_preset() function (lines 477-479)
+        let settings = StrategySettings::default();
+        assert_eq!(settings.market_preset, "normal_volatility");
+    }
 }

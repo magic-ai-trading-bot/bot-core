@@ -142,10 +142,10 @@ async fn main() -> Result<()> {
     for symbol in &trading_symbols {
         let symbol_settings = paper_trading::settings::SymbolSettings {
             enabled: true,
-            leverage: Some(10),
-            position_size_pct: Some(5.0), // 5% of portfolio per trade
-            stop_loss_pct: Some(2.0),     // 2% stop loss
-            take_profit_pct: Some(4.0),   // 4% take profit
+            leverage: None,          // defer to basic.default_leverage
+            position_size_pct: None, // defer to basic.default_position_size_pct
+            stop_loss_pct: None,     // defer to risk.default_stop_loss_pct
+            take_profit_pct: None,   // defer to risk.default_take_profit_pct
             trading_hours: None,
             min_price_movement_pct: None,
             max_positions: Some(1), // 1 position per symbol max

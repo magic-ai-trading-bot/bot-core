@@ -2434,4 +2434,94 @@ mod tests {
 
         assert_eq!(cloned.current_regime, MarketRegime::Unknown);
     }
+
+    // Test that covers analyze_and_recommend() main execution path (lines 264+)
+    // Uses min_trades_for_optimization=2 to bypass the early return
+    #[test]
+    fn test_analyze_and_recommend_with_sufficient_data() {
+        let mut config = OptimizationConfig::default();
+        config.min_trades_for_optimization = 2;
+        config.enable_genetic_algorithm = false;
+        config.enable_bayesian_optimization = false;
+
+        let mut optimizer = StrategyOptimizer::new(config);
+
+        let portfolio_metrics = PortfolioMetrics::default();
+        let market_conditions = MarketConditions {
+            volatility: 0.5,
+            trend_strength: 0.7,
+            volume_profile: "High".to_string(),
+            regime: "Trending".to_string(),
+            correlation_matrix: HashMap::new(),
+        };
+
+        // Add enough snapshots to pass the threshold
+        for _ in 0..3 {
+            optimizer.add_performance_snapshot(
+                portfolio_metrics.clone(),
+                market_conditions.clone(),
+                HashMap::new(),
+                HashMap::new(),
+            );
+        }
+
+        // Should now have enough data to pass the threshold and execute the main path
+        let result = optimizer.analyze_and_recommend();
+        assert!(result.is_ok());
+        // With no active strategies in snapshots, recommendations will be empty
+        let recommendations = result.unwrap();
+        // Whether recommendations are empty or not, the code path was exercised
+        let _ = recommendations;
+    }
+
+    // Test analyze_and_recommend with strategy data to trigger recommendation generation
+    #[test]
+    fn test_analyze_and_recommend_with_strategy_performance() {
+        let mut config = OptimizationConfig::default();
+        config.min_trades_for_optimization = 2;
+        config.enable_genetic_algorithm = false;
+        config.enable_bayesian_optimization = false;
+
+        let mut optimizer = StrategyOptimizer::new(config);
+
+        // Create strategy performance with poor metrics to trigger optimization
+        let strategy_perf = StrategyPerformance {
+            signal_count: 100,
+            executed_trades: 100,
+            win_rate: 0.2, // Low win rate → should_optimize = true
+            avg_profit: 0.01,
+            avg_loss: 0.05,
+            profit_factor: 0.5, // < 1.5 → poor
+            sharpe_ratio: 0.3,
+            max_drawdown: 0.3, // High drawdown
+            confidence_accuracy: 0.5,
+            signal_frequency: 1.0,
+        };
+
+        let mut active_strategies = HashMap::new();
+        active_strategies.insert("RSI Strategy".to_string(), strategy_perf);
+
+        let portfolio_metrics = PortfolioMetrics::default();
+        let market_conditions = MarketConditions {
+            volatility: 0.5,
+            trend_strength: 0.7,
+            volume_profile: "High".to_string(),
+            regime: "Trending".to_string(),
+            correlation_matrix: HashMap::new(),
+        };
+
+        for _ in 0..3 {
+            optimizer.add_performance_snapshot(
+                portfolio_metrics.clone(),
+                market_conditions.clone(),
+                active_strategies.clone(),
+                HashMap::new(),
+            );
+        }
+
+        let result = optimizer.analyze_and_recommend();
+        assert!(result.is_ok());
+        // The optimizer may or may not generate recommendations depending on strategy data
+        let _ = result.unwrap();
+    }
 }

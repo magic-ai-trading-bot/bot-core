@@ -2038,4 +2038,151 @@ mod tests {
         assert_eq!(pos.balances.len(), 0);
         assert_eq!(pos.event_time, 1564034571105);
     }
+
+    // ============================================================================
+    // handle_message tests - cover lines 400-438 (ExecutionReport, AccountPosition,
+    // BalanceUpdate, and parse error paths)
+    // ============================================================================
+
+    #[test]
+    fn test_user_data_stream_manager_new_futures() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config).expect("Failed to create client");
+        let manager = UserDataStreamManager::new_futures(client);
+        assert!(manager.use_futures);
+    }
+
+    #[test]
+    fn test_user_data_stream_manager_with_config_custom() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config).expect("Failed to create client");
+        let custom_cfg = UserDataStreamConfig {
+            keepalive_interval_secs: 600,
+            reconnect_delay_secs: 10,
+            max_reconnect_attempts: 5,
+            channel_buffer_size: 200,
+        };
+        let manager = UserDataStreamManager::with_config(client, custom_cfg, false);
+        assert!(!manager.use_futures);
+        assert_eq!(manager.config.keepalive_interval_secs, 600);
+        assert_eq!(manager.config.channel_buffer_size, 200);
+    }
+
+    #[tokio::test]
+    async fn test_stop_when_not_started() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config).expect("Failed to create client");
+        let mut manager = UserDataStreamManager::new(client);
+        // stop() without start() should succeed gracefully
+        let result = manager.stop().await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_drop_without_shutdown_tx() {
+        let config = create_test_config();
+        let client = BinanceClient::new(config).expect("Failed to create client");
+        let manager = UserDataStreamManager::new(client);
+        // shutdown_tx is None initially → drop does nothing (no panic)
+        drop(manager);
+    }
+
+    #[test]
+    fn test_handle_message_execution_report() {
+        let (event_tx, mut event_rx) = tokio::sync::broadcast::channel(10);
+        let json = r#"{
+            "e": "executionReport",
+            "E": 1499405658658,
+            "s": "BTCUSDT",
+            "c": "order_id_123",
+            "S": "BUY",
+            "o": "LIMIT",
+            "f": "GTC",
+            "q": "1.00000000",
+            "p": "50000.00000000",
+            "P": "0.00000000",
+            "F": "0.00000000",
+            "g": -1,
+            "C": "",
+            "x": "TRADE",
+            "X": "FILLED",
+            "r": "NONE",
+            "i": 4293153,
+            "l": "1.00000000",
+            "z": "1.00000000",
+            "L": "50000.00000000",
+            "n": "0.001",
+            "N": "BNB",
+            "T": 1499405658657,
+            "t": 53456,
+            "I": 8641984,
+            "w": false,
+            "m": false,
+            "M": false,
+            "O": 1499405658657,
+            "Z": "50000.00000000",
+            "Y": "50000.00000000",
+            "Q": "0.00000000"
+        }"#;
+
+        UserDataStreamManager::handle_message(json, &event_tx);
+
+        // Should have received an ExecutionReport event
+        let event = event_rx.try_recv();
+        assert!(matches!(event, Ok(UserDataStreamEvent::ExecutionReport(_))));
+    }
+
+    #[test]
+    fn test_handle_message_account_position() {
+        let (event_tx, mut event_rx) = tokio::sync::broadcast::channel(10);
+        let json = r#"{
+            "e": "outboundAccountPosition",
+            "E": 1564034571105,
+            "u": 1564034571073,
+            "B": [
+                { "a": "BTC", "f": "0.00720500", "l": "0.00000000" }
+            ]
+        }"#;
+
+        UserDataStreamManager::handle_message(json, &event_tx);
+
+        let event = event_rx.try_recv();
+        assert!(matches!(event, Ok(UserDataStreamEvent::AccountPosition(_))));
+    }
+
+    #[test]
+    fn test_handle_message_balance_update() {
+        let (event_tx, mut event_rx) = tokio::sync::broadcast::channel(10);
+        let json = r#"{
+            "e": "balanceUpdate",
+            "E": 1573200697110,
+            "a": "BTC",
+            "d": "100.00000000",
+            "T": 1573200697068
+        }"#;
+
+        UserDataStreamManager::handle_message(json, &event_tx);
+
+        let event = event_rx.try_recv();
+        assert!(matches!(event, Ok(UserDataStreamEvent::BalanceUpdate(_))));
+    }
+
+    #[test]
+    fn test_handle_message_invalid_json_does_not_panic() {
+        let (event_tx, mut event_rx) = tokio::sync::broadcast::channel(10);
+        // Invalid JSON → should log and continue, not panic
+        UserDataStreamManager::handle_message("this is not json", &event_tx);
+        // No event should be received
+        assert!(event_rx.try_recv().is_err());
+    }
+
+    #[test]
+    fn test_handle_message_unknown_event_type() {
+        let (event_tx, mut event_rx) = tokio::sync::broadcast::channel(10);
+        // Valid JSON but unknown event type
+        let json = r#"{"e": "unknownEvent", "data": 42}"#;
+        UserDataStreamManager::handle_message(json, &event_tx);
+        // No event should be received
+        assert!(event_rx.try_recv().is_err());
+    }
 }

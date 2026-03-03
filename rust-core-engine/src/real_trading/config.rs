@@ -745,4 +745,398 @@ mod tests {
         assert_eq!(config.max_position_size_usdt, cloned.max_position_size_usdt);
         assert_eq!(config.use_testnet, cloned.use_testnet);
     }
+
+    // ============ ATR Validation Branch Coverage ============
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_period_too_low() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.atr_period = 1; // < 2
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_period")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_period_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.atr_period = 101; // > 100
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_period")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_stop_multiplier_zero() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.atr_stop_multiplier = 0.0; // <= 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_stop_multiplier")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_stop_multiplier_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.atr_stop_multiplier = 11.0; // > 10
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_stop_multiplier")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_tp_multiplier_zero() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.atr_tp_multiplier = 0.0; // <= 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_tp_multiplier")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_tp_multiplier_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.atr_tp_multiplier = 21.0; // > 20
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_tp_multiplier")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_base_risk_pct_zero() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.base_risk_pct = 0.0; // <= 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("base_risk_pct")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_invalid_base_risk_pct_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.base_risk_pct = 21.0; // > 20
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("base_risk_pct")));
+    }
+
+    #[test]
+    fn test_validate_atr_enabled_valid() {
+        let mut config = RealTradingConfig::default();
+        config.atr_stop_enabled = true;
+        config.atr_period = 14; // valid
+        config.atr_stop_multiplier = 1.5; // valid
+        config.atr_tp_multiplier = 3.0; // valid
+        config.base_risk_pct = 2.0; // valid
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    // ============ Kelly Validation Branch Coverage ============
+
+    #[test]
+    fn test_validate_kelly_enabled_min_trades_too_low() {
+        let mut config = RealTradingConfig::default();
+        config.kelly_enabled = true;
+        config.kelly_min_trades = 9; // < 10
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("kelly_min_trades")));
+    }
+
+    #[test]
+    fn test_validate_kelly_enabled_fraction_zero() {
+        let mut config = RealTradingConfig::default();
+        config.kelly_enabled = true;
+        config.kelly_fraction = 0.0; // <= 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("kelly_fraction")));
+    }
+
+    #[test]
+    fn test_validate_kelly_enabled_fraction_above_one() {
+        let mut config = RealTradingConfig::default();
+        config.kelly_enabled = true;
+        config.kelly_fraction = 1.5; // > 1
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("kelly_fraction")));
+    }
+
+    #[test]
+    fn test_validate_kelly_enabled_lookback_too_low() {
+        let mut config = RealTradingConfig::default();
+        config.kelly_enabled = true;
+        config.kelly_lookback = 9; // < 10
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("kelly_lookback")));
+    }
+
+    #[test]
+    fn test_validate_kelly_enabled_lookback_too_high() {
+        let mut config = RealTradingConfig::default();
+        config.kelly_enabled = true;
+        config.kelly_lookback = 1001; // > 1000
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("kelly_lookback")));
+    }
+
+    #[test]
+    fn test_validate_kelly_enabled_valid() {
+        let mut config = RealTradingConfig::default();
+        config.kelly_enabled = true;
+        config.kelly_min_trades = 50; // valid
+        config.kelly_fraction = 0.5; // valid
+        config.kelly_lookback = 100; // valid
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    // ============ Regime Filter Validation Branch Coverage ============
+
+    #[test]
+    fn test_validate_funding_spike_filter_threshold_zero() {
+        let mut config = RealTradingConfig::default();
+        config.funding_spike_filter_enabled = true;
+        config.funding_spike_threshold = 0.0; // <= 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("funding_spike_threshold")));
+    }
+
+    #[test]
+    fn test_validate_funding_spike_filter_reduction_negative() {
+        let mut config = RealTradingConfig::default();
+        config.funding_spike_filter_enabled = true;
+        config.funding_spike_reduction = -0.1; // < 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("funding_spike_reduction")));
+    }
+
+    #[test]
+    fn test_validate_funding_spike_filter_reduction_above_one() {
+        let mut config = RealTradingConfig::default();
+        config.funding_spike_filter_enabled = true;
+        config.funding_spike_reduction = 1.5; // > 1
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("funding_spike_reduction")));
+    }
+
+    #[test]
+    fn test_validate_funding_spike_filter_valid() {
+        let mut config = RealTradingConfig::default();
+        config.funding_spike_filter_enabled = true;
+        config.funding_spike_threshold = 0.001; // valid
+        config.funding_spike_reduction = 0.5; // valid
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_atr_spike_filter_multiplier_too_low() {
+        let mut config = RealTradingConfig::default();
+        config.atr_spike_filter_enabled = true;
+        config.atr_spike_multiplier = 1.0; // <= 1 (must be > 1)
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_spike_multiplier")));
+    }
+
+    #[test]
+    fn test_validate_atr_spike_filter_reduction_negative() {
+        let mut config = RealTradingConfig::default();
+        config.atr_spike_filter_enabled = true;
+        config.atr_spike_reduction = -0.5; // < 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_spike_reduction")));
+    }
+
+    #[test]
+    fn test_validate_atr_spike_filter_reduction_above_one() {
+        let mut config = RealTradingConfig::default();
+        config.atr_spike_filter_enabled = true;
+        config.atr_spike_reduction = 1.5; // > 1
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("atr_spike_reduction")));
+    }
+
+    #[test]
+    fn test_validate_atr_spike_filter_valid() {
+        let mut config = RealTradingConfig::default();
+        config.atr_spike_filter_enabled = true;
+        config.atr_spike_multiplier = 2.0; // > 1, valid
+        config.atr_spike_reduction = 0.5; // valid
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_consecutive_loss_reduction_pct_negative() {
+        let mut config = RealTradingConfig::default();
+        config.consecutive_loss_reduction_enabled = true;
+        config.consecutive_loss_reduction_pct = -0.1; // < 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("consecutive_loss_reduction_pct")));
+    }
+
+    #[test]
+    fn test_validate_consecutive_loss_reduction_pct_above_one() {
+        let mut config = RealTradingConfig::default();
+        config.consecutive_loss_reduction_enabled = true;
+        config.consecutive_loss_reduction_pct = 1.5; // > 1
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("consecutive_loss_reduction_pct")));
+    }
+
+    #[test]
+    fn test_validate_consecutive_loss_reduction_threshold_zero() {
+        let mut config = RealTradingConfig::default();
+        config.consecutive_loss_reduction_enabled = true;
+        config.consecutive_loss_reduction_threshold = 0; // must be >= 1
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("consecutive_loss_reduction_threshold")));
+    }
+
+    #[test]
+    fn test_validate_consecutive_loss_reduction_valid() {
+        let mut config = RealTradingConfig::default();
+        config.consecutive_loss_reduction_enabled = true;
+        config.consecutive_loss_reduction_pct = 0.3; // valid
+        config.consecutive_loss_reduction_threshold = 3; // valid
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    // ============ Signal Reversal Validation Branch Coverage ============
+
+    #[test]
+    fn test_validate_signal_reversal_confidence_negative() {
+        let mut config = RealTradingConfig::default();
+        config.enable_signal_reversal = true;
+        config.reversal_min_confidence = -0.1; // < 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("reversal_min_confidence")));
+    }
+
+    #[test]
+    fn test_validate_signal_reversal_confidence_above_one() {
+        let mut config = RealTradingConfig::default();
+        config.enable_signal_reversal = true;
+        config.reversal_min_confidence = 1.5; // > 1
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("reversal_min_confidence")));
+    }
+
+    #[test]
+    fn test_validate_signal_reversal_max_pnl_pct_zero() {
+        let mut config = RealTradingConfig::default();
+        config.enable_signal_reversal = true;
+        config.reversal_max_pnl_pct = 0.0; // <= 0
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("reversal_max_pnl_pct")));
+    }
+
+    #[test]
+    fn test_validate_signal_reversal_valid() {
+        let mut config = RealTradingConfig::default();
+        config.enable_signal_reversal = true;
+        config.reversal_min_confidence = 0.75; // valid
+        config.reversal_max_pnl_pct = 5.0; // valid
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    // ============ Short/Long Only Conflict ============
+
+    #[test]
+    fn test_validate_short_only_and_long_only_conflict() {
+        let mut config = RealTradingConfig::default();
+        config.short_only_mode = true;
+        config.long_only_mode = true;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errs = result.unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("short_only_mode")));
+    }
+
+    // ============ is_futures ============
+
+    #[test]
+    fn test_is_futures_spot() {
+        let config = RealTradingConfig {
+            trading_type: "spot".to_string(),
+            ..Default::default()
+        };
+        assert!(!config.is_futures());
+    }
+
+    #[test]
+    fn test_is_futures_futures() {
+        let config = RealTradingConfig {
+            trading_type: "futures".to_string(),
+            ..Default::default()
+        };
+        assert!(config.is_futures());
+    }
+
+    #[test]
+    fn test_is_futures_uppercase() {
+        let config = RealTradingConfig {
+            trading_type: "FUTURES".to_string(),
+            ..Default::default()
+        };
+        assert!(config.is_futures());
+    }
 }

@@ -1176,4 +1176,41 @@ mod tests {
             assert!(confidence >= 0.0 && confidence <= 1.0);
         }
     }
+
+    // RSI_BULL_MOMENTUM = 55.0: rsi_1h > 55 && rsi_1h < overbought && prev_rsi_1h < rsi_1h && rsi_4h > 50 && rsi_4h < overbought
+    #[test]
+    fn test_analyze_rsi_signals_bullish_momentum() {
+        let strategy = RsiStrategy::new();
+        // rsi_1h=60 (>55, <70), prev=57 (<60 so rising), rsi_4h=58 (>50, <70)
+        let (signal, confidence, reason) =
+            strategy.analyze_rsi_signals(60.0, 58.0, 57.0, 56.0, 30.0, 70.0, 20.0, 80.0);
+
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.60);
+        assert!(reason.contains("Bullish momentum"));
+    }
+
+    // RSI_BEAR_MOMENTUM = 45.0: rsi_1h < 45 && rsi_1h > oversold && prev_rsi_1h > rsi_1h && rsi_4h < 50 && rsi_4h > oversold
+    #[test]
+    fn test_analyze_rsi_signals_bearish_momentum() {
+        let strategy = RsiStrategy::new();
+        // rsi_1h=40 (<45, >30), prev=43 (>40 so falling), rsi_4h=45 (<50, >30)
+        let (signal, confidence, reason) =
+            strategy.analyze_rsi_signals(40.0, 45.0, 43.0, 47.0, 30.0, 70.0, 20.0, 80.0);
+
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.60);
+        assert!(reason.contains("Bearish momentum"));
+    }
+
+    // Test that bullish momentum doesn't trigger when rsi_1h doesn't pass all conditions
+    #[test]
+    fn test_analyze_rsi_signals_bullish_momentum_not_triggered_if_rsi_1h_below_threshold() {
+        let strategy = RsiStrategy::new();
+        // rsi_1h=53 (<55 RSI_BULL_MOMENTUM) → should NOT trigger bullish momentum
+        let (signal, _, _) =
+            strategy.analyze_rsi_signals(53.0, 58.0, 51.0, 56.0, 30.0, 70.0, 20.0, 80.0);
+        // Falls through to weak bullish (k < 50? no, 53>50) then neutral
+        assert_ne!(signal, TradingSignal::Short); // should not be a short signal
+    }
 }

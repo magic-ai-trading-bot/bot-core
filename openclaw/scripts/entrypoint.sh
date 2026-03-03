@@ -114,7 +114,9 @@ node -e "
   const crypto = require('crypto');
   const cronDir = '$OPENCLAW_HOME/cron';
   const jobsPath = path.join(cronDir, 'jobs.json');
-  const tz = process.env.TZ || 'UTC';
+  // Cron schedules in config files are written in UTC
+  // (e.g. morning-briefing '0 2' = 9 AM VN, daily-portfolio '0 13' = 8 PM VN)
+  const tz = 'UTC';
 
   const files = fs.readdirSync(cronDir).filter(f =>
     f.endsWith('.json') && f !== 'jobs.json' && f !== 'jobs.json.bak' && !f.startsWith('.')
@@ -129,7 +131,6 @@ node -e "
         continue;
       }
       const name = file.replace('.json', '');
-      const noDeliver = cfg.no_deliver === true;
       const timeout = cfg.timeout_seconds || 180;
 
       const job = {
@@ -150,13 +151,14 @@ node -e "
         enabled: true
       };
 
-      if (!noDeliver) {
-        job.delivery = { mode: 'announce' };
-      }
+      // Delivery is handled by agents calling botcore send_telegram_notification
+      // directly per their prompts. OpenClaw's announce delivery mode requires
+      // device pairing which doesn't work in Docker. Explicitly set 'none' to
+      // prevent the gateway from defaulting to 'announce'.
+      job.delivery = { mode: 'none' };
 
       jobs.push(job);
-      const deliverLabel = noDeliver ? ' [no-deliver]' : '';
-      console.log('  Added: ' + name + ' (' + cfg.schedule + ')' + deliverLabel);
+      console.log('  Added: ' + name + ' (' + cfg.schedule + ')');
     } catch (e) {
       console.log('  SKIP ' + file + ': ' + e.message);
     }

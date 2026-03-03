@@ -1035,4 +1035,181 @@ mod tests {
         env::remove_var("TRADING_MODE");
         let _ = std::fs::remove_file(&temp_path);
     }
+
+    #[test]
+    fn test_config_env_var_trading_mode_production_alias() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_mode_production.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("TRADING_MODE", "production");
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.trading_mode, TradingMode::RealMainnet);
+
+        env::remove_var("TRADING_MODE");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_testnet_api_keys() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_testnet_keys.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        // Set testnet-specific keys (higher priority than BINANCE_API_KEY)
+        env::set_var("BINANCE_TESTNET", "true");
+        env::set_var("BINANCE_TESTNET_API_KEY", "testnet_specific_api_key");
+        env::set_var("BINANCE_TESTNET_SECRET_KEY", "testnet_specific_secret_key");
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.api_key, "testnet_specific_api_key");
+        assert_eq!(config.binance.secret_key, "testnet_specific_secret_key");
+        assert!(config.binance.testnet);
+
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("BINANCE_TESTNET_API_KEY");
+        env::remove_var("BINANCE_TESTNET_SECRET_KEY");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_futures_testnet_api_keys() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_futures_testnet_keys.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("BINANCE_TESTNET", "true");
+        env::set_var("BINANCE_FUTURES_TESTNET_API_KEY", "futures_testnet_api_key");
+        env::set_var(
+            "BINANCE_FUTURES_TESTNET_SECRET_KEY",
+            "futures_testnet_secret",
+        );
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.futures_api_key, "futures_testnet_api_key");
+        assert_eq!(config.binance.futures_secret_key, "futures_testnet_secret");
+
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("BINANCE_FUTURES_TESTNET_API_KEY");
+        env::remove_var("BINANCE_FUTURES_TESTNET_SECRET_KEY");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_futures_api_keys_mainnet() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_futures_mainnet_keys.toml");
+        let mut default = Config::default();
+        default.binance.testnet = false;
+        default.save_to_file(&temp_path).unwrap();
+
+        env::set_var("BINANCE_TESTNET", "false");
+        env::set_var("BINANCE_FUTURES_API_KEY", "futures_mainnet_api_key");
+        env::set_var("BINANCE_FUTURES_SECRET_KEY", "futures_mainnet_secret");
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.futures_api_key, "futures_mainnet_api_key");
+        assert_eq!(config.binance.futures_secret_key, "futures_mainnet_secret");
+        assert!(!config.binance.testnet);
+
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("BINANCE_FUTURES_API_KEY");
+        env::remove_var("BINANCE_FUTURES_SECRET_KEY");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_url_overrides() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_url_overrides.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("BINANCE_BASE_URL", "https://custom-base.example.com");
+        env::set_var("BINANCE_WS_URL", "wss://custom-ws.example.com");
+        env::set_var(
+            "BINANCE_FUTURES_BASE_URL",
+            "https://custom-futures.example.com",
+        );
+        env::set_var(
+            "BINANCE_FUTURES_WS_URL",
+            "wss://custom-futures-ws.example.com",
+        );
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.base_url, "https://custom-base.example.com");
+        assert_eq!(config.binance.ws_url, "wss://custom-ws.example.com");
+        assert_eq!(
+            config.binance.futures_base_url,
+            "https://custom-futures.example.com"
+        );
+        assert_eq!(
+            config.binance.futures_ws_url,
+            "wss://custom-futures-ws.example.com"
+        );
+
+        env::remove_var("BINANCE_BASE_URL");
+        env::remove_var("BINANCE_WS_URL");
+        env::remove_var("BINANCE_FUTURES_BASE_URL");
+        env::remove_var("BINANCE_FUTURES_WS_URL");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_fallback_api_key_when_no_testnet_specific() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_fallback_key.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        // Only set BINANCE_API_KEY (not testnet-specific), should fall through to it
+        env::set_var("BINANCE_TESTNET", "true");
+        env::remove_var("BINANCE_TESTNET_API_KEY"); // no testnet-specific key
+        env::set_var("BINANCE_API_KEY", "fallback_api_key");
+        env::remove_var("BINANCE_TESTNET_SECRET_KEY");
+        env::set_var("BINANCE_SECRET_KEY", "fallback_secret");
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.api_key, "fallback_api_key");
+        assert_eq!(config.binance.secret_key, "fallback_secret");
+
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("BINANCE_API_KEY");
+        env::remove_var("BINANCE_SECRET_KEY");
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_config_env_var_fallback_futures_api_key_testnet() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_fallback_futures_key.toml");
+        Config::default().save_to_file(&temp_path).unwrap();
+
+        env::set_var("BINANCE_TESTNET", "true");
+        env::remove_var("BINANCE_FUTURES_TESTNET_API_KEY");
+        env::set_var("BINANCE_FUTURES_API_KEY", "fallback_futures_api_key");
+        env::remove_var("BINANCE_FUTURES_TESTNET_SECRET_KEY");
+        env::set_var("BINANCE_FUTURES_SECRET_KEY", "fallback_futures_secret");
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.futures_api_key, "fallback_futures_api_key");
+        assert_eq!(config.binance.futures_secret_key, "fallback_futures_secret");
+
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("BINANCE_FUTURES_API_KEY");
+        env::remove_var("BINANCE_FUTURES_SECRET_KEY");
+        let _ = std::fs::remove_file(&temp_path);
+    }
 }

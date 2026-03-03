@@ -649,7 +649,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Business logic test - needs tuning
     fn test_calculate_stochastic_normal_case() {
         let closes = vec![
             44.0, 44.25, 44.5, 43.75, 44.0, 44.5, 45.0, 45.25, 45.5, 45.0, 45.5, 46.0, 46.5, 46.25,
@@ -680,7 +679,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Business logic test - needs tuning
     fn test_calculate_stochastic_overbought() {
         let closes = vec![
             100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0,
@@ -701,7 +699,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Business logic test - needs tuning
     fn test_calculate_stochastic_oversold() {
         let closes = vec![
             109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0, 100.0,

@@ -1419,8 +1419,8 @@ impl PaperTradingEngine {
             }
         }
 
-        // Calculate position parameters
-        let leverage = symbol_settings.leverage;
+        // Calculate position parameters — cap leverage at max_leverage
+        let leverage = symbol_settings.leverage.min(settings.risk.max_leverage);
 
         // Get REAL current price from Binance instead of using signal.entry_price
         let entry_price = self
@@ -2397,7 +2397,7 @@ impl PaperTradingEngine {
         // Step 2: Calculate parameters for new position
         let settings = self.settings.read().await;
         let symbol_settings = settings.get_symbol_settings(symbol);
-        let leverage = symbol_settings.leverage;
+        let leverage = symbol_settings.leverage.min(settings.risk.max_leverage);
 
         // Get current price
         let entry_price = self
@@ -3825,13 +3825,13 @@ impl PaperTradingEngine {
             return Ok(());
         }
 
-        // Add with default settings
+        // Add with default settings (None = defer to global defaults)
         let symbol_settings = crate::paper_trading::settings::SymbolSettings {
             enabled: true,
-            leverage: Some(10),
-            position_size_pct: Some(5.0),
-            stop_loss_pct: Some(2.0),
-            take_profit_pct: Some(4.0),
+            leverage: None,          // defer to basic.default_leverage
+            position_size_pct: None, // defer to basic.default_position_size_pct
+            stop_loss_pct: None,     // defer to risk.default_stop_loss_pct
+            take_profit_pct: None,   // defer to risk.default_take_profit_pct
             trading_hours: None,
             min_price_movement_pct: None,
             max_positions: Some(1),
@@ -9370,10 +9370,12 @@ mod tests {
     async fn test_cov3_process_trading_signal_rejects_insufficient_balance() {
         let engine = create_test_paper_engine().await;
 
-        // Set very low balance
+        // Set very low balance (must set all balance fields, not just cash_balance)
         {
             let mut portfolio = engine.portfolio.write().await;
-            portfolio.cash_balance = 1.0; // Very low balance
+            portfolio.cash_balance = 0.001;
+            portfolio.equity = 0.001;
+            portfolio.free_margin = 0.001;
         }
 
         engine

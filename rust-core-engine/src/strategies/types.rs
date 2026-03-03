@@ -1228,4 +1228,12 @@ mod tests {
         assert_eq!(sq.accuracy_score, 1.0);
         assert!(matches!(sq.overall_quality, SignalQualityRating::Excellent));
     }
+
+    #[test]
+    fn test_trading_signal_display() {
+        use crate::strategies::TradingSignal;
+        assert_eq!(format!("{}", TradingSignal::Long), "LONG");
+        assert_eq!(format!("{}", TradingSignal::Short), "SHORT");
+        assert_eq!(format!("{}", TradingSignal::Neutral), "NEUTRAL");
+    }
 }

@@ -720,4 +720,107 @@ mod tests {
         assert_eq!(confidence, 0.47);
         assert!(reasoning.contains("Consolidation phase"));
     }
+
+    // Covers extreme bearish branch: k_1h >= extreme_overbought(90) && k_4h >= overbought(85) && k_1h < d_1h
+    #[test]
+    fn test_cov8_analyze_stochastic_extreme_bearish() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reason) = strategy.analyze_stochastic_signals(
+            91.0, // k_1h >= 90 (extreme_overbought)
+            92.0, // d_1h: k_1h < d_1h → bearish
+            86.0, // k_4h >= 85 (overbought)
+            85.0, // d_4h
+            88.0, // prev_k_1h: prev >= prev_d → no crossover initially (prev 88 < prev_d 87 → actually no crossover needed here)
+            89.0, // prev_d_1h
+            85.0, 85.0, 15.0, 85.0, 10.0, 90.0,
+        );
+        // bearish_crossover_1h = prev_k >= prev_d (88 < 89 → false), but extreme condition fires: k_1h=91>=90 && k_4h=86>=85 && k < d → Short 0.85
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.85);
+        assert!(reason.contains("Extreme overbought"));
+    }
+
+    // Covers extreme bullish branch: k_1h <= extreme_oversold(10) && k_4h <= oversold(15) && k_1h > d_1h
+    #[test]
+    fn test_cov8_analyze_stochastic_extreme_bullish() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reason) = strategy.analyze_stochastic_signals(
+            8.0,  // k_1h <= 10 (extreme_oversold)
+            6.0,  // d_1h: k_1h > d_1h (8 > 6) → bullish momentum
+            12.0, // k_4h <= 15 (oversold)
+            13.0, // d_4h
+            9.0,  // prev_k_1h: prev >= prev_d → no crossover for bullish_crossover_1h condition
+            7.0,  // prev_d_1h: prev_k=9 > prev_d=7, curr_k=8 > curr_d=6 → no crossover
+            13.0, 13.0, 15.0, 85.0, 10.0, 90.0,
+        );
+        // bullish_crossover_1h = prev_k<=prev_d(9>7 → false) → no crossover
+        // extreme bullish: k=8<=10 && k_4h=12<=15 && k>d(8>6) → Long 0.85
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.85);
+        assert!(reason.contains("Extreme oversold"));
+    }
+
+    // Covers bullish momentum branch: k_1h > d_1h, k_1h > 50 && < overbought, k_4h > 50, prev_k_1h < k_1h
+    #[test]
+    fn test_cov8_analyze_stochastic_bullish_momentum_above_50() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reason) = strategy.analyze_stochastic_signals(
+            60.0, // k_1h > 50, < 85
+            58.0, // d_1h < k_1h → k > d
+            55.0, // k_4h > 50
+            54.0, // d_4h
+            57.0, // prev_k_1h < 60 → rising
+            56.0, // prev_d_1h: prev_k(57) > prev_d(56) → no crossover (prev k was already > d)
+            54.0, 54.0, 15.0, 85.0, 10.0, 90.0,
+        );
+        // bullish_crossover_1h = prev_k<=prev_d(57>56 → false) → no crossover
+        // weak bullish: k>d(60>58) && k<50? NO (60>50)
+        // bullish momentum: k>d(60>58) && k>50(yes) && k<85(yes) && k_4h>50(yes) && prev_k<k(57<60 yes) → Long 0.58
+        assert_eq!(signal, TradingSignal::Long);
+        assert_eq!(confidence, 0.58);
+        assert!(reason.contains("Bullish stochastic momentum"));
+    }
+
+    // Covers bearish momentum branch: k_1h < d_1h, k_1h < 50 && > oversold, k_4h < 50, prev_k_1h > k_1h
+    #[test]
+    fn test_cov8_analyze_stochastic_bearish_momentum_below_50() {
+        let strategy = StochasticStrategy::new();
+        let (signal, confidence, reason) = strategy.analyze_stochastic_signals(
+            40.0, // k_1h < 50, > 15
+            42.0, // d_1h > k_1h → k < d
+            45.0, // k_4h < 50
+            46.0, // d_4h
+            43.0, // prev_k_1h > 40 → falling
+            44.0, // prev_d_1h: prev_k(43) < prev_d(44) → already k<d, so no crossover
+            46.0, 46.0, 15.0, 85.0, 10.0, 90.0,
+        );
+        // bearish_crossover_1h = prev_k>=prev_d(43<44 → false) → no crossover
+        // weak bearish: k<d(40<42) && k>50? NO (40<50)
+        // bearish momentum: k<d(40<42) && k<50(yes) && k>15(yes) && k_4h<50(yes) && prev_k>k(43>40 yes) → Short 0.58
+        assert_eq!(signal, TradingSignal::Short);
+        assert_eq!(confidence, 0.58);
+        assert!(reason.contains("Bearish stochastic momentum"));
+    }
+
+    // Covers with_config constructor (line 44-46)
+    #[test]
+    fn test_stochastic_strategy_with_config() {
+        let mut config = StrategyConfig::default();
+        config.enabled = true;
+        config.weight = 1.5;
+        config.parameters.insert("k_period".to_string(), json!(21));
+        config
+            .parameters
+            .insert("oversold_threshold".to_string(), json!(25.0));
+        config
+            .parameters
+            .insert("overbought_threshold".to_string(), json!(75.0));
+
+        let strategy = StochasticStrategy::with_config(config);
+
+        assert_eq!(strategy.get_k_period(), 21);
+        assert_eq!(strategy.get_oversold_threshold(), 25.0);
+        assert_eq!(strategy.get_overbought_threshold(), 75.0);
+        assert_eq!(strategy.config().weight, 1.5);
+    }
 }

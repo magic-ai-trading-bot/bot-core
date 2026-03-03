@@ -2236,4 +2236,347 @@ mod tests {
         assert!(final_trade.margin_ratio.is_finite());
         assert!(final_trade.pnl_percentage.is_finite());
     }
+
+    // ========== Trailing Stop Tests (covers update_trailing_stop branches) ==========
+
+    #[test]
+    fn test_trailing_stop_not_activated_below_threshold() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price up 3% → PnL% = 3% * 10x leverage = 30% → activation_pct = 50%
+        // Should NOT activate trailing stop yet
+        trade.update_trailing_stop(51500.0, 3.0, 50.0);
+        assert!(!trade.trailing_stop_active);
+        assert!(trade.highest_price_achieved.is_none());
+    }
+
+    #[test]
+    fn test_trailing_stop_activated_at_threshold_long() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price up 10% → PnL% = 10% * 10x = 100% → activation_pct = 50%
+        // Should activate trailing stop
+        trade.update_trailing_stop(55000.0, 3.0, 50.0);
+        assert!(trade.trailing_stop_active);
+        assert_eq!(trade.highest_price_achieved, Some(55000.0));
+    }
+
+    #[test]
+    fn test_trailing_stop_long_initial_stop_set() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Activate trailing stop and check initial stop is set
+        trade.update_trailing_stop(55000.0, 3.0, 50.0);
+        // Expected: stop = 55000 * (1 - 3/100) = 55000 * 0.97 = 53350
+        assert!(trade.stop_loss.is_some());
+        let stop = trade.stop_loss.unwrap();
+        assert!((stop - 55000.0 * 0.97).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_trailing_stop_long_price_rises_stop_moves_up() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // First: activate trailing stop at 55000
+        trade.update_trailing_stop(55000.0, 3.0, 50.0);
+        let initial_stop = trade.stop_loss.unwrap();
+
+        // Second: price rises to 60000 → stop should move up
+        trade.update_trailing_stop(60000.0, 3.0, 50.0);
+        let new_stop = trade.stop_loss.unwrap();
+
+        // Stop should have moved up
+        assert!(new_stop > initial_stop);
+        assert_eq!(trade.highest_price_achieved, Some(60000.0));
+        // Expected: 60000 * 0.97 = 58200
+        assert!((new_stop - 60000.0 * 0.97).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_trailing_stop_long_price_falls_stop_stays() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Activate at 60000
+        trade.update_trailing_stop(60000.0, 3.0, 50.0);
+        let stop_at_peak = trade.stop_loss.unwrap();
+
+        // Price falls to 57000 (above stop) — stop should NOT decrease
+        trade.update_trailing_stop(57000.0, 3.0, 50.0);
+        let stop_after_fall = trade.stop_loss.unwrap();
+
+        // Stop should remain at peak level (never moves down for long)
+        assert_eq!(stop_at_peak, stop_after_fall);
+        // Highest price should still be 60000 (doesn't decrease)
+        assert_eq!(trade.highest_price_achieved, Some(60000.0));
+    }
+
+    #[test]
+    fn test_trailing_stop_already_active_no_reactivation() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Activate at 55000
+        trade.update_trailing_stop(55000.0, 3.0, 50.0);
+        assert!(trade.trailing_stop_active);
+
+        // Call again with same price — should remain active, no change
+        trade.update_trailing_stop(55000.0, 3.0, 50.0);
+        assert!(trade.trailing_stop_active);
+    }
+
+    #[test]
+    fn test_trailing_stop_on_closed_trade_has_no_effect() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        trade.close(55000.0, CloseReason::TakeProfit, 2.0).unwrap();
+        assert_eq!(trade.status, TradeStatus::Closed);
+
+        // update_trailing_stop on closed trade should do nothing
+        trade.update_trailing_stop(60000.0, 3.0, 50.0);
+        assert!(!trade.trailing_stop_active);
+        assert!(trade.highest_price_achieved.is_none());
+    }
+
+    #[test]
+    fn test_trailing_stop_short_activated_at_threshold() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Price falls 10% → short PnL% = 10% * 10x = 100% → activate at 50%
+        trade.update_trailing_stop(45000.0, 3.0, 50.0);
+        assert!(trade.trailing_stop_active);
+        assert_eq!(trade.highest_price_achieved, Some(45000.0));
+    }
+
+    #[test]
+    fn test_trailing_stop_short_initial_stop_set() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Activate trailing stop for short (tracking lowest)
+        trade.update_trailing_stop(45000.0, 3.0, 50.0);
+        // Expected: stop = 45000 * (1 + 3/100) = 45000 * 1.03 = 46350
+        assert!(trade.stop_loss.is_some());
+        let stop = trade.stop_loss.unwrap();
+        assert!((stop - 45000.0 * 1.03).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_trailing_stop_short_price_falls_further_stop_moves_down() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // First: activate at 45000
+        trade.update_trailing_stop(45000.0, 3.0, 50.0);
+        let initial_stop = trade.stop_loss.unwrap();
+
+        // Second: price falls to 40000 → stop should move down for short
+        trade.update_trailing_stop(40000.0, 3.0, 50.0);
+        let new_stop = trade.stop_loss.unwrap();
+
+        // Stop should have moved down (lower for short = better)
+        assert!(new_stop < initial_stop);
+        assert_eq!(trade.highest_price_achieved, Some(40000.0));
+        // Expected: 40000 * 1.03 = 41200
+        assert!((new_stop - 40000.0 * 1.03).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_trailing_stop_short_price_rises_stop_stays() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Activate at 40000 (short → lowest price tracked)
+        trade.update_trailing_stop(40000.0, 3.0, 50.0);
+        let stop_at_low = trade.stop_loss.unwrap();
+
+        // Price rises to 43000 (still profitable for short) — stop should NOT increase
+        trade.update_trailing_stop(43000.0, 3.0, 50.0);
+        let stop_after_rise = trade.stop_loss.unwrap();
+
+        // Stop should remain at lowest-based level (never moves up for short)
+        assert_eq!(stop_at_low, stop_after_rise);
+        // Lowest should still be 40000
+        assert_eq!(trade.highest_price_achieved, Some(40000.0));
+    }
+
+    #[test]
+    fn test_trailing_stop_long_with_existing_stop_loss() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Set an existing manual stop loss
+        trade.stop_loss = Some(52000.0);
+
+        // Activate trailing at 55000 → trail_stop = 55000 * 0.97 = 53350
+        trade.update_trailing_stop(55000.0, 3.0, 50.0);
+
+        // trail_stop (53350) > existing stop (52000) → should update
+        let stop = trade.stop_loss.unwrap();
+        assert!((stop - 55000.0 * 0.97).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_trailing_stop_long_with_existing_stop_loss_no_downgrade() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Long,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Activate trailing at 60000 → trail_stop = 60000 * 0.97 = 58200
+        trade.update_trailing_stop(60000.0, 3.0, 50.0);
+        assert!((trade.stop_loss.unwrap() - 58200.0).abs() < 0.01);
+
+        // Price dips to 57000 → trail_stop = 57000 * 0.97 = 55290
+        // But existing stop (58200) > new trail (55290) → should NOT downgrade
+        trade.update_trailing_stop(57000.0, 3.0, 50.0);
+        // Stop should still be 58200 (not downgraded)
+        assert!((trade.stop_loss.unwrap() - 58200.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_trailing_stop_short_with_existing_stop_no_upgrade() {
+        let mut trade = PaperTrade::new(
+            "BTCUSDT".to_string(),
+            TradeType::Short,
+            50000.0,
+            0.1,
+            10,
+            0.0004,
+            None,
+            None,
+            None,
+        );
+
+        // Activate at 40000 → trail_stop = 40000 * 1.03 = 41200
+        trade.update_trailing_stop(40000.0, 3.0, 50.0);
+        assert!((trade.stop_loss.unwrap() - 41200.0).abs() < 0.01);
+
+        // Price rises to 42000 → trail_stop = 42000 * 1.03 = 43260
+        // But existing stop (41200) < new trail (43260) → should NOT upgrade
+        trade.update_trailing_stop(42000.0, 3.0, 50.0);
+        // Stop should still be 41200 (not upgraded)
+        assert!((trade.stop_loss.unwrap() - 41200.0).abs() < 0.01);
+    }
 }
