@@ -340,21 +340,25 @@ function buildUsageSection() {
  * @param {string} [params.devRulesPath] - Path to dev rules
  * @param {string} [params.catalogScript] - Path to catalog script
  * @param {string} [params.skillsVenv] - Path to skills venv
+ * @param {string} [params.plansPath] - Absolute plans path (Issue #476: prevents wrong subdirectory creation)
+ * @param {string} [params.docsPath] - Absolute docs path
  * @returns {string[]} Lines for rules section
  */
-function buildRulesSection({ devRulesPath, catalogScript, skillsVenv }) {
+function buildRulesSection({ devRulesPath, catalogScript, skillsVenv, plansPath, docsPath }) {
   const lines = [`## Rules`];
 
   if (devRulesPath) {
     lines.push(`- Read and follow development rules: "${devRulesPath}"`);
   }
 
-  lines.push(`- Markdown files are organized in: Plans → "plans/" directory, Docs → "docs/" directory`);
-  lines.push(`- **IMPORTANT:** DO NOT create markdown files out of "plans/" or "docs/" directories UNLESS the user explicitly requests it.`);
+  // Issue #476: Use absolute paths to prevent LLM confusion in multi-CLAUDE.md projects
+  const plansRef = plansPath || 'plans';
+  const docsRef = docsPath || 'docs';
+  lines.push(`- Markdown files are organized in: Plans → "${plansRef}" directory, Docs → "${docsRef}" directory`);
+  lines.push(`- **IMPORTANT:** DO NOT create markdown files outside of "${plansRef}" or "${docsRef}" UNLESS the user explicitly requests it.`);
 
   if (catalogScript) {
     lines.push(`- Activate skills: Run \`python ${catalogScript} --skills\` to generate a skills catalog and analyze it, then activate the relevant skills that are needed for the task during the process.`);
-    lines.push(`- Execute commands: Run \`python ${catalogScript} --commands\` to generate a commands catalog and analyze it, then execute the relevant SlashCommands that are needed for the task during the process.`);
   }
 
   if (skillsVenv) {
@@ -492,7 +496,7 @@ function buildReminder(params) {
     ...buildSessionSection(staticEnv),
     ...(contextEnabled ? buildContextSection(sessionId) : []),
     ...(usageEnabled ? buildUsageSection() : []),
-    ...buildRulesSection({ devRulesPath, catalogScript, skillsVenv }),
+    ...buildRulesSection({ devRulesPath, catalogScript, skillsVenv, plansPath, docsPath }),
     ...buildModularizationSection(),
     ...buildPathsSection({ reportsPath, plansPath, docsPath, docsMaxLoc }),
     ...buildPlanContextSection({ planLine, reportsPath, gitBranch, validationMode, validationMin, validationMax }),
@@ -570,7 +574,7 @@ function buildReminderContext({ sessionId, config, staticEnv, configDirName = '.
       session: buildSessionSection(staticEnv),
       context: contextEnabled ? buildContextSection(sessionId) : [],
       usage: usageEnabled ? buildUsageSection() : [],
-      rules: buildRulesSection({ devRulesPath, catalogScript, skillsVenv }),
+      rules: buildRulesSection({ devRulesPath, catalogScript, skillsVenv, plansPath: params.plansPath, docsPath: params.docsPath }),
       modularization: buildModularizationSection(),
       paths: buildPathsSection({ reportsPath: params.reportsPath, plansPath: params.plansPath, docsPath: params.docsPath, docsMaxLoc: params.docsMaxLoc }),
       planContext: buildPlanContextSection(planCtx),
