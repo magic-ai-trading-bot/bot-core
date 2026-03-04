@@ -109,23 +109,35 @@ async fn main() -> Result<()> {
     // Set WebSocket broadcaster for market data processor
     market_data_processor.set_ws_broadcaster(ws_sender.clone());
 
-    // Initialize Paper Trading Engine with proper configuration
-    let mut paper_trading_settings = PaperTradingSettings::default();
+    // Load paper trading settings from YAML baseline (git-tracked source of truth).
+    // On startup: YAML always wins → written to DB (overwrites stale runtime values).
+    // Runtime tuning via API/self-tuning goes to DB only (reset on restart).
+    let yaml_path = std::env::var("PAPER_TRADING_YAML")
+        .unwrap_or_else(|_| "config/paper-trading-defaults.yml".to_string());
+    let mut paper_trading_settings = PaperTradingSettings::from_yaml(&yaml_path)
+        .expect("FATAL: Cannot load paper trading YAML baseline. Fix the file and restart.");
+    info!("📋 Paper trading settings loaded from YAML: {}", yaml_path);
 
-    // Note: Confidence threshold will be loaded from database if available
-    // Default is 0.65 (65%) but can be updated via API to 0.45 (45%) for Low Volatility
-
-    // Setup trading symbols with proper configuration
-    // Load default symbols + user-added symbols from database
-    let mut trading_symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
-
-    // Load user-added symbols from database
+    // Append user-added symbols from DB (dynamic additions not in YAML baseline)
     match storage.load_user_symbols().await {
         Ok(user_symbols) => {
             for symbol in user_symbols {
-                if !trading_symbols.contains(&symbol.as_str()) {
-                    info!("📊 Loading user-added symbol for AI analysis: {}", symbol);
-                    trading_symbols.push(Box::leak(symbol.into_boxed_str()));
+                if !paper_trading_settings.symbols.contains_key(&symbol) {
+                    info!("📊 Loading user-added symbol: {}", symbol);
+                    paper_trading_settings.set_symbol_settings(
+                        symbol,
+                        paper_trading::settings::SymbolSettings {
+                            enabled: true,
+                            leverage: None,
+                            position_size_pct: None,
+                            stop_loss_pct: None,
+                            take_profit_pct: None,
+                            trading_hours: None,
+                            min_price_movement_pct: None,
+                            max_positions: Some(1),
+                            custom_params: std::collections::HashMap::new(),
+                        },
+                    );
                 }
             }
         },
@@ -137,22 +149,10 @@ async fn main() -> Result<()> {
         },
     }
 
-    info!("🎯 Total symbols for AI analysis: {:?}", trading_symbols);
-
-    for symbol in &trading_symbols {
-        let symbol_settings = paper_trading::settings::SymbolSettings {
-            enabled: true,
-            leverage: None,          // defer to basic.default_leverage
-            position_size_pct: None, // defer to basic.default_position_size_pct
-            stop_loss_pct: None,     // defer to risk.default_stop_loss_pct
-            take_profit_pct: None,   // defer to risk.default_take_profit_pct
-            trading_hours: None,
-            min_price_movement_pct: None,
-            max_positions: Some(1), // 1 position per symbol max
-            custom_params: std::collections::HashMap::new(),
-        };
-        paper_trading_settings.set_symbol_settings(symbol.to_string(), symbol_settings);
-    }
+    info!(
+        "🎯 Total symbols for AI analysis: {:?}",
+        paper_trading_settings.symbols.keys().collect::<Vec<_>>()
+    );
 
     let binance_client = binance::BinanceClient::new(config.binance.clone())?;
     let ai_service = ai::AIService::new(ai::AIServiceConfig {

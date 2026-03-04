@@ -52,6 +52,9 @@ COPY --from=builder /app/target/release/binance-trading-bot /app/
 # Copy configuration template
 COPY config.example.toml /app/config.toml
 
+# Copy paper trading YAML baseline (source of truth for settings)
+COPY config/ /app/config/
+
 # Set ownership and permissions
 RUN chown -R appuser:appuser /app
 RUN chmod +x /app/binance-trading-bot

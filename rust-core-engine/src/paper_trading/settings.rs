@@ -884,7 +884,20 @@ impl Default for BacktestingSettings {
 }
 
 impl PaperTradingSettings {
-    /// Load settings from configuration file
+    /// Load settings from YAML baseline file (git-tracked source of truth).
+    /// On startup, YAML always wins — DB values are overwritten.
+    /// Fails hard on missing/invalid file (this is a finance system).
+    pub fn from_yaml(path: &str) -> Result<Self> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| anyhow::anyhow!("Failed to read YAML settings from {}: {}", path, e))?;
+        let settings: Self = serde_yml::from_str(&content)
+            .map_err(|e| anyhow::anyhow!("Failed to parse YAML settings from {}: {}", path, e))?;
+        settings.validate()?;
+        Ok(settings)
+    }
+
+    /// Load settings from TOML configuration file (DEPRECATED — use from_yaml instead)
+    #[deprecated(note = "Use from_yaml() instead. TOML loader kept for backward compatibility.")]
     pub fn from_file(path: &str) -> Result<Self> {
         let content = std::fs::read_to_string(path)?;
         let settings: Self = toml::from_str(&content)?;
@@ -1160,6 +1173,68 @@ pub struct EffectiveSymbolSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_from_yaml_loads_real_file() {
+        // Load the actual YAML baseline file and verify key values
+        let settings = PaperTradingSettings::from_yaml("config/paper-trading-defaults.yml")
+            .expect("YAML baseline file must load successfully");
+
+        // Verify critical trading parameters match expected defaults
+        assert_eq!(settings.basic.default_leverage, 3);
+        assert_eq!(settings.risk.default_stop_loss_pct, 5.0);
+        assert_eq!(settings.risk.default_take_profit_pct, 10.0);
+        assert_eq!(settings.risk.max_leverage, 5);
+        assert_eq!(settings.basic.default_position_size_pct, 2.0);
+        assert_eq!(settings.basic.initial_balance, 10000.0);
+
+        // Verify symbols defined in YAML
+        assert!(settings.symbols.contains_key("BTCUSDT"));
+        assert!(settings.symbols.contains_key("ETHUSDT"));
+        assert!(settings.symbols.contains_key("BNBUSDT"));
+        assert!(settings.symbols.contains_key("SOLUSDT"));
+
+        // Verify symbol settings defer to global defaults (None)
+        let btc = settings.symbols.get("BTCUSDT").unwrap();
+        assert!(btc.leverage.is_none());
+        assert!(btc.stop_loss_pct.is_none());
+        assert!(btc.take_profit_pct.is_none());
+    }
+
+    #[test]
+    fn test_from_yaml_roundtrip_matches_defaults() {
+        // Serialize defaults to YAML and parse back — should match
+        let defaults = PaperTradingSettings::default();
+        let yaml = serde_yml::to_string(&defaults).expect("serialize to YAML");
+        let parsed: PaperTradingSettings = serde_yml::from_str(&yaml).expect("parse from YAML");
+
+        assert_eq!(
+            parsed.basic.default_leverage,
+            defaults.basic.default_leverage
+        );
+        assert_eq!(
+            parsed.risk.default_stop_loss_pct,
+            defaults.risk.default_stop_loss_pct
+        );
+        assert_eq!(parsed.risk.max_leverage, defaults.risk.max_leverage);
+    }
+
+    #[test]
+    fn test_from_yaml_missing_file_fails() {
+        let result = PaperTradingSettings::from_yaml("/nonexistent/path.yml");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to read"));
+    }
+
+    #[test]
+    fn test_from_yaml_invalid_content_fails() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("bad-settings.yml");
+        std::fs::write(&test_file, "this: is: not: valid: yaml: [[[").unwrap();
+        let result = PaperTradingSettings::from_yaml(test_file.to_str().unwrap());
+        assert!(result.is_err());
+        std::fs::remove_file(&test_file).ok();
+    }
 
     #[test]
     fn test_default_basic_settings() {
@@ -2774,6 +2849,38 @@ mod tests {
         // Verify that StrategySettings default market_preset is "normal_volatility"
         // This exercises the default_market_preset() function (lines 477-479)
         let settings = StrategySettings::default();
+        assert_eq!(settings.market_preset, "normal_volatility");
+    }
+
+    // === COV43 TESTS ===
+
+    /// Test serde deserialization of StrategySettings without market_preset field
+    /// This triggers the `#[serde(default = "default_market_preset")]` path (lines 477-479)
+    #[test]
+    fn test_cov43_strategy_settings_serde_default_market_preset() {
+        let json = serde_json::json!({
+            "enabled_strategies": {},
+            "min_ai_confidence": 0.65,
+            "combination_method": "WeightedAverage",
+            "enable_optimization": false,
+            "optimization_period_days": 30,
+            "min_trades_for_optimization": 50,
+            "signal_timeout_minutes": 60,
+            "enable_market_regime_detection": false,
+            "regime_specific_params": {},
+            "backtesting": {
+                "enabled": false,
+                "period_days": 90,
+                "data_resolution": "15m",
+                "min_trades": 20,
+                "walk_forward_optimization": false,
+                "out_of_sample_pct": 20.0
+            }
+            // market_preset intentionally omitted to trigger serde default function
+        });
+
+        let settings: StrategySettings = serde_json::from_value(json).unwrap();
+        // serde default = "default_market_preset" should return "normal_volatility"
         assert_eq!(settings.market_preset, "normal_volatility");
     }
 }

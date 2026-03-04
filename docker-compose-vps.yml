@@ -103,6 +103,7 @@ services:
       - ./rust-core-engine/data:/app/data
       - ./rust-core-engine/logs:/app/logs
       - ./rust-core-engine/config.toml:/app/config.toml
+      - ./rust-core-engine/config/paper-trading-defaults.yml:/app/config/paper-trading-defaults.yml:ro
     networks:
       - bot-network
     depends_on:
