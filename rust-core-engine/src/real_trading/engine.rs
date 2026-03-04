@@ -3251,13 +3251,14 @@ impl RealTradingEngine {
 
     // ============ Background Loops (Auto-Trading) ============
 
-    /// Price update loop — fetches prices from WebSocket cache (O(1)) with REST fallback
-    /// Runs every 5 seconds, updates positions and current_prices map
+    /// Price update loop — fetches mark prices and unrealized PnL from Binance
+    /// every 5 seconds via positionRisk API. Falls back to WebSocket cache for
+    /// symbols without open positions (needed for SL/TP monitoring of tracked symbols).
     async fn price_update_loop(&self) {
         use tokio::time::{interval, Duration};
         let mut tick = interval(Duration::from_secs(5));
 
-        info!("Price update loop started (5s interval)");
+        info!("Price update loop started (5s interval, using Binance positionRisk API)");
 
         loop {
             tick.tick().await;
@@ -3267,50 +3268,52 @@ impl RealTradingEngine {
                 break;
             }
 
-            // Determine which symbols to track
-            let symbols = self.get_tracked_symbols().await;
-            if symbols.is_empty() {
-                continue;
-            }
-
             let mut new_prices = HashMap::new();
 
-            // Try WebSocket cache first (O(1) lookup)
+            // Fetch positions from Binance — gives mark_price + unrealized_pnl (accurate)
+            match self.binance_client.get_futures_positions().await {
+                Ok(futures_positions) => {
+                    for fp in &futures_positions {
+                        let position_amt: f64 = fp.position_amt.parse().unwrap_or(0.0);
+                        let mark_price: f64 = fp.mark_price.parse().unwrap_or(0.0);
+
+                        if mark_price > 0.0 {
+                            new_prices.insert(fp.symbol.clone(), mark_price);
+                        }
+
+                        // Update open positions with Binance's mark price + PnL
+                        if position_amt.abs() > 1e-10 {
+                            let unrealized_pnl: f64 = fp.unrealized_pnl.parse().unwrap_or(0.0);
+                            if let Some(mut pos) = self.positions.get_mut(&fp.symbol) {
+                                pos.current_price = mark_price;
+                                pos.unrealized_pnl = unrealized_pnl;
+                                pos.updated_at = chrono::Utc::now();
+                                // Still update trailing stop with mark price
+                                pos.update_trailing_stop(mark_price);
+                            }
+                        }
+                    }
+                },
+                Err(e) => {
+                    debug!("positionRisk API failed, falling back to cache: {}", e);
+                },
+            }
+
+            // Fallback: fill missing prices from WebSocket cache (for tracked symbols)
+            let symbols = self.get_tracked_symbols().await;
             if let Some(ref cache) = self.market_data_cache {
                 for symbol in &symbols {
-                    if let Some(price) = cache.get_latest_price(symbol) {
-                        if price > 0.0 {
-                            new_prices.insert(symbol.clone(), price);
+                    if !new_prices.contains_key(symbol) {
+                        if let Some(price) = cache.get_latest_price(symbol) {
+                            if price > 0.0 {
+                                new_prices.insert(symbol.clone(), price);
+                            }
                         }
                     }
                 }
             }
 
-            // REST fallback for symbols not in cache
-            let missing: Vec<&String> = symbols
-                .iter()
-                .filter(|s| !new_prices.contains_key(*s))
-                .collect();
-            if !missing.is_empty() {
-                debug!("Fetching {} symbols via REST (not in cache)", missing.len());
-                for symbol in &missing {
-                    match self.binance_client.get_symbol_price(symbol).await {
-                        Ok(price_info) => {
-                            if let Ok(price) = price_info.price.parse::<f64>() {
-                                if price > 0.0 {
-                                    new_prices.insert((*symbol).clone(), price);
-                                }
-                            }
-                        },
-                        Err(e) => warn!("Failed to get price for {}: {}", symbol, e),
-                    }
-                }
-            }
-
-            // Update positions
-            self.update_prices(&new_prices);
-
-            // Update current_prices map
+            // Update current_prices map (used by SL/TP monitoring)
             {
                 let mut prices = self.current_prices.write().await;
                 *prices = new_prices;

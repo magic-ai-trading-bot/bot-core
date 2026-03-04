@@ -277,7 +277,7 @@ impl RealPosition {
     /// Update trailing stop price based on current price.
     /// Uses PnL-based activation: trailing stop activates when unrealized PnL%
     /// reaches the activation threshold, then tracks best price from that point.
-    fn update_trailing_stop(&mut self, price: f64) {
+    pub(crate) fn update_trailing_stop(&mut self, price: f64) {
         if let (Some(activation_pct), Some(trail_pct)) =
             (self.trailing_stop_activation, self.trailing_stop_percent)
         {
