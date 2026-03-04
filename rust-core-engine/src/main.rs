@@ -179,8 +179,26 @@ async fn main() -> Result<()> {
     let paper_trading_engine = std::sync::Arc::new(paper_trading_engine_inner);
 
     // Initialize Real Trading Engine if configured
-    let real_trading_engine = if let Some(ref real_trading_config) = config.real_trading {
-        info!("🔥 Real trading configuration found, initializing engine...");
+    let real_trading_engine = if let Some(ref _toml_config) = config.real_trading {
+        // Load real trading settings from YAML baseline (git-tracked source of truth)
+        let real_yaml_path = std::env::var("REAL_TRADING_YAML")
+            .unwrap_or_else(|_| "config/real-trading-defaults.yml".to_string());
+        let real_trading_config = real_trading::RealTradingConfig::from_yaml(&real_yaml_path)
+            .unwrap_or_else(|e| {
+                tracing::warn!(
+                    "⚠️ Failed to load real trading YAML ({}): {}. Using TOML config.",
+                    real_yaml_path,
+                    e
+                );
+                _toml_config.clone()
+            });
+        info!(
+            "🔥 Real trading config loaded from YAML: leverage={}, SL={}%, TP={}%, confidence={}",
+            real_trading_config.max_leverage,
+            real_trading_config.default_stop_loss_percent,
+            real_trading_config.default_take_profit_percent,
+            real_trading_config.min_signal_confidence
+        );
 
         // Create a separate Binance client for real trading with testnet settings
         let real_binance_config = config::BinanceConfig {

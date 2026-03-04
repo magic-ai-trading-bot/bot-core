@@ -1,0 +1,101 @@
+# Real Trading Engine - Baseline Settings (Source of Truth)
+# ========================================================
+# Git-tracked. Changes require code review.
+# On startup: YAML always wins (overwrites in-memory defaults).
+# Runtime tuning via API writes to memory only (reset on restart).
+# ========================================================
+
+# Risk Limits
+max_position_size_usdt: 1000.0
+max_total_exposure_usdt: 5000.0
+max_daily_loss_usdt: 500.0
+max_positions: 5
+risk_per_trade_percent: 2.0
+min_balance_usdt: 100.0
+
+# Circuit Breaker
+circuit_breaker_errors: 3
+circuit_breaker_cooldown_secs: 300
+circuit_breaker_close_positions: false
+
+# Reconciliation
+reconciliation_interval_secs: 300
+stale_order_timeout_secs: 300
+max_reconciliation_discrepancy_usdt: 100.0
+
+# Order Settings
+default_slippage_percent: 0.1
+order_timeout_secs: 60
+prefer_maker_orders: false
+min_order_value_usdt: 10.0
+
+# Stop Loss / Take Profit
+default_stop_loss_percent: 5.0
+default_take_profit_percent: 10.0
+enable_trailing_stop: true
+trailing_stop_activation_percent: 5.0
+trailing_stop_percent: 3.0
+
+# Trading Mode
+use_testnet: true
+trading_type: "futures"
+allowed_symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - BNBUSDT
+  - SOLUSDT
+max_leverage: 5
+
+# Auto-Trading (synced with paper trading defaults)
+auto_trading_enabled: false
+min_signal_confidence: 0.60
+max_consecutive_losses: 3
+cool_down_minutes: 60
+correlation_limit: 0.70
+max_portfolio_risk_pct: 10.0
+short_only_mode: false
+long_only_mode: false
+auto_trade_symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - BNBUSDT
+  - SOLUSDT
+
+# ATR-Based Sizing
+atr_stop_enabled: false
+atr_period: 14
+atr_stop_multiplier: 1.2
+atr_tp_multiplier: 2.4
+base_risk_pct: 2.0
+
+# Kelly Criterion
+kelly_enabled: false
+kelly_min_trades: 200
+kelly_fraction: 0.5
+kelly_lookback: 100
+
+# Regime Filters
+funding_spike_filter_enabled: false
+funding_spike_threshold: 0.0003
+funding_spike_reduction: 0.5
+atr_spike_filter_enabled: false
+atr_spike_multiplier: 2.0
+atr_spike_reduction: 0.5
+consecutive_loss_reduction_enabled: false
+consecutive_loss_reduction_pct: 0.3
+consecutive_loss_reduction_threshold: 3
+
+# Signal Reversal
+enable_signal_reversal: true
+reversal_min_confidence: 0.65
+reversal_max_pnl_pct: 10.0
+reversal_allowed_regimes:
+  - trending
+  - ranging
+  - volatile
+
+# Logging
+log_order_events: true
+log_position_updates: true
+log_execution_reports: true
+send_error_alerts: true
