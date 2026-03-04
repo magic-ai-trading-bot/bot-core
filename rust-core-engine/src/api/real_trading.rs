@@ -597,8 +597,8 @@ impl RealTradingApi {
             .or(update_settings_route)
             .or(place_order_route)
             .or(list_orders_route)
-            .or(cancel_order_route)
             .or(cancel_all_orders_route)
+            .or(cancel_order_route)
             .or(modify_sltp_route)
             .with(cors)
     }

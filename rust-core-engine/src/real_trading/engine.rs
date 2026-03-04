@@ -3686,6 +3686,10 @@ impl RealTradingEngine {
                         .await
                     {
                         error!("Failed to process signal for {}: {}", symbol, e);
+                    } else {
+                        // Order placed successfully — skip remaining timeframes for this symbol
+                        // to prevent duplicate orders in the same cycle
+                        break;
                     }
                 }
             }
@@ -3766,7 +3770,24 @@ impl RealTradingEngine {
             return Ok(());
         }
 
-        // 5a. Pre-compute ATR data (used for SL/TP and regime filters)
+        // 5b. Check for existing pending entry orders for this symbol
+        // Prevents duplicate orders when multiple timeframes fire in the same cycle
+        let has_pending_entry = self.orders.iter().any(|entry| {
+            let order = entry.value();
+            order.symbol == symbol
+                && order.is_entry
+                && matches!(order.state, OrderState::New | OrderState::PartiallyFilled)
+        });
+        if has_pending_entry {
+            info!("Skipping {} — already has a pending entry order", symbol);
+            self.emit_event(RealTradingEvent::SignalRejected {
+                symbol: symbol.to_string(),
+                reason: "Pending entry order already exists".to_string(),
+            });
+            return Ok(());
+        }
+
+        // 5c. Pre-compute ATR data (used for SL/TP and regime filters)
         let atr_data = if atr_stop_enabled || self.config.read().await.atr_spike_filter_enabled {
             self.calculate_current_atr(symbol, atr_period).await
         } else {
