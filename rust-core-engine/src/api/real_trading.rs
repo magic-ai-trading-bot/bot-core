@@ -855,65 +855,95 @@ async fn get_closed_trades(api: Arc<RealTradingApi>) -> Result<impl Reply, Rejec
     }
     let symbols: Vec<String> = symbol_set.into_iter().collect();
 
-    // Fetch all orders (filled, cancelled, expired) from Binance
-    let binance_orders = engine.get_order_history(&symbols, Some(500)).await;
+    // Fetch trade fills from Binance userTrades API (has realized PnL per fill)
+    let binance_client = engine.get_binance_client();
+    let mut all_trades = Vec::new();
+    for symbol in &symbols {
+        match binance_client
+            .get_futures_user_trades(symbol, Some(100))
+            .await
+        {
+            Ok(trades) => all_trades.extend(trades),
+            Err(e) => {
+                tracing::debug!("Failed to fetch trades for {}: {}", symbol, e);
+            },
+        }
+    }
 
-    // Filter to non-active orders (completed history) and convert to frontend format
-    let trades: Vec<serde_json::Value> = binance_orders
+    // Sort by time descending (most recent first)
+    all_trades.sort_by(|a, b| b.time.cmp(&a.time));
+
+    // Get leverage from current positions or config
+    let position_leverage: std::collections::HashMap<String, u32> = engine
+        .get_positions()
         .iter()
-        .filter(|o| {
-            let status = o.status.to_uppercase();
-            // Include filled, cancelled, expired — exclude NEW (still active)
-            status != "NEW" && status != "PARTIALLY_FILLED"
-        })
-        .map(|o| {
-            let orig_qty: f64 = o.orig_qty.parse().unwrap_or(0.0);
-            let executed_qty: f64 = o.executed_qty.parse().unwrap_or(0.0);
-            let price: f64 = o.price.parse().unwrap_or(0.0);
-            let avg_price: f64 = if executed_qty > 0.0 {
-                let cum_quote: f64 = o.cumulative_quote_qty.parse().unwrap_or(0.0);
-                cum_quote / executed_qty
+        .map(|p| (p.symbol.clone(), p.leverage))
+        .collect();
+    let default_leverage = config.max_leverage;
+
+    // Convert fills to frontend format — each fill that reduces a position has realized PnL
+    let trades: Vec<serde_json::Value> = all_trades
+        .iter()
+        .map(|t| {
+            let price: f64 = t.price.parse().unwrap_or(0.0);
+            let qty: f64 = t.qty.parse().unwrap_or(0.0);
+            let realized_pnl: f64 = t.realized_pnl.parse().unwrap_or(0.0);
+            let commission: f64 = t.commission.parse().unwrap_or(0.0);
+            let net_pnl = realized_pnl - commission;
+            let notional = price * qty;
+            let leverage = position_leverage
+                .get(&t.symbol)
+                .copied()
+                .unwrap_or(default_leverage);
+            let margin = if leverage > 0 {
+                notional / leverage as f64
             } else {
-                price
+                notional
             };
-            let status_str = match o.status.to_uppercase().as_str() {
-                "FILLED" => "Closed",
-                "CANCELED" | "CANCELLED" => "Cancelled",
-                "EXPIRED" => "Cancelled",
-                _ => "Closed",
-            };
-            let trade_type = if o.side.to_uppercase() == "BUY" {
-                "Long"
+            let pnl_pct = if margin > 0.0 {
+                (net_pnl / margin) * 100.0
             } else {
-                "Short"
+                0.0
             };
-            let side_str = if o.side.to_uppercase() == "BUY" {
-                "LONG"
+
+            // Determine side from position_side or trade side
+            let side_str = if !t.position_side.is_empty() && t.position_side != "BOTH" {
+                t.position_side.clone()
+            } else if t.buyer {
+                "LONG".to_string()
             } else {
-                "SHORT"
+                "SHORT".to_string()
             };
-            let ts = chrono::DateTime::from_timestamp_millis(o.time)
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_default();
-            let close_ts = chrono::DateTime::from_timestamp_millis(o.update_time)
+            let trade_type = if side_str == "LONG" { "Long" } else { "Short" };
+
+            // Fills that close a position have non-zero realized PnL
+            let status = if realized_pnl.abs() > 0.001 {
+                "Closed"
+            } else {
+                "Open"
+            };
+
+            let ts = chrono::DateTime::from_timestamp_millis(t.time)
                 .map(|dt| dt.to_rfc3339())
                 .unwrap_or_default();
 
             serde_json::json!({
-                "id": format!("{}", o.order_id),
-                "symbol": o.symbol,
+                "id": format!("{}", t.id),
+                "symbol": t.symbol,
                 "trade_type": trade_type,
                 "side": side_str,
-                "status": status_str,
-                "order_type": o.r#type,
-                "entry_price": if avg_price > 0.0 { avg_price } else { price },
-                "exit_price": avg_price,
-                "quantity": if executed_qty > 0.0 { executed_qty } else { orig_qty },
-                "leverage": 1,
-                "pnl": 0.0,
-                "pnl_percentage": 0.0,
+                "status": status,
+                "order_type": "MARKET",
+                "entry_price": price,
+                "exit_price": price,
+                "quantity": qty,
+                "leverage": leverage,
+                "pnl": net_pnl,
+                "pnl_percentage": pnl_pct,
+                "commission": commission,
+                "realized_pnl": realized_pnl,
                 "open_time": ts,
-                "close_time": close_ts,
+                "close_time": ts,
             })
         })
         .collect();

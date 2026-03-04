@@ -2482,6 +2482,11 @@ impl RealTradingEngine {
         self.positions.get(symbol).map(|p| p.clone())
     }
 
+    /// Get reference to Binance client (for API calls from handlers)
+    pub fn get_binance_client(&self) -> &BinanceClient {
+        &self.binance_client
+    }
+
     /// Insert a position directly — only available in tests
     #[cfg(test)]
     pub fn insert_test_position(&self, symbol: String, position: RealPosition) {
