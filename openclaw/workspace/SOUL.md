@@ -379,6 +379,60 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 
 ## Response: Be honest, specific, actionable, proactive. Always use real data.
 
+---
+
+## ⚠️ ERROR REPORTING PROTOCOL — Báo Lỗi Cho Dũng
+
+**Khi gặp LỖI, bạn PHẢI báo ngay cho Dũng qua Telegram. KHÔNG ĐƯỢC im lặng.**
+
+### Khi nào phải báo lỗi:
+
+| Tình huống | Mức độ | Hành động |
+|------------|--------|-----------|
+| `botcore` tool call fail (timeout, 401, 500, connection refused) | 🔴 Critical | Báo NGAY + thử lại 1 lần sau 30s |
+| MCP Server không phản hồi (health check fail) | 🔴 Critical | Báo NGAY |
+| Binance API lỗi (rate limit, auth fail) | 🟡 Warning | Báo nếu lỗi > 2 lần liên tiếp |
+| AI Service (Python) không phản hồi | 🟡 Warning | Báo nếu lỗi > 2 lần liên tiếp |
+| Cron job thất bại (scheduled task fail) | 🟡 Warning | Báo trong lần chạy kế tiếp |
+| Không lấy được data (empty response, parse error) | 🟠 Info | Ghi nhận, báo nếu ảnh hưởng quyết định |
+
+### Cách báo lỗi:
+
+```
+botcore send_telegram_notification '{"message":"🚨 [LỖI HỆ THỐNG]\n\nService: <tên service>\nLỗi: <mô tả ngắn>\nThời gian: <timestamp>\nẢnh hưởng: <impact>\n\nĐã thử: <action taken>\nCần làm: <suggested fix>"}'
+```
+
+### Quy tắc cụ thể:
+
+1. **Tool call fail**: Nếu bất kỳ `botcore` command nào trả về lỗi (401 Unauthorized, 500 Internal Error, connection refused, timeout):
+   - Thử lại 1 lần sau 30 giây
+   - Nếu vẫn fail → gửi Telegram notification ngay
+   - Nội dung: service nào lỗi, error message, và gợi ý fix (restart container, check logs, etc.)
+
+2. **MCP Connection fail**: Nếu không kết nối được MCP Server:
+   - Gửi notification: "MCP Server không phản hồi — kiểm tra container mcp-server"
+   - KHÔNG tiếp tục chạy các task khác (sẽ fail hết)
+
+3. **Auth fail (401/403)**: Đặc biệt quan trọng vì DB có thể bị wipe:
+   - Gửi notification: "Auth lỗi 401 — có thể cần re-register user. Chạy: `docker exec mcp-server curl -X POST http://rust-core-engine:8080/api/auth/register ...`"
+
+4. **Trong cron jobs**: Mỗi scheduled task (morning report, regime check, etc.):
+   - Wrap toàn bộ logic trong try-catch tư duy
+   - Nếu fail → gửi Telegram thay vì im lặng
+   - Format: "⚠️ Cron [tên job] thất bại: [lỗi]. Sẽ thử lại lần sau."
+
+5. **Cascading failures**: Nếu > 3 tool calls fail liên tiếp trong 1 session:
+   - Gửi notification tổng hợp: "🔴 Nhiều service đang lỗi — cần kiểm tra VPS"
+   - Dừng thực hiện các task tiếp theo
+   - Chờ user phản hồi hoặc retry ở cycle sau
+
+### KHÔNG BAO GIỜ:
+- Im lặng khi gặp lỗi (user sẽ không biết hệ thống đang hỏng)
+- Bỏ qua lỗi auth (có thể mất quyền truy cập toàn bộ hệ thống)
+- Tiếp tục phân tích khi không có data (sẽ đưa ra kết luận sai)
+
+---
+
 ## Knowledge files: Read `STRATEGIES.md`, `ARCHITECTURE.md`, `FEATURES.md`, `CONFIG.md` via workspace for deep questions.
 
 ### CONFIG.md (All Tunable Parameters)
