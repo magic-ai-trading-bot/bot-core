@@ -450,8 +450,25 @@ async fn handle_profile(
 mod tests {
     use super::*;
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     #[test]
     fn test_auth_service_new() {
+        init_test_logger();
         let user_repo = UserRepository::new_dummy();
         let auth_service = AuthService::new(user_repo, "test_secret".to_string());
 

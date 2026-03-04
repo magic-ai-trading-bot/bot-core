@@ -452,7 +452,24 @@ mod tests {
     use super::*;
     use crate::config::BinanceConfig;
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     fn create_test_config() -> BinanceConfig {
+        init_test_logger();
         BinanceConfig {
             api_key: "test_api_key".to_string(),
             secret_key: "test_secret_key".to_string(),

@@ -1212,4 +1212,36 @@ mod tests {
         env::remove_var("BINANCE_FUTURES_SECRET_KEY");
         let _ = std::fs::remove_file(&temp_path);
     }
+
+    // === COV43 TESTS ===
+
+    /// Test config loading with mainnet mode and BINANCE_API_KEY + BINANCE_SECRET_KEY set
+    /// Covers lines 290, 294: mainnet else-branch key loading
+    #[test]
+    fn test_cov43_config_mainnet_api_key_and_secret_key() {
+        use std::env;
+        let _guard = ENV_TEST_MUTEX.lock().unwrap();
+
+        let temp_path = env::temp_dir().join("test_config_cov43_mainnet_keys.toml");
+        let mut default = Config::default();
+        default.binance.testnet = false;
+        default.save_to_file(&temp_path).unwrap();
+
+        env::set_var("BINANCE_TESTNET", "false");
+        env::set_var("BINANCE_API_KEY", "cov43_mainnet_api_key");
+        env::set_var("BINANCE_SECRET_KEY", "cov43_mainnet_secret_key");
+        // Remove futures-specific keys so fallback to spot keys is used
+        env::remove_var("BINANCE_FUTURES_API_KEY");
+        env::remove_var("BINANCE_FUTURES_SECRET_KEY");
+
+        let config = Config::from_file(&temp_path).unwrap();
+        assert_eq!(config.binance.api_key, "cov43_mainnet_api_key");
+        assert_eq!(config.binance.secret_key, "cov43_mainnet_secret_key");
+        assert!(!config.binance.testnet);
+
+        env::remove_var("BINANCE_TESTNET");
+        env::remove_var("BINANCE_API_KEY");
+        env::remove_var("BINANCE_SECRET_KEY");
+        let _ = std::fs::remove_file(&temp_path);
+    }
 }

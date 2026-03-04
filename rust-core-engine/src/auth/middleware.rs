@@ -652,4 +652,100 @@ mod tests {
         let admin_result = admin_authorize(auth_header, jwt_service).await;
         assert!(admin_result.is_err());
     }
+
+    // ========== COV22 TESTS - Cover with_auth, with_optional_auth, with_admin_auth filter builders ==========
+
+    #[test]
+    fn test_cov22_with_auth_filter_creation() {
+        // Covers lines 19-25: with_auth() creates a warp filter
+        let jwt_service = create_test_jwt_service();
+        let _filter = with_auth(jwt_service);
+        // Filter is created successfully (no panic)
+    }
+
+    #[test]
+    fn test_cov22_with_optional_auth_filter_creation() {
+        // Covers lines 27-33: with_optional_auth() creates a warp filter
+        let jwt_service = create_test_jwt_service();
+        let _filter = with_optional_auth(jwt_service);
+        // Filter is created successfully
+    }
+
+    #[test]
+    fn test_cov22_with_admin_auth_filter_creation() {
+        // Covers lines 35-41: with_admin_auth() creates a warp filter
+        let jwt_service = create_test_jwt_service();
+        let _filter = with_admin_auth(jwt_service);
+        // Filter is created successfully
+    }
+
+    #[tokio::test]
+    async fn test_cov22_with_auth_filter_valid_token() {
+        // Actually exercise the filter with a request
+        let jwt_service = create_test_jwt_service();
+        let token = jwt_service
+            .generate_token("user123", "test@example.com", false)
+            .unwrap();
+
+        let filter = with_auth(jwt_service);
+
+        let result = warp::test::request()
+            .header("authorization", format!("Bearer {}", token))
+            .filter(&filter)
+            .await;
+
+        assert!(result.is_ok());
+        let claims = result.unwrap();
+        assert_eq!(claims.sub, "user123");
+    }
+
+    #[tokio::test]
+    async fn test_cov22_with_optional_auth_filter_valid_token() {
+        let jwt_service = create_test_jwt_service();
+        let token = jwt_service
+            .generate_token("user123", "test@example.com", false)
+            .unwrap();
+
+        let filter = with_optional_auth(jwt_service);
+
+        let result = warp::test::request()
+            .header("authorization", format!("Bearer {}", token))
+            .filter(&filter)
+            .await;
+
+        assert!(result.is_ok());
+        let claims_opt = result.unwrap();
+        assert!(claims_opt.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_cov22_with_optional_auth_filter_no_header() {
+        let jwt_service = create_test_jwt_service();
+        let filter = with_optional_auth(jwt_service);
+
+        let result = warp::test::request().filter(&filter).await;
+
+        assert!(result.is_ok());
+        let claims_opt = result.unwrap();
+        assert!(claims_opt.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cov22_with_admin_auth_filter_admin_token() {
+        let jwt_service = create_test_jwt_service();
+        let token = jwt_service
+            .generate_token("admin", "admin@example.com", true)
+            .unwrap();
+
+        let filter = with_admin_auth(jwt_service);
+
+        let result = warp::test::request()
+            .header("authorization", format!("Bearer {}", token))
+            .filter(&filter)
+            .await;
+
+        assert!(result.is_ok());
+        let claims = result.unwrap();
+        assert!(claims.is_admin);
+    }
 }

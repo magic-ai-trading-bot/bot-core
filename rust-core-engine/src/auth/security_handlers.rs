@@ -826,8 +826,25 @@ mod tests {
     use crate::auth::models::Session;
     use chrono::Utc;
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     #[test]
     fn test_parse_user_agent_chrome_mac() {
+        init_test_logger();
         let ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
         let (device, browser, os) = parse_user_agent(ua);
         assert_eq!(browser, "Chrome");

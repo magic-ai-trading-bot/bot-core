@@ -826,4 +826,18 @@ mod tests {
         let candles = cache.get_candles("BTCUSDT", "1m", None);
         assert_eq!(candles.len(), 0);
     }
+
+    // === COV45 TESTS ===
+
+    /// Test get_all_candles line 269: `else { Vec::new() }` when symbol/timeframe not in cache
+    #[test]
+    fn test_cov45_get_all_candles_missing_key() {
+        let cache = MarketDataCache::new(100);
+        // Don't add any data — NONEXISTENT symbol/timeframe triggers else { Vec::new() }
+        let candles = cache.get_all_candles("NONEXISTENT", "99m");
+        assert!(
+            candles.is_empty(),
+            "Should return empty vec for unknown key"
+        );
+    }
 }

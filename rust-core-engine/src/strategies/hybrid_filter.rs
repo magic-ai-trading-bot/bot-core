@@ -798,4 +798,185 @@ mod tests {
         assert!(result.adjusted_confidence < 0.70); // Confidence penalized by 0.2
         assert!(result.reasoning.contains("ML conflict"));
     }
+
+    #[test]
+    fn test_cov9_combine_signals_short_with_ml_downtrend_confirms() {
+        // Cover SHORT + ML Downtrend confirmation (lines 191-200)
+        let filter = create_test_filter();
+        let alignment = TrendAlignment {
+            daily: TrendDirection::Downtrend,
+            four_hour: TrendDirection::Downtrend,
+            one_hour: TrendDirection::Downtrend,
+            alignment_score: 1.0,
+            is_aligned: true,
+        };
+        let ml_prediction = MLTrendPrediction {
+            trend: TrendDirection::Downtrend,
+            confidence: 0.80,
+            model: "LSTM".to_string(),
+            timestamp: 123456,
+        };
+
+        let result =
+            filter.combine_signals(TradingSignal::Short, 0.70, &alignment, Some(&ml_prediction));
+
+        assert!(!result.should_block);
+        // ML confirms Downtrend for SHORT → confidence boosted
+        assert!(result.adjusted_confidence > 0.0);
+        assert!(result.reasoning.contains("ML confirms Downtrend"));
+    }
+
+    #[tokio::test]
+    async fn test_cov9_apply_filter_disabled() {
+        // Cover apply_filter when filter is disabled (lines 69-77)
+        let trend_filter_config = TrendFilterConfig {
+            ema_period: 20,
+            ..Default::default()
+        };
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+
+        let mut config = HybridFilterConfig::default();
+        config.enabled = false;
+        let filter = HybridFilter::new(config, trend_filter, None);
+
+        // Minimal candles for the call - won't be used since filter is disabled
+        let candles: Vec<CandleData> = (0..25)
+            .map(|i| CandleData {
+                open: 100.0 + (i as f64),
+                high: 101.0 + (i as f64),
+                low: 99.0 + (i as f64),
+                close: 100.0 + (i as f64),
+                volume: 1000.0,
+                open_time: (i as i64) * 3600000,
+                close_time: (i as i64) * 3600000 + 3600000,
+                quote_volume: 100000.0,
+                trades: 100,
+                is_closed: true,
+            })
+            .collect();
+
+        let result = filter
+            .apply_filter(
+                TradingSignal::Long,
+                0.75,
+                "BTCUSDT",
+                None,
+                &candles,
+                &candles,
+            )
+            .await;
+        assert!(result.is_ok());
+        let filter_result = result.unwrap();
+        assert!(!filter_result.should_block);
+        assert_eq!(filter_result.adjusted_confidence, 0.75);
+        assert_eq!(filter_result.reasoning, "Filter disabled");
+    }
+
+    #[tokio::test]
+    async fn test_cov9_apply_filter_enabled_with_candles() {
+        // Cover apply_filter when enabled with candles (lines 80-97)
+        let trend_filter_config = TrendFilterConfig {
+            ema_period: 20,
+            ..Default::default()
+        };
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+        let config = HybridFilterConfig {
+            enabled: true,
+            use_ml: false, // No ML predictor
+            ml_weight: 0.4,
+            mtf_weight: 0.6,
+            block_counter_trend: false,
+        };
+        let filter = HybridFilter::new(config, trend_filter, None);
+
+        // Create uptrend candles (enough for EMA 20)
+        let candles: Vec<CandleData> = (0..25)
+            .map(|i| CandleData {
+                open: 100.0 + (i as f64 * 2.0),
+                high: 101.0 + (i as f64 * 2.0),
+                low: 99.0 + (i as f64 * 2.0),
+                close: 100.0 + (i as f64 * 2.0),
+                volume: 1000.0,
+                open_time: (i as i64) * 3600000,
+                close_time: (i as i64) * 3600000 + 3600000,
+                quote_volume: 100000.0,
+                trades: 100,
+                is_closed: true,
+            })
+            .collect();
+
+        let result = filter
+            .apply_filter(
+                TradingSignal::Long,
+                0.75,
+                "BTCUSDT",
+                None,
+                &candles,
+                &candles,
+            )
+            .await;
+        assert!(result.is_ok());
+    }
+
+    // === COV43 TESTS ===
+
+    /// Test apply_filter with ML predictor enabled (covers line 87)
+    /// The ML predictor will fail gracefully (no service running) and return None,
+    /// but line 87 is hit because predictor.predict_trend_with_fallback() IS called.
+    #[tokio::test]
+    async fn test_cov43_apply_filter_with_ml_predictor() {
+        use crate::strategies::ml_trend_predictor::{MLPredictorConfig, MLTrendPredictor};
+        use crate::strategies::trend_filter::TrendFilterConfig;
+
+        let trend_filter_config = TrendFilterConfig {
+            ema_period: 20,
+            ..Default::default()
+        };
+        let trend_filter = Arc::new(TrendFilter::new(trend_filter_config));
+
+        // Create ML predictor pointing to non-existent service (will fail gracefully)
+        let ml_config = MLPredictorConfig {
+            service_url: "http://127.0.0.1:19999".to_string(), // non-existent port
+            timeout_ms: 100,                                   // short timeout for fast test
+            min_confidence: 0.65,
+            fallback_on_error: true, // fallback to None on error
+        };
+        let ml_predictor = Some(Arc::new(MLTrendPredictor::new(ml_config)));
+
+        let mut filter_config = HybridFilterConfig::default();
+        filter_config.use_ml = true; // ensure ML path is taken
+
+        let filter = HybridFilter::new(filter_config, trend_filter, ml_predictor);
+
+        // Create enough candles for trend analysis
+        let candles: Vec<CandleData> = (0..30)
+            .map(|i| CandleData {
+                open: 100.0 + (i as f64 * 2.0),
+                high: 101.0 + (i as f64 * 2.0),
+                low: 99.0 + (i as f64 * 2.0),
+                close: 100.0 + (i as f64 * 2.0),
+                volume: 1000.0,
+                open_time: (i as i64) * 3600000,
+                close_time: (i as i64) * 3600000 + 3600000,
+                quote_volume: 100000.0,
+                trades: 100,
+                is_closed: true,
+            })
+            .collect();
+
+        // This call hits line 87: predictor.predict_trend_with_fallback(symbol, "4h").await
+        // Even though it fails and returns None (fallback), the line IS executed
+        let result = filter
+            .apply_filter(
+                TradingSignal::Long,
+                0.75,
+                "BTCUSDT",
+                None,
+                &candles,
+                &candles,
+            )
+            .await;
+        // Filter should succeed (ML failure with fallback = no ML contribution)
+        assert!(result.is_ok());
+    }
 }

@@ -1142,6 +1142,33 @@ mod tests {
         assert!(size > 0.0);
     }
 
+    // === COV43 TESTS ===
+
+    /// Test get_risk_utilization with max_total_exposure_usdt == 0.0 (covers line 409)
+    /// When max_total_exposure_usdt is zero, function returns 0.0 to avoid division by zero
+    #[tokio::test]
+    async fn test_cov43_risk_utilization_zero_max_exposure() {
+        let mut config = create_test_config();
+        config.max_total_exposure_usdt = 0.0; // triggers line 409 else branch
+        let rm = RealTradingRiskManager::new(config);
+        let positions = DashMap::new();
+
+        let utilization = rm.get_risk_utilization(&positions).await;
+        assert_eq!(utilization, 0.0);
+    }
+
+    /// Test get_daily_loss_utilization with max_daily_loss_usdt == 0.0 (covers line 421)
+    /// When max_daily_loss_usdt is zero, function returns 0.0 to avoid division by zero
+    #[tokio::test]
+    async fn test_cov43_daily_loss_utilization_zero_max_loss() {
+        let mut config = create_test_config();
+        config.max_daily_loss_usdt = 0.0; // triggers line 421 else branch
+        let rm = RealTradingRiskManager::new(config);
+
+        let utilization = rm.get_daily_loss_utilization().await;
+        assert_eq!(utilization, 0.0);
+    }
+
     #[tokio::test]
     async fn test_validate_order_sell_side() {
         let rm = RealTradingRiskManager::new(create_test_config());

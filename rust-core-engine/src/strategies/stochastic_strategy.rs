@@ -823,4 +823,15 @@ mod tests {
         assert_eq!(strategy.get_overbought_threshold(), 75.0);
         assert_eq!(strategy.config().weight, 1.5);
     }
+
+    // === COV36 TESTS: Cover lines 103-105 (description() method) ===
+
+    #[test]
+    fn test_cov36_stochastic_description() {
+        // Covers lines 103-105: description() method body
+        let strategy = StochasticStrategy::new();
+        let desc = strategy.description();
+        assert!(desc.contains("Stochastic"));
+        assert!(desc.len() > 10);
+    }
 }

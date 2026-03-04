@@ -1139,4 +1139,61 @@ mod tests {
         };
         assert!(config.is_futures());
     }
+
+    // === COV36 TESTS: Cover lines 331, 351, 355, 359 (validation error paths) ===
+
+    #[test]
+    fn test_cov36_validation_risk_per_trade_zero() {
+        // Covers line 331: risk_per_trade_percent <= 0.0
+        let mut config = RealTradingConfig::default();
+        config.risk_per_trade_percent = 0.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("risk_per_trade_percent")));
+    }
+
+    #[test]
+    fn test_cov36_validation_risk_per_trade_too_high() {
+        // Covers line 331: risk_per_trade_percent > 100.0
+        let mut config = RealTradingConfig::default();
+        config.risk_per_trade_percent = 101.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("risk_per_trade_percent")));
+    }
+
+    #[test]
+    fn test_cov36_validation_min_signal_confidence_too_high() {
+        // Covers line 351: min_signal_confidence > 1.0
+        let mut config = RealTradingConfig::default();
+        config.min_signal_confidence = 1.5;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("min_signal_confidence")));
+    }
+
+    #[test]
+    fn test_cov36_validation_correlation_limit_negative() {
+        // Covers line 355: correlation_limit < 0.0
+        let mut config = RealTradingConfig::default();
+        config.correlation_limit = -0.1;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("correlation_limit")));
+    }
+
+    #[test]
+    fn test_cov36_validation_max_portfolio_risk_zero() {
+        // Covers line 359: max_portfolio_risk_pct <= 0.0
+        let mut config = RealTradingConfig::default();
+        config.max_portfolio_risk_pct = 0.0;
+        let result = config.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("max_portfolio_risk_pct")));
+    }
 }

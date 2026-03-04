@@ -369,4 +369,115 @@ mod tests {
 
         assert!((order.order_value() - 50.0).abs() < 0.01);
     }
+
+    // === COV36 TESTS: Cover lines 232, 245-246, 248 ===
+
+    #[test]
+    fn test_cov36_fill_percentage_zero_quantity() {
+        // Covers line 232: else { 0.0 } when original_quantity == 0.0
+        let mut order = create_test_order();
+        order.original_quantity = 0.0;
+        order.executed_quantity = 0.0;
+        assert_eq!(order.fill_percentage(), 0.0);
+    }
+
+    #[test]
+    fn test_cov36_order_value_with_limit_price_no_fill() {
+        // Covers lines 245-246: else if let Some(price) branch in order_value()
+        // when average_fill_price == 0.0 but price is set
+        let order = RealOrder::new(
+            "limit-order-123".to_string(),
+            "BTCUSDT".to_string(),
+            "BUY".to_string(),
+            "LIMIT".to_string(),
+            0.001,
+            Some(50000.0), // limit price
+            None,
+            None,
+            true,
+        );
+        // average_fill_price = 0.0, price = Some(50000.0)
+        // order_value = original_quantity * price = 0.001 * 50000.0 = 50.0
+        assert!((order.order_value() - 50.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cov36_order_value_no_price_no_fill() {
+        // Covers line 248: else { 0.0 } when no fill and no limit price
+        let order = create_test_order(); // market order, no price, no fills
+                                         // average_fill_price = 0.0, price = None
+        assert_eq!(order.order_value(), 0.0);
+    }
+
+    // === COV43 TESTS ===
+
+    /// Create a minimal ExecutionReport for testing
+    fn create_test_execution_report(
+        execution_type: &str,
+        last_qty: &str,
+        last_price: &str,
+        commission: &str,
+    ) -> ExecutionReport {
+        ExecutionReport {
+            event_type: "executionReport".to_string(),
+            event_time: 1000000,
+            symbol: "BTCUSDT".to_string(),
+            client_order_id: "test-client-id".to_string(),
+            side: "BUY".to_string(),
+            order_type: "MARKET".to_string(),
+            time_in_force: "GTC".to_string(),
+            order_quantity: "0.001".to_string(),
+            order_price: "0".to_string(),
+            stop_price: "0".to_string(),
+            iceberg_quantity: "0".to_string(),
+            original_client_order_id: String::new(),
+            execution_type: execution_type.to_string(),
+            order_status: "FILLED".to_string(),
+            order_reject_reason: "NONE".to_string(),
+            order_id: 12345,
+            last_executed_quantity: last_qty.to_string(),
+            cumulative_filled_quantity: last_qty.to_string(),
+            last_executed_price: last_price.to_string(),
+            commission_amount: commission.to_string(),
+            commission_asset: None,
+            transaction_time: 1000000,
+            trade_id: 67890,
+            is_on_book: false,
+            is_maker: false,
+            order_creation_time: 999000,
+            cumulative_quote_qty: "25.0".to_string(),
+            last_quote_qty: "25.0".to_string(),
+            quote_order_qty: "0".to_string(),
+        }
+    }
+
+    /// Test update_from_execution_report with invalid commission amount (line 192)
+    /// When commission_amount cannot be parsed as f64, fallback (0.0, "UNKNOWN") is used
+    #[test]
+    fn test_cov43_update_from_execution_report_invalid_commission() {
+        let mut order = create_test_order();
+
+        // Create TRADE execution report with valid fill but invalid commission
+        let report = create_test_execution_report("TRADE", "0.001", "50000.0", "not_a_number");
+        order.update_from_execution_report(&report);
+
+        // Should have recorded the fill with fallback commission values
+        assert_eq!(order.fills.len(), 1);
+        assert_eq!(order.fills[0].commission, 0.0); // fallback
+        assert_eq!(order.fills[0].commission_asset, "UNKNOWN"); // fallback
+    }
+
+    /// Test update_from_execution_report with non-TRADE execution type (line 203)
+    /// The fills block is skipped when execution_type != "TRADE"
+    #[test]
+    fn test_cov43_update_from_execution_report_non_trade_type() {
+        let mut order = create_test_order();
+
+        // NEW execution type - no fill should be recorded
+        let report = create_test_execution_report("NEW", "0.0", "0.0", "0");
+        order.update_from_execution_report(&report);
+
+        assert_eq!(order.fills.len(), 0);
+        assert_eq!(order.state, OrderState::Filled); // Status updated
+    }
 }

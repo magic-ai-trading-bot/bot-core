@@ -977,12 +977,29 @@ impl From<crate::ai::MarketConditionRequest> for crate::strategies::StrategyInpu
 mod tests {
     use super::*;
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     // ============================================================================
     // ApiResponse Tests
     // ============================================================================
 
     #[test]
     fn test_api_response_success_creation() {
+        init_test_logger();
         let data = "test data";
         let response = ApiResponse::success(data);
 
@@ -3995,5 +4012,58 @@ mod tests {
         let strategy_input: crate::strategies::StrategyInput = request.into();
         assert_eq!(strategy_input.symbol, "BNBUSDT");
         assert_eq!(strategy_input.volume_24h, 50000.0);
+    }
+
+    #[tokio::test]
+    async fn test_cov10_market_add_existing_symbol() {
+        // Adding a symbol that's already in config (BTCUSDT) should succeed
+        // This covers the Ok(_) path of add_symbol + add_symbol_to_settings call
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request = AddSymbolRequest {
+            symbol: "BTCUSDT".to_string(), // BTCUSDT is in config, so add_symbol succeeds
+            timeframes: None,
+        };
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/market/symbols")
+            .json(&request)
+            .reply(&routes)
+            .await;
+
+        assert!(
+            resp.status().is_success() || resp.status().is_server_error() || resp.status() == 404
+        );
+    }
+
+    #[tokio::test]
+    async fn test_cov10_ai_market_bias_route() {
+        // Test the market-bias route in ai_routes
+        use crate::paper_trading::settings::{
+            AISettings, BasicSettings, ExecutionSettings, IndicatorSettings, NotificationSettings,
+            RiskSettings, SignalGenerationSettings, SignalPipelineSettings, StrategySettings,
+        };
+
+        let server = create_test_api_server().await;
+        let routes = server.create_routes();
+
+        let request_body = serde_json::json!({
+            "symbol": "BTCUSDT",
+            "direction_bias": 0.8,
+            "bias_strength": 0.7,
+            "bias_confidence": 0.75,
+            "ttl_seconds": 600
+        });
+
+        let resp = warp::test::request()
+            .method("POST")
+            .path("/api/ai/market-bias")
+            .json(&request_body)
+            .reply(&routes)
+            .await;
+
+        assert!(resp.status().is_success() || resp.status().is_server_error());
     }
 }

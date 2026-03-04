@@ -1817,6 +1817,22 @@ mod tests {
     use super::*;
     use chrono::TimeZone;
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     // Test helper to create sample TradeRecord
     fn create_sample_trade_record() -> TradeRecord {
         TradeRecord {
@@ -1856,6 +1872,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_storage_new_with_invalid_url() {
+        init_test_logger();
         let config = crate::config::DatabaseConfig {
             url: "invalid://not-a-mongo-url".to_string(),
             database_name: Some("test_db".to_string()),

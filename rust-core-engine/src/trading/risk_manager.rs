@@ -989,4 +989,38 @@ mod tests {
         let sell_at = create_test_analysis(TradingSignal::Sell, 0.8);
         assert!(rm.can_open_position("BTCUSDT", &sell_at).await.unwrap());
     }
+
+    // === COV37 TESTS ===
+
+    #[test]
+    fn test_cov37_position_too_small_returns_minimum() {
+        // Covers line 155: return self.config.default_quantity * 0.1
+        // when safe_quantity < default_quantity * 0.1
+        // With tiny account balance (10.0), position calc yields very small quantity
+        let config = create_test_config(); // default_quantity = 0.01
+        let rm = RiskManager::new(config.clone());
+
+        // Very small balance (10 USDT), high entry price (50000), 2% stop loss
+        // risk_amount = 10 * 2% = 0.2
+        // stop_loss_distance_pct = (50000 - 49000) / 50000 * 100 = 2%
+        // position_value = 0.2 / 0.02 = 10
+        // position_size = 10 / 50000 = 0.0002
+        // max_position_value = 10 * 0.2 = 2.0
+        // max_quantity = 2.0 / 50000 = 0.00004
+        // safe_quantity = min(0.0002, 0.00004) = 0.00004
+        // threshold = 0.01 * 0.1 = 0.001
+        // 0.00004 < 0.001 → return 0.001
+        let size = rm.calculate_position_size(
+            "BTCUSDT",
+            50000.0,
+            Some(49000.0),
+            10.0, // tiny balance
+        );
+
+        // Should return default_quantity * 0.1 = 0.001
+        assert!(
+            (size - config.default_quantity * 0.1).abs() < 0.0001,
+            "Tiny account should return minimum position size of 10% of default"
+        );
+    }
 }

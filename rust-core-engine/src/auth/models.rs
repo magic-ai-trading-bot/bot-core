@@ -987,4 +987,79 @@ mod tests {
         let profile = user.to_profile();
         assert!(profile.is_admin);
     }
+
+    // === COV45 TESTS: Cover BSON serde deserialization branches ===
+
+    /// Helper to build a full User JSON with overridden fields
+    fn base_user_json() -> serde_json::Value {
+        serde_json::json!({
+            "email": "test@example.com",
+            "password_hash": "hash",
+            "full_name": null,
+            "is_active": true,
+            "is_admin": false,
+            "created_at": "2024-01-01T12:00:00Z",
+            "updated_at": "2024-01-01T12:00:00Z",
+            "last_login": null,
+            "settings": {
+                "trading_enabled": false,
+                "risk_level": "Medium",
+                "max_positions": 3,
+                "default_quantity": 0.01,
+                "notifications": {
+                    "email_alerts": true,
+                    "trade_notifications": true,
+                    "system_alerts": true
+                }
+            }
+        })
+    }
+
+    /// Test date_time_serde::deserialize line 35: `_ => Err(...)` when created_at is not
+    /// a DateTime or String (e.g., an integer), which maps to bson::Bson::Int32/Int64
+    #[test]
+    fn test_cov45_date_time_serde_non_datetime_non_string() {
+        let mut json_value = base_user_json();
+        // Pass an integer for created_at - bson::Bson will deserialize it as Int64
+        // which hits the `_ => Err(D::Error::custom(...))` arm at line 35
+        json_value["created_at"] = serde_json::json!(12345);
+        let result: Result<User, _> = serde_json::from_value(json_value);
+        assert!(
+            result.is_err(),
+            "Expected error for non-DateTime/non-String created_at"
+        );
+    }
+
+    /// Test optional_date_time_serde::deserialize lines 64-66: BSON DateTime arm
+    /// When last_login is provided as a BSON Extended JSON DateTime object
+    #[test]
+    fn test_cov45_optional_date_time_serde_bson_datetime() {
+        let mut json_value = base_user_json();
+        // Pass BSON Extended JSON DateTime format for last_login
+        // bson::Bson::deserialize from JSON with {"$date": {"$numberLong": "..."}} → Bson::DateTime
+        json_value["last_login"] = serde_json::json!({"$date": {"$numberLong": "1625097600000"}});
+        let result: Result<User, _> = serde_json::from_value(json_value);
+        // This should succeed and parse as a DateTime
+        assert!(
+            result.is_ok(),
+            "Expected success for BSON DateTime last_login: {:?}",
+            result.err()
+        );
+        let user = result.unwrap();
+        assert!(user.last_login.is_some());
+    }
+
+    /// Test optional_date_time_serde::deserialize line 68: `Some(_) => Err(...)` arm
+    /// When last_login is some non-DateTime/non-String BSON value (like an integer)
+    #[test]
+    fn test_cov45_optional_date_time_serde_non_datetime_non_string() {
+        let mut json_value = base_user_json();
+        // Pass an integer for last_login - hits `Some(_) => Err(...)` at line 68
+        json_value["last_login"] = serde_json::json!(12345);
+        let result: Result<User, _> = serde_json::from_value(json_value);
+        assert!(
+            result.is_err(),
+            "Expected error for non-DateTime/non-String last_login"
+        );
+    }
 }

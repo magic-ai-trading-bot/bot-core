@@ -2524,4 +2524,245 @@ mod tests {
         // The optimizer may or may not generate recommendations depending on strategy data
         let _ = result.unwrap();
     }
+
+    // ========== COV22 TESTS - Cover genetic/Bayesian optimization, market regime adjustments ==========
+
+    #[test]
+    fn test_cov22_analyze_recommend_with_genetic_algorithm_enabled() {
+        // Covers lines 285-288: genetic algorithm path
+        let mut config = OptimizationConfig::default();
+        config.min_trades_for_optimization = 2;
+        config.enable_genetic_algorithm = true;
+        config.enable_bayesian_optimization = false;
+
+        let mut optimizer = StrategyOptimizer::new(config);
+
+        let portfolio_metrics = PortfolioMetrics::default();
+        let market_conditions = MarketConditions {
+            volatility: 0.5,
+            trend_strength: 0.7,
+            volume_profile: "High".to_string(),
+            regime: "Trending".to_string(),
+            correlation_matrix: HashMap::new(),
+        };
+
+        for _ in 0..3 {
+            optimizer.add_performance_snapshot(
+                portfolio_metrics.clone(),
+                market_conditions.clone(),
+                HashMap::new(),
+                HashMap::new(),
+            );
+        }
+
+        let result = optimizer.analyze_and_recommend();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov22_analyze_recommend_with_bayesian_optimization_enabled() {
+        // Covers lines 291-294: Bayesian optimization path
+        let mut config = OptimizationConfig::default();
+        config.min_trades_for_optimization = 2;
+        config.enable_genetic_algorithm = false;
+        config.enable_bayesian_optimization = true;
+
+        let mut optimizer = StrategyOptimizer::new(config);
+
+        let portfolio_metrics = PortfolioMetrics::default();
+        let market_conditions = MarketConditions {
+            volatility: 0.5,
+            trend_strength: 0.7,
+            volume_profile: "High".to_string(),
+            regime: "Trending".to_string(),
+            correlation_matrix: HashMap::new(),
+        };
+
+        for _ in 0..3 {
+            optimizer.add_performance_snapshot(
+                portfolio_metrics.clone(),
+                market_conditions.clone(),
+                HashMap::new(),
+                HashMap::new(),
+            );
+        }
+
+        let result = optimizer.analyze_and_recommend();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov22_adjust_selectivity_parameters() {
+        // Covers lines 427-449: adjust_selectivity_parameters
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        let mut params = HashMap::new();
+        params.insert("min_confidence".to_string(), serde_json::json!(0.7));
+        params.insert("entry_threshold".to_string(), serde_json::json!(0.5));
+
+        optimizer.adjust_selectivity_parameters(&mut params, 1.1);
+
+        // Values should have been adjusted
+        assert!(params.contains_key("min_confidence"));
+    }
+
+    #[test]
+    fn test_cov22_adjust_risk_reward_parameters() {
+        // Covers lines 452-466: adjust_risk_reward_parameters
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        let mut params = HashMap::new();
+        params.insert("take_profit_ratio".to_string(), serde_json::json!(2.0));
+
+        optimizer.adjust_risk_reward_parameters(&mut params, 1.2);
+
+        assert!(params.contains_key("take_profit_ratio"));
+    }
+
+    #[test]
+    fn test_cov22_adjust_risk_parameters() {
+        // Covers lines 468-482: adjust_risk_parameters
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        let mut params = HashMap::new();
+        params.insert(
+            "position_size_multiplier".to_string(),
+            serde_json::json!(1.0),
+        );
+
+        optimizer.adjust_risk_parameters(&mut params, 0.8);
+
+        assert!(params.contains_key("position_size_multiplier"));
+    }
+
+    #[test]
+    fn test_cov22_adjust_for_high_volatility() {
+        // Covers lines 484-502: adjust_for_high_volatility
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        let mut params = HashMap::new();
+        params.insert("stop_loss_multiplier".to_string(), serde_json::json!(1.0));
+        params.insert("max_leverage".to_string(), serde_json::json!(10u64));
+
+        optimizer.adjust_for_high_volatility(&mut params);
+
+        // stop_loss_multiplier should be increased
+        if let Some(v) = params.get("stop_loss_multiplier").and_then(|v| v.as_f64()) {
+            assert!(
+                v > 1.0,
+                "Stop loss multiplier should increase for high volatility"
+            );
+        }
+    }
+
+    #[test]
+    fn test_cov22_adjust_for_sideways_market() {
+        // Covers lines 504-521: adjust_for_sideways_market
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        let mut params = HashMap::new();
+        params.insert("entry_threshold".to_string(), serde_json::json!(0.5));
+
+        optimizer.adjust_for_sideways_market(&mut params);
+
+        assert!(params.contains_key("entry_threshold"));
+    }
+
+    #[test]
+    fn test_cov22_adjust_for_trending_market() {
+        // Covers lines 523-539: adjust_for_trending_market
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        let mut params = HashMap::new();
+        params.insert("primary_timeframe".to_string(), serde_json::json!("1h"));
+        params.insert(
+            "position_size_multiplier".to_string(),
+            serde_json::json!(1.0),
+        );
+
+        optimizer.adjust_for_trending_market(&mut params);
+
+        // primary_timeframe should change from 1h to 4h
+        if let Some(tf) = params.get("primary_timeframe").and_then(|v| v.as_str()) {
+            assert_eq!(
+                tf, "4h",
+                "Timeframe should be upgraded to 4h in trending market"
+            );
+        }
+    }
+
+    #[test]
+    fn test_cov22_generate_parameter_variations_high_volatility() {
+        // Covers lines 409-422: MarketRegime match arms for HighVolatility
+        // generate_parameter_variations uses the regime from regime_detector
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        let analysis = StrategyAnalysis {
+            total_trades: 50,
+            avg_win_rate: 0.4,      // < 0.5 triggers adjust_selectivity
+            avg_profit_factor: 1.2, // < 1.5 triggers adjust_risk_reward
+            max_drawdown: 0.20,     // > 0.15 triggers adjust_risk
+            performance_percentile: 0.5,
+            recent_performance_decline: 0.0,
+            regime_adaptation_score: 0.6,
+            overall_performance_score: 0.6,
+            performance_consistency: 0.7,
+            performance_variance: 0.3,
+            regime_performance: HashMap::new(),
+        };
+
+        let mut base_params = HashMap::new();
+        base_params.insert("min_confidence".to_string(), serde_json::json!(0.7));
+        base_params.insert("entry_threshold".to_string(), serde_json::json!(0.5));
+        base_params.insert("take_profit_ratio".to_string(), serde_json::json!(2.0));
+        base_params.insert(
+            "position_size_multiplier".to_string(),
+            serde_json::json!(1.0),
+        );
+        base_params.insert("stop_loss_multiplier".to_string(), serde_json::json!(1.0));
+
+        let result =
+            optimizer.generate_parameter_variations("RSI Strategy", &base_params, &analysis);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cov22_generate_parameter_variations_all_branches() {
+        // Tests multiple branches in generate_parameter_variations
+        let config = OptimizationConfig::default();
+        let optimizer = StrategyOptimizer::new(config);
+
+        // Analysis with good performance - no adjustments needed
+        let analysis = StrategyAnalysis {
+            total_trades: 100,
+            avg_win_rate: 0.65,     // > 0.5 - no selectivity adjustment
+            avg_profit_factor: 2.0, // > 1.5 - no rr adjustment
+            max_drawdown: 0.10,     // < 0.15 - no risk adjustment
+            performance_percentile: 0.8,
+            recent_performance_decline: 0.0,
+            regime_adaptation_score: 0.8,
+            overall_performance_score: 0.8,
+            performance_consistency: 0.85,
+            performance_variance: 0.15,
+            regime_performance: HashMap::new(),
+        };
+
+        let mut base_params = HashMap::new();
+        base_params.insert("primary_timeframe".to_string(), serde_json::json!("1h"));
+        base_params.insert(
+            "position_size_multiplier".to_string(),
+            serde_json::json!(1.0),
+        );
+
+        let result =
+            optimizer.generate_parameter_variations("MACD Strategy", &base_params, &analysis);
+        assert!(result.is_ok());
+    }
 }

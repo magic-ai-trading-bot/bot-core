@@ -779,4 +779,132 @@ mod tests {
         // Total commission = 2.5 + 1.25 = 3.75
         assert!((pos.total_commission - 3.75).abs() < 0.01);
     }
+
+    // ========== COV22 TESTS - Cover default_leverage, trailing stop short, liquidation risk ==========
+
+    #[test]
+    fn test_cov22_default_leverage_value() {
+        // Covers lines 98-100: default_leverage() returns 1 for spot positions
+        // Test by verifying serialized position with leverage field absent uses default
+        let pos = create_test_position(PositionSide::Long);
+        // New positions start without leverage set explicitly - leverage field in struct
+        // The default_leverage() is called when serde encounters missing field
+        // Test it by creating position via new() which sets leverage field to default (1)
+        let json = serde_json::to_string(&pos).unwrap();
+        let deserialized: RealPosition = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.leverage, pos.leverage);
+
+        // Explicitly verify leverage defaults to 1 via serialization without the field
+        // by serializing with leverage field present and re-deserializing
+        let mut map: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(&json).unwrap();
+        map.remove("leverage"); // Remove leverage field to trigger default
+        let without_leverage = serde_json::to_string(&map).unwrap();
+        let reloaded: RealPosition = serde_json::from_str(&without_leverage).unwrap();
+        assert_eq!(reloaded.leverage, 1); // default_leverage() returns 1
+    }
+
+    #[test]
+    fn test_cov22_trailing_stop_short_position_triggers() {
+        // Covers line 341/346: trailing stop for Short position (current >= trailing)
+        let mut pos = create_test_position(PositionSide::Short);
+        pos.stop_loss = None;
+        pos.trailing_stop_price = Some(51000.0);
+        pos.current_price = 51500.0; // above trailing stop → hit for short
+        assert!(
+            pos.should_trigger_stop_loss(),
+            "Short trailing stop should trigger when price >= trailing"
+        );
+    }
+
+    #[test]
+    fn test_cov22_trailing_stop_short_not_triggered() {
+        // Trailing stop for Short not triggered when price below trailing
+        let mut pos = create_test_position(PositionSide::Short);
+        pos.stop_loss = None;
+        pos.trailing_stop_price = Some(51000.0);
+        pos.current_price = 49000.0; // below trailing → not hit
+        assert!(!pos.should_trigger_stop_loss());
+    }
+
+    #[test]
+    fn test_cov22_trailing_stop_long_triggered() {
+        // Covers line 339: Long trailing stop when current <= trailing
+        let mut pos = create_test_position(PositionSide::Long);
+        pos.stop_loss = None;
+        pos.trailing_stop_price = Some(49000.0);
+        pos.current_price = 48500.0; // below trailing → hit
+        assert!(
+            pos.should_trigger_stop_loss(),
+            "Long trailing stop should trigger when price <= trailing"
+        );
+    }
+
+    #[test]
+    fn test_cov22_is_at_liquidation_risk_long_high_leverage() {
+        // Covers lines 386-399: liquidation risk for Long position
+        let mut pos = create_test_position(PositionSide::Long);
+        pos.leverage = 10;
+        pos.entry_price = 50000.0;
+        // bankruptcy_price = 50000 * (1 - 1/10) = 50000 * 0.9 = 45000
+        // liquidation threshold = 45000 * 1.05 = 47250
+        pos.current_price = 47000.0; // below threshold → at risk
+        assert!(
+            pos.is_at_liquidation_risk(),
+            "Long high leverage at risk when near bankruptcy"
+        );
+    }
+
+    #[test]
+    fn test_cov22_is_at_liquidation_risk_long_safe() {
+        // Long position safe (price well above threshold)
+        let mut pos = create_test_position(PositionSide::Long);
+        pos.leverage = 10;
+        pos.entry_price = 50000.0;
+        pos.current_price = 50000.0; // well above 47250 → safe
+        assert!(!pos.is_at_liquidation_risk());
+    }
+
+    #[test]
+    fn test_cov22_is_at_liquidation_risk_short_high_leverage() {
+        // Covers Short branch of is_at_liquidation_risk (line 397)
+        let mut pos = create_test_position(PositionSide::Short);
+        pos.leverage = 10;
+        pos.entry_price = 50000.0;
+        // bankruptcy_price = 50000 * (1 + 1/10) = 55000
+        // liquidation threshold = 55000 * 0.95 = 52250
+        pos.current_price = 53000.0; // above threshold → at risk
+        assert!(
+            pos.is_at_liquidation_risk(),
+            "Short high leverage at risk when near bankruptcy"
+        );
+    }
+
+    #[test]
+    fn test_cov22_is_at_liquidation_risk_short_safe() {
+        let mut pos = create_test_position(PositionSide::Short);
+        pos.leverage = 10;
+        pos.entry_price = 50000.0;
+        pos.current_price = 50000.0; // below 52250 → safe
+        assert!(!pos.is_at_liquidation_risk());
+    }
+
+    #[test]
+    fn test_cov22_is_at_liquidation_risk_spot() {
+        // Spot position (leverage=1) → covers lines 387-388 (early return false)
+        let mut pos = create_test_position(PositionSide::Long);
+        pos.leverage = 1;
+        assert!(
+            !pos.is_at_liquidation_risk(),
+            "Spot positions cannot be liquidated"
+        );
+    }
+
+    #[test]
+    fn test_cov22_set_leverage() {
+        // Covers set_leverage() method (lines 380-382)
+        let mut pos = create_test_position(PositionSide::Long);
+        pos.set_leverage(20);
+        assert_eq!(pos.leverage, 20);
+    }
 }

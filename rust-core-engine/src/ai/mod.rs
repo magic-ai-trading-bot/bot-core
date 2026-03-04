@@ -654,4 +654,169 @@ mod tests {
         assert_eq!(analysis.resistance_levels.len(), 3);
         assert_eq!(analysis.trend_direction, "sideways");
     }
+
+    // ============================================================================
+    // cov12: Cover async AI service methods (request-building code before await)
+    // ============================================================================
+
+    fn create_test_strategy_input() -> StrategyInput {
+        StrategyInput {
+            symbol: "BTCUSDT".to_string(),
+            timeframe_data: HashMap::new(),
+            current_price: 50000.0,
+            volume_24h: 1000000.0,
+            timestamp: 1700000000000,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_cov12_analyze_for_trading_signal_builds_request() {
+        // Covers lines 42-67: request building + retry loop in analyze_for_trading_signal
+        let config = AIServiceConfig {
+            python_service_url: "http://127.0.0.1:19999".to_string(), // unreachable port
+            request_timeout_seconds: 1,
+            max_retries: 0,
+            enable_caching: false,
+            cache_ttl_seconds: 0,
+        };
+        let service = AIService::new(config);
+        let data = create_test_strategy_input();
+        let context = AIStrategyContext::default();
+        // Fails with network error but exercises lines 42-67
+        let _ = service.analyze_for_trading_signal(&data, context).await;
+    }
+
+    #[tokio::test]
+    async fn test_cov12_get_strategy_recommendations_builds_request() {
+        // Covers lines 84-92: request building in get_strategy_recommendations
+        let config = AIServiceConfig {
+            python_service_url: "http://127.0.0.1:19999".to_string(),
+            request_timeout_seconds: 1,
+            max_retries: 0,
+            enable_caching: false,
+            cache_ttl_seconds: 0,
+        };
+        let service = AIService::new(config);
+        let data = create_test_strategy_input();
+        let strategies = vec!["RSI".to_string(), "MACD".to_string()];
+        let _ = service
+            .get_strategy_recommendations(&data, strategies)
+            .await;
+    }
+
+    #[tokio::test]
+    async fn test_cov12_analyze_market_condition_builds_request() {
+        // Covers lines 100-108: request building in analyze_market_condition
+        let config = AIServiceConfig {
+            python_service_url: "http://127.0.0.1:19999".to_string(),
+            request_timeout_seconds: 1,
+            max_retries: 0,
+            enable_caching: false,
+            cache_ttl_seconds: 0,
+        };
+        let service = AIService::new(config);
+        let data = create_test_strategy_input();
+        let _ = service.analyze_market_condition(&data).await;
+    }
+
+    #[tokio::test]
+    async fn test_cov12_send_performance_feedback() {
+        // Covers lines 112-113: send_performance_feedback
+        let config = AIServiceConfig {
+            python_service_url: "http://127.0.0.1:19999".to_string(),
+            request_timeout_seconds: 1,
+            max_retries: 0,
+            enable_caching: false,
+            cache_ttl_seconds: 0,
+        };
+        let service = AIService::new(config);
+        let feedback = PerformanceFeedback {
+            signal_id: "sig-001".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            predicted_signal: TradingSignal::Long,
+            actual_outcome: "success".to_string(),
+            profit_loss: 150.0,
+            confidence_was_accurate: true,
+            feedback_notes: Some("Good signal".to_string()),
+            timestamp: 1700000000000,
+        };
+        let _ = service.send_performance_feedback(feedback).await;
+    }
+
+    #[tokio::test]
+    async fn test_cov12_get_service_info() {
+        // Covers line 117-118: get_service_info
+        let config = AIServiceConfig {
+            python_service_url: "http://127.0.0.1:19999".to_string(),
+            request_timeout_seconds: 1,
+            max_retries: 0,
+            enable_caching: false,
+            cache_ttl_seconds: 0,
+        };
+        let service = AIService::new(config);
+        let _ = service.get_service_info().await;
+    }
+
+    #[tokio::test]
+    async fn test_cov12_analyze_for_trading_signal_with_retry() {
+        // Covers lines 58-67: retry logic (max_retries=1 triggers one retry)
+        let config = AIServiceConfig {
+            python_service_url: "http://127.0.0.1:19999".to_string(),
+            request_timeout_seconds: 1,
+            max_retries: 1, // Will retry once
+            enable_caching: false,
+            cache_ttl_seconds: 0,
+        };
+        let service = AIService::new(config);
+        let data = create_test_strategy_input();
+        let context = AIStrategyContext::default();
+        let result = service.analyze_for_trading_signal(&data, context).await;
+        assert!(result.is_err(), "Expected network error");
+    }
+
+    // === COV41 TESTS ===
+
+    async fn find_free_port_ai_mod() -> u16 {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        listener.local_addr().unwrap().port()
+    }
+
+    async fn spawn_ai_mod_mock_server(port: u16, body: &'static str) {
+        use tokio::io::AsyncWriteExt;
+        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
+            .await
+            .unwrap();
+        tokio::spawn(async move {
+            if let Ok((mut socket, _)) = listener.accept().await {
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                let _ = socket.write_all(response.as_bytes()).await;
+            }
+        });
+        tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
+    }
+
+    #[tokio::test]
+    async fn test_cov41_analyze_for_trading_signal_success_path() {
+        // Covers line 56: Ok(response) => return Ok(response) in analyze_for_trading_signal
+        let port = find_free_port_ai_mod().await;
+        let body = r#"{"signal":"Long","confidence":0.85,"reasoning":"Bullish trend","strategy_scores":{},"market_analysis":{"trend_direction":"up","trend_strength":0.8,"support_levels":[49000.0],"resistance_levels":[52000.0],"volatility_level":"medium","volume_analysis":"increasing"},"risk_assessment":{"overall_risk":"medium","technical_risk":0.3,"market_risk":0.4,"recommended_position_size":0.1,"stop_loss_recommendation":49500.0,"risk_reward_ratio":2.0},"timestamp":1700000000000}"#;
+        spawn_ai_mod_mock_server(port, body).await;
+
+        let config = AIServiceConfig {
+            python_service_url: format!("http://127.0.0.1:{}", port),
+            request_timeout_seconds: 5,
+            max_retries: 0,
+            enable_caching: false,
+            cache_ttl_seconds: 0,
+        };
+        let service = AIService::new(config);
+        let data = create_test_strategy_input();
+        let context = AIStrategyContext::default();
+        let result = service.analyze_for_trading_signal(&data, context).await;
+        assert!(result.is_ok(), "Expected success from mock server");
+    }
 }

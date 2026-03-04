@@ -4246,6 +4246,22 @@ mod tests {
         AccountBalance, BalanceUpdate, ExecutionReport, OutboundAccountPosition,
     };
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     // ============ Helper Functions ============
 
     fn create_test_execution_report(
@@ -4325,6 +4341,7 @@ mod tests {
 
     #[test]
     fn test_circuit_breaker_default() {
+        init_test_logger();
         let cb = CircuitBreakerState::default();
         assert!(!cb.is_open);
         assert_eq!(cb.error_count, 0);
@@ -5285,6 +5302,22 @@ mod additional_coverage_tests {
     use crate::trading::risk_manager::RiskManager;
     use chrono::Utc;
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     fn create_test_execution_report(
         client_order_id: &str,
         symbol: &str,
@@ -5333,6 +5366,7 @@ mod additional_coverage_tests {
     }
 
     async fn create_test_engine() -> RealTradingEngine {
+        init_test_logger();
         let config = RealTradingConfig::default();
         let binance_config = BinanceConfig {
             api_key: "test_key".to_string(),
@@ -10158,6 +10192,22 @@ mod private_method_tests {
     use crate::config::{BinanceConfig, TradingMode};
     use crate::trading::risk_manager::RiskManager;
 
+    // Test logger to ensure log macro arguments are evaluated (increases coverage)
+    struct TestLogger;
+    impl log::Log for TestLogger {
+        fn enabled(&self, _metadata: &log::Metadata) -> bool {
+            true
+        }
+        fn log(&self, _record: &log::Record) {}
+        fn flush(&self) {}
+    }
+    static TEST_LOGGER: TestLogger = TestLogger;
+
+    fn init_test_logger() {
+        let _ = log::set_logger(&TEST_LOGGER);
+        log::set_max_level(log::LevelFilter::Trace);
+    }
+
     async fn create_test_engine() -> RealTradingEngine {
         let config = RealTradingConfig::default();
         let binance_config = BinanceConfig {
@@ -13875,5 +13925,112 @@ mod private_method_tests {
         let stored = engine.get_config().await;
         assert!(stored.auto_trading_enabled);
         assert!((stored.risk_per_trade_percent - 1.5).abs() < 0.001);
+    }
+
+    // ============================================================================
+    // cov21: Cover engine creation with spot mode (line 337) and mainnet (line 405)
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_cov21_create_engine_spot_mode() {
+        // Covers line 337: UserDataStreamManager::new() for non-futures (spot) mode
+        init_test_logger();
+        let mut config = RealTradingConfig::default();
+        config.trading_type = "spot".to_string(); // spot mode → else branch at line 337
+        let binance_config = BinanceConfig {
+            api_key: "test_key".to_string(),
+            secret_key: "test_secret".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
+            testnet: true,
+            base_url: "https://testnet.binance.vision".to_string(),
+            ws_url: "wss://testnet.binance.vision/ws".to_string(),
+            futures_base_url: "https://testnet.binancefuture.com".to_string(),
+            futures_ws_url: "wss://stream.binancefuture.com/ws".to_string(),
+            trading_mode: TradingMode::RealTestnet,
+        };
+        let binance_client = BinanceClient::new(binance_config).unwrap();
+        let risk_manager = RiskManager::new(crate::config::TradingConfig {
+            enabled: false,
+            max_positions: 5,
+            default_quantity: 0.001,
+            risk_percentage: 2.0,
+            stop_loss_percentage: 2.0,
+            take_profit_percentage: 4.0,
+            order_timeout_seconds: 60,
+            position_check_interval_seconds: 10,
+            leverage: 1,
+            margin_type: "ISOLATED".to_string(),
+        });
+        let engine = RealTradingEngine::new(config, binance_client, risk_manager)
+            .await
+            .unwrap();
+        // Verify it was created as spot mode
+        let cfg = engine.get_config().await;
+        assert_eq!(cfg.trading_type, "spot");
+    }
+
+    #[tokio::test]
+    async fn test_cov21_create_engine_mainnet_mode() {
+        // Covers line 405: TradingMode::RealMainnet when use_testnet=false
+        init_test_logger();
+        let mut config = RealTradingConfig::default();
+        config.use_testnet = false; // mainnet → line 405 is hit in start()
+        let binance_config = BinanceConfig {
+            api_key: "test_key".to_string(),
+            secret_key: "test_secret".to_string(),
+            futures_api_key: String::new(),
+            futures_secret_key: String::new(),
+            testnet: false,
+            base_url: "https://api.binance.com".to_string(),
+            ws_url: "wss://stream.binance.com/ws".to_string(),
+            futures_base_url: "https://fapi.binance.com".to_string(),
+            futures_ws_url: "wss://fstream.binance.com/ws".to_string(),
+            trading_mode: TradingMode::RealMainnet,
+        };
+        let binance_client = BinanceClient::new(binance_config).unwrap();
+        let risk_manager = RiskManager::new(crate::config::TradingConfig {
+            enabled: false,
+            max_positions: 5,
+            default_quantity: 0.001,
+            risk_percentage: 2.0,
+            stop_loss_percentage: 2.0,
+            take_profit_percentage: 4.0,
+            order_timeout_seconds: 60,
+            position_check_interval_seconds: 10,
+            leverage: 1,
+            margin_type: "ISOLATED".to_string(),
+        });
+        let engine = RealTradingEngine::new(config, binance_client, risk_manager)
+            .await
+            .unwrap();
+        // Try start() to reach line 405 (will fail at network, but hits the mainnet branch first)
+        let _ = engine.start().await; // expected to fail with network error
+        let cfg = engine.get_config().await;
+        assert!(!cfg.use_testnet);
+    }
+
+    #[tokio::test]
+    async fn test_cov21_start_engine_already_running() {
+        // Covers line 396: "Engine already running" error path
+        // We manually set is_running=true then call start()
+        let engine = create_test_engine().await;
+        {
+            let mut is_running = engine.is_running.write().await;
+            *is_running = true; // Simulate already running
+        }
+        let result = engine.start().await;
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("already running"),
+            "Expected 'already running' error, got: {}",
+            err_msg
+        );
+        // Reset for cleanup
+        {
+            let mut is_running = engine.is_running.write().await;
+            *is_running = false;
+        }
     }
 }

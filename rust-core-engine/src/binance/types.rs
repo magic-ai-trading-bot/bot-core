@@ -3423,4 +3423,90 @@ mod tests {
         let result_false: Test = serde_json::from_str(json_false).unwrap();
         assert!(!result_false.test);
     }
+
+    #[test]
+    fn test_deserialize_bool_invalid_string() {
+        #[derive(Deserialize)]
+        struct Test {
+            #[serde(deserialize_with = "super::deserialize_bool_from_anything")]
+            test: bool,
+        }
+
+        let json_invalid = r#"{"test": "maybe"}"#;
+        let result = serde_json::from_str::<Test>(json_invalid);
+        assert!(
+            result.is_err(),
+            "Invalid boolean string should fail deserialization"
+        );
+    }
+
+    #[test]
+    fn test_user_data_stream_handle_new() {
+        let handle = UserDataStreamHandle::new(
+            "test_key_123".to_string(),
+            "wss://stream.binance.com/ws".to_string(),
+        );
+        assert_eq!(handle.listen_key, "test_key_123");
+        assert_eq!(handle.ws_url, "wss://stream.binance.com/ws");
+        assert!(handle.created_at > 0);
+        assert_eq!(handle.created_at, handle.last_keepalive);
+    }
+
+    #[test]
+    fn test_user_data_stream_handle_needs_keepalive_false() {
+        // Freshly created handle should NOT need keepalive
+        let handle = UserDataStreamHandle::new("test_key".to_string(), "wss://test".to_string());
+        assert!(
+            !handle.needs_keepalive(),
+            "New handle should not need keepalive"
+        );
+    }
+
+    #[test]
+    fn test_user_data_stream_handle_is_expired_false() {
+        // Freshly created handle should NOT be expired
+        let handle = UserDataStreamHandle::new("test_key".to_string(), "wss://test".to_string());
+        assert!(!handle.is_expired(), "New handle should not be expired");
+    }
+
+    #[test]
+    fn test_user_data_stream_handle_update_keepalive() {
+        let mut handle =
+            UserDataStreamHandle::new("test_key".to_string(), "wss://test".to_string());
+        let original_keepalive = handle.last_keepalive;
+        // Simulate time passing by setting last_keepalive to a past time
+        handle.last_keepalive = original_keepalive - 1000;
+        let before_update = handle.last_keepalive;
+        handle.update_keepalive();
+        assert!(
+            handle.last_keepalive >= before_update,
+            "Keepalive should be updated"
+        );
+    }
+
+    #[test]
+    fn test_user_data_stream_handle_needs_keepalive_after_30min() {
+        let mut handle =
+            UserDataStreamHandle::new("test_key".to_string(), "wss://test".to_string());
+        // Set last_keepalive to 31 minutes ago
+        let thirty_one_minutes_ms = 31 * 60 * 1000;
+        handle.last_keepalive = chrono::Utc::now().timestamp_millis() - thirty_one_minutes_ms;
+        assert!(
+            handle.needs_keepalive(),
+            "Handle with 31-min-old keepalive should need refresh"
+        );
+    }
+
+    #[test]
+    fn test_user_data_stream_handle_is_expired_after_60min() {
+        let mut handle =
+            UserDataStreamHandle::new("test_key".to_string(), "wss://test".to_string());
+        // Set last_keepalive to 61 minutes ago
+        let sixty_one_minutes_ms = 61 * 60 * 1000;
+        handle.last_keepalive = chrono::Utc::now().timestamp_millis() - sixty_one_minutes_ms;
+        assert!(
+            handle.is_expired(),
+            "Handle with 61-min-old keepalive should be expired"
+        );
+    }
 }
