@@ -47,7 +47,7 @@ allowed_symbols:
 max_leverage: 5
 
 # Auto-Trading (synced with paper trading defaults)
-auto_trading_enabled: false
+auto_trading_enabled: true
 min_signal_confidence: 0.60
 max_consecutive_losses: 3
 cool_down_minutes: 60
