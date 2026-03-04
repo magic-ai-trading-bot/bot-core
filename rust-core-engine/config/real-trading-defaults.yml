@@ -33,7 +33,7 @@ min_order_value_usdt: 10.0
 default_stop_loss_percent: 5.0
 default_take_profit_percent: 10.0
 enable_trailing_stop: true
-trailing_stop_activation_percent: 5.0
+trailing_stop_activation_percent: 3.0
 trailing_stop_percent: 3.0
 
 # Trading Mode
