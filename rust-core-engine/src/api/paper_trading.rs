@@ -1375,7 +1375,8 @@ async fn get_basic_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rej
             "min_required_timeframes": settings.signal.min_required_timeframes
         },
         "strategy": {
-            "data_resolution": settings.strategy.backtesting.data_resolution
+            "data_resolution": settings.strategy.backtesting.data_resolution,
+            "min_ai_confidence": settings.strategy.min_ai_confidence
         }
     });
 
