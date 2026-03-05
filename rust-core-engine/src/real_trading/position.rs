@@ -283,10 +283,12 @@ impl RealPosition {
         {
             // Check if trailing stop should activate based on PnL%
             if !self.trailing_stop_active {
-                let pnl_pct = match self.side {
+                let price_pct = match self.side {
                     PositionSide::Long => (price - self.entry_price) / self.entry_price * 100.0,
                     PositionSide::Short => (self.entry_price - price) / self.entry_price * 100.0,
                 };
+                // activation_pct is PnL-based, so multiply price% by leverage
+                let pnl_pct = price_pct * self.leverage.max(1) as f64;
 
                 if pnl_pct >= activation_pct {
                     self.trailing_stop_active = true;
@@ -296,6 +298,10 @@ impl RealPosition {
 
             // Once active, track best price and update trailing stop
             if self.trailing_stop_active {
+                // trail_pct is PnL-based → convert to price distance by dividing by leverage
+                let lev = self.leverage.max(1) as f64;
+                let price_trail_pct = trail_pct / lev;
+
                 match self.side {
                     PositionSide::Long => {
                         // Update best price (highest since activation)
@@ -305,7 +311,7 @@ impl RealPosition {
                             .unwrap_or(price);
                         self.best_price_since_trailing = Some(best);
 
-                        let new_stop = best * (1.0 - trail_pct / 100.0);
+                        let new_stop = best * (1.0 - price_trail_pct / 100.0);
                         // Only move stop up, never down
                         if self.trailing_stop_price.is_none_or(|s| new_stop > s) {
                             self.trailing_stop_price = Some(new_stop);
@@ -319,7 +325,7 @@ impl RealPosition {
                             .unwrap_or(price);
                         self.best_price_since_trailing = Some(best);
 
-                        let new_stop = best * (1.0 + trail_pct / 100.0);
+                        let new_stop = best * (1.0 + price_trail_pct / 100.0);
                         // Only move stop down, never up
                         if self.trailing_stop_price.is_none_or(|s| new_stop < s) {
                             self.trailing_stop_price = Some(new_stop);

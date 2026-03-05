@@ -394,10 +394,14 @@ impl PaperTrade {
         // Update stop loss if trailing is active
         if self.trailing_stop_active {
             if let Some(best_price) = self.highest_price_achieved {
+                // trailing_pct is PnL-based → convert to price distance by dividing by leverage
+                let lev = self.leverage.max(1) as f64;
+                let price_trail_pct = trailing_pct / lev;
+
                 let new_stop = match self.trade_type {
                     TradeType::Long => {
-                        // Stop trails below high by trailing_pct
-                        let trail_stop = best_price * (1.0 - trailing_pct / 100.0);
+                        // Stop trails below high by price_trail_pct
+                        let trail_stop = best_price * (1.0 - price_trail_pct / 100.0);
 
                         // Only move stop UP, never down
                         if let Some(current_stop) = self.stop_loss {
@@ -411,8 +415,8 @@ impl PaperTrade {
                         }
                     },
                     TradeType::Short => {
-                        // Stop trails above low by trailing_pct
-                        let trail_stop = best_price * (1.0 + trailing_pct / 100.0);
+                        // Stop trails above low by price_trail_pct
+                        let trail_stop = best_price * (1.0 + price_trail_pct / 100.0);
 
                         // Only move stop DOWN, never up
                         if let Some(current_stop) = self.stop_loss {
@@ -2297,10 +2301,11 @@ mod tests {
 
         // Activate trailing stop and check initial stop is set
         trade.update_trailing_stop(55000.0, 3.0, 50.0);
-        // Expected: stop = 55000 * (1 - 3/100) = 55000 * 0.97 = 53350
+        // trailing_pct=3.0 PnL%, leverage=10 → price_trail=0.3%
+        // Expected: stop = 55000 * (1 - 0.3/100) = 55000 * 0.997 = 54835
         assert!(trade.stop_loss.is_some());
         let stop = trade.stop_loss.unwrap();
-        assert!((stop - 55000.0 * 0.97).abs() < 0.01);
+        assert!((stop - 55000.0 * 0.997).abs() < 0.01);
     }
 
     #[test]
@@ -2328,8 +2333,9 @@ mod tests {
         // Stop should have moved up
         assert!(new_stop > initial_stop);
         assert_eq!(trade.highest_price_achieved, Some(60000.0));
-        // Expected: 60000 * 0.97 = 58200
-        assert!((new_stop - 60000.0 * 0.97).abs() < 0.01);
+        // trailing_pct=3.0 PnL%, leverage=10 → price_trail=0.3%
+        // Expected: 60000 * 0.997 = 59820
+        assert!((new_stop - 60000.0 * 0.997).abs() < 0.01);
     }
 
     #[test]
@@ -2442,10 +2448,11 @@ mod tests {
 
         // Activate trailing stop for short (tracking lowest)
         trade.update_trailing_stop(45000.0, 3.0, 50.0);
-        // Expected: stop = 45000 * (1 + 3/100) = 45000 * 1.03 = 46350
+        // trailing_pct=3.0 PnL%, leverage=10 → price_trail=0.3%
+        // Expected: stop = 45000 * (1 + 0.3/100) = 45000 * 1.003 = 45135
         assert!(trade.stop_loss.is_some());
         let stop = trade.stop_loss.unwrap();
-        assert!((stop - 45000.0 * 1.03).abs() < 0.01);
+        assert!((stop - 45000.0 * 1.003).abs() < 0.01);
     }
 
     #[test]
@@ -2473,8 +2480,9 @@ mod tests {
         // Stop should have moved down (lower for short = better)
         assert!(new_stop < initial_stop);
         assert_eq!(trade.highest_price_achieved, Some(40000.0));
-        // Expected: 40000 * 1.03 = 41200
-        assert!((new_stop - 40000.0 * 1.03).abs() < 0.01);
+        // trailing_pct=3.0 PnL%, leverage=10 → price_trail=0.3%
+        // Expected: 40000 * 1.003 = 40120
+        assert!((new_stop - 40000.0 * 1.003).abs() < 0.01);
     }
 
     #[test]
@@ -2522,12 +2530,12 @@ mod tests {
         // Set an existing manual stop loss
         trade.stop_loss = Some(52000.0);
 
-        // Activate trailing at 55000 → trail_stop = 55000 * 0.97 = 53350
+        // Activate trailing at 55000 → trail_stop = 55000 * 0.997 = 54835
         trade.update_trailing_stop(55000.0, 3.0, 50.0);
 
-        // trail_stop (53350) > existing stop (52000) → should update
+        // trail_stop (54835) > existing stop (52000) → should update
         let stop = trade.stop_loss.unwrap();
-        assert!((stop - 55000.0 * 0.97).abs() < 0.01);
+        assert!((stop - 55000.0 * 0.997).abs() < 0.01);
     }
 
     #[test]
@@ -2544,15 +2552,15 @@ mod tests {
             None,
         );
 
-        // Activate trailing at 60000 → trail_stop = 60000 * 0.97 = 58200
+        // Activate trailing at 60000 → trail_stop = 60000 * 0.997 = 59820
         trade.update_trailing_stop(60000.0, 3.0, 50.0);
-        assert!((trade.stop_loss.unwrap() - 58200.0).abs() < 0.01);
+        assert!((trade.stop_loss.unwrap() - 59820.0).abs() < 0.01);
 
-        // Price dips to 57000 → trail_stop = 57000 * 0.97 = 55290
-        // But existing stop (58200) > new trail (55290) → should NOT downgrade
+        // Price dips to 57000 → trail_stop = 57000 * 0.997 = 56829
+        // But existing stop (59820) > new trail (56829) → should NOT downgrade
         trade.update_trailing_stop(57000.0, 3.0, 50.0);
-        // Stop should still be 58200 (not downgraded)
-        assert!((trade.stop_loss.unwrap() - 58200.0).abs() < 0.01);
+        // Stop should still be 59820 (not downgraded)
+        assert!((trade.stop_loss.unwrap() - 59820.0).abs() < 0.01);
     }
 
     #[test]
@@ -2569,14 +2577,14 @@ mod tests {
             None,
         );
 
-        // Activate at 40000 → trail_stop = 40000 * 1.03 = 41200
+        // Activate at 40000 → trail_stop = 40000 * 1.003 = 40120
         trade.update_trailing_stop(40000.0, 3.0, 50.0);
-        assert!((trade.stop_loss.unwrap() - 41200.0).abs() < 0.01);
+        assert!((trade.stop_loss.unwrap() - 40120.0).abs() < 0.01);
 
-        // Price rises to 42000 → trail_stop = 42000 * 1.03 = 43260
-        // But existing stop (41200) < new trail (43260) → should NOT upgrade
+        // Price rises to 42000 → trail_stop = 42000 * 1.003 = 42126
+        // But existing stop (40120) < new trail (42126) → should NOT upgrade
         trade.update_trailing_stop(42000.0, 3.0, 50.0);
-        // Stop should still be 41200 (not upgraded)
-        assert!((trade.stop_loss.unwrap() - 41200.0).abs() < 0.01);
+        // Stop should still be 40120 (not upgraded)
+        assert!((trade.stop_loss.unwrap() - 40120.0).abs() < 0.01);
     }
 }

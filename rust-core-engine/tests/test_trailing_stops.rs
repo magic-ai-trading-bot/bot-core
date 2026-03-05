@@ -26,8 +26,8 @@ fn test_trailing_activation_on_profit() {
     assert!(trade.trailing_stop_active);
     assert_eq!(trade.highest_price_achieved, Some(105.0));
 
-    // Stop should be set to 3% below $105 = $101.85
-    let expected_stop = 105.0 * (1.0 - 3.0 / 100.0);
+    // Stop should be set to 1% below $105 = $103.95 (3% PnL / 3x leverage = 1% price)
+    let expected_stop = 105.0 * (1.0 - 1.0 / 100.0);
     assert!((trade.stop_loss.unwrap() - expected_stop).abs() < 0.01);
 }
 
@@ -73,13 +73,13 @@ fn test_long_trailing_moves_up() {
     // Activate at +5%
     trade.update_trailing_stop(105.0, 3.0, 5.0);
     let first_stop = trade.stop_loss.unwrap();
-    assert!((first_stop - 101.85).abs() < 0.01); // 105 * 0.97
+    assert!((first_stop - 103.95).abs() < 0.01); // 105 * 0.99 (1% price trail)
 
     // Price moves to +10%
     trade.update_trailing_stop(110.0, 3.0, 5.0);
     let second_stop = trade.stop_loss.unwrap();
     assert!(second_stop > first_stop); // Stop moved up
-    assert!((second_stop - 106.70).abs() < 0.01); // 110 * 0.97
+    assert!((second_stop - 108.90).abs() < 0.01); // 110 * 0.99 (1% price trail)
 }
 
 /// Test LONG position trailing: price drops, stop stays (doesn't move down)
@@ -100,7 +100,7 @@ fn test_long_trailing_stops_dont_move_down() {
     // Activate and move stop up
     trade.update_trailing_stop(110.0, 3.0, 5.0);
     let high_stop = trade.stop_loss.unwrap();
-    assert!((high_stop - 106.70).abs() < 0.01);
+    assert!((high_stop - 108.90).abs() < 0.01); // 110 * 0.99
 
     // Price drops to $108
     trade.update_trailing_stop(108.0, 3.0, 5.0);
@@ -126,11 +126,11 @@ fn test_long_trailing_stop_hit() {
 
     // Activate trailing
     trade.update_trailing_stop(110.0, 3.0, 5.0);
-    let _stop_price = trade.stop_loss.unwrap(); // ~106.70
+    let _stop_price = trade.stop_loss.unwrap(); // ~108.90
 
     // Check if trailing stop is hit
-    assert!(trade.should_stop_loss(106.0)); // Below stop
-    assert!(!trade.should_stop_loss(107.0)); // Above stop
+    assert!(trade.should_stop_loss(108.0)); // Below stop (~108.90)
+    assert!(!trade.should_stop_loss(109.0)); // Above stop
 }
 
 /// Test SHORT position trailing: price moves down, stop follows
@@ -151,13 +151,13 @@ fn test_short_trailing_moves_down() {
     // Activate at -5% (price drops to $95)
     trade.update_trailing_stop(95.0, 3.0, 5.0);
     let first_stop = trade.stop_loss.unwrap();
-    assert!((first_stop - 97.85).abs() < 0.01); // 95 * 1.03
+    assert!((first_stop - 95.95).abs() < 0.01); // 95 * 1.01 (1% price trail)
 
     // Price drops to $90 (-10%)
     trade.update_trailing_stop(90.0, 3.0, 5.0);
     let second_stop = trade.stop_loss.unwrap();
     assert!(second_stop < first_stop); // Stop moved down
-    assert!((second_stop - 92.70).abs() < 0.01); // 90 * 1.03
+    assert!((second_stop - 90.90).abs() < 0.01); // 90 * 1.01 (1% price trail)
 }
 
 /// Test SHORT position trailing: price rises, stop stays (doesn't move up)
@@ -178,7 +178,7 @@ fn test_short_trailing_stops_dont_move_up() {
     // Activate and move stop down
     trade.update_trailing_stop(90.0, 3.0, 5.0);
     let low_stop = trade.stop_loss.unwrap();
-    assert!((low_stop - 92.70).abs() < 0.01);
+    assert!((low_stop - 90.90).abs() < 0.01); // 90 * 1.01
 
     // Price rises to $92
     trade.update_trailing_stop(92.0, 3.0, 5.0);
@@ -204,11 +204,11 @@ fn test_short_trailing_stop_hit() {
 
     // Activate trailing at $90
     trade.update_trailing_stop(90.0, 3.0, 5.0);
-    let _stop_price = trade.stop_loss.unwrap(); // ~92.70
+    let _stop_price = trade.stop_loss.unwrap(); // ~90.90
 
     // Check if trailing stop is hit
-    assert!(trade.should_stop_loss(93.0)); // Above stop (bad for short)
-    assert!(!trade.should_stop_loss(92.0)); // Below stop (still good)
+    assert!(trade.should_stop_loss(91.0)); // Above stop (~90.90, bad for short)
+    assert!(!trade.should_stop_loss(90.5)); // Below stop (still good)
 }
 
 /// Test that closed trades don't update trailing stops
@@ -264,7 +264,7 @@ fn test_trailing_creates_stop_when_none_exists() {
 
     // Should create a stop loss
     assert!(trade.stop_loss.is_some());
-    assert!((trade.stop_loss.unwrap() - 106.70).abs() < 0.01);
+    assert!((trade.stop_loss.unwrap() - 108.90).abs() < 0.01); // 110 * 0.99
 }
 
 /// Test price exactly at activation threshold
@@ -320,8 +320,8 @@ fn test_multiple_updates_track_highest() {
     trade.update_trailing_stop(109.0, 3.0, 5.0); // Drop (highest stays)
     assert_eq!(trade.highest_price_achieved, Some(112.0));
 
-    // Stop should be at 3% below $112 = $108.64
-    let expected_stop = 112.0 * 0.97;
+    // Stop should be at 1% below $112 = $110.88 (3% PnL / 3x leverage = 1% price)
+    let expected_stop = 112.0 * 0.99;
     assert!((trade.stop_loss.unwrap() - expected_stop).abs() < 0.01);
 }
 
@@ -372,10 +372,10 @@ fn test_trailing_replaces_fixed_stop_long() {
     // Price moves to $110, activate trailing
     trade.update_trailing_stop(110.0, 3.0, 5.0);
 
-    // Trailing stop should be $106.70, which is better than $95
+    // Trailing stop should be $108.90, which is better than $95
     let trailing_stop = trade.stop_loss.unwrap();
     assert!(trailing_stop > 95.0);
-    assert!((trailing_stop - 106.70).abs() < 0.01);
+    assert!((trailing_stop - 108.90).abs() < 0.01); // 110 * 0.99
 }
 
 /// Test trailing stop replaces fixed stop when better (SHORT)
@@ -399,10 +399,10 @@ fn test_trailing_replaces_fixed_stop_short() {
     // Price drops to $90, activate trailing
     trade.update_trailing_stop(90.0, 3.0, 5.0);
 
-    // Trailing stop should be $92.70, which is better than $105
+    // Trailing stop should be $90.90, which is better than $105
     let trailing_stop = trade.stop_loss.unwrap();
     assert!(trailing_stop < 105.0);
-    assert!((trailing_stop - 92.70).abs() < 0.01);
+    assert!((trailing_stop - 90.90).abs() < 0.01); // 90 * 1.01
 }
 
 /// Test different trailing percentages
@@ -420,12 +420,13 @@ fn test_different_trailing_percentages() {
         None,
     );
 
-    // Test with 5% trailing (wider)
+    // Test with 5% PnL trailing (wider) → 5/3 = 1.667% price
     trade.update_trailing_stop(110.0, 5.0, 5.0);
     let wide_stop = trade.stop_loss.unwrap();
-    assert!((wide_stop - 104.50).abs() < 0.01); // 110 * 0.95
+    let expected_wide = 110.0 * (1.0 - 5.0 / 3.0 / 100.0); // ~108.167
+    assert!((wide_stop - expected_wide).abs() < 0.01);
 
-    // Reset and test with 2% trailing (tighter)
+    // Reset and test with 2% PnL trailing (tighter) → 2/3 = 0.667% price
     let mut trade2 = PaperTrade::new(
         "BTCUSDT".to_string(),
         TradeType::Long,
@@ -440,7 +441,8 @@ fn test_different_trailing_percentages() {
 
     trade2.update_trailing_stop(110.0, 2.0, 5.0);
     let tight_stop = trade2.stop_loss.unwrap();
-    assert!((tight_stop - 107.80).abs() < 0.01); // 110 * 0.98
+    let expected_tight = 110.0 * (1.0 - 2.0 / 3.0 / 100.0); // ~109.267
+    assert!((tight_stop - expected_tight).abs() < 0.01);
 
     // Tighter stop should be higher than wider stop
     assert!(tight_stop > wide_stop);
