@@ -2307,7 +2307,16 @@ impl PaperTradingEngine {
             return false;
         }
 
-        // Check 2: Is position P&L below threshold?
+        // Check 2a: Don't reverse losing positions — let stop loss handle them
+        if existing_trade.pnl_percentage < 0.0 {
+            debug!(
+                "🔄 Reversal rejected: position is at loss ({:.2}%), let SL handle exit",
+                existing_trade.pnl_percentage
+            );
+            return false;
+        }
+
+        // Check 2b: Is position P&L below threshold?
         if existing_trade.pnl_percentage >= settings.risk.reversal_max_pnl_pct {
             debug!(
                 "🔄 Reversal rejected: P&L {:.1}% >= {:.1}% threshold (use trailing stop)",

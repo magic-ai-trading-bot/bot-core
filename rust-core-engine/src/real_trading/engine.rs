@@ -3853,8 +3853,26 @@ impl RealTradingEngine {
                         return Ok(());
                     }
 
+                    // Don't reverse losing positions — let stop loss handle them
+                    let raw_pnl_pct = existing.pnl_percentage();
+                    if raw_pnl_pct < 0.0 {
+                        info!(
+                            "Reversal rejected for {}: position at loss ({:.2}%), let SL handle",
+                            symbol, raw_pnl_pct
+                        );
+                        self.emit_event(RealTradingEvent::SignalRejected {
+                            symbol: symbol.to_string(),
+                            reason: format!(
+                                "Reversal rejected: position at loss ({:.2}%)",
+                                raw_pnl_pct
+                            ),
+                        });
+                        drop(existing);
+                        return Ok(());
+                    }
+
                     // Check PnL limit on existing position
-                    let pnl_pct = existing.pnl_percentage().abs();
+                    let pnl_pct = raw_pnl_pct;
                     if pnl_pct > reversal_max_pnl_pct {
                         info!(
                             "Reversal rejected for {}: PnL {:.2}% > max {:.2}%",
