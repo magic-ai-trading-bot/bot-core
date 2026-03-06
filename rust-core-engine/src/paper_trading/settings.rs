@@ -761,7 +761,7 @@ impl Default for RiskSettings {
             trailing_activation_pct: 5.0,  // NEW: Start after 5% profit
             enable_signal_reversal: true,  // ENABLED: Auto-close positions on reversal signals
             ai_auto_enable_reversal: true, // Let AI decide automatically ✨
-            reversal_min_confidence: 0.65, // LOWERED: 65% minimum confidence (was 75%)
+            reversal_min_confidence: 0.75, // Raised: 75% minimum to reduce churning
             reversal_max_pnl_pct: 10.0,    // NEW: 10% max profit before using trailing stop
             reversal_allowed_regimes: vec![
                 "trending".to_string(),
@@ -803,7 +803,7 @@ impl Default for StrategySettings {
 
         Self {
             enabled_strategies,
-            min_ai_confidence: 0.6, // Raised from 0.5 to filter low-quality signals
+            min_ai_confidence: 0.70, // Raised to filter low-quality signals
             combination_method: StrategyCombinationMethod::AIEnsemble,
             enable_optimization: true,
             optimization_period_days: 30,
@@ -1263,7 +1263,7 @@ mod tests {
         // NEW: Signal reversal defaults - ENABLED for better trade management
         assert!(settings.enable_signal_reversal); // Enabled by default
         assert!(settings.ai_auto_enable_reversal); // AI auto-enable enabled
-        assert_eq!(settings.reversal_min_confidence, 0.65); // 65% minimum (lowered)
+        assert_eq!(settings.reversal_min_confidence, 0.75); // 75% minimum to reduce churning
         assert_eq!(settings.reversal_max_pnl_pct, 10.0); // 10% max P&L
         assert_eq!(
             settings.reversal_allowed_regimes,
@@ -1275,7 +1275,7 @@ mod tests {
     fn test_default_strategy_settings() {
         let settings = StrategySettings::default();
 
-        assert_eq!(settings.min_ai_confidence, 0.6); // Raised from 0.5 to filter low-quality signals
+        assert_eq!(settings.min_ai_confidence, 0.70); // Raised to filter low-quality signals
         assert!(settings.enable_optimization);
         assert_eq!(settings.optimization_period_days, 30);
         assert_eq!(settings.min_trades_for_optimization, 50);
@@ -1735,7 +1735,7 @@ mod tests {
         assert!(settings.basic.enabled);
         assert_eq!(settings.basic.initial_balance, 10000.0);
         assert_eq!(settings.risk.max_leverage, 5); // FIXED: Down from 50x
-        assert_eq!(settings.strategy.min_ai_confidence, 0.6); // Raised from 0.5 to filter low-quality signals
+        assert_eq!(settings.strategy.min_ai_confidence, 0.70); // Raised to filter low-quality signals
         assert!(settings.ai.enable_realtime_signals);
         assert!(settings.execution.auto_execution);
         assert!(settings.notifications.enable_trade_notifications);

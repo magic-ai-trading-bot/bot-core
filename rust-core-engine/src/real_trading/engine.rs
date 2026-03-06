@@ -680,11 +680,17 @@ impl RealTradingEngine {
             return Err(anyhow!("Engine not running"));
         }
 
-        // Check circuit breaker
+        // Check circuit breaker (auto-reset if cooldown elapsed)
         {
-            let cb = self.circuit_breaker.read().await;
+            let cooldown = self.config.read().await.circuit_breaker_cooldown_secs;
+            let mut cb = self.circuit_breaker.write().await;
             if cb.is_open {
-                return Err(anyhow!("Circuit breaker is open: {:?}", cb.last_error));
+                if cb.should_close(cooldown) {
+                    info!("Circuit breaker auto-reset after {}s cooldown", cooldown);
+                    cb.close();
+                } else {
+                    return Err(anyhow!("Circuit breaker is open: {:?}", cb.last_error));
+                }
             }
         }
 
@@ -3340,6 +3346,23 @@ impl RealTradingEngine {
             if !*self.is_running.read().await {
                 info!("SL/TP monitoring loop stopped");
                 break;
+            }
+
+            // Skip if circuit breaker is open (avoid spamming close attempts)
+            {
+                let cooldown = self.config.read().await.circuit_breaker_cooldown_secs;
+                let mut cb = self.circuit_breaker.write().await;
+                if cb.is_open {
+                    if cb.should_close(cooldown) {
+                        info!(
+                            "Circuit breaker auto-reset after {}s cooldown in SL/TP loop",
+                            cooldown
+                        );
+                        cb.close();
+                    } else {
+                        continue; // Skip this tick — close_position would fail anyway
+                    }
+                }
             }
 
             // Collect triggered positions (read-only scan)

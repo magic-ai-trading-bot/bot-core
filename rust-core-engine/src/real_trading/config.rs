@@ -243,7 +243,7 @@ impl Default for RealTradingConfig {
 
             // Auto-trading — DISABLED by default for safety
             auto_trading_enabled: false,
-            min_signal_confidence: 0.65,
+            min_signal_confidence: 0.70,
             max_consecutive_losses: 3,
             cool_down_minutes: 60,
             correlation_limit: 0.70,
