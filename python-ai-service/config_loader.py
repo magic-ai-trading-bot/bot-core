@@ -57,7 +57,7 @@ AI_CACHE_MAX_ENTRIES = CONFIG.get("ai_cache", {}).get("max_entries", 100)
 # Signal generation config (used by both GPT-4 prompt and fallback code)
 SIGNAL_TREND_THRESHOLD = CONFIG.get("signal", {}).get("trend_threshold_percent", 0.8)
 SIGNAL_MIN_TIMEFRAMES = CONFIG.get("signal", {}).get("min_required_timeframes", 3)
-SIGNAL_MIN_INDICATORS = CONFIG.get("signal", {}).get("min_required_indicators", 4)
+SIGNAL_MIN_INDICATORS = CONFIG.get("signal", {}).get("min_required_indicators", 3)
 SIGNAL_CONFIDENCE_BASE = CONFIG.get("signal", {}).get("confidence_base", 0.5)
 SIGNAL_CONFIDENCE_PER_TF = CONFIG.get("signal", {}).get(
     "confidence_per_timeframe", 0.08

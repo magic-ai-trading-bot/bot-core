@@ -191,6 +191,7 @@ impl Default for Config {
                     "1m".to_string(),
                     "5m".to_string(),
                     "15m".to_string(),
+                    "30m".to_string(),
                     "1h".to_string(),
                     "4h".to_string(),
                     "1d".to_string(),
@@ -819,7 +820,7 @@ mod tests {
         let config = Config::default();
         assert_eq!(config.market_data.symbols.len(), 2);
         assert!(config.market_data.symbols.contains(&"BTCUSDT".to_string()));
-        assert_eq!(config.market_data.timeframes.len(), 6);
+        assert_eq!(config.market_data.timeframes.len(), 7);
         assert_eq!(config.market_data.kline_limit, 500);
     }
 

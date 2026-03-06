@@ -128,7 +128,7 @@ def get_signal_confidence_per_tf() -> float:
 # @spec:FR-SETTINGS-003 - Signal pipeline settings from Rust API
 # These helper functions get signal pipeline settings from settings_manager
 def get_pipeline_min_weighted_threshold() -> float:
-    return settings_manager.get_pipeline_value("min_weighted_threshold", 60.0)
+    return settings_manager.get_pipeline_value("min_weighted_threshold", 50.0)
 
 
 def get_pipeline_weight_15m() -> float:
@@ -200,7 +200,7 @@ def get_pipeline_counter_trend_block_offset() -> float:
 
 
 def get_pipeline_counter_trend_mode() -> str:
-    return settings_manager.get_pipeline_value("counter_trend_mode", "block")
+    return settings_manager.get_pipeline_value("counter_trend_mode", "reduce")
 
 
 def get_pipeline_analysis_timeframes() -> list:

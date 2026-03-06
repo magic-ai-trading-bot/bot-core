@@ -86,7 +86,7 @@ class TestSettingsManagerGetDefaultSettings:
 
         assert signal["trend_threshold_percent"] == 0.8
         assert signal["min_required_timeframes"] == 3
-        assert signal["min_required_indicators"] == 4
+        assert signal["min_required_indicators"] == 3
         assert signal["confidence_base"] == 0.5
         assert signal["confidence_per_timeframe"] == 0.08
 

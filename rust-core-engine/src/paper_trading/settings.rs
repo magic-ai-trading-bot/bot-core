@@ -184,7 +184,7 @@ pub struct SignalPipelineSettings {
 impl Default for SignalPipelineSettings {
     fn default() -> Self {
         Self {
-            min_weighted_threshold: 60.0,
+            min_weighted_threshold: 50.0,
             weight_15m: 0.5,
             weight_30m: 1.0,
             weight_1h: 2.0,
@@ -202,7 +202,7 @@ impl Default for SignalPipelineSettings {
             neutral_confidence: 0.40,
             counter_trend_block_offset: 0.05,
             counter_trend_enabled: true,
-            counter_trend_mode: "block".to_string(),
+            counter_trend_mode: "reduce".to_string(),
             analysis_timeframes: vec!["15m".to_string(), "30m".to_string(), "1h".to_string()],
         }
     }
@@ -230,7 +230,7 @@ impl Default for SignalGenerationSettings {
         Self {
             trend_threshold_percent: 0.8,
             min_required_timeframes: 3,
-            min_required_indicators: 4,
+            min_required_indicators: 3,
             confidence_base: 0.5,
             confidence_per_timeframe: 0.08,
         }
@@ -2826,7 +2826,7 @@ mod tests {
         let settings = PaperTradingSettings::default();
         assert_eq!(settings.signal.trend_threshold_percent, 0.8);
         assert_eq!(settings.signal.min_required_timeframes, 3);
-        assert_eq!(settings.signal.min_required_indicators, 4);
+        assert_eq!(settings.signal.min_required_indicators, 3);
         assert_eq!(settings.signal.confidence_base, 0.5);
         assert_eq!(settings.signal.confidence_per_timeframe, 0.08);
     }
@@ -2834,13 +2834,13 @@ mod tests {
     #[test]
     fn test_cov_default_signal_pipeline_settings() {
         let settings = PaperTradingSettings::default();
-        assert_eq!(settings.signal_pipeline.min_weighted_threshold, 60.0);
+        assert_eq!(settings.signal_pipeline.min_weighted_threshold, 50.0);
         assert_eq!(settings.signal_pipeline.rsi_bull_threshold, 55.0);
         assert_eq!(settings.signal_pipeline.rsi_bear_threshold, 45.0);
         assert_eq!(settings.signal_pipeline.bb_bull_threshold, 0.3);
         assert_eq!(settings.signal_pipeline.bb_bear_threshold, 0.7);
         assert_eq!(settings.signal_pipeline.confidence_max, 0.85);
-        assert_eq!(settings.signal_pipeline.counter_trend_mode, "block");
+        assert_eq!(settings.signal_pipeline.counter_trend_mode, "reduce");
         assert_eq!(settings.signal_pipeline.analysis_timeframes.len(), 3);
     }
 

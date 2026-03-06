@@ -172,12 +172,12 @@ class SettingsManager:
             "signal": {
                 "trend_threshold_percent": 0.8,
                 "min_required_timeframes": 3,
-                "min_required_indicators": 4,
+                "min_required_indicators": 3,
                 "confidence_base": 0.5,
                 "confidence_per_timeframe": 0.08,
             },
             "signal_pipeline": {
-                "min_weighted_threshold": 60.0,
+                "min_weighted_threshold": 50.0,
                 "weight_15m": 0.5,
                 "weight_30m": 1.0,
                 "weight_1h": 2.0,
@@ -195,7 +195,7 @@ class SettingsManager:
                 "neutral_confidence": 0.40,
                 "counter_trend_block_offset": 0.05,
                 "counter_trend_enabled": True,
-                "counter_trend_mode": "block",
+                "counter_trend_mode": "reduce",
                 "analysis_timeframes": ["15m", "30m", "1h"],
             },
         }
