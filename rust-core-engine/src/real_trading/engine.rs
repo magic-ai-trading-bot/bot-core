@@ -1641,6 +1641,8 @@ impl RealTradingEngine {
                     };
 
                     // Check if we already track this position
+                    let is_long = side == PositionSide::Long;
+
                     if let Some(mut existing) = self.positions.get_mut(&symbol) {
                         // Update existing position with exchange data
                         existing.quantity = position_amt.abs();
@@ -1650,6 +1652,20 @@ impl RealTradingEngine {
                         existing.side = side;
                         existing.leverage = leverage;
                         existing.updated_at = Utc::now();
+
+                        // Fix missing SL/TP for positions synced before this fix
+                        if existing.stop_loss.is_none() || existing.take_profit.is_none() {
+                            let (sl, tp) = self
+                                .real_risk_manager
+                                .calculate_sl_tp(entry_price, is_long)
+                                .await;
+                            existing.set_sl_tp(Some(sl), Some(tp));
+                            info!(
+                                "Restored SL/TP for existing position {}: SL={:.2}, TP={:.2}",
+                                symbol, sl, tp
+                            );
+                        }
+
                         debug!(
                             "Updated existing position {}: qty={}, entry={:.2}, mark={:.2}",
                             symbol, existing.quantity, entry_price, mark_price
@@ -1670,9 +1686,16 @@ impl RealTradingEngine {
                         position.unrealized_pnl = unrealized_pnl;
                         position.leverage = leverage;
 
+                        // Calculate SL/TP from risk settings (same as paper trading restore fix)
+                        let (sl, tp) = self
+                            .real_risk_manager
+                            .calculate_sl_tp(entry_price, is_long)
+                            .await;
+                        position.set_sl_tp(Some(sl), Some(tp));
+
                         info!(
-                            "Synced position from exchange: {} {:?} qty={} entry={:.2} mark={:.2} pnl={:.4}",
-                            symbol, position.side, position.quantity, entry_price, mark_price, unrealized_pnl
+                            "Synced position from exchange: {} {:?} qty={} entry={:.2} mark={:.2} pnl={:.4} SL={:.2} TP={:.2}",
+                            symbol, position.side, position.quantity, entry_price, mark_price, unrealized_pnl, sl, tp
                         );
 
                         self.positions.insert(symbol, position);
