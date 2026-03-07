@@ -2978,6 +2978,7 @@ impl PaperTradingEngine {
 
         // Restore portfolio state
         {
+            let settings = self.settings.read().await;
             let mut portfolio = self.portfolio.write().await;
 
             // Restore balance from snapshot if available and not stale (total_trades > 0)
@@ -3053,6 +3054,26 @@ impl PaperTradingEngine {
                 };
                 let maintenance_margin = notional_value * maintenance_margin_rate;
 
+                // Calculate SL/TP for open trades from settings
+                let (restored_sl, restored_tp) = if status == super::trade::TradeStatus::Open {
+                    let lev = trade_record.leverage as f64;
+                    let entry = trade_record.entry_price;
+                    let sl_pct = settings.risk.default_stop_loss_pct;
+                    let tp_pct = settings.risk.default_take_profit_pct;
+                    match trade_type {
+                        super::trade::TradeType::Long => (
+                            Some(entry * (1.0 - sl_pct / (lev * 100.0))),
+                            Some(entry * (1.0 + tp_pct / (lev * 100.0))),
+                        ),
+                        super::trade::TradeType::Short => (
+                            Some(entry * (1.0 + sl_pct / (lev * 100.0))),
+                            Some(entry * (1.0 - tp_pct / (lev * 100.0))),
+                        ),
+                    }
+                } else {
+                    (None, None)
+                };
+
                 let paper_trade = PaperTrade {
                     id: trade_record.trade_id.clone(),
                     symbol: trade_record.symbol.clone(),
@@ -3062,8 +3083,8 @@ impl PaperTradingEngine {
                     exit_price: trade_record.exit_price,
                     quantity: trade_record.quantity,
                     leverage: trade_record.leverage,
-                    stop_loss: None,   // Will be calculated from settings
-                    take_profit: None, // Will be calculated from settings
+                    stop_loss: restored_sl,
+                    take_profit: restored_tp,
                     unrealized_pnl: 0.0,
                     realized_pnl: trade_record.pnl,
                     pnl_percentage: trade_record.pnl_percentage,
