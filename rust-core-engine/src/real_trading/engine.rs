@@ -2808,6 +2808,14 @@ impl RealTradingEngine {
             .map(|p| p.clone())
             .ok_or_else(|| anyhow!("Position not found: {}", symbol))?;
 
+        // Guard: don't send qty=0 to exchange (position already closed)
+        if !position.is_open() {
+            return Err(anyhow!(
+                "Position {} already closed (qty=0), removing from tracking",
+                symbol
+            ));
+        }
+
         let close_side = if position.side == PositionSide::Long {
             OrderSide::Sell
         } else {
@@ -3395,6 +3403,11 @@ impl RealTradingEngine {
                 let position = entry.value();
                 let symbol = entry.key().clone();
 
+                // Skip closed positions (qty=0 after exchange close or reconciliation)
+                if !position.is_open() {
+                    continue;
+                }
+
                 if position.should_trigger_stop_loss() {
                     info!(
                         "SL triggered for {} ({:?}) price=${:.2} sl=${:.2}",
@@ -3434,6 +3447,12 @@ impl RealTradingEngine {
                             "Auto-closed {} via SL/TP (order: {})",
                             symbol, order.client_order_id
                         );
+                        // Mark position as closed locally to prevent re-triggering
+                        // (exchange fill event will also update, but may be delayed)
+                        if let Some(mut pos) = self.positions.get_mut(&symbol) {
+                            pos.quantity = 0.0;
+                            pos.updated_at = chrono::Utc::now();
+                        }
                         // Track consecutive losses for cool-down
                         self.update_consecutive_losses(estimated_pnl).await;
                     },
