@@ -183,6 +183,13 @@ async fn main() -> Result<()> {
 
     let paper_trading_engine = std::sync::Arc::new(paper_trading_engine_inner);
 
+    // Auto-start paper trading engine on startup
+    if let Err(e) = paper_trading_engine.start().await {
+        tracing::warn!("Paper trading engine auto-start failed: {}", e);
+    } else {
+        tracing::info!("Paper trading engine auto-started");
+    }
+
     // Initialize Real Trading Engine if configured
     let real_trading_engine = if let Some(ref _toml_config) = config.real_trading {
         // Load real trading settings from YAML baseline (git-tracked source of truth)
