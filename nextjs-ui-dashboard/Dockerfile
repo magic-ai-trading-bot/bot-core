@@ -14,10 +14,16 @@ RUN apk upgrade --no-cache
 # Install dependencies with frozen lockfile
 RUN bun install --frozen-lockfile || bun install
 
+# Vite env vars must be available at build time
+ARG VITE_RUST_API_URL=http://localhost:8080
+ARG VITE_WS_URL=ws://localhost:8080/ws
+ENV VITE_RUST_API_URL=$VITE_RUST_API_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+
 # Copy source code
 COPY nextjs-ui-dashboard/ .
 
-# Build the application
+# Build the application (VITE_ env vars are baked into the bundle)
 RUN bun run build
 
 # Production stage

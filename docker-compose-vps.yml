@@ -85,14 +85,15 @@ services:
     build:
       context: .
       dockerfile: nextjs-ui-dashboard/Dockerfile
+      args:
+        - VITE_RUST_API_URL=${VITE_RUST_API_URL:-http://localhost:8080}
+        - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8080/ws}
     container_name: nextjs-ui-dashboard
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - VITE_RUST_API_URL=http://180.93.2.247:8080
-      - VITE_WS_URL=ws://180.93.2.247:8080/ws
     networks:
       - bot-network
     depends_on:
