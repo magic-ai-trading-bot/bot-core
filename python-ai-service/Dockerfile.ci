@@ -1,9 +1,9 @@
 # Lightweight CI build - uses requirements-ci.txt (NO TensorFlow/PyTorch)
 # This dramatically reduces build time and disk space usage in CI/CD
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Install runtime dependencies and apply security updates
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

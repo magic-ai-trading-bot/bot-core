@@ -1,13 +1,14 @@
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
+RUN apk upgrade --no-cache
 COPY package*.json ./
 RUN npm install
 COPY tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
 
-FROM node:18-alpine
-RUN apk add --no-cache curl
+FROM node:22-alpine
+RUN apk upgrade --no-cache && apk add --no-cache curl
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules

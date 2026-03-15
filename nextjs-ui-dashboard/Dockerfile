@@ -1,11 +1,14 @@
 # Multi-stage build for optimized React application with Bun
-FROM oven/bun:1.2 AS builder
+FROM oven/bun:1.2-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files and lockfile (lockfile copied from repo root by CI/deploy scripts)
 COPY package.json bun.lock* bun.lockb* ./
+
+# Update system packages for security patches
+RUN apk upgrade --no-cache
 
 # Install dependencies
 RUN bun install --frozen-lockfile || bun install

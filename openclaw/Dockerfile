@@ -4,8 +4,8 @@
 
 FROM node:22-slim
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies and apply security updates
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     git curl ca-certificates build-essential cmake python3 \
     && rm -rf /var/lib/apt/lists/*
 
