@@ -1165,7 +1165,6 @@ User-stored API keys for exchange integrations (encrypted).
 
 ## Async Task Collections (NOT IMPLEMENTED - Planned)
 
-> **Status:** The following 5 collections (celery_task_meta, training_jobs, backtest_results, monitoring_alerts, task_schedules) do **NOT exist** in the current codebase. The Python service does NOT use Celery or RabbitMQ. These are planned for a future async task execution system. The `tasks/` directory in python-ai-service contains task logic but it is not exposed as Celery workers or API endpoints.
 
 ### 18. celery_task_meta Collection (NOT IMPLEMENTED)
 

@@ -135,7 +135,6 @@ GET /health
 ```json
 {
   "status": "healthy",
-  "service": "python-ai-service",
   "version": "1.0.0",
   "timestamp": "2025-11-18T10:30:00Z",
   "ml_models_loaded": true
@@ -453,7 +452,6 @@ scrape_configs:
     static_configs:
       - targets:
           - 'localhost:8080'  # Rust
-          - 'localhost:8000'  # Python
           - 'localhost:3000'  # Frontend
     metrics_path: '/metrics'
     scrape_interval: 15s

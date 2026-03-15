@@ -14,8 +14,8 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 ### Core Philosophy
 - **Spec-Driven Development**: All features documented before implementation
 - **Finance-Critical**: Every decision validated against security and risk standards
-- **High Automation**: 2,202+ tests (Rust 1,336 + Python 409 + Frontend 601), 90.4% coverage
-- **Multi-Service Architecture**: 7 independent services + 1 MCP server + 1 OpenClaw gateway
+- **High Automation**: 1,937+ tests (Rust 1,336 + Frontend 601), 90.4% coverage
+- **Multi-Service Architecture**: 6 independent services + 1 MCP server + 1 OpenClaw gateway
 
 ---
 
@@ -27,12 +27,6 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
   - Database: MongoDB with 17 collections
   - Key Libraries: tokio (async), serde (serialization)
   - Modules: Paper trading, real trading, risk management, strategies, market data
-
-- **Python AI Service** (`python-ai-service/`)
-  - Framework: FastAPI 3.11+
-  - ML: TensorFlow, PyTorch
-  - Models: LSTM (68%), GRU (65%), Transformer (70%), Ensemble (72%), Grok/xAI for signals
-  - Endpoints: Trend prediction, signal generation
 
 - **Node.js MCP Server** (`mcp-server/`)
   - SDK: @modelcontextprotocol/sdk v1.12.1+
@@ -57,7 +51,7 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
   - Tests: 601 comprehensive test cases
 
 ### Infrastructure
-- **Docker Compose**: 7 services (Rust API, Python AI, MCP, OpenClaw, Postgres, Redis, Monitoring)
+- **Docker Compose**: 6 services (Rust API, MCP, OpenClaw, Postgres, Redis, Monitoring)
 - **MongoDB**: Replica sets for consistency
 - **VPS**: 16GB RAM on Viettel (180.93.2.247)
 - **CI/CD**: GitHub Actions with automated testing, linting, security scanning
@@ -72,18 +66,18 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 │  React 18 + Shadcn/UI + Real-time WebSocket Updates    │
 └────────────────┬────────────────────────────────────────┘
                  │
-    ┌────────────┼────────────┬──────────────┬──────────────┐
-    │            │            │              │              │
-┌───▼──┐  ┌──────▼──┐  ┌─────▼──┐  ┌───────▼───┐  ┌──────▼────┐
-│Rust  │  │ Python  │  │ MCP    │  │ OpenClaw  │  │ Postgres  │
-│API   │  │  AI     │  │ Server │  │ Gateway   │  │  (SQL)    │
-│:8080 │  │ :8000   │  │ :8090  │  │ :18789    │  │ :5432     │
-│      │  │         │  │        │  │           │  │           │
-│Core  │  │ML/Pred  │  │Tools   │  │Telegram   │  │ Metadata  │
-│Engine│  │Signal   │  │Health  │  │Bridge     │  │ & Config  │
-└───┬──┘  └──┬──────┘  └────┬───┘  └─────┬─────┘  └───────────┘
-    │         │             │            │
-    └─────────┴─────────────┴────────────┘
+    ┌────────────┼────────────┬──────────────┐
+    │            │            │              │
+┌───▼──┐  ┌─────▼──┐  ┌───────▼───┐  ┌──────▼────┐
+│Rust  │  │ MCP    │  │ OpenClaw  │  │ Postgres  │
+│API   │  │ Server │  │ Gateway   │  │  (SQL)    │
+│:8080 │  │ :8090  │  │ :18789    │  │ :5432     │
+│      │  │        │  │           │  │           │
+│Core  │  │Tools   │  │Telegram   │  │ Metadata  │
+│Engine│  │Health  │  │Bridge     │  │ & Config  │
+└───┬──┘  └────┬───┘  └─────┬─────┘  └───────────┘
+    │          │            │
+    └──────────┴────────────┘
 
     Shared: MongoDB (Trading Data, Portfolios, Strategies, Signals, Market Data)
             Redis (Caching, Real-time Updates)
@@ -137,22 +131,7 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 - Correlation limit: 70% max position correlation
 - Consecutive loss tracking: Auto-pause after threshold
 
-### 5. AI & ML Integration
-**Location**: `python-ai-service/`
-
-**Models**:
-- LSTM (68% accuracy)
-- GRU (65% accuracy)
-- Transformer (70% accuracy)
-- Ensemble (72% accuracy) - weighted average
-- Grok/xAI (signal generation)
-
-**Endpoints**:
-- `POST /predict-trend` - Trend prediction
-- `POST /analyze` - Signal generation
-- `GET /model-performance` - Model metrics
-
-### 6. Market Data
+### 5. Market Data
 **Location**: `rust-core-engine/src/binance/`
 
 **Features**:
@@ -161,7 +140,7 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 - Market data caching
 - Data validation & normalization
 
-### 7. Authentication & Authorization
+### 6. Authentication & Authorization
 **Location**: `rust-core-engine/src/auth/`
 
 **Security**:
@@ -176,7 +155,7 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 - `POST /api/auth/verify` - Verify token
 - `GET /api/auth/profile` - User profile
 
-### 8. WebSocket & Real-Time
+### 7. WebSocket & Real-Time
 **Location**: `rust-core-engine/src/binance/websocket.rs` + `nextjs-ui-dashboard/src/hooks/useWebSocket.ts`
 
 **Events**:
@@ -186,7 +165,7 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 - `portfolio_update` - Position changes
 - `risk_event` - Risk limit triggered
 
-### 9. MCP Server
+### 8. MCP Server
 **Location**: `mcp-server/`
 
 **Architecture**:
@@ -210,7 +189,7 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 
 **Health Endpoint**: `curl http://localhost:8090/health`
 
-### 10. OpenClaw Gateway
+### 9. OpenClaw Gateway
 **Location**: `openclaw/`
 
 **Integration**:
@@ -279,11 +258,6 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 
-### Python AI Service (:8000)
-- `POST /predict-trend` - ML trend prediction
-- `POST /analyze` - Signal analysis
-- `GET /model-performance` - Model metrics
-
 ### MCP Server (:8090)
 - `POST /mcp/call` - Tool invocation
 - `GET /health` - Server health
@@ -297,9 +271,8 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 ## Testing Strategy
 
 ### Test Coverage
-- **Total Tests**: 2,202+
+- **Total Tests**: 1,937+
   - Rust: 1,336 (unit, integration, end-to-end)
-  - Python: 409 (unit, integration)
   - Frontend: 601 (unit, integration, snapshot)
 - **Coverage Target**: 95% (current: 90.4%)
 - **Mutation Score**: 84%
@@ -316,7 +289,6 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 - `rust-core-engine/tests/test_paper_trading.rs` - Trading engine
 - `rust-core-engine/tests/test_auth.rs` - Authentication
 - `rust-core-engine/tests/test_strategies.rs` - Strategy logic
-- `python-ai-service/tests/` - ML model tests
 - `nextjs-ui-dashboard/src/**/*.test.tsx` - UI tests
 - `mcp-server/tests/` - MCP tool tests
 
@@ -345,7 +317,7 @@ Bot Core is a sophisticated multi-service cryptocurrency trading platform with A
 ### Code Quality
 - **Zero Unwrap Policy**: Rust requires `?` operator, no `unwrap()`
 - **Type Safety**: Full TypeScript strict mode
-- **Linting**: clippy (Rust), black/flake8 (Python), ESLint (TypeScript)
+- **Linting**: clippy (Rust), ESLint (TypeScript)
 - **Security Scanning**: Trivy, TruffleHog (secrets detection)
 
 ---
@@ -374,10 +346,6 @@ make lint           # Check all code quality
 cd rust-core-engine
 cargo fmt --check && cargo clippy -- -D warnings && cargo test
 
-# Python
-cd python-ai-service
-black . && flake8 . && pytest --cov
-
 # Frontend
 cd nextjs-ui-dashboard
 npm run lint && npm run type-check && npm test
@@ -403,7 +371,6 @@ npm run lint && npm run type-check && npm test
 ```
 bot-core
 ├── rust-api (Rust core engine)
-├── python-ai (ML service)
 ├── mcp-server (Tool provider)
 ├── openclaw (Telegram gateway)
 ├── postgres (SQL metadata)
@@ -464,10 +431,6 @@ BINANCE_API_SECRET=...
 # Database
 MONGODB_URL=mongodb://localhost:27017/bot-core
 DATABASE_NAME=bot-core
-
-# AI Service
-OPENAI_API_KEY=...  (deprecated, using Grok/xAI)
-GROK_API_KEY=...    (primary AI provider)
 
 # Trading
 TRADING_ENABLED=false      # Enable live trading
@@ -566,7 +529,7 @@ specifications/
 ### Logs
 ```bash
 ./scripts/bot.sh logs --service <name>
-# Services: rust-api, python-ai, mcp-server, openclaw
+# Services: rust-api, mcp-server, openclaw
 ```
 
 ### Health Checks
@@ -602,14 +565,14 @@ curl localhost:18789/health         # OpenClaw Gateway
 
 ## Key Statistics
 
-- **Services**: 7 (Rust, Python, Node.js, OpenClaw, Postgres, Redis, Monitoring)
+- **Services**: 6 (Rust, Node.js, OpenClaw, Postgres, Redis, Monitoring)
 - **Specification Files**: 119
 - **Code Coverage**: 90.4% (target: 95%)
-- **Test Count**: 2,202+
+- **Test Count**: 1,937+
 - **Code Quality**: A (94/100)
 - **Security Score**: A+ (98/100)
 - **Mutation Score**: 84%
-- **Lines of Code**: ~150K across all services
+- **Lines of Code**: ~130K across all services
 - **Documentation**: ~100K lines across specifications/
 
 ---

@@ -90,7 +90,6 @@ The system shall implement robust authentication and authorization mechanisms to
 - `rust-core-engine/src/auth/jwt.rs` - JWT token generation and validation
 - `rust-core-engine/src/auth/middleware.rs` - Authentication middleware
 - `rust-core-engine/src/auth/password.rs` - Password hashing with bcrypt
-- `python-ai-service/auth/jwt_handler.py` - JWT validation in Python service
 - `nextjs-ui-dashboard/src/contexts/AuthContext.tsx` - Client-side authentication
 
 **Security Controls**:
@@ -253,7 +252,6 @@ The system shall implement comprehensive API security controls to protect agains
 **Implementation Files**:
 - `rust-core-engine/src/api/middleware.rs` - Security middleware (rate limiting, CORS)
 - `rust-core-engine/src/api/validation.rs` - Input validation
-- `python-ai-service/middleware/security.py` - FastAPI security middleware
 - `nextjs-ui-dashboard/vite.config.ts` - Security headers configuration
 
 **Security Controls**:
@@ -441,7 +439,6 @@ The system shall implement secure secrets management practices to protect sensit
 **Implementation Files**:
 - `.env.example.secure` - Template for environment variables (no actual secrets)
 - `rust-core-engine/src/config/mod.rs` - Configuration loading from environment
-- `python-ai-service/config.py` - Configuration management
 - `scripts/validate-env.sh` - Environment variable validation script
 
 **Security Controls**:
@@ -740,7 +737,6 @@ The system shall implement continuous vulnerability management to identify, asse
 **Implementation Files**:
 - `.github/workflows/security.yml` - CI/CD security scanning (planned)
 - `rust-core-engine/Cargo.lock` - Rust dependency lock file
-- `python-ai-service/requirements.txt` - Python dependencies
 - `nextjs-ui-dashboard/package-lock.json` - npm dependencies
 
 **Security Controls**:
@@ -900,7 +896,6 @@ The system shall implement comprehensive audit logging to track all security-rel
 **Implementation Files**:
 - `rust-core-engine/src/logging/audit.rs` - Audit logging module (planned)
 - `rust-core-engine/src/logging/mod.rs` - General logging configuration
-- `python-ai-service/logging/audit.py` - Python audit logging (planned)
 - `infrastructure/logging/loki-config.yml` - Centralized logging (Loki/ELK)
 
 **Security Controls**:
@@ -1178,7 +1173,6 @@ Permissions-Policy: geolocation=(), microphone=(), camera=()
 
 **Code Locations**:
 - Rust: `rust-core-engine/src/auth/` - Authentication and authorization
-- Python: `python-ai-service/auth/` - JWT validation in Python service
 - Frontend: `nextjs-ui-dashboard/src/contexts/AuthContext.tsx` - Client-side auth
 - Infrastructure: `infrastructure/nginx/nginx.conf` - TLS configuration
 

@@ -88,7 +88,6 @@ The system shall maintain high availability with 99.9% uptime, ensuring users ca
 
 **Implementation Files**:
 - `rust-core-engine/src/health/mod.rs` - Health check endpoint (planned)
-- `python-ai-service/health.py` - Health check endpoint (planned)
 - `infrastructure/monitoring/healthchecks.yml` - Health monitoring configuration
 - `infrastructure/kubernetes/liveness-probes.yml` - Kubernetes liveness/readiness probes (planned)
 
@@ -1041,7 +1040,6 @@ The system shall provide comprehensive error recovery mechanisms to automaticall
    aws s3 cp s3://bot-core-backups/mongodb/backup-20251010.gz ./
 
    # Stop application (prevent writes during restore)
-   docker-compose stop rust-core-engine python-ai-service
 
    # Restore database
    mongorestore --drop --gzip --archive=backup-20251010.gz
@@ -1051,7 +1049,6 @@ The system shall provide comprehensive error recovery mechanisms to automaticall
    mongo trading --eval 'db.positions.count()'
 
    # Start application
-   docker-compose start rust-core-engine python-ai-service
 
    # Monitor logs for startup errors
    docker-compose logs -f
@@ -1221,7 +1218,6 @@ incident_mttr_seconds
 **Code Locations**:
 - Rust: `rust-core-engine/src/health/` - Health checks
 - Rust: `rust-core-engine/src/websocket/reconnect.rs` - WebSocket reconnection
-- Python: `python-ai-service/health.py` - Health checks
 - Docs: `docs/INCIDENT_RUNBOOKS.md` - Incident response procedures
 
 **Dependencies**:

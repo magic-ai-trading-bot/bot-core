@@ -2147,7 +2147,6 @@ GET /api/paper-trading/correlation-analysis HTTP/1.1
       "last_heartbeat": 1697234567000,
       "reconnect_count": 0
     },
-    "python_ai_service": {
       "connected": true,
       "last_request": 1697234500000,
       "response_time_ms": 250

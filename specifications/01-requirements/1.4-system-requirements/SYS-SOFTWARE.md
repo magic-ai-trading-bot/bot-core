@@ -28,7 +28,6 @@
 
 **Related Specs**:
 - Related Config: [Cargo.toml](/rust-core-engine/Cargo.toml)
-- Related Config: [requirements.txt](/python-ai-service/requirements.txt)
 - Related Config: [package.json](/nextjs-ui-dashboard/package.json)
 - Related Spec: [SYS-HARDWARE.md](./SYS-HARDWARE.md)
 - Related Spec: [SYS-NETWORK.md](./SYS-NETWORK.md)
@@ -76,7 +75,7 @@ The Bot Core platform is a complex polyglot microservices system using Rust, Pyt
 ### Programming Languages and Runtimes
 
 1. **Rust** - Core trading engine (high-performance, low-latency)
-2. **Python** - AI/ML service (TensorFlow, PyTorch, xAI/Grok)
+
 3. **TypeScript/JavaScript** - Frontend dashboard (React, Vite)
 4. **Shell** - Infrastructure scripts (Bash)
 
@@ -452,15 +451,15 @@ ls -lh target/release/binance-trading-bot
 **Code Tags**: `@spec:SYS-SOFTWARE-003`
 
 **Description**:
-Python runtime version and all dependencies required for the Python AI/ML service including TensorFlow, PyTorch, and FastAPI.
+
 
 ### Python Runtime
 
 **Python Version**:
 - **Minimum**: **3.11** (October 2022)
 - **Recommended**: **3.11** or **3.12**
-- **Not Supported**: Python 3.10 or earlier (missing performance improvements)
-- **Maximum**: Python 3.12 (TensorFlow 2.18.0 compatibility)
+
+
 
 **Installation**:
 ```bash
@@ -472,7 +471,7 @@ sudo apt install -y python3.11 python3.11-venv python3.11-dev
 brew install python@3.11
 
 # Verify version
-python3 --version  # Python 3.11.0 or later
+
 ```
 
 ### Core Dependencies (from requirements.txt)
@@ -483,7 +482,7 @@ python3 --version  # Python 3.11.0 or later
   - Critical: API endpoints, validation, documentation
   - License: MIT
 - **uvicorn** >= `0.30.0`
-  - Purpose: ASGI server for FastAPI
+
   - Critical: HTTP server runtime
   - License: BSD-3-Clause
 - **python-multipart** >= `0.0.22`
@@ -511,14 +510,14 @@ python3 --version  # Python 3.11.0 or later
   - Purpose: Traditional ML algorithms, preprocessing
   - License: BSD-3-Clause
 
-**Deep Learning - TensorFlow**:
+
 - **tensorflow** >= `2.18.0`
   - Purpose: LSTM/GRU model training and inference
   - Critical: AI predictions
   - License: Apache-2.0
   - Note: Large package (~500 MB), GPU support optional
 
-**Deep Learning - PyTorch**:
+
 - **torch** >= `2.9.0`
   - Purpose: Transformer model training and inference
   - Critical: Advanced AI models
@@ -595,20 +594,20 @@ python3 --version  # Python 3.11.0 or later
 - **isort** >= `5.13.0` - Import sorting
 
 **Testing**:
-- **pytest** >= `8.3.0` - Testing framework
-- **pytest-asyncio** >= `0.24.0` - Async test support
-- **pytest-cov** >= `5.0.0` - Coverage reporting
-- **pytest-mock** >= `3.14.0` - Mocking
-- **pytest-xdist** >= `3.6.0` - Parallel test execution
+
+
+
+
+
 - **httpx** >= `0.27.0` - Async HTTP client for testing
 
 ### Testing Dependencies (included in requirements.txt)
 
-- **pytest** >= `8.3.0`
-- **pytest-asyncio** >= `0.24.0`
-- **pytest-cov** >= `5.0.0`
-- **pytest-mock** >= `3.14.0`
-- **pytest-xdist** >= `3.6.0`
+
+
+
+
+
 - **httpx** >= `0.27.0`
 
 ### System Requirements
@@ -635,7 +634,6 @@ brew install python@3.11
 
 **Create Virtual Environment**:
 ```bash
-cd python-ai-service
 python3.11 -m venv venv
 source venv/bin/activate  # Linux/macOS
 # venv\Scripts\activate  # Windows
@@ -651,13 +649,13 @@ pip install -r requirements.test.txt  # Testing only
 
 ### GPU Support (Optional)
 
-**TensorFlow GPU**:
+
 ```bash
 # Requires CUDA 11.8 and cuDNN 8.6
 pip install tensorflow[and-cuda]==2.18.0
 ```
 
-**PyTorch GPU**:
+
 ```bash
 # CUDA 11.8
 pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu118
@@ -678,21 +676,21 @@ pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https
 ```
 numpy>=1.26.0,<2.1.0
 ```
-- **Reason**: TensorFlow 2.18.0 and PyTorch 2.5.1 compatibility
+
 - **NumPy 2.0** introduced breaking changes
 
 **Python Version Constraint**:
 ```
 python_requires='>=3.11,<3.13'
 ```
-- **Reason**: TensorFlow 2.18.0 maximum is Python 3.12
+
 
 **Acceptance Criteria**:
-- [x] All dependencies install without errors on Python 3.11
+
 - [x] No dependency conflicts (pip check passes)
-- [x] TensorFlow and PyTorch work without conflicts
+
 - [x] Security audit passes (pip-audit, safety)
-- [x] FastAPI server starts in < 30 seconds
+
 - [x] AI model loading completes in < 60 seconds
 - [x] Virtual environment size < 3 GB (without GPU)
 
@@ -719,7 +717,6 @@ pipdeptree
 pip check
 ```
 
-**Reference**: `/python-ai-service/requirements.txt`, `/python-ai-service/requirements.dev.txt`, `/python-ai-service/requirements.test.txt`
 
 ---
 
@@ -1342,7 +1339,6 @@ mongodb://botuser:password@mongodb-primary:27017,mongodb-secondary1:27017,mongod
 **Dependencies**: SYS-HARDWARE-002 to 004 (Hardware), SYS-NETWORK-001 (Ports)
 **Test Cases**: TC-SOFTWARE-008 (MongoDB Connection Test), TC-SOFTWARE-009 (Database Performance Test)
 
-**Reference**: `/rust-core-engine/config.toml`, `/python-ai-service/config.yaml`, `/CLAUDE.md`
 
 ---
 
@@ -1693,10 +1689,10 @@ Essential build tools, compilers, linters, formatters, and development utilities
 - **Purpose**: Sort and organize imports
 - **Usage**: `isort .`
 
-**pytest** (Testing Framework):
+
 - **Version**: 7.4.3
 - **Purpose**: Unit and integration testing
-- **Usage**: `pytest tests/`
+
 
 **pip-audit** (Security Auditing):
 - **Purpose**: Check for vulnerable dependencies
@@ -1949,7 +1945,6 @@ docker compose --profile api-gateway up -d
 
 **Metrics Endpoints**:
 - Rust Core: `http://localhost:8080/metrics`
-- Python AI: `http://localhost:8000/metrics`
 - Frontend: Browser Performance API
 
 **Configuration**: `/infrastructure/monitoring/prometheus.yml`
@@ -2011,8 +2006,8 @@ docker compose --profile monitoring up -d
 | 1.86+ | ✅ Required | ✅ Required | MSRV |
 | Latest stable | ✅ Recommended | ✅ Recommended | Best performance |
 | **Python** | | | |
-| 3.11 | ✅ Recommended | ✅ Recommended | TensorFlow 2.18 compatible |
-| 3.12 | ✅ Supported | ✅ Supported | TensorFlow 2.18 compatible |
+
+
 | 3.10 | ❌ Not supported | ❌ Not supported | Too old |
 | **Node.js** | | | |
 | 18 LTS | ✅ Minimum | ✅ Supported | EOL April 2025 |
@@ -2065,7 +2060,6 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "pip"
-    directory: "/python-ai-service"
     schedule:
       interval: "weekly"
 
@@ -2114,8 +2108,8 @@ snyk test
 
 **Permissive Licenses** (✅ Safe for commercial use):
 - MIT - Most dependencies
-- Apache-2.0 - MongoDB, TensorFlow, many others
-- BSD-3-Clause - NumPy, pandas, PyTorch
+
+
 - ISC - Similar to MIT
 
 **Copyleft Licenses** (⚠️ Review carefully):
@@ -2150,7 +2144,7 @@ license-checker --production
 | Incompatible dependency versions | High | Medium | Version pinning, compatibility matrix, CI tests |
 | Security vulnerabilities in dependencies | Critical | Medium | Automated security scanning, weekly updates |
 | Breaking changes in major updates | High | Low | Thorough testing, staging environment, rollback plan |
-| TensorFlow/PyTorch conflicts | Medium | Low | Virtual environments, separate containers |
+
 | Build failures due to missing tools | Medium | Medium | Docker builds, documented requirements, CI verification |
 | MongoDB version incompatibility | High | Low | Test migrations, backup before upgrade, driver compatibility check |
 
@@ -2174,7 +2168,7 @@ license-checker --production
 
 ## Open Questions
 
-- [ ] Should we support Python 3.13 when released (October 2025)?
+
 - [ ] Do we need ARM64 builds for production (AWS Graviton)?
 - [ ] Should Redis be required instead of optional?
 - [ ] Is Kubernetes deployment a priority for initial release?
@@ -2194,7 +2188,6 @@ license-checker --production
 ### References
 
 - Rust Cargo.toml: `/rust-core-engine/Cargo.toml`
-- Python requirements.txt: `/python-ai-service/requirements.txt`
 - Node.js package.json: `/nextjs-ui-dashboard/package.json`
 - Docker Compose: `/infrastructure/docker/docker-compose.yml`
 - CLAUDE.md: `/CLAUDE.md`

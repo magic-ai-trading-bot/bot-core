@@ -67,7 +67,6 @@ Fallback: Use cached analysis if available
 **Request Flow:**
 ```python
 # Rust sends to Python
-POST http://python-ai-service:8000/ai/analyze
 Headers:
   Authorization: Bearer {INTER_SERVICE_TOKEN}
   X-Request-ID: {uuid}
@@ -122,7 +121,6 @@ Index: symbol + timestamp (compound)
 #### Real-time Updates Flow
 ```yaml
 Frontend WebSocket: ws://localhost:3000/ws
-Python AI WebSocket: ws://localhost:8000/ws
 Rust Core WebSocket: ws://localhost:8080/ws
 ```
 

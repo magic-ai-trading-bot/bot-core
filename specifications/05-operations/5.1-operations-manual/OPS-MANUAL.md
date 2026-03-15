@@ -65,7 +65,6 @@ docker stats --no-stream
 
 # 4. Review logs for errors
 ./scripts/bot.sh logs --service rust-core-engine | grep ERROR
-./scripts/bot.sh logs --service python-ai-service | grep ERROR
 
 # 5. Verify backups completed
 aws s3 ls s3://bot-core-backups/daily/ | tail -1
@@ -202,7 +201,6 @@ docker compose down --timeout 5
 ```bash
 # Using docker compose
 docker compose restart rust-core-engine
-docker compose restart python-ai-service
 docker compose restart nextjs-ui-dashboard
 
 # Or using Makefile
@@ -223,7 +221,6 @@ docker stats --no-stream
 # Check health endpoints
 curl -f http://localhost:3000/health       # Frontend
 curl -f http://localhost:8080/api/health   # Rust
-curl -f http://localhost:8000/health       # Python
 ```
 
 **Service URLs:**
@@ -234,7 +231,6 @@ make urls
 # Manual check
 echo "Frontend: http://localhost:3000"
 echo "Rust API: http://localhost:8080"
-echo "Python AI: http://localhost:8000"
 echo "Prometheus: http://localhost:9090"
 echo "Grafana: http://localhost:3001"
 ```
@@ -251,7 +247,6 @@ make logs
 **Specific Service:**
 ```bash
 ./scripts/bot.sh logs --service rust-core-engine
-./scripts/bot.sh logs --service python-ai-service
 ./scripts/bot.sh logs --service nextjs-ui-dashboard
 
 # Or using Makefile
@@ -263,7 +258,6 @@ make logs-frontend
 **Follow Logs (Real-time):**
 ```bash
 docker compose logs -f rust-core-engine
-docker compose logs -f --tail=100 python-ai-service
 ```
 
 **Export Logs:**
@@ -273,7 +267,6 @@ docker compose logs rust-core-engine > rust-logs-$(date +%Y%m%d).log
 
 # Search logs
 docker compose logs rust-core-engine | grep "ERROR"
-docker compose logs python-ai-service | grep "trade"
 ```
 
 ### 3.6 Scaling Services
@@ -507,7 +500,6 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
 
 # Dependency audit
 cd rust-core-engine && cargo audit
-cd python-ai-service && pip-audit
 cd nextjs-ui-dashboard && npm audit
 
 # Fix vulnerabilities
@@ -594,22 +586,17 @@ docker compose logs -f rust-core-engine | grep "ADAUSDT"
 **Commands:**
 ```bash
 # 1. Train model (on ML workstation)
-cd python-ai-service
 python train_model.py --model lstm --epochs 100
 
 # 2. Upload model
 aws s3 cp models/saved/lstm-v2.4.pkl s3://bot-core-models/production/
 
 # 3. Update config
-vi python-ai-service/config.yaml
 # Update model version
 
 # 4. Restart service
-docker compose restart python-ai-service
 
 # 5. Verify
-curl http://localhost:8000/api/model/info
-curl -X POST http://localhost:8000/api/analyze \
   -H "Content-Type: application/json" \
   -d '{"symbol": "BTCUSDT", "timeframe": "1h"}'
 ```
@@ -721,7 +708,6 @@ sleep 60
 # 7. Run smoke tests
 curl -f http://localhost:3000/health
 curl -f http://localhost:8080/api/health
-curl -f http://localhost:8000/health
 
 # 8. Resume normal operations
 # Update load balancer to route to services

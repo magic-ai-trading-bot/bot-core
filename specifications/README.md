@@ -403,7 +403,6 @@ POST /api/trades/execute
 
 ## 🚀 Service Endpoints
 
-- **Python AI Service**: `http://localhost:8000`
 - **Rust Core Engine**: `http://localhost:8080`
 - **Frontend Dashboard**: `http://localhost:3000`
 - **MongoDB**: `mongodb://botuser:***@mongodb:27017/trading_bot`

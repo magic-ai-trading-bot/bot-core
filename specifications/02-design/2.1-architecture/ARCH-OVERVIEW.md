@@ -298,7 +298,6 @@ graph LR
 
 | Technology | Version | Purpose | Code Location |
 |------------|---------|---------|---------------|
-| Python | 3.11 | Core Language | `python-ai-service/` |
 | FastAPI | 0.115.6 | Web Framework | `main.py` |
 | TensorFlow | 2.18.0 | Deep Learning | `models/lstm_model.py` |
 | PyTorch | 2.5.1 | Deep Learning | `models/transformer_model.py` |
@@ -456,7 +455,6 @@ sequenceDiagram
 - **Protocol**: HTTP (internal Docker network)
 - **Authentication**: Inter-Service Token (Bearer)
 - **Data Format**: JSON
-- **Base URL**: `http://python-ai-service:8000`
 - **Endpoints**:
   - `POST /ai/analyze` - AI signal analysis
   - `POST /ai/strategy-recommendations` - Strategy recommendations
@@ -521,7 +519,6 @@ sequenceDiagram
 
 **Python AI Service ↔ Clients**:
 - **Protocol**: WS
-- **URL**: `ws://localhost:8000/ws`
 - **Purpose**: AI signal broadcasting
 - **Message Format**: JSON
 - **Broadcast**: All connected clients receive AI signals
@@ -580,7 +577,6 @@ sequenceDiagram
 - **Configuration**:
   ```yaml
   RUST_API_URL: http://rust-core-engine:8080
-  PYTHON_AI_URL: http://python-ai-service:8000
   ```
 
 **Production Environment** (Future):
@@ -743,11 +739,9 @@ services:
           memory: 1.5G
           cpus: "1.5"
 
-  python-ai-service-dev:
     build:
       dockerfile: Dockerfile.dev
     volumes:
-      - ./python-ai-service:/app
     command: ["uvicorn", "main:app", "--reload"]
     environment:
       - LOG_LEVEL=DEBUG
@@ -821,7 +815,6 @@ services:
       timeout: 10s
       retries: 3
 
-  python-ai-service:
     build:
       dockerfile: Dockerfile
     environment:
@@ -835,7 +828,6 @@ services:
           memory: 1G
           cpus: "1"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -943,7 +935,6 @@ spec:
 - **DNS**: Docker Compose internal DNS
 - **Service Names**:
   - `rust-core-engine` (or `rust-core-engine-dev`)
-  - `python-ai-service` (or `python-ai-service-dev`)
   - `nextjs-ui-dashboard` (or `nextjs-ui-dashboard-dev`)
 
 **Kubernetes**:
@@ -1032,7 +1023,6 @@ spec:
 ./scripts/bot.sh start
 
 # View logs
-./scripts/bot.sh logs --service python-ai-service
 ./scripts/bot.sh logs --service rust-core-engine
 ./scripts/bot.sh logs --service nextjs-ui-dashboard
 
@@ -1068,7 +1058,6 @@ spec:
   - Main entry: `src/main.rs:44-169`
   - API server: `src/api/mod.rs`
   - WebSocket: `src/binance/websocket.rs`
-- Python AI Service: `/Users/dungngo97/Documents/bot-core/python-ai-service/`
   - Main entry: `main.py:1-2087`
   - FastAPI app: `main.py:350-376`
   - WebSocket manager: `main.py:70-127`
@@ -1089,7 +1078,6 @@ spec:
 **Configuration**:
 - Environment Variables: `.env` file (from `config.env` template)
 - Rust Config: `rust-core-engine/config.toml`
-- Python Config: `python-ai-service/config.yaml`
 - Frontend Config: Environment variables in `docker-compose.yml`
 
 ---

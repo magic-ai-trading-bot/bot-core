@@ -45,7 +45,7 @@ Production Environment
 ├── Service Mesh (Istio - optional)
 ├── Application Services
 │   ├── Rust Core Engine (8080)
-│   ├── Python AI Service (8000)
+
 │   └── Next.js Dashboard (3000)
 ├── Data Layer
 │   ├── MongoDB Replica Set (27017)
@@ -242,7 +242,7 @@ git clone https://github.com/your-org/bot-core.git .
 
 # Create required directories
 mkdir -p rust-core-engine/{data,logs}
-mkdir -p python-ai-service/{models,logs,data}
+
 mkdir -p nextjs-ui-dashboard/logs
 mkdir -p infrastructure/{nginx,ssl,backups}
 ```
@@ -624,7 +624,7 @@ docker login
 # 2. Tag images
 docker tag bot-core/rust-core-engine:latest \
     your-dockerhub-username/bot-core-rust:latest
-docker tag bot-core/python-ai-service:latest \
+
     your-dockerhub-username/bot-core-python:latest
 docker tag bot-core/nextjs-ui-dashboard:latest \
     your-dockerhub-username/bot-core-frontend:latest
@@ -640,7 +640,7 @@ docker push your-dockerhub-username/bot-core-frontend:latest
 ```bash
 # 1. Create ECR repositories
 aws ecr create-repository --repository-name bot-core/rust-core-engine
-aws ecr create-repository --repository-name bot-core/python-ai-service
+
 aws ecr create-repository --repository-name bot-core/nextjs-ui-dashboard
 
 # 2. Login to ECR
@@ -766,11 +766,11 @@ format = "json"
 output = "/app/logs/rust-core-engine.log"
 ```
 
-### 2. Python AI Service Configuration
+
 
 ```bash
 # Edit config.yaml
-nano /opt/bot-core/python-ai-service/config.yaml
+
 ```
 
 ```yaml
@@ -801,7 +801,7 @@ models:
 logging:
   level: "INFO"
   format: "json"
-  file: "/app/logs/python-ai-service.log"
+
 
 cache:
   enabled: true
@@ -852,7 +852,7 @@ docker-compose logs -f
 
 # Check health endpoints
 curl http://localhost:8080/api/health
-curl http://localhost:8000/health
+
 curl http://localhost:3000/
 ```
 
@@ -873,7 +873,7 @@ docker-compose exec rust-core-engine /app/bot-core --seed
 curl -X GET http://localhost:8080/api/v1/binance/test
 
 # Test Grok/xAI connection
-curl -X POST http://localhost:8000/api/ai/test \
+
   -H "Content-Type: application/json"
 
 # Test WebSocket
@@ -901,12 +901,12 @@ else
   exit 1
 fi
 
-# Python AI Service
-PYTHON_HEALTH=$(curl -s http://localhost:8000/health | jq -r '.status')
+
+
 if [ "$PYTHON_HEALTH" = "healthy" ]; then
-  echo "✓ Python AI Service: HEALTHY"
+
 else
-  echo "✗ Python AI Service: UNHEALTHY"
+
   exit 1
 fi
 
@@ -938,14 +938,14 @@ docker-compose ps
 
 # Check logs for errors
 docker-compose logs --tail=100 rust-core-engine
-docker-compose logs --tail=100 python-ai-service
+
 docker-compose logs --tail=100 nextjs-ui-dashboard
 
 # Check resource usage
 docker stats
 
 # Check network connectivity
-docker-compose exec rust-core-engine ping -c 3 python-ai-service
+
 ```
 
 ---
@@ -972,7 +972,7 @@ docker-compose --profile monitoring up -d
 # Dashboards included:
 # - Bot Core Overview
 # - Rust Core Engine Metrics
-# - Python AI Service Metrics
+
 # - MongoDB Performance
 # - System Resources
 ```
@@ -999,7 +999,7 @@ docker-compose down
 
 # 2. Pull previous version
 docker-compose pull rust-core-engine:v1.9.0
-docker-compose pull python-ai-service:v1.9.0
+
 docker-compose pull nextjs-ui-dashboard:v1.9.0
 
 # 3. Update docker-compose.yml with previous tags
@@ -1059,7 +1059,7 @@ df -h
 
 # Check port conflicts
 lsof -i :8080
-lsof -i :8000
+
 lsof -i :3000
 
 # Restart service
@@ -1258,7 +1258,7 @@ docker scan bot-core/rust-core-engine:latest
 
 # Update dependencies
 cd rust-core-engine && cargo update
-cd python-ai-service && pip-audit
+
 ```
 
 ### 3. Enable Audit Logging

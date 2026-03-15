@@ -115,7 +115,6 @@ graph TB
 
     subgraph "External Dependencies"
         FRONTEND[Frontend Dashboard]
-        PYTHON_AI[Python AI Service]
         MONGODB[(MongoDB Atlas)]
         BINANCE_API[Binance API]
     end
@@ -143,7 +142,6 @@ graph TB
     MARKET_PROC --> BINANCE_WS
     MARKET_PROC --> WS_SERVER
 
-    AI_CLIENT --> PYTHON_AI
     BINANCE_CLIENT --> BINANCE_API
     BINANCE_WS --> BINANCE_API
 
@@ -684,7 +682,6 @@ max_leverage = 10
 stop_loss_required = true
 
 [market_data]
-python_ai_service_url = "http://python-ai-service:8000"
 cache_ttl_seconds = 60
 ```
 
@@ -751,7 +748,6 @@ The Python AI Service provides machine learning-powered trading signal generatio
 ```mermaid
 graph TB
     subgraph "Python AI Service - Port 8000"
-        subgraph "API Layer - FastAPI"
             API_ANALYZE[POST /ai/analyze<br/>Main Analysis Endpoint]
             API_STRATEGY[POST /ai/strategy-recommendations<br/>Strategy Suggestions]
             API_MARKET[POST /ai/market-condition<br/>Market Analysis]
@@ -1106,7 +1102,6 @@ def detect_patterns(df: pd.DataFrame) -> Dict[str, bool]:
 
 #### 3. ML Models
 
-**Location**: `python-ai-service/models/`
 
 **LSTM Model**:
 ```python
@@ -1487,7 +1482,6 @@ async def analyze_trading_signals(
 
 ### Service Configuration
 
-**Location**: `python-ai-service/config.yaml`
 
 ```yaml
 # @spec:ARCH-MICROSERVICES-002
@@ -2177,7 +2171,6 @@ export const TradingCharts: React.FC<{ symbol: string }> = ({ symbol }) => {
 
 # API Configuration
 VITE_RUST_API_URL=http://localhost:8080
-VITE_PYTHON_AI_URL=http://localhost:8000
 VITE_WS_URL=ws://localhost:8080/ws
 
 # Timeouts
@@ -2408,14 +2401,12 @@ sequenceDiagram
 ```yaml
 # Services discover each other via Docker DNS
 RUST_API_URL: http://rust-core-engine:8080
-PYTHON_AI_URL: http://python-ai-service:8000
 ```
 
 **Production** (Kubernetes - Future):
 ```yaml
 # Services discover each other via Kubernetes Service DNS
 RUST_API_URL: http://rust-core-engine-service:8080
-PYTHON_AI_URL: http://python-ai-service-service:8000
 ```
 
 ### Acceptance Criteria
@@ -2459,7 +2450,6 @@ This section documents how each service maintains independence for deployment, s
 - **Deployment**: Can be deployed independently without affecting other services
 
 **Python AI Service**:
-- **Docker Image**: `bot-core/python-ai-service:latest`
 - **Build**: Dockerfile with Python 3.11 + dependencies
 - **Dependencies**: None (standalone Python application)
 - **Configuration**: Environment variables + config.yaml
@@ -2481,12 +2471,10 @@ This section documents how each service maintains independence for deployment, s
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: python-ai-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: python-ai-service
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -2575,7 +2563,6 @@ spec:
 
 **Code Locations**:
 - Rust Core Engine: `/Users/dungngo97/Documents/bot-core/rust-core-engine/src/`
-- Python AI Service: `/Users/dungngo97/Documents/bot-core/python-ai-service/main.py`
 - Frontend Dashboard: `/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/src/`
 
 **Design Patterns**:

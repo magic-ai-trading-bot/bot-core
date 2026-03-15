@@ -455,7 +455,7 @@ Regime filter fields:
 - `price_update_frequency_seconds` (number) — Price update freq sec. Example: 1
 
 **`update_paper_ai_settings`** fields (9 total):
-- `service_url` (string) — Python AI service URL. Example: "http://python-ai-service:8000"
+
 - `request_timeout_seconds` (number) — Request timeout sec. Example: 30
 - `signal_refresh_interval_minutes` (number) — Signal refresh interval min. Example: 15
 - `enable_realtime_signals` (boolean) — Enable realtime signals. Example: true
@@ -550,7 +550,7 @@ The real trading engine runs 3 background loops when auto-trading is enabled:
   1. **Confidence filter**: Signal confidence ≥ `min_signal_confidence`
   2. **Direction mode**: Respects `long_only_mode` / `short_only_mode`
   3. **Choppy market**: Blocks if 4+ direction flips in 15 minutes
-  4. **AI bias**: xAI Grok confirms direction (stricter for longs: -0.3 threshold)
+
   5. **Signal confirmation**: 2 consecutive signals in same direction required
 
 **SL/TP Monitor Loop (5s interval)**:
@@ -597,7 +597,7 @@ botcore get_ai_strategies               # Available AI strategies
 ### Python API (6 tools)
 ```bash
 botcore get_ai_performance              # ML model accuracy metrics
-botcore get_ai_cost_statistics          # xAI Grok API cost breakdown
+
 botcore get_ai_config_suggestions       # AI config optimization suggestions
 botcore get_ai_analysis_history         # AI analysis history
 botcore get_ai_storage_stats            # Model storage usage
@@ -622,7 +622,7 @@ botcore get_ai_debug_info               # AI debug info
 botcore get_system_monitoring           # CPU, memory, disk, network
 botcore get_trading_metrics             # Win rate, PnL, active positions
 botcore get_connection_status           # Binance, MongoDB, WebSocket status
-botcore get_python_health               # Python AI service health
+
 ```
 
 ## 8. Live Trading (4 tools)

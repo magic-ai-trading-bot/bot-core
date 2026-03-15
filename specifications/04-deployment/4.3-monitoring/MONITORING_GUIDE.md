@@ -121,7 +121,6 @@ curl -G "http://localhost:3100/loki/api/v1/query_range" \
 │                                                           │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
 │  │ Rust Core   │  │ Python AI   │  │ Next.js UI  │     │
-│  │ :8080       │  │ :8000       │  │ :3000       │     │
 │  │ /metrics    │  │ /metrics    │  │ /api/metrics│     │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │
 │         │                 │                 │            │
@@ -313,7 +312,6 @@ rate(trades_success_total[5m]) / rate(trades_total[5m])
 {job="rust-core-engine"} |~ "trade.*executed"
 
 # AI analysis logs with confidence > 0.8
-{job="python-ai-service"} | json | confidence > 0.8
 
 # All logs from specific container
 {container_name="rust-core-engine"}
@@ -603,7 +601,6 @@ curl -X POST http://localhost:9093/api/v2/silences \
 **Test Alert:**
 ```bash
 # Stop a service to trigger ServiceDown alert
-docker stop python-ai-service
 
 # Wait 2 minutes for alert to fire
 sleep 130
@@ -612,7 +609,6 @@ sleep 130
 curl http://localhost:9093/api/v2/alerts | grep ServiceDown
 
 # Restart service
-docker start python-ai-service
 
 # Alert will auto-resolve
 ```
@@ -682,7 +678,6 @@ http_requests_total - http_requests_total offset 1h
 {job="rust-core-engine", level="ERROR"}
 
 # Multiple jobs
-{job=~"rust-core-engine|python-ai-service"}
 ```
 
 **Line Filtering:**
@@ -700,7 +695,6 @@ http_requests_total - http_requests_total offset 1h
 **JSON Parsing:**
 ```logql
 # Parse and filter
-{job="python-ai-service"} | json | confidence > 0.8
 
 # Extract field
 {job="rust-core-engine"} | json | line_format "{{.message}}"

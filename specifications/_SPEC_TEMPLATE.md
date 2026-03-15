@@ -188,7 +188,6 @@ DELETE /api/endpoint/{id}
 
 **Code Locations**:
 - Rust: `rust-core-engine/src/path/file.rs:line_number`
-- Python: `python-ai-service/path/file.py:line_number`
 - Frontend: `nextjs-ui-dashboard/src/path/file.tsx:line_number`
 
 **Dependencies**:

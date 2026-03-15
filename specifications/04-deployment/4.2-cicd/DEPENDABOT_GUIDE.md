@@ -87,7 +87,6 @@ open-pull-requests-limit: 10
 
 ```yaml
 package-ecosystem: "pip"
-directory: "/python-ai-service"
 schedule:
   interval: "weekly"
   day: "monday"
@@ -211,7 +210,6 @@ cd rust-core-engine
 cargo outdated
 
 # Python - Check outdated packages
-cd python-ai-service
 pip list --outdated
 
 # Node.js - Check outdated packages
@@ -314,7 +312,6 @@ gh pr merge <PR-NUMBER> --auto --squash
 ```bash
 # 1. Check for major version updates
 cd rust-core-engine && cargo outdated
-cd python-ai-service && pip list --outdated
 cd nextjs-ui-dashboard && npm outdated
 
 # 2. Plan major updates

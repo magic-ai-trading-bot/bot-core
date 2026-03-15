@@ -124,10 +124,8 @@ docker-compose down
 # Expected output:
 # Stopping nextjs-ui-dashboard ... done
 # Stopping rust-core-engine    ... done
-# Stopping python-ai-service   ... done
 # Removing nextjs-ui-dashboard ... done
 # Removing rust-core-engine    ... done
-# Removing python-ai-service   ... done
 # Removing network bot-network
 
 # 3.4 Verify all containers stopped
@@ -195,11 +193,9 @@ time docker-compose build --no-cache
 # Successfully built abc123def456
 # Successfully tagged bot-core/rust-core-engine:latest
 #
-# Building python-ai-service
 # Step 1/12 : FROM python:3.11-slim
 # ...
 # Successfully built def456abc789
-# Successfully tagged bot-core/python-ai-service:latest
 #
 # Building nextjs-ui-dashboard
 # Step 1/10 : FROM node:18-alpine as builder
@@ -216,12 +212,10 @@ docker images | grep bot-core
 
 # Expected output:
 # bot-core/nextjs-ui-dashboard  latest  789abc123def  2 minutes ago  150MB
-# bot-core/python-ai-service    latest  def456abc789  5 minutes ago  1.2GB
 # bot-core/rust-core-engine     latest  abc123def456  10 minutes ago 85MB
 
 # 5.4 Tag images with version
 docker tag bot-core/rust-core-engine:latest bot-core/rust-core-engine:$DEPLOY_VERSION
-docker tag bot-core/python-ai-service:latest bot-core/python-ai-service:$DEPLOY_VERSION
 docker tag bot-core/nextjs-ui-dashboard:latest bot-core/nextjs-ui-dashboard:$DEPLOY_VERSION
 
 # 5.5 Record build completion
@@ -287,7 +281,6 @@ docker-compose --profile prod up -d
 
 # Expected output:
 # Creating network "bot-network" with driver "bridge"
-# Creating python-ai-service ... done
 # Creating rust-core-engine  ... done
 # Creating nextjs-ui-dashboard ... done
 
@@ -304,7 +297,6 @@ docker-compose ps
 # Expected output:
 # Name                  Command               State           Ports
 # ---------------------------------------------------------------------------
-# python-ai-service    python main.py               Up      0.0.0.0:8000->8000/tcp
 # rust-core-engine     /app/bot-core                Up      0.0.0.0:8080->8080/tcp
 # nextjs-ui-dashboard  node server.js               Up      0.0.0.0:3000->3000/tcp
 
@@ -345,7 +337,6 @@ check_health() {
 }
 
 # 8.2 Check Python AI Service
-check_health "Python AI Service" "http://localhost:8000/health"
 
 # Expected output:
 # Waiting for Python AI Service... (attempt 1/30)
@@ -390,12 +381,10 @@ curl -s http://localhost:8080/api/health | jq
 #   "services": {
 #     "database": "connected",
 #     "binance": "connected",
-#     "python_ai": "connected"
 #   }
 # }
 
 # 9.2 Test Python AI health endpoint
-curl -s http://localhost:8000/health | jq
 
 # Expected output:
 # {
@@ -473,7 +462,6 @@ docker stats --no-stream
 # Expected output:
 # CONTAINER             CPU %   MEM USAGE / LIMIT     MEM %   NET I/O
 # rust-core-engine      5.2%    350MiB / 4GiB        8.5%    1.2kB / 850B
-# python-ai-service     8.1%    1.5GiB / 4GiB        37.5%   850B / 1.2kB
 # nextjs-ui-dashboard   2.3%    180MiB / 2GiB        9.0%    1.5kB / 2.1kB
 
 # 10.4 Verify no memory leaks (check after 5 minutes)
@@ -605,7 +593,6 @@ mongosh "$DATABASE_URL" --eval "db.adminCommand('ping')"
 docker-compose logs rust-core-engine | grep -i mongo
 
 # 3. Restart affected services
-docker-compose restart rust-core-engine python-ai-service
 ```
 
 ### Out of Memory

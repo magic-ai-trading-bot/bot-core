@@ -409,7 +409,6 @@ env:
   # Analyze specific paths
   ANALYZE_PATHS: |
     rust-core-engine/src
-    python-ai-service
     nextjs-ui-dashboard/src
 
   # Exclude paths

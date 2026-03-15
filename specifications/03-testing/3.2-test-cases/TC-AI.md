@@ -34,12 +34,6 @@
 | **TOTAL** | **43** | - | **100%** |
 
 **Test File Locations:**
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_models.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_analyzer.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_gpt_analyzer.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_indicators.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_redis_cache.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_feature_engineering.py`
 
 ---
 
@@ -82,8 +76,6 @@ Feature: ML Model Predictions
 - ✅ No NaN or Inf values
 
 **Code Location:**
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/models/lstm_model.py`
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_models.py`
 
 ---
 
@@ -270,8 +262,6 @@ Feature: Technical Indicator Calculations
 - ✅ NaN only for first 13 periods
 
 **Code Location:**
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/features/technical_indicators.py::calculate_rsi`
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_indicators.py::TestCalculateRSI`
 
 ---
 
@@ -294,7 +284,6 @@ Feature: Technical Indicator Calculations
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_indicators.py::TestCalculateMACD`
 
 ---
 
@@ -428,7 +417,6 @@ Feature: Technical Indicator Calculations
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_analyzer.py::TestEdgeCases`
 
 ---
 
@@ -449,7 +437,6 @@ Feature: Technical Indicator Calculations
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_analyzer.py::test_prepare_dataframe`
 
 ---
 
@@ -473,7 +460,6 @@ Feature: Technical Indicator Calculations
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_analyzer.py::test_detect_patterns`
 
 ---
 
@@ -496,7 +482,6 @@ Feature: Technical Indicator Calculations
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_analyzer.py::test_get_market_context`
 
 ---
 
@@ -540,8 +525,6 @@ Feature: Grok/xAI Integration
 - ✅ Reasoning is non-empty string
 
 **Code Location:**
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/services/gpt_analyzer.py`
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_gpt_analyzer.py::test_analyze_trading_signals_success`
 
 ---
 
@@ -562,7 +545,6 @@ Feature: Grok/xAI Integration
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_gpt_analyzer.py::test_analyze_with_api_error`
 
 ---
 
@@ -582,7 +564,6 @@ Feature: Grok/xAI Integration
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_gpt_analyzer.py::test_analyze_with_invalid_json_response`
 
 ---
 
@@ -803,8 +784,6 @@ Feature: Caching Mechanism
 ```
 
 **Code Location:**
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/services/redis_cache.py`
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_redis_cache.py`
 
 ---
 
@@ -889,8 +868,6 @@ Feature: Feature Engineering
 ```
 
 **Code Location:**
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/features/feature_engineering.py`
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_feature_engineering.py`
 
 ---
 

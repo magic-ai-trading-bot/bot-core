@@ -787,7 +787,6 @@ Detailed storage requirements for database persistence, logs, AI models, backups
   - Node.js: 800 MB
 - **Built Images**:
   - rust-core-engine: 500 MB - 1 GB
-  - python-ai-service: 1.5 - 2.5 GB
   - nextjs-ui-dashboard: 300 - 500 MB
   - Supporting images (MongoDB, Redis, etc.): 1 GB
 - **Total with layers**: 5-10 GB
@@ -865,9 +864,6 @@ Detailed storage requirements for database persistence, logs, AI models, backups
 ```yaml
 volumes:
   # Persistent data volumes
-  ./python-ai-service/models:/app/models        # AI models
-  ./python-ai-service/logs:/app/logs            # Logs
-  ./python-ai-service/data:/app/data            # Training data
   ./rust-core-engine/data:/app/data             # Trading data
   ./rust-core-engine/logs:/app/logs             # Logs
 
@@ -927,7 +923,6 @@ iostat -x 1
 
 **Application Monitoring**:
 - **Rust**: Built-in metrics endpoint at `:8080/metrics`
-- **Python**: FastAPI metrics at `:8000/metrics`
 - **Frontend**: Browser performance API
 
 ### Alerting Thresholds

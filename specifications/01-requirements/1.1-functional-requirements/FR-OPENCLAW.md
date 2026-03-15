@@ -226,7 +226,6 @@ Protect the gateway and Telegram channel against unauthorized access via token a
 
 - **MCP Server** (`mcp-server/`): Must be healthy before gateway starts. Provides all 114 trading tools.
 - **Rust API** (`:8080`): Indirect dependency via MCP server for trading operations.
-- **Python AI Service** (`:8000`): Indirect dependency via MCP server for AI predictions.
 - **Telegram Bot API**: External dependency; requires valid `TELEGRAM_BOT_TOKEN`.
 - **Node.js >= 22**: Required by OpenClaw runtime.
 - **Timezone**: `TZ=Asia/Ho_Chi_Minh` set in Docker environment for correct cron scheduling.

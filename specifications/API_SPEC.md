@@ -6,7 +6,6 @@ This document defines the API contracts for the cryptocurrency trading bot syste
 ## Service Architecture
 
 ### Service Endpoints
-- **Python AI Service**: `http://localhost:8000`
 - **Rust Core Engine**: `http://localhost:8080`
 - **Frontend Dashboard**: `http://localhost:3000`
 
@@ -211,7 +210,6 @@ WS /ws
 
 **Connection:**
 ```javascript
-ws://localhost:8000/ws
 ```
 
 **Message Format (Server → Client):**
@@ -241,7 +239,6 @@ GET /api/health
   "version": "1.0.0",
   "uptime_seconds": 3600,
   "connected_services": {
-    "python_ai": true,
     "binance_websocket": true,
     "mongodb": true
   }

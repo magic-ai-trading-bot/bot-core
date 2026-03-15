@@ -89,8 +89,6 @@ The system shall maintain fast API response times across all REST endpoints to e
 **Implementation Files**:
 - `rust-core-engine/src/api/routes.rs` - API endpoint handlers
 - `rust-core-engine/src/api/middleware.rs` - Request timing middleware
-- `python-ai-service/middleware/performance.py` - FastAPI timing middleware
-- `python-ai-service/main.py` - API route definitions
 
 **Target Metrics**:
 - **p50 (Median)**: < 50ms for simple queries (GET requests without complex computation)
@@ -366,8 +364,6 @@ The system shall maintain fast MongoDB query execution times across all collecti
 **Implementation Files**:
 - `rust-core-engine/src/storage/mod.rs` - Database client and query methods
 - `rust-core-engine/src/storage/indexes.rs` - Index definitions
-- `python-ai-service/database/client.py` - MongoDB client wrapper
-- `python-ai-service/database/queries.py` - Optimized query methods
 
 **Target Metrics**:
 - **Simple Queries (p95)**: < 10ms (indexed lookups by ID or unique field)
@@ -739,11 +735,6 @@ The system shall execute trades with minimal end-to-end latency from signal gene
 The system shall complete AI analysis and trading signal generation within acceptable time limits to enable timely trading decisions. AI analysis includes fetching market data, running technical indicators, performing ML model inference (LSTM, GRU, Transformer), generating trading signals, and calculating confidence scores. Analysis must be fast enough to capitalize on market opportunities while thorough enough to provide reliable signals. This requirement covers both real-time analysis (triggered by market events) and batch analysis (scanning multiple symbols).
 
 **Implementation Files**:
-- `python-ai-service/services/ai_service.py` - Main AI analysis orchestration
-- `python-ai-service/models/lstm_model.py` - LSTM model inference
-- `python-ai-service/models/predictor.py` - Price prediction
-- `python-ai-service/services/technical_analysis.py` - Indicator calculation
-- `python-ai-service/services/openai_service.py` - LLM-based analysis
 
 **Target Metrics**:
 - **Single Symbol Analysis**: < 5000ms (5 seconds) for complete analysis
@@ -1085,7 +1076,6 @@ The system shall handle high transaction volumes and concurrent operations to su
 **Implementation Files**:
 - All services contribute to overall system throughput
 - `rust-core-engine/src/main.rs` - Main server configuration
-- `python-ai-service/main.py` - FastAPI configuration
 - `infrastructure/docker/docker-compose.yml` - Resource limits
 
 **Target Metrics**:
@@ -1329,7 +1319,6 @@ ai_cache_hit_rate
 
 **Code Locations**:
 - Rust: `rust-core-engine/src/api/middleware.rs` - Performance middleware
-- Python: `python-ai-service/middleware/performance.py` - Timing middleware
 - Frontend: `nextjs-ui-dashboard/vite.config.ts` - Build optimization
 - Monitoring: `infrastructure/monitoring/prometheus.yml` - Metrics configuration
 

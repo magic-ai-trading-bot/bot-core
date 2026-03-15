@@ -47,13 +47,13 @@ The primary objectives of testing the Bot Core trading platform are:
   - MongoDB persistence layer
   - Strategy engines (RSI, MACD, Bollinger, Volume)
 
-- **Python AI Service** (`/Users/dungngo97/Documents/bot-core/python-ai-service/`)
+
   - Machine learning models (LSTM, GRU, Transformer)
   - Technical indicator calculations
   - Grok/xAI integration
   - Feature engineering
   - Redis caching
-  - FastAPI endpoints
+
 
 - **Frontend Dashboard** (`/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/`)
   - User authentication flows
@@ -64,7 +64,7 @@ The primary objectives of testing the Bot Core trading platform are:
   - Settings and configuration
 
 - **Cross-Service Integration**
-  - Rust ↔ Python AI communication
+
   - Rust ↔ Frontend API integration
   - End-to-end trade execution flows
   - Real-time data propagation
@@ -82,7 +82,7 @@ The primary objectives of testing the Bot Core trading platform are:
 - **Coverage Target**: 90%+ line coverage
 - **Tools**:
   - Rust: cargo test, cargo tarpaulin
-  - Python: pytest, pytest-cov
+
   - Frontend: Vitest, React Testing Library
 - **Responsibility**: Developers
 
@@ -91,7 +91,7 @@ The primary objectives of testing the Bot Core trading platform are:
 - **Coverage Target**: All service boundaries
 - **Tools**:
   - Rust: Integration test files in `tests/`
-  - Python: pytest with test fixtures
+
   - Frontend: Vitest integration tests
 - **Responsibility**: Developers + QA
 
@@ -146,8 +146,8 @@ Based on analysis of existing test files:
   - `test_cross_service.rs` - Cross-service integration
   - `test_service_integration.rs` - Full service integration
 
-#### Python AI Service
-- **Unit Test Files**: 39 files in `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/`
+
+
 - **Test Coverage**: 93%+ (target: 93%+, enforced in CI) ✅
 - **Key Test Files**:
   - `test_models.py` - ML model testing
@@ -284,8 +284,8 @@ cd /Users/dungngo97/Documents/bot-core/rust-core-engine
 cargo test --release
 
 # Python regression tests
-cd /Users/dungngo97/Documents/bot-core/python-ai-service
-pytest tests/ --cov=./ --cov-report=html
+
+
 
 # Frontend regression tests
 cd /Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard
@@ -377,7 +377,7 @@ async fn test_with_cleanup() {
 
 ```python
 # Python cleanup example
-@pytest.fixture
+
 def db_session():
     session = create_test_session()
     yield session
@@ -404,7 +404,7 @@ def db_session():
 ### Bug ID: BUG-XXXX
 **Severity**: Critical / High / Medium / Low
 **Priority**: P0 / P1 / P2 / P3
-**Component**: Rust Engine / Python AI / Frontend
+
 **Environment**: Dev / Staging / Production
 
 **Description:**
@@ -473,7 +473,7 @@ New → Assigned → In Progress → Fixed → Testing → Verified → Closed
 
 **Coverage Tools:**
 - **Rust**: cargo-llvm-cov (CI) / cargo-tarpaulin (local alternative)
-- **Python**: pytest-cov, coverage.py
+
 - **Frontend**: Vitest coverage (v8)
 
 **Coverage Reports:**
@@ -485,8 +485,8 @@ cargo llvm-cov --lib --html --output-dir coverage
 # cargo tarpaulin --out Html --output-dir coverage
 
 # Generate Python coverage
-cd /Users/dungngo97/Documents/bot-core/python-ai-service
-pytest --cov=./ --cov-report=html
+
+
 
 # Generate Frontend coverage
 cd /Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard
@@ -495,7 +495,7 @@ npm run test:coverage
 
 **Current Coverage Status (CI-enforced thresholds):**
 - Rust Core: 90.4% line coverage (threshold: 90%) ✅
-- Python AI: 93%+ line coverage (threshold: 93%) ✅
+
 - Frontend: 95%+ line coverage (threshold: 95%) ✅
 
 ### 6.2 Test Pass/Fail Rates
@@ -562,7 +562,7 @@ cd /Users/dungngo97/Documents/bot-core/rust-core-engine
 cargo mutants
 
 # Python mutation testing
-cd /Users/dungngo97/Documents/bot-core/python-ai-service
+
 mutmut run
 ```
 
@@ -591,7 +591,7 @@ cd /Users/dungngo97/Documents/bot-core
 **Endpoints:**
 - Frontend: http://localhost:3000
 - Rust API: http://localhost:8080
-- Python API: http://localhost:8000
+
 - MongoDB: mongodb://localhost:27017
 
 ### 7.2 Staging Environment
@@ -668,9 +668,9 @@ fn test_password_hash_and_verify() {
 
 | Tool | Purpose | Usage |
 |------|---------|-------|
-| **pytest** | Testing framework | `pytest tests/` |
-| **pytest-cov** | Code coverage | `pytest --cov=./` |
-| **pytest-asyncio** | Async testing | Async test support |
+
+
+
 | **unittest.mock** | Mocking | Mock external dependencies |
 | **mutmut** | Mutation testing | `mutmut run` |
 | **flake8** | Linting | `flake8 .` |
@@ -678,8 +678,8 @@ fn test_password_hash_and_verify() {
 
 **Example Test:**
 ```python
-# /Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_analyzer.py
-@pytest.mark.unit
+
+
 def test_calculate_indicators(technical_analyzer, sample_klines):
     df = technical_analyzer.prepare_dataframe(sample_klines)
     indicators = technical_analyzer.calculate_indicators(df)
@@ -860,9 +860,9 @@ Weekly → Mutation Testing (2 hours)
 └── test_service_integration.rs
 ```
 
-### Python AI Service Tests
+
 ```
-/Users/dungngo97/Documents/bot-core/python-ai-service/tests/
+
 ├── __init__.py
 ├── conftest.py
 ├── test_basic.py
@@ -937,16 +937,16 @@ cargo test --release
 ### Python Tests
 ```bash
 # Run all tests
-pytest tests/
+
 
 # Run with coverage
-pytest --cov=./ --cov-report=html
+
 
 # Run specific test file
-pytest tests/test_technical_analyzer.py
+
 
 # Run with markers
-pytest -m unit
+
 
 # Run mutation tests
 mutmut run

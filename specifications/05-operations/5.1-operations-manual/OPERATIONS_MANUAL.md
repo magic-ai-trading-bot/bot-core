@@ -35,7 +35,6 @@ echo "=== Daily Health Check - $(date) ==="
 echo "1. Checking service health..."
 docker-compose ps
 curl -s http://localhost:8080/api/health | jq '.status'
-curl -s http://localhost:8000/health | jq '.status'
 
 # 2. Check resource usage
 echo "2. Checking resource usage..."
@@ -56,7 +55,6 @@ ls -lht /opt/bot-core/backups/ | head -5
 # 6. Check external API connectivity
 echo "6. Testing external APIs..."
 curl -s http://localhost:8080/api/v1/binance/ping
-curl -s http://localhost:8000/api/ai/status
 
 echo "=== Health Check Complete ==="
 ```
@@ -162,7 +160,6 @@ echo "=== Health Check Complete ==="
 ```bash
 # Application logs
 /opt/bot-core/rust-core-engine/logs/*.log
-/opt/bot-core/python-ai-service/logs/*.log
 /opt/bot-core/nextjs-ui-dashboard/logs/*.log
 
 # Docker logs
@@ -255,7 +252,6 @@ echo "Backing up configuration..."
 tar -czf $BACKUP_PATH/config-$DATE.tar.gz \
   /opt/bot-core/.env \
   /opt/bot-core/rust-core-engine/config.toml \
-  /opt/bot-core/python-ai-service/config.yaml
 
 # 3. Upload to cloud storage (S3, GCS, etc.)
 echo "Uploading to cloud storage..."

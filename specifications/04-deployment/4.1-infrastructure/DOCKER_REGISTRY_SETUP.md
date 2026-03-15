@@ -34,7 +34,6 @@ Bot-Core uses Docker images for production deployments. Images are:
 
 **Services:**
 - `rust-core-engine` - Rust trading engine
-- `python-ai-service` - Python AI/ML service
 - `nextjs-ui-dashboard` - Next.js frontend
 
 ---
@@ -156,7 +155,6 @@ IMAGE_PULL_POLICY=Always
 **Image URLs:**
 ```
 ghcr.io/your-username/bot-core/rust-core-engine:latest
-ghcr.io/your-username/bot-core/python-ai-service:v1.0.0
 ghcr.io/your-username/bot-core/nextjs-ui-dashboard:main-abc123
 ```
 
@@ -205,7 +203,6 @@ VERSION=latest
 **Image URLs:**
 ```
 your-username/bot-core/rust-core-engine:latest
-docker.io/your-username/bot-core/python-ai-service:v1.0.0
 ```
 
 ---
@@ -245,7 +242,6 @@ AWS_REGION=us-east-1
 
 # Create repositories
 aws ecr create-repository --repository-name bot-core/rust-core-engine --region $AWS_REGION
-aws ecr create-repository --repository-name bot-core/python-ai-service --region $AWS_REGION
 aws ecr create-repository --repository-name bot-core/nextjs-ui-dashboard --region $AWS_REGION
 
 # Enable scan on push

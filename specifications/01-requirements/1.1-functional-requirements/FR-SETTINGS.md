@@ -57,7 +57,6 @@ The system shall provide unified technical indicator configuration shared betwee
 - `rust-core-engine/src/paper_trading/settings.rs:697-745` (validation logic)
 - `rust-core-engine/src/api/paper_trading.rs:239-500` (API endpoints)
 - `rust-core-engine/src/api/settings.rs:1-100` (dedicated settings API)
-- `python-ai-service/settings_manager.py:1-150` (Python implementation)
 
 **Test Cases**: TC-SETTINGS-001, TC-SETTINGS-002, TC-SETTINGS-003
 
@@ -95,8 +94,6 @@ The system shall provide unified signal generation thresholds to control AI trad
 - `rust-core-engine/src/paper_trading/settings.rs:84-150` (SignalGenerationSettings struct)
 - `rust-core-engine/src/paper_trading/settings.rs:746-800` (validation logic)
 - `rust-core-engine/src/api/paper_trading.rs:255-520` (API endpoints)
-- `python-ai-service/main.py:43-100` (signal generation logic)
-- `python-ai-service/tests/test_main.py:781-2357` (multi-timeframe tests)
 
 **Test Cases**: TC-SETTINGS-010, TC-SETTINGS-011, TC-SETTINGS-012
 
@@ -297,8 +294,6 @@ The system shall synchronize settings between Rust and Python services via datab
 - [ ] Log synchronization events
 
 **Code Location**:
-- `python-ai-service/settings_manager.py:1-200` (SettingsManager class)
-- `python-ai-service/main.py:43-100` (settings usage)
 
 **Test Cases**: TC-SETTINGS-070, TC-SETTINGS-071
 
@@ -448,8 +443,6 @@ The system shall synchronize settings between Rust and Python services via datab
 
 **Test Files**:
 - `rust-core-engine/tests/test_settings.rs` - Settings validation
-- `python-ai-service/tests/test_settings_manager.py` - Python integration
-- `python-ai-service/tests/test_main.py` - Signal generation with settings
 
 **Test Scenarios**:
 - Validate valid settings (should pass)
@@ -503,7 +496,6 @@ The system shall synchronize settings between Rust and Python services via datab
 
 - **TC-SETTINGS-001 to TC-SETTINGS-080**: Settings test cases
 - **TC-INTEGRATION-001 to TC-INTEGRATION-045**: Integration tests
-- **python-ai-service/tests/test_main.py**: 30+ tests with @spec:FR-SETTINGS-002 tags
 
 ### Code Locations
 
@@ -511,8 +503,6 @@ All code uses `@spec:FR-SETTINGS-XXX` tags:
 - `rust-core-engine/src/paper_trading/settings.rs` - Core settings (26 tags)
 - `rust-core-engine/src/api/paper_trading.rs` - API endpoints (15 tags)
 - `rust-core-engine/src/api/settings.rs` - Dedicated API (1 tag)
-- `python-ai-service/settings_manager.py` - Python integration (1 tag)
-- `python-ai-service/tests/test_main.py` - Tests (11 tags)
 
 ---
 

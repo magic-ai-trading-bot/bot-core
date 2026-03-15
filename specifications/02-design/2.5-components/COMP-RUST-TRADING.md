@@ -1794,7 +1794,7 @@ symbols = []
 4. **Multi-Instance Support:** Distributed locking for horizontal scaling
 5. **Order Types:** Limit orders, stop-limit orders, OCO orders
 6. **Partial Closes:** Scale out of positions gradually
-7. **AI-Powered Trailing Stops:** Grok/xAI optimized trailing parameters
+
 8. **Adaptive Warmup:** Dynamic candle count based on required indicators
 
 ---

@@ -744,7 +744,6 @@ fn update_position(user_id: &str, trade: &Trade) -> Result<Position> {
 **Priority**: ☑ Critical
 **Status**: ☑ Implemented
 **Code Tags**: `@spec:ARCH-DATA-FLOW-003`
-**Implementation**: `python-ai-service/main.py`, `python-ai-service/services/ai_analysis.py`
 
 ### Description
 

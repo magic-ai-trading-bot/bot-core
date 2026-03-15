@@ -31,11 +31,11 @@ Simulates realistic trading without real money. Includes:
 - **Minimum data**: 50 candles required before trading
 - Full signal conditions: See STRATEGIES.md
 
-## 3. AI Integration ✅ Production (xAI Grok)
-**Code**: `python-ai-service/main.py`
+
+
 
 **WORKING:**
-- **xAI Grok 4.1 Fast** (`grok-4-1-fast-non-reasoning`) for market analysis
+
 - Multi-timeframe analysis (5m, 15m, 1h)
 - Signal generation (Long/Short/Neutral + confidence score)
 - Rate limiting with auto-fallback to technical indicators
@@ -51,8 +51,8 @@ Simulates realistic trading without real money. Includes:
 
 **Key API**: `POST /api/ai/analyze` (main endpoint)
 **Accuracy**: ~65% directional, varies for fallback indicators
-**Cost**: Significantly lower than GPT-4 (xAI pricing)
-**Env**: `XAI_API_KEY` (primary), fallback to `OPENAI_API_KEY`
+
+
 
 ## 4. Authentication & Security ✅ Production
 **Code**: `rust-core-engine/src/auth/`

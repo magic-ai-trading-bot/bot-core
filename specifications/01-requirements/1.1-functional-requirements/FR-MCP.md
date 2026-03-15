@@ -17,7 +17,7 @@
 - [x] Health check endpoint (unauthenticated)
 - [x] Session lifecycle management (create/reuse/delete)
 - [x] 12 tool categories registered (114 tools total, verified)
-- [x] API client proxy to Rust (:8080) and Python (:8000) backends
+
 - [x] Request timeout and 5xx retry handling
 - [x] Response normalization for mixed Rust/Python formats
 - [x] 4-tier security model (PUBLIC/AUTHENTICATED/SENSITIVE/CRITICAL)
@@ -38,7 +38,7 @@
 - `express` v4 — HTTP server framework
 - `zod` v3 — Tool input schema validation
 - Rust Core Engine at `RUST_API_URL` (default: `http://localhost:8080`)
-- Python AI Service at `PYTHON_API_URL` (default: `http://localhost:8000`)
+
 
 **Business Value**: Critical
 **Technical Complexity**: High
@@ -48,7 +48,7 @@
 
 ## Overview
 
-The BotCore MCP Server is a Node.js/TypeScript service that exposes cryptocurrency trading bot capabilities through the Model Context Protocol (MCP). It acts as a bridge between AI clients (OpenClaw/Claude) and the BotCore backend services (Rust trading engine, Python AI service). The server uses Streamable HTTP transport on port 8090 and manages isolated per-session MCP server instances as required by the SDK.
+
 
 **Architecture**: Stateless HTTP gateway with session-keyed transport map. Each MCP session gets its own `McpServer` + `StreamableHTTPServerTransport` pair. Bearer token guards the `/mcp` endpoint; JWT auto-login handles downstream API auth.
 
@@ -232,7 +232,7 @@ Tools are classified into security tiers communicated via tool descriptions. Wri
 - `MCP_PORT` — HTTP port (default: `8090`)
 - `MCP_AUTH_TOKEN` — Bearer token for incoming requests
 - `RUST_API_URL` — Rust engine URL (default: `http://localhost:8080`)
-- `PYTHON_API_URL` — Python AI URL (default: `http://localhost:8000`)
+
 - `BOTCORE_EMAIL` / `BOTCORE_PASSWORD` — Credentials for downstream JWT login
 
 ---
@@ -244,4 +244,4 @@ Tools are classified into security tiers communicated via tool descriptions. Wri
 - `zod` ^3.25.1 — Tool input schema validation
 - Node.js >= 18 (>= 22 recommended for OpenClaw compatibility)
 - Rust Core Engine (FR-AUTH, FR-TRADING specs)
-- Python AI Service (FR-AI spec)
+

@@ -183,7 +183,6 @@ nano .env  # Or use your favorite editor
 |---------|-----|-------------|-------------|
 | **📊 Dashboard** | http://localhost:3000 | - | React UI (Main Interface) |
 | **🦀 Rust API** | http://localhost:8080/api/health | - | Trading Engine API |
-| **🐍 Python AI** | http://localhost:8000/health | - | AI/ML Service |
 | **💾 MongoDB** | mongodb://localhost:27017 | admin/password | Database |
 | **🔌 MCP Server** | http://localhost:8090/health | - | MCP Protocol (103 tools) |
 | **🦞 OpenClaw** | ws://localhost:18789 | token | AI Telegram/WhatsApp Gateway |
@@ -196,7 +195,6 @@ nano .env  # Or use your favorite editor
 
 # Or run each service separately
 cd rust-core-engine && cargo watch -x run
-cd python-ai-service && uvicorn main:app --reload
 cd nextjs-ui-dashboard && npm run dev
 ```
 
@@ -282,7 +280,6 @@ rust_decimal = "1.39"    # Financial calculations
 
 #### 2. 🐍 **Python AI Service** (Port 8000)
 
-**Python 3.11+ | FastAPI | TensorFlow/PyTorch**
 
 AI/ML service for market prediction, technical analysis, and async task processing.
 
@@ -293,7 +290,6 @@ AI/ML service for market prediction, technical analysis, and async task processi
 - 📈 **Market Prediction & Forecasting** - Multi-horizon predictions
 - 💬 **Sentiment Analysis** - Social media & news sentiment tracking
 - 🔥 **Redis Caching** - Fast data access
-- 🚀 **FastAPI** (Async) - High-performance API
 
 **Metrics:**
 - Test Coverage: 95%
@@ -306,7 +302,6 @@ AI/ML service for market prediction, technical analysis, and async task processi
 ```python
 fastapi = "0.121.2"        # Web framework
 tensorflow = "2.18.0"       # Deep learning
-torch = "2.9.1"             # PyTorch
 openai = "2.8.0"            # GPT-4 API
 pandas = "2.2.3"            # Data analysis
 scikit-learn = "1.7.0"      # ML algorithms
@@ -444,7 +439,6 @@ User (Telegram) → OpenClaw → Claude API → exec botcore <tool>
 
 # Logs for specific service
 ./scripts/bot.sh logs --service rust-core-engine
-./scripts/bot.sh logs --service python-ai-service
 ./scripts/bot.sh logs --service nextjs-ui-dashboard
 ./scripts/bot.sh logs --service mcp-server
 
@@ -579,7 +573,6 @@ FRONTEND_MEMORY_LIMIT=512m        # 512MB
 | Service | Config File | Format |
 |---------|-------------|--------|
 | Rust Core | `rust-core-engine/config.toml` | TOML |
-| Python AI | `python-ai-service/config.yaml` | YAML |
 | Frontend | `nextjs-ui-dashboard/vite.config.ts` | TypeScript |
 | Docker | `docker-compose.yml` | YAML |
 
@@ -622,7 +615,6 @@ cd rust-core-engine && cargo test
 # 1,952 tests, 90% coverage
 
 # Python
-cd python-ai-service && pytest
 # 459+ tests, 95% coverage
 
 # Frontend
@@ -788,7 +780,6 @@ istioctl dashboard kiali
 ```bash
 # Check all service health
 curl http://localhost:8080/api/health   # Rust Core
-curl http://localhost:8000/health       # Python AI
 curl http://localhost:3000              # Frontend
 curl http://localhost:8090/health       # MCP Server
 
@@ -905,7 +896,6 @@ POST /api/strategies/backtest
 
 ### 🐍 Python AI Service API
 
-**Base URL:** `http://localhost:8000`
 
 #### Prediction Endpoints
 ```bash
@@ -1054,7 +1044,6 @@ make build
 ```bash
 # Quick health check
 curl http://localhost:8080/api/health
-curl http://localhost:8000/health
 curl http://localhost:3000/api/health
 
 # Comprehensive check
@@ -1127,7 +1116,6 @@ bot-core/
 │   ├── Cargo.toml
 │   └── config.toml
 │
-├── python-ai-service/         # 🐍 Python AI Service
 │   ├── main.py
 │   ├── models/                # ML models
 │   ├── services/              # Business logic
@@ -1440,7 +1428,6 @@ in the Software without restriction...
 - **[Python](https://www.python.org/)** - AI/ML capabilities
 - **[TypeScript](https://www.typescriptlang.org/)** - Type-safe frontend
 - **[React](https://react.dev/)** - Modern UI library
-- **[FastAPI](https://fastapi.tiangolo.com/)** - Fast Python web framework
 - **[MongoDB](https://www.mongodb.com/)** - Flexible database
 - **[Redis](https://redis.io/)** - High-speed cache
 - **[Docker](https://www.docker.com/)** - Containerization

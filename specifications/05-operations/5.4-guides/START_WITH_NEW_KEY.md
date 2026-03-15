@@ -113,7 +113,6 @@ grep "XAI_API_KEY" .env | sed 's/\(XAI_API_KEY=xai-.\{10\}\).*$/\1.../'
 ### Đợi services khởi động (~1-2 phút):
 ```bash
 # Watch logs
-docker logs -f python-ai-service
 
 # Đợi thấy:
 # ✅ Direct xAI HTTP client initialized successfully
@@ -129,7 +128,6 @@ docker logs -f python-ai-service
 
 ### Test 1: Health Check
 ```bash
-curl http://localhost:8000/health | jq
 ```
 
 **Expected:**
@@ -144,7 +142,6 @@ curl http://localhost:8000/health | jq
 
 ### Test 2: Debug Grok/xAI
 ```bash
-curl http://localhost:8000/debug/grok | jq
 ```
 
 **Expected:**
@@ -160,7 +157,6 @@ curl http://localhost:8000/debug/grok | jq
 
 ### Test 3: Cost Statistics (Initial)
 ```bash
-curl http://localhost:8000/ai/cost/statistics | jq
 ```
 
 **Expected:**
@@ -188,7 +184,6 @@ curl http://localhost:8000/ai/cost/statistics | jq
 ### Watch First Request (~10 phút):
 ```bash
 # Watch logs cho first analysis
-docker logs -f python-ai-service | grep "💰 Cost"
 
 # Expected (sau ~10 phút):
 # 💰 Cost: $0.00053 | Tokens: 280 in + 820 out = 1100 |
@@ -197,7 +192,6 @@ docker logs -f python-ai-service | grep "💰 Cost"
 
 ### Kiểm tra sau 1 giờ:
 ```bash
-curl http://localhost:8000/ai/cost/statistics | jq '.session_statistics'
 ```
 
 **Expected (sau ~1 giờ, ~48 requests):**
@@ -223,7 +217,6 @@ while true; do
   echo "Time: $(date)"
   echo ""
 
-  curl -s http://localhost:8000/ai/cost/statistics | jq '{
     requests: .session_statistics.total_requests,
     cost_usd: .session_statistics.total_cost_usd,
     cost_vnd: .session_statistics.total_cost_vnd,
@@ -234,7 +227,6 @@ while true; do
 
   echo ""
   echo "Recent cost logs:"
-  docker logs python-ai-service 2>&1 | grep "💰 Cost" | tail -5
 
   echo ""
   echo "Press Ctrl+C to exit. Refreshing in 30s..."
@@ -327,11 +319,9 @@ grep XAI_API_KEY .env
 **Giải pháp:**
 ```bash
 # Check logs
-docker logs python-ai-service | grep "rate limit"
 
 # Wait 1 phút và thử lại
 sleep 60
-curl http://localhost:8000/debug/grok | jq
 ```
 
 ### Problem: High cost (>$0.002 per request)
@@ -341,7 +331,6 @@ curl http://localhost:8000/debug/grok | jq
 **Giải pháp:**
 ```bash
 # Check optimization
-curl http://localhost:8000/ai/cost/statistics | jq '.configuration'
 
 # Expected:
 # {
@@ -363,14 +352,12 @@ git pull origin main  # Get latest optimizations
 **Giải pháp:**
 ```bash
 # Check periodic analysis
-docker logs python-ai-service | grep "periodic analysis"
 
 # Should see:
 # 🔄 Started periodic analysis task (every 10 minutes)
 # 🎯 Completed AI analysis cycle for 8 symbols
 
 # Nếu không thấy:
-docker restart python-ai-service
 ```
 
 ---
@@ -380,14 +367,12 @@ docker restart python-ai-service
 ### Hàng ngày (9 AM):
 ```bash
 # Check overnight costs
-curl -s http://localhost:8000/ai/cost/statistics | \
   jq '{daily_cost: .projections.estimated_daily_cost_usd, session_total: .session_statistics.total_cost_usd}'
 ```
 
 ### Hàng tuần:
 ```bash
 # Export weekly stats
-curl -s http://localhost:8000/ai/cost/statistics > cost-week-$(date +%Y%m%d).json
 
 # Review
 jq '.session_statistics' cost-week-*.json
@@ -403,7 +388,6 @@ jq '.session_statistics' cost-week-*.json
 ```bash
 cat > scripts/cost-alert.sh << 'SCRIPT'
 #!/bin/bash
-DAILY_COST=$(curl -s http://localhost:8000/ai/cost/statistics | jq -r '.projections.estimated_daily_cost_usd')
 if (( $(echo "$DAILY_COST > 2.0" | bc -l) )); then
   echo "⚠️ ALERT: Daily cost exceeded $2.00! Current: $${DAILY_COST}"
   # Send notification (email, Slack, etc.)
@@ -440,7 +424,6 @@ chmod +x scripts/cost-alert.sh
 
 ### Kiểm tra logs:
 ```bash
-docker logs -f python-ai-service
 ```
 
 ### Kiểm tra services:
@@ -449,7 +432,6 @@ docker ps
 ```
 
 ### Documentation:
-- Optimization guide: `python-ai-service/docs/GROK_COST_OPTIMIZATION.md`
 - Quick test: `QUICK_TEST_GUIDE.md`
 - Summary: `OPTIMIZATION_SUMMARY.md`
 

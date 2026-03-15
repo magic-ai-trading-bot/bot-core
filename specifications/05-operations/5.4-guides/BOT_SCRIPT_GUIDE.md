@@ -25,7 +25,6 @@
 | `verify` | Check prerequisites + env | — |
 | `help` | Show usage | — |
 
-Service URLs: Frontend :3000 | Rust API :8080 | Python AI :8000 | MCP :8090 | OpenClaw :18789
 
 ---
 
@@ -137,7 +136,6 @@ Service URLs: Frontend :3000 | Rust API :8080 | Python AI :8000 | MCP :8090 | Op
 | `daily_report.sh` | Generate daily performance report | `./scripts/daily_report.sh [--week]` |
 | `quality-metrics.sh` | Code quality analysis (lint, complexity, duplication) | `./scripts/quality-metrics.sh` |
 
-**Health check targets**: Rust API :8080, Python :8000, MCP :8090, Frontend :3000
 **Related spec**: `specifications/05-operations/5.1-monitoring/`, FR-OPS-003
 
 ---

@@ -90,7 +90,6 @@ The system shall support horizontal scaling by adding more service instances to 
 - `infrastructure/docker/docker-compose.yml` - Multi-instance configuration
 - `infrastructure/kubernetes/deployments/` - Kubernetes deployment manifests (planned)
 - `rust-core-engine/src/main.rs` - Stateless service design
-- `python-ai-service/main.py` - Stateless service design
 
 **Scaling Architecture**:
 
@@ -144,8 +143,6 @@ The system shall support horizontal scaling by adding more service instances to 
 
    upstream python_backend {
        least_conn;
-       server python-1:8000 max_fails=3 fail_timeout=30s;
-       server python-2:8000 max_fails=3 fail_timeout=30s;
    }
 
    server {
@@ -178,7 +175,6 @@ The system shall support horizontal scaling by adding more service instances to 
 
    **For Kubernetes Deployment**:
    - **Mechanism**: Kubernetes Service (built-in DNS-based discovery)
-   - **Service Names**: rust-core-engine, python-ai-service, mongodb, redis
    - **DNS Resolution**: rust-core-engine.default.svc.cluster.local
    - **Load Balancing**: Kubernetes Service automatically load balances across pods
 
@@ -502,7 +498,6 @@ The system shall support a large number of concurrent users accessing the platfo
 - All services contribute to concurrent user capacity
 - `rust-core-engine/src/websocket/handler.rs` - WebSocket connection management
 - `rust-core-engine/src/api/routes.rs` - HTTP request handling
-- `python-ai-service/main.py` - Uvicorn worker configuration
 
 **Capacity Planning**:
 
@@ -1007,7 +1002,6 @@ autoscaling_instances_removed_total
 
 **Code Locations**:
 - Rust: `rust-core-engine/src/main.rs` - Stateless service design
-- Python: `python-ai-service/main.py` - Stateless service design
 - Infrastructure: `infrastructure/kubernetes/` - Kubernetes manifests (planned)
 - Monitoring: `infrastructure/monitoring/prometheus.yml` - Scaling metrics
 

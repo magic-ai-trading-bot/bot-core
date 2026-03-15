@@ -88,7 +88,6 @@ testnet = true  # Set to false for live trading
 [market_data]
 symbols = ["BTCUSDT", "ETHUSDT"]
 timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"]
-python_ai_service_url = "http://localhost:8000"
 
 [trading]
 enabled = false  # Set to true to enable live trading
@@ -163,7 +162,6 @@ timeframes = ["1m", "5m", "1h"]    # Timeframes to track
 kline_limit = 500                  # Historical candles to fetch
 update_interval_ms = 1000          # Data refresh interval
 cache_size = 1000                  # Max candles per timeframe
-python_ai_service_url = "http://localhost:8000"  # AI service endpoint
 ```
 
 ### Trading Configuration

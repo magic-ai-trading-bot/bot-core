@@ -272,14 +272,12 @@ cargo tarpaulin --test integration_tests --out Html
 
 ### Python Unit Tests
 
-**Location:** `python-ai-service/tests/unit/`
 
 **Framework:** pytest
 
 **Running Python Unit Tests:**
 ```bash
 # Run all tests
-cd python-ai-service
 pytest
 
 # Run specific test file
@@ -559,12 +557,10 @@ async fn test_end_to_end_market_order_execution() {
 
 ### Python Integration Tests
 
-**Location:** `python-ai-service/tests/integration/`
 
 **Running Python Integration Tests:**
 ```bash
 # Run all integration tests
-cd python-ai-service
 pytest tests/integration/
 
 # Run specific integration test
@@ -587,7 +583,6 @@ from main import app
 
 @pytest.fixture
 def client():
-    """Test client for FastAPI app."""
     return TestClient(app)
 
 class TestAIAnalysisEndpoint:
@@ -668,7 +663,6 @@ class TestRustPythonIntegration:
     """Test communication between Rust Core Engine and Python AI Service."""
 
     RUST_API_URL = "http://localhost:8080/api/v1"
-    PYTHON_AI_URL = "http://localhost:8000/api/v1"
 
     def test_rust_calls_python_for_ai_analysis(self):
         """Test Rust engine calls Python AI service for signal analysis."""
@@ -692,9 +686,7 @@ class TestRustPythonIntegration:
         assert "ai_confidence" in data
         assert data["ai_signal"] in ["BUY", "SELL", "HOLD"]
 
-    def test_python_ai_service_health_check(self):
         """Test Python AI service is accessible."""
-        response = requests.get(f"{self.PYTHON_AI_URL}/health")
         assert response.status_code == 200
         assert response.json()["status"] == "healthy"
 ```
@@ -848,7 +840,6 @@ Timeout: 0
 pip install mutmut
 
 # Run mutation testing
-cd python-ai-service
 mutmut run
 
 # Show results
@@ -1021,7 +1012,6 @@ cd rust-core-engine
 cargo audit
 
 # Python security check
-cd python-ai-service
 pip install safety pip-audit
 safety check
 pip-audit
@@ -1070,7 +1060,6 @@ def sample_prices():
 
 @pytest.fixture
 def test_client():
-    """FastAPI test client."""
     from fastapi.testclient import TestClient
     from main import app
     return TestClient(app)
@@ -1116,7 +1105,6 @@ cd rust-core-engine && cargo test
 
 # Python tests (409 tests)
 make test-python
-cd python-ai-service && pytest
 
 # Frontend tests (601 tests)
 make test-frontend
@@ -1134,7 +1122,6 @@ cd rust-core-engine
 cargo tarpaulin --out Html --skip-clean --timeout 180
 
 # Python coverage
-cd python-ai-service
 pytest --cov --cov-report=html --cov-report=term
 
 # Frontend coverage

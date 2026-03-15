@@ -158,7 +158,6 @@ COPY . .
   run: |
     # Build images first
     docker build -t rust-core-engine ./rust-core-engine
-    docker build -t python-ai-service ./python-ai-service  # ← OOM/Timeout
     docker build -t nextjs-ui-dashboard ./nextjs-ui-dashboard
 ```
 
@@ -169,11 +168,9 @@ COPY . .
   run: |
     # Build images first (use CI Dockerfile for Python to save memory/time)
     docker build -t rust-core-engine ./rust-core-engine
-    docker build -f python-ai-service/Dockerfile.ci -t python-ai-service ./python-ai-service  # ← Fast
     docker build -t nextjs-ui-dashboard ./nextjs-ui-dashboard
 ```
 
-**Key Change:** Added `-f python-ai-service/Dockerfile.ci` flag
 
 ## Workflow Strategy
 
@@ -208,7 +205,6 @@ COPY . .
 3. **Separation of Concerns**
    ```
    CI Scanning:
-     ✅ API framework vulnerabilities (FastAPI, Pydantic)
      ✅ Data processing (NumPy, Pandas)
      ✅ Database clients (PyMongo, Motor)
      ✅ Base image (python:3.11-slim)
@@ -238,7 +234,6 @@ COPY . .
 
 **Command:**
 ```bash
-docker build -f python-ai-service/Dockerfile.ci -t my-app:ci ./python-ai-service
 ```
 
 ### When to Use Dockerfile (Full)
@@ -252,7 +247,6 @@ docker build -f python-ai-service/Dockerfile.ci -t my-app:ci ./python-ai-service
 
 **Command:**
 ```bash
-docker build -t my-app:latest ./python-ai-service
 ```
 
 ## Local Testing
@@ -260,7 +254,6 @@ docker build -t my-app:latest ./python-ai-service
 ### Test CI Build
 ```bash
 # Build with CI Dockerfile
-docker build -f python-ai-service/Dockerfile.ci -t bot-core-python:ci ./python-ai-service
 
 # Check image size (should be ~200MB)
 docker images bot-core-python:ci
@@ -282,7 +275,6 @@ import tensorflow
 ### Test Full Build
 ```bash
 # Build with full Dockerfile
-docker build -t bot-core-python:full ./python-ai-service
 
 # Check image size (should be ~2GB)
 docker images bot-core-python:full
@@ -372,12 +364,10 @@ Time  | Memory Usage | Stage
 
 2. Check requirements-ci.txt exists:
    ```bash
-   ls -lh python-ai-service/requirements-ci.txt
    ```
 
 3. Verify no TensorFlow/PyTorch in CI requirements:
    ```bash
-   grep -i "tensorflow\|torch" python-ai-service/requirements-ci.txt
    # Should return nothing
    ```
 
@@ -386,7 +376,6 @@ Time  | Memory Usage | Stage
 **Solution:**
 Add the dependency to `requirements-ci.txt` (if lightweight):
 ```bash
-echo "package-name==version" >> python-ai-service/requirements-ci.txt
 ```
 
 **Don't add:** Large ML libraries (TensorFlow, PyTorch, etc.)
@@ -396,16 +385,11 @@ echo "package-name==version" >> python-ai-service/requirements-ci.txt
 **Check:** Production workflows should use full `Dockerfile`:
 ```yaml
 # docker-build-push.yml should NOT have -f flag
-docker build -t production ./python-ai-service  # Correct
 docker build -f Dockerfile.ci ...               # Wrong!
 ```
 
 ## Related Documentation
 
-- `python-ai-service/Dockerfile` - Full production Dockerfile
-- `python-ai-service/Dockerfile.ci` - Lightweight CI Dockerfile
-- `python-ai-service/requirements.txt` - Full dependencies
-- `python-ai-service/requirements-ci.txt` - CI dependencies
 - `.github/workflows/security-scan.yml` - Security scanning workflow
 - `.github/workflows/ci-cd.yml` - Main CI/CD pipeline
 - `docs/TRUFFLEHOG_COMPLETE_FIX.md` - TruffleHog configuration guide

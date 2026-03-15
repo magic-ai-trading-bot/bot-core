@@ -85,7 +85,6 @@ VITE_ENABLE_REALTIME=true
 
 # API Endpoints (default: localhost)
 VITE_API_URL=http://localhost:8080
-VITE_AI_API_URL=http://localhost:8000
 ```
 
 Get your Hugging Face API key from: https://huggingface.co/settings/tokens

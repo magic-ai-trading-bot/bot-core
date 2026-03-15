@@ -41,7 +41,6 @@ cd mcp-server && npm run build             # Build TypeScript
 | `MCP_PORT` | `8090` | HTTP listen port |
 | `MCP_AUTH_TOKEN` | (unset) | Bearer token for incoming requests |
 | `RUST_API_URL` | `http://localhost:8080` | Rust engine base URL |
-| `PYTHON_API_URL` | `http://localhost:8000` | Python AI base URL |
 | `BOTCORE_EMAIL` | (unset) | Credentials for downstream JWT |
 | `BOTCORE_PASSWORD` | (unset) | Credentials for downstream JWT |
 
@@ -70,7 +69,6 @@ Session Map  ─── new session ──►  McpServer + StreamableHTTPServerTr
                               apiRequest("rust"|"python")
                                          |
                               ┌──────────┴──────────┐
-                           Rust :8080          Python :8000
 ```
 
 ### Key Implementation Details
@@ -139,7 +137,6 @@ apiRequest(
 
 | Tool | Description |
 |---|---|
-| `check_system_health` | Poll Rust `:8080/api/health` + Python `:8000/health` → combined status |
 | `get_service_logs_summary` | Recent errors from Rust + Python services |
 | `check_market_condition_health` | Deep AI pipeline check: MongoDB → indicators → model |
 

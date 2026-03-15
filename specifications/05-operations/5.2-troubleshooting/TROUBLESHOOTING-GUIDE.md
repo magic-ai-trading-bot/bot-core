@@ -43,7 +43,7 @@ Comprehensive troubleshooting guide for **Bot-Core** cryptocurrency trading plat
 
 # Check service health endpoints
 curl http://localhost:8080/health    # Rust API
-curl http://localhost:8000/health    # Python AI
+
 curl http://localhost:3000/          # Dashboard
 
 # Check resource usage
@@ -71,12 +71,12 @@ docker compose ps
 
 # Check exit code
 docker inspect rust-core-engine --format='{{.State.ExitCode}}'
-docker inspect python-ai-service --format='{{.State.ExitCode}}'
+
 docker inspect nextjs-ui-dashboard --format='{{.State.ExitCode}}'
 
 # Check logs for errors
 docker compose logs rust-core-engine
-docker compose logs python-ai-service
+
 docker compose logs nextjs-ui-dashboard
 
 # Check environment variables
@@ -122,12 +122,12 @@ cd rust-core-engine
 cat config.toml | python3 -c "import sys, toml; toml.load(sys.stdin)" 2>&1
 
 # Validate Python config
-cd python-ai-service
-cat config.yaml | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>&1
+
+
 
 # Fix syntax errors in config files
 nano rust-core-engine/config.toml
-nano python-ai-service/config.yaml
+
 ```
 
 ### Solution 3: Dependency Issues
@@ -144,7 +144,7 @@ docker compose up -d mongodb
 sleep 10
 
 # Then start application services
-docker compose up -d rust-core-engine python-ai-service nextjs-ui-dashboard
+docker compose up -d rust-core-engine nextjs-ui-dashboard
 
 # Check all services are running
 docker compose ps
@@ -167,13 +167,13 @@ Error starting userland proxy: listen tcp 0.0.0.0:3000: bind: address already in
 # Check which process is using ports
 lsof -i :3000    # Dashboard
 lsof -i :8080    # Rust API
-lsof -i :8000    # Python AI
+
 lsof -i :27017   # MongoDB
 
 # Alternative (Linux)
 netstat -tulpn | grep :3000
 netstat -tulpn | grep :8080
-netstat -tulpn | grep :8000
+
 ```
 
 ### Solution 1: Kill Conflicting Process
@@ -186,7 +186,7 @@ kill -9 $(lsof -t -i:8080)
 kill -9 $(lsof -t -i:3000)
 
 # Kill process using port 8000
-kill -9 $(lsof -t -i:8000)
+
 
 # Restart services
 ./scripts/bot.sh restart
@@ -227,7 +227,7 @@ docker compose up -d
 ```bash
 # Check if OOM killed
 docker inspect rust-core-engine --format='{{.State.OOMKilled}}'
-docker inspect python-ai-service --format='{{.State.OOMKilled}}'
+
 
 # Check memory usage
 docker stats --no-stream
@@ -251,7 +251,7 @@ docker inspect rust-core-engine --format='{{.RestartCount}}'
 
 # Verify memory limits applied
 docker inspect rust-core-engine --format='{{.HostConfig.Memory}}'
-docker inspect python-ai-service --format='{{.HostConfig.Memory}}'
+
 ```
 
 **Memory limits in optimized mode:**
@@ -284,8 +284,7 @@ sudo systemctl restart docker
 ### Solution 3: Reduce Python ML Model Memory
 
 ```bash
-# Edit python-ai-service/config.yaml
-cd python-ai-service
+
 nano config.yaml
 
 # Reduce batch size
@@ -294,7 +293,6 @@ ml:
   max_sequence_length: 60  # Reduce from 100
 
 # Restart Python service
-docker compose restart python-ai-service
 ```
 
 ---
@@ -346,8 +344,7 @@ cd rust-core-engine
 docker build -t rust-core-engine:test .
 
 # Python build issues
-cd python-ai-service
-docker build -t python-ai-service:test .
+
 
 # Frontend build issues
 cd nextjs-ui-dashboard
@@ -415,7 +412,6 @@ cat .env | grep DATABASE_URL
 nano .env
 
 # Restart services
-docker compose restart rust-core-engine python-ai-service
 ```
 
 ### Solution 3: Reset MongoDB
@@ -456,14 +452,13 @@ docker compose up -d
 ```bash
 # Run tests with verbose output
 cd rust-core-engine && cargo test -- --nocapture
-cd python-ai-service && pytest -v
+
 cd nextjs-ui-dashboard && npm run test -- --reporter=verbose
 
 # Check for environment issues
 printenv | grep -E "(DATABASE_URL|BINANCE|JWT)"
 
 # Check for port conflicts
-lsof -i :8080 -i :8000 -i :3000
 ```
 
 ### Solution 1: Rust Test Failures
@@ -488,7 +483,7 @@ RUST_BACKTRACE=1 cargo test test_name
 
 ```bash
 # Recreate virtual environment
-cd python-ai-service
+
 rm -rf venv
 python3 -m venv venv
 source venv/bin/activate
@@ -530,7 +525,6 @@ npm run test -- -u
 
 # Check service health
 curl http://localhost:8080/health
-curl http://localhost:8000/health
 curl http://localhost:3000/
 
 # Reset test database
@@ -590,7 +584,7 @@ ModuleNotFoundError: No module named 'module_name'
 **Solution:**
 ```bash
 # Update pip and setuptools
-cd python-ai-service
+
 pip install --upgrade pip setuptools wheel
 
 # Install system dependencies (Ubuntu/Debian)
@@ -668,7 +662,7 @@ cd tests/load && k6 run trading_load_test.js
 docker compose up -d redis
 
 # Update Python config to use Redis
-cd python-ai-service
+
 nano config.yaml
 
 # Set:
@@ -677,7 +671,6 @@ nano config.yaml
 #   url: redis://redis:6379
 
 # Restart Python service
-docker compose restart python-ai-service
 ```
 
 ### Solution 2: Optimize Database
@@ -729,7 +722,7 @@ docker compose up -d --scale rust-core-engine=2
 
 # Check for vulnerabilities
 cd rust-core-engine && cargo audit
-cd python-ai-service && safety check
+
 cd nextjs-ui-dashboard && npm audit
 
 # Check for secrets
@@ -746,7 +739,7 @@ cargo update
 cargo audit fix
 
 # Update Python dependencies
-cd python-ai-service
+
 pip install --upgrade -r requirements.txt
 safety check
 
@@ -1035,7 +1028,7 @@ cargo build --release
 **Python job failure:**
 ```bash
 # Run locally
-cd python-ai-service
+
 flake8 .
 black --check .
 pytest --cov
@@ -1063,13 +1056,11 @@ npm run build
 
 # Check specific service
 docker compose ps rust-core-engine
-docker compose ps python-ai-service
 docker compose ps nextjs-ui-dashboard
 docker compose ps mongodb
 
 # Check service health endpoints
 curl http://localhost:8080/health
-curl http://localhost:8000/health
 curl http://localhost:3000/
 ```
 
@@ -1081,7 +1072,6 @@ curl http://localhost:3000/
 
 # View specific service logs
 ./scripts/bot.sh logs --service rust-core-engine
-./scripts/bot.sh logs --service python-ai-service
 ./scripts/bot.sh logs --service nextjs-ui-dashboard
 
 # Follow logs
@@ -1092,7 +1082,7 @@ docker compose logs --tail=100 rust-core-engine
 
 # Search logs
 docker compose logs rust-core-engine | grep ERROR
-docker compose logs python-ai-service | grep "Exception"
+ | grep "Exception"
 ```
 
 ### Resource Monitoring
@@ -1126,7 +1116,6 @@ docker compose ps --format json | jq '.[].Ports'
 
 # Test connectivity between services
 docker exec -it rust-core-engine ping mongodb
-docker exec -it rust-core-engine ping python-ai-service
 
 # Test external connectivity
 docker exec -it rust-core-engine curl https://api.binance.com/api/v3/ping
@@ -1182,7 +1171,6 @@ docker system prune -a --volumes -f
 
 # 3. Clean build artifacts
 cd rust-core-engine && cargo clean
-cd ../python-ai-service && rm -rf venv __pycache__
 cd ../nextjs-ui-dashboard && rm -rf node_modules .next
 
 # 4. Regenerate secrets
@@ -1199,7 +1187,6 @@ cd ../nextjs-ui-dashboard && rm -rf node_modules .next
 docker compose restart rust-core-engine
 
 # Python
-docker compose restart python-ai-service
 
 # Frontend
 docker compose restart nextjs-ui-dashboard

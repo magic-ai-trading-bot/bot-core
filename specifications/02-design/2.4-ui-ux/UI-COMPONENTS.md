@@ -1860,8 +1860,6 @@ const handleAnalyze = async () => {
 
 **API Endpoints**:
 ```
-GET http://localhost:8000/api/ai/health - Service info
-POST http://localhost:8000/api/ai/analyze - Analyze symbol
 ```
 
 ---
@@ -2071,7 +2069,6 @@ export const apiClient = {
 **Base URLs**:
 ```typescript
 const RUST_API_URL = "http://localhost:8080";
-const PYTHON_API_URL = "http://localhost:8000";
 ```
 
 **Error Handling**:

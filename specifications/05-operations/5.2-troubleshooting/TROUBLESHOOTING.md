@@ -103,7 +103,6 @@ ports:
 cat rust-core-engine/config.toml | python -c "import sys, toml; toml.load(sys.stdin)"
 
 # Validate YAML syntax
-cat python-ai-service/config.yaml | python -c "import sys, yaml; yaml.safe_load(sys.stdin)"
 
 # Fix: Correct syntax errors in config files
 ```
@@ -209,7 +208,6 @@ docker compose logs rust-core-engine | grep "duration_ms" | awk '{if ($NF > 1000
 # Profile the application
 # For Rust: Use flamegraph
 # For Python: Use py-spy
-docker exec -it python-ai-service py-spy top --pid 1
 ```
 
 **Common Causes & Solutions:**
@@ -326,7 +324,6 @@ cd rust-core-engine
 cargo flamegraph --bin rust-core-engine
 
 # Python: Use py-spy
-docker exec python-ai-service py-spy record -o profile.svg --pid 1 --duration 60
 ```
 
 **Solutions:**
@@ -388,7 +385,6 @@ docker stats --format "table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}"
 # Profile memory usage
 # Rust: Use valgrind or heaptrack
 # Python: Use memory_profiler
-docker exec python-ai-service python -m memory_profiler main.py
 ```
 
 **Solutions:**
@@ -397,7 +393,6 @@ docker exec python-ai-service python -m memory_profiler main.py
 ```bash
 # Temporary fix
 export PYTHON_MEMORY_LIMIT="3G"
-docker compose up -d python-ai-service
 ```
 
 **Fix Memory Leaks:**
@@ -413,7 +408,6 @@ def process_large_dataset():
 
 **Reduce Cache Size:**
 ```yaml
-# python-ai-service/config.yaml
 ai_cache:
   enabled: true
   max_entries: 50  # Reduce from 100
@@ -625,10 +619,8 @@ mongodb://.../?readPreference=primary
 docker network inspect bot-network
 
 # Test DNS resolution
-docker exec rust-core-engine nslookup python-ai-service
 
 # Test connectivity
-docker exec rust-core-engine curl http://python-ai-service:8000/health
 
 # Check firewall rules
 iptables -L -n
@@ -646,17 +638,13 @@ docker network connect bot-network rust-core-engine
 ```bash
 # Use service name from docker-compose.yml
 # Not container name
-PYTHON_AI_SERVICE_URL=http://python-ai-service:8000  # Correct
-# Not: http://python-ai-service-1:8000
 ```
 
 **Port Not Exposed:**
 ```yaml
 # Ensure port is exposed internally
 # docker-compose.yml
-python-ai-service:
   ports:
-    - "8000:8000"  # Not needed for internal communication
   expose:
     - "8000"  # Sufficient for internal
 ```
@@ -932,7 +920,6 @@ docker compose ps
 echo -e "\n=== Health Endpoints ==="
 curl -sf http://localhost:3000/health && echo "✓ Frontend healthy" || echo "✗ Frontend unhealthy"
 curl -sf http://localhost:8080/api/health && echo "✓ Rust healthy" || echo "✗ Rust unhealthy"
-curl -sf http://localhost:8000/health && echo "✓ Python healthy" || echo "✗ Python unhealthy"
 
 echo -e "\n=== Resource Usage ==="
 docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
@@ -963,7 +950,6 @@ docker compose ps > $OUTPUT_DIR/service_status.txt
 # Logs
 docker compose logs --tail=1000 > $OUTPUT_DIR/all_logs.txt
 docker compose logs rust-core-engine --tail=500 > $OUTPUT_DIR/rust_logs.txt
-docker compose logs python-ai-service --tail=500 > $OUTPUT_DIR/python_logs.txt
 
 # Resource usage
 docker stats --no-stream > $OUTPUT_DIR/resource_usage.txt

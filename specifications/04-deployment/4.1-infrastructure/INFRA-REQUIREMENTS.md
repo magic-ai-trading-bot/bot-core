@@ -122,7 +122,6 @@ Differences allowed:
 - Build Mode: Debug
 - Environment: `RUST_LOG=debug`, `RUST_BACKTRACE=1`
 
-**Python AI Service (python-ai-service-dev):**
 - Memory: 1.5GB limit
 - CPU: 1.5 cores
 - Storage: 3GB (models + data + cache)
@@ -158,13 +157,10 @@ Differences allowed:
 **Service Communication:**
 ```yaml
 nextjs-ui-dashboard-dev → http://localhost:8080 (Rust API)
-                        → http://localhost:8000 (Python API)
                         → ws://localhost:8080/ws (WebSocket)
 
-rust-core-engine-dev → http://python-ai-service-dev:8000 (AI Service)
                      → mongodb://mongodb:27017 (Database)
 
-python-ai-service-dev → mongodb://mongodb:27017 (Database)
 ```
 
 ### 3.4 Storage Requirements
@@ -182,7 +178,6 @@ python-ai-service-dev → mongodb://mongodb:27017 (Database)
 rust_target_cache:/app/target (named volume)
 
 # Python
-./python-ai-service:/app (entire directory)
 /app/__pycache__ (excluded)
 /app/models/saved (excluded)
 
@@ -230,7 +225,6 @@ FLASK_ENV=development
 **Configuration Files:**
 - `.env` (copied from `config.env`)
 - `rust-core-engine/config.toml`
-- `python-ai-service/config.yaml`
 
 ---
 
@@ -668,7 +662,6 @@ From `docker-compose.yml`:
 
 **Production Profile:**
 ```yaml
-python-ai-service:
   deploy:
     resources:
       limits:
@@ -1177,7 +1170,6 @@ infrastructure/
 │  │                                    │ │
 │  │  ┌──────┐  ┌──────┐  ┌──────┐    │ │
 │  │  │  FE  │  │  Rust│  │Python│    │ │
-│  │  │ :3000│  │ :8080│  │ :8000│    │ │
 │  │  └───┬──┘  └───┬──┘  └───┬──┘    │ │
 │  │      └──────────┼─────────┘       │ │
 │  │                 │                  │ │

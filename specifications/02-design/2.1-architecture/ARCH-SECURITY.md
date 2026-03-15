@@ -1047,7 +1047,6 @@ graph TB
     subgraph "Exposed Services"
         Frontend[Frontend :3000]
         RustAPI[Rust API :8080]
-        PythonAPI[Python API :8000]
     end
 
     subgraph "Internal Services"
@@ -1085,11 +1084,9 @@ services:
     ports:
       - "8080:8080"  # Exposed to host
 
-  python-ai-service:
     networks:
       - bot-network
     ports:
-      - "8000:8000"  # Exposed to host
 
   frontend:
     networks:
@@ -1782,7 +1779,6 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Run pip-audit
-        run: cd python-ai-service && pip-audit
       - name: Report vulnerabilities
         if: failure()
         uses: actions/github-script@v6
@@ -1872,7 +1868,6 @@ jobs:
 pip install bandit
 
 # Run scan
-bandit -r python-ai-service/ -f json -o bandit-report.json
 
 # Common issues detected:
 # - Use of assert in production code
@@ -2132,7 +2127,6 @@ graph TB
     subgraph "DMZ - Exposed Services"
         Frontend[Frontend :3000<br/>React + TypeScript<br/>CSP Headers<br/>XSS Protection]
         RustAPI[Rust API :8080<br/>JWT Auth<br/>RBAC<br/>Input Validation]
-        PythonAPI[Python API :8000<br/>FastAPI<br/>Rate Limiting<br/>Input Validation]
     end
 
     subgraph "Security Layer"

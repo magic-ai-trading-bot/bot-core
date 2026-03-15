@@ -53,7 +53,7 @@ This plan covers:
 | Service | RTO (Recovery Time) | RPO (Recovery Point) | Priority |
 |---------|-------------------|---------------------|----------|
 | Rust Core Engine | 1 hour | 5 minutes | P0 - Critical |
-| Python AI Service | 1 hour | 5 minutes | P0 - Critical |
+
 | Frontend Dashboard | 2 hours | 15 minutes | P1 - High |
 | MongoDB Database | 30 minutes | 5 minutes | P0 - Critical |
 | Monitoring | 4 hours | 1 hour | P2 - Medium |
@@ -269,7 +269,7 @@ aws s3 sync config/ s3://bot-core-backups/config/$(date +%Y%m%d)/
 **AI Models:**
 ```bash
 # Backup models to S3 with versioning
-aws s3 cp python-ai-service/models/saved/lstm-v2.4.pkl \
+
   s3://bot-core-backups/models/lstm-v2.4-$(date +%Y%m%d).pkl
 
 # Enable versioning on S3 bucket
@@ -282,11 +282,11 @@ aws s3api put-bucket-versioning \
 ```bash
 # Tag and push images to backup registry
 docker tag rust-core-engine:latest backup-registry.com/rust-core-engine:$(date +%Y%m%d)
-docker tag python-ai-service:latest backup-registry.com/python-ai-service:$(date +%Y%m%d)
+
 docker tag nextjs-ui-dashboard:latest backup-registry.com/nextjs-ui-dashboard:$(date +%Y%m%d)
 
 docker push backup-registry.com/rust-core-engine:$(date +%Y%m%d)
-docker push backup-registry.com/python-ai-service:$(date +%Y%m%d)
+
 docker push backup-registry.com/nextjs-ui-dashboard:$(date +%Y%m%d)
 ```
 
@@ -457,7 +457,7 @@ curl -X PATCH https://api.statuspage.io/v1/pages/$PAGE_ID/incidents/latest \
 ```bash
 # 1. Stop all writes to database
 kubectl scale deployment rust-core-engine --replicas=0 -n bot-core-production
-kubectl scale deployment python-ai-service --replicas=0 -n bot-core-production
+
 
 # 2. Create snapshot of corrupted database
 docker exec mongodb-primary mongodump \
@@ -516,7 +516,7 @@ python scripts/verify-data-integrity.py \
 ```bash
 # 1. Start services
 kubectl scale deployment rust-core-engine --replicas=3 -n bot-core-production
-kubectl scale deployment python-ai-service --replicas=3 -n bot-core-production
+
 
 # 2. Verify services
 kubectl get pods -n bot-core-production

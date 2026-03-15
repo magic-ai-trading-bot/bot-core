@@ -47,7 +47,6 @@ The Frontend Dashboard Component provides a modern, responsive web interface for
 
 **External Services:**
 - Rust Core Engine (http://localhost:8080) - Authentication, trading, WebSocket
-- Python AI Service (http://localhost:8000) - AI analysis, ML predictions
 
 **Build Dependencies:**
 - Node.js 18+ or Bun 1.1+
@@ -214,7 +213,6 @@ export class BotCoreApiClient {
     });
 
     this.pythonAiApi = axios.create({
-      baseURL: PYTHON_AI_URL,  // http://localhost:8000
       timeout: API_TIMEOUT,
     });
 
@@ -1119,7 +1117,6 @@ export const useAISignals = () => {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000/ws');
 
     ws.onopen = () => {
       setIsConnected(true);
@@ -1398,9 +1395,7 @@ test('user can login successfully', async ({ page }) => {
 
 ```env
 VITE_RUST_API_URL=http://localhost:8080
-VITE_PYTHON_AI_URL=http://localhost:8000
 VITE_API_TIMEOUT=10000
-VITE_WS_URL=ws://localhost:8000/ws
 ```
 
 ### C. Related Documents

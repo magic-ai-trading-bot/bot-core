@@ -21,7 +21,7 @@ Dũng
 ### Background
 - **Role**: Creator/developer of BotCore system
 - **Expertise**: Fullstack developer (Rust, Python, TypeScript), crypto trader
-- **Tech Stack**: Built entire BotCore architecture (Rust backend, Python AI, Next.js frontend, MongoDB)
+
 - **Trading Style**: Data-driven, systematic, algorithmic trading focus
 
 ### Communication Preferences
@@ -56,7 +56,7 @@ Dũng
 **BotCore System Knowledge**:
 Anh Dũng knows the entire system deeply:
 - Rust core engine source code
-- Python AI model implementations
+
 - Frontend dashboard components
 - MongoDB schema and indexes
 - All 103 MCP tools

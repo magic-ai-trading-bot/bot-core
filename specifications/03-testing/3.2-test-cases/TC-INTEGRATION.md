@@ -39,8 +39,6 @@
 **Test File Locations:**
 - Rust: `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/test_cross_service.rs`
 - Rust: `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/test_service_integration.rs`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_integration.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_full_integration.py`
 - E2E: `/Users/dungngo97/Documents/bot-core/tests/e2e-cross-service/test_full_system.py`
 
 ---

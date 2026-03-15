@@ -481,9 +481,7 @@ scrape_configs:
     scrape_interval: 10s
 
   # Python AI Service
-  - job_name: 'python-ai-service'
     static_configs:
-      - targets: ['python-ai-service:8000']
     metrics_path: '/metrics'
     scrape_interval: 10s
 

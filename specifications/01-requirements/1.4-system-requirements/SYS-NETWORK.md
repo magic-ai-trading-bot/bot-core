@@ -103,7 +103,6 @@ The Bot Core platform requires real-time connectivity to cryptocurrency exchange
               +-----+     +-----+     +-----+     +-----+
               |           |           |           |           |
          Python AI    Rust Core   Frontend    MongoDB    Redis
-         :8000        :8080       :3000       :27017     :6379
 ```
 
 ### Network Layers
@@ -153,15 +152,9 @@ All TCP/UDP ports used by Bot Core services, both internally and externally. Pro
 **Python AI Service**:
 - **Port**: 8000
 - **Protocol**: TCP/HTTP
-- **Binding**: `0.0.0.0:8000`
 - **Access**: Internal (Rust service) + External (development/testing)
 - **TLS**: No (HTTP) - Internal network, TLS optional
-- **Docker Mapping**: `8000:8000`
 - **Endpoints**:
-  - REST API: `http://localhost:8000/api/*`
-  - Health Check: `http://localhost:8000/health`
-  - Metrics: `http://localhost:8000/metrics`
-  - Docs: `http://localhost:8000/docs` (Swagger UI)
 - **Usage**: AI predictions, technical analysis
 
 **MongoDB**:
@@ -200,7 +193,6 @@ All TCP/UDP ports used by Bot Core services, both internally and externally. Pro
 - **Admin API Port**: 8001
 - **Admin SSL Port**: 8444
 - **Protocol**: TCP/HTTP/HTTPS
-- **Docker Mapping**: `8100:8000`, `8443:8443`, `8001:8001`, `8444:8444`
 - **Profile**: `api-gateway`
 - **Usage**: Unified API gateway, rate limiting, load balancing
 
@@ -428,7 +420,6 @@ ws_url = "wss://stream.testnet.binance.vision"
 
 **Timeout Configuration**:
 ```python
-# python-ai-service
 XAI_API_TIMEOUT = 30  # seconds
 XAI_MAX_RETRIES = 3
 ```
@@ -516,7 +507,6 @@ nslookup api.binance.com
 dig api.x.ai
 ```
 
-**Reference**: `/rust-core-engine/config.toml` lines 4-29, `/python-ai-service/config.yaml`, `/CLAUDE.md`
 
 ---
 
@@ -577,14 +567,11 @@ docker inspect <container_name> | grep IPAddress
 **Service URLs (Internal)**:
 ```yaml
 # Rust Core Engine connects to Python AI
-PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
 
 # Or in development mode
-PYTHON_AI_SERVICE_URL=http://python-ai-service-dev:8000
 
 # Frontend connects to Rust Core (development)
 VITE_RUST_API_URL=http://rust-core-engine:8080
-VITE_PYTHON_AI_URL=http://python-ai-service:8000
 
 # Frontend connects to Rust Core (production, via host)
 VITE_RUST_API_URL=http://rust-core-engine:8080
@@ -600,16 +587,11 @@ VITE_RUST_API_URL=http://rust-core-engine:8080
 ```yaml
 # docker-compose.yml
 services:
-  python-ai-service:
-    container_name: python-ai-service
-    # Accessible as: http://python-ai-service:8000
 
   rust-core-engine:
     container_name: rust-core-engine
     depends_on:
-      python-ai-service:
         condition: service_healthy
-    # Can connect to: http://python-ai-service:8000
 ```
 
 ### Network Performance
@@ -664,7 +646,6 @@ spec:
   - to:
     - podSelector:
         matchLabels:
-          app: python-ai-service
     ports:
     - protocol: TCP
       port: 8000
@@ -678,12 +659,10 @@ spec:
 nextjs-ui-dashboard:
   depends_on:
     - rust-core-engine
-    - python-ai-service
 
 # Rust depends on Python AI
 rust-core-engine:
   depends_on:
-    python-ai-service:
       condition: service_healthy
 ```
 
@@ -695,7 +674,6 @@ rust-core-engine:
 **Health Check Configuration**:
 ```yaml
 healthcheck:
-  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
   interval: 30s
   timeout: 10s
   retries: 3
@@ -710,13 +688,10 @@ healthcheck:
 curl http://localhost:8080/api/health
 
 # From container to container
-docker exec rust-core-engine curl http://python-ai-service:8000/health
 
 # Check DNS resolution
-docker exec rust-core-engine nslookup python-ai-service
 
 # Check network connectivity
-docker exec rust-core-engine ping python-ai-service
 
 # View network traffic
 docker exec rust-core-engine tcpdump -i eth0 port 8000
@@ -1158,7 +1133,6 @@ done
 echo ""
 echo "Python AI API (10 requests):"
 for i in {1..10}; do
-  TIME=$(curl -o /dev/null -s -w '%{time_total}\n' http://localhost:8000/health)
   echo "  Request $i: ${TIME}s"
 done
 ```
@@ -1198,7 +1172,6 @@ done
 **Dependencies**: SYS-NETWORK-002 (External APIs), SYS-NETWORK-004 (Bandwidth), SYS-HARDWARE-002 to 004 (Hardware)
 **Test Cases**: TC-NETWORK-009 (Latency Benchmark Test), TC-NETWORK-010 (Trading Latency Test)
 
-**Reference**: `/rust-core-engine/config.toml`, `/python-ai-service/config.yaml`, `/CLAUDE.md`
 
 ---
 
@@ -1882,7 +1855,6 @@ curl -H "Authorization: Bearer invalid_token" http://localhost:8080/api/health
 curl -H "X-API-Key: invalid_key" http://localhost:8080/api/health
 ```
 
-**Reference**: `/rust-core-engine/Cargo.toml` (cryptography crates), `/python-ai-service/requirements.txt` (cryptography), `/CLAUDE.md`
 
 ---
 
@@ -2017,7 +1989,6 @@ curl -H "X-API-Key: invalid_key" http://localhost:8080/api/health
 
 - Docker Compose: `/infrastructure/docker/docker-compose.yml`
 - Rust Config: `/rust-core-engine/config.toml`
-- Python Config: `/python-ai-service/config.yaml`
 - CLAUDE.md: `/CLAUDE.md`
 - Makefile: `/Makefile`
 

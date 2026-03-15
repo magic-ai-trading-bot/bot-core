@@ -30,7 +30,6 @@ Internet → nginx (Port 443, TLS 1.3) → Internal Services
           ↓
       Frontend :3000
       Rust API :8080
-      Python AI :8000
 ```
 
 **TLS Configuration:**

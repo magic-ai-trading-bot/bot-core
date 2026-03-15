@@ -184,7 +184,7 @@ Halts all new trades if portfolio drawdown within the current week exceeds the l
 - `oversold_threshold`: 20.0, `overbought_threshold`: 80.0
 - `extreme_oversold`: 10.0, `extreme_overbought`: 90.0
 
-## Indicator Settings (Shared with Python AI)
+
 
 | Parameter | Default | Range | Description |
 |-----------|---------|-------|-------------|
@@ -213,7 +213,7 @@ Halts all new trades if portfolio drawdown within the current week exceeds the l
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `service_url` | http://python-ai-service:8000 | Python AI URL |
+
 | `request_timeout_seconds` | 30 | AI request timeout |
 | `signal_refresh_interval_minutes` | 15 | How often to get new AI signals |
 | `enable_realtime_signals` | true | Real-time signal updates |
@@ -247,7 +247,7 @@ API: `GET|PUT /api/paper-trading/symbols`
 |----------|---------|-------------|
 | `BINANCE_TESTNET` | true | Use testnet (KEEP TRUE for safety!) |
 | `TRADING_ENABLED` | false | Enable trading (KEEP FALSE unless sure!) |
-| `XAI_API_KEY` | - | xAI Grok API key (fallback: OPENAI_API_KEY) |
+
 | `DATABASE_URL` | mongodb://... | MongoDB connection |
 | `BINANCE_API_KEY` | - | Binance API key |
 | `BINANCE_SECRET_KEY` | - | Binance secret |

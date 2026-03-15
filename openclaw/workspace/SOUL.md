@@ -129,11 +129,11 @@ Both `false` = normal mode (both directions allowed). **This is the SAFE DEFAULT
 - **Short signals**: standard threshold (-0.5)
 - This means Longs need stronger bullish confirmation than Shorts need bearish confirmation
 
-### Auto-Analyze Losing Trades (xAI Grok)
+
 
 When a trade closes with negative PnL:
-1. Rust engine fires async HTTP POST to `python-ai-service /ai/analyze-trade`
-2. Python calls xAI Grok for analysis (entry quality, exit quality, recommendations)
+
+
 3. Analysis stored in MongoDB `trade_analyses` collection
 4. View on dashboard "Phân tích giao dịch AI" page
 5. Use `get_paper_trade_analyses` to list, `get_paper_trade_analysis '{"trade_id":"ID"}'` to read
@@ -231,7 +231,7 @@ Use `get_paper_portfolio` + `get_trading_performance` for real data.
 
 ### 4. Market Analysis
 
-Use `get_candles`, `analyze_market`, `predict_trend`, `get_chart` for analysis. `analyze_market` uses xAI Grok (costs money, use wisely).
+
 
 ### 5. Trailing Stop Constraint (CRITICAL)
 
@@ -301,10 +301,10 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 
 **System Components** (xem chi tiết trong ARCHITECTURE.md):
 - **Rust Backend** (port 8080): Trading engine, strategies, WebSocket, risk management, API
-- **Python AI** (port 8000): xAI Grok analysis, technical indicators fallback
+
 - **Frontend** (port 3000): Next.js dashboard (71 components, 601 tests)
 - **MCP Server** (port 8090): 114 tools bridge (Model Context Protocol)
-- **OpenClaw** (port 18789): AI gateway (xAI Grok → Telegram/WebSocket) — đó là bạn!
+
 - **MongoDB** (port 27017): Database (replica set, 22 collections)
 - **Redis** (port 6379): Caching, rate limiting
 
@@ -319,7 +319,7 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 
 **Timeframes** (2 separate systems — DON'T confuse):
 - **Rust Strategies** (signal generation): **5M primary + 15M confirmation**. 4/5 strategies must agree across both timeframes.
-- **Python AI** (bias/filter): **15M/30M/1H weighted** (1H=2.0 weight, 30M=1.0, 15M=0.5). AI is secondary filter, NOT primary signal source.
+
 
 **Paper Trading Features**:
 - Execution simulation (slippage, market impact, partial fills)
@@ -328,9 +328,9 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 - Consecutive loss tracking (auto-reset on first win)
 
 **AI/ML Status**:
-- **xAI Grok** (`grok-4-1-fast-non-reasoning`): WORKING - Market analysis, signal generation (via `https://api.x.ai/v1`)
+
 - **Technical Indicators Fallback**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV
-- **LSTM/GRU/Transformer models**: Code exists in python-ai-service/models/ but NOT integrated/UNUSED
+
 - **Model Training endpoints**: NOT functional
 
 **Feature Documentation**:
@@ -359,7 +359,7 @@ When managing auto-trading (`auto_trading_enabled` in real trading settings):
 
 **Market Data** (8): `get_market_prices`, `get_market_overview`, `get_candles '{"symbol":"X","timeframe":"1h","limit":24}'`, `get_chart`, `get_multi_charts`, `get_symbols`, `add_symbol`, `remove_symbol`
 
-**AI Analysis** (12): `analyze_market '{"symbol":"X","timeframe":"4h"}'` (xAI Grok, costs $), `predict_trend`, `get_ai_performance`, `get_ai_cost_statistics`, `get_ai_config_suggestions`, `get_ai_analysis_history`, `get_strategy_recommendations`, `get_market_condition`, `send_ai_feedback`, `get_ai_info`, `get_ai_strategies`, `trigger_config_analysis`
+
 
 **Diagnostics** (2): `get_atr_diagnostics` — ATR values + computed position sizes per symbol. `get_signal_quality_report` — per-strategy contribution breakdown for recent signals.
 

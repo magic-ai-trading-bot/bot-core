@@ -195,8 +195,6 @@ spec:
           value: "production"
         - name: VITE_RUST_API_URL
           value: "http://rust-core-engine:8080"
-        - name: VITE_PYTHON_AI_URL
-          value: "http://python-ai-service:8000"
         - name: VITE_WS_URL
           value: "ws://rust-core-engine:8080/ws"
         - name: DASHBOARD_SESSION_SECRET
@@ -297,8 +295,6 @@ spec:
             secretKeyRef:
               name: bot-core-secrets
               key: database-url
-        - name: PYTHON_AI_SERVICE_URL
-          value: "http://python-ai-service:8000"
         - name: BINANCE_API_KEY
           valueFrom:
             secretKeyRef:
@@ -371,16 +367,13 @@ spec:
 
 ### 4.3 Python AI Service Deployment
 
-**File:** `infrastructure/kubernetes/services/python-ai/deployment.yaml`
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: python-ai-service
   namespace: bot-core-production
   labels:
-    app: python-ai-service
     tier: backend
     version: v1.0.0
 spec:
@@ -392,11 +385,9 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: python-ai-service
   template:
     metadata:
       labels:
-        app: python-ai-service
         tier: backend
         version: v1.0.0
       annotations:
@@ -414,11 +405,8 @@ spec:
                 - key: app
                   operator: In
                   values:
-                  - python-ai-service
               topologyKey: kubernetes.io/hostname
       containers:
-      - name: python-ai-service
-        image: your-registry.com/python-ai-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -560,15 +548,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: python-ai-service
   namespace: bot-core-production
   labels:
-    app: python-ai-service
     tier: backend
 spec:
   type: ClusterIP
   selector:
-    app: python-ai-service
   ports:
   - port: 8000
     targetPort: 8000
@@ -969,13 +954,11 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: python-ai-service-hpa
   namespace: bot-core-production
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: python-ai-service
   minReplicas: 3
   maxReplicas: 10
   metrics:

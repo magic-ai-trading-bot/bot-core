@@ -478,7 +478,6 @@ This comprehensive specification system provides:
 - rust-core-engine/src/auth/jwt.rs (4 tags: FR-AUTH-001, FR-AUTH-004, FR-AUTH-005, FR-AUTH-006)
 - rust-core-engine/src/trading/engine.rs (2 tags: FR-TRADING-001, FR-TRADING-006)
 - rust-core-engine/src/trading/risk_manager.rs (6 tags: FR-RISK-001 through FR-RISK-006)
-- python-ai-service/main.py (1 tag: FR-AI-005)
 - nextjs-ui-dashboard/src/hooks/useWebSocket.ts (1 tag: FR-DASHBOARD-006)
 
 **Documentation Updated**:

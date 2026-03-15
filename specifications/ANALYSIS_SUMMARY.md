@@ -91,7 +91,6 @@ An enterprise-grade specification system has been created for the Bot Core crypt
 
 | Module | Files | Key Components | Status |
 |--------|-------|---------------|--------|
-| Main Service | 1 | FastAPI app, endpoints, WebSocket manager | ✓ Implemented |
 | ML Models | 4 | LSTM, GRU, Transformer, model_manager | ✓ Implemented |
 | Features | 2 | technical_indicators, feature_engineering | ✓ Implemented |
 | Utilities | 3 | logger, helpers, redis_cache | ✓ Implemented |
@@ -268,12 +267,10 @@ From BUSINESS_RULES.md and code analysis:
 - **Async Runtime**: Tokio
 
 **Python AI Service**:
-- **Framework**: FastAPI
 - **ML Libraries**: TensorFlow, PyTorch
 - **AI**: xAI Grok API (via OpenAI-compatible SDK, api.x.ai/v1)
 - **Indicators**: ta-lib, pandas
 - **Database**: Motor (async MongoDB)
-- **WebSocket**: FastAPI WebSocket
 - **Cache**: Redis (optional)
 - **Testing**: pytest
 
@@ -325,11 +322,9 @@ From BUSINESS_RULES.md and code analysis:
 
 ### Python Tests
 
-**Test Files**: 27 test files in `python-ai-service/tests/`
 
 | Test Suite | Coverage Area | Status |
 |------------|--------------|--------|
-| test_main.py | FastAPI endpoints | ✓ Present |
 | test_models.py | ML models | ✓ Present |
 | test_technical_indicators.py | Indicators | ✓ Present |
 | test_gpt_analyzer.py | GPT integration | ✓ Present |

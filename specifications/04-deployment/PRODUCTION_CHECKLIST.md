@@ -84,7 +84,6 @@ This comprehensive checklist ensures all critical steps are completed before, du
 
 #### Service Configuration
 - [ ] rust-core-engine/config.toml reviewed and updated
-- [ ] python-ai-service/config.yaml reviewed and updated
 - [ ] docker-compose.yml verified for production profile
 - [ ] All service dependencies mapped correctly
 
@@ -237,7 +236,6 @@ This comprehensive checklist ensures all critical steps are completed before, du
 
 #### Service Health
 - [ ] rust-core-engine container status: healthy
-- [ ] python-ai-service container status: healthy
 - [ ] nextjs-ui-dashboard container status: healthy
 - [ ] MongoDB container status: healthy (if containerized)
 - [ ] Redis container status: healthy (if enabled)

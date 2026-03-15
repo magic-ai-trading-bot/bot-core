@@ -156,7 +156,6 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./python-ai-service
 
     steps:
       - name: Checkout code
@@ -192,7 +191,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: ./python-ai-service/coverage.xml
           flags: python
           name: python-coverage
 
@@ -289,7 +287,6 @@ jobs:
       - name: Wait for services
         run: |
           timeout 120 bash -c 'until curl -sf http://localhost:8080/api/health; do sleep 2; done'
-          timeout 120 bash -c 'until curl -sf http://localhost:8000/health; do sleep 2; done'
           timeout 120 bash -c 'until curl -sf http://localhost:3000/; do sleep 2; done'
 
       - name: Run integration tests
@@ -339,7 +336,6 @@ jobs:
         with:
           images: |
             ${{ secrets.DOCKER_REGISTRY }}/rust-core-engine
-            ${{ secrets.DOCKER_REGISTRY }}/python-ai-service
             ${{ secrets.DOCKER_REGISTRY }}/nextjs-ui-dashboard
           tags: |
             type=ref,event=branch
@@ -360,11 +356,7 @@ jobs:
       - name: Build and push Python image
         uses: docker/build-push-action@v4
         with:
-          context: ./python-ai-service
           push: true
-          tags: ${{ secrets.DOCKER_REGISTRY }}/python-ai-service:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/python-ai-service:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/python-ai-service:buildcache,mode=max
 
       - name: Build and push Frontend image
         uses: docker/build-push-action@v4
@@ -396,7 +388,6 @@ jobs:
       - name: Run Trivy vulnerability scanner - Python
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKER_REGISTRY }}/python-ai-service:${{ github.sha }}
           format: 'sarif'
           output: 'python-trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -470,14 +461,12 @@ jobs:
           cd infrastructure/kubernetes/overlays/staging
           kustomize edit set image \
             rust-core-engine=${{ secrets.DOCKER_REGISTRY }}/rust-core-engine:${{ github.sha }} \
-            python-ai-service=${{ secrets.DOCKER_REGISTRY }}/python-ai-service:${{ github.sha }} \
             nextjs-ui-dashboard=${{ secrets.DOCKER_REGISTRY }}/nextjs-ui-dashboard:${{ github.sha }}
 
       - name: Deploy to staging
         run: |
           kubectl apply -k infrastructure/kubernetes/overlays/staging/
           kubectl rollout status deployment/rust-core-engine -n bot-core-staging --timeout=5m
-          kubectl rollout status deployment/python-ai-service -n bot-core-staging --timeout=5m
           kubectl rollout status deployment/nextjs-ui-dashboard -n bot-core-staging --timeout=5m
 
       - name: Run smoke tests
@@ -510,7 +499,6 @@ jobs:
         if: failure()
         run: |
           kubectl rollout undo deployment/rust-core-engine -n bot-core-staging
-          kubectl rollout undo deployment/python-ai-service -n bot-core-staging
           kubectl rollout undo deployment/nextjs-ui-dashboard -n bot-core-staging
 
       - name: Notify Slack on failure
@@ -594,7 +582,6 @@ jobs:
       - name: Create deployment backup
         run: |
           kubectl get deployment rust-core-engine -n bot-core-production -o yaml > rust-backup.yaml
-          kubectl get deployment python-ai-service -n bot-core-production -o yaml > python-backup.yaml
           kubectl get deployment nextjs-ui-dashboard -n bot-core-production -o yaml > frontend-backup.yaml
 
       - name: Update image tags
@@ -602,14 +589,12 @@ jobs:
           cd infrastructure/kubernetes/overlays/production
           kustomize edit set image \
             rust-core-engine=${{ secrets.DOCKER_REGISTRY }}/rust-core-engine:${{ github.sha }} \
-            python-ai-service=${{ secrets.DOCKER_REGISTRY }}/python-ai-service:${{ github.sha }} \
             nextjs-ui-dashboard=${{ secrets.DOCKER_REGISTRY }}/nextjs-ui-dashboard:${{ github.sha }}
 
       - name: Deploy to production
         run: |
           kubectl apply -k infrastructure/kubernetes/overlays/production/
           kubectl rollout status deployment/rust-core-engine -n bot-core-production --timeout=10m
-          kubectl rollout status deployment/python-ai-service -n bot-core-production --timeout=10m
           kubectl rollout status deployment/nextjs-ui-dashboard -n bot-core-production --timeout=10m
 
       - name: Health check
@@ -663,7 +648,6 @@ jobs:
           kubectl apply -f python-backup.yaml
           kubectl apply -f frontend-backup.yaml
           kubectl rollout status deployment/rust-core-engine -n bot-core-production
-          kubectl rollout status deployment/python-ai-service -n bot-core-production
           kubectl rollout status deployment/nextjs-ui-dashboard -n bot-core-production
 
       - name: Notify Slack on failure

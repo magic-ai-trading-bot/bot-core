@@ -145,7 +145,7 @@
 | Service | Endpoint | Port | Auth |
 |---|---|---|---|
 | Rust Core Engine | `GET /api/health` | 8080 | None (skipAuth) |
-| Python AI Service | `GET /health` | 8000 | None (skipAuth) |
+
 
 **Response shape**:
 ```json
@@ -154,7 +154,6 @@
   "timestamp": "ISO8601",
   "services": {
     "rust_core_engine": { "status": "healthy|unhealthy|unreachable", "port": 8080 },
-    "python_ai_service": { "status": "healthy|unhealthy|unreachable", "port": 8000 }
   }
 }
 ```
@@ -170,7 +169,7 @@
 **Description**: Deep health check testing the full AI pipeline — MongoDB candle fetch, indicator calculation, and model inference.
 
 **Tool**: `check_market_condition_health`
-**Endpoint**: `GET /ai/health/market-condition` (Python AI, port 8000)
+
 **Timeout**: 15 seconds
 
 **Response**:
@@ -184,16 +183,16 @@
 
 ---
 
-### FR-MONITORING-006: Python AI Health
+
 
 **Priority**: Medium
 **Status**: Completed
 **Code**: `mcp-server/src/tools/monitoring.ts:get_python_health`
 
-**Description**: Lightweight health check for Python AI service.
+
 
 **Tool**: `get_python_health`
-**Endpoint**: `GET /health` (Python AI, port 8000)
+
 **Timeout**: 5 seconds
 
 ---
@@ -210,7 +209,7 @@
 **Input**: `{ service: "rust" | "python" | "all" }`
 **Sources**:
 - Rust: `GET /api/monitoring/system`
-- Python: `GET /health`
+
 
 ---
 
@@ -238,13 +237,13 @@
 
 | Tool | Category | Endpoint |
 |---|---|---|
-| `check_system_health` | health | Composite (Rust + Python) |
-| `get_service_logs_summary` | health | Rust + Python |
-| `check_market_condition_health` | health | Python `/ai/health/market-condition` |
+
+
+
 | `get_system_monitoring` | monitoring | Rust `/api/monitoring/system` |
 | `get_trading_metrics` | monitoring | Rust `/api/monitoring/trading` |
 | `get_connection_status` | monitoring | Rust `/api/monitoring/connection` |
-| `get_python_health` | monitoring | Python `/health` |
+
 
 ### Update Mechanism
 
@@ -266,7 +265,7 @@ MonitoringService::update_connection_status() → sets ws/api flags
 - `chrono` crate — timestamp generation
 - `warp` — HTTP routing
 - `tokio::sync::RwLock` — thread-safe metric access
-- Python AI Service — pipeline health endpoint
+
 
 ---
 

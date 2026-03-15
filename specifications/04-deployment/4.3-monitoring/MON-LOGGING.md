@@ -218,7 +218,6 @@ RUST_BACKTRACE=1                 # Include backtraces
 
 ### 4.2 Python AI Service Logging
 
-**Configuration:** `python-ai-service/config.yaml`
 
 **Library:** `loguru`
 
@@ -258,7 +257,6 @@ def json_formatter(record):
     log_record = {
         "timestamp": record["time"].isoformat(),
         "level": record["level"].name,
-        "service": "python-ai-service",
         "message": record["message"],
         "function": record["function"],
         "file": record["file"].name,
@@ -305,7 +303,6 @@ async def analyze_market(symbol: str):
 
 **Configuration File:**
 ```yaml
-# python-ai-service/config.yaml
 logging:
   level: "INFO"
   format: "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | {name}:{function}:{line} | {message}"
@@ -504,9 +501,7 @@ output.elasticsearch:
     - index: "rust-core-engine-%{+yyyy.MM.dd}"
       when.contains:
         container.name: "rust-core-engine"
-    - index: "python-ai-service-%{+yyyy.MM.dd}"
       when.contains:
-        container.name: "python-ai-service"
     - index: "nextjs-ui-dashboard-%{+yyyy.MM.dd}"
       when.contains:
         container.name: "nextjs-ui-dashboard"

@@ -14,7 +14,7 @@ The following workflows are **currently active** in `.github/workflows/`:
 | Workflow file | Triggers | Purpose |
 |--------------|---------|---------|
 | `test-coverage.yml` | push/PR to main, develop | Rust (90%), Python (93%), Frontend (95%) coverage + quality gates |
-| `lint.yml` | push/PR to main, develop | Rust clippy+fmt, Python flake8+black, Frontend ESLint |
+
 | `security-scan.yml` | scheduled + push | Trivy vulnerability scan |
 | `mutation-testing.yml` | scheduled | Rust mutation tests (cargo-mutants) |
 | `docker-build-push.yml` | push to main | Build and push Docker images to registry |
@@ -71,7 +71,7 @@ updates:
 
   # Python dependencies
   - package-ecosystem: "pip"
-    directory: "/python-ai-service"
+
     schedule:
       interval: "weekly"
       day: "monday"
@@ -177,11 +177,11 @@ jobs:
 
       - name: Update dependencies
         run: |
-          cd python-ai-service
+
           pip install pip-tools
           pip-compile --upgrade requirements.in
           pip install -r requirements.txt
-          pytest tests/
+
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
@@ -258,7 +258,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: './python-ai-service'
+
           format: 'sarif'
           output: 'python-trivy.sarif'
           severity: 'CRITICAL,HIGH'
@@ -409,9 +409,9 @@ jobs:
         env:
           BASE_URL: https://staging.botcore.app
 
-      - name: Run load test - Python AI
+
         run: |
-          k6 run --out json=python-results.json tests/load/python-ai-load-test.js
+
         env:
           BASE_URL: https://staging.botcore.app
 
@@ -664,7 +664,7 @@ on:
     branches: [main]
     paths:
       - 'rust-core-engine/src/**'
-      - 'python-ai-service/**/*.py'
+
       - 'nextjs-ui-dashboard/src/**'
       - 'docs/**'
   workflow_dispatch:
@@ -705,12 +705,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd python-ai-service
+
           pip install sphinx sphinx-rtd-theme
 
       - name: Generate docs
         run: |
-          cd python-ai-service
+
           sphinx-apidoc -o docs/source .
           sphinx-build -b html docs/source docs/build
 
@@ -718,7 +718,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: python-docs
-          path: python-ai-service/docs/build
+
 
   generate-api-specs:
     name: Generate API Specifications
@@ -728,10 +728,10 @@ jobs:
 
       - name: Generate OpenAPI spec
         run: |
-          docker compose up -d rust-core-engine python-ai-service
+
           sleep 30
           curl http://localhost:8080/api/openapi.json > rust-api-spec.json
-          curl http://localhost:8000/openapi.json > python-api-spec.json
+
 
       - name: Validate OpenAPI specs
         run: |
@@ -831,13 +831,13 @@ jobs:
       - name: Tag Docker images
         run: |
           docker tag rust-core-engine:latest rust-core-engine:${{ steps.version.outputs.version }}
-          docker tag python-ai-service:latest python-ai-service:${{ steps.version.outputs.version }}
+
           docker tag nextjs-ui-dashboard:latest nextjs-ui-dashboard:${{ steps.version.outputs.version }}
 
       - name: Push tagged images
         run: |
           docker push rust-core-engine:${{ steps.version.outputs.version }}
-          docker push python-ai-service:${{ steps.version.outputs.version }}
+
           docker push nextjs-ui-dashboard:${{ steps.version.outputs.version }}
 
       - name: Create changelog

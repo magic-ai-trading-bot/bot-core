@@ -282,7 +282,6 @@ Migrations are JavaScript files executed via `mongosh` to apply schema changes i
 
 **Location:**
 - Rust service: `/Users/dungngo97/Documents/bot-core/rust-core-engine/migrations/`
-- Python service: `/Users/dungngo97/Documents/bot-core/python-ai-service/migrations/`
 
 ### Rust Service Migrations
 
@@ -336,8 +335,6 @@ mongosh "$MONGO_URL" < rust-core-engine/migrations/002_indexes.js
 mongosh "$MONGO_URL" < rust-core-engine/migrations/003_seed_data.js
 
 # Run Python migrations
-mongosh "$MONGO_URL" < python-ai-service/migrations/001_ml_models.js
-mongosh "$MONGO_URL" < python-ai-service/migrations/002_market_data.js
 ```
 
 ### Creating New Migrations

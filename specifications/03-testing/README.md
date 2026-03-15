@@ -169,11 +169,6 @@ Scenario: Successful registration with valid data
 | Feature Engineering | 5 | High |
 
 **Referenced Test Files:**
-- `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_models.py`
-- `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_analyzer.py`
-- `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_gpt_analyzer.py`
-- `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_technical_indicators.py`
-- `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_redis_cache.py`
 
 **Key Test Cases:**
 - TC-AI-001: LSTM Model Price Prediction
@@ -203,7 +198,6 @@ Scenario: Successful registration with valid data
 **Referenced Test Files:**
 - `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/test_cross_service.rs`
 - `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/test_service_integration.rs`
-- `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_full_integration.py`
 - `/Users/dungngo97/Documents/bot-core/tests/e2e-cross-service/test_full_system.py`
 
 **Key Test Cases:**
@@ -487,7 +481,6 @@ And show warning: "AI analysis unavailable"
 
 ### Python AI Service
 ```
-/Users/dungngo97/Documents/bot-core/python-ai-service/tests/
 ├── test_models.py
 ├── test_technical_analyzer.py (11 tests)
 ├── test_gpt_analyzer.py
@@ -574,7 +567,6 @@ And show warning: "AI analysis unavailable"
     cd rust-core-engine && cargo test
 
     # Python tests
-    cd python-ai-service && pytest --cov=./
 
     # Frontend tests
     cd nextjs-ui-dashboard && npm run test:coverage

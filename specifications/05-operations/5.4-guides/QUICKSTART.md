@@ -34,14 +34,12 @@ nano .env
 ```bash
 ./scripts/bot.sh status
 curl http://localhost:8080/api/health
-curl http://localhost:8000/health
 curl http://localhost:3000/
 ```
 
 ### 5. Access Dashboard
 - **Dashboard:** http://localhost:3000
 - **Rust API:** http://localhost:8080/api/health
-- **Python AI:** http://localhost:8000/health
 
 ### Development Workflow
 
@@ -55,7 +53,6 @@ cargo clippy           # Lint
 
 **Python:**
 ```bash
-cd python-ai-service
 uvicorn main:app --reload
 pytest
 black .
@@ -153,7 +150,6 @@ docker-compose ps
 ```bash
 watch -n 2 'docker-compose ps'
 curl http://localhost:8080/api/health
-curl http://localhost:8000/health
 ```
 
 ### 6. Verify & Monitor
@@ -167,14 +163,12 @@ docker-compose --profile monitoring up -d
 ### Staging URLs
 - **Dashboard:** http://staging-server:3000
 - **Rust API:** http://staging-server:8080
-- **Python AI:** http://staging-server:8000
 - **Grafana:** http://staging-server:3001
 
 ### Testing in Staging
 ```bash
 # Smoke tests
 curl http://localhost:8080/api/v1/binance/ping
-curl -X POST http://localhost:8000/api/ai/predict
 
 # Load test
 ab -n 1000 -c 50 http://localhost:8080/api/health
@@ -255,7 +249,6 @@ docker-compose logs -f
 ```bash
 sleep 180  # Wait 2-3 minutes
 curl http://localhost:8080/api/health | jq
-curl http://localhost:8000/health | jq
 curl -I http://localhost:3000/
 ```
 
@@ -284,7 +277,6 @@ ab -n 100 -c 10 http://localhost:8080/api/health
 # Resources
 docker stats --no-stream
 # rust-core-engine: < 10% CPU, < 1GB RAM
-# python-ai-service: < 15% CPU, < 2GB RAM
 
 # Security
 docker-compose logs | grep -i 'api.*key\|secret\|password'  # No secrets

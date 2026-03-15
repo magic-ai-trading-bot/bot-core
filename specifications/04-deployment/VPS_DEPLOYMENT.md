@@ -142,7 +142,7 @@ sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp      # HTTP
 sudo ufw allow 443/tcp     # HTTPS
 sudo ufw allow 8080/tcp    # Rust Core Engine API
-sudo ufw allow 8000/tcp    # Python AI Service API
+
 sudo ufw allow 3000/tcp    # Next.js Dashboard
 
 # Check status
@@ -393,7 +393,7 @@ ls -la
 **Expected output:**
 ```
 drwxr-xr-x  rust-core-engine/
-drwxr-xr-x  python-ai-service/
+
 drwxr-xr-x  nextjs-ui-dashboard/
 -rw-r--r--  docker-compose.yml
 -rw-r--r--  .env.example
@@ -604,7 +604,7 @@ docker compose build --no-cache
 
 # Or build sequentially to avoid OOM on 8GB VPS:
 docker compose build rust-core-engine
-docker compose build python-ai-service
+
 docker compose build nextjs-ui-dashboard
 ```
 
@@ -613,7 +613,7 @@ docker compose build nextjs-ui-dashboard
 [+] Building 542.3s (45/45) FINISHED
  => [rust-core-engine internal] load build definition
  => => transferring dockerfile: 1.23kB
- => [python-ai-service internal] load build definition
+
 ...
  => exporting to image
  => => writing image sha256:abc123...
@@ -633,7 +633,7 @@ docker ps
 ```
 CONTAINER ID   IMAGE                        STATUS         PORTS
 abc123def456   bot-core-rust-engine        Up 2 minutes   0.0.0.0:8080->8080/tcp
-def456ghi789   bot-core-python-ai          Up 2 minutes   0.0.0.0:8000->8000/tcp
+
 ghi789jkl012   bot-core-nextjs-dashboard   Up 2 minutes   0.0.0.0:3000->3000/tcp
 ```
 
@@ -645,7 +645,7 @@ docker compose logs -f
 
 # Or watch specific service:
 docker compose logs -f rust-core-engine
-docker compose logs -f python-ai-service
+
 docker compose logs -f nextjs-ui-dashboard
 
 # Check service health
@@ -666,8 +666,8 @@ curl http://localhost:8080/api/health
 
 # Expected: {"status":"ok","timestamp":"..."}
 
-# Python AI Service
-curl http://localhost:8000/health
+
+
 
 # Expected: {"status":"healthy","version":"1.0.0"}
 
@@ -683,8 +683,8 @@ curl http://localhost:3000
 # Test Rust API
 curl -X GET http://localhost:8080/api/strategies/active
 
-# Test Python AI API
-curl -X POST http://localhost:8000/predict \
+
+
   -H "Content-Type: application/json" \
   -d '{"symbol":"BTCUSDT","interval":"1h"}'
 ```
@@ -752,9 +752,9 @@ scrape_configs:
     static_configs:
       - targets: ['rust-core-engine:8080']
 
-  - job_name: 'python-ai-service'
+
     static_configs:
-      - targets: ['python-ai-service:8000']
+
 EOF
 
 # Start monitoring stack

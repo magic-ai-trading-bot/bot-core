@@ -16,7 +16,7 @@
 |---------|-----------|------|-------------|
 | MongoDB | mongodb | 27017 | `mongosh --eval "db.adminCommand('ping')"` |
 | Redis | redis-cache | 6379 | `redis-cli ping` |
-| Python AI | python-ai-service | 8000 | `curl http://localhost:8000/health` |
+
 | Rust Backend | rust-core-engine | 8080 | `curl http://localhost:8080/api/health` |
 | Frontend | nextjs-ui-dashboard | 3000 | `curl http://localhost:3000` |
 | MCP Server | mcp-server | 8090 | `curl http://localhost:8090/health` |
@@ -28,7 +28,7 @@
 |---------|-----|
 | Frontend Dashboard | http://180.93.2.247:3000 |
 | Rust API | http://180.93.2.247:8080/api/health |
-| Python AI API | http://180.93.2.247:8000/health |
+
 | OpenClaw UI | http://180.93.2.247:18789 |
 | MCP Server | http://180.93.2.247:8090/health |
 

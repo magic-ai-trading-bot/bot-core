@@ -97,7 +97,6 @@ nano .env
 
 # View logs
 ./scripts/bot.sh logs --service rust-core-engine
-./scripts/bot.sh logs --service python-ai-service
 ./scripts/bot.sh logs --service nextjs-ui-dashboard
 ```
 
@@ -125,7 +124,6 @@ cargo clippy -- -D warnings
 
 **Python AI Service (Port 8000):**
 ```bash
-cd python-ai-service
 
 # Create virtual environment
 python3 -m venv venv
@@ -219,7 +217,6 @@ bot-core/
 │   ├── src/               # Source code
 │   ├── tests/             # Integration tests
 │   └── benches/           # Performance benchmarks
-├── python-ai-service/     # AI/ML service (Python/FastAPI)
 │   ├── models/            # ML models
 │   ├── services/          # Business logic
 │   └── tests/             # Unit & integration tests
@@ -319,7 +316,6 @@ pub async fn execute_market_order(
 
 **Before Committing:**
 ```bash
-cd python-ai-service
 
 # Format code
 black .
@@ -509,7 +505,6 @@ python3 scripts/validate-spec-tags.py
 cd rust-core-engine && cargo test
 
 # Python
-cd python-ai-service && pytest tests/unit/
 
 # TypeScript
 cd nextjs-ui-dashboard && npm run test
@@ -947,7 +942,6 @@ Once approved:
    cd rust-core-engine && cargo tarpaulin --out Stdout
 
    # Python
-   cd python-ai-service && pytest --cov --cov-report=term
 
    # Frontend
    cd nextjs-ui-dashboard && npm run test:coverage
@@ -1028,7 +1022,6 @@ Once approved:
 cd rust-core-engine && cargo run
 
 # Python only
-cd python-ai-service && python main.py
 
 # Frontend only
 cd nextjs-ui-dashboard && npm run dev
@@ -1059,7 +1052,6 @@ bun add new-package
 
 **Q: Where do I add new tests?**
 - Rust: `rust-core-engine/tests/`
-- Python: `python-ai-service/tests/`
 - Frontend: `nextjs-ui-dashboard/tests/` or `nextjs-ui-dashboard/e2e/`
 
 **Q: How do I update documentation?**

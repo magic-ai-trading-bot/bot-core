@@ -345,7 +345,6 @@ The system shall maintain comprehensive test coverage across all components to e
 
 **Implementation Files**:
 - `rust-core-engine/tests/` - Rust unit and integration tests
-- `python-ai-service/tests/` - Python unit and integration tests
 - `nextjs-ui-dashboard/src/**/*.test.ts` - TypeScript component tests
 - `e2e/tests/` - End-to-end tests with Playwright
 
@@ -553,7 +552,6 @@ The system shall provide comprehensive logging and monitoring to enable rapid tr
 
 **Implementation Files**:
 - `rust-core-engine/src/logging/mod.rs` - Logging configuration
-- `python-ai-service/logging_config.py` - Python logging setup
 - `infrastructure/monitoring/prometheus.yml` - Prometheus configuration
 - `infrastructure/monitoring/grafana/` - Grafana dashboards (planned)
 

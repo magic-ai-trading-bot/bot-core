@@ -565,7 +565,6 @@ This traceability matrix provides bidirectional linkage between user stories, fu
 | NFR-SECURITY-001 | JWT authentication | `rust-core-engine/src/auth/jwt.rs` | SEC-TEST-SPEC.md § 3.1 |
 | NFR-SECURITY-002 | Password hashing (bcrypt) | `rust-core-engine/src/auth/password.rs` | SEC-TEST-SPEC.md § 3.2 |
 | NFR-SECURITY-003 | HTTPS/TLS encryption | Nginx reverse proxy, TLS certificates | SEC-TEST-SPEC.md § 3.3 |
-| NFR-SECURITY-004 | Input validation | Warp filters, FastAPI validators | SEC-TEST-SPEC.md § 3.4 |
 | NFR-SECURITY-005 | SQL injection prevention | MongoDB (NoSQL), parameterized queries | SEC-TEST-SPEC.md § 3.5 |
 | NFR-SECURITY-006 | XSS prevention | React auto-escaping, CSP headers | SEC-TEST-SPEC.md § 3.6 |
 | NFR-SECURITY-007 | CSRF protection | Token validation, SameSite cookies | SEC-TEST-SPEC.md § 3.7 |

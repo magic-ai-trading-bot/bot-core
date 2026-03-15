@@ -113,7 +113,6 @@ The Async Task Processing System provides a robust, scalable background job exec
 #### FR-ASYNC-001: Async Model Training
 
 **Priority**: CRITICAL
-**Implementation**: `python-ai-service/tasks/ml_tasks.py:32-134`
 **Depends On**: FR-ML-001 (LSTM Model), FR-ML-002 (Dataset Management)
 **Task Name**: `tasks.ml_tasks.train_model`
 
@@ -287,7 +286,6 @@ print(f"Accuracy: {final_result['training_results']['val_accuracy']:.2%}")
 
 **REST API Call**:
 ```bash
-curl -X POST http://localhost:8000/api/tasks/train \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $JWT_TOKEN" \
   -d '{
@@ -308,7 +306,6 @@ curl -X POST http://localhost:8000/api/tasks/train \
 
 **Check Task Status**:
 ```bash
-curl http://localhost:8000/api/tasks/abc-123-def-456 \
   -H "Authorization: Bearer $JWT_TOKEN"
 
 # Response (in progress):
@@ -497,16 +494,12 @@ def scrub_logs(log_message):
 
 ##### Code References
 
-- `@code:python-ai-service/tasks/ml_tasks.py:32-134` - Main implementation
-- `@code:python-ai-service/models/model_manager.py` - Model training logic
-- `@code:python-ai-service/tests/test_ml_tasks.py` - Unit tests
 
 ---
 
 #### FR-ASYNC-002: Bulk Analysis
 
 **Priority**: HIGH
-**Implementation**: `python-ai-service/tasks/ml_tasks.py:136-197`
 **Depends On**: FR-ASYNC-001 (Trained Models)
 **Task Name**: `tasks.ml_tasks.bulk_analysis`
 
@@ -631,7 +624,6 @@ def test_bulk_analysis_handles_failures():
 #### FR-ASYNC-003: Price Prediction
 
 **Priority**: MEDIUM
-**Implementation**: `python-ai-service/tasks/ml_tasks.py:200-254`
 **Task Name**: `tasks.ml_tasks.predict_price`
 
 ##### Description
@@ -679,7 +671,6 @@ Generate future price predictions for a single symbol over a specified time hori
 #### FR-ASYNC-004: System Health Check
 
 **Priority**: CRITICAL
-**Implementation**: `python-ai-service/tasks/monitoring.py:66-218`
 **Schedule**: Every 15 minutes (Celery Beat)
 **Task Name**: `tasks.monitoring.system_health_check`
 
@@ -729,7 +720,6 @@ sequenceDiagram
 | Service | Health Endpoint | Healthy Criteria | Warning | Critical |
 |---------|----------------|------------------|---------|----------|
 | **Rust Core Engine** | `http://localhost:8080/api/health` | HTTP 200, response < 5s | Response 5-10s | HTTP ≠200 or timeout |
-| **Python AI Service** | `http://localhost:8000/health` | HTTP 200, response < 5s | Response 5-10s | HTTP ≠200 or timeout |
 | **Frontend Dashboard** | `http://localhost:3000/` | HTTP 200 or 304 | Response > 3s | HTTP 500 or timeout |
 | **MongoDB** | `mongosh --eval "db.adminCommand('ping')"` | Exit code 0 | Slow response | Connection refused |
 | **Redis** | `redis-cli ping` | Returns "PONG" | Response > 1s | Connection refused |
@@ -848,7 +838,6 @@ def test_health_check_service_down(mock_requests):
 #### FR-ASYNC-005: Daily Portfolio Report
 
 **Priority**: HIGH
-**Implementation**: `python-ai-service/tasks/monitoring.py:227-298`
 **Schedule**: 8:00 AM UTC daily (Celery Beat)
 **Task Name**: `tasks.monitoring.daily_portfolio_report`
 
@@ -901,7 +890,6 @@ Generate comprehensive daily portfolio performance summary and email to admins e
 #### FR-ASYNC-006: Daily API Cost Report
 
 **Priority**: HIGH
-**Implementation**: `python-ai-service/tasks/monitoring.py:306-409`
 **Schedule**: 9:00 AM UTC daily
 **Task Name**: `tasks.monitoring.daily_api_cost_report`
 
@@ -959,7 +947,6 @@ Track and report Grok/xAI API costs to prevent runaway expenses. **CRITICAL** fo
 #### FR-ASYNC-007: Daily Performance Analysis
 
 **Priority**: CRITICAL
-**Implementation**: `python-ai-service/tasks/monitoring.py:418-557`
 **Schedule**: 1:00 AM UTC daily
 **Task Name**: `tasks.monitoring.daily_performance_analysis`
 
@@ -1034,7 +1021,6 @@ flowchart TD
 #### FR-ASYNC-008: Grok/xAI Self-Analysis
 
 **Priority**: CRITICAL
-**Implementation**: `python-ai-service/tasks/ai_improvement.py:64-246`
 **Schedule**: 3:00 AM UTC daily (or triggered by performance alerts)
 **Task Name**: `tasks.ai_improvement.gpt4_self_analysis` (legacy name; uses Grok/xAI via OpenAI-compatible SDK)
 
@@ -1299,7 +1285,6 @@ def test_grok_analysis_skipped_if_performance_good(mock_requests):
 #### FR-ASYNC-009: Adaptive Model Retraining
 
 **Priority**: CRITICAL
-**Implementation**: `python-ai-service/tasks/ai_improvement.py:254-364`
 **Triggered By**: Grok/xAI Self-Analysis recommendation
 **Task Name**: `tasks.ai_improvement.adaptive_retrain`
 
@@ -1484,7 +1469,6 @@ def test_adaptive_retrain_keeps_old_model_if_worse(mock_train):
 #### FR-ASYNC-010: Emergency Strategy Disable
 
 **Priority**: CRITICAL
-**Implementation**: `python-ai-service/tasks/ai_improvement.py:372-428`
 **Triggered By**: Severe daily loss (>10%) or consecutive losses (>10)
 **Task Name**: `tasks.ai_improvement.emergency_strategy_disable`
 
@@ -1535,7 +1519,6 @@ Automatically disable a failing trading strategy to prevent further losses when 
 #### FR-ASYNC-011: Strategy Backtesting
 
 **Priority**: MEDIUM
-**Implementation**: `python-ai-service/tasks/backtest_tasks.py:27-139`
 **Task Name**: `tasks.backtest_tasks.backtest_strategy`
 
 ##### Description
@@ -1596,7 +1579,6 @@ Backtest a trading strategy on historical data to evaluate performance before de
 #### FR-ASYNC-012: Strategy Optimization
 
 **Priority**: LOW
-**Implementation**: `python-ai-service/tasks/backtest_tasks.py:142-230`
 **Task Name**: `tasks.backtest_tasks.optimize_strategy`
 
 ##### Description
@@ -2432,7 +2414,6 @@ def test_rabbitmq_restart_task_persistence():
 def test_train_model_requires_auth():
     """Test training endpoint rejects unauthenticated requests"""
     response = requests.post(
-        "http://localhost:8000/api/tasks/train",
         json={"model_type": "lstm", "symbol": "BTCUSDT"}
     )
 
@@ -2446,7 +2427,6 @@ def test_training_rate_limit():
     """Test max 10 training tasks per user per day"""
     for i in range(10):
         response = requests.post(
-            "http://localhost:8000/api/tasks/train",
             headers={"Authorization": f"Bearer {jwt_token}"},
             json={"model_type": "lstm", "symbol": f"SYM{i}USDT"}
         )
@@ -2454,7 +2434,6 @@ def test_training_rate_limit():
 
     # 11th request should be rejected
     response = requests.post(
-        "http://localhost:8000/api/tasks/train",
         headers={"Authorization": f"Bearer {jwt_token}"},
         json={"model_type": "lstm", "symbol": "SYM11USDT"}
     )
@@ -2518,7 +2497,6 @@ services:
       retries: 3
 
   celery-worker:
-    build: ./python-ai-service
     command: celery -A celery_app worker --loglevel=info --concurrency=4
     depends_on:
       - rabbitmq
@@ -2543,7 +2521,6 @@ services:
           memory: 8G
 
   celery-beat:
-    build: ./python-ai-service
     command: celery -A celery_app beat --loglevel=info
     depends_on:
       - rabbitmq
@@ -2554,7 +2531,6 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
 
   flower:
-    build: ./python-ai-service
     command: celery -A celery_app flower --port=5555
     ports:
       - "5555:5555"
@@ -2729,29 +2705,14 @@ groups:
 ### 12.1 Code References
 
 **ML Tasks**:
-- `@spec:FR-ASYNC-001` → `python-ai-service/tasks/ml_tasks.py:32-134` (train_model)
-- `@spec:FR-ASYNC-002` → `python-ai-service/tasks/ml_tasks.py:136-197` (bulk_analysis)
-- `@spec:FR-ASYNC-003` → `python-ai-service/tasks/ml_tasks.py:200-254` (predict_price)
 
 **Monitoring Tasks**:
-- `@spec:FR-ASYNC-004` → `python-ai-service/tasks/monitoring.py:66-218` (system_health_check)
-- `@spec:FR-ASYNC-005` → `python-ai-service/tasks/monitoring.py:227-298` (daily_portfolio_report)
-- `@spec:FR-ASYNC-006` → `python-ai-service/tasks/monitoring.py:306-409` (daily_api_cost_report)
-- `@spec:FR-ASYNC-007` → `python-ai-service/tasks/monitoring.py:418-557` (daily_performance_analysis)
 
 **AI Improvement Tasks**:
-- `@spec:FR-ASYNC-008` → `python-ai-service/tasks/ai_improvement.py:64-246` (gpt4_self_analysis)
-- `@spec:FR-ASYNC-009` → `python-ai-service/tasks/ai_improvement.py:254-364` (adaptive_retrain)
-- `@spec:FR-ASYNC-010` → `python-ai-service/tasks/ai_improvement.py:372-428` (emergency_strategy_disable)
 
 **Backtest Tasks**:
-- `@spec:FR-ASYNC-011` → `python-ai-service/tasks/backtest_tasks.py:27-139` (backtest_strategy)
-- `@spec:FR-ASYNC-012` → `python-ai-service/tasks/backtest_tasks.py:142-230` (optimize_strategy)
 
 **Infrastructure**:
-- `@spec:FR-ASYNC-INFRA-001` → `python-ai-service/celery_app.py` (Celery configuration)
-- `@spec:FR-ASYNC-INFRA-002` → `python-ai-service/utils/notifications.py` (Notification system)
-- `@spec:FR-ASYNC-INFRA-003` → `python-ai-service/utils/data_storage.py` (MongoDB storage)
 
 ### 12.2 Test Cases
 

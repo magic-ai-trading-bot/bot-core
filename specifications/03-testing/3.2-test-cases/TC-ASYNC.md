@@ -38,10 +38,6 @@
 | **TOTAL** | **105** | - | **100%** |
 
 **Test File Locations:**
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_celery_integration.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_ai_improvement_tasks.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_async_tasks_simple.py`
-- Python: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_data_storage.py`
 
 **Execution Environment:**
 - RabbitMQ 3.12+ running on localhost:5672
@@ -107,7 +103,6 @@ Feature: Async ML Model Training
 1. **Setup**: Ensure MongoDB has BTCUSDT data (30 days, 1h candles)
 2. **Trigger Training**:
    ```bash
-   curl -X POST http://localhost:8000/api/tasks/train \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $ADMIN_JWT_TOKEN" \
      -d '{
@@ -124,7 +119,6 @@ Feature: Async ML Model Training
 4. **Poll Task Status**:
    ```bash
    while true; do
-     STATUS=$(curl http://localhost:8000/api/tasks/{task_id} -H "Authorization: Bearer $JWT")
      echo $STATUS
      sleep 10
    done
@@ -206,8 +200,6 @@ redis-cli DEL celery-task-meta-abc-123-def-456
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/ml_tasks.py:32-134`
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_async_tasks_simple.py`
 
 ---
 
@@ -230,7 +222,6 @@ redis-cli DEL celery-task-meta-abc-123-def-456
 **Test Steps:**
 1. Send request with invalid `epochs` parameter:
    ```bash
-   curl -X POST http://localhost:8000/api/tasks/train \
      -H "Content-Type: application/json" \
      -d '{"model_type": "lstm", "symbol": "BTCUSDT", "epochs": 0}'
    ```
@@ -332,7 +323,6 @@ with patch('tensorflow.keras.Model.fit') as mock_fit:
 ```
 
 **Code Location:**
-- Error handling: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/ml_tasks.py:130-133`
 
 ---
 
@@ -829,7 +819,6 @@ assert len(result["failed_symbols"]) == 0
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/ml_tasks.py:136-197`
 
 ---
 
@@ -939,7 +928,6 @@ assert confidences[0] > confidences[-1]  # Hour 1 > Hour 24
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/ml_tasks.py:200-254`
 
 ---
 
@@ -998,7 +986,6 @@ Feature: System Health Monitoring
    curl http://localhost:8080/api/health
 
    # Python API
-   curl http://localhost:8000/health
 
    # Frontend
    curl http://localhost:3000/
@@ -1052,7 +1039,6 @@ assert notification_mock.call_count == 0
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/monitoring.py:66-218`
 
 ---
 
@@ -1321,7 +1307,6 @@ assert "macd" in report["strategies"]
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/monitoring.py:227-298`
 
 ---
 
@@ -1628,7 +1613,6 @@ assert db.gpt4_analysis_history.count_documents({"task_id": result["task_id"]}) 
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/ai_improvement.py:64-246`
 
 ---
 
@@ -1882,7 +1866,6 @@ with patch('models.model_manager.ModelManager.train_model') as mock_train:
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/ai_improvement.py:254-300+`
 
 ---
 
@@ -2089,7 +2072,6 @@ assert 5 <= results["total_return"] <= 25
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/backtest_tasks.py:27-139`
 
 ---
 
@@ -2150,7 +2132,6 @@ assert 10 <= best["rsi_period"] <= 20
 ```
 
 **Code Location:**
-- Task: `/Users/dungngo97/Documents/bot-core/python-ai-service/tasks/backtest_tasks.py:142-200+`
 
 ---
 
@@ -2742,7 +2723,6 @@ assert routes["tasks.backtest_tasks.backtest_strategy"]["queue"] == "backtesting
 ```
 
 **Code Location:**
-- Test: `/Users/dungngo97/Documents/bot-core/python-ai-service/tests/test_celery_integration.py:122-167`
 
 ---
 
@@ -2880,7 +2860,6 @@ The Async Tasks System is considered complete and production-ready when:
 
 **Test Files Structure:**
 ```
-python-ai-service/tests/
 ├── test_ml_tasks.py                    # TC-ASYNC-001 to TC-ASYNC-030
 ├── test_monitoring_tasks.py            # TC-ASYNC-031 to TC-ASYNC-050
 ├── test_ai_improvement_tasks.py        # TC-ASYNC-051 to TC-ASYNC-065

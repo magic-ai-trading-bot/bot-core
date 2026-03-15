@@ -26,7 +26,6 @@ The Bot Core trading platform uses WebSocket connections for real-time bidirecti
    - Bot status changes
    - Chart updates
 
-2. **Python AI Service WebSocket** (`ws://localhost:8000/ws`)
    - AI signal generation
    - Real-time analysis results
    - Connection status
@@ -97,12 +96,10 @@ ws.onclose = (event) => {
 
 ### Python AI Service WebSocket
 
-**Endpoint:** `ws://localhost:8000/ws`
 
 **Connection Request:**
 ```http
 GET /ws HTTP/1.1
-Host: localhost:8000
 Upgrade: websocket
 Connection: Upgrade
 Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
@@ -133,7 +130,6 @@ import websockets
 import json
 
 async def connect_ai_websocket():
-    uri = "ws://localhost:8000/ws"
     async with websockets.connect(uri) as websocket:
         print("✅ Connected to AI WebSocket")
 
@@ -143,7 +139,6 @@ async def connect_ai_websocket():
             await handle_ai_signal(data)
 ```
 
-**Code Location:** `python-ai-service/main.py:1731-1747`
 
 ---
 
@@ -450,7 +445,6 @@ case 'AISignalReceived':
 ```
 
 **Code Location (Rust):** `rust-core-engine/src/api/mod.rs:556-587`
-**Code Location (Python):** `python-ai-service/main.py:100-126, 1871-1883`
 **Related FR:** FR-WS-AI-001
 
 ---
@@ -668,7 +662,6 @@ function resetConnectionTimeout() {
 The server responds to Ping messages with Pong messages containing the current timestamp.
 
 **Code Location (Rust):** `rust-core-engine/src/api/mod.rs:486-534`
-**Code Location (Python):** `python-ai-service/main.py:1736-1745`
 
 ---
 
