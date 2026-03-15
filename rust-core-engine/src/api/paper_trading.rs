@@ -2434,34 +2434,24 @@ async fn get_signals_history(
     }
 }
 
-/// Get latest AI signal for each symbol (for quick page load)
+/// Get latest strategy signals from in-memory cache (one per symbol, for quick page load)
 /// @spec:FR-AI-013 - Cached Signal Display
 async fn get_latest_signals(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
-    match api.engine.storage().get_latest_signals_per_symbol().await {
-        Ok(signals) => {
-            let response = serde_json::json!({
-                "signals": signals,
-                "count": signals.len(),
-                "cached": true,
-            });
-
-            log::info!(
-                "📡 Returned {} cached signals (latest per symbol)",
-                signals.len()
-            );
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::success(response)),
-                StatusCode::OK,
-            ))
-        },
-        Err(e) => {
-            log::error!("❌ Failed to get latest signals: {}", e);
-            Ok(warp::reply::with_status(
-                warp::reply::json(&ApiResponse::<()>::error(e.to_string())),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))
-        },
-    }
+    let signals = api.engine.get_latest_strategy_signals().await;
+    let count = signals.len();
+    let response = serde_json::json!({
+        "signals": signals,
+        "count": count,
+        "cached": true,
+    });
+    log::info!(
+        "📡 Returned {} cached strategy signals (latest per symbol)",
+        count
+    );
+    Ok(warp::reply::with_status(
+        warp::reply::json(&ApiResponse::success(response)),
+        StatusCode::OK,
+    ))
 }
 
 /// Get ATR diagnostics for all actively traded symbols
@@ -6830,15 +6820,11 @@ mod tests {
             .reply(&routes)
             .await;
 
-        // Storage may not be available in test (no-db), accept 500
-        assert!(
-            resp.status() == StatusCode::OK || resp.status() == StatusCode::INTERNAL_SERVER_ERROR
-        );
-        if resp.status() == StatusCode::OK {
-            let body: ApiResponse<Vec<serde_json::Value>> =
-                serde_json::from_slice(resp.body()).unwrap();
-            assert!(body.success);
-        }
+        // Handler now uses in-memory cache (always succeeds)
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body: ApiResponse<serde_json::Value> = serde_json::from_slice(resp.body()).unwrap();
+        assert!(body.success);
+        assert!(body.data.unwrap()["signals"].is_array());
     }
 
     #[test]

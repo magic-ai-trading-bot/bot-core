@@ -38,6 +38,18 @@ use super::{
 /// Signal history for choppy market detection: Vec of (timestamp, direction) per symbol
 type SignalFlipTracker = HashMap<String, Vec<(i64, TradingSignal)>>;
 
+/// In-memory cache entry for the latest strategy signal per symbol
+/// Updated by the signal loop; read by the /api/paper-trading/latest-signals endpoint
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct StrategySignalCache {
+    pub symbol: String,
+    pub signal_type: String,
+    pub confidence: f64,
+    pub timestamp: String,
+    pub strategies_agreeing: u32,
+    pub entry_price: f64,
+}
+
 /// Timeframes used by the Rust strategy engine for real-time signal generation.
 /// 5m = primary candle resolution for all strategies (RSI, MACD, Bollinger, Volume, Stochastic)
 /// 15m = confirmation timeframe for multi-timeframe validation
@@ -116,6 +128,10 @@ pub struct PaperTradingEngine {
     /// Cached funding rates (updated every 15 minutes, not every price tick)
     /// Key: symbol (e.g., "BTCUSDT"), Value: funding rate
     funding_rates: Arc<RwLock<HashMap<String, f64>>>,
+
+    /// Cache of latest strategy signals per symbol (for API display)
+    /// Updated every signal loop iteration; read by /api/paper-trading/latest-signals
+    latest_strategy_signals: Arc<RwLock<HashMap<String, StrategySignalCache>>>,
 }
 
 /// Pending trade for execution
@@ -190,6 +206,7 @@ impl PaperTradingEngine {
             signal_flip_tracker: Arc::new(RwLock::new(HashMap::new())),
             market_data_cache: None,
             funding_rates: Arc::new(RwLock::new(HashMap::new())),
+            latest_strategy_signals: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
@@ -456,6 +473,29 @@ impl PaperTradingEngine {
                                             "📊 Strategy signal: {} {:?} confidence {:.2} (trigger: {} close)",
                                             symbol, signal, confidence, timeframe
                                         );
+
+                                        // Update latest strategy signals cache for API display
+                                        {
+                                            let strategies_agreeing = combined_signal
+                                                .strategy_signals
+                                                .iter()
+                                                .filter(|s| s.signal == signal)
+                                                .count()
+                                                as u32;
+                                            let mut cache =
+                                                engine.latest_strategy_signals.write().await;
+                                            cache.insert(
+                                                symbol.to_string(),
+                                                StrategySignalCache {
+                                                    symbol: symbol.to_string(),
+                                                    signal_type: format!("{:?}", signal),
+                                                    confidence,
+                                                    timestamp: Utc::now().to_rfc3339(),
+                                                    strategies_agreeing,
+                                                    entry_price: input.current_price,
+                                                },
+                                            );
+                                        }
 
                                         // Skip neutral signals
                                         if signal == TradingSignal::Neutral {
@@ -3838,6 +3878,13 @@ impl PaperTradingEngine {
     /// @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
     pub fn storage(&self) -> &Storage {
         &self.storage
+    }
+
+    /// Get latest strategy signals from in-memory cache (one per symbol)
+    /// @spec:FR-AI-013 - Cached Signal Display
+    pub async fn get_latest_strategy_signals(&self) -> Vec<StrategySignalCache> {
+        let cache = self.latest_strategy_signals.read().await;
+        cache.values().cloned().collect()
     }
 
     /// Add a new symbol to paper trading settings
