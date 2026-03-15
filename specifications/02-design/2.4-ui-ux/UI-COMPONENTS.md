@@ -2101,7 +2101,6 @@ interface ChatbotResponse {
 ```
 
 **Features**:
-- Grok/xAI integration via Python AI service (if API key available)
 - Rule-based fallback for common questions
 - Vietnamese language support
 - Chat history management
@@ -2116,15 +2115,14 @@ const RULE_BASED_RESPONSES = {
 };
 ```
 
-**AI Integration** (via Python AI Service):
+**AI Integration** (via Rust strategy engine):
 ```typescript
-// Frontend calls Python AI service which uses Grok/xAI internally
+// Frontend calls Rust Core Engine strategy API
 const response = await apiClient.post('/analyze', {
   symbol: currentSymbol,
   message: userMessage,
   chat_history: chatHistory,
 });
-// Python AI service (main.py) uses grok_client with model: grok-4-1-fast-non-reasoning
 // via OpenAI-compatible SDK (base_url: api.x.ai/v1)
 ```
 

@@ -17,7 +17,6 @@ NC='\033[0m' # No Color
 
 # Configuration
 RUST_PORT=${RUST_PORT:-8080}
-PYTHON_PORT=${PYTHON_PORT:-8000}
 FRONTEND_PORT=${FRONTEND_PORT:-3000}
 MONGO_PORT=${MONGO_PORT:-27017}
 REDIS_PORT=${REDIS_PORT:-6379}
@@ -298,31 +297,26 @@ if command -v wscat > /dev/null 2>&1; then
     fi
 fi
 
-# 2. Python AI Service
-print_section "2. Python AI Service (Port $PYTHON_PORT)"
-
-# Python AI service removed — checks skipped
-
-# 3. Frontend Dashboard
-print_section "3. Frontend Dashboard (Port $FRONTEND_PORT)"
+# 2. Frontend Dashboard
+print_section "2. Frontend Dashboard (Port $FRONTEND_PORT)"
 
 check_http_endpoint "Frontend" "http://localhost:$FRONTEND_PORT" 200
 check_docker_container "nextjs-ui-dashboard"
 
-# 4. MongoDB Database
-print_section "4. MongoDB Database (Port $MONGO_PORT)"
+# 3. MongoDB Database
+print_section "3. MongoDB Database (Port $MONGO_PORT)"
 
 check_database "MongoDB" "localhost" "$MONGO_PORT"
 check_docker_container "mongodb"
 
-# 5. Redis (Optional)
-print_section "5. Redis Cache (Port $REDIS_PORT) [Optional]"
+# 4. Redis (Optional)
+print_section "4. Redis Cache (Port $REDIS_PORT) [Optional]"
 
 check_redis "localhost" "$REDIS_PORT"
 check_docker_container "redis"
 
-# 6. System Resources
-print_section "6. System Resources"
+# 5. System Resources
+print_section "5. System Resources"
 
 # CPU usage
 TOTAL=$((TOTAL + 1))

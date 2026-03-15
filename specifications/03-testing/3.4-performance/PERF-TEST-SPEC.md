@@ -43,13 +43,6 @@
 - **Position Calculation**: < 50ms (P95)
 - **WebSocket Message Broadcast**: < 50ms
 
-#### Python AI Service
-- **Technical Indicator Calculation**: < 1000ms
-- **ML Model Prediction (LSTM)**: < 3000ms
-- **Ensemble Prediction**: < 5000ms
-- **Grok/xAI Analysis**: < 5000ms (network dependent)
-- **Feature Engineering**: < 500ms
-
 #### Next.js Frontend
 - **First Contentful Paint (FCP)**: < 1.5s
 - **Time to Interactive (TTI)**: < 3s
@@ -201,7 +194,7 @@ db.trades.aggregate([
 
 ### PERF-004: AI Analysis Load Test
 
-**Objective:** Test Python AI service under load
+**Objective:** Test strategy analysis endpoint under load
 
 **Test Configuration:**
 ```yaml
@@ -480,7 +473,6 @@ artillery quick --count 100 --num 50 http://localhost:8080/api/health
 
 **Services:**
 - Rust Core Engine (Docker)
-- Python AI Service (Docker)
 - MongoDB (Docker)
 - Redis (Docker)
 - Frontend (Vite dev server)

@@ -563,7 +563,6 @@ Note: Advanced portfolio analytics (metrics history, rebalancing, reports) are p
 
 **External Systems** (reference to INTEGRATION_SPEC.md):
 - Binance Exchange API: Real-time price data
-- Python AI Service: Performance prediction models
 - MongoDB: Portfolio state persistence
 - Risk Manager: Risk limit validation
 - Position Manager: Position data synchronization

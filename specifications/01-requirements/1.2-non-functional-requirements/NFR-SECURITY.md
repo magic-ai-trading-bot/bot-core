@@ -247,7 +247,7 @@ The system shall implement robust authentication and authorization mechanisms to
 **Code Tags**: `@spec:NFR-SECURITY-002`
 
 **Description**:
-The system shall implement comprehensive API security controls to protect against common web application attacks and ensure secure communication between clients and services. API security encompasses input validation, output encoding, rate limiting, CORS configuration, security headers, and protection against OWASP Top 10 vulnerabilities (injection, XSS, CSRF, etc.). This requirement applies to all REST API endpoints in Rust Core Engine, Python AI Service, and public-facing endpoints in the Frontend Dashboard.
+The system shall implement comprehensive API security controls to protect against common web application attacks and ensure secure communication between clients and services. API security encompasses input validation, output encoding, rate limiting, CORS configuration, security headers, and protection against OWASP Top 10 vulnerabilities (injection, XSS, CSRF, etc.). This requirement applies to all REST API endpoints in Rust Core Engine and public-facing endpoints in the Frontend Dashboard.
 
 **Implementation Files**:
 - `rust-core-engine/src/api/middleware.rs` - Security middleware (rate limiting, CORS)

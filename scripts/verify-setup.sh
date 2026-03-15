@@ -65,7 +65,6 @@ check_file "Makefile"
 echo ""
 echo "3. Checking Service Configurations..."
 check_dir "rust-core-engine"
-check_dir "python-ai-service"
 check_dir "nextjs-ui-dashboard"
 
 # 4. Check Infrastructure Configs
@@ -104,8 +103,8 @@ fi
 # 7. Port Availability
 echo ""
 echo "7. Checking Port Availability..."
-# Core service ports: Frontend (3000), Rust API (8080), Python AI (8000)
-ports=(3000 8080 8000)
+# Core service ports: Frontend (3000), Rust API (8080)
+ports=(3000 8080)
 for port in "${ports[@]}"; do
     if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
         echo -e "${RED}✗${NC} Port $port is already in use"

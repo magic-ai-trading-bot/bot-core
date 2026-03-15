@@ -93,7 +93,7 @@ slowapi==0.1.9
 
 ### Dockerfile (Full - Multi-stage)
 ```dockerfile
-# Multi-stage build for optimized Python AI service
+# Multi-stage build example (legacy reference)
 FROM python:3.11-slim AS builder
 
 # Install build dependencies

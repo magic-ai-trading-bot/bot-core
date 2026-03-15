@@ -336,21 +336,14 @@ check_health() {
   return 1
 }
 
-# 8.2 Check Python AI Service
-
-# Expected output:
-# Waiting for Python AI Service... (attempt 1/30)
-# Waiting for Python AI Service... (attempt 2/30)
-# ✓ Python AI Service is healthy
-
-# 8.3 Check Rust Core Engine
+# 8.2 Check Rust Core Engine
 check_health "Rust Core Engine" "http://localhost:8080/api/health"
 
 # Expected output:
 # Waiting for Rust Core Engine... (attempt 1/30)
 # ✓ Rust Core Engine is healthy
 
-# 8.4 Check Frontend Dashboard
+# 8.3 Check Frontend Dashboard
 check_health "Frontend Dashboard" "http://localhost:3000/"
 
 # Expected output:

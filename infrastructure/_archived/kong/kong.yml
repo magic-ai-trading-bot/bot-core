@@ -30,25 +30,6 @@ services:
           - PATCH
           - OPTIONS
 
-  - name: python-ai-api
-    url: http://python-ai-service:8000
-    protocol: http
-    host: python-ai-service
-    port: 8000
-    path: /
-    retries: 3
-    connect_timeout: 60000
-    write_timeout: 300000
-    read_timeout: 300000
-    routes:
-      - name: ai-api-route
-        paths:
-          - /ai
-        strip_path: true
-        protocols:
-          - http
-          - https
-
   - name: websocket-service
     url: ws://rust-core-engine:8080/ws
     protocol: ws
@@ -140,17 +121,6 @@ plugins:
       max_age: 3600
       preflight_continue: false
 
-  # Request/Response Transformer
-  - name: request-transformer
-    route: ai-api-route
-    config:
-      add:
-        headers:
-          - X-AI-Service:true
-      remove:
-        headers:
-          - Cookie
-        
   # Response Transformer
   - name: response-transformer
     config:
@@ -248,24 +218,6 @@ upstreams:
             - 504
     targets:
       - target: rust-core-engine:8080
-        weight: 100
-
-  - name: python-ai-upstream
-    algorithm: least-connections
-    slots: 10000
-    healthchecks:
-      active:
-        healthy:
-          interval: 30
-          successes: 1
-          http_statuses:
-            - 200
-        unhealthy:
-          interval: 10
-          http_failures: 2
-          timeouts: 5
-    targets:
-      - target: python-ai-service:8000
         weight: 100
 
 # Consumers (API Users)

@@ -23,9 +23,7 @@ Include Mermaid diagrams:
 graph TD
     A[Frontend] -->|HTTPS| B[API Gateway]
     B --> C[Rust Core Engine]
-    B --> D[Python AI Service]
-    C --> E[MongoDB]
-    D --> E
+    C --> D[MongoDB]
 ```
 
 ## Example: ARCH-OVERVIEW-001

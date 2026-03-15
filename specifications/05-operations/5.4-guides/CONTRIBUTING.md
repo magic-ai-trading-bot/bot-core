@@ -30,7 +30,6 @@ This guide will help you get started with contributing to the project, whether y
 Before contributing, ensure you have:
 
 - **Rust** 1.86+ (for Rust Core Engine)
-- **Python** 3.11+ (for Python AI Service)
 - **Node.js** 18+ or **Bun** latest (for Next.js Dashboard)
 - **Docker** & **Docker Compose** (for running full stack)
 - **Git** (version control)
@@ -120,33 +119,6 @@ cargo fmt
 
 # Lint code
 cargo clippy -- -D warnings
-```
-
-**Python AI Service (Port 8000):**
-```bash
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-pip install -r requirements.dev.txt
-
-# Run locally
-python main.py
-
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov --cov-report=html
-
-# Format code
-black .
-
-# Lint code
-flake8 .
 ```
 
 **Next.js Dashboard (Port 3000):**
@@ -612,7 +584,6 @@ npm run test:mutation
 ### Scopes
 
 - `rust` - Rust Core Engine
-- `python` - Python AI Service
 - `frontend` - Next.js Dashboard
 - `specs` - Specification updates
 - `docs` - Documentation

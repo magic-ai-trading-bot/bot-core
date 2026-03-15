@@ -27,12 +27,6 @@ scrape_configs:
       - targets: ['rust-core-engine:8080']
     metrics_path: '/metrics'
 
-  # Python AI Service metrics
-  - job_name: 'python-ai-service'
-    static_configs:
-      - targets: ['python-ai-service:8000']
-    metrics_path: '/metrics'
-
   # Node.js Dashboard metrics
   - job_name: 'nextjs-ui-dashboard'
     static_configs:

@@ -43,7 +43,7 @@
 
 ## Overview
 
-This specification defines comprehensive performance requirements for the Bot Core cryptocurrency trading platform. Performance is a critical quality attribute that directly impacts trading effectiveness, user experience, and system reliability. These requirements establish measurable targets for response times, throughput, resource utilization, and scalability across all system components including the Rust Core Engine, Python AI Service, and Frontend Dashboard. All requirements are validated against current baseline measurements and industry best practices for high-frequency trading systems.
+This specification defines comprehensive performance requirements for the Bot Core cryptocurrency trading platform. Performance is a critical quality attribute that directly impacts trading effectiveness, user experience, and system reliability. These requirements establish measurable targets for response times, throughput, resource utilization, and scalability across all system components including the Rust Core Engine and Frontend Dashboard. All requirements are validated against current baseline measurements and industry best practices for high-frequency trading systems.
 
 ---
 
@@ -84,7 +84,7 @@ In cryptocurrency trading, milliseconds matter. Slow order execution leads to mi
 **Code Tags**: `@spec:NFR-PERFORMANCE-001`
 
 **Description**:
-The system shall maintain fast API response times across all REST endpoints to ensure responsive user interactions and efficient service-to-service communication. Response time is measured as the duration from when the server receives the HTTP request to when it sends the complete response, including all processing, database queries, and serialization. This requirement applies to all HTTP endpoints in the Rust Core Engine (port 8080) and Python AI Service (port 8000) under normal and peak load conditions.
+The system shall maintain fast API response times across all REST endpoints to ensure responsive user interactions and efficient service-to-service communication. Response time is measured as the duration from when the server receives the HTTP request to when it sends the complete response, including all processing, database queries, and serialization. This requirement applies to all HTTP endpoints in the Rust Core Engine (port 8080) under normal and peak load conditions.
 
 **Implementation Files**:
 - `rust-core-engine/src/api/routes.rs` - API endpoint handlers
@@ -1100,120 +1100,7 @@ The system shall handle high transaction volumes and concurrent operations to su
    - Database operations: 500+ ops/sec
    - Current: Handles 1200+ ops/sec ✅
 
-2. **Python AI Service** (Port 8000)
-   - Analysis requests: 50+ req/sec (mixed cache hit/miss)
-   - Cache hit: 100+ req/sec (< 10ms each)
-   - Cache miss: 20+ req/sec (~500ms each)
-   - Model inferences: 10+ inf/sec per model
-   - Indicator calculations: 50+ calc/sec
-   - Current: 20+ analyses/sec with caching ✅
 
-3. **Frontend Dashboard** (Port 3000)
-   - Page requests: 500+ req/sec (static assets cached)
-   - API proxy requests: 300+ req/sec (to backend)
-   - WebSocket connections: 1000+ concurrent
-   - Real-time updates: 5000+ msg/sec received
-   - Current: Supports 100+ concurrent users ✅
-
-4. **MongoDB Database** (Port 27017)
-   - Read operations: 5000+ reads/sec (indexed queries)
-   - Write operations: 1000+ writes/sec
-   - Aggregations: 100+ agg/sec (complex queries)
-   - Connection pool: 100 connections max
-   - Current: Query time 28ms avg, handles load ✅
-
-**Acceptance Criteria**:
-- [x] System handles 1000+ API requests per second without errors
-- [x] Response time remains < 200ms (p95) under high load
-- [x] System executes 100+ trades per second (concurrent trading)
-- [x] Trade execution time remains < 1000ms under high load
-- [x] WebSocket broadcasts deliver 10,000+ messages per second
-- [x] Message latency remains < 100ms under high load
-- [x] Database handles 1000+ writes per second without degradation
-- [x] Database handles 5000+ reads per second with indexes
-- [x] AI service processes 20+ analyses per second with caching
-- [x] Cache hit rate maintained at 80%+ under load
-- [x] System supports 100+ concurrent users without degradation
-- [x] Each user can have 10 open positions simultaneously
-- [x] System supports 1000+ total open positions across all users
-- [x] CPU utilization < 60% under sustained peak load
-- [x] Memory utilization < 80% under sustained peak load
-- [x] Network utilization < 80% of available bandwidth
-- [x] System uses multi-threading for concurrent request handling
-- [x] Rust: Tokio multi-threaded runtime (default)
-- [x] Python: Uvicorn workers (4 workers default)
-- [x] System implements connection pooling for all external services
-- [x] MongoDB: 100 connections max
-- [x] Redis: 50 connections max
-- [x] HTTP clients: Connection reuse with keep-alive
-- [x] System implements request queuing with backpressure
-- [x] Queue depth limited to prevent memory exhaustion
-- [x] Reject new requests when queue full (503 Service Unavailable)
-- [x] System implements rate limiting per user
-- [x] API rate limit: 100 req/min per user (burst: 20 req/sec)
-- [x] Trade rate limit: 10 trades/min per user (prevent abuse)
-- [x] WebSocket message rate: 100 msg/sec per connection
-- [x] System uses efficient serialization (serde for Rust, Pydantic for Python)
-- [x] System uses message batching for high-frequency updates
-- [x] Batch multiple position updates into single message
-- [x] Flush batch every 100ms or 50 messages (whichever first)
-- [x] System implements horizontal scaling support
-- [x] Stateless service design (session in JWT, not memory)
-- [x] Load balancing across multiple instances (ready for deployment)
-- [x] Shared state in external store (MongoDB, Redis)
-- [x] System monitors throughput metrics in real-time
-- [x] Prometheus metrics: `http_requests_total`, `trades_executed_total`
-- [x] Dashboard displays requests per second, trades per second
-- [x] Alerts on throughput degradation (< 50% of target)
-- [x] Load tests validate throughput targets
-- [x] JMeter or k6 tests with 100 concurrent users
-- [x] Sustained load for 10 minutes (stability test)
-- [x] Stress tests identify breaking point (maximum load)
-- [x] System handles traffic spikes gracefully
-- [x] Auto-scaling triggers at 70% CPU or memory (if deployed on Kubernetes)
-- [x] Graceful degradation under extreme load (reduce non-critical features)
-- [x] System recovers automatically after load spike
-
-**Performance Optimization Techniques**:
-
-1. **Concurrency**:
-   - Multi-threading (Tokio for Rust, Uvicorn workers for Python)
-   - Async I/O (non-blocking operations)
-   - Connection pooling (reuse connections)
-   - Request pipelining (HTTP/2)
-
-2. **Caching**:
-   - In-memory caching (hot data)
-   - Redis caching (shared across instances)
-   - HTTP caching (response caching)
-   - Query result caching (database)
-
-3. **Load Balancing**:
-   - Round-robin across service instances
-   - Health checks to exclude unhealthy instances
-   - Session affinity for WebSocket connections
-   - Geographic distribution (multi-region)
-
-4. **Resource Management**:
-   - Connection pooling (limit concurrent connections)
-   - Request queuing (backpressure handling)
-   - Rate limiting (prevent abuse)
-   - Resource quotas per user
-
-5. **Optimization**:
-   - Efficient algorithms (O(1) lookups with hash maps)
-   - Batch processing (group operations)
-   - Lazy evaluation (defer work until needed)
-   - Parallel processing (independent operations)
-
-**Monitoring and Alerting**:
-- **Dashboard Metrics**: Requests per second, trades per second, active users, queue depth, error rate
-- **Warning Alert**: Throughput drops below 70% of target OR queue depth > 80%
-- **Critical Alert**: Throughput drops below 50% OR error rate > 5%
-- **Action**: Scale up instances, investigate bottlenecks, optimize slow code
-
-**Dependencies**: CPU cores, Memory capacity, Network bandwidth, Database performance
-**Test Cases**: TC-PERF-019 (Load test 1000 req/sec), TC-PERF-020 (Concurrent users), TC-PERF-021 (Stress test)
 
 ---
 

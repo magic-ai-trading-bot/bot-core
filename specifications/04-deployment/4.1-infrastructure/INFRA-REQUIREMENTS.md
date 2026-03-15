@@ -243,12 +243,6 @@ FLASK_ENV=development
 - Replicas: 2
 - Storage: 1GB per instance (logs + data)
 
-**Python AI Service:**
-- Memory: 2GB limit, 1GB reserved
-- CPU: 2.0 cores limit, 1.0 core reserved
-- Replicas: 2
-- Storage: 5GB per instance (models + data)
-
 **MongoDB:**
 - Memory: 4GB
 - CPU: 2.0 cores
@@ -360,12 +354,6 @@ FLASK_ENV=development
 - CPU: 4.0 cores limit, 2.0 cores reserved
 - Replicas: 3-10 (auto-scaling)
 - Storage: 2GB per instance
-
-**Python AI Service:**
-- Memory: 4GB limit, 2GB reserved
-- CPU: 4.0 cores limit, 2.0 cores reserved
-- Replicas: 3-10 (auto-scaling)
-- Storage: 10GB per instance (models)
 
 **MongoDB:**
 - Memory: 16GB
@@ -524,7 +512,6 @@ Egress:
 Ingress:
   - Port 3000: From ALB security group
   - Port 8080: From ALB security group
-  - Port 8000: From ALB security group
   - All: From same security group (inter-service)
 Egress:
   - Port 27017: To database security group

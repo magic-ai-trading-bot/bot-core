@@ -26,12 +26,10 @@ def parse_traceability_matrix():
 
     # Find the "Requirements to Code Mapping" section
     rust_section = re.search(r'### Rust Core Engine\s+\|(.*?)\n\n###', content, re.DOTALL)
-    python_section = re.search(r'### Python AI Service\s+\|(.*?)\n\n###', content, re.DOTALL)
     frontend_section = re.search(r'### Next\.js Dashboard\s+\|(.*?)\n\n---', content, re.DOTALL)
 
     sections = {
         'Rust': rust_section.group(1) if rust_section else "",
-        'Python': python_section.group(1) if python_section else "",
         'Frontend': frontend_section.group(1) if frontend_section else "",
     }
 
@@ -217,7 +215,6 @@ def main():
     print()
 
     rust_count = 0
-    python_count = 0
     ts_count = 0
     total_tags = 0
 
@@ -225,9 +222,6 @@ def main():
         if 'rust-core-engine' in file_path:
             print(f"🦀 Rust: {os.path.basename(file_path)}")
             rust_count += 1
-        elif 'python-ai-service' in file_path:
-            print(f"🐍 Python: {os.path.basename(file_path)}")
-            python_count += 1
         elif 'nextjs-ui-dashboard' in file_path:
             print(f"⚛️  TypeScript: {os.path.basename(file_path)}")
             ts_count += 1
@@ -240,7 +234,6 @@ def main():
     print("  Summary")
     print("═" * 70)
     print(f"Rust files processed:       {rust_count}")
-    print(f"Python files processed:     {python_count}")
     print(f"TypeScript files processed: {ts_count}")
     print(f"Total tags added:           {total_tags}")
     print()

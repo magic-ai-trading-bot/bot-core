@@ -159,13 +159,6 @@ verify_deployment() {
         print_error "Rust Core Engine health check failed"
     fi
 
-    # Python AI Service
-    if ssh $VPS_USER@$VPS_IP "curl -s http://localhost:8000/health" &>/dev/null; then
-        print_success "Python AI Service is healthy"
-    else
-        print_error "Python AI Service health check failed"
-    fi
-
     # Frontend Dashboard
     if ssh $VPS_USER@$VPS_IP "curl -s http://localhost:3000" &>/dev/null; then
         print_success "Frontend Dashboard is accessible"
@@ -230,7 +223,6 @@ full_deployment() {
     print_success "Bot Core has been deployed to Viettel VPS!"
     print_info "Access dashboard at: http://$VPS_IP:3000"
     print_info "Rust API at: http://$VPS_IP:8080"
-    print_info "Python API at: http://$VPS_IP:8000"
 
     show_menu
 }

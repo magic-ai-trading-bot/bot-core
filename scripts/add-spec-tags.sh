@@ -148,8 +148,7 @@ add_spec_tag "$PROJECT_ROOT/rust-core-engine/src/market_data/klines.rs" 28 "FR-M
 add_spec_tag "$PROJECT_ROOT/rust-core-engine/src/market_data/cache.rs" 23 "FR-MARKET-004" "Market Data Caching" "NFR-PERFORMANCE.md#caching-strategy" "TC-INTEGRATION-006"
 add_spec_tag "$PROJECT_ROOT/rust-core-engine/src/market_data/validator.rs" 18 "FR-MARKET-005" "Data Validation" "ARCH-DATA-FLOW.md#data-validation" "TC-INTEGRATION-007"
 
-echo -e "\n${BLUE}Phase 2: Python AI Service files (will be handled next)${NC}"
-echo -e "${BLUE}Phase 3: Frontend TypeScript files (will be handled next)${NC}"
+echo -e "\n${BLUE}Phase 2: Frontend TypeScript files (will be handled next)${NC}"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"

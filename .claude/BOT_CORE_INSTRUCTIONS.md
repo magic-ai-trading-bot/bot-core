@@ -13,10 +13,12 @@ This file provides bot-core specific guidance for all ClaudeKit agents working w
 
 **Tech Stack:**
 - Rust 1.86+ (trading engine, Port 8080)
-- Python 3.11+ (AI/ML service, Port 8000)
 - TypeScript/React (dashboard, Port 3000)
 - MongoDB (database)
 - Docker (containerization)
+
+> **Note:** The Python AI service (Port 8000) has been fully removed. Signal generation is
+> handled entirely by the Rust strategy engine (RSI/MACD/Bollinger/Volume/Stochastic).
 
 ---
 
@@ -94,7 +96,6 @@ specifications/
 
 **Service-specific documentation:**
 - `rust-core-engine/docs/` - Rust-specific
-- `python-ai-service/docs/` - Python-specific
 - `nextjs-ui-dashboard/docs/` - Frontend-specific
 
 **Rule:** If it's a `.md` file and not `README.md` or `CLAUDE.md`, it belongs in `specifications/` or `{service}/docs/`.
@@ -111,22 +112,19 @@ specifications/
    ```bash
    make lint              # All services
    make lint-rust         # Rust: cargo fmt + clippy
-   make lint-python       # Python: black + flake8 + mypy
    make lint-frontend     # TypeScript: ESLint + Prettier
    ```
 
 2. **Testing (All tests pass)**
    ```bash
-   make test              # All services (2,202+ tests)
+   make test              # All services (1,793+ tests)
    make test-rust         # Rust: cargo test (1,336 tests)
-   make test-python       # Python: pytest (409 tests)
    make test-frontend     # TypeScript: vitest (601 tests)
    ```
 
 3. **Coverage (90%+ required)**
    - Overall: 90.4% average
    - Rust: 90% (target: 90%+) ✅
-   - Python: 95% (target: 90%+) ✅
    - Frontend: 90%+ (target: 85%+) ✅
 
 4. **Quality Metrics (94/100 minimum)**
@@ -149,13 +147,6 @@ specifications/
 - Zero compiler warnings
 - Clippy clean with strict settings
 - 90%+ coverage, 75%+ mutation score
-
-**Python (python-ai-service/):**
-- Black formatted (100%)
-- Flake8 compliant (PEP 8)
-- Type hints: 98%+ coverage
-- 95%+ test coverage
-- Zero HIGH/CRITICAL vulnerabilities
 
 **TypeScript/React (nextjs-ui-dashboard/):**
 - ESLint: 0 errors, 0 warnings
@@ -198,12 +189,10 @@ make test
 
 # Service-specific
 make test-rust         # Rust: cargo test
-make test-python       # Python: pytest --cov
 make test-frontend     # Frontend: npm run test
 
 # Coverage reports
 make test-rust         # Generates HTML coverage
-make test-python       # pytest --cov-report=html
 make test-frontend     # npm run test:coverage
 
 # Integration tests
@@ -212,7 +201,6 @@ make test-integration
 
 **Coverage requirements:**
 - Rust: ≥90% (lib + tests)
-- Python: ≥95% (all modules)
 - Frontend: ≥90% (components + hooks)
 
 **Test report location:** `specifications/03-testing/`
@@ -224,7 +212,6 @@ make test-integration
 # Lint checks
 make lint              # All services
 make lint-rust         # Zero warnings required
-make lint-python       # Black + flake8 + mypy
 make lint-frontend     # ESLint + Prettier
 
 # Quality metrics
@@ -309,7 +296,6 @@ git push origin <branch>
 ```bash
 # Docker logs
 docker logs bot-rust-core
-docker logs bot-python-ai
 docker logs bot-nextjs-dashboard
 
 # Application logs
@@ -392,10 +378,9 @@ TRADING_ENABLED=false       # MUST be manually enabled
 
 ### Testing
 ```bash
-make test                    # All tests (2,202+)
+make test                    # All tests (1,793+)
 make test-integration        # Integration tests
 make test-rust               # Rust only
-make test-python             # Python only
 make test-frontend           # Frontend only
 ```
 
@@ -411,7 +396,6 @@ make security-check          # Security scan
 ```bash
 make build                   # All services
 make build-rust              # Rust only
-make build-python            # Python only
 make build-frontend          # Frontend only
 make build-fast              # Sequential (memory-optimized)
 ```

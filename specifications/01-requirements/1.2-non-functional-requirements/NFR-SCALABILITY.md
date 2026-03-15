@@ -105,15 +105,6 @@ The system shall support horizontal scaling by adding more service instances to 
    - **Limitations**: In-memory position cache not shared across instances
    - **Solution**: Use Redis for shared position cache or query MongoDB directly
 
-   **Python AI Service**:
-   - **Current State**: Mostly stateless
-   - **In-Memory State**: Model cache (singleton models loaded once)
-   - **External State**: MongoDB (analysis results), Redis (cache for analysis)
-   - **Stateless Components**: API handlers, technical analysis, model inference
-   - **Scalability**: Can run multiple instances with shared cache
-   - **Limitations**: Models loaded per instance (memory duplication)
-   - **Solution**: Shared model storage or dedicated inference service
-
    **Frontend Dashboard (React/Vite)**:
    - **Current State**: Stateless (static files served by Vite preview / nginx)
    - **Build Output**: Static HTML, JS, CSS bundles
@@ -510,12 +501,6 @@ The system shall support a large number of concurrent users accessing the platfo
    - **Total Memory**: ~512MB baseline + ~100MB for 1000 connections = 612MB
    - **CPU**: ~20% for 100 users, ~80% for 500 users (estimated)
 
-   **Python AI Service** (1 instance, 4 workers):
-   - **HTTP Requests**: ~200 req/sec (4 workers × 50 req/sec each)
-   - **Memory per Worker**: ~200MB (ML models loaded)
-   - **Total Memory**: ~800MB (4 workers)
-   - **CPU**: ~50% for 100 users, ~90% for 200 users (model inference)
-
    **MongoDB** (Single instance):
    - **Connections**: 1000+ (limited by connection pooling)
    - **Query Throughput**: 5,000 reads/sec, 1,000 writes/sec
@@ -536,21 +521,14 @@ The system shall support a large number of concurrent users accessing the platfo
    - Total Memory: 6GB (10 instances × 600MB)
    - Load Balancer: nginx or AWS ALB (sticky sessions for WebSocket)
 
-   **Python AI Service** (5 instances, 4 workers each):
-   - Total Workers: 20 workers
-   - Total HTTP: 1,000 req/sec (20 workers × 50 req/sec)
-   - Total Memory: 4GB (5 instances × 800MB)
-   - Load Balancer: Round-robin (stateless requests)
-
    **MongoDB** (1 primary + 2 secondaries):
-   - Total Connections: 3,000 (10 Rust + 5 Python × 100 connections)
+   - Total Connections: 1,000 (10 Rust instances × 100 connections)
    - Read Throughput: 15,000 reads/sec (primary + 2 secondaries)
    - Write Throughput: 1,000 writes/sec (primary only, consider sharding if higher)
    - Total Memory: 6GB (2GB per node)
 
    **Cost Estimate** (AWS/GCP):
    - Rust instances: 10 × $50/month (t3.medium) = $500/month
-   - Python instances: 5 × $100/month (t3.large) = $500/month
    - MongoDB: 3 × $200/month (m5.large) = $600/month
    - Load Balancer: $20/month
    - Total: ~$1,620/month for 10,000 users = $0.16 per user/month ✅ Under target ($10/1000 users = $0.01/user)

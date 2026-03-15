@@ -185,9 +185,6 @@ kill -9 $(lsof -t -i:8080)
 # Kill process using port 3000
 kill -9 $(lsof -t -i:3000)
 
-# Kill process using port 8000
-
-
 # Restart services
 ./scripts/bot.sh restart
 ```
@@ -256,7 +253,6 @@ docker inspect rust-core-engine --format='{{.HostConfig.Memory}}'
 
 **Memory limits in optimized mode:**
 - Rust Core Engine: 1GB
-- Python AI Service: 1.5GB
 - Next.js Dashboard: 512MB
 - MongoDB: 2GB
 

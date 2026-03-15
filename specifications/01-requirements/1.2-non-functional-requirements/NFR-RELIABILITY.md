@@ -127,25 +127,6 @@ The system shall maintain high availability with 99.9% uptime, ensuring users ca
    }
    ```
 
-   **Python AI Service** (`GET /health`):
-   ```json
-   {
-     "status": "healthy",
-     "version": "1.0.0",
-     "checks": {
-       "database": {"status": "healthy"},
-       "models": {
-         "status": "healthy",
-         "loaded_models": ["LSTM", "GRU", "Transformer"]
-       },
-       "openai_api": {
-         "status": "healthy",
-         "optional": true
-       }
-     }
-   }
-   ```
-
    **Status Definitions**:
    - `healthy`: All checks passed, service fully functional
    - `degraded`: Some non-critical components failing, service partially functional
@@ -175,7 +156,6 @@ The system shall maintain high availability with 99.9% uptime, ensuring users ca
    - Load Balancer: 99.95% (managed service SLA)
 
    **High Priority Services** (99.5% uptime):
-   - Python AI Service: 99.5% (max 3.6 hours/month downtime)
    - Redis Cache: 99.5% (optional, graceful degradation if down)
 
    **Supporting Services** (99% uptime):
@@ -236,7 +216,6 @@ The system shall maintain high availability with 99.9% uptime, ensuring users ca
    - Binance API (for trading)
 
    Optional (Graceful Degradation):
-   - Python AI Service (trading continues without AI)
    - Redis Cache (direct DB queries)
    - xAI API (AI analysis continues without LLM reasoning)
    - Monitoring (services continue, blind to issues temporarily)

@@ -744,10 +744,6 @@ None (scheduled task, no parameters)
         "status": "healthy",
         "response_time_ms": 45
       },
-      "Python AI Service": {
-        "status": "healthy",
-        "response_time_ms": 32
-      },
       "MongoDB": {
         "status": "healthy"
       },
@@ -899,7 +895,6 @@ Track and report Grok/xAI API costs to prevent runaway expenses. **CRITICAL** fo
 
 ##### Business Logic
 
-1. Fetch cost statistics from Python AI service (`/ai/cost/statistics`)
 2. Extract daily/monthly costs
 3. Check against thresholds
 4. Send alerts if thresholds exceeded
@@ -2735,7 +2730,6 @@ groups:
 **Specifications**:
 - `@doc:specs/01-requirements/1.1-functional-requirements/FR-ML.md` - ML Models
 - `@doc:specs/01-requirements/1.1-functional-requirements/FR-API.md` - REST API
-- `@doc:specs/02-design/2.3-api/API-PYTHON-AI.md` - Python AI Service API
 - `@doc:specs/02-design/2.2-database/DB-SCHEMA.md` - MongoDB Collections
 - `@doc:specs/03-testing/3.2-test-cases/TC-AI.md` - AI Test Cases
 - `@doc:specs/04-deployment/4.1-infrastructure/INFRA-DOCKER.md` - Docker Infrastructure

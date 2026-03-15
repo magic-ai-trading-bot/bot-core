@@ -361,8 +361,7 @@ The system shall maintain comprehensive test coverage across all components to e
      - Coverage tool: `cargo-tarpaulin`
      - Uncovered: Error paths, some logging, unreachable code
 
-   - **Python AI Service**: 91.5% coverage (Target: 90%+) ✅
-     - Unit tests: 342 tests
+        - Unit tests: 342 tests
      - Integration tests: 67 tests
      - Coverage tool: `pytest-cov`
      - Uncovered: ML model internals, some edge cases

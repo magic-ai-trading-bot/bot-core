@@ -29,7 +29,7 @@ print_error() {
 }
 
 # App names
-APPS=("trading-bot-database" "trading-bot-ai-service" "trading-bot-rust-engine" "trading-bot-dashboard")
+APPS=("trading-bot-database" "trading-bot-rust-engine" "trading-bot-dashboard")
 
 show_help() {
     echo "🛠️  Trading Bot Management Script"
@@ -55,7 +55,7 @@ show_help() {
     echo "Examples:"
     echo "  $0 status"
     echo "  $0 logs trading-bot-rust-engine"
-    echo "  $0 restart trading-bot-ai-service"
+    echo "  $0 restart trading-bot-rust-engine"
     echo "  $0 ssh trading-bot-rust-engine"
 }
 
@@ -155,9 +155,6 @@ update_app() {
     case $app_name in
         "trading-bot-database")
             flyctl deploy --config fly-database.toml --remote-only
-            ;;
-        "trading-bot-ai-service")
-            cd python-ai-service && flyctl deploy --remote-only && cd ..
             ;;
         "trading-bot-rust-engine")
             cd rust-core-engine && flyctl deploy --remote-only && cd ..

@@ -538,7 +538,6 @@ As an **administrator**, I want to **start, stop, and restart platform services*
 - [ ] When I view service status
 - [ ] Then I see all services:
   - Rust Trading Engine (port 8080)
-  - Python AI Service (port 8000)
   - Frontend Dashboard (port 3000)
   - MongoDB (port 27017)
   - Redis Cache (if enabled)

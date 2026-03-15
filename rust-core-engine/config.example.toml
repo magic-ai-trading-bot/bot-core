@@ -25,7 +25,7 @@ update_interval_ms = 100
 reconnect_interval_ms = 500
 max_reconnect_attempts = 5
 cache_size = 500
-python_ai_service_url = "http://python-ai-service-dev:8000"
+
 
 [trading]
 enabled = false
@@ -98,8 +98,8 @@ extreme_overbought = 90.0
 
 [trend_filter]
 enabled = true
-use_ml = true
-ml_service_url = "http://python-ai-service-dev:8000"
+use_ml = false
+ml_service_url = ""
 ml_timeout_ms = 2000
 ml_min_confidence = 0.65
 ml_fallback_on_error = true

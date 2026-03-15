@@ -549,7 +549,6 @@ GET  /api/supported-symbols             - List configured symbols
 **External Systems**:
 - Binance Futures API: WebSocket and REST endpoints
 - MongoDB: Data persistence
-- Python AI Service: Analysis requests
 
 ---
 

@@ -101,9 +101,8 @@ echo "=== Health Check Complete ==="
 **Key Dashboards:**
 1. **Bot Core Overview** - System-wide health
 2. **Rust Core Engine** - Trading engine metrics
-3. **Python AI Service** - ML model performance
-4. **MongoDB Performance** - Database metrics
-5. **System Resources** - CPU, Memory, Disk
+3. **MongoDB Performance** - Database metrics
+4. **System Resources** - CPU, Memory, Disk
 
 ### Critical Alerts
 
@@ -491,19 +490,6 @@ idle_timeout = 300
 enabled = true
 ttl = 300
 max_size = "1GB"
-```
-
-**Python AI Service (config.yaml):**
-```yaml
-server:
-  workers: 4
-  worker_class: "uvicorn.workers.UvicornWorker"
-  timeout: 60
-
-cache:
-  enabled: true
-  backend: "redis"
-  ttl: 600
 ```
 
 ### Network Optimization

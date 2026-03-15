@@ -181,7 +181,6 @@ The workflow is already configured and includes:
 
 **1. Build & Test Jobs:**
 - ✅ Rust Core Engine (format, clippy, test, build)
-- ✅ Python AI Service (flake8, black, pytest, coverage)
 - ✅ Next.js Dashboard (lint, type-check, test, build)
 
 **2. Failure Artifact Collection:**
@@ -291,7 +290,6 @@ https://github.com/magic-ai-trading-bot/bot-core/actions
 | Service | Status |
 |---------|--------|
 | Rust Core Engine | ❌ Failed |
-| Python AI Service | ✅ Passed |
 | Next.js Dashboard | ✅ Passed |
 
 ---

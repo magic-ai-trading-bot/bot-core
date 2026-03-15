@@ -17,8 +17,7 @@ export interface ChatResponse {
   sources?: Array<{ title: string; path: string }>;
 }
 
-// RAG chatbot via Python AI service has been removed.
-// All chat responses now use local FAQ database.
+// All chat responses use local FAQ database.
 
 // FAQ Database cho trading bot (Vietnamese)
 const FAQ_DATABASE = {
@@ -200,7 +199,7 @@ class ChatbotService {
     return null;
   }
 
-  // RAG chatbot via Python AI service removed - use local FAQ directly
+  // Local FAQ chatbot
   private async callRAGChatbot(message: string): Promise<ChatResponse> {
     if (!this.checkRateLimit()) {
       return {
@@ -213,15 +212,15 @@ class ChatbotService {
     return this.fallbackToLocalFAQ(message);
   }
 
-  // Fallback to local FAQ when RAG is unavailable
+  // Search local FAQ
   private fallbackToLocalFAQ(message: string): ChatResponse {
     const faqMatch = this.findFAQMatch(message);
 
     if (faqMatch) {
       return {
         success: true,
-        message: faqMatch.response + "\n\n💡 *Trả lời từ FAQ cục bộ (AI service đang không khả dụng)*",
-        confidence: faqMatch.confidence * 0.8, // Slightly lower confidence for fallback
+        message: faqMatch.response,
+        confidence: faqMatch.confidence,
         type: "faq",
       };
     }
@@ -235,9 +234,7 @@ Bạn có thể hỏi về:
 • Cách bắt đầu sử dụng?
 • Các chiến lược trading?
 • Bảo mật và quản lý rủi ro?
-• Paper trading là gì?
-
-💡 *AI service đang không khả dụng. Đang dùng FAQ cục bộ.*`,
+• Paper trading là gì?`,
       confidence: 0.5,
       type: "fallback",
     };

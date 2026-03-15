@@ -272,7 +272,6 @@ rust-core-engine:
 **Key Features:**
 - Release build for production
 - Health check on `/api/health`
-- Waits for Python AI service to be healthy
 - Memory limit: 2GB (configurable)
 
 #### Development Configuration
@@ -465,11 +464,9 @@ depends_on:
 ```
 
 **Startup order:**
-1. Python AI service starts
-2. Health check runs every 30s
-3. After 3 successful checks, marked healthy
-4. Rust Engine starts
-5. Frontend starts (depends on both)
+1. MongoDB starts
+2. Rust Engine starts (depends on MongoDB)
+3. Frontend starts (depends on Rust Engine)
 
 ---
 
@@ -649,20 +646,14 @@ make build-fast
 
 echo "Building services sequentially (memory optimized)..."
 
-echo "1/3 Building Python AI Service..."
-if [ $? -ne 0 ]; then
-  echo "Failed to build Python AI Service"
-  exit 1
-fi
-
-echo "2/3 Building Rust Core Engine..."
+echo "1/2 Building Rust Core Engine..."
 docker compose build rust-core-engine
 if [ $? -ne 0 ]; then
   echo "Failed to build Rust Core Engine"
   exit 1
 fi
 
-echo "3/3 Building Frontend..."
+echo "2/2 Building Frontend..."
 docker compose build nextjs-ui-dashboard
 if [ $? -ne 0 ]; then
   echo "Failed to build Frontend"

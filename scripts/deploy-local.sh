@@ -292,13 +292,6 @@ if [ "$SKIP_TESTS" != "true" ]; then
         handle_error 1 "Rust API smoke test failed"
     fi
 
-    # Test Python API
-    if curl -s -f http://localhost:8000/health > /dev/null 2>&1; then
-        log "${GREEN}✓ Python API responding${NC}"
-    else
-        handle_error 1 "Python API smoke test failed"
-    fi
-
     # Test Frontend
     if curl -s -f http://localhost:3000 > /dev/null 2>&1; then
         log "${GREEN}✓ Frontend responding${NC}"
@@ -348,7 +341,6 @@ log ""
 log "Service URLs:"
 log "  - Frontend:  http://localhost:3000"
 log "  - Rust API:  http://localhost:8080/api/health"
-log "  - Python AI: http://localhost:8000/health"
 log ""
 log "Next steps:"
 log "  1. Monitor logs: ./scripts/bot.sh logs"

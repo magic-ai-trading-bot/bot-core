@@ -177,35 +177,6 @@ run_rust_migrations() {
     return 0
 }
 
-# Run migrations for Python service
-run_python_migrations() {
-    log_info "Running Python service migrations..."
-
-    local migrations_dir="$PROJECT_ROOT/python-ai-service/migrations"
-
-    if [[ ! -d "$migrations_dir" ]]; then
-        log_warning "Python migrations directory not found: $migrations_dir"
-        return 0
-    fi
-
-    # Run migration files in order
-    for migration_file in "$migrations_dir"/*.js; do
-        if [[ -f "$migration_file" ]]; then
-            local filename=$(basename "$migration_file")
-            log_info "Applying migration: $filename"
-
-            if mongosh "$MONGO_CONNECTION_STRING" < "$migration_file" > /dev/null 2>&1; then
-                log_success "Migration applied: $filename"
-            else
-                log_error "Failed to apply migration: $filename"
-                return 1
-            fi
-        fi
-    done
-
-    log_success "Python service migrations completed"
-    return 0
-}
 
 # Verify database setup
 verify_setup() {
@@ -322,7 +293,6 @@ main() {
 
     # Run migrations
     run_rust_migrations || log_warning "Rust migrations had issues"
-    run_python_migrations || log_warning "Python migrations had issues"
 
     # Verify setup
     verify_setup || exit 1

@@ -52,9 +52,8 @@ import {
   itemVariants,
 } from '@/styles/luxury-design-system';
 
-// API Base URLs
+// API Base URL
 const API_BASE = import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
-const PYTHON_API_BASE = import.meta.env.VITE_PYTHON_AI_URL || "http://localhost:8000";
 
 // Types for API responses
 interface ApiResponse<T> {
@@ -250,17 +249,16 @@ export default function TradeAnalyses() {
     }
   }, []);
 
-  // Fetch config suggestions from Python AI service
+  // Fetch config suggestions from Rust API
   const fetchConfigSuggestions = useCallback(async () => {
     try {
       const response = await fetch(
-        `${PYTHON_API_BASE}/ai/config-suggestions?limit=20`
+        `${API_BASE}/api/paper-trading/config-suggestions?limit=20`
       );
       const result = await response.json();
 
-      if (result.success && result.suggestions) {
-        // Map Python API response format to our interface
-        const suggestions = result.suggestions.map((s: Record<string, unknown>) => ({
+      if (result.success && result.data) {
+        const suggestions = (result.data as Record<string, unknown>[]).map((s) => ({
           ...s,
           id: s._id,
         }));
@@ -274,20 +272,20 @@ export default function TradeAnalyses() {
     }
   }, []);
 
-  // Fetch latest config suggestion from Python AI service (get first from list)
+  // Fetch latest config suggestion from Rust API
   const fetchLatestSuggestion = useCallback(async () => {
     try {
       const response = await fetch(
-        `${PYTHON_API_BASE}/ai/config-suggestions?limit=1`
+        `${API_BASE}/api/paper-trading/config-suggestions/latest`
       );
       const result = await response.json();
 
-      if (result.success && result.suggestions && result.suggestions.length > 0) {
-        const latest = result.suggestions[0];
+      if (result.success && result.data) {
+        const latest = result.data as Record<string, unknown>;
         setLatestSuggestion({
           ...latest,
           id: latest._id,
-        });
+        } as ConfigSuggestion);
       } else {
         setLatestSuggestion(null);
       }

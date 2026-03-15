@@ -74,34 +74,6 @@ spec:
     labels:
       version: canary
 ---
-# Virtual Service for Python AI Service
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: python-ai-service
-  namespace: bot-core
-spec:
-  hosts:
-  - python-ai-service
-  http:
-  - timeout: 300s
-    retries:
-      attempts: 2
-      perTryTimeout: 100s
-      retryOn: 5xx,reset,connect-failure,refused-stream
-    route:
-    - destination:
-        host: python-ai-service
-      weight: 100
-  - fault:
-      delay:
-        percentage:
-          value: 0.1
-        fixedDelay: 5s
-    route:
-    - destination:
-        host: python-ai-service
----
 # Service Entry for External APIs
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
@@ -206,14 +178,6 @@ spec:
           number: 8080
   - match:
     - uri:
-        prefix: "/ai"
-    route:
-    - destination:
-        host: python-ai-service
-        port:
-          number: 8000
-  - match:
-    - uri:
         prefix: "/"
     route:
     - destination:
@@ -234,8 +198,6 @@ spec:
   action: ALLOW
   rules:
   - from:
-    - source:
-        principals: ["cluster.local/ns/bot-core/sa/python-ai-service"]
     - source:
         principals: ["cluster.local/ns/bot-core/sa/nextjs-ui-dashboard"]
     to:

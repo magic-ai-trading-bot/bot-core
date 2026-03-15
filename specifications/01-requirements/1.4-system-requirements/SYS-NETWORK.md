@@ -149,14 +149,6 @@ All TCP/UDP ports used by Bot Core services, both internally and externally. Pro
   - Metrics: `http://localhost:8080/metrics`
 - **Usage**: Trading engine, market data, WebSocket streaming
 
-**Python AI Service**:
-- **Port**: 8000
-- **Protocol**: TCP/HTTP
-- **Access**: Internal (Rust service) + External (development/testing)
-- **TLS**: No (HTTP) - Internal network, TLS optional
-- **Endpoints**:
-- **Usage**: AI predictions, technical analysis
-
 **MongoDB**:
 - **Port**: 27017
 - **Protocol**: TCP/MongoDB Wire Protocol
@@ -235,7 +227,6 @@ All TCP/UDP ports used by Bot Core services, both internally and externally. Pro
 |---------|---------|----------|--------|----------|---------|
 | Frontend Dashboard | 3000 | HTTP | External | Yes | prod, dev |
 | Rust Core Engine | 8080 | HTTP/WS | External | Yes | prod, dev |
-| Python AI Service | 8000 | HTTP | Internal/External | Yes | prod, dev |
 | MongoDB | 27017 | MongoDB | Internal | Yes | External (optional) |
 | Redis | 6379 | Redis | Internal | No | redis |
 | RabbitMQ AMQP | 5672 | AMQP | Internal | No | messaging |
@@ -253,7 +244,6 @@ All TCP/UDP ports used by Bot Core services, both internally and externally. Pro
 
 **Common Conflicts**:
 - Port 3000: Frontend vs Grafana (Grafana moved to 3001)
-- Port 8000: Python AI vs Kong Proxy (Kong moved to 8100)
 - Port 27017: MongoDB (ensure only one instance)
 
 **Conflict Detection**:
@@ -694,8 +684,7 @@ curl http://localhost:8080/api/health
 # Check network connectivity
 
 # View network traffic
-docker exec rust-core-engine tcpdump -i eth0 port 8000
-```
+docker exec rust-core-engine tcpdump -i eth0 ```
 
 **Common Issues**:
 1. **Service name not resolving**: Check container name, network membership
@@ -996,12 +985,6 @@ Total:                    150ms  (target p99)
 
 ### Internal Service Latency Targets
 
-**Rust Core Engine → Python AI Service**:
-- **Target**: < 50ms (p99)
-- **Acceptable**: < 100ms (p99)
-- **Critical**: > 200ms
-- **Optimization**: AI response caching (5-minute TTL)
-
 **Frontend → Rust API (REST)**:
 - **Target**: < 100ms (p99)
 - **Acceptable**: < 200ms (p99)
@@ -1203,7 +1186,6 @@ iptables -A INPUT -p tcp --dport 3000 -j ACCEPT
 iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
 
 # Python AI API (HTTP) - Optional, for external access
-iptables -A INPUT -p tcp --dport 8000 -j ACCEPT
 
 # SSH (Secure management)
 iptables -A INPUT -p tcp --dport 22 -s <admin_ip> -j ACCEPT

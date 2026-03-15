@@ -10,7 +10,7 @@
 
 ## Overview
 
-This specification defines functional requirements for the Settings Management System, which provides unified configuration management across Rust Trading Engine and Python AI Service. The system ensures consistent indicator calculations, signal generation thresholds, and trading parameters.
+This specification defines functional requirements for the Settings Management System, which provides unified configuration management for the Rust Trading Engine. The system ensures consistent indicator calculations, signal generation thresholds, and trading parameters.
 
 **Key Capabilities**:
 - Unified indicator settings (RSI, MACD, EMA, Bollinger Bands, Stochastic)
@@ -23,7 +23,6 @@ This specification defines functional requirements for the Settings Management S
 **Shared Configuration**:
 Settings are shared between:
 - Rust Trading Engine (uses settings for strategy execution)
-- Python AI Service (uses settings for signal generation)
 
 ---
 
@@ -35,7 +34,7 @@ Settings are shared between:
 **Status**: ✅ Implemented
 
 **Description**:
-The system shall provide unified technical indicator configuration shared between Rust Trading Engine and Python AI Service to ensure consistent calculations.
+The system shall provide unified technical indicator configuration for the Rust Trading Engine to ensure consistent calculations.
 
 **Acceptance Criteria**:
 - [ ] RSI period (default: 14, range: 5-50)

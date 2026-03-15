@@ -28,18 +28,17 @@ An enterprise-grade specification system has been created for the Bot Core crypt
 
 ### Files Analyzed
 
-**Total Source Files**: 223 files across 3 services
+**Total Source Files**: 184 files across 2 primary services
 
 | Service | Language | Files | Lines of Code (est.) |
 |---------|----------|-------|---------------------|
 | Rust Core Engine | Rust | 44 | ~15,000 |
-| Python AI Service | Python | 39 | ~8,000 |
 | Next.js Dashboard | TypeScript/TSX | 140 | ~20,000 |
-| **TOTAL** | - | **223** | **~43,000** |
+| **TOTAL** | - | **184** | **~35,000** |
 
 ### Architecture Discovered
 
-**Microservices Architecture** - 3 independent services:
+**Microservices Architecture** - 2 primary services + supporting infrastructure:
 
 1. **Rust Core Engine** (Port 8080)
    - Authentication & JWT management
@@ -48,17 +47,10 @@ An enterprise-grade specification system has been created for the Bot Core crypt
    - Paper trading simulation
    - Binance WebSocket integration
    - MongoDB persistence
+   - Strategy engine (RSI, MACD, Bollinger, Volume)
+   - Signal generation
 
-2. **Python AI Service** (Port 8000)
-   - Grok/xAI signal generation
-   - LSTM/GRU/Transformer ML models
-   - Technical indicator calculation
-   - Strategy recommendations
-   - Market condition analysis
-   - MongoDB caching layer
-   - Periodic analysis scheduler
-
-3. **Next.js UI Dashboard** (Port 3000)
+2. **Next.js UI Dashboard** (Port 3000)
    - React + TypeScript + Vite
    - Shadcn/UI components
    - Real-time WebSocket updates
@@ -86,19 +78,6 @@ An enterprise-grade specification system has been created for the Bot Core crypt
 
 **Total Rust Modules**: 9  
 **Total Rust Files**: 44
-
-### Python AI Service Modules
-
-| Module | Files | Key Components | Status |
-|--------|-------|---------------|--------|
-| ML Models | 4 | LSTM, GRU, Transformer, model_manager | ✓ Implemented |
-| Features | 2 | technical_indicators, feature_engineering | ✓ Implemented |
-| Utilities | 3 | logger, helpers, redis_cache | ✓ Implemented |
-| Configuration | 2 | config module, settings | ✓ Implemented |
-| Tests | 27 | Comprehensive test suite | ✓ Implemented |
-
-**Total Python Modules**: 6  
-**Total Python Files**: 39
 
 ### Frontend Modules
 
@@ -148,33 +127,7 @@ An enterprise-grade specification system has been created for the Bot Core crypt
 
 **Total Rust Endpoints**: ~15
 
-### Python AI Service API (Port 8000)
-
-**AI Analysis Endpoints**:
-- `POST /ai/analyze` - Generate trading signals with Grok/xAI
-- `POST /ai/strategy-recommendations` - Get strategy recommendations
-- `POST /ai/market-condition` - Analyze market conditions
-- `POST /ai/feedback` - Send performance feedback
-
-**Service Info Endpoints**:
-- `GET /health` - Health check
-- `GET /ai/info` - Service information
-- `GET /ai/strategies` - Supported strategies
-- `GET /ai/performance` - Model performance metrics
-
-**Storage Endpoints**:
-- `GET /ai/storage/stats` - Storage statistics
-- `POST /ai/storage/clear` - Clear stored analyses
-
-**WebSocket**:
-- `WS /ws` - Real-time AI signal broadcasting
-
-**Debug**:
-- `GET /debug/grok` - Grok/xAI connectivity test
-
-**Total Python Endpoints**: ~15
-
-**Combined Total API Endpoints**: ~30
+**Total API Endpoints**: ~15 (Rust Core Engine)
 
 ---
 
@@ -266,14 +219,6 @@ From BUSINESS_RULES.md and code analysis:
 - **Testing**: Built-in Rust test framework
 - **Async Runtime**: Tokio
 
-**Python AI Service**:
-- **ML Libraries**: TensorFlow, PyTorch
-- **AI**: xAI Grok API (via OpenAI-compatible SDK, api.x.ai/v1)
-- **Indicators**: ta-lib, pandas
-- **Database**: Motor (async MongoDB)
-- **Cache**: Redis (optional)
-- **Testing**: pytest
-
 ### Frontend Stack
 
 **Next.js Dashboard**:
@@ -319,23 +264,6 @@ From BUSINESS_RULES.md and code analysis:
 | test_config.rs | Configuration loading | ✓ Present |
 
 **Rust Test Status**: Comprehensive test suite exists
-
-### Python Tests
-
-
-| Test Suite | Coverage Area | Status |
-|------------|--------------|--------|
-| test_models.py | ML models | ✓ Present |
-| test_technical_indicators.py | Indicators | ✓ Present |
-| test_gpt_analyzer.py | GPT integration | ✓ Present |
-| test_websocket.py | WebSocket | ✓ Present |
-| test_redis_cache.py | Caching | ✓ Present |
-| test_integration.py | Integration tests | ✓ Present |
-| test_security_fixes.py | Security | ✓ Present |
-| test_ml_performance.py | ML performance | ✓ Present |
-| [+18 more test files] | Various features | ✓ Present |
-
-**Python Test Status**: Comprehensive test suite exists
 
 ### Frontend Tests
 
@@ -408,8 +336,6 @@ From BUSINESS_RULES.md and code analysis:
 Frontend (Port 3000)
     ↓ HTTP/WebSocket
 Rust Core Engine (Port 8080)
-    ↓ HTTP
-Python AI Service (Port 8000)
     ↓
 MongoDB (Port 27017)
 ```

@@ -8,10 +8,9 @@
 
 ## Overview
 
-GitHub Dependabot is **now fully configured** for the Bot-Core project to automatically check and update dependencies across all three services:
+GitHub Dependabot is **now fully configured** for the Bot-Core project to automatically check and update dependencies:
 
 - **Rust Core Engine** - Cargo dependencies
-- **Python AI Service** - pip dependencies
 - **Next.js Dashboard** - npm dependencies
 - **GitHub Actions** - workflow dependencies
 
@@ -82,23 +81,6 @@ open-pull-requests-limit: 10
 - Automatic security updates
 - Groups minor/patch updates
 - Commits prefixed with `chore(rust):`
-
-### Python AI Service
-
-```yaml
-package-ecosystem: "pip"
-schedule:
-  interval: "weekly"
-  day: "monday"
-  time: "09:00"
-open-pull-requests-limit: 10
-```
-
-**Features:**
-- Weekly requirements.txt scans
-- ML library updates (TensorFlow, PyTorch, NumPy)
-- Groups minor/patch updates
-- Commits prefixed with `chore(python):`
 
 ### Next.js Dashboard
 
@@ -536,7 +518,6 @@ gh dependabot --help
 
 **Active Monitoring:**
 - 🦀 Rust Core Engine (Cargo)
-- 🐍 Python AI Service (pip)
 - ⚛️ Next.js Dashboard (npm)
 - 🔧 GitHub Actions (workflows)
 

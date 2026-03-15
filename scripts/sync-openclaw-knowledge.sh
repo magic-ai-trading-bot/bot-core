@@ -620,7 +620,6 @@ Use \`get_candles\`, \`analyze_market\`, \`predict_trend\`, \`get_chart\` for an
 
 **System Components** (xem chi tiết trong ARCHITECTURE.md):
 - **Rust Backend** (port 8080): Trading engine, strategies, WebSocket, risk management, API
-- **Python AI** (port 8000): GPT-4 analysis, technical indicators fallback
 - **Frontend** (port 3000): Next.js dashboard (71 components, 601 tests)
 - **MCP Server** (port 8090): 103 tools bridge (Model Context Protocol)
 - **OpenClaw** (port 18789): AI gateway (Claude/Gemini → Telegram/WebSocket) — đó là bạn!

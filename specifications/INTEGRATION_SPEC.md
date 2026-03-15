@@ -6,16 +6,15 @@ This document defines how different services integrate and communicate within th
 ## Service Integration Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│                 │     │                  │     │                 │
-│  Frontend       │────▶│  Rust Core       │────▶│  Python AI      │
-│  Dashboard      │◀────│  Engine          │◀────│  Service        │
-│  (Port 3000)    │     │  (Port 8080)     │     │  (Port 8000)    │
-│                 │     │                  │     │                 │
-└────────┬────────┘     └────────┬─────────┘     └────────┬────────┘
-         │                       │                         │
-         │                       │                         │
-         └───────────────────────┴─────────────────────────┘
+┌─────────────────┐     ┌──────────────────┐
+│                 │     │                  │
+│  Frontend       │────▶│  Rust Core       │
+│  Dashboard      │◀────│  Engine          │
+│  (Port 3000)    │     │  (Port 8080)     │
+│                 │     │                  │
+└────────┬────────┘     └────────┬─────────┘
+         │                       │
+         └───────────────────────┘
                                  │
                                  ▼
                         ┌─────────────────┐
@@ -52,71 +51,7 @@ Rust -> MongoDB: Store trade
 Rust -> Frontend: Trade result
 ```
 
-### 2. Rust Core Engine → Python AI Service
-
-#### AI Analysis Request
-```yaml
-Trigger: User requests trade or automated analysis
-Method: HTTP REST
-Authentication: Internal service token
-Retry: 3 times with exponential backoff
-Timeout: 30 seconds
-Fallback: Use cached analysis if available
-```
-
-**Request Flow:**
-```python
-# Rust sends to Python
-Headers:
-  Authorization: Bearer {INTER_SERVICE_TOKEN}
-  X-Request-ID: {uuid}
-Body:
-  {
-    "symbol": "BTCUSDT",
-    "timeframe": "1h",
-    "candles": [...],
-    "technical_indicators": {...}
-  }
-
-# Python processes and responds
-Response:
-  {
-    "signal": "Long",
-    "confidence": 0.75,
-    "reasoning": "...",
-    "processing_time_ms": 1234
-  }
-```
-
-### 3. Python AI Service → MongoDB
-
-#### Store Analysis Results
-```yaml
-Trigger: After each AI analysis
-Connection: MongoDB Atlas via connection string
-Collection: ai_analysis_results
-Retention: 30 days
-Index: symbol + timestamp (compound)
-```
-
-**Storage Flow:**
-```javascript
-// Python stores analysis
-{
-  _id: ObjectId("..."),
-  symbol: "BTCUSDT",
-  signal: "Long",
-  confidence: 0.75,
-  timestamp: ISODate("2025-07-31T18:33:29.169Z"),
-  technical_indicators: {...},
-  metadata: {
-    model_version: "grok-4-1-fast-non-reasoning",
-    processing_time_ms: 1234
-  }
-}
-```
-
-### 4. WebSocket Integration
+### 2. WebSocket Integration
 
 #### Real-time Updates Flow
 ```yaml
@@ -154,9 +89,8 @@ Rust Core WebSocket: ws://localhost:8080/ws
 ### 1. Startup Order
 ```yaml
 1. MongoDB: Must be accessible
-2. Python AI Service: Independent startup
-3. Rust Core Engine: Depends on MongoDB
-4. Frontend Dashboard: Depends on Rust Core
+2. Rust Core Engine: Depends on MongoDB
+3. Frontend Dashboard: Depends on Rust Core
 ```
 
 ### 2. Health Check Chain
@@ -168,13 +102,7 @@ Frontend checks:
 Rust Core checks:
   - Own health
   - MongoDB connection
-  - Python AI availability
   - Binance WebSocket
-
-Python AI checks:
-  - Own health
-  - MongoDB connection
-  - OpenAI API availability
 ```
 
 ## Data Synchronization
@@ -194,35 +122,21 @@ Update Trigger:
 Source: Binance WebSocket
 Distribution:
   - Rust Core: Primary receiver
-  - Python AI: Via REST request
   - Frontend: Via WebSocket from Rust
 Update Frequency: Real-time (100ms)
 ```
 
-### 3. AI Analysis Sync
+### 3. Signal Analysis Sync
 ```yaml
-Generation: Python AI Service
+Generation: Rust Core Strategy Engine
 Storage: MongoDB Atlas
-Cache: 
-  - Python: 5 minutes in-memory
-  - Rust: 2 minutes in-memory
+Cache: 5 minutes in-memory
 Invalidation: On new market data
 ```
 
 ## Error Handling & Resilience
 
 ### 1. Service Unavailability
-
-#### Python AI Service Down
-```yaml
-Detection: Health check failure (3 consecutive)
-Rust Action:
-  - Use cached AI signals (up to 15 minutes old)
-  - Fallback to technical-only strategies
-  - Notify user of degraded mode
-  - Log incident
-Recovery: Automatic retry every 30 seconds
-```
 
 #### MongoDB Down
 ```yaml
@@ -448,11 +362,6 @@ Frontend:
 
 ### 2. Load Balancing
 ```yaml
-Python AI Service:
-  - Horizontal scaling (3 instances)
-  - Round-robin distribution
-  - Sticky sessions for WebSocket
-
 Rust Core Engine:
   - Vertical scaling preferred
   - Single instance per region
@@ -462,12 +371,10 @@ Rust Core Engine:
 ### 3. Resource Limits
 ```yaml
 Development:
-  - Python: 1.5GB RAM, 1.5 CPU
   - Rust: 1GB RAM, 1 CPU
   - Frontend: 512MB RAM, 0.5 CPU
 
 Production:
-  - Python: 4GB RAM, 2 CPU
   - Rust: 2GB RAM, 2 CPU
   - Frontend: 1GB RAM, 1 CPU
   - Auto-scale at 70% usage

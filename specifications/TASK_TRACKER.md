@@ -91,7 +91,6 @@
 ### 2.3 API (4 documents) - 100% ✅
 
 - [x] API-RUST-CORE.md - Rust Core Engine API (1,846 lines) ☑
-- [x] API-PYTHON-AI.md - Python AI Service API (916 lines) ☑
 - [x] API-WEBSOCKET.md - WebSocket Protocol (933 lines) ☑
 - [x] API-SEQUENCES.mermaid - Sequence Diagrams (665 lines) ☑
 
@@ -285,13 +284,6 @@
 - ✅ WebSocket (4 files)
 - ✅ Market data (4 files)
 
-### Python AI Service (39 files analyzed)
-- ✅ ML models (LSTM, GRU, Transformer)
-- ✅ Technical indicators
-- ✅ Feature engineering
-- ✅ Training pipeline
-- ✅ Prediction service
-- ✅ xAI/Grok integration (via OpenAI-compatible SDK)
 
 ### Next.js Dashboard (140 files analyzed)
 - ✅ Authentication pages
@@ -447,7 +439,6 @@ This comprehensive specification system provides:
 
 **Files Tagged**:
 - [x] Rust Core Engine files (17 files, 30 tags) ☑
-- [x] Python AI Service files (6 files, 8 tags) ☑
 - [x] Next.js Dashboard files (7 files, 9 tags) ☑
 
 **Total**: 30 files, 47 @spec tags

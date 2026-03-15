@@ -1,6 +1,7 @@
 """
 End-to-end tests across all services
-Tests: Frontend → Rust → Python → MongoDB integration
+Tests: Frontend → Rust → MongoDB integration
+Note: Python AI service has been removed. Signal generation is handled by the Rust strategy engine.
 """
 
 import pytest
@@ -13,10 +14,10 @@ from playwright.async_api import async_playwright
 @pytest.mark.asyncio
 async def test_complete_trading_flow_all_services():
     """
-    Test complete flow across all 3 services:
+    Test complete flow across all services:
     1. Frontend: User login
     2. Rust: Dashboard loads
-    3. Python: AI analysis request
+    3. Rust: Strategy analysis request (Python AI service removed)
     4. Frontend: Display results
     5. Rust: Execute trade
     """
@@ -40,16 +41,11 @@ async def test_complete_trading_flow_all_services():
                 rust_health = await client.get('http://localhost:8080/health', timeout=10.0)
                 assert rust_health.status_code == 200
 
-            # 3. Python: Request AI analysis
+            # 3. Rust strategy engine: Request analysis (Python AI service removed)
             await page.click('text=AI Analysis')
             await page.wait_for_timeout(2000)
 
-            # Verify Python AI service is responding
-            async with httpx.AsyncClient() as client:
-                python_health = await client.get('http://localhost:8000/health', timeout=10.0)
-                assert python_health.status_code == 200
-
-            # 4. Frontend: Verify AI results displayed
+            # 4. Frontend: Verify strategy results displayed
             # Look for AI signal indicators
             ai_result = page.locator('text=/Long|Short|Hold|Bullish|Bearish/i').first
             if await ai_result.is_visible(timeout=10000):
@@ -57,6 +53,7 @@ async def test_complete_trading_flow_all_services():
                 assert result_text in ['Long', 'Short', 'Hold', 'Bullish', 'Bearish', 'Neutral']
 
             # 5. Rust: Test trade execution flow
+
             # Navigate to trading page
             await page.click('text=Trading')
             await page.wait_for_timeout(2000)
@@ -81,11 +78,12 @@ async def test_complete_trading_flow_all_services():
 async def test_service_communication_chain():
     """
     Test service communication chain:
-    Rust → Python → Rust → Frontend
+    Rust strategy engine → Frontend
+    Note: Python AI service has been removed.
     """
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # 1. Verify all services are healthy
+        # 1. Verify Rust service is healthy
         try:
             rust_health = await client.get('http://localhost:8080/health')
             assert rust_health.status_code == 200
@@ -94,43 +92,26 @@ async def test_service_communication_chain():
             print(f"✗ Rust service not available: {e}")
             pytest.skip("Rust service not running")
 
-        try:
-            python_health = await client.get('http://localhost:8000/health')
-            assert python_health.status_code == 200
-            print("✓ Python service healthy")
-        except httpx.RequestError as e:
-            print(f"✗ Python service not available: {e}")
-            pytest.skip("Python service not running")
-
-        # 2. Test Rust can call Python
+        # 2. Test Rust strategy engine analysis
         analysis_request = {
             "symbol": "BTCUSDT",
             "timeframe": "1h",
-            "candles": [
-                {
-                    "open": 50000.0,
-                    "high": 50500.0,
-                    "low": 49800.0,
-                    "close": 50200.0,
-                    "volume": 1000.0,
-                    "timestamp": 1701234567000,
-                }
-            ],
         }
 
         try:
             ai_response = await client.post(
-                'http://localhost:8000/ai/analyze',
+                'http://localhost:8080/api/ai/analyze',
                 json=analysis_request
             )
 
             if ai_response.status_code == 200:
                 data = ai_response.json()
-                assert 'signal' in data
-                assert 'confidence' in data
-                print(f"✓ AI Analysis: {data['signal']} (confidence: {data['confidence']})")
+                result = data.get('data', data)
+                assert 'signal' in result
+                assert 'confidence' in result
+                print(f"✓ Strategy Analysis: {result['signal']} (confidence: {result['confidence']})")
         except httpx.RequestError as e:
-            print(f"✗ AI analysis failed: {e}")
+            print(f"✗ Strategy analysis failed: {e}")
 
 
 @pytest.mark.e2e
@@ -158,17 +139,6 @@ async def test_websocket_real_time_updates():
 
     except (websockets.exceptions.WebSocketException, asyncio.TimeoutError) as e:
         print(f"✗ Rust WebSocket test skipped: {e}")
-
-    # Test Python WebSocket
-    try:
-        async with websockets.connect('ws://localhost:8000/ws') as websocket:
-            response = await asyncio.wait_for(websocket.recv(), timeout=5.0)
-            data = json.loads(response)
-
-            print(f"✓ Python WebSocket connected: {data}")
-
-    except (websockets.exceptions.WebSocketException, asyncio.TimeoutError) as e:
-        print(f"✗ Python WebSocket test skipped: {e}")
 
 
 @pytest.mark.e2e

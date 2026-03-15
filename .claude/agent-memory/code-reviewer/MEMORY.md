@@ -24,7 +24,6 @@
 - database.rs: `find_by_email()` (not `find_user_by_email`)
 - bcrypt with DEFAULT_COST (library default = 12)
 
-## Python AI Service
-- Main endpoint: `POST /ai/analyze` (no /api prefix)
-- No `/api/ai/signals/{symbol}` endpoint exists
-- 20+ endpoints total, heavily underdocumented
+## Strategy Engine (Rust)
+- Signal analysis via internal strategy engine
+- AI endpoints in Rust (`/api/ai/*`) route to strategy engine, not external service

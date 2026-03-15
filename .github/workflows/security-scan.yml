@@ -216,7 +216,6 @@ jobs:
     #   with:
     #     name: dependency-check-results
     #     path: |
-    #       python-ai-service/safety-report.json
     #       nextjs-ui-dashboard/npm-audit.json
     #       rust-core-engine/cargo-audit.json
 
@@ -250,7 +249,6 @@ jobs:
     #   with:
     #     name: license-reports
     #     path: |
-    #       python-ai-service/python-licenses.json
     #       nextjs-ui-dashboard/nodejs-licenses.json
     #       rust-core-engine/rust-licenses.json
 

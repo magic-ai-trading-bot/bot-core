@@ -78,7 +78,6 @@ The strategy system is implemented in Rust (`rust-core-engine/src/strategies/`) 
 - ☑ Strategy metadata and reasoning
 
 ### 2.2 Out of Scope
-- ☐ Machine learning strategies (covered in Python AI Service)
 - ☐ Sentiment analysis strategies
 - ☐ Order book analysis strategies
 - ☐ Social media-based strategies

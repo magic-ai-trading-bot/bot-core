@@ -78,7 +78,7 @@ export interface AISignal {
   };
 }
 
-// NEW AI TYPES - Compatible with Python AI Service
+// AI types for strategy analysis
 export interface CandleDataAI {
   open_time: number;
   close_time: number;
@@ -658,7 +658,7 @@ class RustTradingApiClient extends BaseApiClient {
     });
   }
 
-  // NEW: AI Integration - Routes through Rust to Python AI Service
+  // AI Integration - Routes through Rust strategy engine
   async analyzeAI(request: AIAnalysisRequest): Promise<AISignalResponse> {
     return this.requestWithRetry(async () => {
       const response = await this.client.post("/api/ai/analyze", request);

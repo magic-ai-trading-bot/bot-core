@@ -98,7 +98,7 @@ Feature: Handle Empty Market Data
   Scenario: Request analysis with no klines
     Given I request AI analysis for BTCUSDT
     But Binance returns empty array []
-    When Python AI service attempts analysis
+    When Rust strategy engine attempts analysis
     Then system should detect empty data
     And return error: "Insufficient data for analysis"
     And not attempt to calculate indicators
@@ -309,15 +309,14 @@ Feature: Network Timeout Handling
       - Fall back to alternative data source
       - Notify user of connectivity issues
 
-  Scenario: Python AI service timeout
-    Given AI analysis takes >30 seconds
+  Scenario: Strategy analysis timeout
+    Given Binance data fetch takes >30 seconds
     When Rust waits for response
     And timeout occurs
     Then Rust should:
       - Cancel request
-      - Use local technical analysis
       - Log timeout error
-      - Continue trading with degraded AI
+      - Return error to caller
 ```
 
 ---

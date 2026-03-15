@@ -38,9 +38,6 @@ VOLUMES=(
 
 # List of critical directories to backup
 DIRECTORIES=(
-    "./python-ai-service/models"
-    "./python-ai-service/data"
-    "./python-ai-service/logs"
     "./rust-core-engine/data"
     "./rust-core-engine/logs"
     "./nextjs-ui-dashboard/logs"

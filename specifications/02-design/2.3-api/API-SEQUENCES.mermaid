@@ -128,43 +128,34 @@ sequenceDiagram
 
 ---
 
-## 5. AI Analysis Request Flow
+## 5. Strategy Analysis Request Flow
 
 ```mermaid
 sequenceDiagram
     participant Frontend as Frontend<br/>(Next.js)
     participant RustAPI as Rust Core API<br/>(Port 8080)
-    participant PythonAI as Python AI Service<br/>(Port 8000)
-    participant GrokAI as xAI Grok API (api.x.ai/v1)
+    participant StrategyEngine as Strategy Engine<br/>(Rust internal)
     participant MongoDB
 
     Frontend->>RustAPI: POST /api/ai/analyze<br/>{symbol, timeframe_data, strategy_context}
 
-    RustAPI->>PythonAI: POST /ai/analyze<br/>Forward request
+    RustAPI->>StrategyEngine: Run indicator + signal analysis
 
-    PythonAI->>MongoDB: Query: Get latest analysis for BTCUSDT
-    MongoDB-->>PythonAI: Latest analysis (2 minutes old)
+    StrategyEngine->>MongoDB: Query: Get latest signals for BTCUSDT
+    MongoDB-->>StrategyEngine: Latest signals (cached)
 
-    alt Analysis is recent (< 5 min)
-        PythonAI-->>RustAPI: 200 OK [CACHED]<br/>{signal, confidence, reasoning}
+    alt Signals are recent (< 5 min)
+        StrategyEngine-->>RustAPI: Cached signals<br/>{signal, confidence, reasoning}
         RustAPI-->>Frontend: Return cached analysis
-    else Analysis is stale or missing
-        PythonAI->>PythonAI: Calculate technical indicators<br/>(RSI, MACD, Bollinger Bands)
-
-        PythonAI->>PythonAI: Prepare Grok/xAI prompt<br/>with market context
-
-        PythonAI->>GrokAI: POST /v1/chat/completions<br/>Model: grok-4-1-fast-non-reasoning
-
-        GrokAI-->>PythonAI: AI analysis response<br/>(JSON with signal & reasoning)
-
-        PythonAI->>PythonAI: Parse Grok/xAI response
-        PythonAI->>MongoDB: Store analysis result<br/>(cache for 5 minutes)
-
-        PythonAI-->>RustAPI: 200 OK<br/>{signal, confidence, reasoning, ...}
+    else Signals are stale or missing
+        StrategyEngine->>StrategyEngine: Calculate technical indicators<br/>(RSI, MACD, Bollinger Bands)
+        StrategyEngine->>StrategyEngine: Score strategies and generate signal
+        StrategyEngine->>MongoDB: Store signal result<br/>(cache for 5 minutes)
+        StrategyEngine-->>RustAPI: 200 OK<br/>{signal, confidence, reasoning, ...}
         RustAPI-->>Frontend: Return fresh analysis
     end
 
-    Frontend->>Frontend: Display AI signal
+    Frontend->>Frontend: Display strategy signal
     Frontend->>Frontend: Update signal chart
 ```
 
@@ -176,7 +167,7 @@ sequenceDiagram
 sequenceDiagram
     participant PaperEngine as Paper Trading Engine<br/>(Rust Background Task)
     participant RustAPI as Rust Core API
-    participant PythonAI as Python AI Service
+    participant StrategyEngine as Strategy Engine<br/>(Rust internal)
     participant MongoDB
     participant WebSocket as WebSocket Server
     participant Frontend as Frontend<br/>(Dashboard)
@@ -188,11 +179,11 @@ sequenceDiagram
     loop For each symbol
         PaperEngine->>PaperEngine: Fetch market data<br/>(last 100 candles)
 
-        PaperEngine->>PythonAI: POST /ai/analyze<br/>{symbol, timeframe_data}
+        PaperEngine->>StrategyEngine: Run indicator analysis<br/>{symbol, timeframe_data}
 
-        PythonAI->>PythonAI: Calculate indicators
-        PythonAI->>PythonAI: Run Grok/xAI analysis
-        PythonAI-->>PaperEngine: {signal: "Long", confidence: 0.82}
+        StrategyEngine->>StrategyEngine: Calculate indicators
+        StrategyEngine->>StrategyEngine: Score strategies and generate signal
+        StrategyEngine-->>PaperEngine: {signal: "Long", confidence: 0.82}
 
         PaperEngine->>PaperEngine: Check confidence threshold<br/>(> 0.65 default)
 
@@ -295,48 +286,43 @@ sequenceDiagram
 
 ---
 
-## 8. AI Signal Broadcasting Flow
+## 8. Strategy Signal Broadcasting Flow
 
 ```mermaid
 sequenceDiagram
-    participant PythonAI as Python AI Service<br/>(Background Task)
-    participant GrokAI as xAI Grok API (api.x.ai/v1)
+    participant StrategyEngine as Strategy Engine<br/>(Rust Background Task)
     participant MongoDB
-    participant WSManager as WebSocket Manager<br/>(Python)
+    participant WSManager as WebSocket Manager<br/>(Rust)
     participant Client1 as Client 1
     participant Client2 as Client 2
 
-    Note over PythonAI: Periodic analysis timer (5 min)
+    Note over StrategyEngine: Periodic analysis timer (5 min)
 
     loop For each tracked symbol
-        PythonAI->>PythonAI: Generate market data
+        StrategyEngine->>StrategyEngine: Fetch market data
 
-        PythonAI->>GrokAI: POST /v1/chat/completions<br/>Analyze BTCUSDT
+        StrategyEngine->>StrategyEngine: Calculate indicators<br/>Generate strategy signals
 
-        GrokAI-->>PythonAI: Grok/xAI analysis result
+        StrategyEngine->>MongoDB: Store signal result
 
-        PythonAI->>MongoDB: Store analysis result
-
-        PythonAI->>WSManager: Broadcast AI signal<br/>{"type": "AISignalReceived", ...}
+        StrategyEngine->>WSManager: Broadcast strategy signal<br/>{"type": "SignalGenerated", ...}
 
         par Broadcast to all WebSocket clients
-            WSManager-->>Client1: AI signal message
+            WSManager-->>Client1: Signal message
             Client1->>Client1: Display signal badge
             Client1->>Client1: Play notification sound
             Client1->>Client1: Update signal history
 
-            WSManager-->>Client2: AI signal message
+            WSManager-->>Client2: Signal message
             Client2->>Client2: Check auto-trading settings
 
             alt Auto-trading enabled
-                Client2->>Client2: Evaluate confidence > 0.70
+                Client2->>Client2: Evaluate confidence > 0.65
                 Client2->>Client2: Execute trade via API
             else Auto-trading disabled
                 Client2->>Client2: Show notification only
             end
         end
-
-        Note over PythonAI: Wait 10 seconds (rate limit)
     end
 ```
 
@@ -461,8 +447,7 @@ sequenceDiagram
 sequenceDiagram
     participant Frontend as Frontend<br/>(Strategy Page)
     participant RustAPI as Rust Core API
-    participant PythonAI as Python AI Service
-    participant GrokAI as xAI Grok API (api.x.ai/v1)
+    participant StrategyEngine as Strategy Engine<br/>(Rust internal)
 
     Frontend->>RustAPI: GET /api/market/chart/BTCUSDT/1h?limit=100
 
@@ -470,18 +455,13 @@ sequenceDiagram
 
     Frontend->>RustAPI: POST /api/ai/strategy-recommendations<br/>{symbol, timeframe_data, available_strategies}
 
-    RustAPI->>PythonAI: POST /ai/strategy-recommendations<br/>Forward request
+    RustAPI->>StrategyEngine: Evaluate strategies for symbol
 
-    PythonAI->>PythonAI: Convert timeframe_data to DataFrame
-    PythonAI->>PythonAI: Calculate technical indicators
+    StrategyEngine->>StrategyEngine: Calculate technical indicators
+    StrategyEngine->>StrategyEngine: Analyze market conditions<br/>Trend: Upward, Volatility: Medium
+    StrategyEngine->>StrategyEngine: Generate suitability scores<br/>for each strategy
 
-    PythonAI->>PythonAI: Analyze market conditions<br/>Trend: Upward, Volatility: Medium
-
-    PythonAI->>PythonAI: Generate suitability scores<br/>for each strategy
-
-    Note over PythonAI: Simple scoring algorithm<br/>(Future: Grok/xAI powered)
-
-    PythonAI-->>RustAPI: 200 OK<br/>[{strategy_name, suitability_score, reasoning}, ...]
+    StrategyEngine-->>RustAPI: [{strategy_name, suitability_score, reasoning}, ...]
 
     RustAPI-->>Frontend: Strategy recommendations
 
@@ -508,46 +488,23 @@ sequenceDiagram
 sequenceDiagram
     participant Frontend as Frontend
     participant RustAPI as Rust Core API
-    participant PythonAI as Python AI Service
-    participant GrokAI as xAI Grok API (api.x.ai/v1)
+    participant StrategyEngine as Strategy Engine<br/>(Rust internal)
 
     Frontend->>RustAPI: POST /api/ai/analyze
 
-    RustAPI->>PythonAI: POST /ai/analyze
+    RustAPI->>StrategyEngine: Run strategy analysis
 
-    PythonAI->>GrokAI: POST /v1/chat/completions<br/>API Key 1
+    alt Analysis succeeds
+        StrategyEngine-->>RustAPI: 200 OK<br/>Signal result
+        RustAPI-->>Frontend: 200 OK
+    else Analysis fails (e.g., insufficient data)
+        StrategyEngine-->>RustAPI: Err - not enough candles
 
-    GrokAI-->>PythonAI: 429 Rate Limit Exceeded<br/>Retry-After: 60
+        Note over RustAPI: Return graceful error
 
-    Note over PythonAI: Mark API Key 1 as rate limited<br/>Set reset time
-
-    PythonAI->>PythonAI: Switch to API Key 2
-
-    PythonAI->>GrokAI: POST /v1/chat/completions<br/>API Key 2
-
-    GrokAI-->>PythonAI: 200 OK<br/>Analysis result
-
-    PythonAI-->>RustAPI: 200 OK<br/>AI analysis
-
-    RustAPI-->>Frontend: 200 OK
-
-    Note over Frontend,PythonAI: 5 minutes later - Key 1 retry
-
-    Frontend->>RustAPI: POST /api/ai/analyze
-
-    RustAPI->>PythonAI: POST /ai/analyze
-
-    PythonAI->>PythonAI: Check rate limit status<br/>Key 1 reset time expired
-
-    PythonAI->>PythonAI: Clear rate limit flag<br/>Switch back to API Key 1
-
-    PythonAI->>GrokAI: POST /v1/chat/completions<br/>API Key 1
-
-    GrokAI-->>PythonAI: 200 OK
-
-    PythonAI-->>RustAPI: 200 OK
-
-    RustAPI-->>Frontend: 200 OK
+        RustAPI-->>Frontend: 422 Unprocessable Entity<br/>{error: "Insufficient market data"}
+        Frontend->>Frontend: Show fallback message
+    end
 ```
 
 ---
@@ -558,24 +515,16 @@ sequenceDiagram
 sequenceDiagram
     participant Monitoring as Monitoring Service<br/>(External)
     participant RustAPI as Rust Core API<br/>(Port 8080)
-    participant PythonAI as Python AI Service<br/>(Port 8000)
     participant MongoDB
     participant Binance as Binance WebSocket
 
     Monitoring->>RustAPI: GET /health
 
     RustAPI->>RustAPI: Check service status
+    RustAPI->>MongoDB: Ping database
+    MongoDB-->>RustAPI: Pong
 
-    RustAPI-->>Monitoring: 200 OK<br/>{status: "healthy"}
-
-    Monitoring->>PythonAI: GET /health
-
-    PythonAI->>PythonAI: Check Grok/xAI client status
-    PythonAI->>MongoDB: Ping database
-
-    MongoDB-->>PythonAI: Pong
-
-    PythonAI-->>Monitoring: 200 OK<br/>{status: "healthy", grok_available: true, mongodb_connected: true}
+    RustAPI-->>Monitoring: 200 OK<br/>{status: "healthy", mongodb_connected: true}
 
     Note over Monitoring: All services healthy
 

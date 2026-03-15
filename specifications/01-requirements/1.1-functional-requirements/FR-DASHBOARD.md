@@ -1632,7 +1632,7 @@ WS /ws
 
 **External Systems** (reference to INTEGRATION_SPEC.md):
 - Rust Core Engine: Port 8080
-- Python AI Service: Port 8000
+- Rust Core Engine: Port 8080
 - MongoDB: Trading data persistence
 - Binance WebSocket: Market data stream
 

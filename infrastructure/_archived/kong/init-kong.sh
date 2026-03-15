@@ -60,11 +60,7 @@ echo "=== Configuring Services ==="
 create_or_update_service "rust-core-api" "http://rust-core-engine-dev:8080"
 create_or_update_route "rust-core-api" "rust-core-route" "/api" "false"
 
-# 2. Python AI Service
-create_or_update_service "python-ai-api" "http://python-ai-service-dev:8000"
-create_or_update_route "python-ai-api" "python-ai-route" "/ai" "true"
-
-# 3. Next.js Dashboard
+# 2. Next.js Dashboard
 create_or_update_service "nextjs-dashboard" "http://nextjs-ui-dashboard-dev:3000"
 create_or_update_route "nextjs-dashboard" "nextjs-dashboard-route" "/dashboard" "true"
 
@@ -88,6 +84,5 @@ echo "  Proxy:     http://localhost:8100"
 echo ""
 echo "Available endpoints via proxy:"
 echo "  - Rust API:    http://localhost:8100/api/health"
-echo "  - Python AI:   http://localhost:8100/ai/health"
 echo "  - Dashboard:   http://localhost:8100/dashboard/ (dev: use http://localhost:3000)"
 echo "  - Welcome:     http://localhost:8100/"

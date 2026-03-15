@@ -305,21 +305,10 @@ Feature: Service Timeout Handling
   I want to handle timeouts gracefully
   So that slow services don't block everything
 
-  Scenario: Python AI service timeout
-    Given Python service is processing heavy ML model
-    And takes >30 seconds to respond
-    When Rust times out waiting
-    Then Rust should:
-      - Cancel request
-      - Return fallback response (technical analysis)
-      - Log timeout for monitoring
-      - Continue trading without blocking
-
   Scenario: Cascading timeout prevention
-    Given Frontend → Rust → Python chain
-    When Python times out
-    Then Rust should timeout before Frontend
-    And Frontend should receive error within 35 seconds total
+    Given Frontend → Rust chain
+    When Rust times out (e.g. slow Binance response)
+    Then Frontend should receive error within 35 seconds total
     And no request should hang indefinitely
 ```
 
@@ -472,16 +461,6 @@ Feature: Graceful Degradation
   As the system
   I want to operate with partial failures
   So that entire platform doesn't go down
-
-  Scenario: Python AI service is down
-    Given Python service crashes
-    When users request AI analysis
-    Then Rust should:
-      - Detect Python unavailable
-      - Fall back to local technical indicators
-      - Return analysis without ML models
-      - Show warning: "AI analysis unavailable - using technical analysis"
-      - Allow trading to continue
 
   Scenario: MongoDB is down but Binance works
     Given MongoDB is unreachable

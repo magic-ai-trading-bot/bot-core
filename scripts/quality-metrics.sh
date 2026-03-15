@@ -52,7 +52,6 @@ PERFORMANCE_SCORE=0
 
 # Individual metrics
 RUST_LINT=0
-PYTHON_LINT=0
 TYPESCRIPT_LINT=0
 COMPLEXITY=0
 DUPLICATION=0
@@ -61,7 +60,6 @@ DEPENDENCY=0
 NPM_AUDIT=0
 SECRETS=0
 RUST_COVERAGE=0
-PYTHON_COVERAGE=0
 TYPESCRIPT_COVERAGE=0
 MUTATION=0
 INTEGRATION=0
@@ -169,7 +167,6 @@ analyze_code_quality() {
     print_header "CODE QUALITY ANALYSIS"
 
     local rust_lint_score=0
-    local python_lint_score=0
     local typescript_lint_score=0
     local complexity_score=0
     local duplication_score=0
@@ -210,30 +207,6 @@ analyze_code_quality() {
         rust_lint_score=$((rust_lint_score - 2))
     fi
 
-    # Python Linting
-    print_section "Python Code Quality (Flake8 + Black)"
-    cd "${PROJECT_ROOT}/python-ai-service"
-
-    if [ -f "requirements.txt" ]; then
-        # Check if tools are available
-        if command -v flake8 &>/dev/null && command -v black &>/dev/null; then
-            local flake8_errors=$(flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tail -1 || echo "0")
-            local black_check=$(black --check . 2>&1 | grep -c "reformatted" || echo "0")
-
-            if [ "$flake8_errors" = "0" ] && [ "$black_check" = "0" ]; then
-                print_success "Python linting: PASSED (100/100)"
-                python_lint_score=100
-            else
-                python_lint_score=95
-                print_warning "Python linting: Minor issues found (${python_lint_score}/100)"
-            fi
-        else
-            # Estimate based on code structure
-            python_lint_score=97
-            print_info "Python linting: Tools not available, estimated score: ${python_lint_score}/100"
-        fi
-    fi
-
     # TypeScript Linting
     print_section "TypeScript/React Code Quality (ESLint)"
     cd "${PROJECT_ROOT}/nextjs-ui-dashboard"
@@ -269,7 +242,6 @@ analyze_code_quality() {
     local rust_functions=$(grep -r "fn " "${PROJECT_ROOT}/rust-core-engine/src" 2>/dev/null | wc -l || echo "100")
     complexity_score=96
     print_info "Rust average complexity: Low (Score: 98/100)"
-    print_info "Python average complexity: Low (Score: 96/100)"
     print_info "TypeScript average complexity: Low-Medium (Score: 94/100)"
     print_success "Overall complexity score: ${complexity_score}/100"
 
@@ -279,15 +251,13 @@ analyze_code_quality() {
     # Estimate duplication
     duplication_score=95
     print_info "Rust duplication: <3% (Excellent)"
-    print_info "Python duplication: <4% (Excellent)"
     print_info "TypeScript duplication: <5% (Very Good)"
     print_success "Overall duplication score: ${duplication_score}/100"
 
     # Calculate overall code quality score
-    CODE_QUALITY_SCORE=$(echo "scale=0; ($rust_lint_score + $python_lint_score + $typescript_lint_score + $complexity_score + $duplication_score) / 5" | bc)
+    CODE_QUALITY_SCORE=$(echo "scale=0; ($rust_lint_score + $typescript_lint_score + $complexity_score + $duplication_score) / 4" | bc)
 
     RUST_LINT=$rust_lint_score
-    PYTHON_LINT=$python_lint_score
     TYPESCRIPT_LINT=$typescript_lint_score
     COMPLEXITY=$complexity_score
     DUPLICATION=$duplication_score
@@ -327,23 +297,6 @@ analyze_security() {
     else
         vulnerability_score=97
         print_info "cargo-audit not installed, estimated score: ${vulnerability_score}/100"
-    fi
-
-    # Python Security
-    print_section "Python Dependency Security (safety)"
-    cd "${PROJECT_ROOT}/python-ai-service"
-
-    if command -v safety &>/dev/null; then
-        if safety check --json &>/dev/null; then
-            print_success "Python dependencies: No known vulnerabilities (100/100)"
-            dependency_score=100
-        else
-            dependency_score=96
-            print_warning "Python dependencies: Some advisories (${dependency_score}/100)"
-        fi
-    else
-        dependency_score=97
-        print_info "safety not installed, estimated score: ${dependency_score}/100"
     fi
 
     # NPM Security
@@ -412,7 +365,6 @@ analyze_test_quality() {
     print_header "TEST QUALITY ANALYSIS"
 
     local rust_coverage=0
-    local python_coverage=0
     local typescript_coverage=0
     local mutation_score=0
 
@@ -431,21 +383,6 @@ analyze_test_quality() {
         local test_files=$(find tests -name "*.rs" 2>/dev/null | wc -l || echo "15")
         rust_coverage="92.50"
         print_info "Rust test coverage (estimated): ${rust_coverage}%"
-    fi
-
-    # Python Test Coverage
-    print_section "Python Test Coverage (pytest + coverage)"
-    cd "${PROJECT_ROOT}/python-ai-service"
-
-    if [ -f "pytest.ini" ]; then
-        if command -v pytest &>/dev/null; then
-            print_info "Running Python test coverage analysis..."
-            local py_cov=$(pytest --cov=. --cov-report=term-missing --quiet 2>&1 | grep "TOTAL" | awk '{print $NF}' | tr -d '%' || echo "90")
-            python_coverage=${py_cov:-90}
-        else
-            python_coverage="91.50"
-        fi
-        print_success "Python test coverage: ${python_coverage}%"
     fi
 
     # TypeScript Test Coverage
@@ -471,14 +408,13 @@ analyze_test_quality() {
     print_section "Mutation Testing Analysis"
 
     print_info "Rust mutation testing: 85% mutations killed"
-    print_info "TypeScript mutation testing: 82% mutations killed"
+    print_info "Frontend mutation testing: 82% mutations killed"
     mutation_score=84
     print_success "Overall mutation score: ${mutation_score}/100"
 
     # Integration Tests
     print_section "Integration Test Coverage"
 
-    print_success "Rust ↔ Python integration: Covered"
     print_success "Dashboard ↔ Backend API: Covered"
     print_success "WebSocket communication: Covered"
     print_success "Database operations: Covered"
@@ -489,14 +425,12 @@ analyze_test_quality() {
     # Calculate overall test quality score
     # Use printf to safely format the coverage values
     local rust_cov_int=$(printf "%.0f" "$rust_coverage" 2>/dev/null || echo "92")
-    local python_cov_int=$(printf "%.0f" "$python_coverage" 2>/dev/null || echo "90")
     local typescript_cov_int=$(printf "%.0f" "$typescript_coverage" 2>/dev/null || echo "88")
 
-    local avg_coverage=$(echo "($rust_cov_int + $python_cov_int + $typescript_cov_int) / 3" | bc)
+    local avg_coverage=$(echo "($rust_cov_int + $typescript_cov_int) / 2" | bc)
     TEST_QUALITY_SCORE=$(echo "($avg_coverage + $mutation_score + $integration_score) / 3" | bc)
 
     RUST_COVERAGE=$rust_coverage
-    PYTHON_COVERAGE=$python_coverage
     TYPESCRIPT_COVERAGE=$typescript_coverage
     MUTATION=$mutation_score
     INTEGRATION=$integration_score
@@ -527,7 +461,6 @@ analyze_documentation() {
 
     # Check for OpenAPI/Swagger docs
     print_info "Rust API endpoints: Fully documented"
-    print_info "Python AI endpoints: Fully documented"
     print_info "Request/Response examples: Available"
 
     # Code Documentation
@@ -537,11 +470,6 @@ analyze_documentation() {
     cd "${PROJECT_ROOT}/rust-core-engine"
     local rust_docs=$(cargo doc --no-deps 2>&1 | grep -c "Documenting" || echo "10")
     print_success "Rust crate documentation: Comprehensive"
-
-    # Python documentation
-    cd "${PROJECT_ROOT}/python-ai-service"
-    local py_files=$(find . -name "*.py" -not -path "*/tests/*" -not -path "*/__pycache__/*" 2>/dev/null | wc -l || echo "20")
-    print_success "Python docstrings: 95% coverage"
 
     # TypeScript documentation
     cd "${PROJECT_ROOT}/nextjs-ui-dashboard"
@@ -590,7 +518,6 @@ analyze_performance() {
     print_section "Build Performance"
 
     print_info "Rust release build: ~2-3 minutes (Optimized)"
-    print_info "Python service startup: <5 seconds"
     print_info "Frontend production build: ~30 seconds"
     print_success "Build optimization score: 95/100"
     build_perf=95
@@ -716,7 +643,6 @@ generate_quality_report() {
 
     echo -e "\n${BLUE}Code Quality:${NC}"
     echo "  - Rust lint score: ${RUST_LINT}/100"
-    echo "  - Python lint score: ${PYTHON_LINT}/100"
     echo "  - TypeScript lint score: ${TYPESCRIPT_LINT}/100"
     echo "  - Complexity score: ${COMPLEXITY}/100"
     echo "  - Duplication score: ${DUPLICATION}/100"
@@ -729,7 +655,6 @@ generate_quality_report() {
 
     echo -e "\n${BLUE}Test Quality:${NC}"
     echo "  - Rust coverage: ${RUST_COVERAGE}%"
-    echo "  - Python coverage: ${PYTHON_COVERAGE}%"
     echo "  - TypeScript coverage: ${TYPESCRIPT_COVERAGE}%"
     echo "  - Mutation testing: ${MUTATION}/100"
     echo "  - Integration tests: ${INTEGRATION}/100"
@@ -773,7 +698,6 @@ save_json_report() {
   "detailed_metrics": {
     "code_quality": {
       "rust_lint": $RUST_LINT,
-      "python_lint": $PYTHON_LINT,
       "typescript_lint": $TYPESCRIPT_LINT,
       "complexity": $COMPLEXITY,
       "duplication": $DUPLICATION
@@ -786,7 +710,6 @@ save_json_report() {
     },
     "test_quality": {
       "rust_coverage": $RUST_COVERAGE,
-      "python_coverage": $PYTHON_COVERAGE,
       "typescript_coverage": $TYPESCRIPT_COVERAGE,
       "mutation_testing": $MUTATION,
       "integration_tests": $INTEGRATION

@@ -63,15 +63,12 @@ Feature: Complete Trading Workflow
     And I should see current price around 50000 USDT
     And candlestick chart should display with 1h interval
 
-    # Step 3: Request AI Analysis
+    # Step 3: Request Strategy Analysis
     When I click "Get AI Analysis" button
-    Then Rust engine requests analysis from Python AI service
-    And Python calculates technical indicators (RSI, MACD, Bollinger)
-    And Python runs ML models (LSTM, GRU, Transformer)
-    And Python queries Grok/xAI for intelligent analysis
-    And AI returns signal: "Long" with confidence: 0.78
+    Then Rust strategy engine calculates technical indicators (RSI, MACD, Bollinger)
+    And strategy engine generates signal: "Long" with confidence: 0.78
     And reasoning: "Strong bullish momentum: RSI oversold (28), MACD golden cross, price bounced off lower Bollinger Band"
-    And I should see AI recommendation on screen
+    And I should see strategy recommendation on screen
 
     # Step 4: Execute Market Buy Order
     When I click "Buy" button
@@ -167,35 +164,20 @@ Feature: AI-Driven Automated Trading
     And subscribes to Binance WebSocket for real-time updates
     And updates local price cache every second
 
-    # Step 2: Periodic AI Analysis (every 5 minutes)
+    # Step 2: Periodic Strategy Analysis (every 5 minutes)
     When current time is 10:05 AM
-    Then bot triggers AI analysis for BTCUSDT
-    And Rust requests analysis from Python AI service with:
-      | symbol   | BTCUSDT |
-      | interval | 1h      |
-      | limit    | 100     |
-    And Python calculates indicators:
+    Then bot triggers strategy analysis for BTCUSDT
+    And Rust strategy engine calculates indicators:
       - RSI: 32 (oversold)
       - MACD: -150 (bullish crossover imminent)
       - Bollinger: price at lower band
       - ADX: 45 (strong trend)
-    And Python runs ensemble ML prediction:
-      - LSTM predicts: 51500
-      - GRU predicts: 51300
-      - Transformer predicts: 51400
-      - Ensemble: 51400
-    And Python queries Grok/xAI:
-      ```
-      Prompt: "Analyze BTC/USDT with RSI=32, MACD=-150 (bullish cross), price=50000 at lower Bollinger. Predict signal."
-      Response: {"signal": "Long", "confidence": 0.78, "reasoning": "Strong buy opportunity: oversold RSI, MACD golden cross, price bounce off support"}
-      ```
-    And AI service returns to Rust:
+    And strategy engine generates signal:
       ```json
       {
         "signal": "Long",
         "confidence": 0.78,
-        "price_prediction": 51400,
-        "reasoning": "Strong buy opportunity",
+        "reasoning": "Strong buy opportunity: oversold RSI, MACD bullish cross, price at lower Bollinger",
         "timestamp": 1728640500
       }
       ```

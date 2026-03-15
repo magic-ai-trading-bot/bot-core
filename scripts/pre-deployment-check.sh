@@ -227,7 +227,7 @@ fi
 # 6. Port Availability
 print_section "5. Port Availability"
 
-REQUIRED_PORTS=(3000 8000 8080 27017)
+REQUIRED_PORTS=(3000 8080 27017)
 for port in "${REQUIRED_PORTS[@]}"; do
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
     if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
@@ -325,7 +325,6 @@ log "Checking if services can build..."
 
 # Just check if Dockerfiles exist
 if [ -f "rust-core-engine/Dockerfile" ] && \
-   [ -f "python-ai-service/Dockerfile" ] && \
    [ -f "nextjs-ui-dashboard/Dockerfile" ]; then
     log "${GREEN}✓ All service Dockerfiles present${NC}"
     echo "PASSED: Dockerfiles - all present" >> "$REPORT_FILE"
@@ -430,7 +429,7 @@ else
     log "  1. Start Docker daemon: sudo systemctl start docker"
     log "  2. Free up disk space: docker system prune -a"
     log "  3. Install Docker Compose: https://docs.docker.com/compose/install/"
-    log "  4. Stop conflicting services on ports 3000, 8000, 8080, 27017"
+    log "  4. Stop conflicting services on ports 3000, 8080, 27017"
     echo "STATUS: NOT READY - Critical errors present" >> "$REPORT_FILE"
     exit 1
 fi

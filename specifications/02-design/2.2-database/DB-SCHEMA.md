@@ -43,13 +43,7 @@ bot_core_db/
 
 **Note:** Positions are tracked **in-memory** (DashMap) in the Rust engine for performance. They are NOT persisted to a dedicated MongoDB collection.
 
-**Python AI Service additional collections** (in `grok_ai_db` or shared db):
-- `gpt4_analysis_history` - Historical Grok analysis records
-- `model_accuracy_history` - ML model accuracy tracking
-- `api_cost_history` - AI API cost tracking
-- `retrain_history` - Model retraining history
-
-**Total Active Collections:** ~19 (Rust: ~15, Python: ~4 additional)
+**Total Active Collections:** ~15 (managed by Rust Core Engine)
 
 ### Collection Categories
 

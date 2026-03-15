@@ -45,7 +45,6 @@ check_service_health() {
 }
 
 check_service_health "Rust API" "http://localhost:8080/api/health"
-check_service_health "Python AI" "http://localhost:8000/health"
 check_service_health "Frontend" "http://localhost:3000"
 
 # =============================================================================

@@ -1108,7 +1108,7 @@ const Sidebar = () => {
 
 ### 8.1 WebSocket Connection
 
-**Purpose:** Real-time AI signals from Python AI service.
+**Purpose:** Real-time strategy signals from Rust Core Engine.
 
 ```typescript
 export const useAISignals = () => {

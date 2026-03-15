@@ -45,7 +45,6 @@ wait_for_service() {
 echo "Step 1/2: Waiting for core services..."
 wait_for_service "MongoDB" 27017 30
 wait_for_service "Rust Core Engine" 8080 60
-wait_for_service "Python AI Service" 8000 60
 
 echo "Step 2/2: Seeding MongoDB..."
 if [ -f "scripts/init-mongodb-seed.sh" ]; then
@@ -60,7 +59,6 @@ echo ""
 echo "Service Access URLs:"
 echo ""
 echo "  Rust API:       http://localhost:8080/api/health"
-echo "  Python AI:      http://localhost:8000/health"
 echo "  Frontend:       http://localhost:3000"
 echo "  MCP Server:     http://localhost:8090/health"
 echo ""

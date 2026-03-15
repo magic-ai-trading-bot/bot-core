@@ -62,24 +62,7 @@ flyctl deploy --config ../fly-database.toml --app trading-bot-database --remote-
 print_step "Waiting for database to be ready..."
 sleep 30
 
-# Step 2: Deploy Python AI Service
-print_step "Deploying Python AI Service..."
-cd ../python-ai-service
-if flyctl apps list | grep -q "trading-bot-ai-service"; then
-    print_warning "AI service app already exists, recreating for clean deployment..."
-    flyctl apps destroy trading-bot-ai-service --yes || true
-    sleep 5
-fi
-print_step "Creating and deploying AI service app..."
-flyctl launch --name trading-bot-ai-service --org personal --remote-only --no-deploy
-flyctl deploy --app trading-bot-ai-service --remote-only
-cd ../scripts
-
-# Wait for AI service to be ready
-print_step "Waiting for AI service to be ready..."
-sleep 20
-
-# Step 3: Deploy Rust Core Engine
+# Step 2: Deploy Rust Core Engine
 print_step "Deploying Rust Core Engine..."
 cd ../rust-core-engine
 if flyctl apps list | grep -q "trading-bot-rust-engine"; then
@@ -144,7 +127,6 @@ check_app() {
 }
 
 check_app "trading-bot-database" "MongoDB Database"
-check_app "trading-bot-ai-service" "Python AI Service"  
 check_app "trading-bot-rust-engine" "Rust Core Engine"
 check_app "trading-bot-dashboard" "React Dashboard"
 
@@ -155,8 +137,7 @@ echo "🔗 Access your trading bot at: https://trading-bot-dashboard.fly.dev"
 echo ""
 echo "📝 Post-deployment steps:"
 echo "1. Set up your Binance API keys in the Rust engine secrets"
-echo "2. Configure your OpenAI API keys for the AI service"  
-echo "3. Test all functionality through the dashboard"
+echo "2. Test all functionality through the dashboard"
 echo ""
 echo "🔧 Useful commands:"
 echo "- Monitor logs: flyctl logs --app trading-bot-rust-engine"

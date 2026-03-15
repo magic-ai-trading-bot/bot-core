@@ -390,7 +390,6 @@ curl -X GET http://localhost:8080/api/health
   "version": "1.0.0",
   "uptime_seconds": 3600,
   "connected_services": {
-    "python_ai": true,
     "binance_websocket": true,
     "mongodb": true
   },

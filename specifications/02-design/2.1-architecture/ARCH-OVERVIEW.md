@@ -76,7 +76,7 @@ The cryptocurrency trading market requires a robust, high-performance platform c
 The Bot Core platform follows a **multi-tier microservices architecture** pattern with clear separation of concerns:
 
 1. **Presentation Layer**: React-based frontend dashboard
-2. **Application Layer**: Rust Core Engine, Python AI Service, MCP Server, and OpenClaw Gateway
+2. **Application Layer**: Rust Core Engine, MCP Server, and OpenClaw Gateway
 3. **Data Layer**: MongoDB 7.0 (local container) and Redis Cache
 
 ### Architecture Diagram
@@ -93,12 +93,6 @@ graph TB
             WS[WebSocket Server<br/>Real-time Updates]
             RISK[Risk Manager<br/>Position Manager]
             STRAT[Strategy Engine<br/>RSI, MACD, Bollinger]
-        end
-
-        subgraph "Python AI Service - Port 8000"
-            PY[Python AI Service<br/>FastAPI + TensorFlow<br/>PyTorch + xAI Grok]
-            ML[ML Models<br/>LSTM, GRU, Transformer]
-            TA[Technical Analyzer<br/>Indicators Calculator]
         end
 
         subgraph "MCP Server - Port 8090"
@@ -121,23 +115,16 @@ graph TB
     end
 
     FE -->|REST API<br/>WebSocket| RUST
-    RUST -->|HTTP REST| PY
-    PY -->|HTTP REST| GROK
     RUST -->|MongoDB Driver| DB
-    PY -->|Motor Driver| DB
     RUST -->|WebSocket<br/>REST API| BINANCE
     RUST -->|Cache| CACHE
-    PY -->|Cache| CACHE
     MCP -->|HTTP REST| RUST
-    MCP -->|HTTP REST| PY
     OCG -->|MCP Protocol| MCP
 
     style FE fill:#4A90E2
     style RUST fill:#E27C4A
-    style PY fill:#4AE290
     style DB fill:#E2C44A
     style BINANCE fill:#9B59B6
-    style GROK fill:#E74C3C
     style MCP fill:#7B68EE
     style OCG fill:#20B2AA
 ```
@@ -158,13 +145,6 @@ graph TB
 - Strategy execution orchestration
 - User authentication (JWT)
 - Market data processing
-
-**Python AI Service (Port 8000)**:
-- Machine learning model inference
-- Technical indicator calculation
-- xAI Grok integration (primary AI provider)
-- AI signal generation
-- Market condition analysis
 
 **MCP Server (Port 8090)**:
 - Model Context Protocol server (114 tools)
@@ -235,17 +215,6 @@ graph LR
         BCRYPT[BCrypt 0.17]
     end
 
-    subgraph "Backend Stack - Python"
-        PYTHON[Python 3.11]
-        FASTAPI[FastAPI 0.115.6]
-        TENSORFLOW[TensorFlow 2.18.0]
-        PYTORCH[PyTorch 2.5.1]
-        OPENAI_SDK[OpenAI SDK 1.59.5<br/>(used w/ xAI Grok)]
-        MOTOR[Motor 3.6.0<br/>Async MongoDB]
-        PANDAS[Pandas 2.2.3]
-        NUMPY[NumPy 2.1.3]
-    end
-
     subgraph "Database & Cache"
         MONGO[MongoDB 7.0]
         REDIS_REQ[Redis 7<br/>Required (VPS)]
@@ -258,7 +227,6 @@ graph LR
     end
 
     style RUST fill:#E27C4A
-    style PYTHON fill:#4AE290
     style MONGO fill:#E2C44A
     style DOCKER fill:#2496ED
 ```
@@ -294,20 +262,6 @@ graph LR
 | Rust Decimal | 1.40 | Precision Math | Trading calculations |
 | UUID | 1.21 | ID Generation | Throughout |
 
-#### Backend Technologies - Python
-
-| Technology | Version | Purpose | Code Location |
-|------------|---------|---------|---------------|
-| FastAPI | 0.115.6 | Web Framework | `main.py` |
-| TensorFlow | 2.18.0 | Deep Learning | `models/lstm_model.py` |
-| PyTorch | 2.5.1 | Deep Learning | `models/transformer_model.py` |
-| OpenAI | 1.59.5 | xAI Grok SDK (compatible) | `main.py` (GrokClient, base_url: api.x.ai) |
-| Motor | 3.6.0 | Async MongoDB | Database operations |
-| Pandas | 2.2.3 | Data Analysis | Feature engineering |
-| NumPy | 2.1.3 | Numerical Computing | Calculations |
-| TA-Lib | Latest | Technical Analysis | `features/technical_indicators.py` |
-| Slowapi | 0.1.9 | Rate Limiting | `main.py` |
-
 #### Database Technologies
 
 | Technology | Version | Purpose | Configuration |
@@ -330,12 +284,6 @@ graph LR
 - **Safety**: Memory safety without runtime overhead
 - **Concurrency**: Tokio async runtime for high-throughput operations
 - **Reliability**: Strong type system prevents common bugs
-
-**Python for AI Service**:
-- **ML Ecosystem**: TensorFlow, PyTorch, extensive libraries
-- **Rapid Development**: Quick iteration on ML models
-- **xAI Grok Integration**: OpenAI-compatible SDK (base_url overridden to api.x.ai)
-- **Data Processing**: Pandas, NumPy for efficient data manipulation
 
 **React for Frontend**:
 - **Component-Based**: Reusable UI components
@@ -384,10 +332,8 @@ sequenceDiagram
     participant User
     participant Frontend as Frontend<br/>(React)
     participant Rust as Rust Core<br/>(Port 8080)
-    participant Python as Python AI<br/>(Port 8000)
-    participant MongoDB as MongoDB<br/>Atlas
+    participant MongoDB as MongoDB
     participant Binance as Binance<br/>API
-    participant Grok as xAI Grok<br/>API
 
     %% User Authentication
     User->>Frontend: Login Request
@@ -401,17 +347,13 @@ sequenceDiagram
     Frontend->>Rust: WebSocket Connect
     Rust-->>Frontend: Connection Established
 
-    %% AI Analysis Request
-    User->>Frontend: Request AI Analysis
+    %% Strategy Analysis Request
+    User->>Frontend: Request Signal Analysis
     Frontend->>Rust: POST /api/ai/analyze (JWT)
-    Rust->>Python: POST /ai/analyze (Inter-Service Token)
-    Python->>MongoDB: Check Cache
-    MongoDB-->>Python: Cache Miss
-    Python->>Grok: Grok Analysis Request
-    Grok-->>Python: Analysis Result
-    Python->>MongoDB: Store Result
-    Python-->>Rust: AI Signal Response
-    Rust-->>Frontend: Trading Signal
+    Rust->>Rust: Run strategy engine<br/>Calculate indicators
+    Rust->>MongoDB: Check signal cache
+    MongoDB-->>Rust: Cache result
+    Rust-->>Frontend: Strategy Signal
 
     %% Real-time Price Updates
     Binance->>Rust: WebSocket Price Update
@@ -450,20 +392,6 @@ sequenceDiagram
 - **Timeout**: 10 seconds
 - **Retry Strategy**: 3 retries with exponential backoff
 - **Rate Limiting**: 100 requests/minute per user
-
-**Rust Core Engine ↔ Python AI Service**:
-- **Protocol**: HTTP (internal Docker network)
-- **Authentication**: Inter-Service Token (Bearer)
-- **Data Format**: JSON
-- **Endpoints**:
-  - `POST /ai/analyze` - AI signal analysis
-  - `POST /ai/strategy-recommendations` - Strategy recommendations
-  - `POST /ai/market-condition` - Market condition analysis
-  - `GET /ai/info` - Service information
-  - `GET /health` - Health check
-- **Timeout**: 30 seconds
-- **Retry Strategy**: 3 retries with circuit breaker
-- **Rate Limiting**: No limit (internal service)
 
 #### 2. WebSocket Connections
 
@@ -517,23 +445,13 @@ sequenceDiagram
 - **Reconnection**: Automatic with backoff
 - **Data Processing**: High-frequency (100ms intervals)
 
-**Python AI Service ↔ Clients**:
-- **Protocol**: WS
-- **Purpose**: AI signal broadcasting
-- **Message Format**: JSON
-- **Broadcast**: All connected clients receive AI signals
-
 #### 3. Database Communication
 
 **MongoDB Atlas Access**:
-- **Driver**:
-  - Rust: `mongodb` crate (sync/async)
-  - Python: `motor` (async) / `pymongo` (sync)
+- **Driver**: Rust `mongodb` crate (async)
 - **Connection String**: `mongodb+srv://user:pass@cluster.mongodb.net/db?retryWrites=true&w=majority`
 - **TLS**: Required (1.2+)
-- **Connection Pool**:
-  - Rust: 10-50 connections
-  - Python: 10-100 connections
+- **Connection Pool**: Rust: 10-50 connections
 - **Collections**:
   - `users` - User accounts
   - `trades` - Trade history
@@ -646,14 +564,12 @@ graph TB
     subgraph "Development Environment"
         DEV_FE[Frontend Dev<br/>Bun + HMR<br/>768MB RAM]
         DEV_RUST[Rust Dev<br/>Cargo Watch<br/>1.5GB RAM]
-        DEV_PY[Python Dev<br/>Uvicorn Reload<br/>1.5GB RAM]
         DEV_DB[(MongoDB<br/>Local/Atlas)]
     end
 
     subgraph "Production Environment (Docker Compose)"
         PROD_FE[Frontend<br/>Nginx Serve<br/>512MB RAM]
         PROD_RUST[Rust Core<br/>Release Build<br/>1GB RAM]
-        PROD_PY[Python AI<br/>Gunicorn<br/>1.5GB RAM]
         PROD_DB[(MongoDB Atlas)]
         PROD_REDIS[Redis Cache<br/>Optional]
     end
@@ -662,7 +578,6 @@ graph TB
         K8S_INGRESS[Ingress<br/>Load Balancer]
         K8S_FE[Frontend Pod<br/>Replicas: 2-5]
         K8S_RUST[Rust Pod<br/>Replicas: 2-10]
-        K8S_PY[Python Pod<br/>Replicas: 3-10]
         K8S_DB[(MongoDB Atlas)]
         K8S_REDIS[Redis Cluster]
     end
@@ -673,31 +588,21 @@ graph TB
     end
 
     PROD_FE --> PROD_RUST
-    PROD_RUST --> PROD_PY
     PROD_RUST --> PROD_DB
-    PROD_PY --> PROD_DB
     PROD_RUST -.-> PROD_REDIS
-    PROD_PY -.-> PROD_REDIS
 
     K8S_INGRESS --> K8S_FE
     K8S_FE --> K8S_RUST
-    K8S_RUST --> K8S_PY
     K8S_RUST --> K8S_DB
-    K8S_PY --> K8S_DB
     K8S_RUST --> K8S_REDIS
-    K8S_PY --> K8S_REDIS
 
     PROD_RUST --> EXT_BINANCE
-    PROD_PY --> EXT_GROK
     K8S_RUST --> EXT_BINANCE
-    K8S_PY --> EXT_GROK
 
     style DEV_FE fill:#4A90E2
     style DEV_RUST fill:#E27C4A
-    style DEV_PY fill:#4AE290
     style PROD_FE fill:#4A90E2
     style PROD_RUST fill:#E27C4A
-    style PROD_PY fill:#4AE290
 ```
 
 ### Deployment Configurations
@@ -739,24 +644,11 @@ services:
           memory: 1.5G
           cpus: "1.5"
 
-    build:
-      dockerfile: Dockerfile.dev
-    volumes:
-    command: ["uvicorn", "main:app", "--reload"]
-    environment:
-      - LOG_LEVEL=DEBUG
-      - ENABLE_HOT_RELOAD=true
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G
-          cpus: "1.5"
 ```
 
 **Features**:
 - Hot module reloading (HMR) for frontend
 - Cargo watch for Rust (manual restart recommended)
-- Uvicorn auto-reload for Python
 - Volume mounts for live code updates
 - Debug logging enabled
 - Lower resource limits
@@ -815,22 +707,6 @@ services:
       timeout: 10s
       retries: 3
 
-    build:
-      dockerfile: Dockerfile
-    environment:
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    deploy:
-      resources:
-        limits:
-          memory: ${PYTHON_MEMORY_LIMIT:-2G}
-          cpus: "${PYTHON_CPU_LIMIT:-2}"
-        reservations:
-          memory: 1G
-          cpus: "1"
-    healthcheck:
-      interval: 30s
-      timeout: 10s
-      retries: 3
 ```
 
 **Features**:
@@ -848,7 +724,6 @@ docker compose --profile prod up -d
 ```
 
 **Memory Optimization**:
-- Python AI: 1.5GB limit (down from 2GB)
 - Rust Core: 1GB limit (down from 2GB)
 - Frontend: 512MB limit (down from 1GB)
 
@@ -973,9 +848,8 @@ spec:
 |-----------|-----|-----|---------|---------|
 | Frontend | 1 core | 768MB | 1GB | 10 Mbps |
 | Rust Core | 1.5 cores | 1.5GB | 2GB | 100 Mbps |
-| Python AI | 1.5 cores | 1.5GB | 5GB | 100 Mbps |
 | MongoDB | - | - | 10GB | - |
-| **Total** | **4 cores** | **4GB** | **18GB** | **100 Mbps** |
+| **Total** | **2.5 cores** | **2.5GB** | **13GB** | **100 Mbps** |
 
 #### Recommended Hardware (Production)
 
@@ -983,7 +857,6 @@ spec:
 |-----------|-----|-----|---------|---------|
 | Frontend | 1 core | 1GB | 2GB | 100 Mbps |
 | Rust Core | 2 cores | 2GB | 5GB | 1 Gbps |
-| Python AI | 2 cores | 2GB | 10GB | 1 Gbps |
 | MongoDB | 2 cores | 4GB | 50GB | 1 Gbps |
 | Redis | 1 core | 1GB | 5GB | 100 Mbps |
 | **Total** | **8 cores** | **10GB** | **72GB** | **1 Gbps** |
@@ -1058,9 +931,6 @@ spec:
   - Main entry: `src/main.rs:44-169`
   - API server: `src/api/mod.rs`
   - WebSocket: `src/binance/websocket.rs`
-  - Main entry: `main.py:1-2087`
-  - FastAPI app: `main.py:350-376`
-  - WebSocket manager: `main.py:70-127`
 - Frontend Dashboard: `/Users/dungngo97/Documents/bot-core/nextjs-ui-dashboard/`
   - Entry point: `src/main.tsx`
   - API client: `src/services/api.ts`

@@ -50,7 +50,6 @@ class SpecValidator:
         # Paths
         self.specs_dir = root_dir / "specs"
         self.rust_src = root_dir / "rust-core-engine" / "src"
-        self.python_src = root_dir / "python-ai-service"
         self.frontend_src = root_dir / "nextjs-ui-dashboard" / "src"
 
         # Collected data
@@ -172,9 +171,6 @@ class SpecValidator:
 
         # Scan Rust files
         self._scan_directory(self.rust_src, ['.rs'], spec_patterns['rust'], 'Rust')
-
-        # Scan Python files
-        self._scan_directory(self.python_src, ['.py'], spec_patterns['python'], 'Python')
 
         # Scan TypeScript files
         self._scan_directory(self.frontend_src, ['.ts', '.tsx'], spec_patterns['typescript'], 'TypeScript')

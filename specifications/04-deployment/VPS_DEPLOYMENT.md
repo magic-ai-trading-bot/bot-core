@@ -159,7 +159,6 @@ To                         Action      From
 80/tcp                     ALLOW       Anywhere
 443/tcp                    ALLOW       Anywhere
 8080/tcp                   ALLOW       Anywhere
-8000/tcp                   ALLOW       Anywhere
 3000/tcp                   ALLOW       Anywhere
 ```
 
@@ -486,7 +485,6 @@ SESSION_SECRET=<paste_session_secret_from_above>
 
 # Server Ports
 RUST_PORT=8080
-PYTHON_PORT=8000
 FRONTEND_PORT=3000
 
 # Logging
@@ -495,8 +493,6 @@ LOG_FORMAT=json
 LOG_FILE=/app/logs/app.log
 
 # Memory Limits (for 16GB VPS)
-PYTHON_MEMORY_LIMIT=2G
-PYTHON_MEMORY_RESERVE=1G
 RUST_MEMORY_LIMIT=2G
 RUST_MEMORY_RESERVE=1G
 FRONTEND_MEMORY_LIMIT=512M
@@ -845,7 +841,6 @@ free -h
 docker stats --no-stream
 
 # Reduce memory limits in .env
-PYTHON_MEMORY_LIMIT=1.5G
 RUST_MEMORY_LIMIT=1.5G
 
 # Restart services

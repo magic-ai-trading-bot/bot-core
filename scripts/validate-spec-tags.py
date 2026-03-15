@@ -50,18 +50,6 @@ def scan_codebase() -> Dict[str, List[Tuple[str, int]]]:
                 rel_path = rust_file.relative_to(PROJECT_ROOT)
                 results[str(rel_path)].extend(tags)
 
-    # Python files
-    python_dir = PROJECT_ROOT / "python-ai-service"
-    if python_dir.exists():
-        for py_file in python_dir.rglob("*.py"):
-            # Skip venv and cache
-            if 'venv' in str(py_file) or '__pycache__' in str(py_file):
-                continue
-            tags = find_spec_tags_in_file(py_file)
-            if tags:
-                rel_path = py_file.relative_to(PROJECT_ROOT)
-                results[str(rel_path)].extend(tags)
-
     # TypeScript files
     frontend_dir = PROJECT_ROOT / "nextjs-ui-dashboard" / "src"
     if frontend_dir.exists():
@@ -102,7 +90,6 @@ def check_missing_tags() -> List[str]:
     important_files = [
         'rust-core-engine/src/auth/jwt.rs',
         'rust-core-engine/src/trading/engine.rs',
-        'python-ai-service/main.py',
         'nextjs-ui-dashboard/src/hooks/useWebSocket.ts',
     ]
 
@@ -133,14 +120,12 @@ def main():
 
     # Count by language
     rust_files = sum(1 for f in tagged_files.keys() if 'rust-core-engine' in f)
-    python_files = sum(1 for f in tagged_files.keys() if 'python-ai-service' in f)
     ts_files = sum(1 for f in tagged_files.keys() if 'nextjs-ui-dashboard' in f)
 
     print()
     print(f"{Colors.GREEN}✓ Found {total_tags} @spec tags in {total_files} files{Colors.NC}")
     print()
     print(f"  Rust files:       {rust_files}")
-    print(f"  Python files:     {python_files}")
     print(f"  TypeScript files: {ts_files}")
     print()
 

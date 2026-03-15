@@ -1029,7 +1029,7 @@ for service_name, service_data in services.items():
     assert service_data["status"] == "healthy", f"{service_name} is not healthy"
 
     # HTTP services should have response time
-    if service_name in ["Rust Core Engine", "Python AI Service", "Frontend Dashboard"]:
+    if service_name in ["Rust Core Engine", "Frontend Dashboard"]:
         assert service_data["response_time_ms"] < 5000
 
 assert len(result["health_report"]["alerts"]) == 0

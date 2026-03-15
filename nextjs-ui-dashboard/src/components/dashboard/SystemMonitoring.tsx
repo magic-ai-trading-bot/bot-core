@@ -37,12 +37,6 @@ interface ConnectionHealth {
     latency_ms: number;
     last_check: string;
   };
-  python_ai: {
-    healthy: boolean;
-    latency_ms: number;
-    last_check: string;
-    model_loaded: boolean;
-  };
   websocket: {
     connected: boolean;
     reconnect_count: number;
@@ -69,7 +63,6 @@ export function SystemMonitoring() {
 
   const [health, setHealth] = useState<ConnectionHealth>({
     rust_api: { healthy: false, latency_ms: 0, last_check: "" },
-    python_ai: { healthy: false, latency_ms: 0, last_check: "", model_loaded: false },
     websocket: { connected: false, reconnect_count: 0, last_message: "" },
     database: { connected: false, latency_ms: 0, pool_size: 0 },
   });
@@ -102,12 +95,6 @@ export function SystemMonitoring() {
             healthy: rustHealthy,
             latency_ms: 0,
             last_check: new Date().toISOString(),
-          },
-          python_ai: {
-            healthy: healthCheck.python.healthy,
-            latency_ms: 0,
-            last_check: new Date().toISOString(),
-            model_loaded: healthCheck.python.model_loaded,
           },
           websocket: {
             connected: rustHealthy, // WebSocket is managed by Rust service
@@ -269,25 +256,6 @@ export function SystemMonitoring() {
             {getHealthBadge(health?.rust_api?.healthy ?? false)}
           </div>
 
-          {/* Python AI */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border">
-            <div className="flex items-center gap-3">
-              <Activity className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Python AI Service</p>
-                <p className="text-xs text-muted-foreground">
-                  Latency: <span className={getLatencyColor(health?.python_ai?.latency_ms ?? 0)}>
-                    {health?.python_ai?.latency_ms ?? 0}ms
-                  </span>
-                  {health?.python_ai?.model_loaded && (
-                    <span className="ml-2 text-profit">• Model Loaded</span>
-                  )}
-                </p>
-              </div>
-            </div>
-            {getHealthBadge(health?.python_ai?.healthy ?? false)}
-          </div>
-
           {/* WebSocket */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border">
             <div className="flex items-center gap-3">
@@ -336,7 +304,7 @@ export function SystemMonitoring() {
               variant="default"
               className="bg-profit text-lg px-4 py-2"
             >
-              {health?.rust_api?.healthy && health?.python_ai?.healthy && health?.websocket?.connected && health?.database?.connected
+              {health?.rust_api?.healthy && health?.websocket?.connected && health?.database?.connected
                 ? "All Systems Operational"
                 : "Degraded Performance"}
             </Badge>

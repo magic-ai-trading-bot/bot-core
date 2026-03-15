@@ -100,7 +100,6 @@ Hardware specifications for local development workstations used by engineers to 
 - Instruction Sets: AVX2 (Intel/AMD), NEON (ARM)
 - **Rationale**:
   - 1 core: Rust compilation (cargo build)
-  - 1 core: Python AI service
   - 1 core: Frontend build (Vite/Bun)
   - 1 core: System operations, MongoDB, IDE
 
@@ -112,7 +111,6 @@ Hardware specifications for local development workstations used by engineers to 
   - Host OS: 2 GB
   - IDE (VSCode/IntelliJ): 1.5 GB
   - Docker Desktop: 500 MB overhead
-  - Python AI Service (dev): 1.5 GB (limit)
   - Rust Core Engine (dev): 1.5 GB (limit)
   - Frontend Dashboard (dev): 768 MB (limit)
   - MongoDB: 512 MB
@@ -161,7 +159,6 @@ Hardware specifications for local development workstations used by engineers to 
   - Host OS: 3 GB
   - IDE + Extensions: 2 GB
   - Docker Desktop: 1 GB
-  - Python AI Service (dev): 2 GB
   - Rust Core Engine (dev): 2 GB
   - Frontend Dashboard (dev): 1 GB
   - MongoDB: 1 GB
@@ -244,7 +241,6 @@ Hardware specifications for small-scale production deployments supporting 1-10 t
 - Type: DDR4-2666 or better, ECC recommended
 - Configuration: Single channel acceptable
 - **Memory Allocation**:
-  - Python AI Service: 2 GB (limit)
   - Rust Core Engine: 2 GB (limit)
   - Frontend Dashboard: 1 GB (limit)
   - MongoDB: 2 GB
@@ -291,7 +287,6 @@ Hardware specifications for small-scale production deployments supporting 1-10 t
 - Type: DDR4-3200 or DDR5, ECC
 - Configuration: Dual channel
 - **Memory Allocation**:
-  - Python AI Service: 3 GB
   - Rust Core Engine: 3 GB
   - Frontend Dashboard: 1.5 GB
   - MongoDB: 4 GB
@@ -372,7 +367,6 @@ Hardware specifications for medium-scale production deployments supporting 10-50
 - Type: DDR4-3200, ECC required
 - Configuration: Dual channel
 - **Memory Allocation**:
-  - Python AI Service: 8 GB
   - Rust Core Engine: 8 GB
   - Frontend Dashboard: 2 GB
   - MongoDB: 8 GB
@@ -415,7 +409,6 @@ Hardware specifications for medium-scale production deployments supporting 10-50
 - Type: DDR4-3200 or DDR5, ECC
 - Configuration: Quad channel
 - **Memory Allocation**:
-  - Python AI Service (×2 instances): 16 GB
   - Rust Core Engine (×2 instances): 16 GB
   - Frontend Dashboard: 4 GB
   - MongoDB: 16 GB
@@ -578,19 +571,6 @@ Docker memory limits and optimization settings to prevent OOM (Out Of Memory) er
 
 ### Development Mode (docker-compose.yml)
 
-**Python AI Service (Dev)**:
-```yaml
-deploy:
-  resources:
-    limits:
-      memory: 1.5G      # Hard limit
-      cpus: "1.5"
-```
-- **Hard Limit**: 1.5 GB
-- **Soft Limit**: 1.0 GB (reservation)
-- **OOM Kill**: Enabled if exceeded
-- **Swap**: Up to 512 MB allowed
-
 **Rust Core Engine (Dev)**:
 ```yaml
 deploy:
@@ -618,21 +598,6 @@ environment:
 - **OOM Kill**: Enabled if exceeded
 
 ### Production Mode (docker-compose.yml)
-
-**Python AI Service (Prod)**:
-```yaml
-deploy:
-  resources:
-    limits:
-      memory: ${PYTHON_MEMORY_LIMIT:-2G}
-      cpus: "${PYTHON_CPU_LIMIT:-2}"
-    reservations:
-      memory: ${PYTHON_MEMORY_RESERVE:-1G}
-      cpus: "${PYTHON_CPU_RESERVE:-1}"
-```
-- **Default Limit**: 2 GB (configurable via env)
-- **Reservation**: 1 GB guaranteed
-- **Recommended for AI workloads**: 3-4 GB
 
 **Rust Core Engine (Prod)**:
 ```yaml

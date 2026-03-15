@@ -124,63 +124,7 @@ Send `ping` message, expect `pong` response.
 
 ---
 
-### 2. Python AI Service (Port 8000)
-
-#### Basic Health Check
-```
-GET /health
-```
-
-**Response (200 OK):**
-```json
-{
-  "status": "healthy",
-  "version": "1.0.0",
-  "timestamp": "2025-11-18T10:30:00Z",
-  "ml_models_loaded": true
-}
-```
-
-#### Readiness Probe
-```
-GET /health/ready
-```
-
-**Response (200 OK when ready):**
-```json
-{
-  "status": "ready",
-  "models": {
-    "lstm": "loaded",
-    "gru": "loaded",
-    "transformer": "loaded"
-  },
-  "database": "connected"
-}
-```
-
-#### Liveness Probe
-```
-GET /health/live
-```
-
-**Response (200 OK):**
-```json
-{
-  "status": "alive"
-}
-```
-
-#### API Documentation
-```
-GET /docs
-```
-
-FastAPI automatic documentation (Swagger UI)
-
----
-
-### 3. Frontend Dashboard (Port 3000)
+### 2. Frontend Dashboard (Port 3000)
 
 #### Basic Health Check
 ```
@@ -205,7 +149,7 @@ Returns the main application page (200 OK if healthy)
 
 ---
 
-### 4. MongoDB Database (Port 27017)
+### 3. MongoDB Database (Port 27017)
 
 #### Connection Test (using mongosh)
 
@@ -232,7 +176,7 @@ Returns database statistics including:
 
 ---
 
-### 5. Redis Cache (Port 6379) [Optional]
+### 4. Redis Cache (Port 6379) [Optional]
 
 #### Ping Test
 
@@ -252,7 +196,7 @@ Returns comprehensive Redis server information
 
 ---
 
-### 6. RabbitMQ Message Queue (Port 5672) [Optional]
+### 5. RabbitMQ Message Queue (Port 5672) [Optional]
 
 #### Management API (Port 15672)
 

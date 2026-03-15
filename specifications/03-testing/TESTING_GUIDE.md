@@ -58,9 +58,8 @@ Bot-Core follows **Test-Driven Development (TDD)** and maintains world-class tes
 | Service             | Unit Tests | Integration | E2E | Total | Coverage | Mutation |
 |---------------------|------------|-------------|-----|-------|----------|----------|
 | Rust Core Engine    | 1,247      | 89          | -   | 1,336 | 90%      | 85%      |
-| Python AI Service   | 342        | 67          | -   | 409   | 95%      | 76%      |
 | Next.js Dashboard   | 524        | 45          | 32  | 601   | 90%+     | 82%      |
-| **Total**           | **2,113**  | **201**     | **32** | **2,346** | **90.4%** | **84%** |
+| **Total**           | **1,771**  | **134**     | **32** | **1,937** | **90.4%** | **84%** |
 
 ---
 
@@ -72,7 +71,6 @@ Bot-Core follows **Test-Driven Development (TDD)** and maintains world-class tes
 
 **By Service:**
 - Rust Core Engine: ≥90% (current: 90%)
-- Python AI Service: ≥90% (current: 95%)
 - Next.js Dashboard: ≥85% (current: 90%+)
 
 **By Type:**
@@ -656,39 +654,35 @@ import pytest
 import requests
 from decimal import Decimal
 
-# @spec:FR-INTEGRATION-001 - Rust to Python AI Communication
+# @spec:FR-INTEGRATION-001 - Strategy Signal Analysis
 # @test:TC-INTEGRATION-030
 
-class TestRustPythonIntegration:
-    """Test communication between Rust Core Engine and Python AI Service."""
+class TestStrategySignalAnalysis:
+    """Test strategy signal generation in Rust Core Engine."""
 
     RUST_API_URL = "http://localhost:8080/api/v1"
 
-    def test_rust_calls_python_for_ai_analysis(self):
-        """Test Rust engine calls Python AI service for signal analysis."""
-        # Arrange - Prepare trade request
+    def test_rust_generates_strategy_signals(self):
+        """Test Rust engine generates strategy signals for analysis."""
+        # Arrange - Prepare analysis request
         trade_request = {
             "symbol": "BTCUSDT",
             "use_ai": True
         }
 
-        # Act - Submit trade request to Rust API
+        # Act - Submit analysis request to Rust API
         response = requests.post(
             f"{self.RUST_API_URL}/trades/analyze",
             json=trade_request,
             headers={"Authorization": "Bearer test_token"}
         )
 
-        # Assert - Verify Rust received AI analysis from Python
+        # Assert - Verify Rust returned strategy signal
         assert response.status_code == 200
         data = response.json()
         assert "ai_signal" in data
         assert "ai_confidence" in data
-        assert data["ai_signal"] in ["BUY", "SELL", "HOLD"]
-
-        """Test Python AI service is accessible."""
-        assert response.status_code == 200
-        assert response.json()["status"] == "healthy"
+        assert data["ai_signal"] in ["BUY", "SELL", "HOLD"
 ```
 
 ---
@@ -1244,7 +1238,6 @@ npm run test -- --reporter=verbose
 ║  By Service:                                              ║
 ║                                                           ║
 ║  Rust Core Engine         1,336 tests | 90% cov | 85% mut║
-║  Python AI Service        409 tests   | 95% cov | 76% mut║
 ║  Next.js Dashboard        601 tests   | 90%+ cov| 82% mut║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝

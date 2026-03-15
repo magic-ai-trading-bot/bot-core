@@ -42,52 +42,9 @@ print_error() {
 }
 
 # ====================================
-# 1. Python Security Audit
+# 1. Rust Security Audit
 # ====================================
-print_header "1. Python AI Service Security Audit"
-
-cd "$PROJECT_ROOT/python-ai-service"
-
-# Check if pip-audit is available
-if ! command -v pip-audit &> /dev/null && ! python3 -m pip_audit --version &> /dev/null; then
-    print_error "pip-audit not found. Installing..."
-    python3 -m pip install pip-audit
-fi
-
-# Run pip-audit on all requirements files
-echo "Scanning requirements.txt..."
-if python3 -m pip_audit --requirement requirements.txt --desc; then
-    print_success "requirements.txt: No vulnerabilities found"
-else
-    VULNS=$(python3 -m pip_audit --requirement requirements.txt 2>&1 | grep "Found" | grep -oE '[0-9]+' | head -1)
-    if [ -n "$VULNS" ]; then
-        TOTAL_VULNS=$((TOTAL_VULNS + VULNS))
-        print_error "requirements.txt: Found $VULNS vulnerabilities"
-    else
-        print_warning "requirements.txt: Scan completed with warnings"
-    fi
-fi
-
-echo ""
-echo "Scanning requirements.dev.txt..."
-if python3 -m pip_audit --requirement requirements.dev.txt --desc 2>/dev/null; then
-    print_success "requirements.dev.txt: No vulnerabilities found"
-else
-    print_warning "requirements.dev.txt: Check completed (dev dependencies may have warnings)"
-fi
-
-echo ""
-echo "Scanning requirements.test.txt..."
-if python3 -m pip_audit --requirement requirements.test.txt --desc 2>/dev/null; then
-    print_success "requirements.test.txt: No vulnerabilities found"
-else
-    print_warning "requirements.test.txt: Check completed (test dependencies may have warnings)"
-fi
-
-# ====================================
-# 2. Rust Security Audit
-# ====================================
-print_header "2. Rust Core Engine Security Audit"
+print_header "1. Rust Core Engine Security Audit"
 
 cd "$PROJECT_ROOT/rust-core-engine"
 
@@ -131,9 +88,9 @@ if [ -n "$CARGO_DENY" ]; then
 fi
 
 # ====================================
-# 3. Node/Frontend Security Audit
+# 2. Node/Frontend Security Audit
 # ====================================
-print_header "3. Next.js UI Dashboard Security Audit"
+print_header "2. Next.js UI Dashboard Security Audit"
 
 cd "$PROJECT_ROOT/nextjs-ui-dashboard"
 
@@ -172,9 +129,9 @@ else
 fi
 
 # ====================================
-# 4. Docker Security (if applicable)
+# 3. Docker Security (if applicable)
 # ====================================
-print_header "4. Docker Security Check"
+print_header "3. Docker Security Check"
 
 cd "$PROJECT_ROOT"
 
