@@ -9,16 +9,14 @@ This directory contains the CI/CD workflows for the Bot Core project. The workfl
 **Purpose**: Main test suite with coverage enforcement
 **Jobs**:
 - `test-rust` - Rust core engine tests (90%+ coverage required)
-- `test-python` - Python AI service tests (93%+ coverage required)
 - `test-frontend` - Next.js dashboard tests (90%+ coverage required)
-- `lint-and-format` - Code quality checks (rustfmt, clippy, flake8, eslint)
+- `lint-and-format` - Code quality checks (rustfmt, clippy, eslint)
 - `coverage-report` - Generate combined coverage report
 - `security-scan` - Trivy vulnerability scan
 - `performance-benchmarks` - Performance benchmarks (main branch only)
 
 **Coverage Thresholds**:
 - Rust: 90.0%
-- Python: 93.0%
 - Frontend: 90.0%
 
 **Why This is Primary**: This workflow runs on every push/PR and ensures all code meets quality standards before merging.
@@ -46,13 +44,11 @@ This directory contains the CI/CD workflows for the Bot Core project. The workfl
 **Purpose**: Measure test quality via mutation testing
 **Jobs**:
 - `mutation-test-rust` - Rust mutation testing (cargo-mutants)
-- `mutation-test-python` - Python mutation testing (mutmut)
 - `mutation-test-frontend` - Frontend mutation testing (Stryker)
 - `summary` - Generate mutation score report
 
 **Current Scores**:
 - Rust: 78%
-- Python: 76%
 - Frontend: 75%
 - Average: 84%
 
@@ -76,7 +72,6 @@ This directory contains the CI/CD workflows for the Bot Core project. The workfl
 **Purpose**: Build and push Docker images to registry
 **Jobs**:
 - Build Rust core engine image
-- Build Python AI service image
 - Build Next.js frontend image
 - Push to container registry
 
@@ -181,7 +176,6 @@ Edit environment variables in `test-coverage.yml`:
 ```yaml
 env:
   RUST_COVERAGE_THRESHOLD: 90.0    # ← Change here
-  PYTHON_COVERAGE_THRESHOLD: 93.0  # ← Change here
   FRONTEND_COVERAGE_THRESHOLD: 90.0 # ← Change here
 ```
 

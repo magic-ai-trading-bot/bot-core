@@ -9,7 +9,7 @@
 [![Production Ready](https://img.shields.io/badge/Production-Ready-success?style=for-the-badge&logo=docker)](docs/reports/PERFECT_10_10_VALIDATION_REPORT.md)
 
 **Comprehensive cryptocurrency trading system with AI market prediction**
-*Microservices architecture using Rust + Python + TypeScript*
+*Microservices architecture using Rust + TypeScript*
 
 [🎯 Quick Start](#-quick-start) • [📚 Documentation](#-documentation) • [🏗️ Architecture](#%EF%B8%8F-system-architecture) • [🔧 API](#-api-documentation) • [🧪 Testing](#-testing--quality)
 
@@ -53,8 +53,8 @@
 ### 📊 Impressive Metrics
 
 **Testing & Quality:**
-- **2,600+ Tests** - Coverage 92% (Rust: 90%, Python: 95%, Frontend: 90%+, Integration: 100+)
-- **84% Mutation Score** - Highest test quality (Rust: 85%, Python: 76%, TypeScript: 82%)
+- **2,000+ Tests** - Coverage 90%+ (Rust: 90%, Frontend: 90%+, Integration: 100+)
+- **84% Mutation Score** - Highest test quality (Rust: 85%, TypeScript: 82%)
 - **0 Security Vulnerabilities** - 0 HIGH/CRITICAL issues
 - **100% Spec Traceability** - 256 requirements, 291+ test cases, complete validation
 
@@ -78,22 +78,18 @@
 
 ### ✨ Key Features
 
-#### 🤖 **Intelligent AI Trading**
-- **OpenAI GPT-4 Integration** - Smart market analysis with self-improvement
-- **ML Models** - LSTM, GRU, Transformer for price predictions (78%+ accuracy)
+#### 🤖 **Intelligent Trading**
 - **Technical Indicators** - 40+ technical indicators (RSI, MACD, Bollinger, Stochastic, etc.)
-- **Sentiment Analysis** - Market sentiment tracking from multiple sources
-- **GPT-4 Self-Analysis** - Autonomous model performance evaluation (43,000% ROI)
+- **Multi-Strategy Engine** - RSI, MACD, Bollinger Bands, Volume, Stochastic strategies
+- **Signal Generation** - Weighted confidence scores for trading decisions
 
 #### 🔄 **Async Task Processing**
-- **Background ML Training** - Non-blocking model training
 - **Bulk Market Analysis** - Process thousands of symbols concurrently
 - **Strategy Backtesting** - Parameter sweeps and optimization in background
-- **Scheduled Monitoring** - Automated health checks, portfolio reports, cost analysis
+- **Scheduled Monitoring** - Automated health checks, portfolio reports
 - **Intelligent Automation**:
-  - Adaptive retraining based on performance degradation
   - Emergency strategy disabling on poor performance
-  - Daily API cost optimization reports
+  - Automated health checks and portfolio reports
 
 #### ⚡ **Maximum Performance**
 - **Rust Core Engine** - Processing < 10ms
@@ -194,8 +190,8 @@ nano .env  # Or use your favorite editor
 ./scripts/bot.sh dev
 
 # Or run each service separately
-cd rust-core-engine && cargo watch -x run
-cd nextjs-ui-dashboard && npm run dev
+cd rust-core-engine && cargo watch -x run   # Rust Core Engine
+cd nextjs-ui-dashboard && npm run dev       # Frontend Dashboard
 ```
 
 ---
@@ -222,12 +218,12 @@ cd nextjs-ui-dashboard && npm run dev
              │                        │
 ┌────────────▼────────────────────────▼───────────────────────┐
 │                   Core Services                              │
-├─────────────────────────┬────────────────────────────────────┤
-│   Rust Core Engine      │      Python AI Service             │
-│   (8080) Trading API    │      (8000) ML + GPT-4             │
-└────────────┬────────────┴──────────────┬─────────────────────┘
-             │                           │
-┌────────────▼───────────────────────────▼─────────────────────┐
+├──────────────────────────────────────────────────────────────┤
+│   Rust Core Engine (8080)                                    │
+│   Trading API · Strategies · Risk Management                 │
+└────────────┬─────────────────────────────────────────────────┘
+             │
+┌────────────▼─────────────────────────────────────────────────┐
 │                      Data Layer                               │
 ├──────────────────────┬────────────────────────────────────────┤
 │   MongoDB 7.0        │         Redis Cache                    │
@@ -278,38 +274,7 @@ jsonwebtoken = "10.2"    # JWT auth
 rust_decimal = "1.39"    # Financial calculations
 ```
 
-#### 2. 🐍 **Python AI Service** (Port 8000)
-
-
-AI/ML service for market prediction, technical analysis, and async task processing.
-
-**Features:**
-- 🧠 **ML Models** (LSTM, GRU, Transformer) - 78%+ prediction accuracy
-- 🤖 **OpenAI GPT-4 Integration** - Smart market analysis with self-improvement
-- 📊 **Technical Indicators** (TA-Lib, 40+ indicators)
-- 📈 **Market Prediction & Forecasting** - Multi-horizon predictions
-- 💬 **Sentiment Analysis** - Social media & news sentiment tracking
-- 🔥 **Redis Caching** - Fast data access
-
-**Metrics:**
-- Test Coverage: 95%
-- Tests: 580+ tests
-- Mutation Score: 76%
-- API Latency: < 2s (predictions), < 50ms (indicators)
-- Model Accuracy: 78%+ (LSTM), 72%+ (Ensemble)
-
-**Tech Stack:**
-```python
-fastapi = "0.121.2"        # Web framework
-tensorflow = "2.18.0"       # Deep learning
-openai = "2.8.0"            # GPT-4 API
-pandas = "2.2.3"            # Data analysis
-scikit-learn = "1.7.0"      # ML algorithms
-ta = "0.11.0"               # Technical analysis
-redis = "5.2.1"             # Cache backend
-```
-
-#### 3. ⚛️ **Next.js Dashboard** (Port 3000)
+#### 2. ⚛️ **Next.js Dashboard** (Port 3000)
 
 **TypeScript 5.3+ | React 18+ | Vite**
 
@@ -343,7 +308,7 @@ Modern dashboard interface with real-time updates.
 }
 ```
 
-#### 4. 🔌 **MCP Server** (Port 8090)
+#### 3. 🔌 **MCP Server** (Port 8090)
 
 **TypeScript | @modelcontextprotocol/sdk | Streamable HTTP**
 
@@ -378,7 +343,7 @@ Model Context Protocol server exposing 103 tools for full bot control.
 }
 ```
 
-#### 5. 🦞 **OpenClaw Gateway** (Port 18789)
+#### 4. 🦞 **OpenClaw Gateway** (Port 18789)
 
 **Node.js 22 | OpenClaw | Claude AI**
 
@@ -395,7 +360,7 @@ AI assistant gateway connecting Claude to BotCore via Telegram/WhatsApp.
 **Architecture:**
 ```
 User (Telegram) → OpenClaw → Claude API → exec botcore <tool>
-  → botcore-bridge.mjs → MCP Server (HTTP) → Rust/Python APIs
+  → botcore-bridge.mjs → MCP Server (HTTP) → Rust API
 ```
 
 ---
@@ -460,7 +425,6 @@ make build-fast
 
 # Build individual services
 make build-rust
-make build-python
 make build-frontend
 
 # Clean build artifacts
@@ -475,7 +439,6 @@ make test
 
 # Service-specific tests
 make test-rust          # Cargo test
-make test-python        # Pytest
 make test-frontend      # Vitest
 
 # Integration tests
@@ -489,7 +452,6 @@ make test-coverage
 
 # Mutation testing
 cargo mutants          # Rust
-mutmut run            # Python
 npx stryker run       # Frontend
 ```
 
@@ -505,13 +467,11 @@ make quality-report
 # Linting
 make lint              # All services
 make lint-rust         # Clippy
-make lint-python       # Flake8
 make lint-frontend     # ESLint
 
 # Format code
 make format            # All services
 make format-rust       # Rustfmt
-make format-python     # Black
 make format-frontend   # Prettier
 ```
 
@@ -563,7 +523,6 @@ TELEGRAM_USER_ID=your-telegram-user-id
 # ========================================
 # RESOURCE LIMITS
 # ========================================
-PYTHON_MEMORY_LIMIT=1536m         # 1.5GB
 RUST_MEMORY_LIMIT=1024m           # 1GB
 FRONTEND_MEMORY_LIMIT=512m        # 512MB
 ```
@@ -574,6 +533,7 @@ FRONTEND_MEMORY_LIMIT=512m        # 512MB
 |---------|-------------|--------|
 | Rust Core | `rust-core-engine/config.toml` | TOML |
 | Frontend | `nextjs-ui-dashboard/vite.config.ts` | TypeScript |
+
 | Docker | `docker-compose.yml` | YAML |
 
 ---
@@ -586,13 +546,12 @@ FRONTEND_MEMORY_LIMIT=512m        # 512MB
 ╔═══════════════════════════════════════════════════╗
 ║           TEST COVERAGE SUMMARY                   ║
 ╠═══════════════════════════════════════════════════╣
-║  Overall Coverage:        92%  ✅ EXCELLENT      ║
-║  Total Tests:          2,600+  ✅ COMPREHENSIVE  ║
+║  Overall Coverage:        90%  ✅ EXCELLENT      ║
+║  Total Tests:          2,000+  ✅ COMPREHENSIVE  ║
 ║  Mutation Score:         84%   ✅ VERY GOOD      ║
 ║  Spec Traceability:     100%   ✅ PERFECT        ║
 ╠═══════════════════════════════════════════════════╣
 ║  Rust Core Engine:       90%   (1,952 tests)     ║
-║  Python AI Service:      95%   (580+ tests)      ║
 ║  Frontend Dashboard:     90%+  (30+ test files)  ║
 ║  Integration Tests:     100+   (cross-service)   ║
 ╚═══════════════════════════════════════════════════╝
@@ -603,7 +562,6 @@ FRONTEND_MEMORY_LIMIT=512m        # 512MB
 | Service | Mutation Score | Status | Tests |
 |---------|----------------|--------|-------|
 | Rust Core | 85% | ✅ Excellent | cargo-mutants |
-| Python AI | 76% | ✅ Very Good | mutmut |
 | Frontend | 82% | ✅ Very Good | Stryker |
 
 ### 🔬 Test Categories
@@ -613,9 +571,6 @@ FRONTEND_MEMORY_LIMIT=512m        # 512MB
 # Rust
 cd rust-core-engine && cargo test
 # 1,952 tests, 90% coverage
-
-# Python
-# 459+ tests, 95% coverage
 
 # Frontend
 cd nextjs-ui-dashboard && npm test
@@ -779,8 +734,8 @@ istioctl dashboard kiali
 
 ```bash
 # Check all service health
-curl http://localhost:8080/api/health   # Rust Core
-curl http://localhost:3000              # Frontend
+curl http://localhost:8080/api/health   # Rust Core Engine
+curl http://localhost:3000              # Frontend Dashboard
 curl http://localhost:8090/health       # MCP Server
 
 # Docker health status
@@ -821,7 +776,6 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 | API Latency (p95) | < 100ms | 45ms | ✅ Excellent |
 | WebSocket Latency | < 10ms | 6ms | ✅ Excellent |
 | Trading Execution | < 10ms | < 10ms | ✅ Met |
-| AI Prediction | < 2s | < 2s | ✅ Met |
 | Throughput | 1000 ops/s | 1,200+ ops/s | ✅ Exceeded |
 | Uptime | 99.9% | 99.99% | ✅ Exceeded |
 
@@ -894,47 +848,6 @@ POST /api/strategies/backtest
 }
 ```
 
-### 🐍 Python AI Service API
-
-
-#### Prediction Endpoints
-```bash
-# Get price prediction
-POST /predict
-{
-  "symbol": "BTCUSDT",
-  "model": "lstm",
-  "horizon": 24
-}
-
-# Get market analysis
-POST /analyze
-{
-  "symbol": "BTCUSDT",
-  "timeframe": "1h"
-}
-
-# Calculate indicators
-POST /indicators
-{
-  "symbol": "BTCUSDT",
-  "indicators": ["rsi", "macd", "bollinger"]
-}
-```
-
-#### AI Chat
-```bash
-# Chat with AI
-POST /chat
-{
-  "message": "Should I buy BTC now?",
-  "context": {
-    "portfolio": {...},
-    "market_data": {...}
-  }
-}
-```
-
 📚 **Full API Documentation:** [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 
 ---
@@ -1004,7 +917,7 @@ docker-compose restart rust-core-engine
 
 #### 3️⃣ Port Already in Use
 
-**Symptom:** "Port 3000/8080/8000 already allocated"
+**Symptom:** "Port 3000/8080 already allocated"
 ```bash
 # Find process using port
 lsof -i :3000  # macOS/Linux
@@ -1044,7 +957,7 @@ make build
 ```bash
 # Quick health check
 curl http://localhost:8080/api/health
-curl http://localhost:3000/api/health
+curl http://localhost:8090/health
 
 # Comprehensive check
 make health
@@ -1115,14 +1028,6 @@ bot-core/
 │   ├── docs/                  # Rust-specific docs
 │   ├── Cargo.toml
 │   └── config.toml
-│
-│   ├── main.py
-│   ├── models/                # ML models
-│   ├── services/              # Business logic
-│   ├── tests/                 # 459+ tests (95% coverage)
-│   ├── docs/                  # Python-specific docs
-│   ├── requirements.txt
-│   └── config.yaml
 │
 ├── nextjs-ui-dashboard/       # ⚛️ React Dashboard
 │   ├── src/
@@ -1260,7 +1165,6 @@ Bot Core follows a **rigorous spec-driven development workflow** ensuring every 
   │   └── ...
   ├── 02-design/             # 20 docs (Architecture, API, DB, UI)
   │   ├── API-RUST-CORE.md   # 37 API endpoints
-  │   ├── API-PYTHON-AI.md   # 30 AI/ML endpoints
   │   ├── DB-SCHEMA.md       # 22 collections, 68 indexes
   │   └── ...
   ├── 03-testing/            # 12 docs (Test cases & scenarios)
@@ -1276,10 +1180,10 @@ Bot Core follows a **rigorous spec-driven development workflow** ensuring every 
 Every piece of code is linked to specifications:
 
 ```rust
-// @spec:FR-ASYNC-001 - Background ML model training
-// @ref:specs/02-design/2.5-components/COMP-PYTHON-ML.md
-// @test:TC-ASYNC-001, TC-ASYNC-002, TC-ASYNC-003
-async fn train_model_async(model_type: ModelType) -> Result<TaskId> {
+// @spec:FR-TRADING-001 - Trading signal generation
+// @ref:specs/02-design/2.5-components/COMP-RUST-TRADING.md
+// @test:TC-TRADING-001, TC-TRADING-002, TC-TRADING-003
+async fn generate_trading_signal(symbol: &str) -> Result<Signal> {
     // Implementation with full traceability
 }
 ```
@@ -1381,7 +1285,6 @@ in the Software without restriction...
 ### ✅ Completed (v1.0)
 
 - ✅ Core trading engine (Rust)
-- ✅ AI prediction service (Python)
 - ✅ Dashboard UI (React)
 - ✅ Paper trading
 - ✅ Multiple strategies
@@ -1425,7 +1328,6 @@ in the Software without restriction...
 ### 🌟 Built With
 
 - **[Rust](https://www.rust-lang.org/)** - High-performance trading engine
-- **[Python](https://www.python.org/)** - AI/ML capabilities
 - **[TypeScript](https://www.typescriptlang.org/)** - Type-safe frontend
 - **[React](https://react.dev/)** - Modern UI library
 - **[MongoDB](https://www.mongodb.com/)** - Flexible database

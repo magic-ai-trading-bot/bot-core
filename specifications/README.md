@@ -33,7 +33,7 @@ Build a comprehensive, traceable, and maintainable specification system that:
 - Enables **traceability** from requirements to implementation
 - Supports **agile development** with clear acceptance criteria
 - Facilitates **quality assurance** through detailed test cases
-- Ensures **consistency** across microservices (Rust, Python, Next.js)
+- Ensures **consistency** across microservices (Rust, Next.js)
 
 ## Specification-Driven Development Workflow
 
@@ -106,7 +106,6 @@ specifications/
 │   │   └── DB-MIGRATIONS.md      Migration Strategy
 │   ├── 2.3-api/
 │   │   ├── API-RUST-CORE.md      Rust Core Engine API
-│   │   ├── API-PYTHON-AI.md      Python AI Service API
 │   │   ├── API-WEBSOCKET.md      WebSocket Protocol
 │   │   └── API-SEQUENCES.mermaid Sequence Diagrams
 │   ├── 2.4-ui-ux/
@@ -116,7 +115,6 @@ specifications/
 │   └── 2.5-components/
 │       ├── COMP-RUST-AUTH.md     Rust Auth Component
 │       ├── COMP-RUST-TRADING.md  Rust Trading Component
-│       ├── COMP-PYTHON-ML.md     Python ML Component
 │       └── COMP-FRONTEND-DASHBOARD.md Frontend Dashboard
 │
 ├── 03-testing/                    Testing Specifications
@@ -196,11 +194,6 @@ specifications/
 - Review [01-requirements/1.1-functional-requirements/FR-TRADING.md](01-requirements/1.1-functional-requirements/FR-TRADING.md)
 - Check [02-design/2.5-components/COMP-RUST-TRADING.md](02-design/2.5-components/COMP-RUST-TRADING.md)
 
-**Backend Developers (Python/AI)**
-- Read [API_SPEC.md](./API_SPEC.md) - Python AI Service section
-- Review [01-requirements/1.1-functional-requirements/FR-AI.md](01-requirements/1.1-functional-requirements/FR-AI.md)
-- Check [02-design/2.5-components/COMP-PYTHON-ML.md](02-design/2.5-components/COMP-PYTHON-ML.md)
-
 **Frontend Developers**
 - Review [02-design/2.4-ui-ux/](02-design/2.4-ui-ux/)
 - Check [01-requirements/1.1-functional-requirements/FR-DASHBOARD.md](01-requirements/1.1-functional-requirements/FR-DASHBOARD.md)
@@ -267,14 +260,6 @@ Add specification references in your code comments:
 fn generate_jwt_token(user_id: &str) -> Result<String> {
     // Implementation
 }
-```
-
-**Python Example:**
-```python
-# @spec:FR-AI-003 - Grok/xAI signal generation
-# @ref:API_SPEC.md#ai-analysis
-async def analyze_trading_signals(request: AIAnalysisRequest) -> AISignalResponse:
-    # Implementation
 ```
 
 **TypeScript Example:**
@@ -361,14 +346,6 @@ All specifications use these status indicators:
 POST /api/auth/login
 Authorization: Bearer <token>
 
-# AI Analysis
-POST /ai/analyze
-{
-  "symbol": "BTCUSDT",
-  "timeframe": "1h",
-  "candles": [...]
-}
-
 # Execute Trade
 POST /api/trades/execute
 {
@@ -405,6 +382,7 @@ POST /api/trades/execute
 
 - **Rust Core Engine**: `http://localhost:8080`
 - **Frontend Dashboard**: `http://localhost:3000`
+- **MCP Server**: `http://localhost:8090`
 - **MongoDB**: `mongodb://botuser:***@mongodb:27017/trading_bot`
 
 ## 📊 Key Business Rules Summary (See BUSINESS_RULES.md)
@@ -450,9 +428,8 @@ When updating specifications:
 
 ## Codebase Statistics
 
-**Total Source Files Analyzed**: 223 files
+**Total Source Files Analyzed**: 184 files
 - Rust: 44 source files (17 tagged with 30 @spec references)
-- Python: 39 source files (6 tagged with 8 @spec references)
 - TypeScript/TSX: 140 source files (7 tagged with 9 @spec references)
 
 **Code Tagging Status**:
@@ -461,7 +438,7 @@ When updating specifications:
 - ✅ **Complete traceability** from specs to code
 
 **Architecture**:
-- Microservices: 3 (Rust Core Engine, Python AI Service, Next.js UI Dashboard)
+- Microservices: 2 (Rust Core Engine, Next.js UI Dashboard)
 - API Endpoints: 50+ endpoints (documented in [API_SPEC.md](./API_SPEC.md))
 - Database Collections: 15+ collections (documented in [DATA_MODELS.md](./DATA_MODELS.md))
 - Trading Strategies: 4 strategies (RSI, MACD, Bollinger Bands, Volume)

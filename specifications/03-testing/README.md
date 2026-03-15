@@ -79,8 +79,8 @@ This directory contains comprehensive test specifications for the Bot Core tradi
    - Test execution time
 
 **Key Highlights:**
-- ✅ Current coverage: Rust 90.4%, Python 85%+, Frontend 80%+
-- ✅ 15 Rust test files, 20+ Python test files, 25+ Frontend test files
+- ✅ Current coverage: Rust 90.4%, Frontend 80%+
+- ✅ 15 Rust test files, 25+ Frontend test files
 - ✅ Mutation testing score: 76%
 - ✅ Comprehensive CI/CD integration
 
@@ -163,7 +163,7 @@ Scenario: Successful registration with valid data
 |----------|-------|----------|
 | ML Model Predictions | 9 | Critical |
 | Technical Indicators | 12 | Critical |
-| Grok/xAI Integration | 7 | High |
+| Signal Integration | 7 | High |
 | Signal Generation | 6 | Critical |
 | Caching Mechanism | 4 | Medium |
 | Feature Engineering | 5 | High |
@@ -173,7 +173,7 @@ Scenario: Successful registration with valid data
 **Key Test Cases:**
 - TC-AI-001: LSTM Model Price Prediction
 - TC-AI-010: RSI Calculation
-- TC-AI-022: Grok/xAI Trading Signal Analysis
+- TC-AI-022: Trading Signal Analysis
 - TC-AI-039: Feature Extraction
 
 ---
@@ -186,7 +186,6 @@ Scenario: Successful registration with valid data
 
 | Category | Tests | Priority |
 |----------|-------|----------|
-| Rust ↔ Python AI | 6 | Critical |
 | Rust ↔ Frontend | 7 | Critical |
 | Rust ↔ Binance | 5 | Critical |
 | Rust ↔ MongoDB | 5 | Critical |
@@ -204,7 +203,7 @@ Scenario: Successful registration with valid data
 - TC-INT-001: Request AI Analysis from Rust
 - TC-INT-030: Complete Trading Workflow (E2E)
 - TC-INT-024: WebSocket Connection Establishment
-- TC-INT-042: Error Propagation Frontend ← Rust ← Python
+- TC-INT-042: Error Propagation Frontend ← Rust
 
 ---
 
@@ -231,7 +230,7 @@ Scenario: Successful registration with valid data
 ```
 Step 1: Login
 Step 2: View Market Data (WebSocket real-time)
-Step 3: Request AI Analysis (Rust → Python → Grok/xAI)
+Step 3: Request Signal Analysis (Rust strategies)
 Step 4: Execute Market Buy Order
 Step 5: Monitor Position (Real-time PnL updates)
 Step 6: Close Position with Profit
@@ -288,7 +287,7 @@ And notify user: "Extreme volatility detected"
 2. Binance API Failure
 3. Database Write Failure
 4. WebSocket Disconnection
-5. xAI API Rate Limit
+5. External API Rate Limit
 6. Insufficient Balance Error
 7. Risk Limit Exceeded
 8. Invalid Order Parameters
@@ -302,11 +301,11 @@ And notify user: "Extreme volatility detected"
 
 **Key Scenario - Graceful Degradation:**
 ```gherkin
-Given Python AI service is down
-When users request AI analysis
+Given an external service is unavailable
+When users request analysis
 Then Rust should fall back to local technical indicators
 And allow trading to continue
-And show warning: "AI analysis unavailable"
+And show warning: "Service temporarily unavailable"
 ```
 
 ---
@@ -414,7 +413,6 @@ And show warning: "AI analysis unavailable"
 
 **Dependency Scanning:**
 - cargo-audit (Rust)
-- Safety (Python)
 - npm audit (Node.js)
 
 **Secret Scanning:**
@@ -477,20 +475,6 @@ And show warning: "AI analysis unavailable"
 ├── test_cross_service.rs
 ├── test_service_integration.rs
 └── common/mod.rs
-```
-
-### Python AI Service
-```
-├── test_models.py
-├── test_technical_analyzer.py (11 tests)
-├── test_gpt_analyzer.py
-├── test_technical_indicators.py
-├── test_feature_engineering.py
-├── test_redis_cache.py
-├── test_integration.py
-├── test_full_integration.py
-├── test_security_fixes.py
-└── test_ml_performance.py
 ```
 
 ### Frontend
@@ -566,8 +550,6 @@ And show warning: "AI analysis unavailable"
     # Rust tests
     cd rust-core-engine && cargo test
 
-    # Python tests
-
     # Frontend tests
     cd nextjs-ui-dashboard && npm run test:coverage
 ```
@@ -588,7 +570,6 @@ And show warning: "AI analysis unavailable"
 
 ✅ **Test Coverage:**
 - Rust Core: 90.4% (Target: 90%+)
-- Python AI: 85%+ (Target: 85%+)
 - Frontend: 80%+ (Target: 80%+)
 
 ✅ **Mutation Testing:**

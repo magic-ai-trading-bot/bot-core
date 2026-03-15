@@ -11,10 +11,9 @@ A comprehensive, high-performance Rust-based trading bot for Binance Futures wit
 - **High-performance Caching**: In-memory caching with configurable size limits
 - **Order Book Updates**: Real-time order book depth updates
 
-### 🤖 AI-Powered Trading
+### 🤖 Signal-Based Trading
 
 - **Multi-timeframe Analysis**: Combines signals across different timeframes for better accuracy
-- **Python AI Integration**: Sends market data to external Python AI service for analysis
 - **Signal Confidence**: Weighted confidence scores for trading decisions
 - **Risk-Reward Optimization**: Automatic calculation of optimal entry, stop-loss, and take-profit levels
 
@@ -59,7 +58,6 @@ A comprehensive, high-performance Rust-based trading bot for Binance Futures wit
 
 - Rust 1.70+
 - MongoDB (for database features)
-- Python AI service (for market analysis)
 
 ### Build from Source
 
@@ -197,49 +195,6 @@ cors_origins = ["*"]               # CORS origins
 enable_metrics = true              # Enable metrics collection
 ```
 
-## Python AI Service Integration
-
-The bot expects a Python service running on the configured URL that accepts POST requests to `/api/analyze` with the following format:
-
-### Request Format
-
-```json
-{
-  "symbol": "BTCUSDT",
-  "timeframe": "1h",
-  "candles": [
-    {
-      "timestamp": 1640995200000,
-      "open": 47000.0,
-      "high": 47500.0,
-      "low": 46800.0,
-      "close": 47200.0,
-      "volume": 1250.5
-    }
-  ],
-  "analysis_type": "trend_analysis",
-  "parameters": {}
-}
-```
-
-### Expected Response
-
-```json
-{
-  "symbol": "BTCUSDT",
-  "timeframe": "1h",
-  "timestamp": 1640995200000,
-  "signal": "BUY",
-  "confidence": 0.85,
-  "indicators": {
-    "rsi": 65.2,
-    "macd": 0.5,
-    "bb_position": 0.7
-  },
-  "analysis_details": {}
-}
-```
-
 ## Safety Features
 
 - **Testnet Support**: Full support for Binance testnet for safe testing
@@ -276,11 +231,6 @@ The bot expects a Python service running on the configured URL that accepts POST
    - Ensure MongoDB is running and accessible
    - Check database file permissions
    - Verify disk space availability
-
-4. **Python AI Service Connection**
-   - Ensure AI service is running
-   - Check service URL configuration
-   - Verify network connectivity
 
 ### Logging
 

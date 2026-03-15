@@ -6,7 +6,7 @@ Modern, responsive dashboard for the Crypto Trading Bot system built with React,
 
 - **Real-time Market Data**: Live WebSocket connections for price updates
 - **Paper Trading**: Simulate trading strategies without risking real funds
-- **AI-Powered Signals**: Integration with Python AI service for trading recommendations
+- **Trading Signals**: Strategy-based trading signal recommendations
 - **Interactive Charts**: TradingView-style charts with technical indicators
 - **Performance Metrics**: Comprehensive portfolio analytics and PnL tracking
 - **Dark/Light Mode**: Fully themed with Tailwind CSS
@@ -167,19 +167,14 @@ nextjs-ui-dashboard/
 
 ## 🔌 Integration with Backend
 
-This dashboard integrates with two backend services:
+This dashboard integrates with the Rust Core Engine backend:
 
 ### Rust Core Engine (Port 8080)
 - **Trading execution** and order management
 - **WebSocket** for real-time market data
 - **Portfolio management** and position tracking
 - **Authentication** (JWT)
-
-### Python AI Service (Port 8000)
-- **ML-powered trading signals** (LSTM, GRU, Transformer)
-- **Technical analysis** and indicators
-- **Market predictions** and confidence scores
-- **GPT-4 powered** market analysis
+- **Trading strategies** and signal generation
 
 ## 🐳 Docker Deployment
 
@@ -202,7 +197,7 @@ docker-compose up nextjs-ui-dashboard
 ### Dashboard
 - **DashboardHeader**: Portfolio summary, balance, PnL
 - **TradingCharts**: Real-time price charts with indicators
-- **AISignals**: ML-powered trading recommendations
+- **AISignals**: Strategy-based trading recommendations
 - **PerformanceChart**: Historical performance visualization
 
 ### Paper Trading

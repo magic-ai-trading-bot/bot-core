@@ -8,7 +8,6 @@ This directory contains comprehensive examples for all APIs, configurations, and
 examples/
 ├── api/                      # API request/response examples
 │   ├── rust-core/           # Rust Core Engine API examples
-│   ├── python-ai/           # Python AI Service API examples
 │   └── common/              # Common patterns and utilities
 ├── config/                  # Configuration file examples
 ├── strategies/             # Trading strategy examples
@@ -41,15 +40,6 @@ curl -X POST http://localhost:8080/api/trades/execute \
   -d @examples/api/rust-core/trade-execute-limit-buy-request.json
 ```
 
-### 3. Get AI Analysis
-
-```bash
-# Request AI market analysis
-curl -X POST http://localhost:8000/ai/analyze \
-  -H "Content-Type: application/json" \
-  -d @examples/api/python-ai/ai-analyze-request.json
-```
-
 ## API Examples Index
 
 ### Rust Core Engine API
@@ -77,18 +67,6 @@ curl -X POST http://localhost:8000/ai/analyze \
 - [Paper Trade Execution](./api/rust-core/paper-trade-execute-request.json)
 - [Get Paper Trading Stats](./api/rust-core/paper-trading-stats-response.json)
 
-### Python AI Service API
-
-#### AI Analysis
-- [Market Analysis Request](./api/python-ai/ai-analyze-request.json) / [Response](./api/python-ai/ai-analyze-response.json)
-- [Batch Analysis Request](./api/python-ai/ai-batch-analyze-request.json)
-- [Strategy Recommendations](./api/python-ai/ai-strategy-recommendations-request.json)
-
-#### ML Predictions
-- [Price Prediction Request](./api/python-ai/ml-predict-price-request.json)
-- [Trend Prediction](./api/python-ai/ml-predict-trend-request.json)
-- [Market Sentiment](./api/python-ai/ml-market-sentiment-response.json)
-
 ### WebSocket Examples
 
 #### Rust WebSocket
@@ -96,10 +74,6 @@ curl -X POST http://localhost:8000/ai/analyze \
 - [Subscribe to Markets](./api/rust-core/websocket-subscribe.json)
 - [Price Update Message](./api/rust-core/websocket-price-update.json)
 - [Order Update Message](./api/rust-core/websocket-order-update.json)
-
-#### Python WebSocket
-- [AI Signals Stream](./api/python-ai/websocket-ai-signals.js)
-- [Real-time Predictions](./api/python-ai/websocket-predictions.json)
 
 ### Error Examples
 
@@ -119,7 +93,6 @@ All error responses follow a consistent format:
 
 ### Service Configuration
 - [Rust config.toml](./config/rust-config.toml)
-- [Python config.yaml](./config/python-config.yaml)
 - [Frontend .env](./config/frontend-config.env)
 
 ### Docker Configuration
@@ -134,10 +107,6 @@ All error responses follow a consistent format:
 - [Bollinger Bands](./strategies/bollinger-bands-strategy.json)
 - [Volume Strategy](./strategies/volume-strategy.json)
 
-### AI-Enhanced Strategies
-- [AI Ensemble Strategy](./strategies/ai-ensemble-strategy.json)
-- [Sentiment-Based Strategy](./strategies/sentiment-strategy.json)
-
 ### Custom Strategy Template
 - [Custom Strategy Template](./strategies/custom-strategy-template.json)
 
@@ -146,11 +115,6 @@ All error responses follow a consistent format:
 ### Node.js/TypeScript
 - [Trading Bot Client](./integration/nodejs-trading-bot.ts)
 - [WebSocket Client](./integration/nodejs-websocket-client.ts)
-- [AI Analysis Client](./integration/nodejs-ai-client.ts)
-
-### Python
-- [Trading Bot Client](./integration/python-trading-bot.py)
-- [Data Analysis Script](./integration/python-data-analysis.py)
 
 ### Shell Scripts
 - [Automated Trading Script](./integration/automated-trading.sh)
@@ -250,7 +214,6 @@ All examples assume the following default endpoints:
 
 ```bash
 export RUST_API_URL="http://localhost:8080"
-export PYTHON_API_URL="http://localhost:8000"
 export WS_URL="ws://localhost:8080/ws"
 ```
 
@@ -258,7 +221,6 @@ For production, use HTTPS and WSS:
 
 ```bash
 export RUST_API_URL="https://api.botcore.com"
-export PYTHON_API_URL="https://ai.botcore.com"
 export WS_URL="wss://api.botcore.com/ws"
 ```
 
@@ -271,8 +233,6 @@ Be aware of rate limits when testing:
 | Rust Core | Authentication | 5 req/15 min |
 | Rust Core | Trading | 10 req/sec |
 | Rust Core | Other APIs | 100 req/min |
-| Python AI | Analysis | 10 req/min |
-| Python AI | Other APIs | 60 req/min |
 
 ## Best Practices
 
@@ -321,7 +281,6 @@ curl -I http://localhost:8080/api/health
 ```bash
 # Check service health
 curl http://localhost:8080/api/health
-curl http://localhost:8000/health
 ```
 
 **Connection Refused**
