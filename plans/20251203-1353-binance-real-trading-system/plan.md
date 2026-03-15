@@ -1,6 +1,7 @@
 # Binance Real Trading System - Implementation Plan
 
-**Created**: 2025-12-03 | **Status**: PLANNING | **Priority**: HIGH
+**Created**: 2025-12-03 | **Status**: CANCELLED | **Priority**: HIGH
+> **Cancelled**: 2026-03-15. Superseded by `20260206-1130-real-trading-system` (completed Feb 2026).
 
 ## Executive Summary
 
