@@ -890,7 +890,7 @@ impl PaperTradingSettings {
     pub fn from_yaml(path: &str) -> Result<Self> {
         let content = std::fs::read_to_string(path)
             .map_err(|e| anyhow::anyhow!("Failed to read YAML settings from {}: {}", path, e))?;
-        let settings: Self = serde_yml::from_str(&content)
+        let settings: Self = serde_yaml::from_str(&content)
             .map_err(|e| anyhow::anyhow!("Failed to parse YAML settings from {}: {}", path, e))?;
         settings.validate()?;
         Ok(settings)
@@ -1205,8 +1205,8 @@ mod tests {
     fn test_from_yaml_roundtrip_matches_defaults() {
         // Serialize defaults to YAML and parse back — should match
         let defaults = PaperTradingSettings::default();
-        let yaml = serde_yml::to_string(&defaults).expect("serialize to YAML");
-        let parsed: PaperTradingSettings = serde_yml::from_str(&yaml).expect("parse from YAML");
+        let yaml = serde_yaml::to_string(&defaults).expect("serialize to YAML");
+        let parsed: PaperTradingSettings = serde_yaml::from_str(&yaml).expect("parse from YAML");
 
         assert_eq!(
             parsed.basic.default_leverage,

@@ -297,7 +297,7 @@ impl RealTradingConfig {
         let content = std::fs::read_to_string(path).map_err(|e| {
             anyhow::anyhow!("Failed to read real trading YAML from {}: {}", path, e)
         })?;
-        let config: Self = serde_yml::from_str(&content).map_err(|e| {
+        let config: Self = serde_yaml::from_str(&content).map_err(|e| {
             anyhow::anyhow!("Failed to parse real trading YAML from {}: {}", path, e)
         })?;
         Ok(config)
