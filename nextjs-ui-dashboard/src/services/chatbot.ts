@@ -17,8 +17,8 @@ export interface ChatResponse {
   sources?: Array<{ title: string; path: string }>;
 }
 
-// Python AI Service URL for RAG chatbot
-const PYTHON_AI_SERVICE_URL = import.meta.env.VITE_PYTHON_AI_URL || "http://localhost:8000";
+// RAG chatbot via Python AI service has been removed.
+// All chat responses now use local FAQ database.
 
 // FAQ Database cho trading bot (Vietnamese)
 const FAQ_DATABASE = {
@@ -200,7 +200,7 @@ class ChatbotService {
     return null;
   }
 
-  // Gọi Python RAG Chatbot API
+  // RAG chatbot via Python AI service removed - use local FAQ directly
   private async callRAGChatbot(message: string): Promise<ChatResponse> {
     if (!this.checkRateLimit()) {
       return {
@@ -210,37 +210,7 @@ class ChatbotService {
         type: "error",
       };
     }
-
-    try {
-      const response = await fetch(`${PYTHON_AI_SERVICE_URL}/api/chat/project`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: message,
-          include_history: true,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      return {
-        success: result.success,
-        message: result.message,
-        confidence: result.confidence,
-        type: result.type as "rag" | "fallback" | "error",
-        sources: result.sources,
-      };
-    } catch (error) {
-      logger.error("RAG Chatbot API Error:", error);
-      // Fallback to local FAQ if RAG service is unavailable
-      return this.fallbackToLocalFAQ(message);
-    }
+    return this.fallbackToLocalFAQ(message);
   }
 
   // Fallback to local FAQ when RAG is unavailable
@@ -372,19 +342,8 @@ Assistant:`,
     }
   }
 
-  // Lấy suggested questions (có thể gọi API nếu RAG enabled)
+  // Lấy suggested questions
   async getSuggestedQuestionsAsync(): Promise<string[]> {
-    if (this.useRAG) {
-      try {
-        const response = await fetch(`${PYTHON_AI_SERVICE_URL}/api/chat/project/suggestions`);
-        if (response.ok) {
-          const data = await response.json();
-          return data.suggestions || this.getDefaultSuggestedQuestions();
-        }
-      } catch (error) {
-        logger.error("Failed to fetch suggestions from API:", error);
-      }
-    }
     return this.getDefaultSuggestedQuestions();
   }
 
@@ -407,19 +366,9 @@ Assistant:`,
     ];
   }
 
-  // Clear conversation history (also clears on server if RAG enabled)
+  // Clear conversation history
   async clearHistoryAsync(): Promise<void> {
     this.conversationHistory = [];
-
-    if (this.useRAG) {
-      try {
-        await fetch(`${PYTHON_AI_SERVICE_URL}/api/chat/project/clear`, {
-          method: "POST",
-        });
-      } catch (error) {
-        logger.error("Failed to clear history on server:", error);
-      }
-    }
   }
 
   // Reset rate limit counter (for testing purposes)

@@ -692,35 +692,15 @@ describe('Chatbot Service Tests', () => {
       expect(chatbotService.isRAGEnabled()).toBe(false)
     })
 
-    it('should call RAG endpoint when RAG mode is enabled', async () => {
+    it('should use local FAQ when RAG mode is enabled (Python service removed)', async () => {
       chatbotService.setRAGMode(true)
 
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          message: 'RAG response about BotCore',
-          sources: [{ title: 'README', path: 'README.md' }],
-          confidence: 0.9,
-          type: 'rag',
-        }),
-      })
-
-      global.fetch = mockFetch
-
-      const result = await chatbotService.processMessage('what is BotCore?')
+      // Python AI service has been removed; RAG now falls back to local FAQ
+      const result = await chatbotService.processMessage('bot hoạt động')
 
       expect(result.success).toBe(true)
-      expect(result.type).toBe('rag')
-      expect(result.message).toBe('RAG response about BotCore')
-      expect(result.sources).toHaveLength(1)
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/chat/project'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        })
-      )
+      // Returns faq or fallback from local FAQ database
+      expect(['faq', 'fallback']).toContain(result.type)
     })
 
     it('should fallback to local FAQ when RAG service is unavailable', async () => {
@@ -805,24 +785,14 @@ describe('Chatbot Service Tests', () => {
   // NEW TESTS FOR UNCOVERED CODE PATHS
 
   describe('Async Suggested Questions', () => {
-    it('should fetch suggestions from API when RAG enabled', async () => {
+    it('should return default suggestions when RAG enabled (Python service removed)', async () => {
       chatbotService.setRAGMode(true)
 
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          suggestions: ['Question 1', 'Question 2', 'Question 3']
-        })
-      })
-
-      global.fetch = mockFetch
-
+      // Python AI service has been removed; always returns local defaults
       const suggestions = await chatbotService.getSuggestedQuestionsAsync()
 
-      expect(suggestions).toEqual(['Question 1', 'Question 2', 'Question 3'])
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/suggestions')
-      )
+      expect(suggestions.length).toBeGreaterThan(0)
+      expect(suggestions).toContain('Bot hoạt động như thế nào?')
     })
 
     it('should fallback to default suggestions when API fails', async () => {
@@ -850,15 +820,10 @@ describe('Chatbot Service Tests', () => {
   })
 
   describe('Clear History Async', () => {
-    it('should clear local and server history when RAG enabled', async () => {
+    it('should clear local history (Python server clear removed)', async () => {
       chatbotService.setRAGMode(true)
 
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ success: true })
-      })
-
-      global.fetch = mockFetch
+      // Python AI service has been removed; only local history is cleared
 
       // Add some messages
       chatbotService.addMessageToHistory({
@@ -873,10 +838,6 @@ describe('Chatbot Service Tests', () => {
       await chatbotService.clearHistoryAsync()
 
       expect(chatbotService.getConversationHistory().length).toBe(0)
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/clear'),
-        expect.objectContaining({ method: 'POST' })
-      )
     })
 
     it('should handle server clear failure gracefully', async () => {

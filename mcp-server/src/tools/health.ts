@@ -16,7 +16,7 @@ export function registerHealthTools(server: McpServer): void {
     {
       title: "Check System Health",
       description:
-        "Check health status of all BotCore services: Rust Core Engine, Python AI Service, MongoDB, and infrastructure. Returns combined health report.",
+        "Check health status of all BotCore services: Rust Core Engine, MongoDB, and infrastructure. Returns combined health report.",
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
@@ -44,24 +44,6 @@ export function registerHealthTools(server: McpServer): void {
         allHealthy = false;
       }
 
-      // Check Python AI Service
-      try {
-        const python = await apiRequest("python", "/health", {
-          skipAuth: true,
-          timeoutMs: 10_000,
-        });
-        results["python_ai_service"] = {
-          status: python.success ? "healthy" : "unhealthy",
-          port: 8000,
-          data: python.data,
-          error: python.error,
-        };
-        if (!python.success) allHealthy = false;
-      } catch {
-        results["python_ai_service"] = { status: "unreachable", port: 8000 };
-        allHealthy = false;
-      }
-
       return toolSuccess({
         overall_status: allHealthy ? "healthy" : "degraded",
         timestamp: new Date().toISOString(),
@@ -76,9 +58,9 @@ export function registerHealthTools(server: McpServer): void {
     {
       title: "Get Service Logs Summary",
       description:
-        "Get a summary of recent errors and warnings from BotCore services. Checks Rust engine and Python AI service for ERROR/PANIC/CRITICAL level logs.",
+        "Get a summary of recent errors and warnings from BotCore services. Checks Rust engine for ERROR/PANIC/CRITICAL level logs.",
       inputSchema: {
-        service: z.enum(["rust", "python", "all"]).describe("Which service logs to check").default("all"),
+        service: z.enum(["rust", "all"]).describe("Which service logs to check").default("all"),
       },
       annotations: {
         readOnlyHint: true,
@@ -97,16 +79,6 @@ export function registerHealthTools(server: McpServer): void {
           : { error: res.error };
       }
 
-      if (service === "python" || service === "all") {
-        const res = await apiRequest("python", "/health", {
-          skipAuth: true,
-          timeoutMs: 10_000,
-        });
-        results["python_ai_service"] = res.success
-          ? res.data
-          : { error: res.error };
-      }
-
       return toolSuccess({
         timestamp: new Date().toISOString(),
         logs_summary: results,
@@ -120,7 +92,7 @@ export function registerHealthTools(server: McpServer): void {
     {
       title: "Check Market Condition Health",
       description:
-        "Deep health check for the AI market condition pipeline. Tests MongoDB candle fetch + indicator calculation. Returns 'healthy' or error details with action_required.",
+        "Deep health check for the AI market condition pipeline. Tests MongoDB candle fetch + indicator calculation via Rust engine. Returns 'healthy' or error details with action_required.",
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
@@ -128,7 +100,7 @@ export function registerHealthTools(server: McpServer): void {
     },
     async () => {
       try {
-        const res = await apiRequest("python", "/ai/health/market-condition", {
+        const res = await apiRequest("rust", "/api/ai/health/market-condition", {
           skipAuth: true,
           timeoutMs: 15_000,
         });
@@ -138,14 +110,14 @@ export function registerHealthTools(server: McpServer): void {
           return toolSuccess({
             healthy: false,
             error: res.error || "Pipeline check failed",
-            action_required: "Stop paper engine — investigate AI service",
+            action_required: "Stop paper engine — investigate Rust AI service",
           });
         }
       } catch {
         return toolSuccess({
           healthy: false,
-          error: "Cannot reach Python AI service",
-          action_required: "Python AI service may be down — stop paper engine",
+          error: "Cannot reach Rust core engine",
+          action_required: "Rust core engine may be down — stop paper engine",
         });
       }
     }

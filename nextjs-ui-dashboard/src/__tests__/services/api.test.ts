@@ -12,7 +12,6 @@ import type {
   ChartData,
   SupportedSymbols,
   MarketOverview,
-  AIModelInfo,
   LoginRequest,
   RegisterRequest,
   LoginResponse,
@@ -66,7 +65,7 @@ vi.mock('axios', () => {
 
 // Import after mocking
 import axios from 'axios'
-import { BotCoreApiClient, apiClient, rustApi, pythonAI } from '../../services/api'
+import { BotCoreApiClient, apiClient, rustApi } from '../../services/api'
 
 const mockAxiosInstance = (axios.create as any)()
 
@@ -101,7 +100,6 @@ describe('API Service Tests', () => {
 
       expect(client).toBeDefined()
       expect(client.rust).toBeDefined()
-      expect(client.python).toBeDefined()
       expect(client.auth).toBeDefined()
     })
 
@@ -941,275 +939,28 @@ describe('API Service Tests', () => {
     })
   })
 
-  describe('PythonAIApiClient', () => {
-    it('should get model info', async () => {
-      const mockInfo: AIModelInfo = {
-        model_type: 'LSTM',
-        model_loaded: true,
-        training_samples: 10000,
-        validation_samples: 2000,
-        feature_count: 50,
-        training_accuracy: 0.85,
-        trained_timestamp: '2024-01-01T00:00:00Z',
-      }
 
-      mockAxiosInstance.get.mockResolvedValue({ data: mockInfo })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.getModelInfo()
-
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/model/info')
-      expect(result).toEqual(mockInfo)
-    })
-
-    it('should train model', async () => {
-      const mockResponse = {
-        message: 'Training completed',
-        model_type: 'LSTM',
-        training_samples: 10000,
-        status: 'success',
-      }
-
-      const data = {
-        symbol: 'BTCUSDT',
-        model_type: 'LSTM',
-        retrain: true,
-        candles: [],
-      }
-
-      mockAxiosInstance.post.mockResolvedValue({ data: mockResponse })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.trainModel(data)
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/train', data)
-      expect(result).toEqual(mockResponse)
-    })
-
-    it('should load model', async () => {
-      const mockResponse = {
-        message: 'Model loaded',
-        model_type: 'LSTM',
-        status: 'success',
-      }
-
-      mockAxiosInstance.post.mockResolvedValue({ data: mockResponse })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.loadModel('model-path')
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/model/load', {
-        model_path: 'model-path',
-      })
-      expect(result).toEqual(mockResponse)
-    })
-
-    it('should save model', async () => {
-      const mockResponse = {
-        message: 'Model saved',
-        model_type: 'LSTM',
-        timestamp: '2024-01-01T00:00:00Z',
-      }
-
-      mockAxiosInstance.post.mockResolvedValue({ data: mockResponse })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.saveModel('my-model')
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/model/save', {
-        model_name: 'my-model',
-      })
-      expect(result).toEqual(mockResponse)
-    })
-
-    it('should analyze market', async () => {
-      const mockSignal: AISignal = {
-        signal: 'long',
-        confidence: 0.85,
-        probability: 0.75,
-        timestamp: '2024-01-01T00:00:00Z',
-        model_type: 'LSTM',
-        symbol: 'BTCUSDT',
-        timeframe: '1h',
-      }
-
-      const data = {
-        symbol: 'BTCUSDT',
-        timeframe: '1h',
-        candles: [],
-      }
-
-      mockAxiosInstance.post.mockResolvedValue({ data: mockSignal })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.analyzeMarket(data)
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/analyze', data)
-      expect(result).toEqual(mockSignal)
-    })
-
-    it('should get config', async () => {
-      const mockConfig = {
-        supported_timeframes: ['1h', '4h'],
-        model_config: {
-          model_type: 'LSTM',
-          sequence_length: 60,
-          batch_size: 32,
-          learning_rate: 0.001,
-          epochs: 100,
-          validation_split: 0.2,
-          features: ['close', 'volume'],
-        },
-        trading_config: {
-          enabled: true,
-          model_confidence_threshold: 0.7,
-          max_signal_age_minutes: 15,
-          supported_timeframes: ['1h'],
-          risk_management: {
-            max_position_size: 1000,
-            stop_loss_percentage: 3,
-            take_profit_percentage: 6,
-          },
-        },
-        data_config: {
-          data_source: 'binance',
-          update_interval_seconds: 60,
-          historical_data_days: 30,
-          required_indicators: ['rsi', 'macd'],
-          cache_enabled: true,
-          cache_ttl_minutes: 5,
-        },
-      }
-
-      mockAxiosInstance.get.mockResolvedValue({ data: mockConfig })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.getConfig()
-
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/config')
-      expect(result).toEqual(mockConfig)
-    })
-
-    it('should cleanup old models', async () => {
-      const mockResponse = {
-        message: 'Cleanup completed',
-        deleted_models: 3,
-        kept_models: 5,
-      }
-
-      mockAxiosInstance.delete.mockResolvedValue({ data: mockResponse })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.cleanupOldModels(5)
-
-      expect(mockAxiosInstance.delete).toHaveBeenCalledWith('/model/cleanup?keep_count=5')
-      expect(result).toEqual(mockResponse)
-    })
-
-    it('should cleanup old models with default count', async () => {
-      const mockResponse = {
-        message: 'Cleanup completed',
-        deleted_models: 10,
-        kept_models: 5,
-      }
-
-      mockAxiosInstance.delete.mockResolvedValue({ data: mockResponse })
-
-      const client = new BotCoreApiClient()
-      await client.python.cleanupOldModels()
-
-      expect(mockAxiosInstance.delete).toHaveBeenCalledWith('/model/cleanup?keep_count=5')
-    })
-
-    it('should perform health check', async () => {
-      const mockHealth = {
-        status: 'healthy',
-        timestamp: '2024-01-01T00:00:00Z',
-        model_loaded: true,
-        version: '1.0.0',
-      }
-
-      mockAxiosInstance.get.mockResolvedValue({ data: mockHealth })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.healthCheck()
-
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/health')
-      expect(result).toEqual(mockHealth)
-    })
-  })
-
-  describe('BotCoreApiClient - Combined Health Check', () => {
-    it('should perform combined health check when both services are healthy', async () => {
-      mockAxiosInstance.get
-        .mockResolvedValueOnce({ data: { status: 'healthy' } })
-        .mockResolvedValueOnce({
-          data: {
-            status: 'healthy',
-            timestamp: '2024-01-01T00:00:00Z',
-            model_loaded: true,
-            version: '1.0.0',
-          },
-        })
+  describe('BotCoreApiClient - Health Check', () => {
+    it('should perform health check when rust service is healthy', async () => {
+      mockAxiosInstance.get.mockResolvedValueOnce({ data: { status: 'healthy' } })
 
       const client = new BotCoreApiClient()
       const result = await client.healthCheck()
 
       expect(result).toEqual({
         rust: { status: 'healthy', healthy: true },
-        python: { status: 'healthy', healthy: true, model_loaded: true },
         overall: true,
       })
     })
 
     it('should handle rust service failure', async () => {
-      mockAxiosInstance.get
-        .mockRejectedValueOnce(new Error('Rust service down'))
-        .mockResolvedValueOnce({
-          data: {
-            status: 'healthy',
-            timestamp: '2024-01-01T00:00:00Z',
-            model_loaded: true,
-            version: '1.0.0',
-          },
-        })
+      mockAxiosInstance.get.mockRejectedValueOnce(new Error('Rust service down'))
 
       const client = new BotCoreApiClient()
       const result = await client.healthCheck()
 
       expect(result).toEqual({
         rust: { status: 'error', healthy: false },
-        python: { status: 'healthy', healthy: true, model_loaded: true },
-        overall: false,
-      })
-    })
-
-    it('should handle python service failure', async () => {
-      mockAxiosInstance.get
-        .mockResolvedValueOnce({ data: { status: 'healthy' } })
-        .mockRejectedValueOnce(new Error('Python service down'))
-
-      const client = new BotCoreApiClient()
-      const result = await client.healthCheck()
-
-      expect(result).toEqual({
-        rust: { status: 'healthy', healthy: true },
-        python: { status: 'error', healthy: false, model_loaded: false },
-        overall: false,
-      })
-    })
-
-    it('should handle both services failure', async () => {
-      mockAxiosInstance.get
-        .mockRejectedValueOnce(new Error('Rust service down'))
-        .mockRejectedValueOnce(new Error('Python service down'))
-
-      const client = new BotCoreApiClient()
-      const result = await client.healthCheck()
-
-      expect(result).toEqual({
-        rust: { status: 'error', healthy: false },
-        python: { status: 'error', healthy: false, model_loaded: false },
         overall: false,
       })
     })
@@ -1228,11 +979,6 @@ describe('API Service Tests', () => {
 
       const mockPositions: Position[] = []
 
-      const mockModelInfo: AIModelInfo = {
-        model_type: 'LSTM',
-        model_loaded: true,
-      }
-
       const mockPerformanceStats: PerformanceStats = {
         total_pnl: 5000,
         win_rate: 0.75,
@@ -1249,7 +995,6 @@ describe('API Service Tests', () => {
       mockAxiosInstance.get
         .mockResolvedValueOnce({ data: mockBotStatus })
         .mockResolvedValueOnce({ data: mockPositions })
-        .mockResolvedValueOnce({ data: mockModelInfo })
         .mockResolvedValueOnce({ data: mockPerformanceStats })
         .mockResolvedValueOnce({ data: mockRecentTrades })
 
@@ -1259,7 +1004,6 @@ describe('API Service Tests', () => {
       expect(result).toEqual({
         botStatus: mockBotStatus,
         positions: mockPositions,
-        aiModelInfo: mockModelInfo,
         performanceStats: mockPerformanceStats,
         recentTrades: mockRecentTrades,
       })
@@ -1283,9 +1027,6 @@ describe('API Service Tests', () => {
       expect(rustApi).toBeDefined()
     })
 
-    it('should export pythonAI singleton', () => {
-      expect(pythonAI).toBeDefined()
-    })
   })
 
   describe('Error Handling', () => {
@@ -1596,83 +1337,25 @@ describe('API Service Tests', () => {
     })
   })
 
-  describe('PythonAIApiClient - Model Training', () => {
-    it('should train model with no retry (long operation)', async () => {
-      const mockResponse = {
-        message: 'Training complete',
-        model_type: 'LSTM',
-        training_samples: 10000,
-        status: 'success'
-      }
-
-      mockAxiosInstance.post.mockResolvedValue({
-        data: mockResponse
-      })
-
-      const client = new BotCoreApiClient()
-      const result = await client.python.trainModel({
-        symbol: 'BTCUSDT',
-        candles: []
-      })
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1)
-      expect(result).toEqual(mockResponse)
-    })
-
-    it('should handle training failure without retry', async () => {
-      mockAxiosInstance.post.mockRejectedValue(new Error('Training failed'))
-
-      const client = new BotCoreApiClient()
-
-      await expect(client.python.trainModel({
-        symbol: 'BTCUSDT',
-        candles: []
-      })).rejects.toThrow('Training failed')
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1)
-    })
-  })
-
   describe('Combined API Health Check', () => {
-    it('should return overall healthy status when both services are up', async () => {
-      mockAxiosInstance.get
-        .mockResolvedValueOnce({ data: { status: 'ok' } })
-        .mockResolvedValueOnce({ data: { status: 'ok', model_loaded: true } })
+    it('should return overall healthy status when rust service is up', async () => {
+      mockAxiosInstance.get.mockResolvedValueOnce({ data: { status: 'ok' } })
 
       const client = new BotCoreApiClient()
       const health = await client.healthCheck()
 
       expect(health.overall).toBe(true)
       expect(health.rust.healthy).toBe(true)
-      expect(health.python.healthy).toBe(true)
-      expect(health.python.model_loaded).toBe(true)
     })
 
     it('should return overall unhealthy when rust service is down', async () => {
-      mockAxiosInstance.get
-        .mockRejectedValueOnce(new Error('Service unavailable'))
-        .mockResolvedValueOnce({ data: { status: 'ok', model_loaded: true } })
+      mockAxiosInstance.get.mockRejectedValueOnce(new Error('Service unavailable'))
 
       const client = new BotCoreApiClient()
       const health = await client.healthCheck()
 
       expect(health.overall).toBe(false)
       expect(health.rust.healthy).toBe(false)
-      expect(health.python.healthy).toBe(true)
-    })
-
-    it('should return overall unhealthy when python service is down', async () => {
-      mockAxiosInstance.get
-        .mockResolvedValueOnce({ data: { status: 'ok' } })
-        .mockRejectedValueOnce(new Error('Service unavailable'))
-
-      const client = new BotCoreApiClient()
-      const health = await client.healthCheck()
-
-      expect(health.overall).toBe(false)
-      expect(health.rust.healthy).toBe(true)
-      expect(health.python.healthy).toBe(false)
-      expect(health.python.model_loaded).toBe(false)
     })
 
     it('should handle complete failure gracefully', async () => {
@@ -1683,7 +1366,6 @@ describe('API Service Tests', () => {
 
       expect(health.overall).toBe(false)
       expect(health.rust.healthy).toBe(false)
-      expect(health.python.healthy).toBe(false)
     })
   })
 

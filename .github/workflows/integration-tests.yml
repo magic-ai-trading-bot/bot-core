@@ -5,14 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
-  # Run integration tests when any service workflow completes
-  workflow_run:
-    workflows: ["Python AI Service Tests", "Rust Core Engine Tests", "Next.js Dashboard Tests"]
-    branches: [ main, develop ]
-    types: [ completed ]
-
 env:
-  PYTHON_VERSION: '3.11'
   NODE_VERSION: '22'
   RUST_VERSION: 'stable'
 
@@ -51,11 +44,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
     - name: Set up Node.js
       uses: actions/setup-node@v6
       with:
@@ -75,16 +63,9 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           nextjs-ui-dashboard/node_modules
-          python-ai-service/.venv
-        key: ${{ runner.os }}-integration-v3-${{ hashFiles('**/Cargo.lock', '**/package-lock.json', '**/requirements.txt') }}
+        key: ${{ runner.os }}-integration-v3-${{ hashFiles('**/Cargo.lock', '**/package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-integration-v3-
-
-    - name: Install Python dependencies
-      run: |
-        cd python-ai-service
-        # Use lightweight CI requirements (no TensorFlow/PyTorch)
-        pip install -r requirements-ci.txt
 
     - name: Install Node.js dependencies
       run: |
@@ -109,19 +90,7 @@ jobs:
         max_attempts=10
         attempt=1
         while [ $attempt -le $max_attempts ]; do
-          if python3 << 'PYTHON_SCRIPT'
-        import pymongo
-        import sys
-        try:
-            client = pymongo.MongoClient('mongodb://root:password@localhost:27017/?authSource=admin', serverSelectionTimeoutMS=5000)
-            client.admin.command('ping')
-            print('MongoDB is accessible')
-            sys.exit(0)
-        except Exception as e:
-            print(f'MongoDB not ready: {e}')
-            sys.exit(1)
-        PYTHON_SCRIPT
-          then
+          if mongosh 'mongodb://root:password@localhost:27017/?authSource=admin' --eval "db.adminCommand('ping')" --quiet > /dev/null 2>&1; then
             echo "MongoDB is ready!"
             break
           else
@@ -170,31 +139,12 @@ jobs:
         BINANCE_TESTNET: true
         TRADING_ENABLED: false
         REDIS_URL: redis://localhost:6379
-        PYTHON_AI_SERVICE_URL: http://localhost:8000
         RUST_LOG: info
       run: |
-        # Start Python AI service
-        echo "Starting Python AI service..."
-        cd python-ai-service
-        python main.py > /tmp/python.log 2>&1 &
-        PYTHON_PID=$!
-        echo "Python service PID: $PYTHON_PID"
-
-        # Wait for Python service to be ready
-        echo "Waiting for Python AI service to start..."
-        for i in {1..30}; do
-          if curl -s http://localhost:8000/health > /dev/null; then
-            echo "Python AI service is ready"
-            break
-          fi
-          sleep 2
-        done
-
         # Start Rust core engine with environment variables
         echo "Starting Rust core engine..."
-        cd ../rust-core-engine
+        cd rust-core-engine
         DATABASE_URL="${DATABASE_URL}" \
-        PYTHON_AI_SERVICE_URL="${PYTHON_AI_SERVICE_URL}" \
         JWT_SECRET="${JWT_SECRET}" \
         BINANCE_TESTNET="${BINANCE_TESTNET}" \
         RUST_LOG="${RUST_LOG}" \
@@ -224,31 +174,18 @@ jobs:
         echo "Next.js service PID: $NEXTJS_PID"
 
         # Store PIDs for cleanup
-        echo $PYTHON_PID > /tmp/python.pid
         echo $RUST_PID > /tmp/rust.pid
         echo $NEXTJS_PID > /tmp/nextjs.pid
 
         # Show service status
         echo ""
         echo "All services started. PIDs:"
-        echo "Python: $PYTHON_PID"
         echo "Rust: $RUST_PID"
         echo "Next.js: $NEXTJS_PID"
 
     - name: Health checks
       run: |
         echo "🔍 Running health checks..."
-
-        # Check Python AI service
-        echo "Checking Python AI service..."
-        if curl -f http://localhost:8000/health; then
-          echo "✅ Python AI service is healthy"
-        else
-          echo "❌ Python AI service failed health check"
-          echo "Last 50 lines of Python service log:"
-          tail -50 /tmp/python.log || true
-          exit 1
-        fi
 
         # Check Rust core engine (with retry logic)
         echo "Checking Rust core engine..."
@@ -294,20 +231,9 @@ jobs:
       run: |
         echo "🔗 Testing service communications..."
         
-        # Test Rust → Python AI communication
-        echo "Testing Rust → Python AI..."
-        curl -X POST http://localhost:8080/api/ai/analyze \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer test-token" \
-          -d '{"symbol": "BTCUSDT", "timeframe": "1h"}' || echo "Expected - no auth setup"
-        
         # Test Dashboard → Rust API communication
         echo "Testing Dashboard → Rust API..."
         curl -X GET http://localhost:8080/api/health || echo "Expected - no auth setup"
-        
-        # Test Dashboard → Python AI communication (through Rust proxy)
-        echo "Testing Dashboard → Python AI (via Rust)..."
-        curl -X GET http://localhost:8080/api/ai/status || echo "Expected - no auth setup"
 
     - name: Test WebSocket connections
       run: |
@@ -326,23 +252,13 @@ jobs:
         echo "🗄️ Testing database operations..."
         
         # Test MongoDB connection
-        python3 -c "
-        import pymongo
-        client = pymongo.MongoClient('$DATABASE_URL')
-        db = client.integration_test
-        
-        # Test write
-        result = db.test_collection.insert_one({'test': 'integration'})
-        print(f'Inserted document with ID: {result.inserted_id}')
-        
-        # Test read
-        doc = db.test_collection.find_one({'test': 'integration'})
-        print(f'Found document: {doc}')
-        
-        # Cleanup
-        db.test_collection.delete_one({'test': 'integration'})
-        print('✅ Database operations successful')
-        "
+        mongosh "mongodb://root:password@localhost:27017/integration_test?authSource=admin" --eval "
+          db.test_collection.insertOne({test: 'integration'});
+          var doc = db.test_collection.findOne({test: 'integration'});
+          print('Found document: ' + JSON.stringify(doc));
+          db.test_collection.deleteOne({test: 'integration'});
+          print('Database operations successful');
+        " --quiet
 
     - name: Load testing
       run: |
@@ -379,7 +295,7 @@ jobs:
         df -h
         
         # Check network connections
-        ss -tuln | grep -E ":(3000|8000|8080)"
+        ss -tuln | grep -E ":(3000|8080)"
 
     # Temporarily disabled due to artifact storage quota
     # - name: Archive integration test results
@@ -397,9 +313,6 @@ jobs:
         echo "🧹 Cleaning up services..."
         
         # Kill services if PIDs exist
-        if [ -f /tmp/python.pid ]; then
-          kill $(cat /tmp/python.pid) || true
-        fi
         if [ -f /tmp/rust.pid ]; then
           kill $(cat /tmp/rust.pid) || true
         fi
@@ -408,7 +321,6 @@ jobs:
         fi
         
         # Kill any remaining processes
-        pkill -f "python main.py" || true
         pkill -f "binance-trading-bot" || true
         pkill -f "vite preview" || true
 
@@ -430,7 +342,6 @@ jobs:
         required_files=(
           "docker-compose.yml"
           "rust-core-engine/Dockerfile"
-          "python-ai-service/Dockerfile"
           "nextjs-ui-dashboard/Dockerfile"
         )
         

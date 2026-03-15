@@ -1,5 +1,6 @@
 // @spec:FR-MCP-004 - AI Analysis Tools
 // @ref:plans/20260215-1900-openclaw-mcp-integration/phases/phase-02-tool-implementation.md
+// Note: Python AI service removed. All tools now proxy exclusively to Rust API.
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -12,8 +13,8 @@ export function registerAiTools(server: McpServer): void {
   server.registerTool(
     "analyze_market",
     {
-      title: "Analyze Market with GPT-4",
-      description: "Use GPT-4 to analyze market conditions for a symbol. Returns comprehensive AI-powered market analysis including sentiment, trend, and recommendations.",
+      title: "Analyze Market",
+      description: "Analyze market conditions for a symbol using the Rust strategy engine. Returns market analysis including trend, indicators, and strategy-based recommendations.",
       inputSchema: {
         symbol: z.string().describe("Trading pair symbol (e.g., BTCUSDT)"),
         timeframe: z.string().optional().describe("Timeframe for analysis (e.g., 1h, 4h, 1d)"),
@@ -33,8 +34,8 @@ export function registerAiTools(server: McpServer): void {
   server.registerTool(
     "get_strategy_recommendations",
     {
-      title: "Get AI Strategy Recommendations",
-      description: "Get AI-powered trading strategy recommendations for a specific symbol based on current market conditions.",
+      title: "Get Strategy Recommendations",
+      description: "Get trading strategy recommendations for a specific symbol based on current market conditions from the Rust strategy engine.",
       inputSchema: {
         symbol: z.string().describe("Trading pair symbol (e.g., BTCUSDT)"),
       },
@@ -54,7 +55,7 @@ export function registerAiTools(server: McpServer): void {
     "get_market_condition",
     {
       title: "Get Market Condition Analysis",
-      description: "Get AI assessment of current market condition (bullish/bearish/neutral) with confidence score.",
+      description: "Get strategy engine assessment of current market condition (bullish/bearish/neutral) with confidence score.",
       inputSchema: {
         symbol: z.string().describe("Trading pair symbol (e.g., BTCUSDT)"),
       },
@@ -73,8 +74,8 @@ export function registerAiTools(server: McpServer): void {
   server.registerTool(
     "send_ai_feedback",
     {
-      title: "Send AI Signal Feedback",
-      description: "Provide feedback on AI-generated signals to improve model performance.",
+      title: "Send Signal Feedback",
+      description: "Provide feedback on strategy-generated signals to improve configuration performance.",
       inputSchema: {
         signal_id: z.string().describe("Signal ID to provide feedback for"),
         feedback: z.enum(["positive", "negative"]).describe("Feedback type"),
@@ -94,8 +95,8 @@ export function registerAiTools(server: McpServer): void {
   server.registerTool(
     "get_ai_info",
     {
-      title: "Get AI Service Information",
-      description: "Get information about available AI models and capabilities. No authentication required.",
+      title: "Get Strategy Service Information",
+      description: "Get information about available trading strategies and capabilities. No authentication required.",
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -108,8 +109,8 @@ export function registerAiTools(server: McpServer): void {
   server.registerTool(
     "get_ai_strategies",
     {
-      title: "Get Available AI Strategies",
-      description: "List all available AI-powered trading strategies and their configurations.",
+      title: "Get Available Strategies",
+      description: "List all available trading strategies and their configurations (RSI, MACD, Bollinger, Volume, etc.).",
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -119,94 +120,5 @@ export function registerAiTools(server: McpServer): void {
     }
   );
 
-  // ====== Python API Tools (port 8000) ======
-
-  server.registerTool(
-    "get_ai_performance",
-    {
-      title: "Get AI Model Performance Metrics",
-      description: "Get performance metrics for all AI/ML models including accuracy, precision, recall, and recent predictions.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true, openWorldHint: false },
-    },
-    async () => {
-      const res = await apiRequest("python", "/ai/performance");
-      return res.success ? toolSuccess(res.data) : toolError(res.error || "Failed to fetch AI performance");
-    }
-  );
-
-  server.registerTool(
-    "get_ai_storage_stats",
-    {
-      title: "Get AI Storage Statistics",
-      description: "Get statistics about AI model storage usage, cache size, and stored predictions.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true, openWorldHint: false },
-    },
-    async () => {
-      const res = await apiRequest("python", "/ai/storage/stats");
-      return res.success ? toolSuccess(res.data) : toolError(res.error || "Failed to fetch AI storage stats");
-    }
-  );
-
-  server.registerTool(
-    "clear_ai_storage",
-    {
-      title: "Clear AI Storage Cache",
-      description: "Clear AI model cache and stored predictions. Use with caution as this may impact performance temporarily.",
-      inputSchema: {},
-      annotations: { readOnlyHint: false, openWorldHint: false },
-    },
-    async () => {
-      const res = await apiRequest("python", "/ai/storage/clear", {
-        method: "POST",
-        body: {},
-      });
-      return res.success ? toolSuccess(res.data) : toolError(res.error || "Failed to clear AI storage");
-    }
-  );
-
-  server.registerTool(
-    "get_ai_cost_statistics",
-    {
-      title: "Get AI API Cost Statistics",
-      description: "Get cost statistics for AI API usage (OpenAI, other providers) including total costs and breakdown by model.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true, openWorldHint: false },
-    },
-    async () => {
-      const res = await apiRequest("python", "/ai/cost/statistics");
-      return res.success ? toolSuccess(res.data) : toolError(res.error || "Failed to fetch AI cost statistics");
-    }
-  );
-
-  server.registerTool(
-    "get_ai_config_suggestions",
-    {
-      title: "Get AI Configuration Suggestions",
-      description: "Get AI-powered suggestions for optimal trading configuration based on historical performance.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true, openWorldHint: false },
-    },
-    async () => {
-      const res = await apiRequest("python", "/ai/config-suggestions");
-      return res.success ? toolSuccess(res.data) : toolError(res.error || "Failed to fetch config suggestions");
-    }
-  );
-
-  server.registerTool(
-    "get_ai_analysis_history",
-    {
-      title: "Get GPT-4 Analysis History",
-      description: "Get history of all GPT-4 market analyses with timestamps and recommendations.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true, openWorldHint: false },
-    },
-    async () => {
-      const res = await apiRequest("python", "/ai/gpt4-analysis-history");
-      return res.success ? toolSuccess(res.data) : toolError(res.error || "Failed to fetch analysis history");
-    }
-  );
-
-  log("info", "Registered 12 AI tools (6 Rust + 6 Python)");
+  log("info", "Registered 6 strategy analysis tools (Rust API — Python AI service removed)");
 }

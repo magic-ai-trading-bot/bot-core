@@ -17,7 +17,8 @@ pub struct PaperTradingSettings {
     /// Symbol-specific settings
     pub symbols: HashMap<String, SymbolSettings>,
 
-    /// AI integration settings
+    /// AI integration settings (optional — Python AI service removed)
+    #[serde(default)]
     pub ai: AISettings,
 
     /// Execution settings

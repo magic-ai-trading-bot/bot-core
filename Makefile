@@ -8,7 +8,7 @@
 
 # Variables
 COMPOSE_FILE := infrastructure/docker/docker-compose.yml
-SERVICES := rust-core-engine python-ai-service nextjs-ui-dashboard
+SERVICES := rust-core-engine nextjs-ui-dashboard
 DOCKER_REGISTRY := your-registry.com
 DOCKER_TAG := latest
 
@@ -23,7 +23,6 @@ help: ## Display this help message
 setup: ## Initial setup - create directories and copy config files
 	@echo "Setting up monorepo..."
 	@mkdir -p rust-core-engine/data rust-core-engine/logs
-	@mkdir -p python-ai-service/models python-ai-service/logs python-ai-service/data
 	@mkdir -p nextjs-ui-dashboard/logs
 	@if [ ! -f .env ]; then \
 		echo "Creating .env file from example..."; \
@@ -59,10 +58,6 @@ build-rust: ## Build only Rust service
 	@echo "Building Rust service..."
 	@docker-compose build rust-core-engine
 
-build-python: ## Build only Python service
-	@echo "Building Python service..."
-	@docker-compose build python-ai-service
-
 build-frontend: ## Build only Frontend service
 	@echo "Building Frontend service..."
 	@docker-compose build nextjs-ui-dashboard
@@ -78,7 +73,7 @@ start-memory: ## Start all services with memory optimization
 
 start-core: ## Start core services only
 	@echo "Starting core services..."
-	@docker-compose up -d rust-core-engine python-ai-service nextjs-ui-dashboard
+	@docker-compose up -d rust-core-engine nextjs-ui-dashboard
 
 # PostgreSQL removed - MongoDB only
 
@@ -105,9 +100,6 @@ logs: ## Show logs for all services
 logs-rust: ## Show logs for Rust service
 	@docker-compose logs -f rust-core-engine
 
-logs-python: ## Show logs for Python service
-	@docker-compose logs -f python-ai-service
-
 logs-frontend: ## Show logs for Frontend service
 	@docker-compose logs -f nextjs-ui-dashboard
 
@@ -124,10 +116,6 @@ dev-rust: ## Start Rust service in development mode with hot reload
 	@echo "Starting Rust service in development mode with hot reload..."
 	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up rust-core-engine --build
 
-dev-python: ## Start Python service in development mode with hot reload
-	@echo "Starting Python service in development mode with hot reload..."
-	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up python-ai-service --build
-
 dev-frontend: ## Start Frontend service in development mode with hot reload
 	@echo "Starting Frontend service in development mode with hot reload..."
 	@docker-compose -f infrastructure/docker/docker-compose.yml -f docker-compose.dev.yml up nextjs-ui-dashboard --build
@@ -135,10 +123,6 @@ dev-frontend: ## Start Frontend service in development mode with hot reload
 dev-local-rust: ## Start Rust service locally (without Docker)
 	@echo "Starting Rust service locally..."
 	@cd rust-core-engine && cargo run -- --config config.toml
-
-dev-local-python: ## Start Python service locally (without Docker)
-	@echo "Starting Python service locally..."
-	@cd python-ai-service && python main.py
 
 dev-local-frontend: ## Start Frontend service locally (without Docker)
 	@echo "Starting Frontend service locally..."
@@ -168,20 +152,11 @@ test-integration: ## Run integration tests for all services
 	@cd rust-core-engine && cargo test integration -- --test-threads=1
 	@echo "⚠️  Frontend integration tests not yet implemented, skipping..."
 	# @$(MAKE) test-dashboard-rust
-	# @$(MAKE) test-dashboard-python
 	# @$(MAKE) test-websocket
-
-test-rust-python: ## Test Rust → Python AI communication
-	@echo "Testing Rust → Python AI integration..."
-	@cd rust-core-engine && cargo test integration -- --test-threads=1
 
 test-dashboard-rust: ## Test Dashboard → Rust API communication
 	@echo "Testing Dashboard → Rust API integration..."
 	@cd nextjs-ui-dashboard && npm run test:integration:rust
-
-test-dashboard-python: ## Test Dashboard → Python AI communication
-	@echo "Testing Dashboard → Python AI integration..."
-	@cd nextjs-ui-dashboard && npm run test:integration:python
 
 test-websocket: ## Test WebSocket communication
 	@echo "Testing WebSocket integration..."
@@ -191,10 +166,6 @@ test-rust: ## Run Rust tests with coverage
 	@echo "🦀 Running Rust tests..."
 	@cd rust-core-engine && chmod +x run_tests.sh && ./run_tests.sh
 
-test-python: ## Run Python tests with coverage
-	@echo "🐍 Running Python tests..."
-	@cd python-ai-service && chmod +x run_tests.sh && ./run_tests.sh
-
 test-frontend: ## Run Frontend tests with coverage
 	@echo "⚛️  Running Next.js tests..."
 	@cd nextjs-ui-dashboard && chmod +x run_tests.sh && ./run_tests.sh
@@ -203,16 +174,11 @@ test-frontend: ## Run Frontend tests with coverage
 lint: ## Run linting for all services
 	@echo "Running linting for all services..."
 	@$(MAKE) lint-rust
-	@$(MAKE) lint-python
 	@$(MAKE) lint-frontend
 
 lint-rust: ## Run Rust linting
 	@echo "Running Rust linting..."
 	@cd rust-core-engine && cargo clippy -- -D warnings
-
-lint-python: ## Run Python linting
-	@echo "Running Python linting..."
-	@cd python-ai-service && python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
 lint-frontend: ## Run Frontend linting
 	@echo "Running Frontend linting..."
@@ -241,7 +207,6 @@ clean-all: ## Clean up everything
 health: ## Check health of all services
 	@echo "Checking service health..."
 	@echo "Frontend: $$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/health || echo 'DOWN')"
-	@echo "Python AI: $$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health || echo 'DOWN')"
 	@echo "Rust Core: $$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health || echo 'DOWN')"
 
 # MongoDB Operations
@@ -257,13 +222,11 @@ db-restore: ## Restore MongoDB from backup (specify BACKUP_DIR)
 docker-build: ## Build Docker images for production
 	@echo "Building production Docker images..."
 	@docker build -t $(DOCKER_REGISTRY)/rust-core-engine:$(DOCKER_TAG) ./rust-core-engine
-	@docker build -t $(DOCKER_REGISTRY)/python-ai-service:$(DOCKER_TAG) ./python-ai-service
 	@docker build -t $(DOCKER_REGISTRY)/nextjs-ui-dashboard:$(DOCKER_TAG) ./nextjs-ui-dashboard
 
 docker-push: ## Push Docker images to registry
 	@echo "Pushing Docker images to registry..."
 	@docker push $(DOCKER_REGISTRY)/rust-core-engine:$(DOCKER_TAG)
-	@docker push $(DOCKER_REGISTRY)/python-ai-service:$(DOCKER_TAG)
 	@docker push $(DOCKER_REGISTRY)/nextjs-ui-dashboard:$(DOCKER_TAG)
 
 deploy: ## Deploy to production
@@ -278,9 +241,6 @@ ps: ## Show running containers
 
 exec-rust: ## Execute shell in Rust container
 	@docker-compose exec rust-core-engine sh
-
-exec-python: ## Execute shell in Python container
-	@docker-compose exec python-ai-service bash
 
 exec-frontend: ## Execute shell in Frontend container
 	@docker-compose exec nextjs-ui-dashboard sh
@@ -345,7 +305,6 @@ generate-secrets: ## Generate secure random secrets for all required variables
 	@echo "# Inter-service Authentication"
 	@echo "INTER_SERVICE_TOKEN=$$(openssl rand -hex 32)"
 	@echo "RUST_API_KEY=$$(openssl rand -hex 32)"
-	@echo "PYTHON_API_KEY=$$(openssl rand -hex 32)"
 	@echo ""
 	@echo "# Dashboard"
 	@echo "DASHBOARD_SESSION_SECRET=$$(openssl rand -hex 32)"
@@ -365,7 +324,6 @@ urls: ## Show service URLs
 	@echo "Service URLs:"
 	@echo "  Frontend Dashboard: http://localhost:3000"
 	@echo "  Rust Trading API:   http://localhost:8080"
-	@echo "  Python AI API:      http://localhost:8000"
 	@echo "  Grafana (optional): http://localhost:3001"
 	@echo "  Prometheus (opt.):  http://localhost:9090"
 
@@ -403,7 +361,6 @@ dev-help: ## Show development commands
 	@echo "  make dev          - Start all services with hot reload"
 	@echo "  make dev-detach   - Start all services in background"
 	@echo "  make dev-rust     - Start only Rust service with hot reload"
-	@echo "  make dev-python   - Start only Python service with hot reload"
 	@echo "  make dev-frontend - Start only Frontend service with hot reload"
 	@echo ""
 	@echo "Development Utilities:"
@@ -413,5 +370,4 @@ dev-help: ## Show development commands
 	@echo ""
 	@echo "Local Development (without Docker):"
 	@echo "  make dev-local-rust     - Start Rust locally"
-	@echo "  make dev-local-python   - Start Python locally"
-	@echo "  make dev-local-frontend - Start Frontend locally" 
+	@echo "  make dev-local-frontend - Start Frontend locally"

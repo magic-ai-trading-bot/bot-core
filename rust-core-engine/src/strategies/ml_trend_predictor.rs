@@ -1,7 +1,5 @@
 use crate::strategies::trend_filter::TrendDirection;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
 /// ML-based trend prediction result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,7 +10,7 @@ pub struct MLTrendPrediction {
     pub timestamp: i64,
 }
 
-/// Configuration for ML trend predictor
+/// Configuration for ML trend predictor (retained for interface compatibility)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MLPredictorConfig {
     pub service_url: String,
@@ -32,99 +30,43 @@ impl Default for MLPredictorConfig {
     }
 }
 
-/// ML trend predictor using Python AI service
+/// No-op stub — Python ML service removed.
+/// Trend prediction is now handled by the Rust strategy engine (RSI/MACD/Bollinger).
 pub struct MLTrendPredictor {
     config: MLPredictorConfig,
-    client: Client,
 }
 
 impl MLTrendPredictor {
     pub fn new(config: MLPredictorConfig) -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_millis(config.timeout_ms))
-            .build()
-            .expect("Failed to create HTTP client");
-
-        Self { config, client }
+        Self { config }
     }
 
-    /// Predict trend direction using ML model
+    /// Disabled — Python ML service removed. Always returns an error.
     pub async fn predict_trend(
         &self,
-        symbol: &str,
-        timeframe: &str,
+        _symbol: &str,
+        _timeframe: &str,
     ) -> Result<MLTrendPrediction, String> {
-        let url = format!("{}/predict-trend", self.config.service_url);
-
-        let request_body = serde_json::json!({
-            "symbol": symbol,
-            "timeframe": timeframe,
-        });
-
-        let response = self
-            .client
-            .post(&url)
-            .json(&request_body)
-            .send()
-            .await
-            .map_err(|e| format!("HTTP request failed: {}", e))?;
-
-        if !response.status().is_success() {
-            return Err(format!("ML service returned error: {}", response.status()));
-        }
-
-        let prediction: MLTrendPrediction = response
-            .json()
-            .await
-            .map_err(|e| format!("Failed to parse response: {}", e))?;
-
-        // Validate confidence
-        if prediction.confidence < self.config.min_confidence {
-            return Err(format!(
-                "Confidence {} below threshold {}",
-                prediction.confidence, self.config.min_confidence
-            ));
-        }
-
-        Ok(prediction)
+        Err("HTTP request failed: Python ML service disabled".to_string())
     }
 
-    /// Predict trend with fallback to None on error
+    /// Disabled — always returns None (fallback path).
     pub async fn predict_trend_with_fallback(
         &self,
-        symbol: &str,
-        timeframe: &str,
+        _symbol: &str,
+        _timeframe: &str,
     ) -> Option<MLTrendPrediction> {
-        match self.predict_trend(symbol, timeframe).await {
-            Ok(prediction) => Some(prediction),
-            Err(e) => {
-                if self.config.fallback_on_error {
-                    log::warn!("ML prediction failed (fallback enabled): {}", e);
-                    None
-                } else {
-                    log::error!("ML prediction failed (no fallback): {}", e);
-                    None
-                }
-            },
+        if self.config.fallback_on_error {
+            log::warn!("ML prediction failed (fallback enabled): Python ML service disabled");
+        } else {
+            log::error!("ML prediction failed (no fallback): Python ML service disabled");
         }
+        None
     }
 
-    /// Check if ML service is available
+    /// Disabled — always returns an error.
     pub async fn health_check(&self) -> Result<(), String> {
-        let url = format!("{}/health", self.config.service_url);
-
-        let response = self
-            .client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| format!("Health check failed: {}", e))?;
-
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            Err(format!("ML service unhealthy: {}", response.status()))
-        }
+        Err("Health check failed: Python ML service disabled".to_string())
     }
 
     /// Get configuration
@@ -872,276 +814,45 @@ mod tests {
         }
     }
 
-    // ========== COV22 TESTS - Cover fallback_on_error=true path and health_check ==========
+    // ========== Stub behavior tests — no HTTP calls made ==========
 
     #[tokio::test]
-    async fn test_cov22_predict_trend_with_fallback_enabled() {
-        // fallback_on_error = true → covers line 102 (warn log + None)
-        let config = MLPredictorConfig {
-            service_url: "http://127.0.0.1:19999".to_string(),
-            timeout_ms: 100,
-            min_confidence: 0.65,
-            fallback_on_error: true,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.predict_trend_with_fallback("BTCUSDT", "1h").await;
-        // With unreachable service and fallback enabled, should return None
-        assert!(result.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_cov22_health_check_unreachable() {
-        // Covers lines 113-128 in health_check()
-        let config = MLPredictorConfig {
-            service_url: "http://127.0.0.1:19999".to_string(),
-            timeout_ms: 100,
-            min_confidence: 0.65,
-            fallback_on_error: true,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.health_check().await;
-        // Should fail with connection error
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.contains("Health check failed"));
-    }
-
-    #[tokio::test]
-    async fn test_cov22_predict_trend_fails_with_connection_error() {
-        // Covers lines 72-89 in predict_trend() - the error path after send()
-        let config = MLPredictorConfig {
-            service_url: "http://127.0.0.1:19999".to_string(),
-            timeout_ms: 100,
-            min_confidence: 0.65,
-            fallback_on_error: false,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.predict_trend("BTCUSDT", "4h").await;
+    async fn test_predict_trend_returns_err() {
+        let predictor = MLTrendPredictor::new(MLPredictorConfig::default());
+        let result = predictor.predict_trend("BTCUSDT", "1h").await;
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.contains("HTTP request failed"));
     }
 
-    // ========== COV36 TESTS - Cover lines 72-89, 99, 123-126 with mock HTTP server ==========
-
-    async fn find_free_port() -> u16 {
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        listener.local_addr().unwrap().port()
-    }
-
     #[tokio::test]
-    async fn test_cov36_predict_trend_error_status_response() {
-        // Covers lines 72-74: server returns non-success status (e.g., 500)
-        use tokio::io::AsyncWriteExt;
-        let port = find_free_port().await;
-        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
-            .await
-            .unwrap();
-
-        // Spawn a mock server that returns 500
-        tokio::spawn(async move {
-            if let Ok((mut socket, _)) = listener.accept().await {
-                let response = b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
-                let _ = socket.write_all(response).await;
-            }
-        });
-
-        // Give server time to start
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
+    async fn test_predict_trend_with_fallback_enabled_returns_none() {
         let config = MLPredictorConfig {
-            service_url: format!("http://127.0.0.1:{}", port),
-            timeout_ms: 1000,
-            min_confidence: 0.65,
-            fallback_on_error: false,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.predict_trend("BTCUSDT", "1h").await;
-        // Should fail because server returned 500 (lines 72-74)
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_cov36_health_check_error_status() {
-        // Covers lines 123-126: health_check with non-success status
-        use tokio::io::AsyncWriteExt;
-        let port = find_free_port().await;
-        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
-            .await
-            .unwrap();
-
-        // Spawn a mock server that returns 503
-        tokio::spawn(async move {
-            if let Ok((mut socket, _)) = listener.accept().await {
-                let response = b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n";
-                let _ = socket.write_all(response).await;
-            }
-        });
-
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        let config = MLPredictorConfig {
-            service_url: format!("http://127.0.0.1:{}", port),
-            timeout_ms: 1000,
-            min_confidence: 0.65,
-            fallback_on_error: false,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.health_check().await;
-        // Should fail with unhealthy status (lines 125-126)
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.contains("ML service unhealthy") || err.contains("503"));
-    }
-
-    #[tokio::test]
-    async fn test_cov36_predict_trend_success_response() {
-        // Covers lines 76-89, 99: server returns 200 with valid JSON
-        use tokio::io::AsyncWriteExt;
-        let port = find_free_port().await;
-        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
-            .await
-            .unwrap();
-
-        // Spawn a mock server that returns valid prediction JSON
-        tokio::spawn(async move {
-            if let Ok((mut socket, _)) = listener.accept().await {
-                let body = r#"{"trend":"Uptrend","confidence":0.85,"model":"LSTM","timestamp":1234567890}"#;
-                let response = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
-                    body.len(),
-                    body
-                );
-                let _ = socket.write_all(response.as_bytes()).await;
-            }
-        });
-
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        let config = MLPredictorConfig {
-            service_url: format!("http://127.0.0.1:{}", port),
-            timeout_ms: 1000,
-            min_confidence: 0.65,
-            fallback_on_error: false,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.predict_trend("BTCUSDT", "1h").await;
-        // Should succeed with valid response (lines 76-89, 99)
-        assert!(result.is_ok());
-        let prediction = result.unwrap();
-        assert_eq!(prediction.confidence, 0.85);
-    }
-
-    #[tokio::test]
-    async fn test_cov36_predict_trend_low_confidence() {
-        // Covers lines 82-87: confidence below threshold
-        use tokio::io::AsyncWriteExt;
-        let port = find_free_port().await;
-        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
-            .await
-            .unwrap();
-
-        // Return low confidence prediction
-        tokio::spawn(async move {
-            if let Ok((mut socket, _)) = listener.accept().await {
-                let body =
-                    r#"{"trend":"Uptrend","confidence":0.3,"model":"LSTM","timestamp":1234567890}"#;
-                let response = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
-                    body.len(),
-                    body
-                );
-                let _ = socket.write_all(response.as_bytes()).await;
-            }
-        });
-
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        let config = MLPredictorConfig {
-            service_url: format!("http://127.0.0.1:{}", port),
-            timeout_ms: 1000,
-            min_confidence: 0.65, // threshold is 0.65, confidence 0.3 is below
-            fallback_on_error: false,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.predict_trend("BTCUSDT", "1h").await;
-        // Should fail because confidence is below threshold (lines 82-87)
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.contains("Confidence") || err.contains("threshold"));
-    }
-
-    #[tokio::test]
-    async fn test_cov36_health_check_success() {
-        // Covers lines 123-124: health_check with success status
-        use tokio::io::AsyncWriteExt;
-        let port = find_free_port().await;
-        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
-            .await
-            .unwrap();
-
-        // Return 200 OK for health check
-        tokio::spawn(async move {
-            if let Ok((mut socket, _)) = listener.accept().await {
-                let response = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
-                let _ = socket.write_all(response).await;
-            }
-        });
-
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        let config = MLPredictorConfig {
-            service_url: format!("http://127.0.0.1:{}", port),
-            timeout_ms: 1000,
-            min_confidence: 0.65,
-            fallback_on_error: false,
-        };
-        let predictor = MLTrendPredictor::new(config);
-        let result = predictor.health_check().await;
-        // Should succeed (lines 123-124)
-        assert!(result.is_ok());
-    }
-
-    /// Test predict_trend_with_fallback line 99: `Ok(prediction) => Some(prediction)` success path
-    /// Requires mock server returning valid MLTrendPrediction JSON with confidence >= threshold
-    #[tokio::test]
-    async fn test_cov45_predict_trend_with_fallback_success() {
-        use tokio::io::AsyncWriteExt;
-        let port = find_free_port().await;
-        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
-            .await
-            .unwrap();
-
-        // Valid MLTrendPrediction JSON with confidence above min_confidence threshold
-        let body = r#"{"trend":"Uptrend","confidence":0.85,"model":"LSTM","timestamp":1234567890}"#;
-        let body_len = body.len();
-        let body_owned = body.to_string();
-        tokio::spawn(async move {
-            if let Ok((mut socket, _)) = listener.accept().await {
-                let response = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
-                    body_len, body_owned
-                );
-                let _ = socket.write_all(response.as_bytes()).await;
-            }
-        });
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        let config = MLPredictorConfig {
-            service_url: format!("http://127.0.0.1:{}", port),
-            timeout_ms: 1000,
-            min_confidence: 0.65,
             fallback_on_error: true,
+            ..Default::default()
         };
         let predictor = MLTrendPredictor::new(config);
-        // predict_trend_with_fallback calls predict_trend internally;
-        // on success → line 99: Ok(prediction) => Some(prediction)
         let result = predictor.predict_trend_with_fallback("BTCUSDT", "1h").await;
-        assert!(
-            result.is_some(),
-            "Should return Some(prediction) on success"
-        );
-        let prediction = result.unwrap();
-        assert_eq!(prediction.confidence, 0.85);
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_predict_trend_with_fallback_disabled_returns_none() {
+        let config = MLPredictorConfig {
+            fallback_on_error: false,
+            ..Default::default()
+        };
+        let predictor = MLTrendPredictor::new(config);
+        let result = predictor.predict_trend_with_fallback("BTCUSDT", "4h").await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_health_check_returns_err() {
+        let predictor = MLTrendPredictor::new(MLPredictorConfig::default());
+        let result = predictor.health_check().await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("Health check failed"));
     }
 }

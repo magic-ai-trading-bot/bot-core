@@ -1,171 +1,92 @@
-# AI & ML Integration
+# AI Signal Generation (Strategy-Based)
 
-## Important: Current Implementation Status
+## Overview
 
-> **WARNING**: This section accurately reflects the ACTUAL implementation status.
-
-### What IS Working (Production Ready)
-
-| Feature | Status | Location |
-|---------|--------|----------|
-| Grok AI Analysis | **WORKING** | `python-ai-service/main.py` |
-| Technical Indicators | **WORKING** | `main.py:TechnicalAnalyzer` |
-| Multi-timeframe Analysis | **WORKING** | 15m, 30m, 1h, 4h supported |
-| Signal Generation | **WORKING** | Long/Short/Neutral with confidence |
-| Rate Limiting | **WORKING** | Auto-fallback on quota exceed |
-| Cost Monitoring | **WORKING** | Tracks API usage costs |
-
-### What IS NOT Working (Code Exists But UNUSED)
-
-| Feature | Status | Location | Notes |
-|---------|--------|----------|-------|
-| LSTM Model | **UNUSED** | `models/lstm_model.py` | Class exists but never imported |
-| GRU Model | **UNUSED** | `models/gru_model.py` | Class exists but never imported |
-| Transformer Model | **UNUSED** | `models/transformer_model.py` | Class exists but never imported |
-| ModelManager | **UNUSED** | `models/model_manager.py` | Not imported in main.py |
+Signal generation is handled entirely by the Rust core engine using technical analysis strategies. There is no external AI/ML service.
 
 ---
 
-## Code Locations
+## Signal Sources
 
-```
-python-ai-service/
-├── main.py                    # Production server (ONLY this is used)
-│   ├── GrokClient             # HTTP client for xAI Grok API (line 1358)
-│   ├── GrokTradingAnalyzer    # Grok-based trading analysis (line 1522)
-│   ├── TechnicalAnalyzer      # Fallback when Grok unavailable
-│   └── /ai/analyze            # Main analysis endpoint
-├── models/                    # ML models (EXISTS BUT UNUSED)
-│   ├── lstm_model.py          # Never imported
-│   ├── gru_model.py           # Never imported
-│   ├── transformer_model.py   # Never imported
-│   └── model_manager.py       # Never imported
-└── features/
-    └── technical_indicators.py  # Used by TechnicalAnalyzer
-```
+All trading signals are produced by `rust-core-engine/src/strategies/`:
+
+| Module | Description |
+|--------|-------------|
+| `rsi.rs` | RSI overbought/oversold signals |
+| `macd.rs` | MACD crossover signals |
+| `bollinger.rs` | Bollinger Band breakout signals |
+| `volume.rs` | Volume-based confirmation |
+| `strategy_engine.rs` | Signal aggregation and confidence scoring |
+| `indicators.rs` | Shared technical indicator calculations |
 
 ---
 
-## Working API Endpoints
+## Signal Pipeline
 
-### POST /ai/analyze - **Grok Analysis (WORKING)**
-```bash
-curl -X POST http://localhost:8000/ai/analyze \
-  -H "Content-Type: application/json" \
-  -d '{
-    "symbol": "BTCUSDT",
-    "timeframe_data": {
-      "15m": [...candles...],
-      "30m": [...candles...],
-      "1h": [...candles...],
-      "4h": [...candles...]
-    }
-  }'
+1. Market data arrives via Binance WebSocket (`rust-core-engine/src/binance/websocket.rs`)
+2. Indicators calculated per symbol per timeframe
+3. Strategy engine aggregates signals, scores confidence
+4. Signal published if confidence exceeds threshold (configurable, default 0.6)
+5. Paper trading engine evaluates signal against risk limits before execution
 
-# Response:
+---
+
+## Signal Format
+
+```json
 {
-  "success": true,
-  "signal": "Long",
+  "symbol": "BTCUSDT",
+  "direction": "Long",
   "confidence": 0.72,
-  "analysis": "Grok analysis text...",
-  "indicators": {...},
-  "model_used": "grok-4-1-fast-non-reasoning"
+  "indicators": {
+    "rsi": 28.4,
+    "macd_histogram": 12.5,
+    "bb_position": -0.8
+  },
+  "timeframe": "1h",
+  "timestamp": "2026-03-15T12:00:00Z"
 }
 ```
 
-### POST /ai/strategy-recommendations
-```bash
-curl -X POST http://localhost:8000/ai/strategy-recommendations \
-  -H "Content-Type: application/json" \
-  -d '{"symbol": "BTCUSDT"}'
-```
+---
 
-### POST /ai/market-condition
-### POST /ai/feedback
-### POST /ai/analyze-trade
-### POST /predict-trend
-### GET /ai/info, /ai/strategies, /ai/performance
-### GET /ai/cost/statistics, /ai/storage/stats
-### POST /ai/config-analysis/trigger
-### GET /ai/config-suggestions
-### GET /ai/gpt4-analysis-history (legacy name, returns Grok history)
-### POST /api/chat/project, GET /api/chat/project/suggestions
-### GET /health - **Health Check (WORKING)**
+## API Endpoints (Rust)
+
+- `GET /api/strategies/active` — list active strategies
+- `GET /api/strategies/signals/:symbol` — latest signals for symbol
+- `POST /api/strategies/backtest` — run backtest
 
 ---
 
-## Grok AI Integration Details
-
-### Model Used
-- **grok-4-1-fast-non-reasoning** (default via `AI_MODEL` env var)
-- Provider: xAI
-
-### Rate Limiting
-- Auto-delay between requests (configurable via `OPENAI_REQUEST_DELAY`)
-- Auto-fallback to next API key on rate limit
-- Tracks cost per session
-
-### Fallback Mechanism
-When Grok is unavailable (no API key, quota exceeded, timeout):
-1. Falls back to `TechnicalAnalyzer` class
-2. Uses indicator-based signal generation
-3. Calculates confidence from 5-indicator scoring
-
-### Environment Variables
-```env
-XAI_API_KEY=xai-...            # Primary API key (xAI)
-OPENAI_API_KEY=sk-...          # Fallback API key (OpenAI-compatible)
-AI_MODEL=grok-4-1-fast-non-reasoning  # Model name
-OPENAI_REQUEST_DELAY=1.0       # Seconds between requests
-```
-
----
-
-## Technical Indicators (Working)
-
-All indicators are calculated by `TechnicalAnalyzer` class:
-
-| Indicator | Used For |
-|-----------|----------|
-| RSI (14) | Overbought/Oversold |
-| MACD | Trend & Momentum |
-| Bollinger Bands | Volatility |
-| EMA (9, 21, 50, 200) | Trend direction |
-| ADX | Trend strength |
-| Stochastic | Momentum |
-| ATR | Position sizing |
-| OBV | Volume confirmation |
-
----
-
-## Why ML Models Are Unused
-
-The LSTM, GRU, and Transformer models were implemented but **never integrated** because:
-
-1. **Grok Performs Better**: Grok's contextual analysis outperforms traditional ML models for trading signals
-2. **Maintenance Burden**: ML models require continuous retraining; Grok is always up-to-date
-3. **Integration Incomplete**: `main.py` was rewritten to use xAI directly, bypassing the ModelManager
-
----
-
-## Performance Metrics
+## Performance
 
 | Metric | Value |
 |--------|-------|
-| Grok Latency | 2-5 seconds |
-| Fallback Latency | 50-100ms |
-| Signal Accuracy | ~65% directional |
+| Combined win rate | ~65% |
+| Avg profit per trade | 1.5% |
+| Sharpe ratio | 1.6 |
+| Signal latency | < 100ms |
+
+---
+
+## Self-Tuning Parameters
+
+Signal pipeline parameters are tunable via the MCP self-tuning engine. Key GREEN-tier params:
+- `confidence_threshold` — minimum confidence to act on signal
+- `rsi_oversold` / `rsi_overbought` — RSI thresholds
+- `signal_interval_minutes` — minimum time between signals per symbol
+
+See `mcp-server/src/tools/tuning.ts` for full list.
 
 ---
 
 ## Related Documentation
 
-- **Specs**: `specs/01-requirements/1.1-functional-requirements/FR-AI.md`
-- **Design**: `specs/02-design/2.5-components/COMP-PYTHON-ML.md`
-- **Tests**: `python-ai-service/tests/`
+- **Trading Strategies**: `specifications/06-features/trading-strategies.md`
+- **Paper Trading**: `specifications/06-features/paper-trading.md`
+- **Self-Tuning**: `mcp-server/src/tuning/`
 
 ---
 
-**Last Updated**: 2026-03-03
-**Status**: Grok integration WORKING, ML models UNUSED
-**Production Ready**: Yes (Grok only)
+**Last Updated**: 2026-03-15
+**Status**: Strategy-based signals only — no external AI/ML service

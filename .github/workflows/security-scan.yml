@@ -67,14 +67,12 @@ jobs:
         # Copy root lockfile to frontend directory for reproducible Docker builds
         cp bun.lock nextjs-ui-dashboard/bun.lock 2>/dev/null || true
 
-        # Build images first (use CI Dockerfile for Python to save memory/time)
+        # Build images
         docker build -t rust-core-engine ./rust-core-engine
-        docker build -f python-ai-service/Dockerfile.ci -t python-ai-service ./python-ai-service
         docker build -t nextjs-ui-dashboard ./nextjs-ui-dashboard
 
         # Scan each image
         trivy image --format sarif --output rust-image-scan.sarif rust-core-engine
-        trivy image --format sarif --output python-image-scan.sarif python-ai-service
         trivy image --format sarif --output nextjs-image-scan.sarif nextjs-ui-dashboard
 
     - name: Upload Docker image scan results
@@ -84,14 +82,6 @@ jobs:
       with:
         sarif_file: 'rust-image-scan.sarif'
         category: 'docker-rust'
-
-    - name: Upload Python Docker image scan results
-      uses: github/codeql-action/upload-sarif@v4
-      if: github.event_name == 'push'
-      continue-on-error: true
-      with:
-        sarif_file: 'python-image-scan.sarif'
-        category: 'docker-python'
 
     - name: Upload Next.js Docker image scan results
       uses: github/codeql-action/upload-sarif@v4
@@ -108,7 +98,6 @@ jobs:
         name: docker-image-scan-results
         path: |
           rust-image-scan.sarif
-          python-image-scan.sarif
           nextjs-image-scan.sarif
         retention-days: 30
 
@@ -123,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript', 'python' ]
+        language: [ 'javascript' ]
 
     steps:
     - name: Checkout code
@@ -198,11 +187,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
-    - name: Set up Python  
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.11'
-
     - name: Set up Node.js
       uses: actions/setup-node@v6
       with:
@@ -213,13 +197,6 @@ jobs:
       with:
         toolchain: 'stable'
         override: true
-
-    - name: Python dependency check
-      run: |
-        cd python-ai-service
-        pip install --upgrade pip setuptools wheel
-        pip install safety
-        safety check -r requirements.txt --json --output safety-report.json || echo '{"vulnerabilities": [], "warnings": []}' > safety-report.json
 
     - name: Node.js dependency check
       run: |
@@ -253,16 +230,7 @@ jobs:
 
     - name: Install license checker
       run: |
-        pip install pip-licenses
         npm install -g license-checker
-
-    - name: Check Python licenses
-      run: |
-        cd python-ai-service
-        pip install --upgrade pip setuptools wheel
-        # Use lightweight CI requirements (no TensorFlow/PyTorch)
-        pip install -r requirements-ci.txt || pip install --no-deps -r requirements-ci.txt || true
-        pip-licenses --format=json --output-file=python-licenses.json || echo '[]' > python-licenses.json
 
     - name: Check Node.js licenses
       run: |

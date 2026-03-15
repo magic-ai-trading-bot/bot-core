@@ -646,8 +646,8 @@ export function registerPaperTradingTools(server: McpServer): void {
     async ({ limit }: { limit?: number }) => {
       const n = limit ?? 50;
       const res = await apiRequest(
-        "python",
-        `/api/ai/signal-quality?limit=${n}`,
+        "rust",
+        `/api/paper-trading/signal-quality?limit=${n}`,
         { timeoutMs: 15_000 }
       );
       return res.success

@@ -103,19 +103,8 @@ symbols:
     max_positions: 1
     custom_params: {}
 
-ai:
-  service_url: "http://python-ai-service:8000"
-  request_timeout_seconds: 30
-  signal_refresh_interval_minutes: 15
-  enable_realtime_signals: true
-  confidence_thresholds:
-    trending: 0.65
-    ranging: 0.75
-    volatile: 0.80
-  enable_feedback_learning: true
-  feedback_delay_hours: 4
-  enable_strategy_recommendations: true
-  track_model_performance: true
+# ai: section removed — Python AI service decommissioned.
+# Signal generation is handled entirely by the Rust strategy engine (RSI/MACD/Bollinger/etc.).
 
 execution:
   auto_execution: true

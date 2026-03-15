@@ -820,7 +820,6 @@ describe('API Service - Additional Function Tests', () => {
       expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled()
       expect(client.auth).toBeDefined()
       expect(client.rust).toBeDefined()
-      expect(client.python).toBeDefined()
     })
 
     it('should handle token in request via auth methods', async () => {
@@ -1154,18 +1153,16 @@ describe('API Service - Additional Function Tests', () => {
   })
 
   describe('Combined API Client Integration', () => {
-    it('should have rust, python, and auth clients', () => {
+    it('should have rust and auth clients', () => {
       const client = new BotCoreApiClient()
 
       expect(client.rust).toBeDefined()
-      expect(client.python).toBeDefined()
       expect(client.auth).toBeDefined()
     })
 
     it('should export singleton apiClient', () => {
       expect(apiClient).toBeDefined()
       expect(apiClient.rust).toBeDefined()
-      expect(apiClient.python).toBeDefined()
       expect(apiClient.auth).toBeDefined()
     })
   })

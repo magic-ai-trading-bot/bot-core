@@ -38,17 +38,16 @@ describe("Tool Registration", () => {
     expect(typeof server.connect).toBe("function");
   });
 
-  it("all 103 tools are registered", async () => {
+  it("expected tools are registered", async () => {
     const response = await client.listTools();
 
     expect(response.tools).toBeDefined();
     expect(Array.isArray(response.tools)).toBe(true);
 
-    // The server should have 103 tools total:
-    // Health: 4, Market: 8, Trading: 4, Paper Trading: 28, Real Trading: 14,
-    // AI: 12, Tasks: 7, Monitoring: 5, Settings: 10, Auth: 4, Tuning: 8
-    // Total: 4 + 8 + 4 + 28 + 14 + 12 + 7 + 5 + 10 + 4 + 8 = 104
-    expect(response.tools.length).toBeGreaterThanOrEqual(103);
+    // Python AI service removed. Tool counts updated:
+    // Health: 3, Market: 8, Trading: 4, Paper Trading: 28+, Real Trading: 14,
+    // AI (strategy): 6, Tasks: 0, Monitoring: 3, Settings: 10, Auth: 4, Tuning: 8, Notification: 1
+    expect(response.tools.length).toBeGreaterThanOrEqual(60);
   });
 
   it("tool names are unique (no duplicates)", async () => {
@@ -63,10 +62,10 @@ describe("Tool Registration", () => {
     const response = await client.listTools();
     const toolNames = response.tools.map(tool => tool.name);
 
-    // Check for expected health tools
+    // Check for expected health tools (Python service removed, get_python_health removed)
     expect(toolNames).toContain("check_system_health");
-    expect(toolNames).toContain("get_docker_status");
-    expect(toolNames).toContain("get_python_health");
+    expect(toolNames).toContain("get_service_logs_summary");
+    expect(toolNames).toContain("check_market_condition_health");
   });
 
   it("tuning tools are registered", async () => {
@@ -148,23 +147,26 @@ describe("Tool Registration", () => {
     expect(toolNames).toContain("create_real_order");
   });
 
-  it("AI tools are registered", async () => {
+  it("strategy analysis tools are registered", async () => {
     const response = await client.listTools();
     const toolNames = response.tools.map(tool => tool.name);
 
-    // Check for some expected AI tools
-    expect(toolNames).toContain("predict_trend");
+    // Python AI service removed; tools now proxy to Rust strategy engine
     expect(toolNames).toContain("analyze_market");
-    expect(toolNames).toContain("get_ai_config_suggestions");
+    expect(toolNames).toContain("get_strategy_recommendations");
+    expect(toolNames).toContain("get_market_condition");
+    expect(toolNames).toContain("get_ai_info");
+    expect(toolNames).toContain("get_ai_strategies");
   });
 
   it("monitoring tools are registered", async () => {
     const response = await client.listTools();
     const toolNames = response.tools.map(tool => tool.name);
 
-    // Check for some expected monitoring tools
-    expect(toolNames).toContain("get_system_metrics");
+    // Check for expected monitoring tools
+    expect(toolNames).toContain("get_system_monitoring");
     expect(toolNames).toContain("get_trading_metrics");
+    expect(toolNames).toContain("get_connection_status");
   });
 
   it("market data tools are registered", async () => {
@@ -195,12 +197,15 @@ describe("Tool Registration", () => {
     expect(toolNames).toContain("save_api_keys");
   });
 
-  it("task tools are registered", async () => {
+  it("task tools section exists (Python AI removed, 0 task tools)", async () => {
+    // Python AI service removed; task tools (chat_with_project, get_chat_suggestions, etc.)
+    // were Python-dependent and have been removed. This test verifies no stale Python tool names remain.
     const response = await client.listTools();
     const toolNames = response.tools.map(tool => tool.name);
 
-    // Check for some expected task tools
-    expect(toolNames).toContain("chat_with_project");
-    expect(toolNames).toContain("get_chat_suggestions");
+    expect(toolNames).not.toContain("chat_with_project");
+    expect(toolNames).not.toContain("predict_trend");
+    expect(toolNames).not.toContain("get_ai_config_suggestions");
+    expect(toolNames).not.toContain("get_python_health");
   });
 });

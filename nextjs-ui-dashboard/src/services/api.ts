@@ -5,8 +5,6 @@ import logger from "@/utils/logger";
 // Environment variables
 const RUST_API_URL =
   import.meta.env.VITE_RUST_API_URL || "http://localhost:8080";
-const PYTHON_AI_URL =
-  import.meta.env.VITE_PYTHON_AI_URL || "http://localhost:8000";
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || "15000");
 
 // Type definitions for API responses
@@ -938,152 +936,35 @@ class AuthApiClient extends BaseApiClient {
   }
 }
 
-// Python AI Service API Client
-class PythonAIApiClient extends BaseApiClient {
-  constructor() {
-    super(PYTHON_AI_URL, "PythonAI");
-  }
-
-  // AI Model Management
-  async getModelInfo(): Promise<AIModelInfo> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.get("/model/info");
-      return response.data;
-    });
-  }
-
-  async trainModel(data: {
-    symbol: string;
-    model_type?: string;
-    retrain?: boolean;
-    candles: CandleData[];
-  }): Promise<{
-    message: string;
-    model_type: string;
-    training_samples: number;
-    status: string;
-  }> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.post("/train", data);
-      return response.data;
-    }, 1); // No retry for training as it's a long operation
-  }
-
-  async loadModel(
-    modelPath?: string
-  ): Promise<{ message: string; model_type: string; status: string }> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.post("/model/load", {
-        model_path: modelPath,
-      });
-      return response.data;
-    });
-  }
-
-  async saveModel(
-    modelName?: string
-  ): Promise<{ message: string; model_type: string; timestamp: string }> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.post("/model/save", {
-        model_name: modelName,
-      });
-      return response.data;
-    });
-  }
-
-  // AI Analysis
-  async analyzeMarket(data: {
-    symbol: string;
-    timeframe: string;
-    candles: CandleData[];
-  }): Promise<AISignal> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.post("/analyze", data);
-      return response.data;
-    });
-  }
-
-  // Configuration
-  async getConfig(): Promise<{
-    supported_timeframes: string[];
-    model_config: ModelConfig;
-    trading_config: AITradingConfig;
-    data_config: DataConfig;
-  }> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.get("/config");
-      return response.data;
-    });
-  }
-
-  // Model Cleanup
-  async cleanupOldModels(
-    keepCount: number = 5
-  ): Promise<{ message: string; deleted_models: number; kept_models: number }> {
-    return this.requestWithRetry(async () => {
-      const response = await this.client.delete(
-        `/model/cleanup?keep_count=${keepCount}`
-      );
-      return response.data;
-    });
-  }
-
-  // Health Check
-  async healthCheck(): Promise<{
-    status: string;
-    timestamp: string;
-    model_loaded: boolean;
-    version: string;
-  }> {
-    const response = await this.client.get("/health");
-    return response.data;
-  }
-}
-
 // Combined API Client
 export class BotCoreApiClient {
   public rust: RustTradingApiClient;
-  public python: PythonAIApiClient;
   public auth: AuthApiClient;
 
   constructor() {
     this.rust = new RustTradingApiClient();
-    this.python = new PythonAIApiClient();
     this.auth = new AuthApiClient();
   }
 
-  // Combined health check for both services
+  // Health check for Rust service
   async healthCheck(): Promise<{
     rust: { status: string; healthy: boolean };
-    python: { status: string; healthy: boolean; model_loaded: boolean };
     overall: boolean;
   }> {
     try {
-      const [rustHealth, pythonHealth] = await Promise.allSettled([
-        this.rust.healthCheck(),
-        this.python.healthCheck(),
-      ]);
-
-      const rustHealthy = rustHealth.status === "fulfilled";
-      const pythonHealthy = pythonHealth.status === "fulfilled";
+      const rustHealth = await this.rust.healthCheck().then(
+        (v) => ({ status: v.status, healthy: true }),
+        () => ({ status: "error", healthy: false })
+      );
 
       return {
-        rust: {
-          status: rustHealthy ? rustHealth.value.status : "error",
-          healthy: rustHealthy,
-        },
-        python: {
-          status: pythonHealthy ? pythonHealth.value.status : "error",
-          healthy: pythonHealthy,
-          model_loaded: pythonHealthy ? pythonHealth.value.model_loaded : false,
-        },
-        overall: rustHealthy && pythonHealthy,
+        rust: rustHealth,
+        overall: rustHealth.healthy,
       };
     } catch (error) {
       logger.error("Health check failed:", error);
       return {
         rust: { status: "error", healthy: false },
-        python: { status: "error", healthy: false, model_loaded: false },
         overall: false,
       };
     }
@@ -1093,29 +974,21 @@ export class BotCoreApiClient {
   async getDashboardData(): Promise<{
     botStatus: BotStatus;
     positions: Position[];
-    aiModelInfo: AIModelInfo;
     performanceStats: PerformanceStats;
     recentTrades: TradeHistory[];
   }> {
     try {
-      const [
-        botStatus,
-        positions,
-        aiModelInfo,
-        performanceStats,
-        recentTrades,
-      ] = await Promise.all([
-        this.rust.getBotStatus(),
-        this.rust.getPositions(),
-        this.python.getModelInfo(),
-        this.rust.getPerformanceStats(),
-        this.rust.getTradeHistory(20),
-      ]);
+      const [botStatus, positions, performanceStats, recentTrades] =
+        await Promise.all([
+          this.rust.getBotStatus(),
+          this.rust.getPositions(),
+          this.rust.getPerformanceStats(),
+          this.rust.getTradeHistory(20),
+        ]);
 
       return {
         botStatus,
         positions,
-        aiModelInfo,
         performanceStats,
         recentTrades,
       };
@@ -1129,6 +1002,5 @@ export class BotCoreApiClient {
 // Create singleton instance
 export const apiClient = new BotCoreApiClient();
 
-// Export individual clients for specific use cases
+// Export individual client for specific use cases
 export const rustApi = apiClient.rust;
-export const pythonAI = apiClient.python;

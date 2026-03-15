@@ -32,7 +32,7 @@ export function createMcpServer(): McpServer {
       },
       instructions: `BotCore Trading Bot MCP Server.
 Provides tools to monitor, control, and tune a cryptocurrency trading system.
-Services: Rust Core Engine (trading), Python AI Service (ML/GPT-4), and 13+ infrastructure services.
+Services: Rust Core Engine (trading, strategies, ML), and 12+ infrastructure services.
 Safety: 4-tier security (PUBLIC, AUTHENTICATED, SENSITIVE, CRITICAL). Write operations require confirmation.`,
     }
   );

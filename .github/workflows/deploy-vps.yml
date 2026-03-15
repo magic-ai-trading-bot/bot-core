@@ -183,7 +183,7 @@ jobs:
           fi
 
           # Ensure all required env vars exist in .env (auto-generate if missing)
-          REQUIRED_VARS="DASHBOARD_SESSION_SECRET INTER_SERVICE_TOKEN PYTHON_API_KEY RUST_API_KEY BINANCE_API_KEY BINANCE_SECRET_KEY"
+          REQUIRED_VARS="DASHBOARD_SESSION_SECRET INTER_SERVICE_TOKEN RUST_API_KEY BINANCE_API_KEY BINANCE_SECRET_KEY"
           for var in $REQUIRED_VARS; do
             # Check if var exists and has a non-empty value
             CURRENT_VAL=$(grep "^${var}=" .env 2>/dev/null | head -1 | cut -d'=' -f2-)
@@ -249,9 +249,6 @@ jobs:
               if echo "$CHANGED_FILES" | grep -q "^rust-core-engine/"; then
                 CHANGED_SERVICES="$CHANGED_SERVICES rust-core-engine"
               fi
-              if echo "$CHANGED_FILES" | grep -q "^python-ai-service/"; then
-                CHANGED_SERVICES="$CHANGED_SERVICES python-ai-service"
-              fi
               if echo "$CHANGED_FILES" | grep -q "^nextjs-ui-dashboard/"; then
                 CHANGED_SERVICES="$CHANGED_SERVICES nextjs-ui-dashboard"
               fi
@@ -295,7 +292,6 @@ jobs:
 
           if [ "$CHANGED_SERVICES" = "all" ]; then
             build_service nextjs-ui-dashboard true
-            build_service python-ai-service true
             build_service rust-core-engine true
             build_service mcp-server false
             build_service openclaw false
@@ -348,7 +344,7 @@ jobs:
 
           # docker compose up -d only recreates containers whose image changed
           # Old containers keep serving until new ones are healthy
-          $DC up -d rust-core-engine python-ai-service nextjs-ui-dashboard
+          $DC up -d rust-core-engine nextjs-ui-dashboard
           sleep 10
 
           # MCP Server
@@ -405,7 +401,6 @@ jobs:
 
           # Core services health check
           check_service "Rust API" "http://localhost:8080/api/health" || DEPLOY_SUCCESS=false
-          check_service "Python AI" "http://localhost:8000/health" || DEPLOY_SUCCESS=false
           check_service "Frontend" "http://localhost:3000" || DEPLOY_SUCCESS=false
 
           # Optional services health check (don't fail deploy if these are down)
@@ -501,7 +496,6 @@ jobs:
           echo "|---------|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Dashboard | http://${{ secrets.VPS_HOST }}:3000 | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "| Rust API | http://${{ secrets.VPS_HOST }}:8080 | ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Python AI | http://${{ secrets.VPS_HOST }}:8000 | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### AI Assistant Services" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Port | Description |" >> $GITHUB_STEP_SUMMARY

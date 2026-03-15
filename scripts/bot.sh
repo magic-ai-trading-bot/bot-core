@@ -42,11 +42,9 @@ print_usage() {
     echo "  --memory-optimized  - Use memory optimized settings"
     echo "  --with-redis        - Include Redis cache (optional)"
     echo "  --service SERVICE   - Target specific service"
-    echo "  --coverage          - Run tests with coverage report (test command only)"
-    echo "  --all               - Run all test files including comprehensive tests (test command only)"
     echo ""
     echo -e "${GREEN}⭐ DEFAULT SERVICES (Always Started):${NC}"
-    echo "  ✅ Core: MongoDB, Rust Engine, Python AI, Frontend, MCP Server, OpenClaw"
+    echo "  ✅ Core: MongoDB, Rust Engine, Frontend, MCP Server, OpenClaw"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
     echo "  $0 start                      # Start core services (production)"
@@ -74,8 +72,6 @@ print_error() {
 
 setup_environment() {
     if [[ "$MEMORY_OPTIMIZED" == "true" ]]; then
-        export PYTHON_MEMORY_LIMIT="1.5G"
-        export PYTHON_CPU_LIMIT="1.5"
         export RUST_MEMORY_LIMIT="1G"
         export RUST_CPU_LIMIT="1"
         export FRONTEND_MEMORY_LIMIT="512M"
@@ -223,7 +219,6 @@ show_urls() {
     echo -e "${GREEN}Core Services:${NC}"
     echo -e "  📊 Frontend Dashboard: ${CYAN}http://localhost:3000${NC}"
     echo -e "  🦀 Rust Core Engine: ${CYAN}http://localhost:8080/api/health${NC}"
-    echo -e "  🐍 Python AI Service: ${CYAN}http://localhost:8000/health${NC}"
 
     # Check if optional features are running
     if docker ps --format '{{.Names}}' | grep -q "mcp-server"; then
@@ -239,30 +234,11 @@ show_urls() {
 run_tests() {
     print_status "Running test suite..."
 
-    # Check if python-ai-service is running
-    local python_container="python-ai-service"
-    if docker ps --format '{{.Names}}' | grep -q "python-ai-service-dev"; then
-        python_container="python-ai-service-dev"
-    fi
-
-    if ! docker ps --format '{{.Names}}' | grep -q "$python_container"; then
-        print_error "$python_container container is not running"
-        print_status "Start services first with: ./scripts/bot.sh dev"
-        exit 1
-    fi
-
-    if [[ "$WITH_COVERAGE" == "true" ]]; then
-        docker exec "$python_container" pytest tests/ -v \
-            --cov --cov-report=html --cov-report=term-missing
-        print_success "Coverage report generated at: python-ai-service/htmlcov/index.html"
+    if [[ -f "run_all_tests.sh" ]]; then
+        chmod +x run_all_tests.sh
+        ./run_all_tests.sh
     else
-        docker exec "$python_container" pytest tests/ -v
-    fi
-
-    if [[ $? -eq 0 ]]; then
-        print_success "All tests passed!"
-    else
-        print_error "Some tests failed!"
+        print_error "run_all_tests.sh not found"
         exit 1
     fi
 }
@@ -273,8 +249,6 @@ MEMORY_OPTIMIZED="false"
 DEV_MODE="false"
 SERVICE=""
 WITH_REDIS="false"
-WITH_COVERAGE="false"
-RUN_ALL_TESTS="false"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -291,14 +265,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --with-redis)
             WITH_REDIS="true"
-            shift
-            ;;
-        --coverage)
-            WITH_COVERAGE="true"
-            shift
-            ;;
-        --all)
-            RUN_ALL_TESTS="true"
             shift
             ;;
         --service)

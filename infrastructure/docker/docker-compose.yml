@@ -1,108 +1,4 @@
 services:
-  # Python AI Service
-  python-ai-service:
-    build:
-      context: ./python-ai-service
-      dockerfile: ${DOCKERFILE:-Dockerfile}
-    container_name: python-ai-service
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - INTER_SERVICE_TOKEN=${INTER_SERVICE_TOKEN:-change-me-inter-service-token}
-      - PYTHON_API_KEY=${PYTHON_API_KEY:-change-me-python-api-key}
-      - XAI_API_KEY=${XAI_API_KEY:-}
-      - AI_BASE_URL=${AI_BASE_URL:-https://api.x.ai/v1}
-      - AI_MODEL=${AI_MODEL:-grok-4-1-fast-non-reasoning}
-      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
-      - RUST_API_URL=http://rust-core-engine:8080
-    volumes:
-      - ./python-ai-service/models:/app/models
-      - ./python-ai-service/logs:/app/logs
-      - ./python-ai-service/data:/app/data
-      - ./python-ai-service/config.yaml:/app/config.yaml
-    networks:
-      - bot-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: ${PYTHON_MEMORY_LIMIT:-2G}
-          cpus: "${PYTHON_CPU_LIMIT:-2}"
-        reservations:
-          memory: ${PYTHON_MEMORY_RESERVE:-1G}
-          cpus: "${PYTHON_CPU_RESERVE:-1}"
-    profiles:
-      - prod
-
-  # Python AI Service - Development mode
-  python-ai-service-dev:
-    build:
-      context: ./python-ai-service
-      dockerfile: Dockerfile.dev
-      target: development
-    container_name: python-ai-service-dev
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - LOG_LEVEL=DEBUG
-      - FLASK_ENV=development
-      - ENABLE_HOT_RELOAD=true
-      - XAI_API_KEY=${XAI_API_KEY:-}
-      - AI_BASE_URL=${AI_BASE_URL:-https://api.x.ai/v1}
-      - AI_MODEL=${AI_MODEL:-grok-4-1-fast-non-reasoning}
-      - DATABASE_URL=${DATABASE_URL}
-      - RUST_API_URL=http://rust-core-engine:8080
-    volumes:
-      - ./python-ai-service:/app
-      - /app/__pycache__
-      - /app/models/saved
-      # Mount project docs for RAG chatbot
-      - ./docs:/project/docs:ro
-      - ./specs:/project/specs:ro
-      - ./CLAUDE.md:/project/CLAUDE.md:ro
-      - ./README.md:/project/README.md:ro
-    command:
-      [
-        "python",
-        "-m",
-        "uvicorn",
-        "main:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000",
-        "--reload",
-      ]
-    networks:
-      - bot-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "--max-time", "10", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 15s
-      retries: 5
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G
-          cpus: "1.5"
-    profiles:
-      - dev
-
   # Rust Core Engine
   rust-core-engine:
     build:
@@ -115,7 +11,6 @@ services:
     environment:
       - RUST_LOG=${RUST_LOG:-info}
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
-      - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-change-me-binance-api-key}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-change-me-binance-secret-key}
       - BINANCE_TESTNET=${BINANCE_TESTNET:-true}
@@ -139,8 +34,6 @@ services:
       retries: 3
       start_period: 60s
     depends_on:
-      python-ai-service:
-        condition: service_healthy
       mongodb:
         condition: service_healthy
     deploy:
@@ -167,7 +60,6 @@ services:
       - RUST_LOG=debug
       - RUST_BACKTRACE=1
       - DATABASE_URL=${DATABASE_URL:-mongodb://admin:secure_mongo_password_change_me@mongodb:27017/bot_core?authSource=admin}
-      - PYTHON_AI_SERVICE_URL=http://python-ai-service:8000
       - BINANCE_API_KEY=${BINANCE_API_KEY:-change-me-binance-api-key}
       - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-change-me-binance-secret-key}
       # CRITICAL: Use production API (false) for paper trading to get REAL prices
@@ -194,8 +86,6 @@ services:
       retries: 10
       start_period: 900s
     depends_on:
-      python-ai-service-dev:
-        condition: service_healthy
       mongodb:
         condition: service_healthy
     deploy:
@@ -218,7 +108,6 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - VITE_RUST_API_URL=http://rust-core-engine:8080
-      - VITE_PYTHON_AI_URL=http://python-ai-service:8000
       - VITE_WS_URL=ws://rust-core-engine:8080/ws
       - VITE_API_TIMEOUT=10000
       - VITE_REFRESH_INTERVAL=5000
@@ -236,7 +125,6 @@ services:
       start_period: 30s
     depends_on:
       - rust-core-engine
-      - python-ai-service
     deploy:
       resources:
         limits:
@@ -262,7 +150,6 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_RUST_API_URL=http://localhost:8080
-      - VITE_PYTHON_AI_URL=http://localhost:8000
       - VITE_WS_URL=ws://localhost:8080/ws
       - VITE_API_TIMEOUT=10000
       - VITE_REFRESH_INTERVAL=5000
@@ -292,7 +179,6 @@ services:
       retries: 3
       start_period: 30s
     depends_on:
-      - python-ai-service-dev
       - rust-core-engine-dev
     deploy:
       resources:
@@ -401,7 +287,6 @@ services:
     environment:
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - RUST_API_URL=http://rust-core-engine:8080
-      - PYTHON_API_URL=http://python-ai-service:8000
       - BOTCORE_EMAIL=${BOTCORE_EMAIL:-}
       - BOTCORE_PASSWORD=${BOTCORE_PASSWORD:-}
       - MCP_PORT=8090
@@ -410,8 +295,6 @@ services:
       - bot-network
     depends_on:
       rust-core-engine:
-        condition: service_healthy
-      python-ai-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8090/health"]
@@ -439,7 +322,6 @@ services:
     environment:
       - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
       - RUST_API_URL=http://rust-core-engine-dev:8080
-      - PYTHON_API_URL=http://python-ai-service-dev:8000
       - BOTCORE_EMAIL=${BOTCORE_EMAIL:-}
       - BOTCORE_PASSWORD=${BOTCORE_PASSWORD:-}
       - MCP_PORT=8090
@@ -448,8 +330,6 @@ services:
       - bot-network
     depends_on:
       rust-core-engine-dev:
-        condition: service_healthy
-      python-ai-service-dev:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8090/health"]

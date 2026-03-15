@@ -5,17 +5,11 @@ import { getJwtToken } from "./auth.js";
 import { log, type BotCoreResponse } from "./types.js";
 
 const RUST_API_URL = process.env.RUST_API_URL || "http://localhost:8080";
-const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:8000";
 
-export type ServiceTarget = "rust" | "python";
+export type ServiceTarget = "rust";
 
-function getBaseUrl(service: ServiceTarget): string {
-  switch (service) {
-    case "rust":
-      return RUST_API_URL;
-    case "python":
-      return PYTHON_API_URL;
-  }
+function getBaseUrl(_service: ServiceTarget): string {
+  return RUST_API_URL;
 }
 
 interface RequestOptions {

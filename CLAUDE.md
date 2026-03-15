@@ -160,13 +160,6 @@ Claude MUST suggest agents when detecting these patterns:
 - **Tests**: `rust-core-engine/tests/test_auth.rs`
 - **Security**: HS256 JWT, bcrypt hashing
 
-### AI & ML Integration
-- **Doc**: `specifications/06-features/ai-integration.md`
-- **Code**: `python-ai-service/` (models/, main.py, features/)
-- **API**: POST `/predict-trend`, `/analyze`
-- **Models**: LSTM 68%, GRU 65%, Transformer 70%, Ensemble 72% | Grok/xAI for signal generation
-- **Tests**: `python-ai-service/tests/`
-
 ### Trading Strategies
 - **Doc**: `specifications/06-features/trading-strategies.md`
 - **Code**: `rust-core-engine/src/strategies/` (rsi, macd, bollinger, volume, strategy_engine, indicators)
@@ -252,7 +245,7 @@ cp .env.example .env && ./scripts/generate-secrets.sh
 ### Build & Test
 ```bash
 make build          # Build all (or: make build-fast for sequential)
-make test           # All 2,202+ tests: Rust(1,336) + Python(409) + Frontend(601)
+make test           # All 1,793+ tests: Rust(1,336) + Frontend(601) + MCP(89) + OpenClaw
 make lint           # Zero errors required
 ```
 
@@ -260,21 +253,21 @@ make lint           # Zero errors required
 ```bash
 # Rust
 cd rust-core-engine && cargo fmt --check && cargo clippy -- -D warnings && cargo test
-# Python
-cd python-ai-service && black . && flake8 . && pytest --cov
 # Frontend
 cd nextjs-ui-dashboard && npm run lint && npm run type-check && npm test
+# MCP Server
+cd mcp-server && npm run lint && npm test
 ```
 
 ---
 
 ## Tech Stack & Quality
 
-**Stack**: Rust 1.86+ (Actix-web, MongoDB) | Python 3.11+ (FastAPI, TensorFlow, PyTorch, Grok/xAI) | TypeScript/React 18/Vite/Shadcn/TailwindCSS | MCP Server (Node 18, Express, SDK ^1.12.1) | OpenClaw (Node 22, Telegram, Claude Sonnet 4.5) | MongoDB replica sets | WebSocket
+**Stack**: Rust 1.86+ (Actix-web, MongoDB) | TypeScript/React 18/Vite/Shadcn/TailwindCSS | MCP Server (Node 18, Express, SDK ^1.12.1) | OpenClaw (Node 22, Telegram, Claude Sonnet 4.5) | MongoDB replica sets | WebSocket
 
-**Quality**: 94/100 overall (A) | 98/100 security (A+) | 90.4% coverage | 84% mutation score | 2,202+ tests | PERFECT 10/10 code quality
+**Quality**: 94/100 overall (A) | 98/100 security (A+) | 90.4% coverage | 84% mutation score | 1,793+ tests | PERFECT 10/10 code quality
 
-**Services**: Frontend :3000 | Rust API :8080 | Python AI :8000 | MCP Server :8090 | OpenClaw :18789
+**Services**: Frontend :3000 | Rust API :8080 | MCP Server :8090 | OpenClaw :18789
 
 ---
 

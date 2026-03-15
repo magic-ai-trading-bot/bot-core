@@ -39,7 +39,6 @@ jobs:
       matrix:
         service:
           - rust-core-engine
-          # - python-ai-service  # DISABLED: Builds timeout due to disk space (TensorFlow/PyTorch ~4GB)
           - nextjs-ui-dashboard
 
     steps:
@@ -100,43 +99,12 @@ jobs:
         if: matrix.service == 'nextjs-ui-dashboard'
         run: cp bun.lock nextjs-ui-dashboard/bun.lock 2>/dev/null || true
 
-      - name: Determine Dockerfile to use
-        id: dockerfile
-        run: |
-          echo "======================================"
-          echo "🔍 DOCKERFILE SELECTION DEBUG INFO"
-          echo "======================================"
-          echo "Service: ${{ matrix.service }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "======================================"
-
-          # ALWAYS use lightweight Dockerfile.ci for python-ai-service in CI builds
-          # Only use full Dockerfile for production version tag releases (v*)
-          if [ "${{ matrix.service }}" = "python-ai-service" ]; then
-            # Check if this is a version tag release
-            if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-              echo "name=Dockerfile" >> $GITHUB_OUTPUT
-              echo "📦 SELECTED: Dockerfile (full build with TensorFlow/PyTorch)"
-              echo "Reason: Version tag release"
-            else
-              echo "name=Dockerfile.ci" >> $GITHUB_OUTPUT
-              echo "⚡ SELECTED: Dockerfile.ci (lightweight CI build)"
-              echo "Reason: Non-release CI build (NO TensorFlow/PyTorch)"
-            fi
-          else
-            echo "name=Dockerfile" >> $GITHUB_OUTPUT
-            echo "📦 SELECTED: Dockerfile (standard build for ${{ matrix.service }})"
-          fi
-          echo "======================================"
-
       - name: Build and push Docker image
         id: build-push
         uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.service }}
-          # SIMPLE FIX: ALWAYS use Dockerfile.ci for python-ai-service in ALL builds
-          file: ./${{ matrix.service }}/${{ matrix.service == 'python-ai-service' && 'Dockerfile.ci' || 'Dockerfile' }}
+          file: ./${{ matrix.service }}/Dockerfile
           platforms: ${{ env.PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' && (inputs.push_images || 'true') == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -226,7 +194,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Services Built:" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ rust-core-engine" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ python-ai-service" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ nextjs-ui-dashboard" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Registry Information:" >> $GITHUB_STEP_SUMMARY

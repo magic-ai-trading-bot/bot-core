@@ -268,64 +268,46 @@ describe('api.ts - Statement Coverage', () => {
     });
   });
 
-  describe('healthCheck() - Lines 1071-1072', () => {
+  describe('healthCheck()', () => {
     it('should handle errors in health check and return error status', async () => {
-      // Mock both rust and python health checks to throw errors
       const mockRustHealth = vi.spyOn(apiClient.rust, 'healthCheck').mockRejectedValue(new Error('Rust health check failed'));
-      const mockPythonHealth = vi.spyOn(apiClient.python, 'healthCheck').mockRejectedValue(new Error('Python health check failed'));
 
       const result = await apiClient.healthCheck();
 
-      // Verify error response (lines 1071-1072)
       expect(result).toEqual({
         rust: { status: 'error', healthy: false },
-        python: { status: 'error', healthy: false, model_loaded: false },
         overall: false,
       });
 
       mockRustHealth.mockRestore();
-      mockPythonHealth.mockRestore();
     });
 
-    it('should handle partial failures (rust ok, python fails)', async () => {
+    it('should return healthy when rust is ok', async () => {
       const mockRustHealth = vi.spyOn(apiClient.rust, 'healthCheck').mockResolvedValue({ status: 'ok' });
-      const mockPythonHealth = vi.spyOn(apiClient.python, 'healthCheck').mockRejectedValue(new Error('Python down'));
 
       const result = await apiClient.healthCheck();
 
       expect(result).toEqual({
         rust: { status: 'ok', healthy: true },
-        python: { status: 'error', healthy: false, model_loaded: false },
-        overall: false, // overall is false if any service is down
+        overall: true,
       });
 
       mockRustHealth.mockRestore();
-      mockPythonHealth.mockRestore();
     });
 
     it('should handle unexpected errors during health check', async () => {
-      // Mock to throw a non-standard error
       const mockRustHealth = vi.spyOn(apiClient.rust, 'healthCheck').mockImplementation(() => {
         throw new Error('Unexpected error');
-      });
-      const mockPythonHealth = vi.spyOn(apiClient.python, 'healthCheck').mockResolvedValue({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        model_loaded: true,
-        version: '1.0.0',
       });
 
       const result = await apiClient.healthCheck();
 
-      // Should return error status (catch block at lines 1070-1077)
       expect(result).toEqual({
         rust: { status: 'error', healthy: false },
-        python: { status: 'error', healthy: false, model_loaded: false },
         overall: false,
       });
 
       mockRustHealth.mockRestore();
-      mockPythonHealth.mockRestore();
     });
   });
 

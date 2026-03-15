@@ -7,14 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       service:
-        description: 'Service to test (all, rust, python, frontend)'
+        description: 'Service to test (all, rust, frontend)'
         required: true
         default: 'all'
         type: choice
         options:
           - all
           - rust
-          - python
           - frontend
 
 permissions:
@@ -24,7 +23,6 @@ permissions:
 
 env:
   RUST_MUTATION_THRESHOLD: 75.0
-  PYTHON_MUTATION_THRESHOLD: 75.0
   FRONTEND_MUTATION_THRESHOLD: 75.0
 
 jobs:
@@ -146,99 +144,6 @@ jobs:
             fi
           fi
 
-  mutation-test-python:
-    name: Python Mutation Testing
-    runs-on: ubuntu-latest
-    if: github.event.inputs.service == 'python' || github.event.inputs.service == 'all' || github.event_name == 'schedule'
-    timeout-minutes: 90
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-
-      - name: Cache pip packages
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-mutmut-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-mutmut-
-
-      - name: Install dependencies
-        working-directory: ./python-ai-service
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements-ci.txt
-          pip install mutmut pytest pytest-cov
-
-      - name: Run mutation tests
-        working-directory: ./python-ai-service
-        run: |
-          echo "Running mutation tests (this may take a while)..."
-          mutmut run --paths-to-mutate=. --tests-dir=tests/ || true
-
-      - name: Generate mutation report
-        working-directory: ./python-ai-service
-        run: |
-          echo "# Python Mutation Testing Report" > mutation-report.md
-          echo "" >> mutation-report.md
-          echo "Generated: $(date)" >> mutation-report.md
-          echo "" >> mutation-report.md
-
-          # Get mutation results
-          mutmut results > mutation-results.txt || true
-          mutmut show --all > mutation-details.txt || true
-
-          # Parse results
-          if [ -f mutation-results.txt ]; then
-            echo "## Summary" >> mutation-report.md
-            cat mutation-results.txt >> mutation-report.md
-            echo "" >> mutation-report.md
-          fi
-
-          # Calculate score
-          SURVIVED=$(grep -c "Status: survived" mutation-results.txt 2>/dev/null || echo "0")
-          KILLED=$(grep -c "Status: killed" mutation-results.txt 2>/dev/null || echo "0")
-          TIMEOUT=$(grep -c "Status: timeout" mutation-results.txt 2>/dev/null || echo "0")
-          TOTAL=$((SURVIVED + KILLED + TIMEOUT))
-
-          if [ "$TOTAL" -gt 0 ]; then
-            SCORE=$(echo "scale=2; ($KILLED * 100) / $TOTAL" | bc)
-          else
-            SCORE="0"
-          fi
-
-          echo "- **Total Mutants:** $TOTAL" >> mutation-report.md
-          echo "- **Killed:** $KILLED" >> mutation-report.md
-          echo "- **Survived:** $SURVIVED" >> mutation-report.md
-          echo "- **Timeout:** $TIMEOUT" >> mutation-report.md
-          echo "- **Mutation Score:** ${SCORE}%" >> mutation-report.md
-          echo "" >> mutation-report.md
-
-          if (( $(echo "$SCORE >= $PYTHON_MUTATION_THRESHOLD" | bc -l) )); then
-            echo "✅ **Status:** PASSED (threshold: ${PYTHON_MUTATION_THRESHOLD}%)" >> mutation-report.md
-          else
-            echo "❌ **Status:** FAILED (threshold: ${PYTHON_MUTATION_THRESHOLD}%)" >> mutation-report.md
-          fi
-
-          cat mutation-report.md
-
-      - name: Upload mutation results
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: python-mutation-results
-          path: |
-            python-ai-service/mutation-report.md
-            python-ai-service/mutation-results.txt
-            python-ai-service/mutation-details.txt
-          retention-days: 30
-
   mutation-test-frontend:
     name: Frontend Mutation Testing
     runs-on: ubuntu-latest
@@ -351,7 +256,7 @@ jobs:
 
   summary:
     name: Mutation Testing Summary
-    needs: [mutation-test-rust, mutation-test-python, mutation-test-frontend]
+    needs: [mutation-test-rust, mutation-test-frontend]
     runs-on: ubuntu-latest
     if: always()
     timeout-minutes: 10
@@ -380,17 +285,6 @@ jobs:
           else
             echo "### Rust Core Engine" >> summary.md
             echo "- **Status:** ${{ needs.mutation-test-rust.result }}" >> summary.md
-            echo "" >> summary.md
-          fi
-
-          # Python results
-          if [ -f mutation-reports/python-mutation-results/mutation-report.md ]; then
-            echo "### Python AI Service" >> summary.md
-            cat mutation-reports/python-mutation-results/mutation-report.md >> summary.md
-            echo "" >> summary.md
-          else
-            echo "### Python AI Service" >> summary.md
-            echo "- **Status:** ${{ needs.mutation-test-python.result }}" >> summary.md
             echo "" >> summary.md
           fi
 
