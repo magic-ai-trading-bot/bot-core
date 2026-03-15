@@ -267,7 +267,6 @@ chmod +x monitor-costs.sh
 
 Sau 24 giờ chạy, verify:
 
-- [ ] Service running: `docker ps | grep python-ai`
 - [ ] Health check: `grok_available: true`
 - [ ] Debug test: `status: success`
 - [ ] First request logged: Thấy "💰 Cost" trong logs

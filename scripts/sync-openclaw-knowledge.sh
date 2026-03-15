@@ -552,14 +552,12 @@ Both \`false\` = normal mode (both directions allowed). **This is the SAFE DEFAU
 - **Short signals**: standard threshold (-0.5)
 - This means Longs need stronger bullish confirmation than Shorts need bearish confirmation
 
-### Auto-Analyze Losing Trades (xAI Grok)
+### Auto-Analyze Losing Trades
 
 When a trade closes with negative PnL:
-1. Rust engine fires async HTTP POST to \`python-ai-service /ai/analyze-trade\`
-2. Python calls xAI Grok for analysis (entry quality, exit quality, recommendations)
-3. Analysis stored in MongoDB \`trade_analyses\` collection
-4. View on dashboard "Phân tích giao dịch AI" page
-5. Use \`get_paper_trade_analyses\` to list, \`get_paper_trade_analysis '{"trade_id":"ID"}'\` to read
+1. Analysis stored in MongoDB \`trade_analyses\` collection
+2. View on dashboard "Phân tích giao dịch AI" page
+3. Use \`get_paper_trade_analyses\` to list, \`get_paper_trade_analysis '{"trade_id":"ID"}'\` to read
 
 ---
 
@@ -643,9 +641,8 @@ Use \`get_candles\`, \`analyze_market\`, \`predict_trend\`, \`get_chart\` for an
 - Consecutive loss tracking (auto-reset on first win)
 
 **AI/ML Status**:
-- **GPT-4o-mini**: WORKING - Market analysis, sentiment, signal generation (\$0.01-0.02/analysis)
-- **Technical Indicators Fallback**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV
-- **LSTM/GRU/Transformer models**: Code exists in python-ai-service/models/ but NOT integrated/UNUSED
+- **Technical Indicators**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV (Rust-based)
+- **Python AI service**: REMOVED
 - **Model Training endpoints**: NOT functional
 
 **Feature Documentation**:${FEATURES_SECTION}
@@ -675,7 +672,7 @@ Use \`get_candles\`, \`analyze_market\`, \`predict_trend\`, \`get_chart\` for an
 
 **Real Trading WRITE** (9 tools): \`start_real_engine\`, \`stop_real_engine\`, \`close_real_trade '{"trade_id":"ID"}'\`, \`update_real_trading_settings '{"settings":{...}}'\`, \`create_real_order '{"symbol":"BTCUSDT","side":"BUY","type":"MARKET","quantity":0.001}'\`, \`cancel_real_order '{"symbol":"BTCUSDT","order_id":123}'\`, \`cancel_all_real_orders '{"symbol":"BTCUSDT"}'\`, \`update_real_position_sltp '{"symbol":"BTCUSDT","stop_loss":50000,"take_profit":55000}'\`
 
-**Monitoring** (7): \`check_system_health\`, \`check_market_condition_health\`, \`get_service_logs_summary\`, \`get_system_monitoring\`, \`get_trading_metrics\`, \`get_connection_status\`, \`get_python_health\`
+**Monitoring** (6): \`check_system_health\`, \`check_market_condition_health\`, \`get_service_logs_summary\`, \`get_system_monitoring\`, \`get_trading_metrics\`, \`get_connection_status\`
 
 **Other**: \`get_trading_performance\`, \`send_telegram_notification '{"message":"text"}'\`, \`login\`, \`register_user\`, \`get_profile\`, \`refresh_token\`, \`get_api_keys\`, \`test_api_keys\`
 

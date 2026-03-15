@@ -11,7 +11,7 @@
 ## Table of Contents
 
 1. [Test Case Summary](#test-case-summary)
-2. [Rust ↔ Python AI Integration](#rust--python-ai-integration)
+2. [Rust AI Strategy Integration](#rust-ai-strategy-integration)
 3. [Rust ↔ Frontend API Integration](#rust--frontend-api-integration)
 4. [Rust ↔ Binance API Integration](#rust--binance-api-integration)
 5. [Rust ↔ MongoDB Integration](#rust--mongodb-integration)
@@ -26,7 +26,7 @@
 
 | Category | Total Tests | Priority | Coverage |
 |----------|-------------|----------|----------|
-| Rust ↔ Python AI | 6 | Critical | 100% |
+| Rust AI Strategy | 6 | Critical | 100% |
 | Rust ↔ Frontend | 7 | Critical | 100% |
 | Rust ↔ Binance | 5 | Critical | 100% |
 | Rust ↔ MongoDB | 5 | Critical | 100% |
@@ -43,9 +43,9 @@
 
 ---
 
-## Rust ↔ Python AI Integration
+## Rust AI Strategy Integration
 
-### TC-INT-001: Request AI Analysis from Rust
+### TC-INT-001: Generate Trading Signal from Strategy Engine
 
 **Priority:** Critical
 **Test Type:** Integration
@@ -53,29 +53,27 @@
 
 **Test Scenario (Gherkin):**
 ```gherkin
-Feature: Rust to Python AI Service Integration
+Feature: Rust AI Strategy Integration
   As the Rust trading engine
-  I want to request AI analysis from Python service
-  So that I can incorporate ML predictions into trading decisions
+  I want to generate AI signals from built-in strategy engine
+  So that I can make trading decisions based on technical analysis
 
-  Scenario: Successfully request AI analysis
-    Given Python AI service is running on port 8000
-    And I have market data for BTC/USDT
-    When Rust engine makes POST request to /api/analyze
-    With symbol="BTCUSDT", interval="1h", limit=100
-    Then Python service should return analysis
+  Scenario: Successfully generate trading signal
+    Given market data for BTC/USDT is available in MongoDB
+    When Rust strategy engine processes candle data
+    With RSI, MACD, Bollinger Band indicators
+    Then engine should return a trading signal
     And response should include signal, confidence, reasoning
-    And response time should be < 5000ms
-    And HTTP status should be 200 OK
+    And processing time should be < 1000ms
 ```
 
 **Code Location:**
-- Rust: `/Users/dungngo97/Documents/bot-core/rust-core-engine/src/ai/client.rs`
-- Test: `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/test_cross_service.rs`
+- Rust: `/Users/dungngo97/Documents/bot-core/rust-core-engine/src/strategies/strategy_engine.rs`
+- Test: `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/test_strategies.rs`
 
 ---
 
-### TC-INT-002: Handle Python Service Timeout
+### TC-INT-002: Handle Insufficient Market Data
 
 **Priority:** High
 **Test Type:** Integration
@@ -83,17 +81,17 @@ Feature: Rust to Python AI Service Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle Python service timeout
-    Given Python service is slow to respond
-    When request takes > 30 seconds
-    Then Rust should timeout gracefully
-    And return fallback technical analysis
-    And log timeout error
+  Scenario: Handle insufficient market data gracefully
+    Given fewer candles available than required for indicators
+    When strategy engine attempts to compute signals
+    Then Rust should return neutral signal
+    And log insufficient data warning
+    And not place any trades
 ```
 
 ---
 
-### TC-INT-003: Handle Python Service Unavailable
+### TC-INT-003: Fallback to Technical Analysis on Strategy Error
 
 **Priority:** Critical
 **Test Type:** Integration
@@ -101,17 +99,17 @@ Feature: Rust to Python AI Service Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle Python service unavailable
-    Given Python service is down
-    When Rust attempts to request analysis
-    Then Rust should catch connection error
-    And fall back to local indicators
-    And continue trading with degraded AI
+  Scenario: Fall back to basic technical analysis on error
+    Given strategy engine encounters computation error
+    When Rust detects error during signal generation
+    Then Rust should fall back to basic indicator analysis
+    And continue trading with degraded confidence
+    And log error for investigation
 ```
 
 ---
 
-### TC-INT-004: Retry Failed Python Requests
+### TC-INT-004: Retry Signal Generation on Transient Failure
 
 **Priority:** High
 **Test Type:** Integration
@@ -119,17 +117,17 @@ Feature: Rust to Python AI Service Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Retry failed requests with exponential backoff
-    Given Python service returns 500 Internal Server Error
-    When Rust receives error
+  Scenario: Retry signal generation on transient MongoDB failure
+    Given MongoDB returns temporary read error
+    When Rust attempts to fetch candle data
     Then Rust should retry up to 3 times
     With exponential backoff (1s, 2s, 4s)
-    If all retries fail, use fallback
+    If all retries fail, skip signal cycle
 ```
 
 ---
 
-### TC-INT-005: Validate AI Response Schema
+### TC-INT-005: Validate Strategy Signal Schema
 
 **Priority:** High
 **Test Type:** Integration
@@ -137,9 +135,9 @@ Feature: Rust to Python AI Service Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Validate AI response matches expected schema
-    Given Python returns AI analysis
-    When Rust parses response
+  Scenario: Validate strategy signal matches expected schema
+    Given strategy engine produces a signal
+    When Rust parses signal result
     Then all required fields must be present:
       - signal (string)
       - confidence (f64, 0-1)
@@ -150,7 +148,7 @@ Feature: Rust to Python AI Service Integration
 
 ---
 
-### TC-INT-006: Multiple Concurrent AI Requests
+### TC-INT-006: Multiple Concurrent Strategy Evaluations
 
 **Priority:** Medium
 **Test Type:** Integration
@@ -158,12 +156,12 @@ Feature: Rust to Python AI Service Integration
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Handle multiple concurrent AI requests
-    Given Rust needs analysis for BTC, ETH, SOL simultaneously
-    When Rust makes 3 concurrent requests to Python
-    Then all requests should complete successfully
-    And responses should not interfere with each other
-    And total time should be < 6000ms (parallel processing)
+  Scenario: Handle multiple concurrent strategy evaluations
+    Given Rust needs signals for BTC, ETH, SOL simultaneously
+    When Rust evaluates strategies concurrently for all symbols
+    Then all evaluations should complete successfully
+    And results should not interfere with each other
+    And total time should be < 3000ms (parallel processing)
 ```
 
 ---
@@ -638,7 +636,7 @@ Feature: End-to-End Trading Workflows
   Scenario: End-to-end trade execution
     Given user logs in via frontend
     When user views market data (WebSocket updates)
-    And requests AI analysis (Rust → Python)
+    And requests AI analysis (Rust strategy engine)
     And AI returns "Buy" signal
     And user places market buy order
     Then Rust executes on Binance (Rust → Binance)
@@ -685,8 +683,8 @@ Feature: End-to-End Trading Workflows
   Scenario: Automated trading based on AI signals
     Given bot is configured with auto-trade enabled
     When Rust receives market data
-    And requests AI analysis every 5 minutes
-    And AI returns "Buy" signal with confidence > 0.75
+    And strategy engine evaluates signals every 5 minutes
+    And strategy returns "Buy" signal with confidence > 0.75
     Then Rust automatically places trade
     And sets stop-loss
     And monitors position
@@ -805,7 +803,7 @@ Feature: Cross-Service Authentication
 
   Scenario: JWT token validated by all services
     Given user logs in and receives JWT
-    When user makes request to Frontend → Rust → Python
+    When user makes request to Frontend → Rust
     Then all services should validate JWT
     And extract same user_id from token
 ```
@@ -837,10 +835,10 @@ Feature: Cross-Service Authentication
 
 **Test Scenario (Gherkin):**
 ```gherkin
-  Scenario: Rust authenticates to Python service
-    Given Rust needs to call Python API
-    When Rust includes service token in request
-    Then Python validates service token
+  Scenario: MCP server authenticates to Rust service
+    Given MCP server needs to call Rust API
+    When MCP server includes JWT in request
+    Then Rust validates JWT
     And allows request
 ```
 
@@ -865,7 +863,7 @@ Feature: Cross-Service Authentication
 
 ## Error Propagation
 
-### TC-INT-042: Error Propagation Frontend ← Rust ← Python
+### TC-INT-042: Error Propagation Frontend ← Rust
 
 **Priority:** High
 **Test Type:** Integration
@@ -878,12 +876,12 @@ Feature: Error Propagation
   I want errors to propagate correctly
   So that users see meaningful error messages
 
-  Scenario: Python error propagates to frontend
-    Given Python service returns 500 error
-    When Rust receives error
+  Scenario: Strategy engine error propagates to frontend
+    Given Rust strategy engine returns internal error
+    When Rust catches the error
     Then Rust should log error
     And return 503 Service Unavailable to frontend
-    And frontend should display "AI service temporarily unavailable"
+    And frontend should display "AI analysis temporarily unavailable"
 ```
 
 ---

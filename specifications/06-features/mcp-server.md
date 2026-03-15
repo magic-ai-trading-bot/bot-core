@@ -19,7 +19,7 @@ mcp-server/
 │       ├── real-trading.ts   14 tools: real money trading (CRITICAL)
 │       ├── ai.ts             12 tools: analysis, predictions, storage, history
 │       ├── tasks.ts          7 tools: async tasks, chat
-│       ├── monitoring.ts     4 tools: system/trading/connection metrics
+│       ├── monitoring.ts     3 tools: system/trading/connection metrics
 │       ├── settings.ts       10 tools: API keys, notifications, push
 │       ├── auth-tools.ts     4 tools: login, register, profile, refresh
 │       ├── tuning.ts         8 tools: self-tuning parameter adjustments
@@ -66,7 +66,7 @@ Session Map  ─── new session ──►  McpServer + StreamableHTTPServerTr
                                          |
                                     Tool Handler
                                          |
-                              apiRequest("rust"|"python")
+                              apiRequest("rust")
                                          |
                               ┌──────────┴──────────┐
 ```
@@ -86,7 +86,7 @@ Session Map  ─── new session ──►  McpServer + StreamableHTTPServerTr
 2. validateBearerToken(req.headers.authorization)  → 401 if invalid
 3. Get/create session transport
 4. transport.handleRequest(req, res, req.body)
-5. Tool handler fires → apiRequest("rust"|"python", path, opts)
+5. Tool handler fires → apiRequest("rust", path, opts)
 6. getJwtToken()  → auto-login if expired (POST /api/auth/login)
 7. fetch(RUST_API_URL + path, {Authorization: Bearer <jwt>})
 8. Normalize response → toolSuccess(data) | toolError(msg)
@@ -118,7 +118,7 @@ Real-trading tools carry `CAUTION` / `CRITICAL` labels in their descriptions. Th
 
 ```typescript
 apiRequest(
-  target: "rust" | "python",
+  target: "rust",
   path: string,
   opts?: { method?, body?, skipAuth?, timeoutMs? }
 ): Promise<{ success: boolean, data?: unknown, error?: string }>
@@ -126,18 +126,18 @@ apiRequest(
 
 - Default timeout: 30 seconds (`AbortController`)
 - Auto-retry: 1 retry on 5xx GET errors (2-second delay)
-- Response normalization: Rust `{success, data}` and raw Python both work
+- Response normalization: Rust `{success, data}` format
 - `skipAuth: true` bypasses JWT injection (health checks)
 
 ---
 
-## Tool Inventory (114 tools)
+## Tool Inventory (113 tools)
 
 ### health (3 tools) — `tools/health.ts`
 
 | Tool | Description |
 |---|---|
-| `get_service_logs_summary` | Recent errors from Rust + Python services |
+| `get_service_logs_summary` | Recent errors from Rust services |
 | `check_market_condition_health` | Deep AI pipeline check: MongoDB → indicators → model |
 
 ### market (8 tools) — `tools/market.ts`
@@ -265,20 +265,19 @@ apiRequest(
 |---|---|
 | `trigger_config_analysis` | Kick off async config analysis |
 | `predict_trend` | Request ML trend prediction |
-| `get_ai_config_suggestions_python` | Config suggestions from Python AI |
+| `get_ai_config_suggestions_python` | Config suggestions from AI analysis |
 | `chat_with_project` | Chat with project context |
 | `get_chat_suggestions` | Get suggested follow-up questions |
 | `clear_chat_history` | Clear conversation history |
 | `get_ai_debug_info` | Debug info for AI service |
 
-### monitoring (4 tools) — `tools/monitoring.ts`
+### monitoring (3 tools) — `tools/monitoring.ts`
 
 | Tool | Description |
 |---|---|
 | `get_system_monitoring` | CPU, memory, uptime, cache from Rust |
 | `get_trading_metrics` | Win rate, PnL, positions from Rust |
 | `get_connection_status` | WebSocket + API connection status |
-| `get_python_health` | Python AI service health |
 
 ### settings (10 tools) — `tools/settings.ts`
 
@@ -437,6 +436,5 @@ cd mcp-server && npm run test:coverage
 
 - `FR-MCP.md` — Functional requirements (protocol, auth, session, tools)
 - `API-RUST-CORE.md` — Rust engine API that tools proxy to
-- `API-PYTHON-AI.md` — Python AI API that tools proxy to
 
 **Last Updated**: 2026-03-03

@@ -2,29 +2,6 @@ version: '3.8'
 
 services:
   # Production overrides
-  python-ai-service:
-    image: ${DOCKER_REGISTRY}/python-ai-service:${VERSION:-latest}
-    pull_policy: ${IMAGE_PULL_POLICY:-always}
-    restart: always
-    deploy:
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "com.bot-core.service=python-ai-service"
-      - "com.bot-core.version=${VERSION:-latest}"
-
   rust-core-engine:
     image: ${DOCKER_REGISTRY}/rust-core-engine:${VERSION:-latest}
     pull_policy: ${IMAGE_PULL_POLICY:-always}
@@ -131,7 +108,6 @@ services:
     depends_on:
       - nextjs-ui-dashboard
       - rust-core-engine
-      - python-ai-service
     networks:
       - bot-network
     environment:

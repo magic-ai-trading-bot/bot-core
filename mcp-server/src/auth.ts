@@ -58,6 +58,32 @@ export async function getJwtToken(): Promise<string> {
 
     if (!res.ok) {
       const text = await res.text();
+      // Auto-register admin if user doesn't exist (fresh DB)
+      if (res.status === 401 && text.includes("not found")) {
+        log("info", "Admin user not found — auto-registering");
+        const regRes = await fetch(`${RUST_API_URL}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: BOTCORE_EMAIL,
+            password: BOTCORE_PASSWORD,
+            name: "BotCore Admin",
+          }),
+        });
+        if (regRes.ok) {
+          const regData = (await regRes.json()) as {
+            success: boolean;
+            data?: { token: string };
+          };
+          if (regData.success && regData.data?.token) {
+            jwtToken = regData.data.token;
+            jwtExpiry = now + 6 * 24 * 3600_000;
+            log("info", "Admin user registered and JWT obtained");
+            return jwtToken;
+          }
+        }
+        log("error", "Auto-registration failed");
+      }
       log("error", "BotCore login failed", {
         status: res.status,
         body: text,

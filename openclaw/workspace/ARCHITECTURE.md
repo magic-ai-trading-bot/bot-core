@@ -79,9 +79,9 @@ Binance WSS ──→ Rust Backend ──→ Strategy Engine (5 strategies)
 - API key management (get/save/test/delete Binance keys)
 - Notification preferences, push subscriptions
 
-### AI — `/api/ai/` (Python service)
+### AI — `/api/ai/` (disabled)
 
-- `GET /signals/{symbol}` - Recent AI signals
+- `GET /signals/{symbol}` - Recent AI signals (Rust-based technical analysis only)
 
 ## WebSocket Events — `ws://localhost:8080/ws`
 

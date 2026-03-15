@@ -28,7 +28,7 @@ DOCKER_REGISTRY="${DOCKER_REGISTRY:-ghcr.io/your-username/bot-core}"
 VERSION="${VERSION:-latest}"
 
 # Services to pull
-SERVICES=("rust-core-engine" "python-ai-service" "nextjs-ui-dashboard")
+SERVICES=("rust-core-engine" "nextjs-ui-dashboard" "mcp-server")
 
 # Pull options
 VERIFY_SIGNATURES=${VERIFY_SIGNATURES:-false}

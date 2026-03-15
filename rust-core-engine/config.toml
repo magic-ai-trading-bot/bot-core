@@ -57,7 +57,8 @@ cache_size = 500
 
 # Python AI service URL for market analysis
 # You need to run a separate Python service that accepts analysis requests
-python_ai_service_url = "http://python-ai-service-dev:8000"
+# Python AI service removed — set to empty to disable AI analysis calls
+python_ai_service_url = ""
 
 [trading]
 # IMPORTANT: Set to true only when you're ready for live trading
@@ -243,12 +244,11 @@ extreme_overbought = 90.0        # Ultra-extreme zone
 # Enable/disable hybrid trend filter
 enabled = true
 
-# Use ML prediction (requires Python AI service)
-# If false, only uses multi-timeframe technical analysis
-use_ml = true
+# Use ML prediction (requires Python AI service — currently removed)
+use_ml = false
 
-# ML service configuration
-ml_service_url = "http://python-ai-service-dev:8000"
+# ML service configuration (disabled — Python AI service removed)
+ml_service_url = ""
 ml_timeout_ms = 2000
 ml_min_confidence = 0.65
 ml_fallback_on_error = true

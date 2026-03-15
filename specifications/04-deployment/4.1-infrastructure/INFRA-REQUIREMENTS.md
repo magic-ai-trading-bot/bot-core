@@ -47,13 +47,13 @@ This document defines the infrastructure requirements for the Bot Core cryptocur
 │                    Bot Core Platform                         │
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  Frontend    │  │     Rust     │  │    Python    │      │
-│  │  Dashboard   │  │    Engine    │  │  AI Service  │      │
-│  │  (Port 3000) │  │  (Port 8080) │  │  (Port 8000) │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│         │                 │                  │               │
-│         └─────────────────┼──────────────────┘               │
+│  ┌──────────────┐  ┌──────────────┐                         │
+│  │  Frontend    │  │     Rust     │                         │
+│  │  Dashboard   │  │    Engine    │                         │
+│  │  (Port 3000) │  │  (Port 8080) │                         │
+│  └──────────────┘  └──────────────┘                         │
+│         │                 │                                  │
+│         └─────────────────┘                                  │
 │                           │                                  │
 │                  ┌────────▼────────┐                        │
 │                  │    MongoDB      │                        │
@@ -122,12 +122,6 @@ Differences allowed:
 - Build Mode: Debug
 - Environment: `RUST_LOG=debug`, `RUST_BACKTRACE=1`
 
-- Memory: 1.5GB limit
-- CPU: 1.5 cores
-- Storage: 3GB (models + data + cache)
-- Hot Reload: Enabled via uvicorn --reload
-- Environment: `LOG_LEVEL=DEBUG`, `PYTHONUNBUFFERED=1`
-
 **MongoDB (Development):**
 - Memory: 512MB limit
 - CPU: 0.5 cores
@@ -135,9 +129,9 @@ Differences allowed:
 - Replication: None (single instance)
 
 **Total Development Resources:**
-- Memory: 4.3GB
-- CPU: 4.5 cores
-- Storage: 20GB
+- Memory: 2.8GB
+- CPU: 3.0 cores
+- Storage: 17GB
 
 ### 3.3 Network Configuration
 
@@ -150,7 +144,6 @@ Differences allowed:
 **Exposed Ports:**
 - 3000: Frontend Dashboard (HTTP)
 - 8080: Rust Core Engine API (HTTP)
-- 8000: Python AI Service API (HTTP)
 - 24678: Vite HMR WebSocket
 - 27017: MongoDB (localhost only)
 
@@ -158,9 +151,7 @@ Differences allowed:
 ```yaml
 nextjs-ui-dashboard-dev → http://localhost:8080 (Rust API)
                         → ws://localhost:8080/ws (WebSocket)
-
-                     → mongodb://mongodb:27017 (Database)
-
+rust-core-engine-dev    → mongodb://mongodb:27017 (Database)
 ```
 
 ### 3.4 Storage Requirements
@@ -728,7 +719,6 @@ export NODE_MEMORY="512"
 |---------|------|----------|--------|
 | Frontend | 3000 | HTTP | Public |
 | Rust Engine | 8080 | HTTP/WS | Public (via ALB) |
-| Python AI | 8000 | HTTP | Internal |
 | MongoDB | 27017 | TCP | Internal |
 | Redis | 6379 | TCP | Internal |
 | RabbitMQ | 5672 | AMQP | Internal |

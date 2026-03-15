@@ -38,7 +38,7 @@ if [ -z "$GIT_SHA" ] || [ "$GIT_SHA" = "auto-detect" ]; then
 fi
 
 # Services to build
-SERVICES=("rust-core-engine" "python-ai-service" "nextjs-ui-dashboard")
+SERVICES=("rust-core-engine" "nextjs-ui-dashboard" "mcp-server")
 
 # Build options
 BUILD_PARALLEL=${BUILD_PARALLEL:-false}

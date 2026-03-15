@@ -1,7 +1,7 @@
 # API-WEBSOCKET.md - WebSocket Protocol Specification
 
 **Version:** 1.0.0
-**Services:** Rust Core Engine (Port 8080), Python AI Service (Port 8000)
+**Services:** Rust Core Engine (Port 8080)
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@
 
 ## Overview
 
-The Bot Core trading platform uses WebSocket connections for real-time bidirectional communication between services and clients. Two WebSocket servers are available:
+The Bot Core trading platform uses WebSocket connections for real-time bidirectional communication between services and clients. The WebSocket server is:
 
 1. **Rust Core Engine WebSocket** (`ws://localhost:8080/ws`)
    - Market data updates
@@ -25,7 +25,6 @@ The Bot Core trading platform uses WebSocket connections for real-time bidirecti
    - Position updates
    - Bot status changes
    - Chart updates
-
    - AI signal generation
    - Real-time analysis results
    - Connection status
@@ -93,52 +92,6 @@ ws.onclose = (event) => {
 **Code Location:** `rust-core-engine/src/api/mod.rs:142-145, 486-534`
 
 ---
-
-### Python AI Service WebSocket
-
-
-**Connection Request:**
-```http
-GET /ws HTTP/1.1
-Upgrade: websocket
-Connection: Upgrade
-Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
-Sec-WebSocket-Version: 13
-```
-
-**Connection Response:**
-```http
-HTTP/1.1 101 Switching Protocols
-Upgrade: websocket
-Connection: Upgrade
-Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-```
-
-**Welcome Message:**
-```json
-{
-  "type": "connection",
-  "message": "Connected to AI Trading Service",
-  "timestamp": "2025-10-10T10:30:00.000000+00:00"
-}
-```
-
-**Python Example:**
-```python
-import asyncio
-import websockets
-import json
-
-async def connect_ai_websocket():
-    async with websockets.connect(uri) as websocket:
-        print("✅ Connected to AI WebSocket")
-
-        async for message in websocket:
-            data = json.loads(message)
-            print(f"📨 Received: {data}")
-            await handle_ai_signal(data)
-```
-
 
 ---
 
@@ -379,7 +332,7 @@ case 'TradeExecuted':
 
 ### 6. AISignalReceived
 
-**Direction:** Server → Client (Both Rust Core and Python AI)
+**Direction:** Server → Client (Rust Core)
 **Description:** AI trading signal generated
 **Frequency:** On signal generation (every 5 minutes or on-demand)
 
@@ -511,7 +464,7 @@ case 'BotStatusUpdate':
 
 ### 8. Error
 
-**Direction:** Server → Client (Both services)
+**Direction:** Server → Client (Rust Core)
 **Description:** Error notification
 **Frequency:** On error occurrence
 
@@ -546,7 +499,7 @@ case 'BotStatusUpdate':
 - `INSUFFICIENT_BALANCE` - Not enough balance
 - `INVALID_POSITION` - Position not found or invalid
 - `MARKET_DATA_ERROR` - Market data fetch failed
-- `AI_SERVICE_ERROR` - AI service unavailable
+- `AI_SERVICE_ERROR` - AI analysis unavailable
 - `WEBSOCKET_ERROR` - WebSocket connection error
 
 **Frontend Handling:**
@@ -579,7 +532,7 @@ case 'Error':
 
 ### 9. Pong
 
-**Direction:** Server → Client (Both services)
+**Direction:** Server → Client (Rust Core)
 **Description:** Heartbeat response to Ping
 **Frequency:** In response to client Ping
 
@@ -914,7 +867,6 @@ ws.onopen = () => {
 ## Related Documentation
 
 - [API-RUST-CORE.md](./API-RUST-CORE.md) - Rust Core Engine API
-- [API-PYTHON-AI.md](./API-PYTHON-AI.md) - Python AI Service API
 - [API-SEQUENCES.mermaid](./API-SEQUENCES.mermaid) - API Sequence Diagrams
 - [Functional Requirements](/specs/01-requirements/1.2-functional/FUNCTIONAL_REQUIREMENTS.md)
 

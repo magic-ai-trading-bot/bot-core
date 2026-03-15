@@ -186,6 +186,12 @@ impl MarketDataAnalyzer {
         };
 
         let ai_service_url = &self.ai_service_url;
+        // Skip AI analysis if service URL is empty (Python AI service removed)
+        if ai_service_url.is_empty() {
+            return Err(anyhow::anyhow!(
+                "AI service URL not configured — Python AI service is disabled"
+            ));
+        }
         let url = format!("{ai_service_url}/ai/analyze");
 
         debug!(

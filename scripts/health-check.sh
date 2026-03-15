@@ -301,9 +301,7 @@ fi
 # 2. Python AI Service
 print_section "2. Python AI Service (Port $PYTHON_PORT)"
 
-check_api_health "Python Health" "http://localhost:$PYTHON_PORT/health" "status"
-check_http_endpoint "Python API" "http://localhost:$PYTHON_PORT/docs" 200
-check_docker_container "python-ai-service"
+# Python AI service removed — checks skipped
 
 # 3. Frontend Dashboard
 print_section "3. Frontend Dashboard (Port $FRONTEND_PORT)"

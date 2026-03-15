@@ -14,7 +14,7 @@
 - [x] Trading metrics collection (PnL, win rate, drawdown, Sharpe)
 - [x] Connection status tracking (WebSocket, API, reconnect count)
 - [x] REST API endpoints for monitoring data (`/api/monitoring/*`)
-- [x] MCP tool exposure (7 tools: 4 in `monitoring.ts` + 3 in `health.ts`)
+- [x] MCP tool exposure (6 tools: 3 in `monitoring.ts` + 3 in `health.ts`)
 - [x] Health check endpoints for all services
 - [x] AI pipeline deep health check
 - [x] Sysinfo integration for real CPU/memory readings
@@ -185,18 +185,6 @@
 
 
 
-**Priority**: Medium
-**Status**: Completed
-**Code**: `mcp-server/src/tools/monitoring.ts:get_python_health`
-
-
-
-**Tool**: `get_python_health`
-
-**Timeout**: 5 seconds
-
----
-
 ### FR-MONITORING-007: Service Logs Summary
 
 **Priority**: Medium
@@ -206,7 +194,7 @@
 **Description**: Aggregate recent error/warning logs from services.
 
 **Tool**: `get_service_logs_summary`
-**Input**: `{ service: "rust" | "python" | "all" }`
+**Input**: `{ service: "rust" | "all" }`
 **Sources**:
 - Rust: `GET /api/monitoring/system`
 
@@ -221,7 +209,7 @@
 |---|---|
 | `rust-core-engine/src/monitoring/mod.rs` | `MonitoringService` struct, all metrics types |
 | `rust-core-engine/src/api/mod.rs` | REST routes (`monitoring_routes()`), `update_monitoring()` |
-| `mcp-server/src/tools/monitoring.ts` | MCP tools: `get_system_monitoring`, `get_trading_metrics`, `get_connection_status`, `get_python_health` |
+| `mcp-server/src/tools/monitoring.ts` | MCP tools: `get_system_monitoring`, `get_trading_metrics`, `get_connection_status` |
 | `mcp-server/src/tools/health.ts` | MCP tools: `check_system_health`, `get_service_logs_summary`, `check_market_condition_health` |
 
 ### REST API Endpoints (Rust, port 8080)
@@ -233,7 +221,7 @@
 | GET | `/api/monitoring/connection` | None | Connection status |
 | GET | `/api/health` | None | Basic health check |
 
-### MCP Tools (7 total)
+### MCP Tools (6 total)
 
 | Tool | Category | Endpoint |
 |---|---|---|

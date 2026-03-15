@@ -2357,7 +2357,7 @@ All error responses follow this structure:
 | POSITION_NOT_FOUND | No open position found | Trading position doesn't exist |
 | INSUFFICIENT_BALANCE | Insufficient balance | Not enough balance for operation |
 | RATE_LIMIT_EXCEEDED | Too many requests | API rate limit exceeded |
-| AI_SERVICE_ERROR | AI service unavailable | Python AI service is down or unreachable |
+| AI_SERVICE_ERROR | AI analysis unavailable | Rust-based AI analysis failed or unavailable |
 | AI_ANALYSIS_IN_PROGRESS | AI analysis already in progress | Duplicate AI analysis request |
 | MARKET_DATA_ERROR | Failed to fetch market data | Market data retrieval failed |
 
@@ -2448,7 +2448,6 @@ CORS is enabled for the following origins:
 
 ## Related Documentation
 
-- [API-PYTHON-AI.md](./API-PYTHON-AI.md) - Python AI Service API
 - [API-WEBSOCKET.md](./API-WEBSOCKET.md) - WebSocket Protocol
 - [API-SEQUENCES.mermaid](./API-SEQUENCES.mermaid) - API Sequence Diagrams
 - [Functional Requirements](/specs/01-requirements/1.2-functional/FUNCTIONAL_REQUIREMENTS.md)

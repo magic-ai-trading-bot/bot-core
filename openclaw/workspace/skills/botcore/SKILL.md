@@ -312,8 +312,8 @@ If a user asks to restart services, tell them to restart the Docker container fr
 ## 1. System Health & Monitoring (2 tools)
 
 ```bash
-botcore check_system_health                              # All services health (Rust, Python, MongoDB)
-botcore get_service_logs_summary '{"service":"all"}'      # Error/warning logs (all|rust|python)
+botcore check_system_health                              # All services health (Rust, MCP, MongoDB)
+botcore get_service_logs_summary '{"service":"all"}'      # Error/warning logs (all|rust)
 ```
 
 ## 2. Market Data (8 tools)
@@ -594,22 +594,9 @@ botcore get_ai_info                     # AI service capabilities
 botcore get_ai_strategies               # Available AI strategies
 ```
 
-### Python API (6 tools)
-```bash
-botcore get_ai_performance              # ML model accuracy metrics
-
-botcore get_ai_config_suggestions       # AI config optimization suggestions
-botcore get_ai_analysis_history         # AI analysis history
-botcore get_ai_storage_stats            # Model storage usage
-botcore clear_ai_storage                # Clear AI cache
-```
-
-## 6. AI Tasks & Chat (7 tools)
+## 6. AI Tasks & Chat (4 tools)
 
 ```bash
-botcore trigger_config_analysis         # Trigger AI config optimization (2 min)
-botcore predict_trend '{"symbol":"BTCUSDT","timeframe":"4h"}'  # ML trend prediction
-botcore get_ai_config_suggestions_python  # Config suggestions from Python
 botcore chat_with_project '{"message":"How does the RSI strategy work?"}'
 botcore get_chat_suggestions            # Suggested questions
 botcore clear_chat_history              # Clear chat history
