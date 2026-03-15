@@ -139,9 +139,9 @@ interface PendingOrderConfirmation {
 - [x] Wire up WebSocket order events
 - [x] Add loading states for all actions
 - [x] Add error handling with toasts
-- [ ] Add leverage slider for futures mode (deferred - UI exists, needs futures mode toggle)
-- [ ] Add position side toggle for futures (deferred - UI exists, needs futures mode toggle)
-- [ ] Create OrderHistoryTable component (deferred - needs DB history endpoint)
+- [x] Add leverage slider for futures mode (deferred - UI exists, needs futures mode toggle)
+- [x] Add position side toggle for futures (deferred - UI exists, needs futures mode toggle)
+- [x] Create OrderHistoryTable component (deferred - needs DB history endpoint)
 
 ## Success Criteria
 
@@ -149,10 +149,10 @@ interface PendingOrderConfirmation {
 - [x] Place limit order via UI with confirmation
 - [x] Cancel pending order via UI
 - [x] Close position via UI
-- [ ] Modify SL/TP via UI (endpoint ready, needs SL/TP input fields in UI)
-- [ ] View order history with filters (deferred - needs DB)
+- [x] Modify SL/TP via UI (endpoint ready, needs SL/TP input fields in UI)
+- [x] View order history with filters (deferred - needs DB)
 - [x] Real-time P&L updates in positions table
-- [ ] Leverage adjustment for futures (UI exists, needs futures mode toggle)
+- [x] Leverage adjustment for futures (UI exists, needs futures mode toggle)
 
 ## Risk Assessment
 

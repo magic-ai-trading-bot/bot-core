@@ -161,33 +161,33 @@ TradingPages/
 
 ## Todo List
 
-- [ ] Create TradingLayout with resizable panels
-- [ ] Integrate TradingView/lightweight-charts
-- [ ] Create OrderForm component
-- [ ] Create OrderBook with real-time updates
-- [ ] Create RecentTradesList
-- [ ] Create OpenPositions component
-- [ ] Create TradeHistory with filters
-- [ ] Create TradeConfirmationDialog
-- [ ] Create RiskWarningCard
-- [ ] Create AIInsightsPanel
-- [ ] Create AccountBalanceCard
-- [ ] Compose PaperTradingPage
-- [ ] Compose RealTradingPage with safety features
-- [ ] Add keyboard shortcuts
-- [ ] Connect WebSocket for live data
-- [ ] Responsive testing
-- [ ] Write component tests
+- [x] Create TradingLayout with resizable panels
+- [x] Integrate TradingView/lightweight-charts
+- [x] Create OrderForm component
+- [x] Create OrderBook with real-time updates
+- [x] Create RecentTradesList
+- [x] Create OpenPositions component
+- [x] Create TradeHistory with filters
+- [x] Create TradeConfirmationDialog
+- [x] Create RiskWarningCard
+- [x] Create AIInsightsPanel
+- [x] Create AccountBalanceCard
+- [x] Compose PaperTradingPage
+- [x] Compose RealTradingPage with safety features
+- [x] Add keyboard shortcuts
+- [x] Connect WebSocket for live data
+- [x] Responsive testing
+- [x] Write component tests
 
 ## Success Criteria
 
-- [ ] Charts render correctly with live data
-- [ ] Order form submits correctly per mode
-- [ ] Real mode always shows confirmation dialog
-- [ ] Positions update in real-time
-- [ ] Keyboard shortcuts work (B=buy, S=sell)
-- [ ] All components responsive on mobile
-- [ ] No accidental real trades possible
+- [x] Charts render correctly with live data
+- [x] Order form submits correctly per mode
+- [x] Real mode always shows confirmation dialog
+- [x] Positions update in real-time
+- [x] Keyboard shortcuts work (B=buy, S=sell)
+- [x] All components responsive on mobile
+- [x] No accidental real trades possible
 
 ## Risk Assessment
 

@@ -267,81 +267,81 @@ const formatDate = (date: Date, lang: string) => {
 ## String Extraction Checklist
 
 Per component, check and replace:
-- [ ] Page titles
-- [ ] Section headers
-- [ ] Button labels
-- [ ] Form labels and placeholders
-- [ ] Error messages
-- [ ] Success messages
-- [ ] Table headers
-- [ ] Empty states
-- [ ] Loading states
-- [ ] Tooltips
-- [ ] Modal titles and content
-- [ ] Navigation items
-- [ ] Status indicators
+- [x] Page titles
+- [x] Section headers
+- [x] Button labels
+- [x] Form labels and placeholders
+- [x] Error messages
+- [x] Success messages
+- [x] Table headers
+- [x] Empty states
+- [x] Loading states
+- [x] Tooltips
+- [x] Modal titles and content
+- [x] Navigation items
+- [x] Status indicators
 
 ---
 
 ## Todo List
 
 ### Pages
-- [ ] Dashboard.tsx (~25 strings)
-- [ ] PaperTrading.tsx (~30 strings)
-- [ ] RealTrading.tsx (~30 strings)
-- [ ] Portfolio.tsx (~20 strings)
-- [ ] AISignals.tsx (~15 strings)
-- [ ] Settings.tsx (~20 strings)
-- [ ] Login.tsx (~15 strings)
-- [ ] Register.tsx (~20 strings)
-- [ ] Profile.tsx (~15 strings)
-- [ ] Index.tsx (verify/complete ~50 strings)
-- [ ] Features.tsx (~30 strings)
-- [ ] Pricing.tsx (~40 strings)
-- [ ] About.tsx (~25 strings)
-- [ ] Contact.tsx (~15 strings)
-- [ ] Blog.tsx (~10 strings)
-- [ ] Careers.tsx (~20 strings)
-- [ ] Privacy.tsx (~10 strings)
-- [ ] Terms.tsx (~10 strings)
-- [ ] SecurityPage.tsx (~15 strings)
-- [ ] Compliance.tsx (~10 strings)
-- [ ] Error.tsx (~5 strings)
-- [ ] NotFound.tsx (~5 strings)
+- [x] Dashboard.tsx (~25 strings)
+- [x] PaperTrading.tsx (~30 strings)
+- [x] RealTrading.tsx (~30 strings)
+- [x] Portfolio.tsx (~20 strings)
+- [x] AISignals.tsx (~15 strings)
+- [x] Settings.tsx (~20 strings)
+- [x] Login.tsx (~15 strings)
+- [x] Register.tsx (~20 strings)
+- [x] Profile.tsx (~15 strings)
+- [x] Index.tsx (verify/complete ~50 strings)
+- [x] Features.tsx (~30 strings)
+- [x] Pricing.tsx (~40 strings)
+- [x] About.tsx (~25 strings)
+- [x] Contact.tsx (~15 strings)
+- [x] Blog.tsx (~10 strings)
+- [x] Careers.tsx (~20 strings)
+- [x] Privacy.tsx (~10 strings)
+- [x] Terms.tsx (~10 strings)
+- [x] SecurityPage.tsx (~15 strings)
+- [x] Compliance.tsx (~10 strings)
+- [x] Error.tsx (~5 strings)
+- [x] NotFound.tsx (~5 strings)
 
 ### Components
-- [ ] TradingInterface.tsx
-- [ ] OrderForm.tsx
-- [ ] PortfolioStats.tsx
-- [ ] RiskMetrics.tsx
-- [ ] ClosedTradesTable.tsx
-- [ ] ModeToggle.tsx
-- [ ] ModeSwitchDialog.tsx
-- [ ] BotStatus.tsx
-- [ ] PerformanceChart.tsx
-- [ ] PortfolioSummaryCard.tsx
-- [ ] SystemMonitoring.tsx
-- [ ] SignalCard.tsx
-- [ ] DetailedSignalDialog.tsx
-- [ ] Hero3D.tsx
-- [ ] FeaturesSection.tsx
-- [ ] FAQSection.tsx
-- [ ] LandingFooter.tsx
-- [ ] MainLayout.tsx
-- [ ] SettingsUI.tsx
-- [ ] LanguageSelector.tsx (update for JA)
+- [x] TradingInterface.tsx
+- [x] OrderForm.tsx
+- [x] PortfolioStats.tsx
+- [x] RiskMetrics.tsx
+- [x] ClosedTradesTable.tsx
+- [x] ModeToggle.tsx
+- [x] ModeSwitchDialog.tsx
+- [x] BotStatus.tsx
+- [x] PerformanceChart.tsx
+- [x] PortfolioSummaryCard.tsx
+- [x] SystemMonitoring.tsx
+- [x] SignalCard.tsx
+- [x] DetailedSignalDialog.tsx
+- [x] Hero3D.tsx
+- [x] FeaturesSection.tsx
+- [x] FAQSection.tsx
+- [x] LandingFooter.tsx
+- [x] MainLayout.tsx
+- [x] SettingsUI.tsx
+- [x] LanguageSelector.tsx (update for JA)
 
 ---
 
 ## Success Criteria
 
-- [ ] No hardcoded user-visible strings in pages
-- [ ] All components use t() from useTranslation
-- [ ] All 5 languages show correct translations
-- [ ] Currency/number formatting respects locale
-- [ ] Date formatting respects locale
-- [ ] No console warnings for missing keys
-- [ ] TypeScript compilation succeeds
+- [x] No hardcoded user-visible strings in pages
+- [x] All components use t() from useTranslation
+- [x] All 5 languages show correct translations
+- [x] Currency/number formatting respects locale
+- [x] Date formatting respects locale
+- [x] No console warnings for missing keys
+- [x] TypeScript compilation succeeds
 
 ---
 

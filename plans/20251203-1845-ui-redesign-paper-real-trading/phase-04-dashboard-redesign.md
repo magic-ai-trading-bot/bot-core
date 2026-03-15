@@ -122,30 +122,30 @@ Dashboard/
 
 ## Todo List
 
-- [ ] Create BentoGrid layout component
-- [ ] Create PortfolioSummaryCard
-- [ ] Create PriceTickerRow with flash animations
-- [ ] Create PerformanceWidget with Recharts
-- [ ] Create AISignalsWidget
-- [ ] Create RecentTradesWidget
-- [ ] Create RiskMetricsWidget with gauges
-- [ ] Create MarketOverviewWidget
-- [ ] Create QuickActionsBar
-- [ ] Compose Dashboard page
-- [ ] Connect WebSocket for real-time data
-- [ ] Add skeleton loading states
-- [ ] Add stagger animations
-- [ ] Responsive testing
-- [ ] Write widget tests
+- [x] Create BentoGrid layout component
+- [x] Create PortfolioSummaryCard
+- [x] Create PriceTickerRow with flash animations
+- [x] Create PerformanceWidget with Recharts
+- [x] Create AISignalsWidget
+- [x] Create RecentTradesWidget
+- [x] Create RiskMetricsWidget with gauges
+- [x] Create MarketOverviewWidget
+- [x] Create QuickActionsBar
+- [x] Compose Dashboard page
+- [x] Connect WebSocket for real-time data
+- [x] Add skeleton loading states
+- [x] Add stagger animations
+- [x] Responsive testing
+- [x] Write widget tests
 
 ## Success Criteria
 
-- [ ] Dashboard loads with skeleton < 500ms
-- [ ] Real-time updates smooth (no flicker)
-- [ ] Bento grid responsive on all breakpoints
-- [ ] Mode indicator clearly visible
-- [ ] All widgets display correct data
-- [ ] Quick actions work correctly
+- [x] Dashboard loads with skeleton < 500ms
+- [x] Real-time updates smooth (no flicker)
+- [x] Bento grid responsive on all breakpoints
+- [x] Mode indicator clearly visible
+- [x] All widgets display correct data
+- [x] Quick actions work correctly
 
 ## Risk Assessment
 

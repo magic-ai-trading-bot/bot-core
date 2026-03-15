@@ -24,17 +24,17 @@ Extract reusable components from TradingPaper.tsx (2,148 lines) into mode-agnost
 ## Requirements
 
 ### Functional
-- [ ] Extract 8-10 reusable components from TradingPaper.tsx
-- [ ] Create shared TradingDashboard layout
-- [ ] Mode-agnostic portfolio display
-- [ ] Mode-agnostic trade tables
-- [ ] Mode-specific warning banners
+- [x] Extract 8-10 reusable components from TradingPaper.tsx
+- [x] Create shared TradingDashboard layout
+- [x] Mode-agnostic portfolio display
+- [x] Mode-agnostic trade tables
+- [x] Mode-specific warning banners
 
 ### Non-Functional
-- [ ] TradingPaper.tsx reduced to <500 lines
-- [ ] 80%+ component reuse for TradingReal
-- [ ] No functionality regression
-- [ ] Maintain existing test coverage
+- [x] TradingPaper.tsx reduced to <500 lines
+- [x] 80%+ component reuse for TradingReal
+- [x] No functionality regression
+- [x] Maintain existing test coverage
 
 ## Architecture
 
@@ -435,20 +435,20 @@ export default function TradingPaper() {
 
 ## Todo List
 
-- [ ] Create shared/ directory structure
-- [ ] Create TradingDashboardLayout.tsx
-- [ ] Create TradingHeader.tsx
-- [ ] Create PortfolioOverview.tsx
-- [ ] Create WarningBanner.tsx
-- [ ] Create QuickActionsPanel.tsx
-- [ ] Enhance OpenPositionsTable.tsx
-- [ ] Enhance ClosedTradesTable.tsx
-- [ ] Enhance TradingSettingsPanel.tsx
-- [ ] Refactor TradingPaper.tsx to use new components
-- [ ] Verify all existing functionality preserved
-- [ ] Update imports across codebase
-- [ ] Write component tests
-- [ ] Update Storybook stories (if exists)
+- [x] Create shared/ directory structure
+- [x] Create TradingDashboardLayout.tsx
+- [x] Create TradingHeader.tsx
+- [x] Create PortfolioOverview.tsx
+- [x] Create WarningBanner.tsx
+- [x] Create QuickActionsPanel.tsx
+- [x] Enhance OpenPositionsTable.tsx
+- [x] Enhance ClosedTradesTable.tsx
+- [x] Enhance TradingSettingsPanel.tsx
+- [x] Refactor TradingPaper.tsx to use new components
+- [x] Verify all existing functionality preserved
+- [x] Update imports across codebase
+- [x] Write component tests
+- [x] Update Storybook stories (if exists)
 
 ## Success Criteria
 

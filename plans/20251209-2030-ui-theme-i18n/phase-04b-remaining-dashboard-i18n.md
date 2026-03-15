@@ -1,6 +1,6 @@
 # Phase 04B: Remaining Dashboard Pages i18n
 
-**Priority**: High | **Status**: In Progress | **Est. Effort**: 4 hours
+**Priority**: High | **Status**: Done | **Est. Effort**: 4 hours
 
 ---
 
@@ -190,31 +190,31 @@ Same pattern as Step 2 (largest file, most strings)
 
 ## Todo List
 
-- [ ] Update en/dashboard.json with portfolio, aiSignals, tradeAnalyses, profile, realTrading keys
-- [ ] Update vi/dashboard.json with Vietnamese translations
-- [ ] Update en/pages.json with howItWorks keys
-- [ ] Update vi/pages.json with Vietnamese translations
-- [ ] Update en/errors.json with notFound, error keys
-- [ ] Update vi/errors.json with Vietnamese translations
-- [ ] Portfolio.tsx - add useTranslation('dashboard')
-- [ ] AISignals.tsx - add useTranslation('dashboard')
-- [ ] TradeAnalyses.tsx - add useTranslation('dashboard')
-- [ ] Profile.tsx - add useTranslation('dashboard')
-- [ ] RealTrading.tsx - add useTranslation('dashboard')
-- [ ] HowItWorks.tsx - add useTranslation('pages')
-- [ ] NotFound.tsx - add useTranslation('errors')
-- [ ] Error.tsx - add useTranslation('errors')
-- [ ] Test all pages with Vietnamese locale
+- [x] Update en/dashboard.json with portfolio, aiSignals, tradeAnalyses, profile, realTrading keys
+- [x] Update vi/dashboard.json with Vietnamese translations
+- [x] Update en/pages.json with howItWorks keys
+- [x] Update vi/pages.json with Vietnamese translations
+- [x] Update en/errors.json with notFound, error keys
+- [x] Update vi/errors.json with Vietnamese translations
+- [x] Portfolio.tsx - add useTranslation('dashboard')
+- [x] AISignals.tsx - add useTranslation('dashboard')
+- [x] TradeAnalyses.tsx - add useTranslation('dashboard')
+- [x] Profile.tsx - add useTranslation('dashboard')
+- [x] RealTrading.tsx - add useTranslation('dashboard')
+- [x] HowItWorks.tsx - add useTranslation('pages')
+- [x] NotFound.tsx - add useTranslation('errors')
+- [x] Error.tsx - add useTranslation('errors')
+- [x] Test all pages with Vietnamese locale
 
 ---
 
 ## Success Criteria
 
-- [ ] All 8 pages have `useTranslation()` hook
-- [ ] No hardcoded English text visible in UI
-- [ ] Vietnamese translations display correctly
-- [ ] No console warnings for missing keys
-- [ ] TypeScript compiles without errors
+- [x] All 8 pages have `useTranslation()` hook
+- [x] No hardcoded English text visible in UI
+- [x] Vietnamese translations display correctly
+- [x] No console warnings for missing keys
+- [x] TypeScript compiles without errors
 
 ---
 

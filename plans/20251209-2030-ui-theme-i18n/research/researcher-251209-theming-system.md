@@ -238,32 +238,32 @@ const ThemeToggle = () => {
 ## Implementation Roadmap
 
 ### Phase 1: Setup (Day 1)
-- [ ] Update `tailwind.config.ts`: enable class mode + custom luxury colors
-- [ ] Create CSS variables in `globals.css` (light & dark modes)
-- [ ] Add FOUC prevention script to `index.html`
+- [x] Update `tailwind.config.ts`: enable class mode + custom luxury colors
+- [x] Create CSS variables in `globals.css` (light & dark modes)
+- [x] Add FOUC prevention script to `index.html`
 
 ### Phase 2: Context (Day 1-2)
-- [ ] Create `lib/theme-context.tsx` with optimized provider
-- [ ] Wrap root component in `ThemeProvider`
-- [ ] Create `useTheme()` hook for components
+- [x] Create `lib/theme-context.tsx` with optimized provider
+- [x] Wrap root component in `ThemeProvider`
+- [x] Create `useTheme()` hook for components
 
 ### Phase 3: UI Component (Day 2)
-- [ ] Build theme toggle with Shadcn Button + DropdownMenu
-- [ ] Test system preference detection
-- [ ] Verify localStorage persistence
+- [x] Build theme toggle with Shadcn Button + DropdownMenu
+- [x] Test system preference detection
+- [x] Verify localStorage persistence
 
 ### Phase 4: Testing (Day 2-3)
-- [ ] Test light → dark transition smoothness
-- [ ] Verify FOUC prevention
-- [ ] Test localStorage across sessions
-- [ ] Accessibility audit (ARIA, reduced motion)
-- [ ] Test across devices (mobile, tablet, desktop)
+- [x] Test light → dark transition smoothness
+- [x] Verify FOUC prevention
+- [x] Test localStorage across sessions
+- [x] Accessibility audit (ARIA, reduced motion)
+- [x] Test across devices (mobile, tablet, desktop)
 
 ### Phase 5: Luxury Polish (Day 3)
-- [ ] Fine-tune color values for both modes
-- [ ] Add micro-animations to toggle
-- [ ] Update design guidelines doc
-- [ ] Complete @spec tags in code
+- [x] Fine-tune color values for both modes
+- [x] Add micro-animations to toggle
+- [x] Update design guidelines doc
+- [x] Complete @spec tags in code
 
 ---
 

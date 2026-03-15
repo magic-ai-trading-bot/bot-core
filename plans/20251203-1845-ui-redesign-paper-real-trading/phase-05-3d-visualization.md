@@ -23,16 +23,16 @@ Add optional 3D visualizations using Three.js + React Three Fiber: interactive p
 ## Requirements
 
 ### Functional
-- [ ] 3D Portfolio pie chart (interactive, rotatable)
-- [ ] 3D Performance timeline (line chart with depth)
-- [ ] Hero section 3D elements (optional)
-- [ ] Fallback to 2D charts on low-end devices
+- [x] 3D Portfolio pie chart (interactive, rotatable)
+- [x] 3D Performance timeline (line chart with depth)
+- [x] Hero section 3D elements (optional)
+- [x] Fallback to 2D charts on low-end devices
 
 ### Non-Functional
-- [ ] 60fps on modern hardware
-- [ ] <3s initial load time
-- [ ] <50MB GPU memory usage
-- [ ] Works without WebGL (fallback)
+- [x] 60fps on modern hardware
+- [x] <3s initial load time
+- [x] <50MB GPU memory usage
+- [x] Works without WebGL (fallback)
 
 ## Architecture
 
@@ -428,18 +428,18 @@ export function PortfolioOverview({ assets, totalValue, ...props }) {
 
 ## Todo List
 
-- [ ] Install three, @react-three/fiber, @react-three/drei
-- [ ] Create Canvas3D wrapper component
-- [ ] Create Portfolio3D pie chart
-- [ ] Create PerformanceTimeline3D line chart
-- [ ] Create use3DEnabled hook with WebGL detection
-- [ ] Implement 2D fallback for each 3D component
-- [ ] Add hover interactions to 3D elements
-- [ ] Optimize for 60fps performance
-- [ ] Test on mobile devices
-- [ ] Add loading states for 3D scenes
-- [ ] Test reduced motion preference
-- [ ] Profile GPU memory usage
+- [x] Install three, @react-three/fiber, @react-three/drei
+- [x] Create Canvas3D wrapper component
+- [x] Create Portfolio3D pie chart
+- [x] Create PerformanceTimeline3D line chart
+- [x] Create use3DEnabled hook with WebGL detection
+- [x] Implement 2D fallback for each 3D component
+- [x] Add hover interactions to 3D elements
+- [x] Optimize for 60fps performance
+- [x] Test on mobile devices
+- [x] Add loading states for 3D scenes
+- [x] Test reduced motion preference
+- [x] Profile GPU memory usage
 
 ## Success Criteria
 

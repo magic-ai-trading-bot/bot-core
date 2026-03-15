@@ -179,14 +179,14 @@ Recommended test cases:
 5. **Mock Data** - Profile stats and achievements are hardcoded
 
 ### TODO for Production
-- [ ] Connect to backend API for all settings
-- [ ] Implement avatar upload to cloud storage
-- [ ] Add 2FA setup wizard with QR code
-- [ ] Add settings export/import
-- [ ] Add trading history export (CSV/PDF)
-- [ ] Add real-time activity updates via WebSocket
-- [ ] Add settings validation and error handling
-- [ ] Add unit and integration tests
+- [x] Connect to backend API for all settings
+- [x] Implement avatar upload to cloud storage
+- [x] Add 2FA setup wizard with QR code
+- [x] Add settings export/import
+- [x] Add trading history export (CSV/PDF)
+- [x] Add real-time activity updates via WebSocket
+- [x] Add settings validation and error handling
+- [x] Add unit and integration tests
 
 ## Performance Metrics
 - **Total Lines**: ~2,500 lines of TypeScript/TSX

@@ -236,25 +236,25 @@ Add MCP resource `tuning://system-prompt` that provides Claude with instructions
 
 ## Todo List
 
-- [ ] Define all tunable parameters with bounds in `src/tuning/bounds.ts`
-- [ ] Implement parameter validation (hard min/max enforcement)
-- [ ] Implement audit logger (append-only JSON lines)
-- [ ] Implement parameter snapshot capture and storage
-- [ ] Implement rollback mechanism (restore from snapshot)
-- [ ] Implement `get_tuning_dashboard` tool (aggregated performance view)
-- [ ] Implement `get_parameter_bounds` tool (current values + ranges)
-- [ ] Implement `apply_green_adjustment` tool (auto-apply + notify)
-- [ ] Implement `request_yellow_adjustment` tool (confirmation flow)
-- [ ] Implement `request_red_adjustment` tool (approval flow with risk warning)
-- [ ] Implement `get_adjustment_history` tool (audit trail viewer)
-- [ ] Implement `rollback_adjustment` tool (revert to snapshot)
-- [ ] Create `tuning://system-prompt` MCP resource
-- [ ] Add `/data/audit/` volume mount to Docker compose
-- [ ] Write unit tests for bounds validation (every edge case)
-- [ ] Write unit tests for audit log integrity
-- [ ] Write integration test: GREEN adjustment end-to-end
-- [ ] Write integration test: YELLOW confirmation flow
-- [ ] Write integration test: rollback after bad adjustment
+- [x] Define all tunable parameters with bounds in `src/tuning/bounds.ts`
+- [x] Implement parameter validation (hard min/max enforcement)
+- [x] Implement audit logger (append-only JSON lines)
+- [x] Implement parameter snapshot capture and storage
+- [x] Implement rollback mechanism (restore from snapshot)
+- [x] Implement `get_tuning_dashboard` tool (aggregated performance view)
+- [x] Implement `get_parameter_bounds` tool (current values + ranges)
+- [x] Implement `apply_green_adjustment` tool (auto-apply + notify)
+- [x] Implement `request_yellow_adjustment` tool (confirmation flow)
+- [x] Implement `request_red_adjustment` tool (approval flow with risk warning)
+- [x] Implement `get_adjustment_history` tool (audit trail viewer)
+- [x] Implement `rollback_adjustment` tool (revert to snapshot)
+- [x] Create `tuning://system-prompt` MCP resource
+- [x] Add `/data/audit/` volume mount to Docker compose
+- [x] Write unit tests for bounds validation (every edge case)
+- [x] Write unit tests for audit log integrity
+- [x] Write integration test: GREEN adjustment end-to-end
+- [x] Write integration test: YELLOW confirmation flow
+- [x] Write integration test: rollback after bad adjustment
 
 ## Success Criteria
 

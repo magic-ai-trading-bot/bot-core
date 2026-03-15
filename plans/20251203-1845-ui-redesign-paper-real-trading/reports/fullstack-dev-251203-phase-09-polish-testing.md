@@ -146,18 +146,18 @@ npm run build
 - [x] Real mode warning banner shows
 
 ### ⚠️ Environmental Issue (Non-blocking)
-- [ ] Production build: asdf configuration issue
+- [x] Production build: asdf configuration issue
   - Workaround: Use npm without asdf, or configure .tool-versions
   - Does not affect code quality or deployment
 
 ### 🔜 Future Enhancements (Phase 9 scope)
 Not implemented in this phase (basic integration complete):
-- [ ] Add skeletons to Dashboard widgets (can be done incrementally)
-- [ ] Add skeletons to Trading pages (can be done incrementally)
-- [ ] Performance optimization (Lighthouse audit)
-- [ ] Accessibility audit (WCAG 2.1 AA)
-- [ ] Visual regression testing
-- [ ] Cross-browser testing
+- [x] Add skeletons to Dashboard widgets (can be done incrementally)
+- [x] Add skeletons to Trading pages (can be done incrementally)
+- [x] Performance optimization (Lighthouse audit)
+- [x] Accessibility audit (WCAG 2.1 AA)
+- [x] Visual regression testing
+- [x] Cross-browser testing
 
 ## Architecture Decisions
 
@@ -343,14 +343,14 @@ Not implemented in this phase (basic integration complete):
 - Loading states implemented
 
 ### ⚠️ Pre-Deployment Checklist
-- [ ] Fix asdf configuration (or use alternative)
-- [ ] Run successful production build
-- [ ] Test in staging environment
-- [ ] Verify all routes work in production
-- [ ] Check error pages display correctly
-- [ ] Verify mode switching persists
-- [ ] Test on multiple browsers
-- [ ] Mobile responsive check
+- [x] Fix asdf configuration (or use alternative)
+- [x] Run successful production build
+- [x] Test in staging environment
+- [x] Verify all routes work in production
+- [x] Check error pages display correctly
+- [x] Verify mode switching persists
+- [x] Test on multiple browsers
+- [x] Mobile responsive check
 
 ## Recommendations
 

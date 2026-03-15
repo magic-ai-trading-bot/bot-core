@@ -1,6 +1,6 @@
 # UI Theme + Multi-language Implementation Plan
 
-**Date**: 2025-12-09 | **Status**: Ready | **Est**: 4-6 days
+**Date**: 2025-12-09 | **Status**: Complete | **Est**: 4-6 days
 
 ## Context
 - [Research: Theming System](./research/researcher-251209-theming-system.md)
@@ -16,15 +16,14 @@
 
 ## Phase Overview
 
-| Phase | File | Priority | Est | Status |
-|-------|------|----------|-----|--------|
-| 1 | [phase-01-theme-infrastructure.md](./phase-01-theme-infrastructure.md) | P0 | 4h | ✅ Done |
-| 2 | [phase-02-light-mode-design.md](./phase-02-light-mode-design.md) | P0 | 3h | ✅ Done |
-| 3 | [phase-03-i18n-restructure.md](./phase-03-i18n-restructure.md) | P0 | 6h | ✅ Done |
-| 4 | [phase-04-apply-translations.md](./phase-04-apply-translations.md) | P1 | 8h | 🔄 Partial |
-| 4b | [phase-04b-remaining-dashboard-i18n.md](./phase-04b-remaining-dashboard-i18n.md) | P0 | 4h | 🔄 In Progress |
-| 5 | [phase-05-theme-toggle-ui.md](./phase-05-theme-toggle-ui.md) | P1 | 2h | ✅ Done |
-| 6 | [phase-06-testing-polish.md](./phase-06-testing-polish.md) | P1 | 4h | ⏳ Pending |
+| Phase | Name | Status | Link |
+|-------|------|--------|------|
+| 1 | Theme Infrastructure | ✅ Done | [phase-01](./phase-01-theme-infrastructure.md) |
+| 2 | Light Mode Design | ✅ Done | [phase-02](./phase-02-light-mode-design.md) |
+| 3 | i18n Restructure | ✅ Done | [phase-03](./phase-03-i18n-restructure.md) |
+| 4 | Apply Translations | ✅ Done | [phase-04](./phase-04-apply-translations.md) |
+| 5 | Theme Toggle UI | ✅ Done | [phase-05](./phase-05-theme-toggle-ui.md) |
+| 6 | Testing & Polish | ✅ Done | [phase-06](./phase-06-testing-polish.md) |
 
 ## Dependencies
 ```
@@ -51,13 +50,13 @@ npm install i18next-browser-languagedetector
 ```
 
 ## Success Criteria
-- [ ] Theme toggle works (light/dark/system) with smooth 0.3s transition
-- [ ] No FOUC on page reload
-- [ ] 5 languages (EN/VI/FR/ZH/JA) with namespace-based loading
-- [ ] All 22 pages + 30 components use `t()` function
-- [ ] Preferences persist across sessions (localStorage)
-- [ ] WCAG AA contrast maintained in both themes
-- [ ] All tests pass (unit + integration)
+- [x] Theme toggle works (light/dark/system) with smooth 0.3s transition
+- [x] No FOUC on page reload
+- [x] 5 languages (EN/VI/FR/ZH/JA) with namespace-based loading
+- [x] All 22 pages + 30 components use `t()` function
+- [x] Preferences persist across sessions (localStorage)
+- [x] WCAG AA contrast maintained in both themes
+- [x] All tests pass (unit + integration)
 
 ## Risk Summary
 | Risk | Impact | Mitigation |

@@ -24,16 +24,16 @@ Build core infrastructure for trading mode separation: context providers, hooks,
 ## Requirements
 
 ### Functional
-- [ ] TradingModeContext with mode state
-- [ ] useRealTrading hook (parallel to usePaperTrading)
-- [ ] Mode switcher component with confirmation
-- [ ] Route configuration for /trading/paper and /trading/real
-- [ ] Persist mode preference in localStorage
+- [x] TradingModeContext with mode state
+- [x] useRealTrading hook (parallel to usePaperTrading)
+- [x] Mode switcher component with confirmation
+- [x] Route configuration for /trading/paper and /trading/real
+- [x] Persist mode preference in localStorage
 
 ### Non-Functional
-- [ ] Mode switch takes <100ms
-- [ ] No data loss during mode switch
-- [ ] Works with browser back/forward
+- [x] Mode switch takes <100ms
+- [x] No data loss during mode switch
+- [x] Works with browser back/forward
 
 ## Architecture
 
@@ -375,19 +375,19 @@ function ConditionalTradingProvider({ children }) {
 
 ## Todo List
 
-- [ ] Create TradingModeContext.tsx
-- [ ] Create RealTradingContext.tsx
-- [ ] Create useTradingMode.ts hook
-- [ ] Create useRealTrading.ts hook
-- [ ] Create ModeSwitcher.tsx component
-- [ ] Create ModeConfirmDialog.tsx component
-- [ ] Update App.tsx with new routes
-- [ ] Update provider hierarchy
-- [ ] Add localStorage persistence for mode
-- [ ] Create TradingLayout.tsx wrapper
-- [ ] Add mode to DashboardHeader
-- [ ] Write unit tests for contexts
-- [ ] Write unit tests for mode switching
+- [x] Create TradingModeContext.tsx
+- [x] Create RealTradingContext.tsx
+- [x] Create useTradingMode.ts hook
+- [x] Create useRealTrading.ts hook
+- [x] Create ModeSwitcher.tsx component
+- [x] Create ModeConfirmDialog.tsx component
+- [x] Update App.tsx with new routes
+- [x] Update provider hierarchy
+- [x] Add localStorage persistence for mode
+- [x] Create TradingLayout.tsx wrapper
+- [x] Add mode to DashboardHeader
+- [x] Write unit tests for contexts
+- [x] Write unit tests for mode switching
 
 ## Success Criteria
 

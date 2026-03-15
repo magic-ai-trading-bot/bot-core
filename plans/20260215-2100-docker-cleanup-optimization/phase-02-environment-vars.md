@@ -152,42 +152,42 @@ grep -r "REDIS_PASSWORD" .env*
 ## Todo List
 
 ### .env
-- [ ] Remove RABBITMQ_USER
-- [ ] Remove RABBITMQ_PASSWORD
-- [ ] Remove KONG_DB_PASSWORD
-- [ ] Remove GRAFANA_PASSWORD
-- [ ] Verify REDIS_PASSWORD still present
+- [x] Remove RABBITMQ_USER
+- [x] Remove RABBITMQ_PASSWORD
+- [x] Remove KONG_DB_PASSWORD
+- [x] Remove GRAFANA_PASSWORD
+- [x] Verify REDIS_PASSWORD still present
 
 ### .env.example
-- [ ] Remove RABBITMQ_USER
-- [ ] Remove RABBITMQ_PASSWORD
-- [ ] Remove KONG_DB_PASSWORD
-- [ ] Remove GRAFANA_PASSWORD
-- [ ] Verify example format correct
+- [x] Remove RABBITMQ_USER
+- [x] Remove RABBITMQ_PASSWORD
+- [x] Remove KONG_DB_PASSWORD
+- [x] Remove GRAFANA_PASSWORD
+- [x] Verify example format correct
 
 ### .env.example.secure
-- [ ] Remove RABBITMQ_USER
-- [ ] Remove RABBITMQ_PASSWORD
-- [ ] Remove KONG_DB_PASSWORD
-- [ ] Remove GRAFANA_PASSWORD
+- [x] Remove RABBITMQ_USER
+- [x] Remove RABBITMQ_PASSWORD
+- [x] Remove KONG_DB_PASSWORD
+- [x] Remove GRAFANA_PASSWORD
 
 ### .env.production.example
-- [ ] Remove PROMETHEUS_ENDPOINT
+- [x] Remove PROMETHEUS_ENDPOINT
 
 ### python-ai-service/.env.example
-- [ ] Remove RABBITMQ_USER
-- [ ] Remove RABBITMQ_PASSWORD
-- [ ] Remove RABBITMQ_HOST
-- [ ] Remove RABBITMQ_PORT
-- [ ] Remove RABBITMQ_VHOST
-- [ ] Remove "RabbitMQ Configuration" comment section
+- [x] Remove RABBITMQ_USER
+- [x] Remove RABBITMQ_PASSWORD
+- [x] Remove RABBITMQ_HOST
+- [x] Remove RABBITMQ_PORT
+- [x] Remove RABBITMQ_VHOST
+- [x] Remove "RabbitMQ Configuration" comment section
 
 ### Verification
-- [ ] Verify zero RABBITMQ references
-- [ ] Verify zero KONG_DB references
-- [ ] Verify zero GRAFANA_PASSWORD references
-- [ ] Verify zero PROMETHEUS_ENDPOINT references
-- [ ] Verify REDIS_PASSWORD kept in .env files
+- [x] Verify zero RABBITMQ references
+- [x] Verify zero KONG_DB references
+- [x] Verify zero GRAFANA_PASSWORD references
+- [x] Verify zero PROMETHEUS_ENDPOINT references
+- [x] Verify REDIS_PASSWORD kept in .env files
 
 ---
 

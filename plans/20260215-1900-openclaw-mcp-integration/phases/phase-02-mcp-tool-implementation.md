@@ -195,24 +195,24 @@ function toolConfirm(action: string, details: string, token: string): ToolResult
 
 ## Todo List
 
-- [ ] Implement security tier enforcement framework (`src/security.ts`)
-- [ ] Implement confirmation token generation and validation
-- [ ] Implement per-tool rate limiter (`src/rate-limiter.ts`)
-- [ ] Implement tool result helpers (`src/types.ts`)
-- [ ] Implement market tools (8) in `src/tools/market.ts`
-- [ ] Implement paper trading tools (28) in `src/tools/paper-trading.ts`
-- [ ] Implement AI tools (12) in `src/tools/ai.ts`
-- [ ] Implement task management tools (7) in `src/tools/tasks.ts`
-- [ ] Implement backtest tools (3) in `src/tools/backtests.ts`
-- [ ] Implement trading tools (4) in `src/tools/trading.ts`
-- [ ] Implement monitoring tools (5) in `src/tools/monitoring.ts`
-- [ ] Implement auth tools (4) in `src/tools/auth-tools.ts`
-- [ ] Create central tool registry (`src/tools/index.ts`)
-- [ ] Write unit tests for security tier enforcement
-- [ ] Write unit tests for confirmation flow
-- [ ] Write unit tests for rate limiter
-- [ ] Integration test: call each tool category with mock API responses
-- [ ] Verify all 80 tools listed in `ListToolsRequestSchema` response
+- [x] Implement security tier enforcement framework (`src/security.ts`)
+- [x] Implement confirmation token generation and validation
+- [x] Implement per-tool rate limiter (`src/rate-limiter.ts`)
+- [x] Implement tool result helpers (`src/types.ts`)
+- [x] Implement market tools (8) in `src/tools/market.ts`
+- [x] Implement paper trading tools (28) in `src/tools/paper-trading.ts`
+- [x] Implement AI tools (12) in `src/tools/ai.ts`
+- [x] Implement task management tools (7) in `src/tools/tasks.ts`
+- [x] Implement backtest tools (3) in `src/tools/backtests.ts`
+- [x] Implement trading tools (4) in `src/tools/trading.ts`
+- [x] Implement monitoring tools (5) in `src/tools/monitoring.ts`
+- [x] Implement auth tools (4) in `src/tools/auth-tools.ts`
+- [x] Create central tool registry (`src/tools/index.ts`)
+- [x] Write unit tests for security tier enforcement
+- [x] Write unit tests for confirmation flow
+- [x] Write unit tests for rate limiter
+- [x] Integration test: call each tool category with mock API responses
+- [x] Verify all 80 tools listed in `ListToolsRequestSchema` response
 
 ## Success Criteria
 

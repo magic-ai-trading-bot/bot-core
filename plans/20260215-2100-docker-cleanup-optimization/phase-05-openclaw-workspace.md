@@ -184,28 +184,28 @@ grep -ri "kong\|rabbitmq\|celery\|prometheus\|grafana" .claude/skills/
 ## Todo List
 
 ### Sync Script Check
-- [ ] Find sync scripts in openclaw/scripts/
-- [ ] Check if ARCHITECTURE.md auto-generated
-- [ ] Check if FEATURES.md auto-generated
-- [ ] If yes, update sync script first
-- [ ] If yes, run sync script to regenerate
+- [x] Find sync scripts in openclaw/scripts/
+- [x] Check if ARCHITECTURE.md auto-generated
+- [x] Check if FEATURES.md auto-generated
+- [x] If yes, update sync script first
+- [x] If yes, run sync script to regenerate
 
 ### Manual Updates (if no sync script)
-- [ ] Update openclaw/workspace/ARCHITECTURE.md
-- [ ] Update openclaw/workspace/FEATURES.md (if exists)
-- [ ] Update backend skill: API integration
-- [ ] Update backend skill: Microservices
-- [ ] Update backend skill: Message queue (remove entirely)
-- [ ] Update backend skill: Monitoring (remove Prometheus)
-- [ ] Update backend skill: Error handling
-- [ ] Update backend skill: Testing
-- [ ] Update devops skill: docker-compose.md
+- [x] Update openclaw/workspace/ARCHITECTURE.md
+- [x] Update openclaw/workspace/FEATURES.md (if exists)
+- [x] Update backend skill: API integration
+- [x] Update backend skill: Microservices
+- [x] Update backend skill: Message queue (remove entirely)
+- [x] Update backend skill: Monitoring (remove Prometheus)
+- [x] Update backend skill: Error handling
+- [x] Update backend skill: Testing
+- [x] Update devops skill: docker-compose.md
 
 ### Verification
-- [ ] grep openclaw/workspace/ for removed services
-- [ ] grep .claude/skills/ for removed services
-- [ ] Verify ARCHITECTURE.md shows 6-7 core services
-- [ ] Verify no Kong/RabbitMQ/Celery examples in skills
+- [x] grep openclaw/workspace/ for removed services
+- [x] grep .claude/skills/ for removed services
+- [x] Verify ARCHITECTURE.md shows 6-7 core services
+- [x] Verify no Kong/RabbitMQ/Celery examples in skills
 
 ---
 

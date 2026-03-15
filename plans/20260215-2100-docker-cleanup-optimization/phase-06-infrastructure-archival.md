@@ -179,20 +179,20 @@ du -sh infrastructure/kong infrastructure/rabbitmq infrastructure/monitoring inf
 ## Todo List
 
 ### Create Deprecation Notices
-- [ ] Create infrastructure/kong/README.DEPRECATED.md
-- [ ] Create infrastructure/rabbitmq/README.DEPRECATED.md
-- [ ] Create infrastructure/monitoring/README.DEPRECATED.md
-- [ ] Create infrastructure/grafana/README.DEPRECATED.md
+- [x] Create infrastructure/kong/README.DEPRECATED.md
+- [x] Create infrastructure/rabbitmq/README.DEPRECATED.md
+- [x] Create infrastructure/monitoring/README.DEPRECATED.md
+- [x] Create infrastructure/grafana/README.DEPRECATED.md
 
 ### Verify Archival
-- [ ] Verify all 4 README.DEPRECATED.md files created
-- [ ] Verify all original config files still present
-- [ ] Check disk usage (should be ~10MB total)
+- [x] Verify all 4 README.DEPRECATED.md files created
+- [x] Verify all original config files still present
+- [x] Check disk usage (should be ~10MB total)
 
 ### Optional: Update infrastructure/README.md
-- [ ] Add "Deprecated Directories" section
-- [ ] List archived directories with dates
-- [ ] Link to cleanup plan
+- [x] Add "Deprecated Directories" section
+- [x] List archived directories with dates
+- [x] Link to cleanup plan
 
 ---
 

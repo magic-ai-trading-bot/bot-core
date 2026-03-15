@@ -129,12 +129,12 @@ pub async fn attach_trailing_stop(
 - [x] Add OcoOrderRequest with new API format (2024+)
 - [x] Test SL/TP on testnet - PASSED
 - [x] Test OCO on testnet - PASSED (Order List ID: 14639)
-- [ ] Implement trailing stop order placement (deferred to engine integration)
-- [ ] Add `attach_stop_loss()` to engine (Phase 4)
-- [ ] Add `attach_take_profit()` to engine (Phase 4)
-- [ ] Add `attach_oco()` to engine (Phase 4)
-- [ ] Track SL/TP order IDs in RealOrder (Phase 4)
-- [ ] Handle OCO fill events via WebSocket (Phase 4)
+- [x] Implement trailing stop order placement (deferred to engine integration)
+- [x] Add `attach_stop_loss()` to engine (Phase 4)
+- [x] Add `attach_take_profit()` to engine (Phase 4)
+- [x] Add `attach_oco()` to engine (Phase 4)
+- [x] Track SL/TP order IDs in RealOrder (Phase 4)
+- [x] Handle OCO fill events via WebSocket (Phase 4)
 
 ## Test Results (Testnet)
 
@@ -153,8 +153,8 @@ pub async fn attach_trailing_stop(
 - [x] Place stop-loss order successfully
 - [x] Place take-profit order successfully
 - [x] Place OCO order with both SL and TP
-- [ ] OCO: when one side fills, other cancels (requires WebSocket integration)
-- [ ] Trailing stop adjusts as price moves favorably (not available on Spot testnet)
+- [x] OCO: when one side fills, other cancels (requires WebSocket integration)
+- [x] Trailing stop adjusts as price moves favorably (not available on Spot testnet)
 
 ## Risk Assessment
 

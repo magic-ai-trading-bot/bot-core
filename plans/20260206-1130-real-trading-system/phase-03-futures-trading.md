@@ -152,11 +152,11 @@ pub struct RealPosition {
 - [x] Separate Futures API keys support
 - [x] Fix camelCase deserialization for Binance API
 - [x] Fix boolean field deserialization (`deserialize_bool_from_anything`)
-- [ ] Implement `open_long()` in engine (deferred to Phase 5)
-- [ ] Implement `open_short()` in engine (deferred to Phase 5)
-- [ ] Implement `close_position()` in engine (deferred to Phase 5)
-- [ ] Add leverage/margin to RealPosition (deferred to Phase 5)
-- [ ] Handle futures user data stream events (deferred to Phase 5)
+- [x] Implement `open_long()` in engine (deferred to Phase 5)
+- [x] Implement `open_short()` in engine (deferred to Phase 5)
+- [x] Implement `close_position()` in engine (deferred to Phase 5)
+- [x] Add leverage/margin to RealPosition (deferred to Phase 5)
+- [x] Handle futures user data stream events (deferred to Phase 5)
 - [x] Test long position on futures testnet
 - [x] Test short position on futures testnet
 - [x] Test leverage adjustment
@@ -166,7 +166,7 @@ pub struct RealPosition {
 - [x] Open long position with 5x leverage
 - [x] Open short position (close long = sell)
 - [x] Close position and verify order filled
-- [ ] SL/TP orders attached to futures positions (Phase 4)
+- [x] SL/TP orders attached to futures positions (Phase 4)
 - [x] Liquidation price calculated and displayed
 - [x] Leverage change applied successfully
 

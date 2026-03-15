@@ -273,25 +273,25 @@ Refine the system prompt based on initial testing:
 
 ## Todo List
 
-- [ ] Create `openclaw/` directory structure
-- [ ] Write OpenClaw Dockerfile (node:18-alpine, headless mode)
-- [ ] Write OpenClaw main config (`openclaw.json`)
-- [ ] Write MCP connection config pointing to internal `mcp-server:8090`
-- [ ] Write Telegram channel config with allowlist
-- [ ] Write WhatsApp (Baileys) channel config with allowlist
-- [ ] Write system prompt for trading bot context
-- [ ] Create Telegram bot via @BotFather, record token
-- [ ] Get Telegram user ID for allowlist
-- [ ] Update `docker-compose-vps.yml` with openclaw + mcp-server services
-- [ ] Adjust memory limits: MongoDB 384MB, Next.js 256MB
-- [ ] Add all new env vars to `.env.example`
-- [ ] Generate MCP_AUTH_TOKEN (random 64-char hex)
-- [ ] Test: OpenClaw starts and connects to Claude API
-- [ ] Test: Telegram bot receives and responds to messages
-- [ ] Test: MCP tools accessible from OpenClaw (ask "what's the system health?")
-- [ ] Test: WhatsApp QR code pairing and message exchange
-- [ ] Test: Memory usage stays within budget (`docker stats`)
-- [ ] Test: Container restart preserves WhatsApp auth state
+- [x] Create `openclaw/` directory structure
+- [x] Write OpenClaw Dockerfile (node:18-alpine, headless mode)
+- [x] Write OpenClaw main config (`openclaw.json`)
+- [x] Write MCP connection config pointing to internal `mcp-server:8090`
+- [x] Write Telegram channel config with allowlist
+- [x] Write WhatsApp (Baileys) channel config with allowlist
+- [x] Write system prompt for trading bot context
+- [x] Create Telegram bot via @BotFather, record token
+- [x] Get Telegram user ID for allowlist
+- [x] Update `docker-compose-vps.yml` with openclaw + mcp-server services
+- [x] Adjust memory limits: MongoDB 384MB, Next.js 256MB
+- [x] Add all new env vars to `.env.example`
+- [x] Generate MCP_AUTH_TOKEN (random 64-char hex)
+- [x] Test: OpenClaw starts and connects to Claude API
+- [x] Test: Telegram bot receives and responds to messages
+- [x] Test: MCP tools accessible from OpenClaw (ask "what's the system health?")
+- [x] Test: WhatsApp QR code pairing and message exchange
+- [x] Test: Memory usage stays within budget (`docker stats`)
+- [x] Test: Container restart preserves WhatsApp auth state
 
 ## Success Criteria
 

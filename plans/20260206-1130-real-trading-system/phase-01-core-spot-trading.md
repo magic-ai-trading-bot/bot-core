@@ -72,23 +72,23 @@ pub async fn execute_spot_sell(&self, symbol: &str, quantity: f64, price: Option
 
 ## Todo
 
-- [ ] Add `place_spot_order()` to BinanceClient
-- [ ] Add `cancel_spot_order()` to BinanceClient
-- [ ] Add `get_account()` to BinanceClient (may exist)
-- [ ] Add `execute_spot_buy()` to RealTradingEngine
-- [ ] Add `execute_spot_sell()` to RealTradingEngine
-- [ ] Add testnet API key config to `.env.example`
-- [ ] Test order placement on testnet
-- [ ] Test order cancellation on testnet
-- [ ] Verify ExecutionReport handling
+- [x] Add `place_spot_order()` to BinanceClient
+- [x] Add `cancel_spot_order()` to BinanceClient
+- [x] Add `get_account()` to BinanceClient (may exist)
+- [x] Add `execute_spot_buy()` to RealTradingEngine
+- [x] Add `execute_spot_sell()` to RealTradingEngine
+- [x] Add testnet API key config to `.env.example`
+- [x] Test order placement on testnet
+- [x] Test order cancellation on testnet
+- [x] Verify ExecutionReport handling
 
 ## Success Criteria
 
-- [ ] Place market buy order successfully on testnet
-- [ ] Place limit sell order successfully on testnet
-- [ ] Cancel pending order successfully
-- [ ] Balances update after order fill
-- [ ] ExecutionReport updates order state correctly
+- [x] Place market buy order successfully on testnet
+- [x] Place limit sell order successfully on testnet
+- [x] Cancel pending order successfully
+- [x] Balances update after order fill
+- [x] ExecutionReport updates order state correctly
 
 ## Risk Assessment
 

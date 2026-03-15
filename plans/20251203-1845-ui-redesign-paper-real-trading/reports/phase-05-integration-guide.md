@@ -146,31 +146,31 @@ export function TradingDashboard() {
 ### Manual Testing Checklist
 
 1. **Initial Load**
-   - [ ] App defaults to paper mode
-   - [ ] No warning banner visible
-   - [ ] Toggle shows blue (paper)
+   - [x] App defaults to paper mode
+   - [x] No warning banner visible
+   - [x] Toggle shows blue (paper)
 
 2. **Switch to Real Mode**
-   - [ ] Click toggle → Dialog opens
-   - [ ] Confirm button disabled initially
-   - [ ] Check checkbox → Confirm enabled
-   - [ ] Click confirm → Mode switches
-   - [ ] Warning banner appears at top
-   - [ ] Toggle shows red (real) with LIVE badge
+   - [x] Click toggle → Dialog opens
+   - [x] Confirm button disabled initially
+   - [x] Check checkbox → Confirm enabled
+   - [x] Click confirm → Mode switches
+   - [x] Warning banner appears at top
+   - [x] Toggle shows red (real) with LIVE badge
 
 3. **Switch to Paper Mode**
-   - [ ] Click toggle → Mode switches immediately (no dialog)
-   - [ ] Warning banner disappears
-   - [ ] Toggle shows blue (paper)
+   - [x] Click toggle → Mode switches immediately (no dialog)
+   - [x] Warning banner disappears
+   - [x] Toggle shows blue (paper)
 
 4. **Persistence**
-   - [ ] Refresh page → Mode persists
-   - [ ] Open new tab → Same mode
-   - [ ] Close and reopen → Mode preserved
+   - [x] Refresh page → Mode persists
+   - [x] Open new tab → Same mode
+   - [x] Close and reopen → Mode preserved
 
 5. **Error Handling**
-   - [ ] Try to close real trade in paper mode → Error toast
-   - [ ] Try to start real trading when mode is paper → Error toast
+   - [x] Try to close real trade in paper mode → Error toast
+   - [x] Try to start real trading when mode is paper → Error toast
 
 ---
 

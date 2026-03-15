@@ -202,22 +202,22 @@ Currently uses placeholder endpoints. Frontend ready.
 ## 📝 TESTING CHECKLIST
 
 ### Manual Testing (Required before Phase 6)
-- [ ] Mode persists across page refresh
-- [ ] Paper → Real requires confirmation
-- [ ] Real → Paper switches immediately
-- [ ] Checkbox enables confirm button
-- [ ] Warning banner only shows in real mode
-- [ ] Toggle shows correct color (blue/red)
-- [ ] useRealTrading only fetches in real mode
-- [ ] Error messages for wrong mode operations
+- [x] Mode persists across page refresh
+- [x] Paper → Real requires confirmation
+- [x] Real → Paper switches immediately
+- [x] Checkbox enables confirm button
+- [x] Warning banner only shows in real mode
+- [x] Toggle shows correct color (blue/red)
+- [x] useRealTrading only fetches in real mode
+- [x] Error messages for wrong mode operations
 
 ### Unit Tests (Phase 6)
-- [ ] TradingModeContext localStorage persistence
-- [ ] useTradingMode hook behavior
-- [ ] ModeSwitchDialog confirmation flow
-- [ ] RealModeWarningBanner visibility
-- [ ] ModeToggle state changes
-- [ ] useRealTrading safety checks
+- [x] TradingModeContext localStorage persistence
+- [x] useTradingMode hook behavior
+- [x] ModeSwitchDialog confirmation flow
+- [x] RealModeWarningBanner visibility
+- [x] ModeToggle state changes
+- [x] useRealTrading safety checks
 
 ---
 

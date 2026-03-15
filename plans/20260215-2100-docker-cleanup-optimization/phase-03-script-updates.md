@@ -227,52 +227,52 @@ grep -E "(RABBITMQ|KONG_DB|GRAFANA|PROMETHEUS)" scripts/validate-env.sh
 ## Todo List
 
 ### bot.sh
-- [ ] Remove --with-enterprise flag documentation
-- [ ] Update DEFAULT SERVICES section (6 core services)
-- [ ] Update Examples section (remove celery-worker example)
-- [ ] Remove COMPOSE_PROFILES environment variable logic
-- [ ] Remove --profile messaging from docker compose commands
-- [ ] Remove --profile api-gateway from docker compose commands
-- [ ] Remove --profile monitoring from docker compose commands
-- [ ] Update any service count references (9 services → 6-7 core)
-- [ ] Verify all docker compose up commands use only --profile dev/prod
+- [x] Remove --with-enterprise flag documentation
+- [x] Update DEFAULT SERVICES section (6 core services)
+- [x] Update Examples section (remove celery-worker example)
+- [x] Remove COMPOSE_PROFILES environment variable logic
+- [x] Remove --profile messaging from docker compose commands
+- [x] Remove --profile api-gateway from docker compose commands
+- [x] Remove --profile monitoring from docker compose commands
+- [x] Update any service count references (9 services → 6-7 core)
+- [x] Verify all docker compose up commands use only --profile dev/prod
 
 ### init-all-services.sh
-- [ ] Remove Kong init call
-- [ ] Remove Grafana init call
-- [ ] Remove RabbitMQ init call
-- [ ] Verify MongoDB init still present
-- [ ] Test script runs without errors
+- [x] Remove Kong init call
+- [x] Remove Grafana init call
+- [x] Remove RabbitMQ init call
+- [x] Verify MongoDB init still present
+- [x] Test script runs without errors
 
 ### health-check.sh
-- [ ] Remove Kong health check (port 8001)
-- [ ] Remove RabbitMQ health check (port 15672)
-- [ ] Remove Celery/Flower health check (port 5555)
-- [ ] Remove Prometheus health check (port 9090)
-- [ ] Remove Grafana health check (port 3001)
-- [ ] Keep MongoDB, Rust, Python, Frontend, MCP checks
-- [ ] Update service count in output
-- [ ] Test script with running services
+- [x] Remove Kong health check (port 8001)
+- [x] Remove RabbitMQ health check (port 15672)
+- [x] Remove Celery/Flower health check (port 5555)
+- [x] Remove Prometheus health check (port 9090)
+- [x] Remove Grafana health check (port 3001)
+- [x] Keep MongoDB, Rust, Python, Frontend, MCP checks
+- [x] Update service count in output
+- [x] Test script with running services
 
 ### validate-env.sh
-- [ ] Remove RABBITMQ_USER validation
-- [ ] Remove RABBITMQ_PASSWORD validation
-- [ ] Remove RABBITMQ_HOST validation
-- [ ] Remove RABBITMQ_PORT validation
-- [ ] Remove RABBITMQ_VHOST validation
-- [ ] Remove KONG_DB_PASSWORD validation
-- [ ] Remove GRAFANA_PASSWORD validation
-- [ ] Remove PROMETHEUS_ENDPOINT validation
-- [ ] Keep REDIS_PASSWORD validation (optional)
-- [ ] Test script passes with cleaned .env
+- [x] Remove RABBITMQ_USER validation
+- [x] Remove RABBITMQ_PASSWORD validation
+- [x] Remove RABBITMQ_HOST validation
+- [x] Remove RABBITMQ_PORT validation
+- [x] Remove RABBITMQ_VHOST validation
+- [x] Remove KONG_DB_PASSWORD validation
+- [x] Remove GRAFANA_PASSWORD validation
+- [x] Remove PROMETHEUS_ENDPOINT validation
+- [x] Keep REDIS_PASSWORD validation (optional)
+- [x] Test script passes with cleaned .env
 
 ### Verification
-- [ ] grep bot.sh for removed services (zero matches)
-- [ ] grep health-check.sh for removed services (zero matches)
-- [ ] grep validate-env.sh for removed env vars (zero matches)
-- [ ] Test ./scripts/validate-env.sh passes
-- [ ] Test ./scripts/bot.sh --help shows updated usage
-- [ ] Test ./scripts/bot.sh start works (after Phase 1)
+- [x] grep bot.sh for removed services (zero matches)
+- [x] grep health-check.sh for removed services (zero matches)
+- [x] grep validate-env.sh for removed env vars (zero matches)
+- [x] Test ./scripts/validate-env.sh passes
+- [x] Test ./scripts/bot.sh --help shows updated usage
+- [x] Test ./scripts/bot.sh start works (after Phase 1)
 
 ---
 

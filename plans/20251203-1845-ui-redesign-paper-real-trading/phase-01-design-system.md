@@ -24,15 +24,15 @@ Establish design tokens, color system, typography, and animation primitives for 
 ## Requirements
 
 ### Functional
-- [ ] Mode-specific color tokens (paper-accent, real-warning)
-- [ ] Consistent profit/loss colors across both modes
-- [ ] Animation variants for cards, modals, numbers
-- [ ] Typography scale for trading data density
+- [x] Mode-specific color tokens (paper-accent, real-warning)
+- [x] Consistent profit/loss colors across both modes
+- [x] Animation variants for cards, modals, numbers
+- [x] Typography scale for trading data density
 
 ### Non-Functional
-- [ ] WCAG 2.1 AA contrast compliance
-- [ ] Reduced motion support
-- [ ] <16ms animation frame time
+- [x] WCAG 2.1 AA contrast compliance
+- [x] Reduced motion support
+- [x] <16ms animation frame time
 
 ## Architecture
 
@@ -217,18 +217,18 @@ export function GlassCard({ children, className }) {
 
 ## Todo List
 
-- [ ] Install framer-motion dependency
-- [ ] Create src/styles/tokens/ directory structure
-- [ ] Define color palette in colors.ts
-- [ ] Define typography scale in typography.ts
-- [ ] Create Framer Motion animation variants
-- [ ] Update tailwind.config.js with theme extensions
-- [ ] Create ModeBadge component
-- [ ] Create AnimatedNumber component
-- [ ] Create GlassCard variant component
-- [ ] Add CSS variables to index.css
-- [ ] Test contrast ratios meet WCAG AA
-- [ ] Add reduced motion media query support
+- [x] Install framer-motion dependency
+- [x] Create src/styles/tokens/ directory structure
+- [x] Define color palette in colors.ts
+- [x] Define typography scale in typography.ts
+- [x] Create Framer Motion animation variants
+- [x] Update tailwind.config.js with theme extensions
+- [x] Create ModeBadge component
+- [x] Create AnimatedNumber component
+- [x] Create GlassCard variant component
+- [x] Add CSS variables to index.css
+- [x] Test contrast ratios meet WCAG AA
+- [x] Add reduced motion media query support
 
 ## Success Criteria
 

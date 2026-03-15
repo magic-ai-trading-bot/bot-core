@@ -176,19 +176,19 @@ npm install -D typescript @types/node tsx
 
 ## Todo List
 
-- [ ] Create `mcp-server/` directory and scaffold project
-- [ ] Install dependencies: `@modelcontextprotocol/sdk`, `zod`, `undici`
-- [ ] Configure TypeScript (ESM, strict, Node18 target)
-- [ ] Implement Streamable HTTP transport (`src/transport.ts`)
-- [ ] Implement MCP server with tool dispatch (`src/server.ts`)
-- [ ] Implement auth layer -- bearer validation + JWT management (`src/auth.ts`)
-- [ ] Implement BotCore API client with error normalization (`src/client.ts`)
-- [ ] Implement `check_system_health` validation tool (`src/tools/health.ts`)
-- [ ] Write Dockerfile (multi-stage, alpine, 384MB heap)
-- [ ] Add mcp-server to `docker-compose-vps.yml` (internal network only)
-- [ ] Test: MCP server starts and responds to health check
-- [ ] Test: `check_system_health` tool returns combined status from both APIs
-- [ ] Test: Bearer token rejection for unauthorized requests
+- [x] Create `mcp-server/` directory and scaffold project
+- [x] Install dependencies: `@modelcontextprotocol/sdk`, `zod`, `undici`
+- [x] Configure TypeScript (ESM, strict, Node18 target)
+- [x] Implement Streamable HTTP transport (`src/transport.ts`)
+- [x] Implement MCP server with tool dispatch (`src/server.ts`)
+- [x] Implement auth layer -- bearer validation + JWT management (`src/auth.ts`)
+- [x] Implement BotCore API client with error normalization (`src/client.ts`)
+- [x] Implement `check_system_health` validation tool (`src/tools/health.ts`)
+- [x] Write Dockerfile (multi-stage, alpine, 384MB heap)
+- [x] Add mcp-server to `docker-compose-vps.yml` (internal network only)
+- [x] Test: MCP server starts and responds to health check
+- [x] Test: `check_system_health` tool returns combined status from both APIs
+- [x] Test: Bearer token rejection for unauthorized requests
 
 ## Success Criteria
 

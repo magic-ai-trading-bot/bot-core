@@ -292,27 +292,27 @@ docker stats --format "table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}" > mem-profi
 
 ## Todo List
 
-- [ ] Set up test framework (vitest + msw for mocking)
-- [ ] Create mock API response fixtures for all 80 endpoints
-- [ ] Write market tools integration tests (8 tests)
-- [ ] Write paper trading tools integration tests (15 tests)
-- [ ] Write AI tools integration tests (8 tests)
-- [ ] Write task/backtest tools integration tests (8 tests)
-- [ ] Write trading/monitoring tools integration tests (9 tests)
-- [ ] Write tuning tools integration tests (8 tests)
-- [ ] Write authentication security tests (4 tests)
-- [ ] Write authorization tier security tests (4 tests)
-- [ ] Write guardrail fuzz tests (all parameters)
-- [ ] Write input validation tests (injection, XSS, overflow)
-- [ ] Create and run load test (10 VUs, 5 min)
-- [ ] Run failure mode tests (service down, timeout, crash)
-- [ ] Run audit log integrity tests
-- [ ] Run rollback verification tests
-- [ ] Execute E2E smoke test via Telegram (10 scenarios)
-- [ ] Run memory profiling for 1 hour
-- [ ] Document all test results in report
-- [ ] Fix any issues found during testing
-- [ ] Re-test after fixes
+- [x] Set up test framework (vitest + msw for mocking)
+- [x] Create mock API response fixtures for all 80 endpoints
+- [x] Write market tools integration tests (8 tests)
+- [x] Write paper trading tools integration tests (15 tests)
+- [x] Write AI tools integration tests (8 tests)
+- [x] Write task/backtest tools integration tests (8 tests)
+- [x] Write trading/monitoring tools integration tests (9 tests)
+- [x] Write tuning tools integration tests (8 tests)
+- [x] Write authentication security tests (4 tests)
+- [x] Write authorization tier security tests (4 tests)
+- [x] Write guardrail fuzz tests (all parameters)
+- [x] Write input validation tests (injection, XSS, overflow)
+- [x] Create and run load test (10 VUs, 5 min)
+- [x] Run failure mode tests (service down, timeout, crash)
+- [x] Run audit log integrity tests
+- [x] Run rollback verification tests
+- [x] Execute E2E smoke test via Telegram (10 scenarios)
+- [x] Run memory profiling for 1 hour
+- [x] Document all test results in report
+- [x] Fix any issues found during testing
+- [x] Re-test after fixes
 
 ## Success Criteria
 

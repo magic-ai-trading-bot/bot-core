@@ -100,26 +100,26 @@ MainLayout/
 
 ## Todo List
 
-- [ ] Install sidebar component from shadcn/ui
-- [ ] Create useSidebar hook with localStorage persistence
-- [ ] Create Sidebar component with collapse animation
-- [ ] Create navigation items configuration
-- [ ] Create Header with mode badge
-- [ ] Create Breadcrumbs component
-- [ ] Create MainLayout wrapper
-- [ ] Update App.tsx routing
-- [ ] Add mobile responsive styles
-- [ ] Test keyboard navigation
-- [ ] Write component tests
+- [x] Install sidebar component from shadcn/ui
+- [x] Create useSidebar hook with localStorage persistence
+- [x] Create Sidebar component with collapse animation
+- [x] Create navigation items configuration
+- [x] Create Header with mode badge
+- [x] Create Breadcrumbs component
+- [x] Create MainLayout wrapper
+- [x] Update App.tsx routing
+- [x] Add mobile responsive styles
+- [x] Test keyboard navigation
+- [x] Write component tests
 
 ## Success Criteria
 
-- [ ] Sidebar collapses smoothly in < 300ms
-- [ ] Mode indicator visible at all times
-- [ ] Mobile drawer works on touch devices
-- [ ] Keyboard navigation (Tab, Enter, Escape)
-- [ ] Layout persists across page navigation
-- [ ] No layout shift (CLS < 0.1)
+- [x] Sidebar collapses smoothly in < 300ms
+- [x] Mode indicator visible at all times
+- [x] Mobile drawer works on touch devices
+- [x] Keyboard navigation (Tab, Enter, Escape)
+- [x] Layout persists across page navigation
+- [x] No layout shift (CLS < 0.1)
 
 ## Risk Assessment
 

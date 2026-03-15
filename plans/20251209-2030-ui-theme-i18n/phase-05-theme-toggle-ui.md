@@ -282,28 +282,28 @@ Ensure button meets WCAG 2.5.5 touch target (44x44px):
 
 ## Todo List
 
-- [ ] Create `src/components/ThemeToggle.tsx`
-- [ ] Add theme translations to all 5 `common.json` files
-- [ ] Add icon rotation animation (CSS or Framer Motion)
-- [ ] Integrate into MainLayout header
-- [ ] Integrate into landing page header
-- [ ] Ensure mobile touch target (44px)
-- [ ] Test keyboard navigation
-- [ ] Test with screen reader
-- [ ] Add visual indicator for current selection
+- [x] Create `src/components/ThemeToggle.tsx`
+- [x] Add theme translations to all 5 `common.json` files
+- [x] Add icon rotation animation (CSS or Framer Motion)
+- [x] Integrate into MainLayout header
+- [x] Integrate into landing page header
+- [x] Ensure mobile touch target (44px)
+- [x] Test keyboard navigation
+- [x] Test with screen reader
+- [x] Add visual indicator for current selection
 
 ---
 
 ## Success Criteria
 
-- [ ] Toggle visible in header on all pages
-- [ ] Dropdown opens on click/Enter/Space
-- [ ] Theme changes immediately on selection
-- [ ] Current theme has visual indicator
-- [ ] Icons animate smoothly
-- [ ] Works on mobile (touch-friendly)
-- [ ] Screen reader announces theme options
-- [ ] Translations show for all 5 languages
+- [x] Toggle visible in header on all pages
+- [x] Dropdown opens on click/Enter/Space
+- [x] Theme changes immediately on selection
+- [x] Current theme has visual indicator
+- [x] Icons animate smoothly
+- [x] Works on mobile (touch-friendly)
+- [x] Screen reader announces theme options
+- [x] Translations show for all 5 languages
 
 ---
 
@@ -341,12 +341,12 @@ Ensure button meets WCAG 2.5.5 touch target (44x44px):
 
 ## Accessibility Checklist
 
-- [ ] `aria-label` on trigger button
-- [ ] `sr-only` text for screen readers
-- [ ] Keyboard navigation works
-- [ ] Focus visible on all elements
-- [ ] Color not sole indicator (has text labels)
-- [ ] Touch target >= 44px
+- [x] `aria-label` on trigger button
+- [x] `sr-only` text for screen readers
+- [x] Keyboard navigation works
+- [x] Focus visible on all elements
+- [x] Color not sole indicator (has text labels)
+- [x] Touch target >= 44px
 
 ---
 

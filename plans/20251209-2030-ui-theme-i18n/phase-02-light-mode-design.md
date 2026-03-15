@@ -267,26 +267,26 @@ Test all color combinations meet WCAG AA:
 
 ## Todo List
 
-- [ ] Move current `:root` dark theme values to `.dark` class
-- [ ] Define new light mode values in `:root`
-- [ ] Update extended design system colors for light mode
-- [ ] Update glassmorphism utilities with theme variants
-- [ ] Update scrollbar colors with theme variants
-- [ ] Verify WCAG AA contrast ratios with browser tools
-- [ ] Test profit/loss colors visibility in both modes
-- [ ] Test charts readability in light mode
+- [x] Move current `:root` dark theme values to `.dark` class
+- [x] Define new light mode values in `:root`
+- [x] Update extended design system colors for light mode
+- [x] Update glassmorphism utilities with theme variants
+- [x] Update scrollbar colors with theme variants
+- [x] Verify WCAG AA contrast ratios with browser tools
+- [x] Test profit/loss colors visibility in both modes
+- [x] Test charts readability in light mode
 
 ---
 
 ## Success Criteria
 
-- [ ] Light mode looks premium, not generic
-- [ ] All text passes WCAG AA contrast (4.5:1)
-- [ ] UI elements pass WCAG AA contrast (3:1)
-- [ ] Trading colors (green/red) equally visible in both modes
-- [ ] Glassmorphism effects work in both modes
-- [ ] Charts are readable in light mode
-- [ ] No hardcoded colors in components (all use CSS vars)
+- [x] Light mode looks premium, not generic
+- [x] All text passes WCAG AA contrast (4.5:1)
+- [x] UI elements pass WCAG AA contrast (3:1)
+- [x] Trading colors (green/red) equally visible in both modes
+- [x] Glassmorphism effects work in both modes
+- [x] Charts are readable in light mode
+- [x] No hardcoded colors in components (all use CSS vars)
 
 ---
 

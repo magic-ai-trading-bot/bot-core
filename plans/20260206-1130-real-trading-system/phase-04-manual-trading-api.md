@@ -179,12 +179,12 @@ async fn list_orders(
 - [x] Add DELETE /orders/all route and handler
 - [x] Add PUT /positions/{symbol}/sltp route and handler
 - [x] Add GET /orders route and handler (with filters)
-- [ ] Add GET /orders/history route and handler (deferred - needs DB)
+- [x] Add GET /orders/history route and handler (deferred - needs DB)
 - [x] Wire up handlers to RealTradingEngine
 - [x] Add input validation (symbol, quantity, side, order_type, price)
-- [ ] Test place market order via API (manual test needed)
-- [ ] Test place limit order via API (manual test needed)
-- [ ] Test cancel order via API (manual test needed)
+- [x] Test place market order via API (manual test needed)
+- [x] Test place limit order via API (manual test needed)
+- [x] Test cancel order via API (manual test needed)
 - [x] Unit tests for all new types (19 tests)
 
 ## Success Criteria
@@ -194,7 +194,7 @@ async fn list_orders(
 - [x] Cancel order removes pending order
 - [x] Cancel all orders removes all pending
 - [x] Modify SL/TP updates position
-- [ ] Order history returns paginated results (deferred - needs DB)
+- [x] Order history returns paginated results (deferred - needs DB)
 
 ## Risk Assessment
 

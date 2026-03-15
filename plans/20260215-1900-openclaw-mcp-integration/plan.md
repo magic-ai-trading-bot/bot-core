@@ -20,14 +20,14 @@ All services on same VPS, internal Docker network. MCP server NOT exposed extern
 
 ## Phases
 
-| # | Phase | File | Status | Est. |
-|---|-------|------|--------|------|
-| 1 | MCP TypeScript Server Setup | [phase-01-mcp-server-setup.md](./phases/phase-01-mcp-server-setup.md) | ✅ Done | 2d |
-| 2 | MCP Tool Implementation (95 tools) | [phase-02-mcp-tool-implementation.md](./phases/phase-02-mcp-tool-implementation.md) | ✅ Done | 2d |
-| 3 | Self-Tuning Engine & Guardrails | [phase-03-self-tuning-engine.md](./phases/phase-03-self-tuning-engine.md) | ✅ Done | 2d |
-| 4 | OpenClaw Deployment & Channel Config | [phase-04-openclaw-deployment.md](./phases/phase-04-openclaw-deployment.md) | ✅ Done | 1.5d |
-| 5 | Cron Jobs & Automation | [phase-05-cron-jobs-automation.md](./phases/phase-05-cron-jobs-automation.md) | ✅ Done | 1d |
-| 6 | Integration Testing & Security Audit | [phase-06-integration-testing.md](./phases/phase-06-integration-testing.md) | ✅ Done | 1.5d |
+| Phase | Name | Status | Link |
+|-------|------|--------|------|
+| 1 | MCP TypeScript Server Setup | ✅ Done | [phase-01](./phases/phase-01-mcp-server-setup.md) |
+| 2 | MCP Tool Implementation | ✅ Done | [phase-02](./phases/phase-02-mcp-tool-implementation.md) |
+| 3 | Self-Tuning Engine | ✅ Done | [phase-03](./phases/phase-03-self-tuning-engine.md) |
+| 4 | OpenClaw Deployment | ✅ Done | [phase-04](./phases/phase-04-openclaw-deployment.md) |
+| 5 | Cron Jobs & Automation | ✅ Done | [phase-05](./phases/phase-05-cron-jobs-automation.md) |
+| 6 | Integration Testing | ✅ Done | [phase-06](./phases/phase-06-integration-testing.md) |
 
 ## Key Decisions
 

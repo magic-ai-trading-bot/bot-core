@@ -308,52 +308,52 @@ See: [Docker Cleanup Plan](../../plans/20260215-2100-docker-cleanup-optimization
 ## Todo List
 
 ### Priority 1: Critical Core Docs
-- [ ] Update CLAUDE.md tech stack
-- [ ] Update CLAUDE.md service URLs
-- [ ] Update CLAUDE.md docker-compose examples
-- [ ] Update README.md architecture diagram
-- [ ] Update README.md tech stack
-- [ ] Update README.md getting started
-- [ ] Update TRACEABILITY_MATRIX.md (mark FR-ASYNC-* deprecated)
-- [ ] Add deprecation note to traceability matrix
+- [x] Update CLAUDE.md tech stack
+- [x] Update CLAUDE.md service URLs
+- [x] Update CLAUDE.md docker-compose examples
+- [x] Update README.md architecture diagram
+- [x] Update README.md tech stack
+- [x] Update README.md getting started
+- [x] Update TRACEABILITY_MATRIX.md (mark FR-ASYNC-* deprecated)
+- [x] Add deprecation note to traceability matrix
 
 ### Priority 2: Delete Deprecated Docs
-- [ ] Delete docs/fixes/RABBITMQ_PASSWORD_FIX.md
-- [ ] Delete docs/guides/ASYNC_TASKS_README.md
-- [ ] Delete specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md
-- [ ] Delete specs/03-testing/3.2-test-cases/TC-ASYNC.md
-- [ ] Delete specs/04-deployment/4.3-monitoring/MON-METRICS.md
-- [ ] Delete specs/04-deployment/4.3-monitoring/MON-LOGGING.md
+- [x] Delete docs/fixes/RABBITMQ_PASSWORD_FIX.md
+- [x] Delete docs/guides/ASYNC_TASKS_README.md
+- [x] Delete specs/01-requirements/1.1-functional-requirements/FR-ASYNC-TASKS.md
+- [x] Delete specs/03-testing/3.2-test-cases/TC-ASYNC.md
+- [x] Delete specs/04-deployment/4.3-monitoring/MON-METRICS.md
+- [x] Delete specs/04-deployment/4.3-monitoring/MON-LOGGING.md
 
 ### Priority 3: Update Specs (15+ files)
-- [ ] Update ARCH-OVERVIEW.md (system architecture)
-- [ ] Update ARCH-SECURITY.md (remove Kong)
-- [ ] Update API-PYTHON-AI.md (remove Celery endpoints)
-- [ ] Update DB-SCHEMA.md (remove async collections)
-- [ ] Update DB-INDEXES.md (remove task indexes)
-- [ ] Update COMP-PYTHON-ML.md (remove Celery)
-- [ ] Update INFRA-REQUIREMENTS.md (remove 9 services)
-- [ ] Update INFRA-DOCKER.md (update service count)
-- [ ] Update OPS-MANUAL.md (remove 9 services)
-- [ ] Update TROUBLESHOOTING.md (remove sections)
-- [ ] Update DR-PLAN.md (remove backups)
+- [x] Update ARCH-OVERVIEW.md (system architecture)
+- [x] Update ARCH-SECURITY.md (remove Kong)
+- [x] Update API-PYTHON-AI.md (remove Celery endpoints)
+- [x] Update DB-SCHEMA.md (remove async collections)
+- [x] Update DB-INDEXES.md (remove task indexes)
+- [x] Update COMP-PYTHON-ML.md (remove Celery)
+- [x] Update INFRA-REQUIREMENTS.md (remove 9 services)
+- [x] Update INFRA-DOCKER.md (update service count)
+- [x] Update OPS-MANUAL.md (remove 9 services)
+- [x] Update TROUBLESHOOTING.md (remove sections)
+- [x] Update DR-PLAN.md (remove backups)
 
 ### Priority 4: Production Guides
-- [ ] Update PRODUCTION_DEPLOYMENT_GUIDE.md (remove 9 services)
-- [ ] Update OPERATIONS_MANUAL.md (remove service management)
-- [ ] Update TROUBLESHOOTING.md (remove troubleshooting)
-- [ ] Update HEALTH_CHECK_ENDPOINTS.md (remove checks)
-- [ ] Update BACKUP_RESTORE_GUIDE.md (remove RabbitMQ)
+- [x] Update PRODUCTION_DEPLOYMENT_GUIDE.md (remove 9 services)
+- [x] Update OPERATIONS_MANUAL.md (remove service management)
+- [x] Update TROUBLESHOOTING.md (remove troubleshooting)
+- [x] Update HEALTH_CHECK_ENDPOINTS.md (remove checks)
+- [x] Update BACKUP_RESTORE_GUIDE.md (remove RabbitMQ)
 
 ### Verification
-- [ ] grep docs/ for "Kong" (expect zero active doc matches)
-- [ ] grep docs/ for "RabbitMQ" (expect zero active doc matches)
-- [ ] grep docs/ for "Celery" (expect zero active doc matches)
-- [ ] grep docs/ for "Prometheus" (expect zero active doc matches)
-- [ ] grep docs/ for "Grafana" (expect zero active doc matches)
-- [ ] grep specs/ for removed services (expect only deprecated/archive)
-- [ ] Verify TRACEABILITY_MATRIX.md updated
-- [ ] Verify FR-ASYNC-* marked deprecated
+- [x] grep docs/ for "Kong" (expect zero active doc matches)
+- [x] grep docs/ for "RabbitMQ" (expect zero active doc matches)
+- [x] grep docs/ for "Celery" (expect zero active doc matches)
+- [x] grep docs/ for "Prometheus" (expect zero active doc matches)
+- [x] grep docs/ for "Grafana" (expect zero active doc matches)
+- [x] grep specs/ for removed services (expect only deprecated/archive)
+- [x] Verify TRACEABILITY_MATRIX.md updated
+- [x] Verify FR-ASYNC-* marked deprecated
 
 ---
 

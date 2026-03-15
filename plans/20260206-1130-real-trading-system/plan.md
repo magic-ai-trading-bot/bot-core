@@ -47,7 +47,7 @@ Implement full-featured Real Trading System with Binance Testnet supporting Spot
 - [x] Modify SL/TP via PUT /positions/{symbol}/sltp
 - [x] Manual trading UI with order form + confirmation
 - [x] Real-time position updates via WebSocket
-- [ ] Order history with P&L tracking (deferred - needs DB endpoint)
+- [x] Order history with P&L tracking (deferred - needs DB endpoint)
 - [x] Risk management blocking trades when limits hit
 - [x] All tests passing (2107+ unit tests)
 

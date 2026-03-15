@@ -1,7 +1,7 @@
 ---
 title: "YAML-based settings baseline for paper trading engine"
 description: "Replace DB-loaded settings with git-tracked YAML file as read-only source of truth on startup"
-status: pending
+status: completed
 priority: P1
 effort: 3h
 branch: feat/yaml-settings-baseline
@@ -10,6 +10,14 @@ created: 2026-03-04
 ---
 
 # YAML-Based Settings Baseline for Paper Trading Engine
+
+## Phases
+
+| Phase | Name | Status | Link |
+|-------|------|--------|------|
+| 1 | Add serde_yml dependency | ✅ Done | [phase-1](#phase-1-add-serde_yml-dependency) |
+| 2 | Create YAML defaults file | ✅ Done | [phase-2](#phase-2-create-yaml-defaults-file) |
+| 3 | Add from_yaml method | ✅ Done | [phase-3](#phase-3-add-from_yaml-method-to-papertradingsettings) |
 
 ## Problem
 
@@ -58,8 +66,8 @@ This means: runtime tuning is a "session" concept. YAML is the "blessed" config.
 1. Add `serde_yml = "0.0.12"` to `[dependencies]` (latest stable as of 2026-03)
 
 **Todo:**
-- [ ] Add serde_yml dependency to Cargo.toml
-- [ ] Run `cargo check` to verify it compiles
+- [x] Add serde_yml dependency to Cargo.toml
+- [x] Run `cargo check` to verify it compiles
 
 ---
 
@@ -251,9 +259,9 @@ signal_pipeline:
 **Note on symbols:** Each symbol only specifies `enabled` and `max_positions`. All other fields (`leverage`, `stop_loss_pct`, etc.) are `Option<T>` and default to `None` — the engine already falls through to global defaults. This keeps the YAML clean.
 
 **Todo:**
-- [ ] Create `rust-core-engine/config/` directory
-- [ ] Create `paper-trading-defaults.yml` with all settings
-- [ ] Verify YAML parses correctly with a quick test
+- [x] Create `rust-core-engine/config/` directory
+- [x] Create `paper-trading-defaults.yml` with all settings
+- [x] Verify YAML parses correctly with a quick test
 
 ---
 
@@ -281,11 +289,11 @@ pub fn from_yaml(path: &str) -> Result<Self> {
 2. The method reads file, parses YAML, validates, and returns. Validation failure = startup abort.
 
 **Todo:**
-- [ ] Add `use serde_yml;` (or keep it path-qualified)
-- [ ] Add `from_yaml()` method to `impl PaperTradingSettings`
-- [ ] Add unit test: `test_from_yaml_valid` (write temp file, parse, assert key values)
-- [ ] Add unit test: `test_from_yaml_invalid_fails` (bad YAML, expect error)
-- [ ] Add unit test: `test_from_yaml_missing_file_fails`
+- [x] Add `use serde_yml;` (or keep it path-qualified)
+- [x] Add `from_yaml()` method to `impl PaperTradingSettings`
+- [x] Add unit test: `test_from_yaml_valid` (write temp file, parse, assert key values)
+- [x] Add unit test: `test_from_yaml_invalid_fails` (bad YAML, expect error)
+- [x] Add unit test: `test_from_yaml_missing_file_fails`
 
 ---
 
@@ -382,13 +390,13 @@ match storage.load_user_symbols().await {
 ```
 
 **Todo:**
-- [ ] Modify `PaperTradingEngine::new()` to use YAML settings directly (remove DB load logic)
-- [ ] Remove startup migration guard block
-- [ ] Modify `main.rs` to call `PaperTradingSettings::from_yaml()`
-- [ ] Add `PAPER_TRADING_YAML` env var support with default path
-- [ ] Keep user-added symbols from DB append logic
-- [ ] Remove hardcoded symbol loop in main.rs
-- [ ] Run `cargo check` and `cargo test`
+- [x] Modify `PaperTradingEngine::new()` to use YAML settings directly (remove DB load logic)
+- [x] Remove startup migration guard block
+- [x] Modify `main.rs` to call `PaperTradingSettings::from_yaml()`
+- [x] Add `PAPER_TRADING_YAML` env var support with default path
+- [x] Keep user-added symbols from DB append logic
+- [x] Remove hardcoded symbol loop in main.rs
+- [x] Run `cargo check` and `cargo test`
 
 ---
 
@@ -416,9 +424,9 @@ Add to `rust-core-engine.volumes`:
 The `:ro` mount means the container can't modify the file — reinforces "YAML is read-only".
 
 **Todo:**
-- [ ] Update Dockerfile to COPY config/ directory
-- [ ] Add read-only volume mount in docker-compose-vps.yml
-- [ ] Verify path matches default in code (`config/paper-trading-defaults.yml`)
+- [x] Update Dockerfile to COPY config/ directory
+- [x] Add read-only volume mount in docker-compose-vps.yml
+- [x] Verify path matches default in code (`config/paper-trading-defaults.yml`)
 
 ---
 
@@ -435,11 +443,11 @@ The `:ro` mount means the container can't modify the file — reinforces "YAML i
 4. `test_yaml_file_matches_defaults` — load YAML, compare key fields to `Default` impl (catches drift)
 
 **Todo:**
-- [ ] Add unit tests for `from_yaml()`
-- [ ] Add integration test that loads real YAML file
-- [ ] Add drift-detection test (YAML vs Default impl)
-- [ ] Run full test suite: `cargo test`
-- [ ] Verify coverage thresholds still met (95%)
+- [x] Add unit tests for `from_yaml()`
+- [x] Add integration test that loads real YAML file
+- [x] Add drift-detection test (YAML vs Default impl)
+- [x] Run full test suite: `cargo test`
+- [x] Verify coverage thresholds still met (95%)
 
 ---
 
@@ -456,9 +464,9 @@ The `:ro` mount means the container can't modify the file — reinforces "YAML i
 3. Add comment in `from_file()` (TOML loader) marking it deprecated
 
 **Todo:**
-- [ ] Mark old TOML file as deprecated
-- [ ] Update CLAUDE.md with YAML config reference
-- [ ] Mark `from_file()` as deprecated in code
+- [x] Mark old TOML file as deprecated
+- [x] Update CLAUDE.md with YAML config reference
+- [x] Mark `from_file()` as deprecated in code
 
 ---
 
@@ -514,14 +522,14 @@ RESTART:
 
 ## Success Criteria
 
-- [ ] Engine starts from YAML baseline (not DB)
-- [ ] Bad/missing YAML = engine refuses to start
-- [ ] Runtime tuning via API still works (writes to DB)
-- [ ] Restart resets to YAML baseline
-- [ ] All existing tests pass
-- [ ] Coverage >= 95%
-- [ ] Docker container correctly mounts YAML file
-- [ ] `cargo clippy` clean, `cargo fmt` clean
+- [x] Engine starts from YAML baseline (not DB)
+- [x] Bad/missing YAML = engine refuses to start
+- [x] Runtime tuning via API still works (writes to DB)
+- [x] Restart resets to YAML baseline
+- [x] All existing tests pass
+- [x] Coverage >= 95%
+- [x] Docker container correctly mounts YAML file
+- [x] `cargo clippy` clean, `cargo fmt` clean
 
 ---
 

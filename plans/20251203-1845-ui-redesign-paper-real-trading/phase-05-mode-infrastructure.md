@@ -108,25 +108,25 @@ components/
 
 ## Todo List
 
-- [ ] Create TradingModeContext
-- [ ] Create useTradingMode hook
-- [ ] Create ModeSwitchDialog with confirmation
-- [ ] Create RealModeWarningBanner
-- [ ] Create useRealTrading hook
-- [ ] Create ModeToggle component
-- [ ] Update App.tsx with provider
-- [ ] Add localStorage persistence
-- [ ] Test mode switching flow
-- [ ] Test warning banner display
-- [ ] Write context tests
+- [x] Create TradingModeContext
+- [x] Create useTradingMode hook
+- [x] Create ModeSwitchDialog with confirmation
+- [x] Create RealModeWarningBanner
+- [x] Create useRealTrading hook
+- [x] Create ModeToggle component
+- [x] Update App.tsx with provider
+- [x] Add localStorage persistence
+- [x] Test mode switching flow
+- [x] Test warning banner display
+- [x] Write context tests
 
 ## Success Criteria
 
-- [ ] Mode persists across page refresh
-- [ ] Cannot switch to real mode without confirmation
-- [ ] Warning banner always visible in real mode
-- [ ] useRealTrading works parallel to usePaperTrading
-- [ ] Mode toggle clearly shows current state
+- [x] Mode persists across page refresh
+- [x] Cannot switch to real mode without confirmation
+- [x] Warning banner always visible in real mode
+- [x] useRealTrading works parallel to usePaperTrading
+- [x] Mode toggle clearly shows current state
 
 ## Risk Assessment
 

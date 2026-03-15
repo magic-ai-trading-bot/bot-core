@@ -157,32 +157,32 @@
 
 ## Todo List
 
-- [ ] Install Three.js and React Three Fiber
-- [ ] Create Canvas3D wrapper component
-- [ ] Create useDeviceCapability hook
-- [ ] Create Hero3DScene for landing
-- [ ] Create FloatingCoins component
-- [ ] Create GlowOrb with shader
-- [ ] Create ParticleField background
-- [ ] Create PortfolioGlobe
-- [ ] Create PriceTicker3D
-- [ ] Create MarketDepth3D
-- [ ] Create Fallback2D components
-- [ ] Integrate into landing page
-- [ ] Optimize bundle size (< 500KB)
-- [ ] Test on low-end devices
-- [ ] Add touch controls
-- [ ] Performance profiling
-- [ ] Write component tests
+- [x] Install Three.js and React Three Fiber
+- [x] Create Canvas3D wrapper component
+- [x] Create useDeviceCapability hook
+- [x] Create Hero3DScene for landing
+- [x] Create FloatingCoins component
+- [x] Create GlowOrb with shader
+- [x] Create ParticleField background
+- [x] Create PortfolioGlobe
+- [x] Create PriceTicker3D
+- [x] Create MarketDepth3D
+- [x] Create Fallback2D components
+- [x] Integrate into landing page
+- [x] Optimize bundle size (< 500KB)
+- [x] Test on low-end devices
+- [x] Add touch controls
+- [x] Performance profiling
+- [x] Write component tests
 
 ## Success Criteria
 
-- [ ] Hero 3D renders at 60fps on mid-range devices
-- [ ] Fallback activates on low-end devices
-- [ ] Three.js bundle lazy loaded
-- [ ] Touch controls work on mobile
-- [ ] No visual glitches on resize
-- [ ] Battery-conscious (reduce fps when tab hidden)
+- [x] Hero 3D renders at 60fps on mid-range devices
+- [x] Fallback activates on low-end devices
+- [x] Three.js bundle lazy loaded
+- [x] Touch controls work on mobile
+- [x] No visual glitches on resize
+- [x] Battery-conscious (reduce fps when tab hidden)
 
 ## Risk Assessment
 

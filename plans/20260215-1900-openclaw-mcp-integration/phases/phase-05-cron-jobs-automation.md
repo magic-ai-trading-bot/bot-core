@@ -207,22 +207,22 @@ This works through Claude interpreting the message and using OpenClaw cron API (
 
 ## Todo List
 
-- [ ] Create `openclaw/config/cron/` directory
-- [ ] Write morning market briefing cron job definition
-- [ ] Write daily portfolio report cron job definition
-- [ ] Write weekly performance review cron job definition
-- [ ] Write system health check cron job definition (alert-only)
-- [ ] Write self-tuning review cron job definition
-- [ ] Write risk monitor cron job definition (alert-only)
-- [ ] Implement cron registration in container entrypoint
-- [ ] Test: morning briefing executes and sends to Telegram
-- [ ] Test: portfolio report shows correct PnL data
-- [ ] Test: health check is silent when healthy
-- [ ] Test: risk monitor alerts on simulated threshold breach
-- [ ] Test: self-tuning applies GREEN adjustment and notifies
-- [ ] Test: user can pause/resume cron jobs via chat
-- [ ] Tune prompt lengths to avoid excessive Claude API usage
-- [ ] Verify cron jobs survive container restart
+- [x] Create `openclaw/config/cron/` directory
+- [x] Write morning market briefing cron job definition
+- [x] Write daily portfolio report cron job definition
+- [x] Write weekly performance review cron job definition
+- [x] Write system health check cron job definition (alert-only)
+- [x] Write self-tuning review cron job definition
+- [x] Write risk monitor cron job definition (alert-only)
+- [x] Implement cron registration in container entrypoint
+- [x] Test: morning briefing executes and sends to Telegram
+- [x] Test: portfolio report shows correct PnL data
+- [x] Test: health check is silent when healthy
+- [x] Test: risk monitor alerts on simulated threshold breach
+- [x] Test: self-tuning applies GREEN adjustment and notifies
+- [x] Test: user can pause/resume cron jobs via chat
+- [x] Tune prompt lengths to avoid excessive Claude API usage
+- [x] Verify cron jobs survive container restart
 
 ## Success Criteria
 

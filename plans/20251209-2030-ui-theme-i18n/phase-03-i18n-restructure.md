@@ -420,37 +420,37 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 
 ## Todo List
 
-- [ ] Install `i18next-browser-languagedetector`
-- [ ] Create `src/i18n/locales/` folder structure
-- [ ] Extract existing en translations to `en/landing.json`
-- [ ] Create `en/common.json` with shared UI strings
-- [ ] Create `en/trading.json` with trading-specific strings
-- [ ] Create `en/dashboard.json` with dashboard strings
-- [ ] Create `en/errors.json` with error messages
-- [ ] Translate and create all 5 `vi/*.json` files
-- [ ] Translate and create all 5 `fr/*.json` files
-- [ ] Translate and create all 5 `zh/*.json` files
-- [ ] Translate and create all 5 `ja/*.json` files (NEW)
-- [ ] Create `src/i18n/config.ts` with glob imports
-- [ ] Create `src/i18n/i18n.d.ts` for TypeScript
-- [ ] Create `src/contexts/LanguageContext.tsx`
-- [ ] Update `src/components/LanguageSelector.tsx`
-- [ ] Add LanguageProvider to App.tsx
-- [ ] Update `src/i18n/index.ts` to re-export config
-- [ ] Verify language detection works (browser preference)
-- [ ] Verify localStorage persistence works
+- [x] Install `i18next-browser-languagedetector`
+- [x] Create `src/i18n/locales/` folder structure
+- [x] Extract existing en translations to `en/landing.json`
+- [x] Create `en/common.json` with shared UI strings
+- [x] Create `en/trading.json` with trading-specific strings
+- [x] Create `en/dashboard.json` with dashboard strings
+- [x] Create `en/errors.json` with error messages
+- [x] Translate and create all 5 `vi/*.json` files
+- [x] Translate and create all 5 `fr/*.json` files
+- [x] Translate and create all 5 `zh/*.json` files
+- [x] Translate and create all 5 `ja/*.json` files (NEW)
+- [x] Create `src/i18n/config.ts` with glob imports
+- [x] Create `src/i18n/i18n.d.ts` for TypeScript
+- [x] Create `src/contexts/LanguageContext.tsx`
+- [x] Update `src/components/LanguageSelector.tsx`
+- [x] Add LanguageProvider to App.tsx
+- [x] Update `src/i18n/index.ts` to re-export config
+- [x] Verify language detection works (browser preference)
+- [x] Verify localStorage persistence works
 
 ---
 
 ## Success Criteria
 
-- [ ] 5 languages available in selector (EN, VI, FR, ZH, JA)
-- [ ] Language persists after page reload
-- [ ] Browser language auto-detected on first visit
-- [ ] TypeScript autocomplete works for translation keys
-- [ ] Fallback to English for missing keys
-- [ ] No runtime errors when switching languages
-- [ ] Bundle size increase < 20KB per language
+- [x] 5 languages available in selector (EN, VI, FR, ZH, JA)
+- [x] Language persists after page reload
+- [x] Browser language auto-detected on first visit
+- [x] TypeScript autocomplete works for translation keys
+- [x] Fallback to English for missing keys
+- [x] No runtime errors when switching languages
+- [x] Bundle size increase < 20KB per language
 
 ---
 

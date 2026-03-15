@@ -249,48 +249,48 @@ docker system df
 ## Todo List
 
 ### Docker Validation
-- [ ] Run `docker compose config --quiet` (must pass)
-- [ ] Verify no removed services in config
-- [ ] Count services (13 total)
+- [x] Run `docker compose config --quiet` (must pass)
+- [x] Verify no removed services in config
+- [x] Count services (13 total)
 
 ### Environment Validation
-- [ ] Run `./scripts/validate-env.sh` (must pass)
-- [ ] Verify no removed vars in .env files
+- [x] Run `./scripts/validate-env.sh` (must pass)
+- [x] Verify no removed vars in .env files
 
 ### Service Startup
-- [ ] Stop all services
-- [ ] Start dev mode: `./scripts/bot.sh dev`
-- [ ] Verify 6-7 services start
-- [ ] Monitor health checks (5 min max)
-- [ ] Check logs for errors
+- [x] Stop all services
+- [x] Start dev mode: `./scripts/bot.sh dev`
+- [x] Verify 6-7 services start
+- [x] Monitor health checks (5 min max)
+- [x] Check logs for errors
 
 ### Health Checks
-- [ ] Run `./scripts/health-check.sh`
-- [ ] Verify only 6-7 services checked
-- [ ] All health checks must pass
+- [x] Run `./scripts/health-check.sh`
+- [x] Verify only 6-7 services checked
+- [x] All health checks must pass
 
 ### API Tests
-- [ ] Test Rust API: `curl localhost:8080/api/health`
-- [ ] Test Python API: `curl localhost:8000/health`
-- [ ] Test Frontend: `curl localhost:3000/`
-- [ ] Test MCP: `curl localhost:8090/health`
+- [x] Test Rust API: `curl localhost:8080/api/health`
+- [x] Test Python API: `curl localhost:8000/health`
+- [x] Test Frontend: `curl localhost:3000/`
+- [x] Test MCP: `curl localhost:8090/health`
 
 ### Code Verification
-- [ ] Grep for removed services (zero matches)
-- [ ] Verify CLAUDE.md updated
-- [ ] Verify README.md updated
-- [ ] Verify TRACEABILITY_MATRIX.md shows FR-ASYNC deprecated
+- [x] Grep for removed services (zero matches)
+- [x] Verify CLAUDE.md updated
+- [x] Verify README.md updated
+- [x] Verify TRACEABILITY_MATRIX.md shows FR-ASYNC deprecated
 
 ### Script Tests
-- [ ] Test `./scripts/bot.sh --help`
-- [ ] Test `./scripts/bot.sh status`
-- [ ] Test `./scripts/health-check.sh`
-- [ ] Test `./scripts/validate-env.sh`
+- [x] Test `./scripts/bot.sh --help`
+- [x] Test `./scripts/bot.sh status`
+- [x] Test `./scripts/health-check.sh`
+- [x] Test `./scripts/validate-env.sh`
 
 ### Cleanup Verification
-- [ ] Check no removed service volumes
-- [ ] Check disk space saved
-- [ ] Document before/after metrics
+- [x] Check no removed service volumes
+- [x] Check disk space saved
+- [x] Document before/after metrics
 
 ---
 

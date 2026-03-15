@@ -157,25 +157,25 @@ diff docker-compose.yml infrastructure/docker/docker-compose.yml
 
 ## Todo List
 
-- [ ] Backup both docker-compose.yml files
-- [ ] Remove rabbitmq service (lines 381-409)
-- [ ] Remove celery-worker service (lines 411-463)
-- [ ] Remove celery-beat service (lines 465-511)
-- [ ] Remove flower service (lines 513-559)
-- [ ] Remove kong-database service (lines 561-580)
-- [ ] Remove kong-migration service (lines 582-598)
-- [ ] Remove kong service (lines 600-635)
-- [ ] Remove prometheus service (lines 791-804)
-- [ ] Remove grafana service (lines 806-824)
-- [ ] Remove 5 volume definitions
-- [ ] Update redis profile (remove "messaging")
-- [ ] Remove PROMETHEUS_URL from mcp-server (line 654)
-- [ ] Remove PROMETHEUS_URL from mcp-server-dev (line 693)
-- [ ] Apply same changes to infrastructure/docker/docker-compose.yml
-- [ ] Verify files identical with diff
-- [ ] Verify service count (13 services)
-- [ ] Verify volume count (5 volumes)
-- [ ] Verify zero references to removed services
+- [x] Backup both docker-compose.yml files
+- [x] Remove rabbitmq service (lines 381-409)
+- [x] Remove celery-worker service (lines 411-463)
+- [x] Remove celery-beat service (lines 465-511)
+- [x] Remove flower service (lines 513-559)
+- [x] Remove kong-database service (lines 561-580)
+- [x] Remove kong-migration service (lines 582-598)
+- [x] Remove kong service (lines 600-635)
+- [x] Remove prometheus service (lines 791-804)
+- [x] Remove grafana service (lines 806-824)
+- [x] Remove 5 volume definitions
+- [x] Update redis profile (remove "messaging")
+- [x] Remove PROMETHEUS_URL from mcp-server (line 654)
+- [x] Remove PROMETHEUS_URL from mcp-server-dev (line 693)
+- [x] Apply same changes to infrastructure/docker/docker-compose.yml
+- [x] Verify files identical with diff
+- [x] Verify service count (13 services)
+- [x] Verify volume count (5 volumes)
+- [x] Verify zero references to removed services
 
 ---
 

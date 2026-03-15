@@ -154,25 +154,25 @@ export function useTheme() {
 
 ## Todo List
 
-- [ ] Create `src/contexts/ThemeContext.tsx` with full TypeScript types
-- [ ] Add FOUC prevention script to `index.html` `<head>`
-- [ ] Add `.theme-transitioning` CSS class to `index.css`
-- [ ] Add reduced-motion media query for transitions
-- [ ] Import and wrap App with ThemeProvider in `App.tsx`
-- [ ] Add system preference change listener in ThemeContext
-- [ ] Verify dark class toggles on `document.documentElement`
-- [ ] Test localStorage persistence across page reloads
+- [x] Create `src/contexts/ThemeContext.tsx` with full TypeScript types
+- [x] Add FOUC prevention script to `index.html` `<head>`
+- [x] Add `.theme-transitioning` CSS class to `index.css`
+- [x] Add reduced-motion media query for transitions
+- [x] Import and wrap App with ThemeProvider in `App.tsx`
+- [x] Add system preference change listener in ThemeContext
+- [x] Verify dark class toggles on `document.documentElement`
+- [x] Test localStorage persistence across page reloads
 
 ---
 
 ## Success Criteria
 
-- [ ] `useTheme()` returns correct `theme` and `resolvedTheme`
-- [ ] Theme persists in localStorage after page reload
-- [ ] No FOUC visible on hard refresh
-- [ ] System preference changes reflect immediately
-- [ ] Transition is smooth (0.3s) without jarring flash
-- [ ] Reduced motion users see instant theme change
+- [x] `useTheme()` returns correct `theme` and `resolvedTheme`
+- [x] Theme persists in localStorage after page reload
+- [x] No FOUC visible on hard refresh
+- [x] System preference changes reflect immediately
+- [x] Transition is smooth (0.3s) without jarring flash
+- [x] Reduced motion users see instant theme change
 
 ---
 

@@ -123,34 +123,34 @@
 ## 5. Actionable Design Recommendations
 
 ### Priority 1: Safety (Paper vs Real Separation)
-- [ ] Implement color-coded mode badge (top-left, persistent)
-- [ ] Add 2-step confirmation for real trades (preview → confirm with PIN)
-- [ ] Show "PAPER TRADING" warning banner (dismissible, reappears daily)
-- [ ] Disable mode switching during active orders
+- [x] Implement color-coded mode badge (top-left, persistent)
+- [x] Add 2-step confirmation for real trades (preview → confirm with PIN)
+- [x] Show "PAPER TRADING" warning banner (dismissible, reappears daily)
+- [x] Disable mode switching during active orders
 
 ### Priority 2: Visual Hierarchy
-- [ ] Portfolio value top-center (largest number on page)
-- [ ] Active orders section: Sticky header (visible while scrolling charts)
-- [ ] Chart dominant (60% of width on desktop, full-width on mobile)
-- [ ] Order book right-side (30% width, collapsible on mobile)
+- [x] Portfolio value top-center (largest number on page)
+- [x] Active orders section: Sticky header (visible while scrolling charts)
+- [x] Chart dominant (60% of width on desktop, full-width on mobile)
+- [x] Order book right-side (30% width, collapsible on mobile)
 
 ### Priority 3: Real-Time Feedback
-- [ ] Ticker animations: Color flash (50ms) for moves >0.5%
-- [ ] Order book heatmap: Update every 100ms (WebSocket aggregation)
-- [ ] Trade execution: Show confirmation toast (2s auto-dismiss)
-- [ ] Portfolio P&L: Smooth number animation (0.3s) on updates
+- [x] Ticker animations: Color flash (50ms) for moves >0.5%
+- [x] Order book heatmap: Update every 100ms (WebSocket aggregation)
+- [x] Trade execution: Show confirmation toast (2s auto-dismiss)
+- [x] Portfolio P&L: Smooth number animation (0.3s) on updates
 
 ### Priority 4: Dark Mode Implementation
-- [ ] Use TailwindCSS dark mode with preset: `#1F2937` background
-- [ ] Profit: `#10B981` (green), Loss: `#EF4444` (red)
-- [ ] Grid/lines: `#374151` (subtle contrast)
-- [ ] Add motion reduction toggle for accessibility
+- [x] Use TailwindCSS dark mode with preset: `#1F2937` background
+- [x] Profit: `#10B981` (green), Loss: `#EF4444` (red)
+- [x] Grid/lines: `#374151` (subtle contrast)
+- [x] Add motion reduction toggle for accessibility
 
 ### Priority 5: Performance Optimization
-- [ ] Virtual scrolling for order book tables (100+ rows)
-- [ ] Memoize price cells with `React.memo`
-- [ ] Throttle WebSocket updates to 1Hz max
-- [ ] Use Canvas for heatmaps (not SVG/DOM)
+- [x] Virtual scrolling for order book tables (100+ rows)
+- [x] Memoize price cells with `React.memo`
+- [x] Throttle WebSocket updates to 1Hz max
+- [x] Use Canvas for heatmaps (not SVG/DOM)
 
 ---
 

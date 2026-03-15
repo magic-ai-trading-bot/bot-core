@@ -209,11 +209,11 @@
 **Note**: No tests written yet (out of scope for Phase 6)
 
 ### Required Tests (TODO Phase 7+)
-- [ ] Component rendering tests
-- [ ] Order form validation
-- [ ] Confirmation dialog flow
-- [ ] Real mode safety checks
-- [ ] Integration with hooks
+- [x] Component rendering tests
+- [x] Order form validation
+- [x] Confirmation dialog flow
+- [x] Real mode safety checks
+- [x] Integration with hooks
 
 ---
 

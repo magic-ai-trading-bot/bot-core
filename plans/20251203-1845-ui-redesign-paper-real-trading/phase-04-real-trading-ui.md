@@ -25,19 +25,19 @@ Build complete Real Trading dashboard with safety-first design: persistent warni
 ## Requirements
 
 ### Functional
-- [ ] TradingReal.tsx page (mirrors TradingPaper structure)
-- [ ] TradeConfirmationDialog with 2-step flow
-- [ ] Real-time fee estimation display
-- [ ] Daily loss limit indicator
-- [ ] Exchange connection status
-- [ ] Position close confirmation
-- [ ] Order preview before execution
+- [x] TradingReal.tsx page (mirrors TradingPaper structure)
+- [x] TradeConfirmationDialog with 2-step flow
+- [x] Real-time fee estimation display
+- [x] Daily loss limit indicator
+- [x] Exchange connection status
+- [x] Position close confirmation
+- [x] Order preview before execution
 
 ### Non-Functional
-- [ ] No accidental trade execution possible
-- [ ] Clear visual hierarchy (warnings prominent)
-- [ ] Mobile-responsive warning banners
-- [ ] Accessible (WCAG AA)
+- [x] No accidental trade execution possible
+- [x] Clear visual hierarchy (warnings prominent)
+- [x] Mobile-responsive warning banners
+- [x] Accessible (WCAG AA)
 
 ## Architecture
 
@@ -521,22 +521,22 @@ export default function TradingReal() {
 
 ## Todo List
 
-- [ ] Create TradingReal.tsx page
-- [ ] Create TradeConfirmationDialog.tsx
-- [ ] Create DailyLossLimitBar.tsx
-- [ ] Create ExchangeStatus.tsx
-- [ ] Create ClosePositionDialog.tsx
-- [ ] Create OrderPreview.tsx
-- [ ] Create FeeEstimateCard.tsx
-- [ ] Create RiskSettingsPanel.tsx
-- [ ] Add route in App.tsx
-- [ ] Connect to useRealTrading hook
-- [ ] Implement order preview calculation
-- [ ] Add position close confirmation
-- [ ] Test 2-step confirmation flow
-- [ ] Test daily loss limit UI
-- [ ] Mobile responsive testing
-- [ ] Accessibility audit
+- [x] Create TradingReal.tsx page
+- [x] Create TradeConfirmationDialog.tsx
+- [x] Create DailyLossLimitBar.tsx
+- [x] Create ExchangeStatus.tsx
+- [x] Create ClosePositionDialog.tsx
+- [x] Create OrderPreview.tsx
+- [x] Create FeeEstimateCard.tsx
+- [x] Create RiskSettingsPanel.tsx
+- [x] Add route in App.tsx
+- [x] Connect to useRealTrading hook
+- [x] Implement order preview calculation
+- [x] Add position close confirmation
+- [x] Test 2-step confirmation flow
+- [x] Test daily loss limit UI
+- [x] Mobile responsive testing
+- [x] Accessibility audit
 
 ## Success Criteria
 

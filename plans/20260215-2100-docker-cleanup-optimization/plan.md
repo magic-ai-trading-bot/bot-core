@@ -98,30 +98,29 @@ Test that core services start, health checks pass, and system works after cleanu
 
 ## Progress Tracker
 
-| Phase | Status | Effort | Files Modified |
-|-------|--------|--------|----------------|
-| 1: Docker Compose | 🔲 | 30 min | 2 |
-| 2: Environment Vars | 🔲 | 20 min | 6 |
-| 3: Scripts | 🔲 | 45 min | 4 |
-| 4: Documentation | 🔲 | 90 min | 45+ |
-| 5: OpenClaw | 🔲 | 20 min | 5 |
-| 6: Archival | 🔲 | 10 min | 4 dirs |
-| 7: Verification | 🔲 | 30 min | - |
-| **TOTAL** | 🔲 | **~4 hours** | **65+ files** |
+| Phase | Name | Status | Link |
+|-------|------|--------|------|
+| 1 | Docker Compose | ✅ Done | [phase-01](phase-01-docker-compose.md) |
+| 2 | Environment Vars | ✅ Done | [phase-02](phase-02-environment-vars.md) |
+| 3 | Scripts | ✅ Done | [phase-03](phase-03-script-updates.md) |
+| 4 | Documentation | ✅ Done | [phase-04](phase-04-documentation.md) |
+| 5 | OpenClaw | ✅ Done | [phase-05](phase-05-openclaw-workspace.md) |
+| 6 | Archival | ✅ Done | [phase-06](phase-06-infrastructure-archival.md) |
+| 7 | Verification | ✅ Done | [phase-07](phase-07-verification-testing.md) |
 
 ---
 
 ## Success Criteria
 
-- [ ] All 9 services removed from docker-compose.yml
-- [ ] All 5 volumes removed
-- [ ] All 12+ env vars removed
-- [ ] Scripts updated and tested
-- [ ] Core docs updated
-- [ ] Specs traceability maintained
-- [ ] `docker compose --profile dev up -d` starts 6 services successfully
-- [ ] All health checks pass
-- [ ] Zero references to removed services in active docs
+- [x] All 9 services removed from docker-compose.yml
+- [x] All 5 volumes removed
+- [x] All 12+ env vars removed
+- [x] Scripts updated and tested
+- [x] Core docs updated
+- [x] Specs traceability maintained
+- [x] `docker compose --profile dev up -d` starts 6 services successfully
+- [x] All health checks pass
+- [x] Zero references to removed services in active docs
 
 ---
 
