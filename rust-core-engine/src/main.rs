@@ -114,8 +114,13 @@ async fn main() -> Result<()> {
     // Runtime tuning via API/self-tuning goes to DB only (reset on restart).
     let yaml_path = std::env::var("PAPER_TRADING_YAML")
         .unwrap_or_else(|_| "config/paper-trading-defaults.yml".to_string());
-    let mut paper_trading_settings = PaperTradingSettings::from_yaml(&yaml_path)
-        .expect("FATAL: Cannot load paper trading YAML baseline. Fix the file and restart.");
+    let mut paper_trading_settings = PaperTradingSettings::from_yaml(&yaml_path).map_err(|e| {
+        anyhow::anyhow!(
+            "FATAL: Cannot load paper trading YAML baseline '{}': {}. Fix the file and restart.",
+            yaml_path,
+            e
+        )
+    })?;
     info!("📋 Paper trading settings loaded from YAML: {}", yaml_path);
 
     // Append user-added symbols from DB (dynamic additions not in YAML baseline)

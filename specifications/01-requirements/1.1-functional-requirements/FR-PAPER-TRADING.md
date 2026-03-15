@@ -2149,7 +2149,40 @@ pub struct PortfolioMetrics {
 
 ---
 
+---
+
+### FR-PAPER-003: Stop-Limit Order Management
+
+**Priority:** HIGH
+**Spec ID:** @spec:FR-PAPER-003
+**Status:** ✅ Implemented
+**Related Code:** `rust-core-engine/src/paper_trading/engine.rs`, `rust-core-engine/src/paper_trading/mod.rs`
+
+#### Description
+The system shall support stop-limit orders in paper trading, where a limit order is triggered when the market price reaches a specified stop price.
+
+#### Acceptance Criteria
+- [ ] Place stop-limit orders with stop price and limit price parameters
+- [ ] Trigger limit order when market price reaches stop price
+- [ ] Store pending stop-limit orders between price updates
+- [ ] Cancel pending stop-limit orders on request
+- [ ] List all pending stop-limit orders for a portfolio
+- [ ] Handle stop-limit orders that never trigger (remain pending until cancelled)
+- [ ] Apply slippage and fees when stop-limit order executes
+- [ ] Broadcast stop-limit order events via WebSocket
+
+#### Code Location
+- `rust-core-engine/src/paper_trading/engine.rs:91` - Stop-limit orders storage
+- `rust-core-engine/src/paper_trading/engine.rs:1007` - Price update checks
+- `rust-core-engine/src/paper_trading/engine.rs:3542` - Manual order placement
+- `rust-core-engine/src/paper_trading/engine.rs:3587` - Stop-limit handling
+- `rust-core-engine/src/paper_trading/mod.rs:142` - Order type definition
+- `rust-core-engine/src/api/paper_trading.rs:28` - API endpoint
+
+---
+
 **Document End**
 
 **Revision History:**
 - v1.0 (2025-10-10): Initial draft - Complete functional requirements for paper trading simulation
+- v1.1 (2026-03-15): Added FR-PAPER-003 Stop-Limit Order Management

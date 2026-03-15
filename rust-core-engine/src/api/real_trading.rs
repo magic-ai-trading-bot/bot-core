@@ -1443,12 +1443,23 @@ async fn place_order(
                     )
                     .await
             } else {
+                let price = match confirmed_request.price {
+                    Some(p) => p,
+                    None => {
+                        return Ok(warp::reply::with_status(
+                            warp::reply::json(&ApiResponse::<()>::error(
+                                "Price is required for LIMIT orders".to_string(),
+                            )),
+                            StatusCode::BAD_REQUEST,
+                        ));
+                    },
+                };
                 engine
                     .place_limit_order(
                         &confirmed_request.symbol,
                         side,
                         confirmed_request.quantity,
-                        confirmed_request.price.unwrap(),
+                        price,
                         None,
                         true,
                     )

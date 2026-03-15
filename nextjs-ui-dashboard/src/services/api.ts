@@ -431,8 +431,20 @@ class BaseApiClient {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await request();
-      } catch (error) {
-        if (attempt === maxRetries) {
+      } catch (error: unknown) {
+        // Only retry on network errors or 5xx server errors, not 4xx client errors
+        const status =
+          error &&
+          typeof error === "object" &&
+          "response" in error &&
+          error.response &&
+          typeof error.response === "object" &&
+          "status" in error.response
+            ? (error.response as { status: number }).status
+            : null;
+        const isClientError = status !== null && status >= 400 && status < 500;
+
+        if (attempt === maxRetries || isClientError) {
           throw error;
         }
 

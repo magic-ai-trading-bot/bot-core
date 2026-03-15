@@ -46,12 +46,24 @@ export interface ErrorData {
 }
 
 export interface PositionUpdateData {
+  action?: "OPENED" | "CLOSED" | "UPDATED";
   symbol: string;
   side: string;
   pnl: number;
   current_price: number;
   unrealized_pnl: number;
+  unrealized_pnl_percent?: number;
   timestamp: number;
+  // Extended position fields
+  id?: string;
+  quantity?: number;
+  entry_price?: number;
+  leverage?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  liquidation_price?: number;
+  margin?: number;
+  entry_time?: number;
 }
 
 export interface TradeExecutedData {

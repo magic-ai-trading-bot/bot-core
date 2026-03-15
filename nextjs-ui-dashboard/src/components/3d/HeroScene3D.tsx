@@ -8,14 +8,18 @@
  * - Orbiting data rings with trading metrics
  * - Holographic floating panels
  * - Energy streams connecting elements
- * - Dynamic particle systems
+ * - Dynamic particle systems (DataParticles)
+ * - Neural network grid (NeuralNetwork)
  * - Futuristic grid floor
+ * - WebGL error boundary with 2D fallback
  */
 
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect, Component, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useTheme } from '@/contexts/ThemeContext';
+import NeuralNetwork from './NeuralNetwork';
+import DataParticles from './DataParticles';
 
 // ============================================
 // AI Core - Central glowing sphere with energy
@@ -475,9 +479,10 @@ interface SceneProps {
   secondaryColor: string;
   accentColor: string;
   isDark: boolean;
+  isMobile: boolean;
 }
 
-function Scene({ primaryColor, secondaryColor, accentColor, isDark }: SceneProps) {
+function Scene({ primaryColor, secondaryColor, accentColor, isDark, isMobile }: SceneProps) {
   return (
     <>
       {/* Ambient Light */}
@@ -486,53 +491,141 @@ function Scene({ primaryColor, secondaryColor, accentColor, isDark }: SceneProps
       {/* Point light at core */}
       <pointLight position={[0, 0, -5]} intensity={1} color={primaryColor} distance={20} />
 
+      {/* Neural Network grid background */}
+      <NeuralNetwork
+        primaryColor={primaryColor}
+        secondaryColor={secondaryColor}
+        isMobile={isMobile}
+      />
+
+      {/* Interactive data particles */}
+      <DataParticles
+        count={isMobile ? 120 : 280}
+        primaryColor={primaryColor}
+        secondaryColor={secondaryColor}
+        accentColor={accentColor}
+        isMobile={isMobile}
+      />
+
       {/* Central AI Core */}
       <AICore color={primaryColor} secondaryColor={secondaryColor} />
 
-      {/* Orbiting Data Rings */}
-      <OrbitingRing radius={5} color={primaryColor} speed={0.3} tilt={0.3} nodeCount={8} />
-      <OrbitingRing radius={6.5} color={secondaryColor} speed={-0.2} tilt={-0.5} nodeCount={12} />
-      <OrbitingRing radius={8} color={accentColor} speed={0.15} tilt={0.8} nodeCount={6} />
+      {/* Orbiting Data Rings - reduced on mobile */}
+      <OrbitingRing radius={5} color={primaryColor} speed={0.3} tilt={0.3} nodeCount={isMobile ? 5 : 8} />
+      {!isMobile && (
+        <>
+          <OrbitingRing radius={6.5} color={secondaryColor} speed={-0.2} tilt={-0.5} nodeCount={12} />
+          <OrbitingRing radius={8} color={accentColor} speed={0.15} tilt={0.8} nodeCount={6} />
+        </>
+      )}
 
-      {/* Holographic Panels */}
-      <HoloPanel position={[-8, 3, -2]} rotation={[0, 0.3, 0]} width={2.5} height={1.5} color={primaryColor} />
-      <HoloPanel position={[8, 2, -3]} rotation={[0, -0.3, 0]} width={2.2} height={1.3} color={secondaryColor} />
-      <HoloPanel position={[-6, -3, -1]} rotation={[0, 0.2, 0]} width={2} height={1.2} color={accentColor} />
-      <HoloPanel position={[7, -2, -2]} rotation={[0, -0.25, 0]} width={2.3} height={1.4} color={primaryColor} />
+      {/* Holographic Panels - skip on mobile */}
+      {!isMobile && (
+        <>
+          <HoloPanel position={[-8, 3, -2]} rotation={[0, 0.3, 0]} width={2.5} height={1.5} color={primaryColor} />
+          <HoloPanel position={[8, 2, -3]} rotation={[0, -0.3, 0]} width={2.2} height={1.3} color={secondaryColor} />
+          <HoloPanel position={[-6, -3, -1]} rotation={[0, 0.2, 0]} width={2} height={1.2} color={accentColor} />
+          <HoloPanel position={[7, -2, -2]} rotation={[0, -0.25, 0]} width={2.3} height={1.4} color={primaryColor} />
+        </>
+      )}
 
-      {/* Energy Streams */}
-      <EnergyStream start={[0, 0, -5]} end={[-8, 3, -2]} color={primaryColor} />
-      <EnergyStream start={[0, 0, -5]} end={[8, 2, -3]} color={secondaryColor} />
-      <EnergyStream start={[0, 0, -5]} end={[-6, -3, -1]} color={accentColor} />
-      <EnergyStream start={[0, 0, -5]} end={[7, -2, -2]} color={primaryColor} />
+      {/* Energy Streams - skip on mobile */}
+      {!isMobile && (
+        <>
+          <EnergyStream start={[0, 0, -5]} end={[-8, 3, -2]} color={primaryColor} />
+          <EnergyStream start={[0, 0, -5]} end={[8, 2, -3]} color={secondaryColor} />
+          <EnergyStream start={[0, 0, -5]} end={[-6, -3, -1]} color={accentColor} />
+          <EnergyStream start={[0, 0, -5]} end={[7, -2, -2]} color={primaryColor} />
+        </>
+      )}
 
-      {/* Particle Field */}
-      <ParticleField count={400} color={primaryColor} secondaryColor={secondaryColor} />
+      {/* Background Particle Field */}
+      <ParticleField count={isMobile ? 150 : 400} color={primaryColor} secondaryColor={secondaryColor} />
 
       {/* Grid Floor */}
       <GridFloor color={primaryColor} opacity={isDark ? 0.25 : 0.15} />
 
-      {/* Floating Metrics */}
-      <FloatingMetrics color={secondaryColor} />
+      {/* Floating Metrics - skip on mobile */}
+      {!isMobile && <FloatingMetrics color={secondaryColor} />}
     </>
   );
 }
 
 // ============================================
-// Camera Animation
+// Camera Animation with mouse parallax
 // ============================================
-function CameraAnimation() {
+interface CameraAnimationProps {
+  mouse: React.MutableRefObject<THREE.Vector2>;
+}
+
+function CameraAnimation({ mouse }: CameraAnimationProps) {
   const { camera } = useThree();
+  const targetX = useRef(0);
+  const targetY = useRef(0);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    // Subtle camera sway
-    camera.position.x = Math.sin(t * 0.1) * 0.5;
-    camera.position.y = Math.cos(t * 0.15) * 0.3;
+
+    // Target from mouse with reduced influence
+    targetX.current = mouse.current.x * 0.8;
+    targetY.current = mouse.current.y * 0.5;
+
+    // Smooth lerp + idle sway fallback when mouse is centered
+    camera.position.x += (targetX.current + Math.sin(t * 0.1) * 0.3 - camera.position.x) * 0.05;
+    camera.position.y += (targetY.current + Math.cos(t * 0.15) * 0.2 - camera.position.y) * 0.05;
     camera.lookAt(0, 0, -5);
   });
 
   return null;
+}
+
+// ============================================
+// WebGL Error Boundary (class component)
+// ============================================
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class WebGLErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: ReactNode; fallback: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
+// ============================================
+// Simple CSS fallback for WebGL failure
+// ============================================
+function Scene2DFallback({ className }: { className: string }) {
+  return (
+    <div className={`absolute inset-0 ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-cyan-950/40 via-slate-950 to-purple-950/40" />
+      <div
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(0,217,255,0.3) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,217,255,0.3) 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px',
+        }}
+      />
+    </div>
+  );
 }
 
 // ============================================
@@ -546,20 +639,36 @@ export default function HeroScene3D({ className = '' }: HeroScene3DProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [isLowPerf, setIsLowPerf] = useState(false);
+
+  // Mouse position ref shared between React tree and R3F
+  const mouseRef = useRef(new THREE.Vector2(0, 0));
 
   useEffect(() => {
     setIsMounted(true);
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4;
-    setIsLowPerf(isMobile || isLowEnd || false);
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const lowEnd = navigator.hardwareConcurrency != null && navigator.hardwareConcurrency < 4;
+    setIsMobile(mobile);
+    setIsLowPerf(mobile || lowEnd);
   }, []);
+
+  // Track mouse on the container div (passed into R3F via ref)
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseRef.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  };
+
+  const handleMouseLeave = () => {
+    mouseRef.current.set(0, 0);
+  };
 
   // Theme-aware colors
   const colors = {
-    primary: isDark ? '#00D9FF' : '#0891b2',     // Cyan
-    secondary: isDark ? '#22c55e' : '#16a34a',   // Green
-    accent: isDark ? '#8B5CF6' : '#7c3aed',      // Purple
+    primary: isDark ? '#00D9FF' : '#0891b2',
+    secondary: isDark ? '#22c55e' : '#16a34a',
+    accent: isDark ? '#8B5CF6' : '#7c3aed',
   };
 
   if (!isMounted) {
@@ -567,25 +676,34 @@ export default function HeroScene3D({ className = '' }: HeroScene3DProps) {
   }
 
   return (
-    <div className={`absolute inset-0 ${className}`}>
-      <Canvas
-        camera={{ position: [0, 0, 12], fov: 60 }}
-        dpr={isLowPerf ? [1, 1] : [1, 2]}
-        gl={{
-          antialias: !isLowPerf,
-          alpha: true,
-          powerPreference: 'high-performance',
-        }}
-        style={{ background: 'transparent' }}
+    <WebGLErrorBoundary fallback={<Scene2DFallback className={className} />}>
+      <div
+        className={`absolute inset-0 ${className}`}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
-        <CameraAnimation />
-        <Scene
-          primaryColor={colors.primary}
-          secondaryColor={colors.secondary}
-          accentColor={colors.accent}
-          isDark={isDark}
-        />
-      </Canvas>
-    </div>
+        <Canvas
+          camera={{ position: [0, 0, 12], fov: 60 }}
+          dpr={isLowPerf ? [1, 1] : [1, 2]}
+          gl={{
+            antialias: !isLowPerf,
+            alpha: true,
+            powerPreference: 'high-performance',
+            failIfMajorPerformanceCaveat: false,
+          }}
+          style={{ background: 'transparent' }}
+          frameloop={isMobile ? 'demand' : 'always'}
+        >
+          <CameraAnimation mouse={mouseRef} />
+          <Scene
+            primaryColor={colors.primary}
+            secondaryColor={colors.secondary}
+            accentColor={colors.accent}
+            isDark={isDark}
+            isMobile={isMobile}
+          />
+        </Canvas>
+      </div>
+    </WebGLErrorBoundary>
   );
 }

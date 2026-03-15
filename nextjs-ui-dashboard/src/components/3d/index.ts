@@ -13,3 +13,6 @@ export { default as GlobeMarkers } from './GlobeMarkers';
 export { default as PriceTicker3D } from './PriceTicker3D';
 export { default as MarketDepth3D } from './MarketDepth3D';
 export { default as Fallback2D } from './Fallback2D';
+export { default as NeuralNetwork } from './NeuralNetwork';
+export { default as DataParticles } from './DataParticles';
+export { default as HeroScene3D } from './HeroScene3D';

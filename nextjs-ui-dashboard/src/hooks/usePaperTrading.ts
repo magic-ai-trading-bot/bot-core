@@ -898,10 +898,21 @@ export const usePaperTrading = () => {
     const wsUrl = (
       import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws"
     ).replace("http", "ws");
-    const ws = new WebSocket(wsUrl);
+
+    const WS_MAX_RECONNECT_ATTEMPTS = 5;
+    const WS_RECONNECT_BASE_DELAY_MS = 1000;
+    let ws: WebSocket;
     let heartbeatInterval: NodeJS.Timeout | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let reconnectAttempts = 0;
+    let isCleaned = false;
+
+    const connect = () => {
+      if (isCleaned) return;
+      ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
+      reconnectAttempts = 0;
       // Start heartbeat to keep connection alive
       heartbeatInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -1076,24 +1087,39 @@ export const usePaperTrading = () => {
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+      // Reconnect with exponential backoff on unclean close
+      if (!event.wasClean && !isCleaned && reconnectAttempts < WS_MAX_RECONNECT_ATTEMPTS) {
+        const delay = WS_RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempts);
+        reconnectAttempts++;
+        reconnectTimeout = setTimeout(connect, delay);
       }
     };
 
     ws.onerror = (error) => {
-      logger.error("📡 Paper Trading WebSocket error:", error);
+      logger.error("Paper Trading WebSocket error:", error);
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
       }
     };
+    }; // end connect()
+
+    connect();
 
     return () => {
+      isCleaned = true;
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
       }
-      if (ws.readyState === WebSocket.OPEN) {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
     };

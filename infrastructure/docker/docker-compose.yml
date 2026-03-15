@@ -223,7 +223,7 @@ services:
       - VITE_API_TIMEOUT=10000
       - VITE_REFRESH_INTERVAL=5000
       - VITE_ENABLE_REALTIME=true
-      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:-default-change-me-in-production}
+      - DASHBOARD_SESSION_SECRET=${DASHBOARD_SESSION_SECRET:?DASHBOARD_SESSION_SECRET must be set in .env}
       - NODE_OPTIONS="--max-old-space-size=${NODE_MEMORY:-1024}"
     # No volumes needed for production static serving
     networks:
@@ -371,7 +371,7 @@ services:
     image: redis:7-alpine
     container_name: redis-cache
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_default_password}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes:
       - redis_data:/data
     networks:

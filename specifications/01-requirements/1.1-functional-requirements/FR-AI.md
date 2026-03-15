@@ -2353,4 +2353,56 @@ Non-trainable params: 320
 
 ---
 
+### FR-AI-012: Signal Outcome Tracking
+
+**Priority:** HIGH
+**Spec ID:** @spec:FR-AI-012
+**Status:** ✅ Implemented
+**Related Code:** `rust-core-engine/src/storage/mod.rs:751`, `rust-core-engine/src/paper_trading/engine.rs:3452`, `nextjs-ui-dashboard/src/pages/AISignals.tsx`
+
+#### Description
+The system shall track and record the outcomes of AI trading signals to enable performance evaluation and model improvement.
+
+#### Acceptance Criteria
+- [ ] Record signal outcome (win/loss/neutral) when a trade closes
+- [ ] Store outcome alongside original signal in database
+- [ ] Calculate signal accuracy rate per model type
+- [ ] Expose signal outcome data via API
+- [ ] Display signal outcomes in AI Signals dashboard
+- [ ] Link outcomes to source signals by signal ID
+
+#### Code Location
+- `rust-core-engine/src/storage/mod.rs:751` - Signal outcome storage
+- `rust-core-engine/src/paper_trading/engine.rs:3452` - Outcome recording on trade close
+- `rust-core-engine/src/api/paper_trading.rs:323` - Outcome API endpoint
+- `nextjs-ui-dashboard/src/pages/AISignals.tsx:691` - Dashboard display
+
+---
+
+### FR-AI-013: Cached Signal Display
+
+**Priority:** MEDIUM
+**Spec ID:** @spec:FR-AI-013
+**Status:** ✅ Implemented
+**Related Code:** `rust-core-engine/src/storage/mod.rs:905`, `nextjs-ui-dashboard/src/pages/AISignals.tsx`
+
+#### Description
+The system shall cache recent AI signals in MongoDB to support display in the dashboard without requiring a live AI service connection.
+
+#### Acceptance Criteria
+- [ ] Cache AI signals in MongoDB with TTL
+- [ ] Serve cached signals when AI service is unavailable
+- [ ] Return most recent N signals from cache
+- [ ] Include signal metadata (model type, timeframe, confidence)
+- [ ] Deduplicate signals by symbol and timestamp
+- [ ] Display cached signals in AI Signals dashboard
+
+#### Code Location
+- `rust-core-engine/src/storage/mod.rs:905` - Cached signal retrieval
+- `rust-core-engine/src/paper_trading/engine.rs:3419` - Auto-analyze via xAI Grok
+- `nextjs-ui-dashboard/src/pages/AISignals.tsx:683` - Dashboard display
+- `nextjs-ui-dashboard/src/pages/AISignals.tsx:777` - Signal list rendering
+
+---
+
 **Remember**: Update TRACEABILITY_MATRIX.md when implementation is complete!

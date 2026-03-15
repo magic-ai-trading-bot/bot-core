@@ -1,3 +1,7 @@
+# DEPRECATED: This file is no longer used at startup.
+# See config/paper-trading-defaults.yml for the active baseline.
+# Kept for historical reference only.
+#
 # OPTIMIZED PAPER TRADING SETTINGS
 # Risk: LOW | Profit Potential: HIGH
 # Win Rate Required: 33%+ for breakeven, 50%+ for good profits
