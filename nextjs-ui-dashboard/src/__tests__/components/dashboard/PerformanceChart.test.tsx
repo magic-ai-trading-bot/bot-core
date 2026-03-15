@@ -4,17 +4,9 @@ import { render } from '../../../test/utils'
 import { PerformanceChart } from '../../../components/dashboard/PerformanceChart'
 import React from 'react'
 
-// Mock recharts
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  LineChart: () => <div>LineChart</div>,
-  Line: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
-  AreaChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Area: () => null,
+// Mock echarts-for-react
+vi.mock('echarts-for-react', () => ({
+  default: ({ style }: { style?: React.CSSProperties }) => <div data-testid="echarts" style={style} />,
 }))
 
 // Mock usePaperTradingContext hook (component uses context, not hook directly)
@@ -671,82 +663,15 @@ describe('PerformanceChart', () => {
     })
   })
 
-  describe('CustomTooltip', () => {
-    // We need to render CustomTooltip directly. Because it is not exported,
-    // we access it by rendering PerformanceChart with a mocked Tooltip that
-    // invokes the content prop. We do this by un-mocking Tooltip for these tests
-    // and instead rendering the tooltip content directly.
-
-    // The CustomTooltip is used via <Tooltip content={<CustomTooltip />} />.
-    // Since we mock recharts.Tooltip as () => null, the CustomTooltip component is
-    // never rendered inside the chart. To test it we need to extract it by
-    // rendering PerformanceChart and capturing the prop passed to Tooltip.
-
-    it('returns null when active is false', () => {
-      // Re-capture CustomTooltip via Tooltip mock that stores content prop
-      let capturedContent: React.ReactElement | null = null
-
-      vi.doMock('recharts', () => ({
-        ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-        LineChart: () => <div>LineChart</div>,
-        Line: () => null,
-        XAxis: () => null,
-        YAxis: () => null,
-        CartesianGrid: () => null,
-        Tooltip: ({ content }: { content: React.ReactElement }) => {
-          capturedContent = content
-          return null
-        },
-        AreaChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-        Area: () => null,
-      }))
-
-      // This test uses the module-level mock where Tooltip renders null.
-      // We directly test the tooltip by rendering it with active=false.
-      // Since CustomTooltip is not exported, we test it indirectly through
-      // the fact that the chart renders without issues when active is false.
+  describe('Chart tooltip (ECharts inline formatter)', () => {
+    it('renders chart without crashing', () => {
       render(<PerformanceChart />)
       expect(screen.getByText('Biểu đồ hiệu suất')).toBeInTheDocument()
     })
 
-    it('renders tooltip content when active with payload', () => {
-      // To test CustomTooltip rendering (lines 35-85), we need the actual component.
-      // We expose it by temporarily making Tooltip call its content as a function component.
-      let TooltipContent: React.ComponentType<{
-        active?: boolean
-        payload?: Array<{ payload: { equity: number; pnl: number; dailyPnL: number; balance: number } }>
-        label?: string
-      }> | null = null
-
-      // Use a capturing Tooltip mock for this test only
-      vi.doMock('recharts', () => ({
-        ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-        LineChart: () => <div>LineChart</div>,
-        Line: () => null,
-        XAxis: () => null,
-        YAxis: () => null,
-        CartesianGrid: () => null,
-        Tooltip: ({ content }: { content: React.ReactElement }) => {
-          // Extract the type (CustomTooltip component) from the element
-          if (content && React.isValidElement(content)) {
-            TooltipContent = content.type as React.ComponentType<{
-              active?: boolean
-              payload?: Array<{ payload: { equity: number; pnl: number; dailyPnL: number; balance: number } }>
-              label?: string
-            }>
-          }
-          return null
-        },
-        AreaChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-        Area: () => null,
-      }))
-
+    it('renders chart with data and echarts element present', () => {
       render(<PerformanceChart />)
-
-      // TooltipContent won't be captured since the module-level mock has already been applied.
-      // The module-level mock's Tooltip returns null. We test tooltip rendering by directly
-      // rendering a simulation with known props inline.
-      expect(screen.getByText('Biểu đồ hiệu suất')).toBeInTheDocument()
+      expect(screen.getAllByTestId('echarts').length).toBeGreaterThan(0)
     })
   })
 })

@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { render } from '../../test/utils'
 import Dashboard from '../../pages/Dashboard'
 
+// ECharts requires canvas APIs not available in jsdom
+vi.mock('echarts-for-react', () => ({
+  default: ({ style }: any) => <div data-testid="echarts" style={style} />,
+}))
+
 // Create configurable mock factories
 const createPaperTradingMock = (overrides = {}) => ({
   portfolio: {

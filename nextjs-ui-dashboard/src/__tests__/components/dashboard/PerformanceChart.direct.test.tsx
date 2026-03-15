@@ -39,38 +39,9 @@ vi.mock('@/components/ui/badge', () => ({
   ),
 }));
 
-// Mock recharts
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: any) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
-  AreaChart: ({ children, data }: any) => (
-    <div data-testid="area-chart" data-points={data?.length}>
-      {children}
-    </div>
-  ),
-  Area: ({ dataKey, stroke, fill }: any) => (
-    <div data-testid="area" data-key={dataKey} data-stroke={stroke} data-fill={fill} />
-  ),
-  Line: ({ dataKey, stroke }: any) => (
-    <div data-testid="line" data-key={dataKey} data-stroke={stroke} />
-  ),
-  XAxis: ({ dataKey, tickFormatter }: any) => {
-    // Call tickFormatter to increase coverage
-    if (tickFormatter) {
-      tickFormatter('2024-01-01');
-    }
-    return <div data-testid="x-axis" data-key={dataKey} />;
-  },
-  YAxis: ({ tickFormatter, domain }: any) => {
-    // Call tickFormatter to increase coverage
-    if (tickFormatter) {
-      tickFormatter(10000);
-    }
-    return <div data-testid="y-axis" data-domain={JSON.stringify(domain)} />;
-  },
-  Tooltip: () => <div data-testid="tooltip" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
+// Mock echarts-for-react
+vi.mock('echarts-for-react', () => ({
+  default: ({ style }: any) => <div data-testid="echarts" style={style} />,
 }));
 
 vi.mock('lucide-react', () => ({
@@ -136,7 +107,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -177,7 +148,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -206,7 +177,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -225,7 +196,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -244,7 +215,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -273,7 +244,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -315,7 +286,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -340,16 +311,15 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
-  it('renders tooltip with valid data', async () => {
+  it('renders chart with valid data', async () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      const tooltip = screen.getByTestId('tooltip');
-      expect(tooltip).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -363,7 +333,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -377,7 +347,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -390,12 +360,11 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     });
   });
 
-  it('formats currency correctly in tooltip', async () => {
+  it('formats currency correctly (chart renders)', async () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      const tooltip = screen.getByTestId('tooltip');
-      expect(tooltip).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 
@@ -448,7 +417,7 @@ describe('PerformanceChart - Direct Coverage Boost', () => {
     render(<PerformanceChart />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('echarts')).toBeInTheDocument();
     });
   });
 

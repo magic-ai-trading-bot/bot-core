@@ -39,15 +39,7 @@ import {
   ChevronRight,
   BarChart3,
 } from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from 'recharts';
+import ReactECharts from 'echarts-for-react';
 
 // =============================================================================
 // DESIGN TOKENS - Now using useThemeColors() hook for theme-aware colors
@@ -744,75 +736,88 @@ const PerformanceChart = ({ isLoading, closedTrades = [], currentBalance = 10000
 
       {/* Chart */}
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="performanceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-                <stop offset="50%" stopColor="#00D9FF" stopOpacity={0.2} />
-                <stop offset="100%" stopColor="#00D9FF" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#22c55e" />
-                <stop offset="100%" stopColor="#00D9FF" />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(255,255,255,0.05)"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="timestamp"
-              stroke="rgba(255,255,255,0.2)"
-              fontSize={11}
-              tickFormatter={(timestamp) => {
-                const date = new Date(timestamp);
-                return timeRange === '24h'
+        <ReactECharts
+          option={{
+            backgroundColor: 'transparent',
+            tooltip: {
+              trigger: 'axis',
+              backgroundColor: 'rgba(0,0,0,0.9)',
+              borderColor: 'rgba(255,255,255,0.1)',
+              borderWidth: 1,
+              textStyle: { color: '#00D9FF', fontSize: 12 },
+              formatter: (params: Array<{ axisValue: number; value: number }>) => {
+                const p = params[0];
+                const date = new Date(p.axisValue);
+                const dateStr = timeRange === '24h'
                   ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-                  : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-              }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              stroke="rgba(255,255,255,0.2)"
-              fontSize={11}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
-              axisLine={false}
-              tickLine={false}
-              width={60}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-              }}
-              labelStyle={{ color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}
-              itemStyle={{ color: '#00D9FF', fontWeight: 'bold' }}
-              formatter={(value: number) => [`$${value.toFixed(2)}`, 'Value']}
-              labelFormatter={(timestamp) =>
-                new Date(timestamp).toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              }
-            />
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="url(#lineGradient)"
-              strokeWidth={3}
-              fill="url(#performanceGradient)"
-              animationDuration={1000}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+                  : date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                return `${dateStr}<br/><strong>$${p.value.toFixed(2)}</strong>`;
+              },
+            },
+            grid: { left: 60, right: 16, top: 8, bottom: 24, containLabel: false },
+            xAxis: {
+              type: 'value',
+              min: chartData.length > 0 ? chartData[0].timestamp : undefined,
+              max: chartData.length > 0 ? chartData[chartData.length - 1].timestamp : undefined,
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: {
+                color: 'rgba(255,255,255,0.2)',
+                fontSize: 11,
+                formatter: (value: number) => {
+                  const date = new Date(value);
+                  return timeRange === '24h'
+                    ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                },
+              },
+              splitLine: { show: false },
+            },
+            yAxis: {
+              type: 'value',
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: {
+                color: 'rgba(255,255,255,0.2)',
+                fontSize: 11,
+                formatter: (value: number) => `$${(value / 1000).toFixed(1)}k`,
+                width: 60,
+              },
+              splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } },
+            },
+            series: [
+              {
+                type: 'line',
+                data: chartData.map((d) => [d.timestamp, d.value]),
+                smooth: true,
+                symbol: 'none',
+                lineStyle: {
+                  width: 3,
+                  color: {
+                    type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
+                    colorStops: [
+                      { offset: 0, color: '#22c55e' },
+                      { offset: 1, color: '#00D9FF' },
+                    ],
+                  },
+                },
+                areaStyle: {
+                  color: {
+                    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [
+                      { offset: 0, color: 'rgba(34,197,94,0.4)' },
+                      { offset: 0.5, color: 'rgba(0,217,255,0.2)' },
+                      { offset: 1, color: 'rgba(0,217,255,0)' },
+                    ],
+                  },
+                },
+                animationDuration: 1000,
+              },
+            ],
+          }}
+          notMerge={true}
+          style={{ height: '100%', width: '100%' }}
+        />
       </div>
     </GlassCard>
   );

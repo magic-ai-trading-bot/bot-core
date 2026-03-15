@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+import ReactECharts from "echarts-for-react";
 import {
   TrendingUp,
   TrendingDown,
@@ -115,49 +104,6 @@ const AnimatedCounter = ({
       {formatNumber(displayValue)}
       {suffix}
     </span>
-  );
-};
-
-// ============================================================================
-// CUSTOM TOOLTIP COMPONENTS
-// ============================================================================
-
-interface ChartTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value: number; payload: PerformanceDataPoint }>;
-  label?: string;
-}
-
-const PerformanceTooltip = ({ active, payload, label }: ChartTooltipProps) => {
-  const themeColors = useThemeColors();
-
-  if (!active || !payload || !payload.length) return null;
-
-  const data = payload[0].payload;
-  const isPositive = data.pnl >= 0;
-
-  return (
-    <div
-      className="backdrop-blur-xl rounded-xl p-4 shadow-2xl"
-      style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
-        border: `1px solid ${themeColors.borderSubtle}`,
-      }}
-    >
-      <p className="text-sm mb-2" style={{ color: themeColors.textMuted }}>
-        {new Date(label || "").toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })}
-      </p>
-      <p className="font-semibold text-lg" style={{ color: themeColors.textPrimary }}>
-        ${data.value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-      </p>
-      <p className="text-sm mt-1" style={{ color: isPositive ? themeColors.profit : themeColors.loss }}>
-        {isPositive ? "+" : ""}${data.pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-      </p>
-    </div>
   );
 };
 
@@ -554,32 +500,29 @@ const Portfolio = () => {
                 {openTrades.length > 0 ? (
                   <>
                     <div className="h-[220px] sm:h-[260px] md:h-[280px] relative">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={allocationData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={70}
-                            outerRadius={100}
-                            paddingAngle={2}
-                            dataKey="value"
-                            stroke="none"
-                          >
-                            {allocationData.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={entry.color}
-                                className="transition-all duration-300 hover:opacity-80"
-                                style={{
-                                  filter: "drop-shadow(0 0 8px rgba(0,0,0,0.3))",
-                                }}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      <ReactECharts
+                        option={{
+                          backgroundColor: 'transparent',
+                          tooltip: { trigger: 'item', formatter: '{b}: {d}%' },
+                          series: [
+                            {
+                              type: 'pie',
+                              radius: ['55%', '80%'],
+                              center: ['50%', '50%'],
+                              padAngle: 2,
+                              data: allocationData.map((d) => ({
+                                name: d.symbol,
+                                value: d.value,
+                                itemStyle: { color: d.color, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' },
+                              })),
+                              label: { show: false },
+                              emphasis: { itemStyle: { opacity: 0.8 } },
+                            },
+                          ],
+                        }}
+                        notMerge={true}
+                        style={{ height: '100%', width: '100%' }}
+                      />
 
                       {/* Center text */}
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
@@ -784,67 +727,90 @@ const Portfolio = () => {
             </div>
             <div className="px-4 sm:px-6 pb-4 sm:pb-6">
               <div className="h-[250px] sm:h-[300px] md:h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={performanceData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={themeColors.cyan} stopOpacity={0.4} />
-                        <stop offset="50%" stopColor={themeColors.purple} stopOpacity={0.2} />
-                        <stop offset="100%" stopColor={themeColors.purple} stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor={themeColors.purple} />
-                        <stop offset="50%" stopColor={themeColors.cyan} />
-                        <stop offset="100%" stopColor={themeColors.emerald} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke={themeColors.borderSubtle}
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="date"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: themeColors.textMuted, fontSize: 12 }}
-                      tickFormatter={(value) =>
-                        new Date(value).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      }
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: themeColors.textMuted, fontSize: 12 }}
-                      tickFormatter={(value) =>
-                        `$${(value / 1000).toFixed(0)}k`
-                      }
-                      domain={["dataMin - 500", "dataMax + 500"]}
-                    />
-                    <Tooltip content={<PerformanceTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="url(#lineGradient)"
-                      strokeWidth={3}
-                      fill="url(#portfolioGradient)"
-                      dot={false}
-                      activeDot={{
-                        r: 6,
-                        fill: themeColors.cyan,
-                        stroke: themeColors.bgPrimary,
-                        strokeWidth: 3,
-                      }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <ReactECharts
+                  option={{
+                    backgroundColor: 'transparent',
+                    tooltip: {
+                      trigger: 'axis',
+                      backgroundColor: 'rgba(0,0,0,0.95)',
+                      borderColor: themeColors.borderSubtle,
+                      borderWidth: 1,
+                      formatter: (params: Array<{ dataIndex: number; value: number }>) => {
+                        const idx = params[0]?.dataIndex ?? 0;
+                        const d = performanceData[idx];
+                        if (!d) return '';
+                        const dateStr = new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                        const valueStr = `$${d.value.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+                        const pnlColor = d.pnl >= 0 ? themeColors.profit : themeColors.loss;
+                        const pnlStr = `${d.pnl >= 0 ? '+' : ''}$${d.pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+                        return `<span style="color:${themeColors.textMuted}">${dateStr}</span><br/><strong style="color:${themeColors.textPrimary}">${valueStr}</strong><br/><span style="color:${pnlColor}">${pnlStr}</span>`;
+                      },
+                    },
+                    grid: { left: 55, right: 30, top: 10, bottom: 30, containLabel: false },
+                    xAxis: {
+                      type: 'category',
+                      data: performanceData.map((d) => d.date),
+                      axisLine: { show: false },
+                      axisTick: { show: false },
+                      axisLabel: {
+                        color: themeColors.textMuted,
+                        fontSize: 12,
+                        formatter: (value: string) => new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                        showMinLabel: true,
+                        showMaxLabel: true,
+                        interval: 'auto',
+                      },
+                      splitLine: { show: false },
+                      boundaryGap: false,
+                    },
+                    yAxis: {
+                      type: 'value',
+                      axisLine: { show: false },
+                      axisTick: { show: false },
+                      axisLabel: {
+                        color: themeColors.textMuted,
+                        fontSize: 12,
+                        formatter: (value: number) => `$${(value / 1000).toFixed(0)}k`,
+                      },
+                      min: (value: { min: number }) => Math.floor(value.min - 500),
+                      max: (value: { max: number }) => Math.ceil(value.max + 500),
+                      splitLine: { lineStyle: { color: themeColors.borderSubtle, type: 'dashed' } },
+                    },
+                    series: [
+                      {
+                        type: 'line',
+                        data: performanceData.map((d) => d.value),
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 0,
+                        emphasis: { scale: true, symbolSize: 10 },
+                        lineStyle: {
+                          width: 3,
+                          color: {
+                            type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
+                            colorStops: [
+                              { offset: 0, color: themeColors.purple },
+                              { offset: 0.5, color: themeColors.cyan },
+                              { offset: 1, color: themeColors.emerald },
+                            ],
+                          },
+                        },
+                        areaStyle: {
+                          color: {
+                            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                              { offset: 0, color: themeColors.cyan + '66' },
+                              { offset: 0.5, color: themeColors.purple + '33' },
+                              { offset: 1, color: themeColors.purple + '00' },
+                            ],
+                          },
+                        },
+                      },
+                    ],
+                  }}
+                  notMerge={true}
+                  style={{ height: '100%', width: '100%' }}
+                />
               </div>
             </div>
           </GlassCard>

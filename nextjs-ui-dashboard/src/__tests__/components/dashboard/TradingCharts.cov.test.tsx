@@ -9,21 +9,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { render, mockCandle } from '../../../test/utils'
 import { TradingCharts } from '../../../components/dashboard/TradingCharts'
 
-// Mock recharts - simple divs to avoid canvas issues
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-  LineChart: () => <div>LineChart</div>,
-  Line: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
-  AreaChart: () => <div>AreaChart</div>,
-  Area: () => null,
-  ComposedChart: () => <div>ComposedChart</div>,
-  Bar: () => null,
-  Cell: () => null,
-}))
+// TradingCharts does not use recharts/echarts directly - no chart mock needed
 
 // Mock framer-motion with Proxy pattern
 vi.mock('framer-motion', () => {

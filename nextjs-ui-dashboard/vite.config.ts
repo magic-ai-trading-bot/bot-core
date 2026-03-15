@@ -139,7 +139,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-switch',
           ],
           // Charts library
-          'chart-vendor': ['recharts'],
+          'chart-vendor': ['echarts', 'echarts-for-react'],
           // 3D visualization libraries
           'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
           // Form libraries
@@ -162,6 +162,10 @@ export default defineConfig(({ mode }) => ({
   },
   // Test configuration
   test: {
+    alias: {
+      // ECharts requires canvas APIs not available in jsdom — redirect to a lightweight stub
+      'echarts-for-react': path.resolve(__dirname, './src/test/mocks/echarts-for-react-mock.tsx'),
+    },
     globalSetup: './vitest.globalSetup.ts', // Global setup (runs before everything)
     environment: './vitest-environment-jsdom-with-storage.ts', // Custom environment with localStorage
     environmentOptions: {

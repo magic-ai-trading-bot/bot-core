@@ -1,14 +1,5 @@
 import { useMemo } from "react";
-import {
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from "recharts";
+import ReactECharts from "echarts-for-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
@@ -22,68 +13,8 @@ interface PerformanceDataPoint {
   balance: number;
 }
 
-// Move CustomTooltip outside component to prevent recreation during render
-const CustomTooltip = ({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: PerformanceDataPoint }>;
-  label?: string;
-}) => {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
-  const data = payload[0].payload;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
-
-  const formatDate = (dateStr: string | undefined) => {
-    if (!dateStr) return "";
-    return new Date(dateStr).toLocaleDateString("vi-VN", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  return (
-    <div className="bg-background p-3 border rounded-lg shadow-lg">
-      <p className="font-medium">{formatDate(label)}</p>
-      <p className="text-sm">
-        <span className="text-muted-foreground">Equity: </span>
-        <span className="font-medium">{formatCurrency(data.equity)}</span>
-      </p>
-      <p className="text-sm">
-        <span className="text-muted-foreground">P&L: </span>
-        <span
-          className={`font-medium ${
-            data.pnl >= 0 ? "text-profit" : "text-loss"
-          }`}
-        >
-          {formatCurrency(data.pnl)}
-        </span>
-      </p>
-      <p className="text-sm">
-        <span className="text-muted-foreground">Daily: </span>
-        <span
-          className={`font-medium ${
-            data.dailyPnL >= 0 ? "text-profit" : "text-loss"
-          }`}
-        >
-          {formatCurrency(data.dailyPnL)}
-        </span>
-      </p>
-    </div>
-  );
-};
+const formatCurrencyVN = (value: number) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(value);
 
 export function PerformanceChart() {
   const { portfolio, openTrades, closedTrades } = usePaperTradingContext();
@@ -264,65 +195,72 @@ export function PerformanceChart() {
 
       <CardContent>
         <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={performanceData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <defs>
-                <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor={
-                      isProfit ? "hsl(var(--profit))" : "hsl(var(--loss))"
-                    }
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor={
-                      isProfit ? "hsl(var(--profit))" : "hsl(var(--loss))"
-                    }
-                    stopOpacity={0.0}
-                  />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis
-                dataKey="date"
-                className="text-xs"
-                tickFormatter={formatDate}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                className="text-xs"
-                tickFormatter={(value) => formatCurrency(value)}
-                domain={["dataMin - 100", "dataMax + 100"]}
-              />
-              <Tooltip content={<CustomTooltip />} />
-
-              {/* Balance baseline */}
-              <Line
-                type="monotone"
-                dataKey="balance"
-                stroke="hsl(var(--muted-foreground))"
-                strokeDasharray="2 2"
-                strokeWidth={1}
-                dot={false}
-                strokeOpacity={0.5}
-              />
-
-              {/* Equity line */}
-              <Area
-                type="monotone"
-                dataKey="equity"
-                stroke={isProfit ? "hsl(var(--profit))" : "hsl(var(--loss))"}
-                strokeWidth={2.5}
-                fill="url(#equityGradient)"
-                dot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <ReactECharts
+            option={{
+              backgroundColor: 'transparent',
+              tooltip: {
+                trigger: 'axis',
+                formatter: (params: Array<{ dataIndex: number; seriesName: string; value: number[] }>) => {
+                  const idx = params[0]?.dataIndex ?? 0;
+                  const d = performanceData[idx];
+                  if (!d) return '';
+                  const dateStr = formatDate(d.date);
+                  const equityStr = formatCurrencyVN(d.equity);
+                  const pnlColor = d.pnl >= 0 ? '#22c55e' : '#ef4444';
+                  const dailyColor = d.dailyPnL >= 0 ? '#22c55e' : '#ef4444';
+                  return `<strong>${dateStr}</strong><br/>
+                    Equity: ${equityStr}<br/>
+                    P&amp;L: <span style="color:${pnlColor}">${formatCurrencyVN(d.pnl)}</span><br/>
+                    Daily: <span style="color:${dailyColor}">${formatCurrencyVN(d.dailyPnL)}</span>`;
+                },
+              },
+              grid: { left: 80, right: 30, top: 5, bottom: 30, containLabel: false },
+              xAxis: {
+                type: 'category',
+                data: performanceData.map((d) => d.date),
+                axisLabel: { formatter: formatDate, fontSize: 12 },
+                boundaryGap: false,
+              },
+              yAxis: {
+                type: 'value',
+                axisLabel: { formatter: formatCurrencyVN, fontSize: 12 },
+                min: (value: { min: number }) => Math.floor(value.min - 100),
+                max: (value: { max: number }) => Math.ceil(value.max + 100),
+              },
+              series: [
+                {
+                  name: 'Balance',
+                  type: 'line',
+                  data: performanceData.map((d) => d.balance),
+                  symbol: 'none',
+                  lineStyle: { color: 'rgba(148,163,184,0.5)', type: 'dashed', width: 1 },
+                  areaStyle: undefined,
+                },
+                {
+                  name: 'Equity',
+                  type: 'line',
+                  data: performanceData.map((d) => d.equity),
+                  symbol: 'none',
+                  smooth: true,
+                  lineStyle: {
+                    color: isProfit ? '#22c55e' : '#ef4444',
+                    width: 2.5,
+                  },
+                  areaStyle: {
+                    color: {
+                      type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                      colorStops: [
+                        { offset: 0.05, color: isProfit ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)' },
+                        { offset: 0.95, color: isProfit ? 'rgba(34,197,94,0)' : 'rgba(239,68,68,0)' },
+                      ],
+                    },
+                  },
+                },
+              ],
+            }}
+            notMerge={true}
+            style={{ height: '100%', width: '100%' }}
+          />
         </div>
 
         {/* Performance summary */}

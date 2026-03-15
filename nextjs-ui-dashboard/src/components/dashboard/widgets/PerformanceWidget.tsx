@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { GlassCardWithHeader } from '@/components/ui/GlassCard';
 import { useTradingModeContext } from '@/contexts/TradingModeContext';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import ReactECharts from 'echarts-for-react';
 import { colors, getModeColor } from '@/styles';
 import { cn } from '@/lib/utils';
 
@@ -78,67 +78,77 @@ export function PerformanceWidget({ data = [], isLoading = false }: PerformanceW
       }
     >
       <div className="h-64 mt-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
-            <defs>
-              <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={accentColor} stopOpacity={0.8} />
-                <stop offset="100%" stopColor={accentColor} stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke={colors.grid}
-              opacity={0.2}
-            />
-            <XAxis
-              dataKey="timestamp"
-              stroke={colors.text.muted}
-              fontSize={12}
-              tickFormatter={(timestamp) => {
-                const date = new Date(timestamp);
-                if (timeRange === '24h') {
-                  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                }
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-              }}
-            />
-            <YAxis
-              stroke={colors.text.muted}
-              fontSize={12}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                border: `1px solid ${colors.border}`,
-                borderRadius: '8px',
-                padding: '8px 12px',
-              }}
-              labelStyle={{ color: colors.text.secondary }}
-              itemStyle={{ color: accentColor }}
-              formatter={(value: number) => [`$${value.toFixed(2)}`, 'Value']}
-              labelFormatter={(timestamp) => {
-                const date = new Date(timestamp);
-                return date.toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke={accentColor}
-              strokeWidth={2}
-              dot={false}
-              fill="url(#lineGradient)"
-              animationDuration={500}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <ReactECharts
+          option={{
+            backgroundColor: 'transparent',
+            tooltip: {
+              trigger: 'axis',
+              backgroundColor: 'rgba(15,23,42,0.95)',
+              borderColor: colors.border,
+              borderWidth: 1,
+              textStyle: { color: accentColor, fontSize: 12 },
+              formatter: (params: Array<{ axisValue: number; value: number }>) => {
+                const p = params[0];
+                const date = new Date(p.axisValue);
+                const dateStr = timeRange === '24h'
+                  ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                  : date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                return `<span style="color:${colors.text.secondary}">${dateStr}</span><br/><span style="color:${accentColor}">$${p.value.toFixed(2)}</span>`;
+              },
+            },
+            grid: { left: 55, right: 16, top: 8, bottom: 28, containLabel: false },
+            xAxis: {
+              type: 'value',
+              min: chartData.length > 0 ? chartData[0].timestamp : undefined,
+              max: chartData.length > 0 ? chartData[chartData.length - 1].timestamp : undefined,
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: {
+                color: colors.text.muted,
+                fontSize: 12,
+                formatter: (value: number) => {
+                  const date = new Date(value);
+                  return timeRange === '24h'
+                    ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                },
+              },
+              splitLine: { lineStyle: { color: colors.grid, opacity: 0.2, type: 'dashed' } },
+            },
+            yAxis: {
+              type: 'value',
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: {
+                color: colors.text.muted,
+                fontSize: 12,
+                formatter: (value: number) => `$${(value / 1000).toFixed(1)}k`,
+              },
+              splitLine: { lineStyle: { color: colors.grid, opacity: 0.2, type: 'dashed' } },
+            },
+            series: [
+              {
+                type: 'line',
+                data: chartData.map((d) => [d.timestamp, d.value]),
+                smooth: true,
+                symbol: 'none',
+                lineStyle: { width: 2, color: accentColor },
+                areaStyle: {
+                  color: {
+                    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [
+                      { offset: 0, color: accentColor + 'cc' },
+                      { offset: 1, color: accentColor + '1a' },
+                    ],
+                  },
+                },
+                animationDuration: 500,
+              },
+            ],
+          }}
+          notMerge={true}
+          style={{ height: '100%', width: '100%' }}
+        />
       </div>
     </GlassCardWithHeader>
   );

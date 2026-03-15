@@ -149,15 +149,9 @@ vi.mock('framer-motion', () => {
   }
 })
 
-// Mock recharts
-vi.mock('recharts', () => ({
-  AreaChart: ({ children }: any) => <div data-testid="area-chart">{children}</div>,
-  Area: () => <div />,
-  XAxis: () => <div />,
-  YAxis: () => <div />,
-  Tooltip: () => <div />,
-  ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
-  CartesianGrid: () => <div />,
+// Mock echarts-for-react
+vi.mock('echarts-for-react', () => ({
+  default: ({ style }: any) => <div data-testid="echarts" style={style} />,
 }))
 
 // Mock react-i18next

@@ -10,21 +10,7 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn()
 })
 
-// Mock recharts
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  LineChart: () => <div>LineChart</div>,
-  Line: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
-  AreaChart: () => <div>AreaChart</div>,
-  Area: () => null,
-  ComposedChart: () => <div>ComposedChart</div>,
-  Bar: () => null,
-  Cell: () => null,
-}))
+// TradingCharts does not use recharts/echarts directly - no chart mock needed
 
 // Mock API client
 const mockApiClient = vi.hoisted(() => ({

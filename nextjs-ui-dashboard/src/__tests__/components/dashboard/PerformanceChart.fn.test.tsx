@@ -1,41 +1,15 @@
 /**
  * PerformanceChart Component - Functional Tests
- * Target: Boost coverage from 83.33% to 95%+
- * Focus: Data generation, tooltip interactions, chart rendering, edge cases
+ * Focus: Data generation, chart rendering, edge cases
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, render as rtlRender } from '@testing-library/react'
 import { PerformanceChart } from '../../../components/dashboard/PerformanceChart'
 
-// Mock recharts properly
-const mockTooltipProps = { active: false, payload: [], label: '' }
-let capturedTooltipComponent: any = null
-
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
-  AreaChart: ({ children }: any) => <div data-testid="area-chart">{children}</div>,
-  Area: () => <div data-testid="area" />,
-  Line: () => <div data-testid="line" />,
-  XAxis: ({ tickFormatter }: any) => {
-    if (tickFormatter) {
-      const formatted = tickFormatter('2024-01-15')
-      return <div data-testid="x-axis">{formatted}</div>
-    }
-    return <div data-testid="x-axis" />
-  },
-  YAxis: ({ tickFormatter }: any) => {
-    if (tickFormatter) {
-      const formatted = tickFormatter(10000)
-      return <div data-testid="y-axis">{formatted}</div>
-    }
-    return <div data-testid="y-axis" />
-  },
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: ({ content }: any) => {
-    capturedTooltipComponent = content
-    return <div data-testid="tooltip" />
-  },
+// Mock echarts-for-react
+vi.mock('echarts-for-react', () => ({
+  default: ({ style }: any) => <div data-testid="echarts" style={style} />,
 }))
 
 const mockUsePaperTradingContext = vi.fn()
@@ -95,8 +69,6 @@ describe('PerformanceChart - Functional Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    capturedTooltipComponent = null
-
     mockUsePaperTradingContext.mockReturnValue({
       portfolio: mockPortfolio,
       openTrades: mockOpenTrades,
@@ -105,36 +77,26 @@ describe('PerformanceChart - Functional Tests', () => {
   })
 
   describe('Chart Rendering', () => {
-    it('should render responsive container', () => {
+    it('should render echarts element', () => {
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('responsive-container')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
-    it('should render area chart', () => {
+    it('should render chart title', () => {
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByText('Biểu đồ hiệu suất')).toBeInTheDocument()
     })
 
     it('should render all chart components', () => {
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area')).toBeInTheDocument()
-      expect(screen.getByTestId('line')).toBeInTheDocument()
-      expect(screen.getByTestId('x-axis')).toBeInTheDocument()
-      expect(screen.getByTestId('y-axis')).toBeInTheDocument()
-      expect(screen.getByTestId('cartesian-grid')).toBeInTheDocument()
-      expect(screen.getByTestId('tooltip')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
   describe('Data Generation - Real Trades', () => {
     it('should build equity curve from closed trades', () => {
       rtlRender(<PerformanceChart />)
-
-      // Chart should render with data from closed trades
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should handle trades with close_time', () => {
@@ -150,8 +112,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should filter out trades without close_time', () => {
@@ -167,8 +128,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should sort trades by close_time', () => {
@@ -185,8 +145,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should build cumulative PnL correctly', () => {
@@ -203,8 +162,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -217,8 +175,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should interpolate from initial balance to current equity', () => {
@@ -229,8 +186,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should enforce minimum equity threshold', () => {
@@ -241,8 +197,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should match last point to current portfolio', () => {
@@ -253,17 +208,14 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
-  describe('Tooltip Component', () => {
-    it('should have tooltip component defined in chart', () => {
+  describe('Chart element', () => {
+    it('should have echarts element in chart', () => {
       rtlRender(<PerformanceChart />)
-
-      // Tooltip should be rendered in the chart
-      expect(screen.getByTestId('tooltip')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -276,7 +228,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       const { container } = rtlRender(<PerformanceChart />)
       const trendIcons = container.querySelectorAll('svg')
       expect(trendIcons.length).toBeGreaterThan(0)
@@ -302,7 +253,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -315,7 +266,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('0 trades')).toBeInTheDocument()
     })
 
@@ -327,7 +277,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('9999 trades')).toBeInTheDocument()
     })
 
@@ -339,7 +288,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getAllByText(/0,00 US\$/).length).toBeGreaterThan(0)
     })
 
@@ -351,7 +299,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/99\.999\.999,00 US\$/)).toBeInTheDocument()
     })
 
@@ -363,7 +310,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('0.0%')).toBeInTheDocument()
     })
 
@@ -375,7 +321,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('100.0%')).toBeInTheDocument()
     })
 
@@ -387,7 +332,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('Max Drawdown:')).toBeInTheDocument()
     })
 
@@ -399,7 +343,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/-5\.000,00 US\$/)).toBeInTheDocument()
     })
 
@@ -411,7 +354,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('0.00')).toBeInTheDocument()
     })
 
@@ -423,7 +365,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('-1.50')).toBeInTheDocument()
     })
 
@@ -435,7 +376,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText('10.50')).toBeInTheDocument()
     })
   })
@@ -449,7 +389,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/0 lệnh mở/)).toBeInTheDocument()
     })
 
@@ -461,7 +400,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/0 lệnh đóng/)).toBeInTheDocument()
     })
 
@@ -473,9 +411,7 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
-      // Should render the chart even with zero PnL
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('should handle very small positive PnL', () => {
@@ -486,7 +422,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/0,01 US\$/)).toBeInTheDocument()
     })
 
@@ -498,7 +433,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/-99\.999,00 US\$/)).toBeInTheDocument()
     })
 
@@ -515,7 +449,6 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/100 lệnh mở/)).toBeInTheDocument()
     })
 
@@ -533,24 +466,19 @@ describe('PerformanceChart - Functional Tests', () => {
       })
 
       rtlRender(<PerformanceChart />)
-
       expect(screen.getByText(/500 lệnh đóng/)).toBeInTheDocument()
     })
   })
 
   describe('Axis Formatters', () => {
-    it('should format X-axis dates', () => {
+    it('should render echarts with data', () => {
       rtlRender(<PerformanceChart />)
-
-      // X-axis should be rendered with formatter
-      expect(screen.getByTestId('x-axis')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
-    it('should format Y-axis currency', () => {
+    it('should render echarts with formatters configured', () => {
       rtlRender(<PerformanceChart />)
-
-      // Y-axis should be rendered with formatter
-      expect(screen.getByTestId('y-axis')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 })

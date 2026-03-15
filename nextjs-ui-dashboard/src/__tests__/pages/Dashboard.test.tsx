@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// ECharts requires canvas APIs not available in jsdom
+vi.mock('echarts-for-react', () => ({
+  default: ({ style }: any) => <div data-testid="echarts" style={style} />,
+}))
+
 // Mock the API module - MUST be before any imports that use it
 vi.mock('@/services/api', () => {
   const mockAuthClient = {

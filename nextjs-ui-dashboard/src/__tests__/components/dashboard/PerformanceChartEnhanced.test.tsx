@@ -3,17 +3,9 @@ import { screen } from '@testing-library/react'
 import { render } from '../../../test/utils'
 import { PerformanceChart } from '../../../components/dashboard/PerformanceChart'
 
-// Mock recharts
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  LineChart: () => <div>LineChart</div>,
-  Line: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
-  AreaChart: ({ children }: { children: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
-  Area: () => null,
+// Mock echarts-for-react
+vi.mock('echarts-for-react', () => ({
+  default: ({ style }: { style?: React.CSSProperties }) => <div data-testid="echarts" style={style} />,
 }))
 
 // Mock usePaperTradingContext hook
@@ -231,7 +223,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Chart should render with trade data
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('builds cumulative P&L from trade history', () => {
@@ -258,7 +250,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should render chart with cumulative P&L calculation
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles trades without close_time', () => {
@@ -286,7 +278,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should still render without crashing
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('filters out trades without exit_time', () => {
@@ -326,7 +318,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should filter out invalid trades
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -341,7 +333,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should render interpolated chart with 50 data points
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('generates exactly 50 interpolated data points', () => {
@@ -354,7 +346,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Interpolation creates 50 points from initial to current balance
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('interpolates between initial and current balance', () => {
@@ -374,7 +366,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Chart should show interpolated growth - verify chart renders
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -389,7 +381,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should render with interpolated data
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles null closedTrades gracefully', () => {
@@ -402,7 +394,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should still render without crashing
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles undefined closedTrades gracefully', () => {
@@ -415,7 +407,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should still render without crashing
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('displays correct stats when no trades exist', () => {
@@ -454,7 +446,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // AreaChart is rendered
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('displays chart title in Vietnamese', () => {
@@ -514,7 +506,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Currency formatted correctly - verify chart component renders
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('displays win rate percentage', () => {
@@ -561,7 +553,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should handle small decimals
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles very large PnL values', () => {
@@ -585,7 +577,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should handle large numbers - check for chart rendering instead
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles negative equity gracefully', () => {
@@ -609,7 +601,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should render without crashing
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -645,7 +637,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should not show equity below 9000 (initialBalance - 1000)
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('matches final data point to current portfolio', () => {
@@ -692,7 +684,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Tooltip should render within chart
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('formats currency in tooltip correctly', () => {
@@ -732,7 +724,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should not crash with undefined dates
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -799,7 +791,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should render even with minimal data
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -842,7 +834,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Chart should calculate daily changes
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles zero daily P&L for first data point', () => {
@@ -855,7 +847,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // First day should have 0 daily P&L
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
   })
 
@@ -870,7 +862,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should fall back to interpolation
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles undefined closed trades array', () => {
@@ -883,7 +875,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should fall back to interpolation
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles trades with null P&L', () => {
@@ -911,7 +903,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should treat null P&L as 0
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('handles very large number of trades efficiently', () => {
@@ -938,7 +930,7 @@ describe('PerformanceChart - Enhanced Coverage', () => {
       render(<PerformanceChart />)
 
       // Should handle large datasets
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument()
+      expect(screen.getByTestId('echarts')).toBeInTheDocument()
     })
 
     it('maintains 30-day window for chart data', () => {

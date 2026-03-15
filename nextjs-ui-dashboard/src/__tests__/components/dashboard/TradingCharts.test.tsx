@@ -5,21 +5,7 @@ import { render, mockCandle } from '../../../test/utils'
 import { TradingCharts } from '../../../components/dashboard/TradingCharts'
 import { toast } from 'sonner'
 
-// Mock recharts to avoid canvas issues
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  LineChart: () => <div>LineChart</div>,
-  Line: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
-  AreaChart: () => <div>AreaChart</div>,
-  Area: () => null,
-  ComposedChart: () => <div>ComposedChart</div>,
-  Bar: () => null,
-  Cell: () => null,
-}))
+// TradingCharts does not use recharts/echarts directly - no chart mock needed
 
 // Mock API client - use vi.hoisted to avoid hoisting issues
 const mockApiClient = vi.hoisted(() => ({
