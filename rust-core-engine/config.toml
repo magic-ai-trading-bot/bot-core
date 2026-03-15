@@ -55,10 +55,8 @@ max_reconnect_attempts = 5
 # Cache settings
 cache_size = 500
 
-# Python AI service URL for market analysis
-# You need to run a separate Python service that accepts analysis requests
-# Python AI service removed — set to empty to disable AI analysis calls
-python_ai_service_url = ""
+# AI service URL for market analysis (set to empty to disable)
+ai_service_url = ""
 
 [trading]
 # IMPORTANT: Set to true only when you're ready for live trading
@@ -244,10 +242,10 @@ extreme_overbought = 90.0        # Ultra-extreme zone
 # Enable/disable hybrid trend filter
 enabled = true
 
-# Use ML prediction (requires Python AI service — currently removed)
+# Use ML prediction (disabled)
 use_ml = false
 
-# ML service configuration (disabled — Python AI service removed)
+# ML service configuration (disabled)
 ml_service_url = ""
 ml_timeout_ms = 2000
 ml_min_confidence = 0.65
@@ -278,7 +276,7 @@ require_4h_alignment = true         # Require 4H trend alignment
 #    - Gives alignment score 0.0-1.0
 #
 # 2. ML Prediction (Optional):
-#    - Calls Python AI service /predict-trend endpoint
+#    - Calls ML service /predict-trend endpoint
 #    - Uses EMA200 + price momentum analysis
 #    - Returns Uptrend/Downtrend/Neutral with confidence
 #

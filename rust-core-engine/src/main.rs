@@ -161,7 +161,7 @@ async fn main() -> Result<()> {
 
     let binance_client = binance::BinanceClient::new(config.binance.clone())?;
     let ai_service = ai::AIService::new(ai::AIServiceConfig {
-        python_service_url: config.market_data.python_ai_service_url.clone(),
+        ai_service_url: config.market_data.ai_service_url.clone(),
         request_timeout_seconds: 30,
         max_retries: 3,
         enable_caching: true,

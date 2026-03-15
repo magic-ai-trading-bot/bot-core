@@ -413,11 +413,8 @@ mod tests {
 
     #[test]
     fn test_service_unavailable_error_display() {
-        let error = AppError::ServiceUnavailable("Python AI service".to_string());
-        assert_eq!(
-            format!("{}", error),
-            "Service unavailable: Python AI service"
-        );
+        let error = AppError::ServiceUnavailable("AI service".to_string());
+        assert_eq!(format!("{}", error), "Service unavailable: AI service");
     }
 
     #[test]

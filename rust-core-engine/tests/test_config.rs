@@ -102,7 +102,7 @@ mod config_tests {
         env::remove_var("BINANCE_SECRET_KEY");
         env::remove_var("DATABASE_URL");
         env::remove_var("BINANCE_TESTNET");
-        env::remove_var("PYTHON_AI_SERVICE_URL");
+        env::remove_var("AI_SERVICE_URL");
 
         let toml_content = r#"
 [binance]
@@ -122,7 +122,7 @@ update_interval_ms = 2000
 reconnect_interval_ms = 10000
 max_reconnect_attempts = 5
 cache_size = 2000
-python_ai_service_url = "http://python-ai:8000"
+ai_service_url = "http://ai-service:8000"
 
 [trading]
 enabled = true
@@ -227,7 +227,7 @@ update_interval_ms = 1000
 reconnect_interval_ms = 5000
 max_reconnect_attempts = 10
 cache_size = 1000
-python_ai_service_url = "http://localhost:8000"
+ai_service_url = "http://localhost:8000"
 
 [trading]
 enabled = false
@@ -297,7 +297,7 @@ update_interval_ms = 1000
 reconnect_interval_ms = 5000
 max_reconnect_attempts = 10
 cache_size = 1000
-python_ai_service_url = "http://localhost:8000"
+ai_service_url = "http://localhost:8000"
 
 [trading]
 enabled = false
@@ -364,7 +364,7 @@ update_interval_ms = 1000
 reconnect_interval_ms = 5000
 max_reconnect_attempts = 10
 cache_size = 1000
-python_ai_service_url = "http://localhost:8000"
+ai_service_url = "http://localhost:8000"
 
 [trading]
 enabled = false
@@ -413,7 +413,7 @@ enable_metrics = true
     }
 
     #[test]
-    fn test_config_environment_variable_override_python_service_url() {
+    fn test_config_environment_variable_override_ai_service_url() {
         // Use global mutex to serialize all env var tests
         let _guard = ENV_TEST_MUTEX.lock().unwrap();
 
@@ -435,7 +435,7 @@ update_interval_ms = 1000
 reconnect_interval_ms = 5000
 max_reconnect_attempts = 10
 cache_size = 1000
-python_ai_service_url = "http://localhost:8000"
+ai_service_url = "http://localhost:8000"
 
 [trading]
 enabled = false
@@ -464,15 +464,12 @@ enable_metrics = true
 
         let (_temp_dir, config_path) = setup_test_config_file(toml_content);
 
-        env::set_var("PYTHON_AI_SERVICE_URL", "http://python-ai-service:8000");
+        env::set_var("AI_SERVICE_URL", "http://ai-service:8000");
         let config = Config::from_file(&config_path).expect("Failed to load config");
 
-        assert_eq!(
-            config.market_data.python_ai_service_url,
-            "http://python-ai-service:8000"
-        );
+        assert_eq!(config.market_data.ai_service_url, "http://ai-service:8000");
 
-        env::remove_var("PYTHON_AI_SERVICE_URL");
+        env::remove_var("AI_SERVICE_URL");
     }
 
     #[test]
@@ -485,7 +482,7 @@ enable_metrics = true
         env::remove_var("BINANCE_SECRET_KEY");
         env::remove_var("DATABASE_URL");
         env::remove_var("BINANCE_TESTNET");
-        env::remove_var("PYTHON_AI_SERVICE_URL");
+        env::remove_var("AI_SERVICE_URL");
 
         let temp_dir = TempDir::new().expect("Failed to create temp directory");
         let config_path = temp_dir.path().join("save_test_config.toml");
@@ -776,9 +773,9 @@ mod error_tests {
 
     #[test]
     fn test_app_error_service_unavailable_display() {
-        let app_error = AppError::ServiceUnavailable("Python AI Service".to_string());
+        let app_error = AppError::ServiceUnavailable("AI service".to_string());
         let error_string = format!("{}", app_error);
-        assert_eq!(error_string, "Service unavailable: Python AI Service");
+        assert_eq!(error_string, "Service unavailable: AI service");
     }
 
     #[test]

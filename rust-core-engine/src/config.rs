@@ -137,7 +137,7 @@ pub struct MarketDataConfig {
     pub reconnect_interval_ms: u64,
     pub max_reconnect_attempts: u32,
     pub cache_size: usize,
-    pub python_ai_service_url: String,
+    pub ai_service_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -201,7 +201,7 @@ impl Default for Config {
                 reconnect_interval_ms: 5000,
                 max_reconnect_attempts: 10,
                 cache_size: 1000,
-                python_ai_service_url: "http://localhost:8000".to_string(),
+                ai_service_url: "http://localhost:8000".to_string(),
             },
             trading: TradingConfig {
                 enabled: false,
@@ -358,8 +358,8 @@ impl Config {
             };
         }
 
-        if let Ok(python_url) = std::env::var("PYTHON_AI_SERVICE_URL") {
-            config.market_data.python_ai_service_url = python_url;
+        if let Ok(ai_url) = std::env::var("AI_SERVICE_URL") {
+            config.market_data.ai_service_url = ai_url;
         }
 
         Ok(config)
@@ -514,7 +514,7 @@ mod tests {
         env::remove_var("BINANCE_SECRET_KEY");
         env::remove_var("DATABASE_URL");
         env::remove_var("BINANCE_TESTNET");
-        env::remove_var("PYTHON_AI_SERVICE_URL");
+        env::remove_var("AI_SERVICE_URL");
 
         let temp_path = env::temp_dir().join("test_config_missing.toml");
 
@@ -680,25 +680,22 @@ mod tests {
     }
 
     #[test]
-    fn test_config_env_var_override_python_url() {
+    fn test_config_env_var_override_ai_service_url() {
         use std::env;
 
         // Use global mutex to serialize all env var tests
         let _guard = ENV_TEST_MUTEX.lock().unwrap();
 
-        let temp_path = env::temp_dir().join("test_config_env_python.toml");
+        let temp_path = env::temp_dir().join("test_config_env_ai_service.toml");
 
         Config::default().save_to_file(&temp_path).unwrap();
 
-        env::set_var("PYTHON_AI_SERVICE_URL", "http://custom:9000");
+        env::set_var("AI_SERVICE_URL", "http://custom:9000");
         let config = Config::from_file(&temp_path).unwrap();
-        assert_eq!(
-            config.market_data.python_ai_service_url,
-            "http://custom:9000"
-        );
+        assert_eq!(config.market_data.ai_service_url, "http://custom:9000");
 
         // Cleanup
-        env::remove_var("PYTHON_AI_SERVICE_URL");
+        env::remove_var("AI_SERVICE_URL");
         let _ = std::fs::remove_file(&temp_path);
     }
 

@@ -1,6 +1,6 @@
 // @spec:FR-MCP-004 - AI Analysis Tools
 // @ref:plans/20260215-1900-openclaw-mcp-integration/phases/phase-02-tool-implementation.md
-// Note: Python AI service removed. All tools now proxy exclusively to Rust API.
+// All tools proxy exclusively to Rust API.
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -120,5 +120,5 @@ export function registerAiTools(server: McpServer): void {
     }
   );
 
-  log("info", "Registered 6 strategy analysis tools (Rust API — Python AI service removed)");
+  log("info", "Registered 6 strategy analysis tools (Rust API)");
 }

@@ -526,7 +526,6 @@ async fn send_test_notification(
                     StatusCode::BAD_REQUEST,
                 ));
             }
-            // Telegram test would be handled by Python AI service
             Ok("Test notification sent to Telegram".to_string())
         },
         "discord" => {
@@ -557,7 +556,6 @@ async fn send_test_notification(
                     StatusCode::BAD_REQUEST,
                 ));
             }
-            // Email test would be handled by Python AI service
             Ok("Test notification sent via Email".to_string())
         },
         "push" => {

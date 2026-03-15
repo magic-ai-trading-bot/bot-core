@@ -108,10 +108,10 @@ impl ApiServer {
         };
 
         // Initialize AI service
-        let python_ai_url = std::env::var("PYTHON_AI_SERVICE_URL")
-            .unwrap_or_else(|_| "http://localhost:8000".to_string());
+        let ai_url =
+            std::env::var("AI_SERVICE_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
         let ai_config = crate::ai::AIServiceConfig {
-            python_service_url: python_ai_url,
+            ai_service_url: ai_url,
             request_timeout_seconds: 30,
             max_retries: 3,
             enable_caching: true,
@@ -866,7 +866,7 @@ impl ApiServer {
                 }
             });
 
-        // AI market bias endpoint - Python AI service pushes bias data here
+        // AI market bias endpoint - pushes bias data here
         let paper_trading_bias = self.paper_trading_engine.clone();
         let market_bias = warp::path("market-bias")
             .and(warp::post())
@@ -1699,7 +1699,7 @@ mod tests {
             reconnect_interval_ms: 5000,
             max_reconnect_attempts: 3,
             cache_size: 500,
-            python_ai_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
         };
 
         // Create Trading config
@@ -1736,7 +1736,7 @@ mod tests {
         // Create PaperTradingEngine with required components
         let binance_client = BinanceClient::new(binance_config.clone()).unwrap();
         let ai_service = crate::ai::AIService::new(crate::ai::AIServiceConfig {
-            python_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
             request_timeout_seconds: 30,
             max_retries: 1,
             enable_caching: false,

@@ -3,9 +3,8 @@
 ## Overview
 Comprehensive unit tests for AI modules with 90%+ coverage target achieved.
 
-> **Note:** The Python AI service has been fully removed. The `src/ai/` module now contains
-> stub implementations that route through the Rust strategy engine. All tests use mock HTTP
-> servers and do not require any external Python service.
+> The `src/ai/` module contains stub implementations that route through the Rust strategy engine.
+> All tests use mock HTTP servers and do not require any external service.
 
 **Test File:** `/Users/dungngo97/Documents/bot-core/rust-core-engine/tests/test_ai.rs`
 
@@ -321,7 +320,7 @@ cargo test --test test_ai -- --test-threads=1
 
 ### Critical Features Validated:
 1. ✓ AI client initialization and configuration
-2. ✓ API communication (stub — Python AI service removed, Rust strategy engine used)
+2. ✓ API communication (stub — Rust strategy engine used)
 3. ✓ Request/response handling and serialization
 4. ✓ Signal parsing and validation
 5. ✓ Error handling and retries

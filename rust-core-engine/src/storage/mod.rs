@@ -1486,7 +1486,7 @@ impl Storage {
     }
 
     // =========================================================================
-    // TRADE ANALYSES (GPT-4 Analysis from Python AI Service)
+    // TRADE ANALYSES
     // =========================================================================
 
     /// Get trade analyses collection
@@ -1772,7 +1772,7 @@ pub struct PaperTradingSettingsRecord {
     pub updated_at: DateTime<Utc>,
 }
 
-/// GPT-4 Trade Analysis record (created by Python AI service)
+/// Trade Analysis record
 /// @spec:FR-ASYNC-011 - GPT-4 Individual Trade Analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeAnalysisRecord {
@@ -1789,13 +1789,13 @@ pub struct TradeAnalysisRecord {
     pub entry_price: Option<f64>,
     pub exit_price: Option<f64>,
     pub close_reason: Option<String>,
-    /// GPT-4 analysis result (stored as BSON Document from Python)
+    /// Analysis result (stored as BSON Document)
     pub analysis: mongodb::bson::Document,
-    /// Original trade data (stored as BSON Document from Python)
+    /// Original trade data (stored as BSON Document)
     pub trade_data: Option<mongodb::bson::Document>,
 }
 
-/// Config suggestions record (created by Python AI service)
+/// Config suggestions record
 /// @spec:FR-ASYNC-009 - GPT-4 Config Improvement Suggestions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigSuggestionsRecord {

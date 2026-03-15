@@ -1,5 +1,4 @@
 /// Cross-service integration tests
-/// Tests communication between Rust Core Engine and Python AI Service
 #[cfg(test)]
 mod cross_service_tests {
     use reqwest::Client;
@@ -32,8 +31,8 @@ mod cross_service_tests {
 
     #[tokio::test]
     #[ignore] // Run only when services are running
-    async fn test_rust_calls_python_ai_analysis() {
-        // Test Rust → Python AI service communication
+    async fn test_rust_calls_ai_analysis() {
+        // Test Rust → AI service communication
 
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
@@ -64,9 +63,8 @@ mod cross_service_tests {
             ],
         };
 
-        // Call Python AI service
         let response = client
-            .post("http://python-ai-service:8000/ai/analyze")
+            .post("http://ai-service:8000/ai/analyze")
             .json(&request)
             .send()
             .await;
@@ -85,20 +83,17 @@ mod cross_service_tests {
             },
             Err(e) => {
                 // Service might not be running in test environment
-                println!("Python AI service not available: {}", e);
+                println!("AI service not available: {}", e);
             },
         }
     }
 
     #[tokio::test]
     #[ignore] // Run only when services are running
-    async fn test_python_health_check() {
+    async fn test_ai_service_health_check() {
         let client = Client::new();
 
-        let response = client
-            .get("http://python-ai-service:8000/health")
-            .send()
-            .await;
+        let response = client.get("http://ai-service:8000/health").send().await;
 
         match response {
             Ok(resp) => {
@@ -125,7 +120,7 @@ mod cross_service_tests {
     #[tokio::test]
     #[ignore]
     async fn test_concurrent_ai_requests() {
-        // Test multiple concurrent requests to Python AI
+        // Test multiple concurrent requests to AI service
 
         let client = Client::new();
         let symbols = vec!["BTCUSDT", "ETHUSDT", "BNBUSDT"];
@@ -151,7 +146,7 @@ mod cross_service_tests {
                 };
 
                 client
-                    .post("http://python-ai-service:8000/ai/analyze")
+                    .post("http://ai-service:8000/ai/analyze")
                     .json(&request)
                     .send()
                     .await
@@ -176,7 +171,7 @@ mod cross_service_tests {
     #[tokio::test]
     #[ignore]
     async fn test_error_handling_from_python() {
-        // Test handling errors from Python service
+        // Test handling errors from AI service
 
         let client = Client::new();
 
@@ -188,7 +183,7 @@ mod cross_service_tests {
         });
 
         let response = client
-            .post("http://python-ai-service:8000/ai/analyze")
+            .post("http://ai-service:8000/ai/analyze")
             .json(&invalid_request)
             .send()
             .await;
@@ -207,7 +202,7 @@ mod cross_service_tests {
     #[tokio::test]
     #[ignore]
     async fn test_retry_on_failure() {
-        // Test retry logic when Python service fails
+        // Test retry logic when AI service fails
 
         let client = Client::builder()
             .timeout(Duration::from_secs(5))
@@ -220,10 +215,7 @@ mod cross_service_tests {
         for _ in 0..max_retries {
             attempts += 1;
 
-            let result = client
-                .get("http://python-ai-service:8000/health")
-                .send()
-                .await;
+            let result = client.get("http://ai-service:8000/health").send().await;
 
             if result.is_ok() && result.unwrap().status().is_success() {
                 break;

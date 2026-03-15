@@ -82,8 +82,7 @@ min_trades_for_optimization = 50
 signal_timeout_minutes = 30
 enable_market_regime_detection = true
 
-# [ai] section removed — Python AI service decommissioned.
-# Signal generation is handled entirely by the Rust strategy engine.
+# [ai] section not used — signal generation handled by the Rust strategy engine.
 
 [execution]
 # Automatic trade execution

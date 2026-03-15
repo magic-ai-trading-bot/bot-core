@@ -176,7 +176,7 @@ pub struct StopLimitOrder {
 }
 
 /// AI market bias for pre-computed directional filter
-/// Updated by Python AI service via POST /api/ai/market-bias
+/// Updated via POST /api/ai/market-bias
 /// Read by strategy signal loop with zero latency (Arc<RwLock>)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIMarketBias {

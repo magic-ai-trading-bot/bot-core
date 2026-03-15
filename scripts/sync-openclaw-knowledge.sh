@@ -641,7 +641,6 @@ Use \`get_candles\`, \`analyze_market\`, \`predict_trend\`, \`get_chart\` for an
 
 **AI/ML Status**:
 - **Technical Indicators**: WORKING - RSI, MACD, BB, EMA, ADX, Stoch, ATR, OBV (Rust-based)
-- **Python AI service**: REMOVED
 - **Model Training endpoints**: NOT functional
 
 **Feature Documentation**:${FEATURES_SECTION}

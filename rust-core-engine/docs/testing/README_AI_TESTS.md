@@ -15,11 +15,10 @@ cargo test --test test_ai test_analyze_trading_signals_success
 
 ## Test Coverage
 
-> **Note:** The Python AI service has been fully removed. The `src/ai/` module contains
-> stub implementations; signal generation is now handled entirely by the Rust strategy engine.
+> The `src/ai/` module contains stub implementations; signal generation is handled entirely by the Rust strategy engine.
 
 **Files Tested:**
-- `src/ai/client.rs` (443 lines) - HTTP client stub (Python AI service removed)
+- `src/ai/client.rs` (443 lines) - HTTP client stub
 - `src/ai/mod.rs` (258 lines) - High-level AI service with retry logic
 
 **Test File:** `tests/test_ai.rs` (1,594 lines)
@@ -86,7 +85,7 @@ cargo test --test test_ai test_analyze_trading_signals_success
 
 ### Mock HTTP Server
 The test suite includes a custom `MockAIServer` that:
-- Simulates AI service endpoints (Python AI service removed; Rust strategy engine used in production)
+- Simulates AI service endpoints (Rust strategy engine used in production)
 - Supports configurable response handlers
 - Can inject delays for timeout testing
 - Handles all HTTP methods (GET, POST)

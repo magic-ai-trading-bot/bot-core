@@ -2259,7 +2259,7 @@ mod tests {
             reconnect_interval_ms: 5000,
             max_reconnect_attempts: 3,
             cache_size: 1000,
-            python_ai_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
         };
 
         let db_config = DatabaseConfig {
@@ -2325,7 +2325,7 @@ mod tests {
             reconnect_interval_ms: 5000,
             max_reconnect_attempts: 3,
             cache_size: 1000,
-            python_ai_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
         };
 
         let db_config = DatabaseConfig {
@@ -4433,7 +4433,7 @@ mod tests {
             reconnect_interval_ms: 5000,
             max_reconnect_attempts: 3,
             cache_size: 1000,
-            python_ai_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
         };
 
         let db_config = DatabaseConfig {
@@ -4503,7 +4503,7 @@ mod tests {
             reconnect_interval_ms: 5000,
             max_reconnect_attempts: 3,
             cache_size: 1000,
-            python_ai_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
         };
 
         let db_config = DatabaseConfig {
@@ -4572,7 +4572,7 @@ mod tests {
             reconnect_interval_ms: 5000,
             max_reconnect_attempts: 3,
             cache_size: 1000,
-            python_ai_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
         };
 
         let db_config = DatabaseConfig {

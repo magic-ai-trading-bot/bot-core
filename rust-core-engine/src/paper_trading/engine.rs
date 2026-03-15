@@ -108,7 +108,7 @@ pub struct PaperTradingEngine {
     /// Strategy engine for realtime signal generation from WebSocket kline events
     strategy_engine: Arc<StrategyEngine>,
 
-    /// Pre-computed AI market bias (updated by Python AI service, read with zero latency)
+    /// Pre-computed AI market bias (read with zero latency)
     /// Key: symbol (e.g., "BTCUSDT"), Value: AIMarketBias
     ai_market_bias: Arc<RwLock<HashMap<String, AIMarketBias>>>,
 
@@ -4278,7 +4278,7 @@ impl PaperTradingEngine {
     // AI MARKET BIAS MANAGEMENT
     // ============================================================================
 
-    /// Update AI market bias for a symbol (called by Python AI service)
+    /// Update AI market bias for a symbol
     pub async fn update_ai_market_bias(
         &self,
         symbol: String,
@@ -4590,7 +4590,7 @@ mod tests {
     fn create_mock_ai_service() -> AIService {
         use crate::ai::AIServiceConfig;
         let config = AIServiceConfig {
-            python_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
             request_timeout_seconds: 30,
             max_retries: 3,
             enable_caching: false,
@@ -12821,7 +12821,7 @@ mod tests {
         let binance_client = create_mock_binance_client();
 
         let ai_config = crate::ai::AIServiceConfig {
-            python_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
             request_timeout_seconds: 60,
             max_retries: 5,
             enable_caching: true,

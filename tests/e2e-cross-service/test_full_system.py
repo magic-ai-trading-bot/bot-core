@@ -1,7 +1,6 @@
 """
 End-to-end tests across all services
 Tests: Frontend → Rust → MongoDB integration
-Note: Python AI service has been removed. Signal generation is handled by the Rust strategy engine.
 """
 
 import pytest
@@ -17,7 +16,7 @@ async def test_complete_trading_flow_all_services():
     Test complete flow across all services:
     1. Frontend: User login
     2. Rust: Dashboard loads
-    3. Rust: Strategy analysis request (Python AI service removed)
+    3. Rust: Strategy analysis request
     4. Frontend: Display results
     5. Rust: Execute trade
     """
@@ -41,7 +40,7 @@ async def test_complete_trading_flow_all_services():
                 rust_health = await client.get('http://localhost:8080/health', timeout=10.0)
                 assert rust_health.status_code == 200
 
-            # 3. Rust strategy engine: Request analysis (Python AI service removed)
+            # 3. Rust strategy engine: Request analysis
             await page.click('text=AI Analysis')
             await page.wait_for_timeout(2000)
 
@@ -79,7 +78,6 @@ async def test_service_communication_chain():
     """
     Test service communication chain:
     Rust strategy engine → Frontend
-    Note: Python AI service has been removed.
     """
 
     async with httpx.AsyncClient(timeout=30.0) as client:

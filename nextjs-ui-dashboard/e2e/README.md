@@ -202,7 +202,7 @@ For local testing, use these credentials:
 - Email: `test@example.com`
 - Password: `password123`
 
-**Note**: These tests expect the Rust API backend to be running locally or mocked. The Python AI service has been removed.
+**Note**: These tests expect the Rust API backend to be running locally or mocked.
 
 ## 📚 Resources
 

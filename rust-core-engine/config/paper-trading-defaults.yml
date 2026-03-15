@@ -103,8 +103,7 @@ symbols:
     max_positions: 1
     custom_params: {}
 
-# ai: section removed — Python AI service decommissioned.
-# Signal generation is handled entirely by the Rust strategy engine (RSI/MACD/Bollinger/etc.).
+# ai: section not used — signal generation handled by the Rust strategy engine (RSI/MACD/Bollinger/etc.).
 
 execution:
   auto_execution: true

@@ -17,9 +17,6 @@ This file provides bot-core specific guidance for all ClaudeKit agents working w
 - MongoDB (database)
 - Docker (containerization)
 
-> **Note:** The Python AI service (Port 8000) has been fully removed. Signal generation is
-> handled entirely by the Rust strategy engine (RSI/MACD/Bollinger/Volume/Stochastic).
-
 ---
 
 ## CRITICAL: Spec-Driven Development System

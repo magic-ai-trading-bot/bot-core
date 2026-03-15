@@ -76,7 +76,7 @@ fn create_test_market_data_config() -> MarketDataConfig {
         update_interval_ms: 60000,
         reconnect_interval_ms: 5000,
         max_reconnect_attempts: 10,
-        python_ai_service_url: "http://localhost:8000".to_string(),
+        ai_service_url: "http://localhost:8000".to_string(),
     }
 }
 
@@ -762,6 +762,6 @@ mod processor_config_tests {
         assert_eq!(config.timeframes.len(), 2);
         assert_eq!(config.cache_size, 100);
         assert_eq!(config.kline_limit, 100);
-        assert!(config.python_ai_service_url.contains("localhost"));
+        assert!(config.ai_service_url.contains("localhost"));
     }
 }

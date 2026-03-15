@@ -112,7 +112,6 @@ pip-delete-this-directory.txt
 # Docker symlinks (created for build context)
 infrastructure/docker/nextjs-ui-dashboard
 infrastructure/docker/rust-core-engine
-infrastructure/docker/python-ai-service/
 
 # Celery
 celerybeat-schedule

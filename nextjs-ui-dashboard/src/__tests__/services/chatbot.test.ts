@@ -692,10 +692,9 @@ describe('Chatbot Service Tests', () => {
       expect(chatbotService.isRAGEnabled()).toBe(false)
     })
 
-    it('should use local FAQ when RAG mode is enabled (Python service removed)', async () => {
+    it('should use local FAQ when RAG mode is enabled', async () => {
       chatbotService.setRAGMode(true)
 
-      // Python AI service has been removed; RAG now falls back to local FAQ
       const result = await chatbotService.processMessage('bot hoạt động')
 
       expect(result.success).toBe(true)
@@ -785,10 +784,9 @@ describe('Chatbot Service Tests', () => {
   // NEW TESTS FOR UNCOVERED CODE PATHS
 
   describe('Async Suggested Questions', () => {
-    it('should return default suggestions when RAG enabled (Python service removed)', async () => {
+    it('should return default suggestions when RAG enabled', async () => {
       chatbotService.setRAGMode(true)
 
-      // Python AI service has been removed; always returns local defaults
       const suggestions = await chatbotService.getSuggestedQuestionsAsync()
 
       expect(suggestions.length).toBeGreaterThan(0)
@@ -820,10 +818,8 @@ describe('Chatbot Service Tests', () => {
   })
 
   describe('Clear History Async', () => {
-    it('should clear local history (Python server clear removed)', async () => {
+    it('should clear local history', async () => {
       chatbotService.setRAGMode(true)
-
-      // Python AI service has been removed; only local history is cleared
 
       // Add some messages
       chatbotService.addMessageToHistory({

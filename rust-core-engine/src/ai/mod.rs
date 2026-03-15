@@ -9,7 +9,7 @@ use std::collections::HashMap;
 // Re-export key types
 pub use client::*;
 
-/// No-op stub for the Python AI service.
+/// No-op stub for the AI service.
 /// All HTTP calls removed — strategy engine (RSI/MACD/Bollinger/etc.) is the sole signal source.
 #[derive(Debug, Clone)]
 pub struct AIService {
@@ -20,7 +20,7 @@ pub struct AIService {
 /// Configuration for AI service (retained for interface compatibility)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIServiceConfig {
-    pub python_service_url: String,
+    pub ai_service_url: String,
     pub request_timeout_seconds: u64,
     pub max_retries: u32,
     pub enable_caching: bool,
@@ -38,7 +38,7 @@ impl AIService {
         _data: &StrategyInput,
         _strategy_context: AIStrategyContext,
     ) -> Result<AISignalResponse> {
-        Err(anyhow::anyhow!("Python AI service disabled"))
+        Err(anyhow::anyhow!("AI service disabled"))
     }
 
     /// Disabled — returns empty vec; strategy engine provides strategy selection.
@@ -55,7 +55,7 @@ impl AIService {
         &self,
         _data: &StrategyInput,
     ) -> Result<MarketConditionAnalysis> {
-        Err(anyhow::anyhow!("Python AI service disabled"))
+        Err(anyhow::anyhow!("AI service disabled"))
     }
 
     /// No-op — feedback loop removed with Python service.
@@ -65,7 +65,7 @@ impl AIService {
 
     /// Disabled — returns error.
     pub async fn get_service_info(&self) -> Result<crate::ai::client::AIServiceInfo> {
-        Err(anyhow::anyhow!("Python AI service disabled"))
+        Err(anyhow::anyhow!("AI service disabled"))
     }
 
     /// Returns static list of Rust-native strategies.
@@ -95,7 +95,7 @@ impl AIService {
 impl Default for AIServiceConfig {
     fn default() -> Self {
         Self {
-            python_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
             request_timeout_seconds: 30,
             max_retries: 3,
             enable_caching: true,
@@ -246,7 +246,7 @@ mod tests {
     fn test_ai_service_config_default() {
         let config = AIServiceConfig::default();
 
-        assert_eq!(config.python_service_url, "http://localhost:8000");
+        assert_eq!(config.ai_service_url, "http://localhost:8000");
         assert_eq!(config.request_timeout_seconds, 30);
         assert_eq!(config.max_retries, 3);
         assert!(config.enable_caching);
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn test_ai_service_config_serialization() {
         let config = AIServiceConfig {
-            python_service_url: "http://ai-service:8000".to_string(),
+            ai_service_url: "http://ai-service:8000".to_string(),
             request_timeout_seconds: 60,
             max_retries: 5,
             enable_caching: false,
@@ -266,7 +266,7 @@ mod tests {
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AIServiceConfig = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(deserialized.python_service_url, "http://ai-service:8000");
+        assert_eq!(deserialized.ai_service_url, "http://ai-service:8000");
         assert_eq!(deserialized.request_timeout_seconds, 60);
         assert_eq!(deserialized.max_retries, 5);
         assert!(!deserialized.enable_caching);
@@ -278,7 +278,7 @@ mod tests {
         let config = AIServiceConfig::default();
         let service = AIService::new(config.clone());
 
-        assert_eq!(service.config.python_service_url, config.python_service_url);
+        assert_eq!(service.config.ai_service_url, config.ai_service_url);
         assert_eq!(
             service.config.request_timeout_seconds,
             config.request_timeout_seconds
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn test_ai_service_new_with_custom_config() {
         let config = AIServiceConfig {
-            python_service_url: "http://custom-ai:9000".to_string(),
+            ai_service_url: "http://custom-ai:9000".to_string(),
             request_timeout_seconds: 45,
             max_retries: 2,
             enable_caching: true,
@@ -298,7 +298,7 @@ mod tests {
 
         let service = AIService::new(config.clone());
 
-        assert_eq!(service.config.python_service_url, "http://custom-ai:9000");
+        assert_eq!(service.config.ai_service_url, "http://custom-ai:9000");
         assert_eq!(service.config.request_timeout_seconds, 45);
         assert_eq!(service.config.max_retries, 2);
     }
@@ -563,14 +563,14 @@ mod tests {
     #[test]
     fn test_ai_service_config_custom_values() {
         let config = AIServiceConfig {
-            python_service_url: "http://192.168.1.100:8888".to_string(),
+            ai_service_url: "http://192.168.1.100:8888".to_string(),
             request_timeout_seconds: 120,
             max_retries: 10,
             enable_caching: true,
             cache_ttl_seconds: 1800,
         };
 
-        assert_eq!(config.python_service_url, "http://192.168.1.100:8888");
+        assert_eq!(config.ai_service_url, "http://192.168.1.100:8888");
         assert_eq!(config.request_timeout_seconds, 120);
         assert_eq!(config.max_retries, 10);
         assert!(config.enable_caching);

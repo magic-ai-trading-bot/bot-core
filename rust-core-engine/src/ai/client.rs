@@ -3,8 +3,7 @@
 use super::*;
 use anyhow::{anyhow, Result};
 
-// Python AI service types kept for serialization compatibility (external consumers may still
-// serialize/deserialize these even though the HTTP calls are disabled)
+// Types kept for serialization compatibility
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct PythonCandleData {
     timestamp: i64,
@@ -28,7 +27,7 @@ impl From<&crate::market_data::cache::CandleData> for PythonCandleData {
     }
 }
 
-/// No-op client stub — Python AI service removed; all methods return errors immediately.
+/// No-op client stub — all methods return errors immediately.
 /// Kept for interface compatibility. HTTP calls are disabled.
 #[derive(Debug, Clone)]
 pub struct AIClient {
@@ -42,15 +41,15 @@ impl AIClient {
         }
     }
 
-    /// Disabled — Python AI service removed.
+    /// Disabled.
     pub async fn analyze_trading_signals(
         &self,
         _request: &AIAnalysisRequest,
     ) -> Result<AISignalResponse> {
-        Err(anyhow!("Python AI service disabled"))
+        Err(anyhow!("AI service disabled"))
     }
 
-    /// Disabled — Python AI service removed.
+    /// Disabled.
     pub async fn get_strategy_recommendations(
         &self,
         _request: &StrategyRecommendationRequest,
@@ -58,25 +57,25 @@ impl AIClient {
         Ok(vec![])
     }
 
-    /// Disabled — Python AI service removed.
+    /// Disabled.
     pub async fn analyze_market_condition(
         &self,
         _request: &MarketConditionRequest,
     ) -> Result<MarketConditionAnalysis> {
-        Err(anyhow!("Python AI service disabled"))
+        Err(anyhow!("AI service disabled"))
     }
 
-    /// Disabled — Python AI service removed.
+    /// Disabled.
     pub async fn send_performance_feedback(&self, _feedback: &PerformanceFeedback) -> Result<()> {
         Ok(())
     }
 
-    /// Disabled — Python AI service removed.
+    /// Disabled.
     pub async fn get_service_info(&self) -> Result<AIServiceInfo> {
-        Err(anyhow!("Python AI service disabled"))
+        Err(anyhow!("AI service disabled"))
     }
 
-    /// Disabled — Python AI service removed.
+    /// Disabled.
     pub async fn get_supported_strategies(&self) -> Result<SupportedStrategiesResponse> {
         Ok(SupportedStrategiesResponse {
             strategies: vec![
@@ -89,7 +88,7 @@ impl AIClient {
         })
     }
 
-    /// Disabled — Python AI service removed.
+    /// Disabled.
     pub async fn request_trade_analysis(&self, _request: &TradeAnalysisRequest) -> Result<()> {
         Ok(())
     }

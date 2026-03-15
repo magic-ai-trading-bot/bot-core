@@ -44,7 +44,6 @@ describe("Tool Registration", () => {
     expect(response.tools).toBeDefined();
     expect(Array.isArray(response.tools)).toBe(true);
 
-    // Python AI service removed. Tool counts updated:
     // Health: 3, Market: 8, Trading: 4, Paper Trading: 28+, Real Trading: 14,
     // AI (strategy): 6, Tasks: 0, Monitoring: 3, Settings: 10, Auth: 4, Tuning: 8, Notification: 1
     expect(response.tools.length).toBeGreaterThanOrEqual(60);
@@ -62,7 +61,6 @@ describe("Tool Registration", () => {
     const response = await client.listTools();
     const toolNames = response.tools.map(tool => tool.name);
 
-    // Check for expected health tools (Python service removed, get_python_health removed)
     expect(toolNames).toContain("check_system_health");
     expect(toolNames).toContain("get_service_logs_summary");
     expect(toolNames).toContain("check_market_condition_health");
@@ -151,7 +149,6 @@ describe("Tool Registration", () => {
     const response = await client.listTools();
     const toolNames = response.tools.map(tool => tool.name);
 
-    // Python AI service removed; tools now proxy to Rust strategy engine
     expect(toolNames).toContain("analyze_market");
     expect(toolNames).toContain("get_strategy_recommendations");
     expect(toolNames).toContain("get_market_condition");
@@ -197,9 +194,8 @@ describe("Tool Registration", () => {
     expect(toolNames).toContain("save_api_keys");
   });
 
-  it("task tools section exists (Python AI removed, 0 task tools)", async () => {
-    // Python AI service removed; task tools (chat_with_project, get_chat_suggestions, etc.)
-    // were Python-dependent and have been removed. This test verifies no stale Python tool names remain.
+  it("task tools section exists (0 task tools)", async () => {
+    // Verify no stale tool names remain
     const response = await client.listTools();
     const toolNames = response.tools.map(tool => tool.name);
 

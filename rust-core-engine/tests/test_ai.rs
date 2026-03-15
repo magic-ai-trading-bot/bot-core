@@ -1,6 +1,6 @@
 // Integration tests for AI module (stub interface)
 //
-// Python AI service was removed. AIClient and AIService are now no-op stubs.
+// AIClient and AIService are no-op stubs.
 // These tests verify the stub behavior: correct return values, no HTTP calls,
 // type serialization, and interface compatibility.
 
@@ -184,7 +184,7 @@ async fn test_ai_client_request_trade_analysis_returns_ok() {
 #[tokio::test]
 async fn test_ai_service_config_default() {
     let config = AIServiceConfig::default();
-    assert_eq!(config.python_service_url, "http://localhost:8000");
+    assert_eq!(config.ai_service_url, "http://localhost:8000");
     assert_eq!(config.request_timeout_seconds, 30);
     assert_eq!(config.max_retries, 3);
     assert!(config.enable_caching);
@@ -194,7 +194,7 @@ async fn test_ai_service_config_default() {
 #[tokio::test]
 async fn test_ai_service_creation_with_config() {
     let config = AIServiceConfig {
-        python_service_url: "http://localhost:8000".to_string(),
+        ai_service_url: "http://localhost:8000".to_string(),
         request_timeout_seconds: 30,
         max_retries: 3,
         enable_caching: true,

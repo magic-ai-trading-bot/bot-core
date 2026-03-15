@@ -385,7 +385,6 @@ pub struct SignalPipelineSettingsApi {
 }
 
 /// Response for indicator-settings endpoint
-/// This is fetched by Python AI service on startup
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IndicatorSettingsResponse {
     pub indicators: IndicatorSettingsApi,
@@ -674,7 +673,6 @@ impl PaperTradingApi {
 
         // GET /api/paper-trading/indicator-settings
         // @spec:FR-SETTINGS-001 - Unified indicator settings API
-        // This endpoint is fetched by Python AI service on startup
         let get_indicator_settings_route = base_path
             .and(warp::path("indicator-settings"))
             .and(warp::path::end())
@@ -788,7 +786,6 @@ impl PaperTradingApi {
             .or(trigger_analysis_route)
             .or(update_signal_interval_route)
             // @spec:FR-SETTINGS-001, FR-SETTINGS-002 - Unified indicator/signal settings
-            // These endpoints are used by Python AI service to fetch settings
             .or(get_indicator_settings_route)
             .or(update_indicator_settings_route)
             // @spec:FR-ASYNC-011, FR-ASYNC-009 - GPT-4 Trade Analysis & Config Suggestions
@@ -2060,7 +2057,6 @@ async fn update_signal_refresh_interval(
 /// Get unified indicator and signal generation settings
 /// @spec:FR-SETTINGS-001 - Indicator settings
 /// @spec:FR-SETTINGS-002 - Signal generation settings
-/// This endpoint is fetched by Python AI service on startup
 async fn get_indicator_settings(api: Arc<PaperTradingApi>) -> Result<impl Reply, Rejection> {
     let settings = api.engine.get_settings().await;
 
@@ -2192,7 +2188,7 @@ async fn update_indicator_settings(
         Ok(_) => {
             let response = serde_json::json!({
                 "message": "Indicator and signal settings updated successfully",
-                "note": "Changes apply immediately to Python AI service on next settings fetch",
+                "note": "Changes apply immediately on next settings fetch",
             });
 
             log::info!("✅ Indicator/signal settings updated successfully");
@@ -2563,7 +2559,7 @@ mod tests {
             BinanceClient::new(binance_config).expect("Failed to create binance client");
 
         let ai_config = crate::ai::AIServiceConfig {
-            python_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
             request_timeout_seconds: 30,
             max_retries: 3,
             enable_caching: true,
@@ -4355,7 +4351,7 @@ mod tests {
             BinanceClient::new(binance_config).expect("Failed to create binance client");
 
         let ai_config = crate::ai::AIServiceConfig {
-            python_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
             request_timeout_seconds: 30,
             max_retries: 3,
             enable_caching: true,

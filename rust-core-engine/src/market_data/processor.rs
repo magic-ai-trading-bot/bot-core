@@ -106,7 +106,7 @@ impl MarketDataProcessor {
         let client = BinanceClient::new(binance_config.clone())?;
         let cache = MarketDataCache::new(config.cache_size);
         let analyzer = Arc::new(MarketDataAnalyzer::new(
-            config.python_ai_service_url.clone(),
+            config.ai_service_url.clone(),
             cache.clone(),
         ));
 
@@ -1054,7 +1054,7 @@ mod tests {
             update_interval_ms: 60000,
             reconnect_interval_ms: 5000,
             max_reconnect_attempts: 10,
-            python_ai_service_url: "http://localhost:8000".to_string(),
+            ai_service_url: "http://localhost:8000".to_string(),
         }
     }
 
@@ -2409,7 +2409,7 @@ mod tests {
         assert_eq!(config.timeframes.len(), 2);
         assert_eq!(config.cache_size, 100);
         assert_eq!(config.kline_limit, 100);
-        assert!(config.python_ai_service_url.contains("localhost"));
+        assert!(config.ai_service_url.contains("localhost"));
     }
 
     #[test]

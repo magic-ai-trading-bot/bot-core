@@ -17,7 +17,7 @@ pub struct PaperTradingSettings {
     /// Symbol-specific settings
     pub symbols: HashMap<String, SymbolSettings>,
 
-    /// AI integration settings (optional — Python AI service removed)
+    /// AI integration settings (optional)
     #[serde(default)]
     pub ai: AISettings,
 
@@ -27,17 +27,17 @@ pub struct PaperTradingSettings {
     /// Notification settings
     pub notifications: NotificationSettings,
 
-    /// Technical indicator configuration (shared with Python AI service)
+    /// Technical indicator configuration
     /// @spec:FR-SETTINGS-001 - Unified indicator settings across services
     #[serde(default)]
     pub indicators: IndicatorSettings,
 
-    /// Signal generation thresholds (shared with Python AI service)
+    /// Signal generation thresholds
     /// @spec:FR-SETTINGS-002 - Unified signal generation settings
     #[serde(default)]
     pub signal: SignalGenerationSettings,
 
-    /// Signal pipeline configuration (shared with Python AI service)
+    /// Signal pipeline configuration
     /// Controls how raw indicator data becomes trading signals
     /// @spec:FR-SETTINGS-003 - Signal pipeline configuration
     #[serde(default)]
@@ -45,8 +45,6 @@ pub struct PaperTradingSettings {
 }
 
 /// Technical indicator configuration
-/// These settings are shared between Rust trading engine and Python AI service
-/// to ensure consistent indicator calculations across the system.
 /// @spec:FR-SETTINGS-001 - Unified indicator configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndicatorSettings {
@@ -86,8 +84,7 @@ pub struct IndicatorSettings {
 }
 
 /// Signal generation thresholds
-/// These settings control how AI signals are generated and when to trade.
-/// Shared between Rust trading engine and Python AI service.
+/// These settings control how signals are generated and when to trade.
 /// @spec:FR-SETTINGS-002 - Signal generation configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalGenerationSettings {
@@ -122,8 +119,7 @@ pub struct SignalGenerationSettings {
 
 /// Signal pipeline configuration
 /// Controls how raw indicator data becomes trading signals.
-/// These settings are shared with Python AI service to ensure consistent
-/// signal generation logic. Covers weighted voting, indicator classification
+/// Covers weighted voting, indicator classification
 /// thresholds, confidence scoring, and counter-trend filtering.
 /// @spec:FR-SETTINGS-003 - Signal pipeline configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -526,7 +522,7 @@ fn default_weekly_drawdown_limit() -> f64 {
 /// AI integration settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AISettings {
-    /// Python AI service URL
+    /// AI service URL
     pub service_url: String,
 
     /// Request timeout (seconds)
@@ -826,7 +822,7 @@ impl Default for AISettings {
         confidence_thresholds.insert("volatile".to_string(), 0.80);
 
         Self {
-            service_url: "http://python-ai-service:8000".to_string(),
+            service_url: "http://ai-service:8000".to_string(),
             request_timeout_seconds: 30,
             signal_refresh_interval_minutes: 15, // 15 minutes - Optimized for crypto day trading with 15m charts
             enable_realtime_signals: true,
@@ -1286,7 +1282,7 @@ mod tests {
     fn test_default_ai_settings() {
         let settings = AISettings::default();
 
-        assert_eq!(settings.service_url, "http://python-ai-service:8000");
+        assert_eq!(settings.service_url, "http://ai-service:8000");
         assert_eq!(settings.request_timeout_seconds, 30);
         assert_eq!(settings.signal_refresh_interval_minutes, 15); // Updated to reflect new 15-minute default for crypto day trading
         assert!(settings.enable_realtime_signals);
