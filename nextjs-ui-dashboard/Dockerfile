@@ -4,20 +4,18 @@ FROM oven/bun:1.2-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package files and lockfile (lockfile copied from repo root by CI/deploy scripts)
-COPY package.json bun.lock* bun.lockb* ./
+# Copy package files and root lockfile for deterministic builds
+COPY nextjs-ui-dashboard/package.json ./
+COPY bun.lock ./
 
 # Update system packages for security patches
 RUN apk upgrade --no-cache
 
-# Install dependencies
+# Install dependencies with frozen lockfile
 RUN bun install --frozen-lockfile || bun install
 
-# Add missing rollup dependencies for ARM64
-RUN bun add -D @rollup/rollup-linux-arm64-gnu @rollup/rollup-linux-arm64-musl || true
-
 # Copy source code
-COPY . .
+COPY nextjs-ui-dashboard/ .
 
 # Build the application
 RUN bun run build

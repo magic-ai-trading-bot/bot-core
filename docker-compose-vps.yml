@@ -83,8 +83,8 @@ services:
   # Next.js UI Dashboard
   nextjs-ui-dashboard:
     build:
-      context: ./nextjs-ui-dashboard
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: nextjs-ui-dashboard/Dockerfile
     container_name: nextjs-ui-dashboard
     restart: unless-stopped
     ports:
