@@ -8,10 +8,10 @@
     "startTrial": "Dùng thử miễn phí"
   },
   "hero": {
-    "badge": "Cách mạng giao dịch AI",
+    "badge": "Cách mạng giao dịch tự động",
     "title": "Giao dịch Crypto",
-    "subtitle": "Được định nghĩa lại bởi AI",
-    "description": "Khai thác sức mạnh của trí tuệ nhân tạo để phân tích thị trường crypto, dự đoán xu hướng và thực hiện giao dịch sinh lời tự động trên Binance Futures.",
+    "subtitle": "Được định nghĩa lại bởi chiến lược",
+    "description": "Khai thác sức mạnh của phân tích kỹ thuật đa chỉ báo để phân tích thị trường crypto, dự đoán xu hướng và thực hiện giao dịch sinh lời tự động trên Binance Futures.",
     "startTrading": "Bắt đầu giao dịch",
     "watchDemo": "Xem demo"
   },
@@ -29,10 +29,10 @@
     "badge": "Tính năng nâng cao",
     "title": "Được xây dựng cho",
     "subtitle": "Trader chuyên nghiệp",
-    "description": "Trải nghiệm nền tảng giao dịch crypto tinh vi nhất được hỗ trợ bởi công nghệ AI tiên tiến",
+    "description": "Trải nghiệm nền tảng giao dịch crypto tinh vi nhất được hỗ trợ bởi phân tích kỹ thuật tiên tiến",
     "aiAnalysis": {
-      "title": "Phân tích AI",
-      "description": "Mô hình machine learning tiên tiến phân tích xu hướng thị trường và dự đoán biến động giá với độ chính xác trên 70%."
+      "title": "Phân tích chiến lược",
+      "description": "Chiến lược phân tích kỹ thuật tiên tiến phân tích xu hướng thị trường và dự đoán biến động giá với độ chính xác trên 70%."
     },
     "riskManagement": {
       "title": "Quản lý rủi ro",
@@ -67,7 +67,7 @@
       "starter": {
         "name": "Starter",
         "features": [
-          "Tín hiệu giao dịch AI cơ bản",
+          "Tín hiệu giao dịch cơ bản",
           "Tối đa 5 vị thế hoạt động",
           "Hỗ trợ tiêu chuẩn",
           "Phân tích cơ bản"
@@ -76,7 +76,7 @@
       "pro": {
         "name": "Pro",
         "features": [
-          "Tín hiệu giao dịch AI nâng cao",
+          "Tín hiệu giao dịch nâng cao",
           "Vị thế hoạt động không giới hạn",
           "Hỗ trợ ưu tiên",
           "Phân tích nâng cao & Backtesting",
@@ -89,7 +89,7 @@
         "features": [
           "Tất cả tính năng Pro",
           "Quản lý tài khoản riêng",
-          "Huấn luyện mô hình AI tùy chỉnh",
+          "Tùy chỉnh chiến lược giao dịch nâng cao",
           "Giải pháp White-Label",
           "Đảm bảo SLA"
         ]
@@ -104,7 +104,7 @@
       {
         "name": "Sarah Chen",
         "role": "Day Trader",
-        "text": "Tín hiệu AI cực kỳ chính xác. Tăng tỷ lệ thắng từ 45% lên 68% chỉ trong 3 tháng!"
+        "text": "Tín hiệu giao dịch cực kỳ chính xác. Tăng tỷ lệ thắng từ 45% lên 68% chỉ trong 3 tháng!"
       },
       {
         "name": "Michael Rodriguez",
@@ -124,8 +124,8 @@
     "subtitle": "thường gặp",
     "items": [
       {
-        "question": "Tín hiệu giao dịch AI chính xác đến mức nào?",
-        "answer": "Mô hình AI của chúng tôi đạt độ chính xác hướng trên 70% trong nhiều khung thời gian và điều kiện thị trường. Chúng tôi liên tục huấn luyện và cải thiện mô hình với dữ liệu mới nhất."
+        "question": "Tín hiệu giao dịch chính xác đến mức nào?",
+        "answer": "Chiến lược phân tích kỹ thuật của chúng tôi đạt độ chính xác hướng trên 70% trong nhiều khung thời gian và điều kiện thị trường. Chúng tôi liên tục tối ưu và cải thiện chiến lược với dữ liệu mới nhất."
       },
       {
         "question": "Vốn của tôi có an toàn không?",
@@ -133,7 +133,7 @@
       },
       {
         "question": "Tôi có thể sử dụng chiến lược riêng không?",
-        "answer": "Hoàn toàn có thể! Gói Pro và Enterprise bao gồm hỗ trợ chiến lược tùy chỉnh. Bạn có thể backtest và triển khai thuật toán riêng cùng với tín hiệu AI của chúng tôi."
+        "answer": "Hoàn toàn có thể! Gói Pro và Enterprise bao gồm hỗ trợ chiến lược tùy chỉnh. Bạn có thể backtest và triển khai thuật toán riêng cùng với tín hiệu giao dịch của chúng tôi."
       },
       {
         "question": "Các sàn giao dịch nào được hỗ trợ?",
@@ -144,13 +144,13 @@
   "cta": {
     "badge": "Sẵn sàng bắt đầu?",
     "title": "Bắt đầu hành trình",
-    "subtitle": "Giao dịch AI",
-    "description": "Tham gia cùng hàng nghìn trader thành công tin tưởng AI của chúng tôi để phát triển danh mục crypto. Bắt đầu với bản dùng thử miễn phí và trải nghiệm sự khác biệt của tự động hóa thông minh.",
+    "subtitle": "Giao dịch tự động",
+    "description": "Tham gia cùng hàng nghìn trader thành công tin tưởng chiến lược của chúng tôi để phát triển danh mục crypto. Bắt đầu với bản dùng thử miễn phí và trải nghiệm sự khác biệt của tự động hóa thông minh.",
     "startTrial": "Dùng thử 7 ngày miễn phí",
     "scheduleDemo": "Đặt lịch Demo"
   },
   "footer": {
-    "description": "Nền tảng giao dịch AI cho trader hiện đại.",
+    "description": "Nền tảng giao dịch tự động cho trader hiện đại.",
     "product": "Sản phẩm",
     "company": "Công ty",
     "legal": "Pháp lý",
@@ -170,7 +170,7 @@
   },
   "videoModal": {
     "title": "Bot Core Demo",
-    "subtitle": "Nền tảng giao dịch Crypto AI",
+    "subtitle": "Nền tảng giao dịch Crypto tự động",
     "cta": "Xem cách Bot Core thay đổi giao dịch của bạn",
     "getStarted": "Bắt đầu miễn phí"
   }

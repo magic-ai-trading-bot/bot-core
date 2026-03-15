@@ -11,16 +11,16 @@
     "badge": "Platform Features",
     "title": "Powerful Features for",
     "subtitle": "Modern Traders",
-    "description": "Everything you need to trade smarter, faster, and more profitably with cutting-edge AI technology.",
+    "description": "Everything you need to trade smarter, faster, and more profitably with cutting-edge technical analysis technology.",
     "andMore": "And Much More...",
     "readyTitle": "Ready to Start Trading?",
     "readyDescription": "Join thousands of traders using Bot Core to automate their trading strategies.",
     "getStartedFree": "Get Started Free",
     "items": {
       "aiAnalysis": {
-        "title": "AI-Powered Analysis",
-        "description": "Advanced machine learning models analyze market patterns, sentiment, and technical indicators in real-time to identify profitable trading opportunities.",
-        "highlights": ["LSTM & Transformer Models", "AI Market Analysis", "Sentiment Detection"]
+        "title": "Strategy-Based Analysis",
+        "description": "Advanced multi-indicator strategies analyze market patterns, sentiment, and technical indicators in real-time to identify profitable trading opportunities.",
+        "highlights": ["Multi-Indicator Analysis", "Strategy Market Analysis", "Sentiment Detection"]
       },
       "tradingBot": {
         "title": "Automated Trading Bot",
@@ -54,7 +54,7 @@
       "multiExchange": { "title": "Multi-Exchange Support", "description": "Trade on Binance, Bybit & more" },
       "monitoring": { "title": "24/7 Monitoring", "description": "Always-on system monitoring" },
       "alerts": { "title": "Custom Alerts", "description": "Telegram, Discord & Email alerts" },
-      "aiSignals": { "title": "AI Signals", "description": "Machine learning predictions" }
+      "aiSignals": { "title": "Trading Signals", "description": "Multi-indicator strategy analysis" }
     }
   },
   "pricing": {
@@ -72,7 +72,7 @@
         "features": [
           "Paper Trading Only",
           "3 Active Strategies",
-          "Basic AI Signals",
+          "Basic Trading Signals",
           "Community Support",
           "1 Exchange Connection",
           "Daily Performance Reports"
@@ -87,7 +87,7 @@
         "features": [
           "Live Trading Enabled",
           "Unlimited Strategies",
-          "Advanced AI Analysis",
+          "Advanced Strategy Analysis",
           "Priority Support",
           "3 Exchange Connections",
           "Real-time Alerts",
@@ -108,7 +108,7 @@
           "White-label Options",
           "SLA Guarantee",
           "On-premise Deployment",
-          "Custom AI Model Training"
+          "Custom Strategy Configuration"
         ],
         "cta": "Contact Sales"
       }
@@ -136,7 +136,7 @@
     "badge": "About Us",
     "title": "Building the Future of",
     "subtitle": "Automated Trading",
-    "description": "We believe everyone deserves access to institutional-grade trading technology. Our mission is to democratize algorithmic trading through AI.",
+    "description": "We believe everyone deserves access to institutional-grade trading technology. Our mission is to democratize algorithmic trading through advanced technical analysis.",
     "stats": {
       "activeUsers": "Active Users",
       "countries": "Countries",
@@ -155,7 +155,7 @@
       },
       "innovation": {
         "title": "Innovation",
-        "description": "We push the boundaries of what's possible with AI and trading."
+        "description": "We push the boundaries of what's possible with technical analysis and trading."
       },
       "globalImpact": {
         "title": "Global Impact",
@@ -168,15 +168,15 @@
         { "year": "2021", "event": "Founded in San Francisco" },
         { "year": "2022", "event": "Launched beta with 1,000 users" },
         { "year": "2023", "event": "Series A funding, 50,000+ users" },
-        { "year": "2024", "event": "AI trading engine v2.0 released" }
+        { "year": "2024", "event": "Strategy trading engine v2.0 released" }
       ]
     },
     "team": {
       "title": "Meet Our Team",
       "members": [
         { "name": "Alex Chen", "role": "CEO & Co-Founder", "bio": "Former quantitative trader at Goldman Sachs with 10+ years in algorithmic trading." },
-        { "name": "Sarah Kim", "role": "CTO & Co-Founder", "bio": "Ex-Google engineer specializing in machine learning and distributed systems." },
-        { "name": "Michael Rodriguez", "role": "Head of AI", "bio": "PhD in Machine Learning from MIT, pioneered neural network trading strategies." },
+        { "name": "Sarah Kim", "role": "CTO & Co-Founder", "bio": "Ex-Google engineer specializing in trading systems and distributed systems." },
+        { "name": "Michael Rodriguez", "role": "Head of Strategy", "bio": "PhD in Quantitative Finance from MIT, pioneered algorithmic trading strategies." },
         { "name": "Emily Zhang", "role": "Head of Product", "bio": "Former product lead at Coinbase, passionate about user-centric design." }
       ]
     },
@@ -238,14 +238,14 @@
     "categories": {
       "all": "All",
       "trading": "Trading",
-      "ai": "AI & ML",
+      "ai": "Strategy",
       "market": "Market Analysis",
       "tutorials": "Tutorials"
     },
     "posts": [
-      { "title": "How AI is Revolutionizing Crypto Trading", "excerpt": "Discover how machine learning algorithms are changing the game for crypto traders.", "category": "AI & ML", "readTime": "5 min read" },
+      { "title": "How Technical Analysis is Revolutionizing Crypto Trading", "excerpt": "Discover how multi-indicator strategy analysis is changing the game for crypto traders.", "category": "Strategy", "readTime": "5 min read" },
       { "title": "Top 5 Risk Management Strategies for 2024", "excerpt": "Learn essential risk management techniques to protect your trading capital.", "category": "Trading", "readTime": "8 min read" },
-      { "title": "Bitcoin Market Analysis: Q4 Outlook", "excerpt": "Our AI analyzes key market indicators for Bitcoin's Q4 performance.", "category": "Market Analysis", "readTime": "6 min read" },
+      { "title": "Bitcoin Market Analysis: Q4 Outlook", "excerpt": "Our strategy system analyzes key market indicators for Bitcoin's Q4 performance.", "category": "Market Analysis", "readTime": "6 min read" },
       { "title": "Getting Started with Paper Trading", "excerpt": "A beginner's guide to practicing trading without risking real money.", "category": "Tutorials", "readTime": "4 min read" },
       { "title": "Understanding RSI Strategy in Bot Core", "excerpt": "Deep dive into how our RSI-based trading strategy works.", "category": "Trading", "readTime": "7 min read" },
       { "title": "New Features: Advanced Portfolio Analytics", "excerpt": "Introducing new tools for tracking and analyzing your trading performance.", "category": "Tutorials", "readTime": "3 min read" }
@@ -254,7 +254,7 @@
   "careers": {
     "badge": "Join Our Team",
     "title": "Build the Future of",
-    "subtitle": "AI Trading",
+    "subtitle": "Algorithmic Trading",
     "description": "We're looking for passionate individuals to help us revolutionize algorithmic trading. Join our team and make an impact.",
     "whyJoin": {
       "title": "Why Join Bot Core?",
@@ -346,7 +346,7 @@
       },
       "services": {
         "title": "Description of Services",
-        "content": "Bot Core provides AI-powered cryptocurrency trading tools, including automated trading bots, market analysis, and portfolio management features."
+        "content": "Bot Core provides strategy-based cryptocurrency trading tools, including automated trading bots, market analysis, and portfolio management features."
       },
       "account": {
         "title": "Account Responsibilities",
@@ -498,22 +498,22 @@
     "viewAll": "View All Documentation"
   },
   "howItWorks": {
-    "badge": "AI-POWERED TRADING BOT",
+    "badge": "STRATEGY-BASED TRADING BOT",
     "hero": {
       "title": "Smart Trading,",
       "titleHighlight": "Zero Emotion",
-      "subtitle": "Automated cryptocurrency trading with advanced AI analysis, real-time market monitoring, and intelligent risk management."
+      "subtitle": "Automated cryptocurrency trading with advanced technical analysis, real-time market monitoring, and intelligent risk management."
     },
     "stats": {
       "strategies": "Trading Strategies",
       "riskLayers": "Risk Layers",
       "uptime": "Uptime",
-      "aiAccuracy": "AI Accuracy",
+      "aiAccuracy": "Strategy Accuracy",
       "winRate": "Win Rate"
     },
     "process": {
       "title": "How Bot Core Works",
-      "subtitle": "Our AI-powered trading system follows a sophisticated 4-step process to identify and execute profitable trades."
+      "subtitle": "Our strategy-based trading system follows a sophisticated 4-step process to identify and execute profitable trades."
     },
     "steps": {
       "dataCollection": {
@@ -543,11 +543,11 @@
       "signalGeneration": {
         "number": "03",
         "title": "Signal Generation",
-        "subtitle": "AI-powered trade decisions",
-        "description": "Our machine learning models analyze patterns and generate trading signals with confidence scores.",
+        "subtitle": "Strategy-based trade decisions",
+        "description": "Our multi-indicator analysis system analyzes patterns and generates trading signals with confidence scores.",
         "details": [
-          "LSTM neural network predictions",
-          "AI market analysis",
+          "Multi-indicator technical analysis",
+          "Strategy market analysis",
           "Multi-model ensemble voting",
           "Confidence-weighted signals"
         ]
@@ -644,7 +644,7 @@
     },
     "adaptive": {
       "title": "Adaptive Position Sizing",
-      "subtitle": "AI-driven position scaling that adapts to market conditions, your edge, and risk environment in real-time.",
+      "subtitle": "Strategy-driven position scaling that adapts to market conditions, your edge, and risk environment in real-time.",
       "atr": {
         "title": "ATR-Based Stops",
         "description": "Stop loss and take profit automatically scale with market volatility using Average True Range."
@@ -673,7 +673,7 @@
     },
     "cta": {
       "title": "Ready to Start Trading Smarter?",
-      "subtitle": "Join thousands of traders using Bot Core to automate their strategies with AI-powered precision.",
+      "subtitle": "Join thousands of traders using Bot Core to automate their strategies with strategy-based precision.",
       "button": "Start Paper Trading Free"
     }
   }

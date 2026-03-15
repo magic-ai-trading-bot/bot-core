@@ -7,7 +7,7 @@
   "performance": "Hiệu suất",
   "recentTrades": "Giao dịch gần đây",
   "marketSummary": "Tóm tắt thị trường",
-  "aiInsights": "Phân tích AI",
+  "aiInsights": "Phân tích chiến lược",
   "quickActions": "Thao tác nhanh",
   "marketsOpen": "Thị trường mở cửa",
   "marketsClosed": "Thị trường đóng cửa",
@@ -54,11 +54,11 @@
     "value": "Giá trị"
   },
   "aiSignals": {
-    "title": "Tín hiệu AI",
-    "subtitle": "Dự đoán từ Machine Learning",
+    "title": "Tín hiệu giao dịch",
+    "subtitle": "Phân tích chiến lược đa chỉ báo",
     "live": "Trực tiếp",
     "noSignals": "Chưa có tín hiệu",
-    "noSignalsDesc": "Phân tích AI sẽ hiển thị tại đây",
+    "noSignalsDesc": "Phân tích chiến lược sẽ hiển thị tại đây",
     "justNow": "Vừa xong",
     "minutesAgo": "{{minutes}} phút trước",
     "hoursAgo": "{{hours}} giờ trước"
@@ -193,16 +193,16 @@
     }
   },
   "aiSignalsPage": {
-    "title": "Tín hiệu AI giao dịch",
-    "subtitle": "Dự đoán machine learning thời gian thực từ mạng neural tiên tiến",
+    "title": "Tín hiệu giao dịch",
+    "subtitle": "Phân tích kỹ thuật đa chỉ báo thời gian thực",
     "refresh": "Làm mới",
     "lastUpdate": "Cập nhật",
     "justNow": "Vừa xong",
     "engine": {
-      "status": "Trạng thái AI Engine",
+      "status": "Trạng thái Strategy Engine",
       "active": "Hoạt động",
       "offline": "Offline",
-      "description": "Mạng neural phân tích mô hình thị trường theo thời gian thực"
+      "description": "Phân tích kỹ thuật đa chỉ báo theo thời gian thực"
     },
     "accuracy": {
       "label": "Độ chính xác mô hình",
@@ -212,7 +212,7 @@
       "live": "Tín hiệu trực tiếp",
       "active": "Đang hoạt động",
       "waiting": "Đang chờ tín hiệu",
-      "waitingDesc": "AI engine đang phân tích điều kiện thị trường. Tín hiệu mới sẽ xuất hiện tự động."
+      "waitingDesc": "Strategy engine đang phân tích điều kiện thị trường. Tín hiệu mới sẽ xuất hiện tự động."
     },
     "history": {
       "title": "Lịch sử tín hiệu",
@@ -235,13 +235,13 @@
     },
     "actions": {
       "viewAnalysis": "Xem phân tích",
-      "aiReasoning": "Lý do AI",
+      "aiReasoning": "Lý do chiến lược",
       "strategyScores": "Điểm chiến lược"
     }
   },
   "tradeAnalyses": {
-    "title": "Phân tích giao dịch AI",
-    "subtitle": "Phân tích AI giúp bạn hiểu những gì đã sai và cải thiện chiến lược.",
+    "title": "Phân tích giao dịch",
+    "subtitle": "Phân tích chiến lược giúp bạn hiểu những gì đã sai và cải thiện chiến lược.",
     "refresh": "Làm mới",
     "stats": {
       "totalAnalyses": "Tổng phân tích",
@@ -260,12 +260,12 @@
     },
     "empty": {
       "noAnalyses": "Chưa có phân tích",
-      "analysesDesc": "Hoàn thành một số giao dịch để xem phân tích AI",
+      "analysesDesc": "Hoàn thành một số giao dịch để xem phân tích chiến lược",
       "noSuggestions": "Chưa có đề xuất cấu hình",
-      "suggestionsDesc": "AI sẽ đề xuất tối ưu sau khi phân tích giao dịch của bạn"
+      "suggestionsDesc": "Hệ thống sẽ đề xuất tối ưu sau khi phân tích giao dịch của bạn"
     },
     "suggestion": {
-      "latest": "Đề xuất AI mới nhất",
+      "latest": "Đề xuất cấu hình mới nhất",
       "rootCause": "Nguyên nhân gốc",
       "applied": "Thay đổi đã áp dụng"
     },

@@ -9,7 +9,7 @@
   },
   "tabs": {
     "overview": "Overview",
-    "signals": "AI Signals",
+    "signals": "Trading Signals",
     "trades": "Trade History",
     "settings": "Settings"
   },
@@ -26,7 +26,7 @@
     "live": "Live"
   },
   "signal": {
-    "title": "AI Signals",
+    "title": "Trading Signals",
     "buy": "Buy Signal",
     "sell": "Sell Signal",
     "hold": "Hold",
@@ -37,14 +37,14 @@
     "generated": "Signal Generated",
     "processing": "Processing signals...",
     "noSignals": "No signals available",
-    "noSignalsDesc": "AI is analyzing the market. Please wait.",
+    "noSignalsDesc": "The system is analyzing the market. Please wait.",
     "refreshSignals": "Refresh Signals"
   },
   "aiEngine": {
-    "title": "AI Engine",
+    "title": "Strategy Engine",
     "active": "ACTIVE",
     "inactive": "INACTIVE",
-    "description": "Real-time market analysis with multi-model ensemble",
+    "description": "Real-time market analysis with multi-indicator strategies",
     "modelAccuracy": "Model Accuracy",
     "lastUpdate": "Last Update",
     "justNow": "Just now",
@@ -62,7 +62,7 @@
     "totalPnl": "Total P&L (USDT)",
     "noSignalHistory": "No signal history yet",
     "waitingForSignals": "Waiting for signals",
-    "waitingDescription": "AI engine is analyzing market conditions. New signals will appear automatically."
+    "waitingDescription": "Strategy engine is analyzing market conditions. New signals will appear automatically."
   },
   "order": {
     "market": "Market Order",
@@ -201,7 +201,7 @@
     "macd": "MACD Strategy",
     "bollinger": "Bollinger Bands",
     "volume": "Volume Strategy",
-    "ai": "AI Strategy",
+    "ai": "Combined Strategy",
     "enabled": "Strategy Enabled",
     "disabled": "Strategy Disabled"
   },

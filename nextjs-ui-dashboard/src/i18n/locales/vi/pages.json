@@ -11,16 +11,16 @@
     "badge": "Tính năng nền tảng",
     "title": "Tính năng mạnh mẽ cho",
     "subtitle": "Nhà giao dịch hiện đại",
-    "description": "Mọi thứ bạn cần để giao dịch thông minh hơn, nhanh hơn và có lợi nhuận cao hơn với công nghệ AI tiên tiến.",
+    "description": "Mọi thứ bạn cần để giao dịch thông minh hơn, nhanh hơn và có lợi nhuận cao hơn với công nghệ phân tích kỹ thuật tiên tiến.",
     "andMore": "Và còn nhiều hơn nữa...",
     "readyTitle": "Sẵn sàng bắt đầu giao dịch?",
     "readyDescription": "Tham gia cùng hàng nghìn nhà giao dịch sử dụng Bot Core để tự động hóa chiến lược giao dịch.",
     "getStartedFree": "Bắt đầu miễn phí",
     "items": {
       "aiAnalysis": {
-        "title": "Phân tích AI",
-        "description": "Các mô hình học máy tiên tiến phân tích xu hướng thị trường, tâm lý và chỉ báo kỹ thuật theo thời gian thực để xác định cơ hội giao dịch sinh lời.",
-        "highlights": ["Mô hình LSTM & Transformer", "Phân tích AI", "Phát hiện tâm lý"]
+        "title": "Phân tích chiến lược",
+        "description": "Các chiến lược phân tích kỹ thuật tiên tiến phân tích xu hướng thị trường, tâm lý và chỉ báo kỹ thuật theo thời gian thực để xác định cơ hội giao dịch sinh lời.",
+        "highlights": ["Phân tích đa chỉ báo", "Phân tích chiến lược", "Phát hiện tâm lý"]
       },
       "tradingBot": {
         "title": "Bot giao dịch tự động",
@@ -54,7 +54,7 @@
       "multiExchange": { "title": "Đa sàn giao dịch", "description": "Giao dịch trên Binance, Bybit & nhiều hơn" },
       "monitoring": { "title": "Giám sát 24/7", "description": "Hệ thống giám sát luôn bật" },
       "alerts": { "title": "Cảnh báo tùy chỉnh", "description": "Telegram, Discord & Email" },
-      "aiSignals": { "title": "Tín hiệu AI", "description": "Dự đoán bằng machine learning" }
+      "aiSignals": { "title": "Tín hiệu giao dịch", "description": "Phân tích chiến lược đa chỉ báo" }
     }
   },
   "pricing": {
@@ -72,7 +72,7 @@
         "features": [
           "Chỉ Paper Trading",
           "3 chiến lược hoạt động",
-          "Tín hiệu AI cơ bản",
+          "Tín hiệu giao dịch cơ bản",
           "Hỗ trợ cộng đồng",
           "1 kết nối sàn",
           "Báo cáo hiệu suất hàng ngày"
@@ -87,7 +87,7 @@
         "features": [
           "Giao dịch thật",
           "Không giới hạn chiến lược",
-          "Phân tích AI nâng cao",
+          "Phân tích chiến lược nâng cao",
           "Hỗ trợ ưu tiên",
           "3 kết nối sàn",
           "Cảnh báo thời gian thực",
@@ -108,7 +108,7 @@
           "White-label",
           "Cam kết SLA",
           "Triển khai on-premise",
-          "Huấn luyện mô hình AI tùy chỉnh"
+          "Tùy chỉnh chiến lược giao dịch nâng cao"
         ],
         "cta": "Liên hệ kinh doanh"
       }
@@ -136,7 +136,7 @@
     "badge": "Về chúng tôi",
     "title": "Xây dựng tương lai của",
     "subtitle": "Giao dịch tự động",
-    "description": "Chúng tôi tin rằng mọi người đều xứng đáng được tiếp cận công nghệ giao dịch cấp tổ chức. Sứ mệnh của chúng tôi là dân chủ hóa giao dịch thuật toán thông qua AI.",
+    "description": "Chúng tôi tin rằng mọi người đều xứng đáng được tiếp cận công nghệ giao dịch cấp tổ chức. Sứ mệnh của chúng tôi là dân chủ hóa giao dịch thuật toán thông qua phân tích kỹ thuật tiên tiến.",
     "stats": {
       "activeUsers": "Người dùng hoạt động",
       "countries": "Quốc gia",
@@ -155,7 +155,7 @@
       },
       "innovation": {
         "title": "Đổi mới",
-        "description": "Chúng tôi mở rộng giới hạn của những gì có thể với AI và giao dịch."
+        "description": "Chúng tôi mở rộng giới hạn của những gì có thể với phân tích kỹ thuật và giao dịch."
       },
       "globalImpact": {
         "title": "Tác động toàn cầu",
@@ -168,15 +168,15 @@
         { "year": "2021", "event": "Thành lập tại San Francisco" },
         { "year": "2022", "event": "Ra mắt beta với 1,000 người dùng" },
         { "year": "2023", "event": "Vòng gọi vốn Series A, 50,000+ người dùng" },
-        { "year": "2024", "event": "Ra mắt engine giao dịch AI v2.0" }
+        { "year": "2024", "event": "Ra mắt Strategy Engine giao dịch v2.0" }
       ]
     },
     "team": {
       "title": "Gặp gỡ đội ngũ",
       "members": [
         { "name": "Alex Chen", "role": "CEO & Đồng sáng lập", "bio": "Cựu trader định lượng tại Goldman Sachs với hơn 10 năm trong giao dịch thuật toán." },
-        { "name": "Sarah Kim", "role": "CTO & Đồng sáng lập", "bio": "Cựu kỹ sư Google chuyên về machine learning và hệ thống phân tán." },
-        { "name": "Michael Rodriguez", "role": "Trưởng bộ phận AI", "bio": "Tiến sĩ Machine Learning từ MIT, tiên phong trong chiến lược giao dịch neural network." },
+        { "name": "Sarah Kim", "role": "CTO & Đồng sáng lập", "bio": "Cựu kỹ sư Google chuyên về hệ thống giao dịch và hệ thống phân tán." },
+        { "name": "Michael Rodriguez", "role": "Trưởng bộ phận Chiến lược", "bio": "Tiến sĩ Tài chính Định lượng từ MIT, tiên phong trong chiến lược giao dịch thuật toán." },
         { "name": "Emily Zhang", "role": "Trưởng bộ phận Sản phẩm", "bio": "Cựu product lead tại Coinbase, đam mê thiết kế lấy người dùng làm trung tâm." }
       ]
     },
@@ -238,14 +238,14 @@
     "categories": {
       "all": "Tất cả",
       "trading": "Giao dịch",
-      "ai": "AI & ML",
+      "ai": "Chiến lược",
       "market": "Phân tích thị trường",
       "tutorials": "Hướng dẫn"
     },
     "posts": [
-      { "title": "AI đang cách mạng hóa giao dịch Crypto như thế nào", "excerpt": "Khám phá cách thuật toán machine learning đang thay đổi cuộc chơi cho nhà giao dịch crypto.", "category": "AI & ML", "readTime": "5 phút đọc" },
+      { "title": "Phân tích kỹ thuật đang cách mạng hóa giao dịch Crypto như thế nào", "excerpt": "Khám phá cách chiến lược phân tích kỹ thuật đang thay đổi cuộc chơi cho nhà giao dịch crypto.", "category": "Chiến lược", "readTime": "5 phút đọc" },
       { "title": "Top 5 chiến lược quản lý rủi ro 2024", "excerpt": "Học các kỹ thuật quản lý rủi ro thiết yếu để bảo vệ vốn giao dịch.", "category": "Giao dịch", "readTime": "8 phút đọc" },
-      { "title": "Phân tích thị trường Bitcoin: Triển vọng Q4", "excerpt": "AI của chúng tôi phân tích các chỉ báo thị trường chính cho hiệu suất Bitcoin Q4.", "category": "Phân tích thị trường", "readTime": "6 phút đọc" },
+      { "title": "Phân tích thị trường Bitcoin: Triển vọng Q4", "excerpt": "Hệ thống chiến lược của chúng tôi phân tích các chỉ báo thị trường chính cho hiệu suất Bitcoin Q4.", "category": "Phân tích thị trường", "readTime": "6 phút đọc" },
       { "title": "Bắt đầu với Paper Trading", "excerpt": "Hướng dẫn cho người mới bắt đầu để thực hành giao dịch mà không rủi ro tiền thật.", "category": "Hướng dẫn", "readTime": "4 phút đọc" },
       { "title": "Hiểu chiến lược RSI trong Bot Core", "excerpt": "Đi sâu vào cách chiến lược giao dịch dựa trên RSI hoạt động.", "category": "Giao dịch", "readTime": "7 phút đọc" },
       { "title": "Tính năng mới: Phân tích danh mục nâng cao", "excerpt": "Giới thiệu công cụ mới để theo dõi và phân tích hiệu suất giao dịch.", "category": "Hướng dẫn", "readTime": "3 phút đọc" }
@@ -254,7 +254,7 @@
   "careers": {
     "badge": "Tuyển dụng",
     "title": "Xây dựng tương lai của",
-    "subtitle": "Giao dịch AI",
+    "subtitle": "Giao dịch thuật toán",
     "description": "Chúng tôi đang tìm kiếm những cá nhân đam mê để giúp cách mạng hóa giao dịch thuật toán. Tham gia đội ngũ và tạo tác động.",
     "whyJoin": {
       "title": "Tại sao gia nhập Bot Core?",
@@ -346,7 +346,7 @@
       },
       "services": {
         "title": "Mô tả dịch vụ",
-        "content": "Bot Core cung cấp công cụ giao dịch tiền điện tử được hỗ trợ bởi AI, bao gồm bot giao dịch tự động, phân tích thị trường và tính năng quản lý danh mục."
+        "content": "Bot Core cung cấp công cụ giao dịch tiền điện tử dựa trên chiến lược, bao gồm bot giao dịch tự động, phân tích thị trường và tính năng quản lý danh mục."
       },
       "account": {
         "title": "Trách nhiệm tài khoản",
@@ -498,22 +498,22 @@
     "viewAll": "Xem tất cả tài liệu"
   },
   "howItWorks": {
-    "badge": "BOT GIAO DỊCH AI",
+    "badge": "BOT GIAO DỊCH TỰ ĐỘNG",
     "hero": {
       "title": "Giao dịch thông minh,",
       "titleHighlight": "Không cảm xúc",
-      "subtitle": "Giao dịch tiền điện tử tự động với phân tích AI tiên tiến, giám sát thị trường thời gian thực và quản lý rủi ro thông minh."
+      "subtitle": "Giao dịch tiền điện tử tự động với phân tích kỹ thuật tiên tiến, giám sát thị trường thời gian thực và quản lý rủi ro thông minh."
     },
     "stats": {
       "strategies": "Chiến lược giao dịch",
       "riskLayers": "Lớp rủi ro",
       "uptime": "Thời gian hoạt động",
-      "aiAccuracy": "Độ chính xác AI",
+      "aiAccuracy": "Độ chính xác chiến lược",
       "winRate": "Tỷ lệ thắng"
     },
     "process": {
       "title": "Cách Bot Core hoạt động",
-      "subtitle": "Hệ thống giao dịch AI của chúng tôi tuân theo quy trình 4 bước tinh vi để xác định và thực hiện giao dịch sinh lời."
+      "subtitle": "Hệ thống giao dịch chiến lược của chúng tôi tuân theo quy trình 4 bước tinh vi để xác định và thực hiện giao dịch sinh lời."
     },
     "steps": {
       "dataCollection": {
@@ -543,11 +543,11 @@
       "signalGeneration": {
         "number": "03",
         "title": "Tạo tín hiệu",
-        "subtitle": "Quyết định giao dịch bằng AI",
-        "description": "Các mô hình học máy phân tích mẫu hình và tạo tín hiệu giao dịch với điểm độ tin cậy.",
+        "subtitle": "Quyết định giao dịch dựa trên chiến lược",
+        "description": "Phân tích kỹ thuật đa chỉ báo phân tích mẫu hình và tạo tín hiệu giao dịch với điểm độ tin cậy.",
         "details": [
-          "Dự đoán mạng neural LSTM",
-          "Phân tích thị trường AI",
+          "Phân tích kỹ thuật đa chỉ báo",
+          "Phân tích thị trường chiến lược",
           "Biểu quyết ensemble đa mô hình",
           "Tín hiệu có trọng số độ tin cậy"
         ]
@@ -673,7 +673,7 @@
     },
     "cta": {
       "title": "Sẵn sàng giao dịch thông minh hơn?",
-      "subtitle": "Tham gia cùng hàng nghìn nhà giao dịch sử dụng Bot Core để tự động hóa chiến lược với độ chính xác AI.",
+      "subtitle": "Tham gia cùng hàng nghìn nhà giao dịch sử dụng Bot Core để tự động hóa chiến lược với độ chính xác cao.",
       "button": "Bắt đầu Paper Trading miễn phí"
     }
   }

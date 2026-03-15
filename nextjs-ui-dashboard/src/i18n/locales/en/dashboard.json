@@ -7,7 +7,7 @@
   "performance": "Performance",
   "recentTrades": "Recent Trades",
   "marketSummary": "Market Summary",
-  "aiInsights": "AI Insights",
+  "aiInsights": "Strategy Insights",
   "quickActions": "Quick Actions",
   "marketsOpen": "Markets Open",
   "marketsClosed": "Markets Closed",
@@ -54,11 +54,11 @@
     "value": "Value"
   },
   "aiSignals": {
-    "title": "AI Signals",
-    "subtitle": "ML-powered predictions",
+    "title": "Trading Signals",
+    "subtitle": "Strategy-powered analysis",
     "live": "Live",
     "noSignals": "No signals yet",
-    "noSignalsDesc": "AI analysis will appear here",
+    "noSignalsDesc": "Strategy analysis will appear here",
     "justNow": "Just now",
     "minutesAgo": "{{minutes}}m ago",
     "hoursAgo": "{{hours}}h ago"
@@ -193,16 +193,16 @@
     }
   },
   "aiSignalsPage": {
-    "title": "AI Trading Signals",
-    "subtitle": "Real-time machine learning predictions powered by advanced neural networks",
+    "title": "Trading Signals",
+    "subtitle": "Real-time multi-indicator technical analysis",
     "refresh": "Refresh",
     "lastUpdate": "Last Update",
     "justNow": "Just now",
     "engine": {
-      "status": "AI Engine Status",
+      "status": "Strategy Engine Status",
       "active": "Active",
       "offline": "Offline",
-      "description": "Neural network analyzing market patterns in real-time"
+      "description": "Multi-indicator analysis of market patterns in real-time"
     },
     "accuracy": {
       "label": "Model Accuracy",
@@ -212,7 +212,7 @@
       "live": "Live Signals",
       "active": "Active",
       "waiting": "Waiting for Signals",
-      "waitingDesc": "The AI engine is analyzing market conditions. New signals will appear here automatically."
+      "waitingDesc": "The strategy engine is analyzing market conditions. New signals will appear here automatically."
     },
     "history": {
       "title": "Signal History",
@@ -235,13 +235,13 @@
     },
     "actions": {
       "viewAnalysis": "View Analysis",
-      "aiReasoning": "AI Reasoning",
+      "aiReasoning": "Strategy Reasoning",
       "strategyScores": "Strategy Scores"
     }
   },
   "tradeAnalyses": {
-    "title": "AI Trade Analyses",
-    "subtitle": "AI-powered analysis of your trades to help you understand what went wrong and improve your strategy.",
+    "title": "Trade Analyses",
+    "subtitle": "Strategy-based analysis of your trades to help you understand what went wrong and improve your strategy.",
     "refresh": "Refresh",
     "stats": {
       "totalAnalyses": "Total Analyses",
@@ -260,12 +260,12 @@
     },
     "empty": {
       "noAnalyses": "No trade analyses yet",
-      "analysesDesc": "Complete some trades to see AI-powered analysis",
+      "analysesDesc": "Complete some trades to see strategy-based analysis",
       "noSuggestions": "No config suggestions yet",
-      "suggestionsDesc": "AI will suggest optimizations after analyzing your trades"
+      "suggestionsDesc": "The system will suggest optimizations after analyzing your trades"
     },
     "suggestion": {
-      "latest": "Latest AI Config Suggestion",
+      "latest": "Latest Config Suggestion",
       "rootCause": "Root Cause",
       "applied": "Auto-applied changes"
     },

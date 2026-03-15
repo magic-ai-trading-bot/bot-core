@@ -321,8 +321,8 @@
     }
   },
   "tradeAnalyses": {
-    "title": "Analyses de Trading AI",
-    "subtitle": "L'analyse IA vous aide à comprendre ce qui s'est mal passé et à améliorer votre stratégie",
+    "title": "Analyses de Trading",
+    "subtitle": "L'analyse stratégique vous aide à comprendre ce qui s'est mal passé et à améliorer votre stratégie",
     "refresh": "Actualiser",
     "stats": {
       "totalAnalyses": "Total des analyses",
@@ -341,12 +341,12 @@
     },
     "empty": {
       "noAnalyses": "Pas encore d'analyses",
-      "analysesDesc": "Complétez quelques transactions pour voir l'analyse IA",
+      "analysesDesc": "Complétez quelques transactions pour voir l'analyse stratégique",
       "noSuggestions": "Pas encore de suggestions de config",
-      "suggestionsDesc": "L'IA suggérera des optimisations après avoir analysé vos transactions"
+      "suggestionsDesc": "Le système suggérera des optimisations après avoir analysé vos transactions"
     },
     "suggestion": {
-      "latest": "Dernière suggestion AI",
+      "latest": "Dernière suggestion de config",
       "rootCause": "Cause racine",
       "applied": "Modifications appliquées"
     },

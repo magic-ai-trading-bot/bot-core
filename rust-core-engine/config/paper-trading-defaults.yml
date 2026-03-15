@@ -68,7 +68,7 @@ risk:
 strategy:
   enabled_strategies:
     ai_ensemble: 1.0
-  min_ai_confidence: 0.70
+  min_ai_confidence: 0.60
   combination_method: AIEnsemble
   enable_optimization: true
   optimization_period_days: 30
@@ -147,7 +147,7 @@ indicators:
 signal:
   trend_threshold_percent: 0.8
   min_required_timeframes: 3
-  min_required_indicators: 3
+  min_required_indicators: 2
   confidence_base: 0.5
   confidence_per_timeframe: 0.08
 

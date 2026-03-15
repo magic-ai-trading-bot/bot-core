@@ -9,7 +9,7 @@
   },
   "tabs": {
     "overview": "Tổng quan",
-    "signals": "Tín hiệu AI",
+    "signals": "Tín hiệu giao dịch",
     "trades": "Lịch sử giao dịch",
     "settings": "Cài đặt"
   },
@@ -26,7 +26,7 @@
     "live": "Trực tiếp"
   },
   "signal": {
-    "title": "Tín hiệu AI",
+    "title": "Tín hiệu giao dịch",
     "buy": "Tín hiệu Mua",
     "sell": "Tín hiệu Bán",
     "hold": "Giữ",
@@ -37,14 +37,14 @@
     "generated": "Tín hiệu được tạo",
     "processing": "Đang xử lý tín hiệu...",
     "noSignals": "Không có tín hiệu",
-    "noSignalsDesc": "AI đang phân tích thị trường. Vui lòng chờ.",
+    "noSignalsDesc": "Hệ thống đang phân tích thị trường. Vui lòng chờ.",
     "refreshSignals": "Làm mới tín hiệu"
   },
   "aiEngine": {
-    "title": "AI Engine",
+    "title": "Strategy Engine",
     "active": "ĐANG HOẠT ĐỘNG",
     "inactive": "NGỪNG HOẠT ĐỘNG",
-    "description": "Phân tích thị trường thời gian thực với mô hình AI đa lớp",
+    "description": "Phân tích thị trường thời gian thực với chiến lược đa chỉ báo",
     "modelAccuracy": "Độ chính xác",
     "lastUpdate": "Cập nhật",
     "justNow": "Vừa xong",
@@ -62,7 +62,7 @@
     "totalPnl": "Tổng P&L (USDT)",
     "noSignalHistory": "Chưa có lịch sử tín hiệu",
     "waitingForSignals": "Đang chờ tín hiệu",
-    "waitingDescription": "AI engine đang phân tích điều kiện thị trường. Tín hiệu mới sẽ xuất hiện tự động."
+    "waitingDescription": "Strategy engine đang phân tích điều kiện thị trường. Tín hiệu mới sẽ xuất hiện tự động."
   },
   "order": {
     "market": "Lệnh thị trường",
@@ -201,7 +201,7 @@
     "macd": "Chiến lược MACD",
     "bollinger": "Bollinger Bands",
     "volume": "Chiến lược Volume",
-    "ai": "Chiến lược AI",
+    "ai": "Chiến lược tổng hợp",
     "enabled": "Chiến lược đã bật",
     "disabled": "Chiến lược đã tắt"
   },
